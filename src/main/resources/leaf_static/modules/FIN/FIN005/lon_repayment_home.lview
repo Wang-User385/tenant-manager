@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" customizationEnabled="true"
+          dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="payment_details_id"
+                url="${/request/@context_path}/modules/FIN/FIN005/payback_create_detail.lview"/>
+        <script><![CDATA[
+
+        function dateFormat(fmt, date) {
+            let ret;
+            const opt = {
+                "Y+": date.getFullYear().toString(),        // 年
+                "m+": (date.getMonth() + 1).toString(),     // 月
+                "d+": date.getDate().toString(),            // 日
+                "H+": date.getHours().toString(),           // 时
+                "M+": date.getMinutes().toString(),         // 分
+                "S+": date.getSeconds().toString()          // 秒
+                // 有其他格式化字符需求可以继续添加，必须转化成字符串
+            };
+            for (let k in opt) {
+                ret = new RegExp("(" + k + ")").exec(fmt);
+                if (ret) {
+                    fmt = fmt.replace(ret[1], (ret[1].length == 1) ? (opt[k]) : (opt[k].padStart(ret[1].length, "0")))
+                }
+                ;
+            }
+            ;
+            return fmt;
+        }
+
+        function payment_details(record_id, ds_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var contract_id = record.get('contract_id');
+            var withdraw_id = record.get('withdraw_id');
+            var param = record.data;
+            param['url_title'] = '还款创建明细';
+            param['function_code'] = 'FIN005F1';
+            param['winid'] = 'payment_details_open_id';
+            hls_doc_get_layout_code(param, 'payment_details_id', null, 'FIN005', null, null, null);
+        }
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            var query_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract');
+            if (ds.id == query_ds_id) {
+                var date = dateFormat('YYYY-mm', new Date());
+                record.set('query_date', date);
+                record.set('query_date_n', date);
+            }
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw');
+            var link_function = 'payment_details';
+            if (name == 'detail') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + ds_id + '\');">还款</a>';
+            }
+            return value;
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

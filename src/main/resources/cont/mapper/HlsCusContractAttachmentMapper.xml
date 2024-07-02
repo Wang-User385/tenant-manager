@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.HlsCusContractAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.HlsCusContractAttachment">
+        <result column="CONTRACT_ATTACHMENT_ID" property="contractAttachmentId" jdbcType="DECIMAL"/>
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL"/>
+        <result column="CONTRACT_ATTACHMENT_CATEGORY" property="contractAttachmentCategory" jdbcType="VARCHAR"/>
+        <result column="SOURCE_TYPE" property="sourceType" jdbcType="VARCHAR"/>
+        <result column="SOURCE_ID" property="sourceId" jdbcType="DECIMAL"/>
+        <result column="BP_CATEGORY" property="bpCategory" jdbcType="VARCHAR"/>
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL"/>
+        <result column="DOCUMENT_NAME" property="documentName" jdbcType="VARCHAR"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+
+        <result column="upload_person" property="uploadPerson" jdbcType="VARCHAR"/>
+        <result column="file_name" property="fileName" jdbcType="VARCHAR"/>
+        <result column="file_size" property="fileSize" jdbcType="DECIMAL"/>
+        <result column="attachment_id" property="attachmentId" jdbcType="DECIMAL"/>
+        <result column="upload_date" property="uploadDate" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="file_Id" property="fileId"/>
+        <result column="file_type" property="fileType"/>
+        <result column="source_key" property="sourceKey"/>
+        <result column="document_name_summary" property="documentNameSummary"/>
+        <result column="COPIES" property="copies"/>
+        <result column="file_names" property="fileNames" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryContractAttachment" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.cont.dto.HlsCusContractAttachment">
+            select cca.*,
+        (select wm_concat(fat.file_name) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+        and faam.table_name = 'CON_CONTRACT_ATTACHMENT' and faam.table_pk_value = cca.contract_attachment_id
+        ) file_name
+            from CON_CONTRACT_ATTACHMENT cca
+        where
+            source_Type = 'CON_CONTRACT_LOAN'
+            and contract_Attachment_Category = 'CON_CONTRACT_LOAN'
+            <if test="contractId != null and contractId != ''">
+                and cca.CONTRACT_ID =#{contractId}
+            </if>
+    </select>
+
+    <select id="selectCshDocByContractIdAndCategory" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.cont.dto.HlsCusContractAttachment">
+        select
+        hfca.CONTRACT_ATTACHMENT_CATEGORY,
+        hfca.DOCUMENT_NAME,
+        (
+        select sf.file_id
+        from
+        sys_attachment sa,
+        sys_file sf
+        <where>
+            hfca.CONTRACT_ATTACHMENT_ID||''= sa.source_key
+            <if test="sourceType!=null">
+                AND sa.source_type = #{sourceType}
+            </if>
+            AND sa.attachment_id = sf.attachment_id
+        </where>
+        ) file_id,
+        (
+        SELECT
+        wm_concat ( sf.file_name )
+        FROM
+        sys_attachment sa,
+        sys_file sf
+        <where>
+            hfca.CONTRACT_ATTACHMENT_ID||''= sa.source_key
+            <if test="sourceType!=null">
+                AND sa.source_type = #{sourceType}
+            </if>
+            AND sa.attachment_id = sf.attachment_id
+        </where>
+        ) file_name,
+        hfca.description,
+        hfca.CONTRACT_ATTACHMENT_ID
+        FROM
+        CON_CONTRACT_ATTACHMENT hfca
+        <where>
+            1 = 1
+            <if test="contractAttachmentCategory!=null">
+                and hfca.CONTRACT_ATTACHMENT_CATEGORY=#{contractAttachmentCategory}
+            </if>
+            <if test="contractId!=null">
+                and hfca.CONTRACT_ID=#{contractId}
+            </if>
+        </where>
+        ORDER BY
+        last_update_date ASC
+    </select>
+
+    <select id="selectContractFineAttachment"   parameterType="com.hand.hls.cont.dto.HlsCusContractAttachment" resultMap="BaseResultMap">
+    SELECT
+        cca.*,
+        (select wm_concat(fat.file_name) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+        and faam.table_name = 'CON_CONTRACT_ATTACHMENT' and faam.table_pk_value = cca.contract_attachment_id
+        ) file_name
+    FROM
+        con_contract_attachment cca
+    WHERE 1=1
+      <if test="sourceType!=null">
+        and cca.source_type=#{sourceType}
+     </if>
+     <if test="sourceId!=null">
+        and cca.source_id=#{sourceId}
+     </if>
+    </select>
+
+    <select id="contractAttachmentLendDocumentListQuery" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.cont.dto.HlsCusContractAttachment">
+        select
+        hfca.CONTRACT_ATTACHMENT_CATEGORY,
+        hfca.DOCUMENT_NAME,
+        hfca.description,
+        hfca.CONTRACT_ATTACHMENT_ID,
+        hfca.CREATION_DATE upload_date,
+        (select su.description
+        from sys_user su
+        where hfca.last_updated_by = su.user_id) as upload_person,
+        (select wm_concat(fat.file_name) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+        and faam.table_name = 'CON_CONTRACT_ATTACHMENT' and faam.table_pk_value = hfca.contract_attachment_id
+        ) file_name
+        FROM
+        CON_CONTRACT_ATTACHMENT hfca
+        where
+             hfca.CONTRACT_ATTACHMENT_CATEGORY='CON_CONTRACT_LEND'
+            <if test="contractId!=null">
+                and hfca.CONTRACT_ID=#{contractId}
+            </if>
+        ORDER BY
+        last_update_date ASC
+    </select>
+
+    <select id="selectContractEndFileByContractId" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.cont.dto.HlsCusContractAttachment">
+       select  sf.file_id as file_id,
+        sf.file_name as file_name,
+        sf.file_size as file_size,
+        sf.description,
+        (select su.description
+        from sys_user su
+        where sf.last_updated_by = su.user_id) as upload_person,
+        sf.last_update_date as upload_date
+  from SYS_ATTACHMENT sa,
+       SYS_FILE sf
+  where sa.ATTACHMENT_ID = sf.ATTACHMENT_ID
+    and sa.SOURCE_KEY=#{contractId}
+    and sa.SOURCE_TYPE in ('CON_CONTRACT_END','PRJ_TRANSFER_GD','PRJ_TRANSFER_PROOF_GD')
+
+    </select>
+
+    <select id="queryContractAttachmentDetail" resultMap="BaseResultMap" parameterType="java.util.Map">
+        SELECT
+        ca.*,
+        (SELECT group_concat(sf.FILE_NAME)
+        FROM fnd_atm_attachment sf, fnd_atm_attachment_multi sa
+        WHERE sa.ATTACHMENT_ID = sf.ATTACHMENT_ID AND ca.contract_attachment_id = sa.table_pk_value AND
+        upper(sa.table_name) = 'CON_CONTRACT') file_names,
+        (SELECT group_concat(sf.file_type_code)
+        FROM fnd_atm_attachment sf, fnd_atm_attachment_multi sa
+        WHERE sa.ATTACHMENT_ID = sf.ATTACHMENT_ID AND ca.contract_attachment_id = sa.table_pk_value AND
+        upper(sa.table_name) = 'CON_CONTRACT') file_type,
+        (SELECT group_concat(sf.attachment_id)
+        FROM fnd_atm_attachment sf, fnd_atm_attachment_multi sa
+        WHERE sa.ATTACHMENT_ID = sf.ATTACHMENT_ID AND ca.contract_attachment_id = sa.table_pk_value AND
+        upper(sa.table_name) = 'CON_CONTRACT') file_id,
+        (SELECT group_concat(sa.table_pk_value)
+        FROM fnd_atm_attachment sf, fnd_atm_attachment_multi sa
+        WHERE sa.ATTACHMENT_ID = sf.ATTACHMENT_ID AND ca.contract_attachment_id = sa.table_pk_value AND
+        upper(sa.table_name) = 'CON_CONTRACT') source_key
+        FROM
+        con_contract_attachment ca
+        <where>
+            1=1
+            <if test="contractId != null">
+                and ca.contract_id = #{contractId,jdbcType=BIGINT}
+            </if>
+            <if test="contractAttachmentCategory != null">
+                and ca.contract_attachment_category = #{contractAttachmentCategory,jdbcType=VARCHAR}
+            </if>
+            <if test="status == 'apply'">
+                and ca.process_instance_id is null
+            </if>
+            <if test="status == 'approve' and processInstanceId != null">
+                and ca.process_instance_id = #{processInstanceId,jdbcType=VARCHAR}
+            </if>
+            <if test="refD01 != null and processInstanceId == null">
+                and ca.ref_d01 = #{refD01,jdbcType=DATE}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryChangeAttachmentByCategory" resultMap="BaseResultMap" parameterType="com.hand.hls.cont.dto.HlsCusContractAttachment">
+        select cca.CONTRACT_ATTACHMENT_ID,
+               cca.CONTRACT_ID,
+               cca.CONTRACT_ATTACHMENT_CATEGORY,
+               cca.SOURCE_ID,
+               cca.DOCUMENT_NAME,
+               cca.DESCRIPTION,
+               (select wm_concat(faa.file_name)
+                from FND_ATM_ATTACHMENT faa,
+                     FND_ATM_ATTACHMENT_MULTI faam
+                where faa.ATTACHMENT_ID = faam.ATTACHMENT_ID
+                  and to_char(cca.contract_attachment_id) = faam.table_pk_value
+                  and faam.table_name = 'CON_CONTRACT_ATTACHMENT') file_names,
+               (select wm_concat(faam.attachment_id) from FND_ATM_ATTACHMENT_MULTI faam where to_char(cca.contract_attachment_id) = faam.table_pk_value
+                                                                                          and faam.table_name = 'CON_CONTRACT_ATTACHMENT') attachment_id
+        from CON_CONTRACT_ATTACHMENT cca
+        where cca.CONTRACT_ID = #{contractId}
+    </select>
+
+    <select id="queryAttachmentForContractChange" resultType="map">
+        select m.record_id, m.table_name, m.table_pk_value, m.attachment_id,
+               m.created_by, m.creation_date, m.last_updated_by, m.last_update_date
+        from FND_ATM_ATTACHMENT_MULTI m where m.TABLE_NAME = #{tableName} and m.TABLE_PK_VALUE = #{tablePkValue}
+    </select>
+
+    <select id="queryAttachmentFile" resultType="map">
+        select m.attachment_id, m.source_type_code, m.source_pk_value, m.content, m.file_type_code,
+               m.mime_type, m.file_name, m.file_size, m.file_path,
+               m.created_by, m.creation_date, m.last_updated_by, m.last_update_date
+        from FND_ATM_ATTACHMENT m where m.ATTACHMENT_ID = #{attachment_id}
+    </select>
+</mapper>

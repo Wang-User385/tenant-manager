@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: huangtianyang
+    Date: 2019/02/19 16:37
+    Revision: 1.0 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+
+        <a:link id="CONT301F0_CONT_CREATE_ID"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_create.lview"/>
+
+        <a:link id="prj316_project_modify_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify.lview"/>
+
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            //debugger;
+            if (ds.id == '${/parameter/@layout_code}_G_GRID_prj_project_ds') {
+                /*
+                                qpara['project_status'] = 'NOTICE_APPROVED';
+                */
+            }
+            qpara['created_by'] = '${/session/@user_id}';
+        };
+
+        //创建合同
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var prj_ds_id = '${/parameter/@layout_code}_G_GRID_prj_project_ds';
+            var prj_record = $(prj_ds_id).getSelected();
+            var credit_flag = prj_record[0].data.credit_flag;
+            // debugger;
+            if (prj_record.length == 0) {
+                Leaf.showMessage('提示', '未选择一条记录');
+            }else if (prj_record[0].data.left_amount <= 0){
+                Leaf.showMessage('提示', '剩余可用余额不足，请选择其他项目!');
+            } else {
+                var param = prj_record[0].data;
+                param['url_title'] = '租赁合同创建';
+                if(credit_flag == 'Y'){
+                    param['function_code'] = 'CONT301F12';
+                }else {
+                    param['function_code'] = 'CONT301F0';
+                }
+                param['winid'] = 'CONT301F0_cont_basic_create_winid';
+                param['leaseItemIds'] = '-1';
+                param['projectName'] = prj_record[0].data.project_name;
+                console.log(param);
+                hls_doc_get_layout_code(param, 'CONT301F0_CONT_CREATE_ID', prj_ds_id, 'CONT301NEW');
+            }
+        };
+
+        //超链接渲染
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'project_number' && value) {
+                return '<a href="javascript:open_project_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+        };
+
+        //项目维护
+        function open_project_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data,
+                function_code = 'PRJ316F2Q';
+            param['url_title'] = '项目明细';
+            param['winid'] = 'project_modify_winid';
+            param['function_code'] = function_code;
+            var project_status = record.get('project_status');
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+
+            hls_doc_get_layout_code(param, 'prj316_project_modify_id', ds_id, function_code);
+        }
+
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+    
+    

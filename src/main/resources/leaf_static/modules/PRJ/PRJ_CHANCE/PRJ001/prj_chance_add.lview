@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020-02-08
+    $Description: 立项创建
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="prj_chance_add_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail.lview"/>
+        <a:link id="prj_credit_add_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_credit_modify_detail.lview"/>
+        <script><![CDATA[
+
+        Leaf.onReady(function () {
+            // debugger;
+            var userName;
+            Leaf.request({
+                url: "${/request/@context_path}/hls/marketing/report/querySession",
+                para: {
+                    host_project_manager: '${/session/@userId}'
+                },
+                success: function (res) {
+                    userName = res.result.record[0].host_project_manager_n;
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+                    var ds_record = $(ds_id).getCurrentRecord();
+                    ds_record.set('proposer_employee_id_n', userName);
+                    ds_record.set('proposer_employee_id', '${/session/@userId}');
+                    ds_record.set('unit_id', '${/session/@unitId}');
+                    ds_record.set('unit_id_n', '${/session/@unitName}');
+                },
+                error: function () {
+                    $L.Masker.unmask(document.body);
+                    Leaf.showMessage("提示", "保存出错!", null);
+                },
+                sync: true,
+                scope: this
+            });
+        });
+
+        // 打开明细页面
+        function prj001_new_open(ds_id, credit_line_name, credit_flag, business_type, business_type_n, proposer_employee_id, proposer_employee_id_n, project_assistant,
+                                 project_assistant_n, unit_id, unit_id_n, company_id, company_id_n) {
+            debugger;
+            var param = $(ds_id).getAt(0).data;
+
+            param['url_title'] = '立项创建';
+            if(credit_flag=="Y"){
+                param['function_code'] = 'PRJ003F1';
+                var link_id = 'prj_credit_add_id';
+            }else{
+                param['function_code'] = 'PRJ001F1';
+                var link_id = 'prj_chance_add_id';
+            }
+
+            param['winid'] = 'prj_chance_add_winid';
+            param['entrance_winid'] = '${/parameter/@winid}';
+            param['ds_id'] = '${/parameter/@ds_id}';
+            param['credit_line_name'] = credit_line_name;
+            param['seturl_flag'] = 'Y';
+            param['credit_flag'] = credit_flag;
+            param['business_type'] = business_type;
+            param['business_type_n'] = business_type_n;
+            param['proposer_employee_id'] = proposer_employee_id;
+            param['proposer_employee_id_n'] = proposer_employee_id_n;
+            param['project_assistant'] = project_assistant;
+            param['project_assistant_n'] = project_assistant_n;
+            param['unit_id'] = unit_id;
+            param['unit_id_n'] = unit_id_n;
+            param['company_id'] = company_id;
+            param['company_id_n'] = company_id_n;
+            param['function_usage'] = 'CREATE';
+
+
+            hls_doc_get_layout_code(param, link_id, ds_id, 'PRJ001', '${/parameter/@winid}', 'Y');
+        }
+
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            // debugger;
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+            $(pledge_ds_id).getCurrentRecord().set('proposer_employee_name', '${/parameter/@proposer_employee_name}');
+
+        };
+
+
+        // 创建立项
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            // debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+            if ($(ds_id).validate()) {
+                //项目名称
+                var credit_line_name = $(ds_id).getCurrentRecord().get('credit_line_name');
+                //是否
+                var credit_flag = $(ds_id).getCurrentRecord().get('credit_flag');
+                //业务类型
+                var business_type = $(ds_id).getCurrentRecord().get('business_type');
+                var business_type_n = $(ds_id).getCurrentRecord().get('business_type_n');
+                //项目主办
+                var proposer_employee_id = $(ds_id).getCurrentRecord().get('proposer_employee_id');
+                var proposer_employee_id_n = $(ds_id).getCurrentRecord().get('proposer_employee_id_n');
+                //项目协办
+                var project_assistant_n = $(ds_id).getCurrentRecord().get('project_assistant_n');
+                var project_assistant = $(ds_id).getCurrentRecord().get('project_assistant');
+                //业务分类
+                var industry_n = $(ds_id).getCurrentRecord().get('industry_n');
+                var industry = $(ds_id).getCurrentRecord().get('industry');
+                //业务板块
+                var industry_type_n = $(ds_id).getCurrentRecord().get('industry_type_n');
+                var industry_type = $(ds_id).getCurrentRecord().get('industry_type');
+
+                var unit_id = '${/session/@unitId}';
+                var company_id = $(ds_id).getCurrentRecord().get('company_id');
+                var unit_id_n = '${/session/@unitName}';
+                var company_id_n = $(ds_id).getCurrentRecord().get('company_id_n');
+
+                prj001_new_open(ds_id, credit_line_name, credit_flag, business_type, business_type_n, proposer_employee_id, proposer_employee_id_n, project_assistant,
+                    project_assistant_n, unit_id, unit_id_n, company_id, company_id_n);
+            }
+        };
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+            if (ds.id == ds_id) {
+                if ( record.get('credit_flag') == 'Y') {
+                    record.getField('industry').setReadOnly(true);
+                    record.getField('industry').setRequired(false);
+                    record.getField('business_type').setReadOnly(true);
+                    record.getField('business_type').setRequired(false);
+                    record.getField('industry_type').setReadOnly(true);
+                    record.getField('industry_type').setRequired(false);
+                    record.getField('industry_n').setReadOnly(true);
+                    record.getField('industry_n').setRequired(false);
+                    record.getField('business_type_n').setReadOnly(true);
+                    record.getField('business_type_n').setRequired(false);
+                    record.getField('industry_type_n').setReadOnly(true);
+                    record.getField('industry_type_n').setRequired(false);
+                    record.set('industry', '');
+                    record.set('industry_n', '');
+                    record.set('business_type', '');
+                    record.set('business_type_n', '');
+                    record.set('industry_type', '');
+                    record.set('industry_type_n', '');
+                }else{
+                    record.getField('industry').setReadOnly(false);
+                    record.getField('industry').setRequired(true);
+                    record.getField('business_type').setReadOnly(false);
+                    record.getField('business_type').setRequired(true);
+                    record.getField('industry_type').setReadOnly(false);
+                    record.getField('industry_type').setRequired(true);
+                    record.getField('industry_n').setReadOnly(false);
+                    record.getField('industry_n').setRequired(true);
+                    record.getField('business_type_n').setReadOnly(false);
+                    record.getField('business_type_n').setRequired(true);
+                    record.getField('industry_type_n').setReadOnly(false);
+                    record.getField('industry_type_n').setRequired(true);
+                }
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

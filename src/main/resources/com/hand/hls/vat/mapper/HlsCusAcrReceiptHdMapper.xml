@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.vat.mapper.HlsCusAcrReceiptHdMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.vat.dto.HlsCusAcrReceiptHd">
+        <result column="receipt_hd_id" property="receiptHdId" jdbcType="DECIMAL"/>
+        <result column="company_id" property="companyId" jdbcType="DECIMAL"/>
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="total_amount" property="totalAmount" jdbcType="DECIMAL"/>
+        <result column="currency" property="currency" jdbcType="VARCHAR"/>
+        <result column="document_type" property="documentType" jdbcType="VARCHAR"/>
+        <result column="document_number" property="documentNumber" jdbcType="VARCHAR"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="business_type" property="businessType" jdbcType="VARCHAR"/>
+        <result column="receipt_date" property="receiptDate" jdbcType="DATE"/>
+        <result column="receipt_status" property="receiptStatus" jdbcType="VARCHAR"/>
+        <result column="ref_v01" property="refV01" jdbcType="VARCHAR"/>
+        <result column="ref_v02" property="refV02" jdbcType="VARCHAR"/>
+        <result column="ref_v03" property="refV03" jdbcType="VARCHAR"/>
+        <result column="ref_v04" property="refV04" jdbcType="VARCHAR"/>
+        <result column="ref_v05" property="refV05" jdbcType="VARCHAR"/>
+        <result column="ref_v06" property="refV06" jdbcType="VARCHAR"/>
+        <result column="ref_v07" property="refV07" jdbcType="VARCHAR"/>
+        <result column="ref_v08" property="refV08" jdbcType="VARCHAR"/>
+        <result column="ref_v09" property="refV09" jdbcType="VARCHAR"/>
+        <result column="ref_v10" property="refV10" jdbcType="VARCHAR"/>
+        <result column="ref_v11" property="refV11" jdbcType="VARCHAR"/>
+        <result column="ref_v12" property="refV12" jdbcType="VARCHAR"/>
+        <result column="ref_v13" property="refV13" jdbcType="VARCHAR"/>
+        <result column="ref_v14" property="refV14" jdbcType="VARCHAR"/>
+        <result column="ref_v15" property="refV15" jdbcType="VARCHAR"/>
+        <result column="ref_n01" property="refN01" jdbcType="DECIMAL"/>
+        <result column="ref_n02" property="refN02" jdbcType="DECIMAL"/>
+        <result column="ref_n03" property="refN03" jdbcType="DECIMAL"/>
+        <result column="ref_n04" property="refN04" jdbcType="DECIMAL"/>
+        <result column="ref_n05" property="refN05" jdbcType="DECIMAL"/>
+        <result column="ref_n06" property="refN06" jdbcType="DECIMAL"/>
+        <result column="ref_n07" property="refN07" jdbcType="DECIMAL"/>
+        <result column="ref_n08" property="refN08" jdbcType="DECIMAL"/>
+        <result column="ref_n09" property="refN09" jdbcType="DECIMAL"/>
+        <result column="ref_n10" property="refN10" jdbcType="DECIMAL"/>
+        <result column="ref_d01" property="refD01" jdbcType="DATE"/>
+        <result column="ref_d02" property="refD02" jdbcType="DATE"/>
+        <result column="ref_d03" property="refD03" jdbcType="DATE"/>
+        <result column="ref_d04" property="refD04" jdbcType="DATE"/>
+        <result column="ref_d05" property="refD05" jdbcType="DATE"/>
+        <result column="ref_d06" property="refD06" jdbcType="DATE"/>
+        <result column="ref_d07" property="refD07" jdbcType="DATE"/>
+        <result column="ref_d08" property="refD08" jdbcType="DATE"/>
+        <result column="ref_d09" property="refD09" jdbcType="DATE"/>
+        <result column="ref_d10" property="refD10" jdbcType="DATE"/>
+    </resultMap>
+
+    <resultMap id="QueryReceiptListMap" type="map">
+        <result column="document_number" property="document_number" />
+        <result column="bp_name" property="bp_name" />
+        <result column="receipt_date" property="receipt_date" />
+        <result column="total_amount" property="total_amount" />
+        <result column="cf_item_desc" property="cf_item_desc" />
+        <result column="company_name" property="company_name" />
+        <result column="business_name" property="business_name" />
+        <result column="business_unit" property="business_unit" />
+        <result column="businessUnit" property="businessUnit" />
+        <result column="business_name" property="business_name" />
+        <result column="businessName" property="businessName" />
+        <result column="unitName" property="unitName" />
+        <result column="receipt_type" property="receiptType" />
+        <result column="receipt_hd_id" property="receiptHdId" />
+        <result column="receipt_status_n" property="receiptStatusN" jdbcType="VARCHAR"/>
+        <result column="receipt_type_n" property="receiptTypeN" jdbcType="VARCHAR"/>
+
+    </resultMap>
+    <select id="queryReceiptList" resultMap="QueryReceiptListMap" parameterType="java.util.Map">
+        SELECT t.* FROM
+        (SELECT
+        arh.document_number,
+        (
+        SELECT
+        hbm.bp_name
+        FROM
+        hls_bp_master hbm
+        WHERE
+        hbm.bp_id = arh.bp_id
+        ) bp_name,
+        arh.receipt_date,
+        arh.total_amount,
+        arh.receipt_type,
+        (case when arh.receipt_type = 'LEASEBACK_PRINCIPAL' then '回租本金' else '保证金/风险金' end)receipt_type_n,
+        arh.receipt_hd_id,
+        arh.bp_id,
+        (
+        SELECT
+        DISTINCT
+        hci.description
+        FROM
+        con_contract_cashflow ccc,
+        hls_cashflow_item hci,
+        acr_receipt_ln arl
+        WHERE
+        arl.source_id = ccc.cashflow_id
+        AND hci.cf_item = ccc.cf_item
+        AND arl.receipt_hd_id = arh.receipt_hd_id
+        ) cf_item_desc,
+        (
+        SELECT
+        fc.company_full_name
+        FROM
+        fnd_company fc
+        WHERE
+        fc.company_id = arh.company_id
+        ) company_name,
+        TABALL1.name business_name,
+        TABALL1.unit_name business_unit,
+        arh.receipt_status,
+        (case when arh.receipt_status ='PRINT' then '已打印' else '未打印' end) receipt_status_n
+        FROM
+        acr_receipt_hd arh
+        left join
+        (SELECT FE.NAME,
+        SUA.USER_ID,
+        FOU.UNIT_ID,
+        MIN(FOU.UNIT_NAME) UNIT_NAME,
+        SUA.COMPANY_ID
+        FROM SYS_USER_ALLOCATION SUA
+        LEFT JOIN FND_EMPLOYEE_ASSIGNS FEA
+        ON SUA.EMPLOYEE_ASSIGN_ID = FEA.EMPLOYEE_ASSIGN_ID
+        LEFT JOIN FND_ORG_UNIT FOU
+        ON FEA.UNIT_ID = FOU.UNIT_ID,
+        (SELECT MIN(COMPANY_ID) COMPANY_ID, USER_ID
+        FROM SYS_USER_ALLOCATION
+        GROUP BY USER_ID
+        ORDER BY USER_ID ASC) SUAC, FND_EMPLOYEE FE
+        WHERE SUA.COMPANY_ID = FEA.COMPANY_ID
+        AND SUA.COMPANY_ID = FOU.COMPANY_ID
+        AND SUA.COMPANY_ID = SUAC.COMPANY_ID
+        AND SUA.USER_ID = SUAC.USER_ID
+        AND FE.EMPLOYEE_ID = FEA.EMPLOYEE_ID
+        GROUP BY SUA.USER_ID, SUA.COMPANY_ID, FOU.UNIT_ID, FE.NAME
+        ORDER BY SUA.USER_ID ASC) TABALL1
+        on TABALL1.user_id = arh.created_by
+        ) t
+        <where>
+            <if test="bpName!=null">
+                and exists (select 1 from hls_bp_master hbm where hbm.bp_id = t.bp_id and hbm.bp_name like
+                concat('%',concat(#{bpName},'%')))
+            </if>
+            <if test="receiptDateFrom!= null">
+                and t.receipt_date &gt;= to_date(#{receiptDateFrom},'YYYY-MM-DD')
+            </if>
+            <if test="receiptDateTo!= null">
+                and t.receipt_date &lt;= to_date(#{receiptDateTo},'YYYY-MM-DD')
+            </if>
+            <if test="business_unit != null">
+                and t.business_unit like concat('%',concat(#{business_unit},'%'))
+            </if>
+            <if test="businessUnit != null">
+                and t.business_unit like concat('%',concat(#{businessUnit},'%'))
+            </if>
+            <if test="businessName != null">
+                and t.business_name like concat('%',concat(#{businessName},'%'))
+            </if>
+        </where>
+        order by t.receipt_date desc
+    </select>
+
+    <resultMap id="QueryDepositWaitingReceiptListMap" type="map">
+        <result column="contract_id" property="contract_id" />
+        <result column="source_id" property="source_id" />
+        <result column="contract_number" property="contract_number" />
+        <result column="contract_name" property="contract_name" />
+        <result column="bp_name" property="bp_name" />
+        <result column="times" property="times" />
+        <result column="due_date" property="due_date" />
+        <result column="write_off_flag" property="write_off_flag" />
+        <result column="write_off_flag_desc" property="write_off_flag_desc" />
+        <result column="cf_item" property="cf_item" />
+        <result column="cf_type" property="cf_type" />
+        <result column="description" property="description" />
+        <result column="principal" property="principal" />
+        <result column="received_principal" property="received_principal" />
+        <result column="billing_principal" property="billing_principal" />
+        <result column="billing_amount" property="billing_amount" />
+        <result column="due_amount" property="due_amount" />
+        <result column="received_amount" property="received_amount" />
+        <result column="business_type" property="business_type" />
+        <result column="bp_id" property="bp_id" />
+        <result column="currency" property="currency" />
+        <result column="currency_desc" property="currency_desc" />
+        <result column="csh_write_off_amount" property="csh_write_off_amount" />
+        <result column="bank_account_num" property="bank_account_num" />
+        <result column="bank_account_name" property="bank_account_name" />
+        <result column="amount" property="amount" />
+        <result column="receive_amount" property="receive_amount" />
+    </resultMap>
+    <select id="queryDepositWaitingReceiptList" resultMap="QueryDepositWaitingReceiptListMap" parameterType="java.util.Map">
+        SELECT
+        cc.contract_id,
+        ccc.cashflow_id source_id,
+        cc.contract_number,
+        cc.contract_name,
+        (SELECT hbm.bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = cc.tenant_id ) bp_name,
+        ccc.times,
+        ccc.due_date,
+        ccc.write_off_flag,
+        (
+        SELECT
+        sc.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        sc
+        WHERE
+        sc.code_value = ccc.write_off_flag
+        AND sc. CODE = 'CON.CASHFLOW_WRITE_OFF_FLAG'
+        ) write_off_flag_desc,
+        ccc.cf_item,
+        ccc.cf_type,
+        ci.description,
+        ccc.principal,
+        ccc.received_principal,
+        ccc.billing_principal,
+        ccc.billing_amount,
+        ccc.due_amount,
+        nvl(ccc.received_amount, 0) received_amount,
+        cc.business_type,
+        (select min(bp.bp_id) from hls_bp_master bp
+        where cc.tenant_id=bp.bp_id
+        ) bp_id,
+        cc.currency,
+        (select fc.currency_name from FND_CURRENCY fc where fc.currency_code = cc.currency) as currency_desc,
+        (select sum(nvl(cwo.csh_write_off_amount,0))
+        from csh_write_off cwo
+        where cwo.cashflow_id = ccc.cashflow_id
+        and cwo.contract_id = cc.contract_id
+        and cwo.cf_item = ccc.cf_item) csh_write_off_amount,
+        (select cba.bank_account_num
+        from csh_transaction csh,
+        csh_bank_account cba
+        where csh.bank_account_id = cba.bank_account_id
+        and csh.transaction_id = (select max(cwo.csh_transaction_id)
+        from csh_write_off cwo
+        where cwo.cashflow_id = ccc.cashflow_id
+        and cwo.contract_id = cc.contract_id
+        and cwo.cf_item = ccc.cf_item)) bank_account_num,
+        (select cba.bank_account_name
+        from csh_transaction csh,
+        csh_bank_account cba
+        where csh.bank_account_id = cba.bank_account_id
+        and csh.transaction_id = (select max(cwo.csh_transaction_id)
+        from csh_write_off cwo
+        where cwo.cashflow_id = ccc.cashflow_id
+        and cwo.contract_id = cc.contract_id
+        and cwo.cf_item = ccc.cf_item)) bank_account_name,
+        (nvl(ccc.received_amount, 0) -
+        nvl((
+        select round(sum(arl.amount),2) from ACR_RECEIPT_LN arl where arl.source_id = ccc.cashflow_id and
+        arl.source_type =
+        'CASHFLOW_PRINCIPAL'
+        ),0)
+        ) as amount,
+        (select nvl(round(sum(arl.amount),2),0) from ACR_RECEIPT_LN arl where arl.source_id = ccc.cashflow_id and
+        arl.source_type = 'CASHFLOW_PRINCIPAL')
+        as receive_amount
+        FROM
+        con_contract cc,
+        con_contract_cashflow ccc,
+        hls_cashflow_item ci
+        where
+        cc.contract_id = ccc.contract_id
+        AND ccc.cf_item = ci.cf_item
+        AND ccc.cf_item in(51,53)
+        AND (ccc.received_amount - (select nvl(sum(arl.amount),0) from ACR_RECEIPT_LN arl where arl.source_id =
+        ccc.cashflow_id and arl.source_type = 'CASHFLOW_PRINCIPAL')) > 0
+        <if test="contractName !=null">
+            and cc.contract_name like concat(concat('%',#{contractName}),'%')
+        </if>
+        <if test="contractNumber !=null">
+            and cc.contract_number like concat(concat('%',#{contractNumber}),'%')
+        </if>
+        <if test="bpName!=null">
+            and exists (
+            SELECT
+            1
+            FROM
+            hls_bp_master hbm
+            WHERE
+            hbm.bp_id = cc.tenant_id
+            and hbm.bp_name like concat(concat('%',#{bpName}),'%'))
+        </if>
+    </select>
+
+    <resultMap id="QueryLeaseBackPrincipalWaitingReceiptListMap" type="map">
+        <result column="contract_id" property="contract_id" />
+        <result column="source_id" property="source_id" />
+        <result column="contract_number" property="contract_number" />
+        <result column="contract_name" property="contract_name" />
+        <result column="bp_name" property="bp_name" />
+        <result column="times" property="times" />
+        <result column="due_date" property="due_date" />
+        <result column="write_off_flag" property="write_off_flag" />
+        <result column="write_off_flag_desc" property="write_off_flag_desc" />
+        <result column="cf_item" property="cf_item" />
+        <result column="cf_item_n" property="cf_item_n" />
+        <result column="cf_type" property="cf_type" />
+        <result column="description" property="description" />
+        <result column="principal" property="principal" />
+        <result column="received_principal" property="received_principal" />
+        <result column="billing_principal" property="billing_principal" />
+        <result column="billing_amount" property="billing_amount" />
+        <result column="due_amount" property="due_amount" />
+        <result column="received_amount" property="received_amount" />
+        <result column="business_type" property="business_type" />
+        <result column="bp_id" property="bp_id" />
+        <result column="currency" property="currency" />
+        <result column="currency_desc" property="currency_desc" />
+        <result column="amount" property="amount" />
+        <result column="receive_amount" property="receive_amount" />
+    </resultMap>
+    <select id="queryLeaseBackPrincipalWaitingReceiptList" resultMap="QueryLeaseBackPrincipalWaitingReceiptListMap" parameterType="java.util.Map">
+        SELECT
+        cc.contract_id,
+        ccc.cashflow_id source_id,
+        cc.contract_number,
+        cc.contract_name,
+        (SELECT hbm.bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = cc.tenant_id ) bp_name,
+        ccc.times,
+        ccc.due_date,
+        ccc.write_off_flag,
+        (
+        SELECT
+        sc.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        sc
+        WHERE
+        sc.code_value = ccc.write_off_flag
+        AND sc. CODE = 'CON.CASHFLOW_WRITE_OFF_FLAG'
+        ) write_off_flag_desc,
+        ccc.cf_item,
+        (SELECT
+        hci.description
+        FROM
+        hls_cashflow_item hci
+        WHERE
+        ccc.cf_item = hci.cf_item
+        AND ccc.cf_item = hci.cf_type
+        ) cf_item_n,
+        ccc.cf_type,
+        ci.description,
+        ccc.principal,
+        ccc.received_principal,
+        ccc.billing_principal,
+        ccc.billing_amount,
+        nvl(ccc.principal, 0) due_amount,
+        nvl(ccc.received_principal, 0) received_amount,
+        cc.business_type,
+        (select min(bp.bp_id)
+        from hls_bp_master bp
+        where cc.tenant_id = bp.bp_id) bp_id,
+        cc.currency,
+        (select fc.currency_name from FND_CURRENCY fc where fc.currency_code = cc.currency) as currency_desc,
+        round(nvl(ccc.received_principal, 0) -
+        nvl((
+        select round(sum(arl.amount),2) from ACR_RECEIPT_LN arl where arl.source_id = ccc.cashflow_id and
+        arl.source_type =
+        'CASHFLOW_PRINCIPAL'
+        ),0),2) as amount,
+        nvl((select round(sum(arl.amount),2) from ACR_RECEIPT_LN arl where arl.source_id = ccc.cashflow_id and
+        arl.source_type
+        =
+        'CASHFLOW_PRINCIPAL'),0)
+        as receive_amount
+        FROM
+        con_contract cc,
+        con_contract_cashflow ccc,
+        hls_cashflow_item ci
+        <where>
+            cc.contract_id = ccc.contract_id
+            AND ccc.cf_item = ci.cf_item
+            AND ccc.cf_item = 1
+            AND cc.business_type = 'LEASEBACK'
+            AND (nvl(ccc.received_principal, 0) - nvl(ccc.billing_principal, 0) -
+            nvl((
+            select round(sum(arl.amount),2) from ACR_RECEIPT_LN arl where arl.source_id = ccc.cashflow_id and
+            arl.source_type =
+            'CASHFLOW_PRINCIPAL'
+            ),0) &gt; 0
+            )
+            <if test="contractName !=null">
+                and cc.contract_name like concat(concat('%',#{contractName}),'%')
+            </if>
+            <if test="contractNumber !=null">
+                and cc.contract_number like concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="timesFrom !=null">
+                and ccc.times &gt;= #{timesFrom}
+            </if>
+            <if test="timesTo != null">
+                and ccc.times &lt;= #{timesTo}
+            </if>
+            <if test="bpName!=null">
+                and exists (
+                SELECT
+                1
+                FROM
+                hls_bp_master hbm
+                WHERE
+                hbm.bp_id = cc.tenant_id
+                and hbm.bp_name like concat(concat('%',#{bpName}),'%'))
+            </if>
+            <if test="dueDateFrom !=null">
+                and ccc.due_date &gt;=#{dueDateFrom}
+            </if>
+            <if test="dueDateTo !=null">
+                and ccc.due_date &lt;#{dueDateTo}
+            </if>
+        </where>
+    </select>
+</mapper>

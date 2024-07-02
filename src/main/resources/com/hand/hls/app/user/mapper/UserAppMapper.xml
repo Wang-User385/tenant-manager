@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.app.user.mapper.UserAppMapper">
+
+    <select id="selectByProcessId" resultType="java.lang.String">
+        select BUSINESS_KEY_
+        from act_hi_procinst
+        where PROC_INST_ID_ = #{workProcessId}
+    </select>
+
+    <resultMap id="ComboBoxMap" type="map">
+        <result column="value_code" jdbcType="VARCHAR" property="valueCode"/>
+        <result column="value_name" jdbcType="VARCHAR" property="valueName"/>
+    </resultMap>
+    <select id="selectComboBox" resultMap="ComboBoxMap">
+        SELECT
+            s.code_value value_code,
+            s.MEANING value_name
+        FROM
+            sys_code_value_b_v s
+        WHERE
+            s.CODE = #{code}
+        ORDER BY
+            s.ORDER_SEQ
+    </select>
+
+    <select id="selectPriceList" resultMap="ComboBoxMap">
+        SELECT
+            t.price_list value_code,
+            t.description value_name
+        FROM
+            hls_PRICE_LIST t
+        WHERE
+            T.ENABLED_FLAG = 'Y'
+          AND t.PRICE_LIST IN ( 'GECALCULATOR_PMT_JC', 'GECALCULATOR_LP_JC', 'GECALCULATOR_CASUAL_JC' )
+        ORDER BY
+            T.DESCRIPTION DESC
+    </select>
+
+    <select id="selectBusinessType" resultMap="ComboBoxMap">
+        SELECT
+            t.*
+        FROM
+            (
+                SELECT
+                    v.code_value_id AS tree_node_id,
+                    v.code_value_id,
+                    v.code_value AS value_code,
+                    v.MEANING AS value_name,
+                    v.parent_code_value_id AS parent_tree_node_id,
+                    v.MEANING AS tree_node_desc,
+                    ( CASE WHEN v.CODE = 'HLS200.APPLY_LEASING_PRODUCT' THEN '' ELSE 'N' END ) expand_flag
+                FROM
+                    sys_code_value_b_v v
+                WHERE
+                        V.CODE IN ( 'HLS200.LEASING_PRODUCT_DETAIL', 'HLS200.APPLY_LEASING_PRODUCT' )
+                  AND FIND_IN_SET( v.code_value_id, getChildList ( v.code_value_id ) )
+                ORDER BY
+                    code_id
+            ) t
+    </select>
+
+    <select id="selectTaxType" resultMap="ComboBoxMap">
+        SELECT
+            t.tax_type_code AS value_code,
+            t.description AS value_name,
+            t.tax_type_rate AS vat_rate
+        FROM
+            fnd_tax_type_code t
+        WHERE
+            t.TAX_TYPE_CODE IN ('VAT_OUT_13', 'VAT_OUT_6')
+          AND t.enabled_flag = 'Y'
+    </select>
+</mapper>

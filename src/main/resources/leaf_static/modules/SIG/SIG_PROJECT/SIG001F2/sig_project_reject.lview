@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Revision: 1.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function sig001f2_back() {
+            $('${/parameter/@winid}').close();
+        }
+
+        function sig001f2_return() {
+            var ds = $('sig001f2_sig_project_rejected_ds');
+            var data = $('sig001f2_sig_project_rejected_ds').getAt(0);
+            if (ds.validate()) {
+                var submitData = [];
+                var datas = sig001_view_model.returnDatas;
+                for (var i = 0; i < datas.length; i++) {
+                    submitData[i] = {
+                        project_id: datas[i].get('project_id'),
+                        rejected_date: data.get('rejected_date'),
+                        return_type: data.get('return_type'),
+                        cancel_reason: data.get('cancel_reason'),
+                        change_project_number_flag: data.get('change_project_number_flag'),
+                        rejected_description: data.get('rejected_description'),
+                        return_stage: '${/parameter/@return_stage}'
+                    };
+                }
+                $L.showConfirm("提示", "是否退回所有勾选的进件项目!", function () {
+                    $L.Masker.mask(Ext.getBody(), "正在退回..");
+                    sig001f2_submit(submitData);
+                });
+            }
+        }
+
+        function sig001f2_submit(datas) {
+            var url = '';
+            if ('${/parameter/@parent_function_code}' == 'PRJ419') {
+                url = '${/request/@context_path}/prj/sign/return';
+            }
+            else if ('${/parameter/@parent_function_code}' == 'SIG001'){
+                url = '${/request/@context_path}/prj/sign/return';
+            }
+            else {
+                url = '${/request/@context_path}/prj/payment/return';
+            }
+            Leaf.request({
+                url: url,
+                para: datas,
+                success: function (res) {
+                    $L.Masker.unmask(Ext.getBody());
+                    $L.showInfoMessage("提示", "退回成功!", function () {
+                        sig001f2_back();
+                    });
+                },
+                failure: function (datas) {
+                    $L.Masker.unmask(Ext.getBody());
+                },
+                error: function (datas) {
+                    $L.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+        Leaf.onReady(function () {
+            debugger
+            var record = $('sig001f2_sig_project_rejected_ds').getAt(0);
+            record.set("rejected_date", new Date());
+            record.getField('rejected_date').setReadOnly(true);
+
+            if ('${/parameter/@parent_function_code}' == 'PRJ419' ||'${/parameter/@parent_function_code}' == 'PRJ317' ) {
+                record.getField('change_project_number_flag_n').setRequired(false);
+                record.getField('change_project_number_flag').setRequired(false);
+            }
+            if ('${/parameter/@lease_channel}' === '10') {
+                record.getField('return_type_n').setReadOnly(true);
+                if ('${/parameter/@parent_function_code}' == 'PRJ419') {
+                    record.set('return_type', 'CANCEL');
+                    record.set('return_type_n', '取消进件');
+                } else {
+                    record.set('return_type', 'RETURN');
+                    record.set('return_type_n', '退回进件');
+                }
+            } else if('${/parameter/@lease_channel}' === '20' && ('${/parameter/@return_stage}' === 'SIGN') || '${/parameter/@return_stage}' === 'SIGN_Q'){
+                record.getField('return_type_n').setReadOnly(true);
+                record.getField('change_project_number_flag_n').setRequired(false);
+                record.set('return_type', 'CANCEL');
+                record.set('return_type_n', '取消进件');
+            } else if('${/parameter/@lease_channel}' === '40') {
+                record.getField('return_type_n').setReadOnly(true);
+                record.getField('change_project_number_flag_n').setRequired(false);
+                if ('${/parameter/@parent_function_code}' == 'PRJ419') {
+                    record.set('return_type', 'CANCEL');
+                    record.set('return_type_n', '取消进件');
+                } else if ('${/parameter/@parent_function_code}' == 'SIG003') {
+                    record.set('return_type', 'REJECTED');
+                    record.set('return_type_n', '退回农户投放审查');
+                } else if ('${/parameter/@parent_function_code}' == 'SIG001') {
+                    record.set('return_type', 'PACKAGE_REJECTED');
+                    record.set('return_type_n', '退回合同包');
+                } else {
+                    record.set('return_type', 'RETURN');
+                    record.set('return_type_n', '退回进件');
+                }
+            }
+        });
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="return_type_ds" lookupCode="SIGN_RETURN_TYPE"/>
+            <a:dataSet id="change_project_number_flag_ds" lookupCode="SYS.YES_NO"/>
+            <a:dataSet id="process_cancel_reason_ds" lookupCode="PROCESS_CANCEL_REASON"/>
+            <a:dataSet id="sig001f2_sig_project_rejected_ds" autoCreate="true" autoQuery="false">
+                <a:fields>
+                    <a:field name="rejected_date" required="true" datatype="date" defaultValue="sysdate"/>
+                    <a:field name="rejected_description" required="true"/>
+                    <a:field name="return_type" required="true"/>
+                    <a:field name="return_type_n"  required="true" returnField="return_type"
+                             valueField="code_value" displayField="code_value_name" prompt="退回类型"
+                             options="return_type_ds"/>
+                    <a:field name="cancel_reason"/>
+                    <a:field name="cancel_reason_n"  options="process_cancel_reason_ds"
+                             displayField="code_value_name" valueField="code_value" returnField="cancel_reason"/>
+                    <a:field name="change_project_number_flag"/>
+                    <a:field name="change_project_number_flag_n" options="change_project_number_flag_ds"
+                             displayField="code_value_name" valueField="code_value" returnField="change_project_number_flag" prompt="是否更换合同编号"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton text="返回" click="sig001f2_back"/>
+                <a:gridButton text="退回" click="sig001f2_return"/>
+            </a:screenTopToolbar>
+            <a:switch test="/parameter/@parent_function_code">
+                <a:case value="PRJ419">
+                    <a:vBox>
+                        <a:datePicker prompt="退回时间" name="rejected_date" bindTarget="sig001f2_sig_project_rejected_ds"/>
+                        <a:comboBox name="return_type_n" bindTarget="sig001f2_sig_project_rejected_ds" prompt="退回类型"/>
+                        <a:comboBox name="cancel_reason_n" bindTarget="sig001f2_sig_project_rejected_ds" prompt="退回原因" width="200">
+                        </a:comboBox>
+                        <a:textArea prompt="说明" name="rejected_description" bindTarget="sig001f2_sig_project_rejected_ds"
+                                    width="500" height="200"/>
+                    </a:vBox>
+                </a:case>
+                <a:case value="PRJ317">
+                    <a:vBox>
+                        <a:datePicker prompt="退回时间" name="rejected_date" bindTarget="sig001f2_sig_project_rejected_ds"/>
+                        <a:comboBox name="return_type_n" bindTarget="sig001f2_sig_project_rejected_ds" prompt="退回类型"/>
+                        <a:comboBox name="cancel_reason_n" bindTarget="sig001f2_sig_project_rejected_ds" prompt="退回原因" width="200">
+                        </a:comboBox>
+                        <a:textArea prompt="说明" name="rejected_description" bindTarget="sig001f2_sig_project_rejected_ds"
+                                    width="500" height="200"/>
+                    </a:vBox>
+                </a:case>
+                <a:case value="*">
+                    <a:switch test="/parameter/@lease_channel">
+                        <a:case value="10">
+                            <a:vBox>
+                                <a:datePicker prompt="退回时间" name="rejected_date" bindTarget="sig001f2_sig_project_rejected_ds"/>
+                                <a:comboBox name="return_type_n" bindTarget="sig001f2_sig_project_rejected_ds" prompt="退回类型"/>
+                                <a:comboBox name="cancel_reason_n" bindTarget="sig001f2_sig_project_rejected_ds" prompt="退回原因" width="200">
+                                </a:comboBox>
+                                <a:textArea prompt="说明" name="rejected_description" bindTarget="sig001f2_sig_project_rejected_ds"
+                                            width="500" height="200"/>
+                            </a:vBox>
+                        </a:case>
+                        <a:case value="*">
+                            <a:vBox>
+                                <a:datePicker prompt="退回时间" name="rejected_date" bindTarget="sig001f2_sig_project_rejected_ds"/>
+                                <a:comboBox name="return_type_n" bindTarget="sig001f2_sig_project_rejected_ds" prompt="退回类型"/>
+                                <a:comboBox name="cancel_reason_n" bindTarget="sig001f2_sig_project_rejected_ds" prompt="退回原因" width="200">
+                                </a:comboBox>
+                                <a:textArea prompt="说明" name="rejected_description" bindTarget="sig001f2_sig_project_rejected_ds"
+                                            width="500" height="200"/>
+                            </a:vBox>
+                        </a:case>
+                    </a:switch>
+                </a:case>
+            </a:switch>
+        </a:screenBody>
+    </a:view>
+</a:screen>

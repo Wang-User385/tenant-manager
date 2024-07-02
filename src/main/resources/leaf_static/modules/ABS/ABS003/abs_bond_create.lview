@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="ABS003F2_ABS_CREATE_DETAIL_link"
+                url="${/request/@context_path}/modules/ABS/ABS003/abs_product_detail.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_exit_layout_dynamic_click'] = function () {
+        };
+
+        window['${/parameter/@layout_code}_create_layout_dynamic_click'] = function () {
+            Leaf.showConfirm("提示", "确认创建？", function () {
+                var product_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product');
+                var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+                var record = $(project_ds_id).getCurrentRecord();
+                var product_record = $(product_ds_id).getCurrentRecord();
+                if (!record.get('project_number')) {
+                    Leaf.showMessage('${HLS.PROMPT}', '项目编号不能为空');
+                    return false;
+                }
+                if (!product_record.get('product_short_name')) {
+                    Leaf.showMessage('${HLS.PROMPT}', '产品简称不能为空');
+                    return false;
+                }if (!product_record.get('product_name')) {
+                    Leaf.showMessage('${HLS.PROMPT}', '产品名称不能为空');
+                    return false;
+                }
+                Leaf.request({
+                    url: '${/request/@context_path}/common/coding/getCodeValue?documentCategory=ABS_PRODUCT&documentType=ABS_PRODUCT&businessType=ABS_PRODUCT',
+                    success: function (res) {
+                        $(product_ds_id).getAt(0).set("product_number", res.result.record[0]);
+                        Leaf.request({
+                            url: '${/request/@context_path}/ct/abs/product/create',
+                            para: {
+                                product_number: res.result.record[0],
+                                project_id: $(project_ds_id).getAt(0).get("project_id").toString(),
+                                product_name: $(product_ds_id).getAt(0).get("product_name"),
+                                product_short_name: $(product_ds_id).getAt(0).get("product_short_name")
+                            },
+                            success: function (res) {
+                                var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+                                var business_type = $(project_ds_id).getAt(0).get("business_type");
+                                Leaf.showMessage("提示", "创建成功!", function () {
+                                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product');
+                                    var param = {};
+                                    param.product_id = res.result.record[0].product_id;
+                                    param.document_type = res.result.record[0].document_type;
+                                    param['url_title'] = 'ABS发债产品详情';
+                                    param['function_code'] = 'ABS003F2';
+                                    param['winid'] = 'ABS003F2_ABS_DETAIL_winid';
+                                    param['hidden_right_button'] = true;
+                                    hls_doc_get_layout_code(param, 'ABS003F2_ABS_CREATE_DETAIL_link', ds_id, 'ABS003','ABS003F1_ABS_CREATE_winid','Y');
+                                });
+                            }
+                        });
+                    },
+                    error: function (res) {
+                    },
+                    failure: function (res) {
+                    },
+                    sync: true,
+                    scope: this
+                });
+
+            });
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

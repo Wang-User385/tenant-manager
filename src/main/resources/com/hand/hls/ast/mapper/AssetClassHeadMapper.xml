@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.ast.mapper.AssetClassHeadMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.ast.dto.AssetClassHead">
+        <result column="CLASS_HEAD_ID" property="classHeadId" jdbcType="DECIMAL"/>
+        <result column="BATCH_NUM" property="batchNum" jdbcType="DECIMAL"/>
+        <result column="CLASS_YEAR" property="classYear" jdbcType="DECIMAL"/>
+        <result column="CLASS_SEASON" property="classSeason" jdbcType="DECIMAL"/>
+        <result column="SUBMIT_BY" property="submitBy" jdbcType="DECIMAL"/>
+        <result column="UNIT_ID" property="unitId" jdbcType="DECIMAL"/>
+        <result column="APPROVE_TIME" property="approveTime" jdbcType="DATE"/>
+        <result column="APPROVE_STATUS" property="approveStatus" jdbcType="VARCHAR"/>
+        <result column="class_season_n" property="classSeasonN" jdbcType="VARCHAR"/>
+        <result column="submit_by_n" property="submitByN" jdbcType="VARCHAR"/>
+        <result column="unit_id_n" property="unitIdN" jdbcType="VARCHAR"/>
+        <result column="approve_status_n" property="approveStatusN" jdbcType="VARCHAR"/>
+        <result column="approve_time_n" property="approveTimeN" jdbcType="VARCHAR"/>
+        <result column="document_type" property="documentType" jdbcType="VARCHAR"/>
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="document_type_n" property="documentTypeN" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_QUANTITY" property="contractQuantity" jdbcType="DECIMAL"/>
+
+        <result column="normal_quantity" property="normalQuantity"  />
+        <result column="NORMAL_SURPLUS_RENTAL" property="normalSurplusRental" />
+        <result column="SPECIAL_MENTION_QUANTITY" property="specialMentionQuantity" />
+        <result column="SPECIAL_MENTION_SUR_REN" property="specialMentionSurRen" />
+        <result column="SUBSTANDARD_QUANTITY" property="substandardQuantity" />
+        <result column="SUBSTANDARD_SURPLUS_RENTAL" property="substandardSurplusRental" />
+        <result column="DOUBTFUL_QUANTITY" property="doubtfulQuantity" />
+        <result column="DOUBTFUL_SURPLUS_RENTAL" property="doubtfulSurplusRental" />
+        <result column="loss_quantity" property="lossQuantity" />
+        <result column="LOSS_SURPLUS_RENTAL" property="lossSurplusRental" />
+        <result column="CLASS_LINE_ID" property="classLineId" jdbcType="DECIMAL"/>
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL"/>
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="BUSINESS_TYPE" property="businessType" jdbcType="VARCHAR"/>
+        <result column="BUSINESS_TYPE_N" property="businessTypeN" jdbcType="VARCHAR"/>
+        <result column="INITIAL_LEVEL" property="initialLevel" jdbcType="VARCHAR"/>
+        <result column="initial_level_n" property="initialLevelN" jdbcType="VARCHAR"/>
+        <result column="REVIEW_LEVEL" property="reviewLevel" jdbcType="VARCHAR"/>
+        <result column="review_level_n" property="reviewLevelN" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_AMOUNT" property="contractAmount" jdbcType="DECIMAL"/>
+        <result column="DELIVERY_TIME" property="deliveryTime" jdbcType="DATE"/>
+        <result column="DELIVERY_TIME_N" property="deliveryTimeN" jdbcType="VARCHAR"/>
+        <result column="LEASE_TERM" property="leaseTerm" jdbcType="DECIMAL"/>
+        <result column="REMAINING_RENT" property="remainingRent" jdbcType="DECIMAL"/>
+        <result column="REMAINING_PRINCIPAL" property="remainingPrincipal" jdbcType="DECIMAL"/>
+        <result column="REMAINING_PRINCIPAL_WO" property="remainingPrincipalWo" jdbcType="DECIMAL"/>
+        <result column="REMAINING_MARGIN" property="remainingMargin" jdbcType="DECIMAL"/>
+        <result column="OVERDUE_RENT" property="overdueRent" jdbcType="DECIMAL"/>
+        <result column="OVERDUE_DAYS" property="overdueDays" jdbcType="DECIMAL"/>
+        <result column="FX_OVERDUE_RENT" property="fxOverdueRent" jdbcType="DECIMAL"/>
+        <result column="FX_OVERDUE_DAYS" property="fxOverdueDays" jdbcType="DECIMAL"/>
+        <result column="PENALTY_INTEREST" property="penaltyInterest" jdbcType="DECIMAL"/>
+        <result column="REMAINING_EXPOSURE" property="remainingExposure" jdbcType="DECIMAL"/>
+        <result column="BP_ID_VENDER" property="bpIdVender" jdbcType="VARCHAR"/>
+        <result column="FACTORY_NAME" property="factoryName" jdbcType="VARCHAR"/>
+
+    </resultMap>
+
+    <select id="queryMaxBatchNumber" resultType="java.lang.Long">
+        select max(hach.BATCH_NUM)
+        from hls_asset_class_head hach
+    </select>
+
+    <select id="queryAssetClassHeadDetailInfo" resultMap="BaseResultMap">
+        select t.* from (select hac.class_head_id,
+        hac.batch_num,
+        hac.class_year,
+        hac.class_season,
+        hac.description,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'QUARTER'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.class_season) class_season_n,
+        hac.submit_by,
+        (select su.description
+        from sys_user su
+        where su.user_id = hac.submit_by) submit_by_n,
+        hac.unit_id,
+        (select fou.unit_name
+        from fnd_org_unit fou
+        where fou.unit_id = hac.unit_id) unit_id_n,
+        hac.approve_time,
+        to_char(hac.approve_time, 'YYYY-MM-DD') approve_time_n,
+        hac.approve_status,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'HLS_WFL_STATUS'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.approve_status) approve_status_n,
+        hac.bp_id,
+        (SELECT HBM.BP_NAME
+        FROM HLS_BP_MASTER HBM
+        WHERE HBM.BP_ID = HAC.BP_ID) bp_name,
+        hac.document_type,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'HLS_ASSET_CLASS_HEAD_TYPE'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.document_type) DOCUMENT_TYPE_N,
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id),
+        0) CONTRACT_QUANTITY, --合同数量
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level in
+        ('0', '1')),
+        0) normal_quantity, --正常数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level in
+        ('0', '1')),
+        0) NORMAL_SURPLUS_RENTAL, --正常剩余租金
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level in
+        ('2',
+        '3')),
+        0) SPECIAL_MENTION_QUANTITY, --关注数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level in
+        ('2',
+        '3')),
+        0) SPECIAL_MENTION_SUR_REN, --关注剩余租金
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level in
+        ('4')),
+        0) SUBSTANDARD_QUANTITY, --次级数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level in
+        ('4')),
+        0) SUBSTANDARD_SURPLUS_RENTAL, --次级剩余租金
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level in ('5')),
+        0) DOUBTFUL_QUANTITY, --可疑数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level in ('5')),
+        0) DOUBTFUL_SURPLUS_RENTAL, --可疑剩余租金
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level = '6'),
+        0) LOSS_QUANTITY, --损失数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.review_level = '6'),
+        0) LOSS_SURPLUS_RENTAL --损失剩余租金
+        from hls_asset_class_head hac ) t
+        <where>
+            <if test="classHeadId!=null">
+                and t.class_head_id = #{classHeadId}
+            </if>
+
+        </where>
+    </select>
+
+    <select id="queryClassHeadInfoByHeadId" resultMap="BaseResultMap">
+        SELECT hac.*,
+       (SELECT scv.meaning
+          FROM sys_code_b scb, sys_code_value_b scv
+         WHERE scb.CODE = 'QUARTER'
+           AND scb.CODE_ID = scv.CODE_ID
+           and scv.value = hac.class_season) class_season_n
+  FROM hls_asset_class_head hac
+ where hac.class_head_id = #{classHeadId}
+
+    </select>
+
+    <select id="queryId" resultMap="BaseResultMap">
+        SELECT
+            max(class_head_id) class_head_id
+        FROM
+            hls_asset_class_head
+        WHERE
+            bp_id = #{bpId}
+          AND class_year =  #{classYear}
+          AND class_season =  #{classSeason}
+          AND approve_status = 'APPROVED'
+    </select>
+
+    <select id="queryAssetClassHeadApproveDetailInfo" resultMap="BaseResultMap">
+        select hac.class_head_id,
+        hac.batch_num,
+        hac.class_year,
+        hac.class_season,
+        hac.description,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'QUARTER'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.class_season) class_season_n,
+        hac.submit_by,
+        (select su.description
+        from sys_user su
+        where su.user_id = hac.submit_by) submit_by_n,
+        hac.unit_id,
+        (select fou.unit_name
+        from fnd_org_unit fou
+        where fou.unit_id = hac.unit_id) unit_id_n,
+        hac.approve_time,
+        to_char(hac.approve_time, 'YYYY-MM-DD') approve_time_n,
+        hac.approve_status,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'HLS_WFL_STATUS'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.approve_status) approve_status_n,
+        hac.bp_id,
+        (SELECT HBM.BP_NAME
+        FROM HLS_BP_MASTER HBM
+        WHERE HBM.BP_ID = HAC.BP_ID) bp_name,
+        hac.document_type,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'HLS_ASSET_CLASS_HEAD_TYPE'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.document_type) DOCUMENT_TYPE_N,
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id),
+        0) CONTRACT_QUANTITY, --合同数量
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level in
+        ('NORMAL_ONE', 'NORMAL_TWO', 'NORMAL_THREE','NORMAL_FOUR')),
+        0) normal_quantity, --正常数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level in
+        ('NORMAL_ONE', 'NORMAL_TWO', 'NORMAL_THREE','NORMAL_FOUR')),
+        0) NORMAL_SURPLUS_RENTAL, --正常剩余租金
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level in
+        ('SPECIAL_MENTION_ONE',
+        'SPECIAL_MENTION_TWO',
+        'SPECIAL_MENTION_THREE')),
+        0) SPECIAL_MENTION_QUANTITY, --关注数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level in
+        ('SPECIAL_MENTION_ONE',
+        'SPECIAL_MENTION_TWO',
+        'SPECIAL_MENTION_THREE')),
+        0) SPECIAL_MENTION_SUR_REN, --关注剩余租金
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level in
+        ('SUBSTANDARD_ONE', 'SUBSTANDARD_TWO')),
+        0) SUBSTANDARD_QUANTITY, --次级数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level in
+        ('SUBSTANDARD_ONE', 'SUBSTANDARD_TWO')),
+        0) SUBSTANDARD_SURPLUS_RENTAL, --次级剩余租金
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level in ('DOUBTFUL_ONE', 'DOUBTFUL_TWO')),
+        0) DOUBTFUL_QUANTITY, --可疑数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level in ('DOUBTFUL_ONE', 'DOUBTFUL_TWO')),
+        0) DOUBTFUL_SURPLUS_RENTAL, --可疑剩余租金
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level = 'LOSS'),
+        0) LOSS_QUANTITY, --损失数量
+        nvl((select sum(HACL.remaining_rent)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id
+        and HACL.approve_review_level = 'LOSS'),
+        0) LOSS_SURPLUS_RENTAL --损失剩余租金
+        from hls_asset_class_head hac
+        <where>
+            <if test="classHeadId!=null">
+                and hac.class_head_id = #{classHeadId}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryAssetClassHeadBasicInfo" resultMap="BaseResultMap">
+        select hac.class_head_id,
+        hac.batch_num,
+        hac.class_year,
+        hac.class_season,
+        hac.description,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'QUARTER'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.class_season) class_season_n,
+        hac.submit_by,
+        (select su.description
+        from sys_user su
+        where su.user_id = hac.submit_by) submit_by_n,
+        hac.unit_id,
+        (select fou.unit_name
+        from fnd_org_unit fou
+        where fou.unit_id = hac.unit_id) unit_id_n,
+        hac.approve_time,
+        to_char(hac.approve_time, 'YYYY-MM-DD') approve_time_n,
+        hac.approve_status,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'HLS_WFL_STATUS'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.approve_status) approve_status_n,
+        hac.bp_id,
+        (SELECT HBM.BP_NAME
+        FROM HLS_BP_MASTER HBM
+        WHERE HBM.BP_ID = HAC.BP_ID) bp_name,
+        hac.document_type,
+        (SELECT scv.meaning
+        FROM sys_code_b scb, sys_code_value_b scv
+        WHERE scb.CODE = 'HLS_ASSET_CLASS_HEAD_TYPE'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = hac.document_type) DOCUMENT_TYPE_N,
+        nvl((select count(HACL.class_line_id)
+        from HLS_ASSET_CLASS_LINE HACL
+        where HACL.class_head_id = hac.class_head_id),
+        0) CONTRACT_QUANTITY
+        from hls_asset_class_head hac
+        <where>
+            <if test="classHeadId!=null">
+                and hac.class_head_id = #{classHeadId}
+            </if>
+            <if test="approveStatus!=null">
+                and hac.approve_status = #{approveStatus}
+            </if>
+            <if test="batchNum!=null">
+                and hac.batch_num = #{batchNum}
+            </if>
+            <if test="classYear!=null">
+                and hac.class_year = #{classYear}
+            </if>
+            <if test="classSeason!=null">
+                and hac.class_season = #{classSeason}
+            </if>
+            <if test="documentType!=null">
+                and hac.document_type = #{documentType}
+            </if>
+            <if test="bpId != null">
+                and hac.bp_id = #{bpId}
+            </if>
+            <if test="bpIds != null">
+                and hac.bp_id in 
+                <foreach collection="bpIds" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        order by hac.batch_num desc
+    </select>
+
+    <select id="queryAssetClassContractDetail" resultMap="BaseResultMap">
+        SELECT
+            hac.class_head_id,
+            hac.batch_num,
+            hac.class_year,
+            hac.class_season,
+            hac.description,
+            (
+                SELECT
+                    scv.meaning
+                FROM
+                    sys_code_b scb,
+                    sys_code_value_b scv
+                WHERE
+                    scb.CODE = 'QUARTER'
+                  AND scb.CODE_ID = scv.CODE_ID
+                  AND scv.value = hac.class_season
+            ) class_season_n,
+            hac.submit_by,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = hac.submit_by ) submit_by_n,
+            hac.unit_id,
+            ( SELECT fou.unit_name FROM fnd_org_unit fou WHERE fou.unit_id = hac.unit_id ) unit_id_n,
+            hac.approve_time,
+            to_char( hac.approve_time, 'YYYY-MM-DD' ) approve_time_n,
+            hac.approve_status,
+            (
+                SELECT
+                    scv.meaning
+                FROM
+                    sys_code_b scb,
+                    sys_code_value_b scv
+                WHERE
+                    scb.CODE = 'HLS_WFL_STATUS'
+                  AND scb.CODE_ID = scv.CODE_ID
+                  AND scv.value = hac.approve_status
+            ) approve_status_n,
+            hac.bp_id,
+            ( SELECT HBM.BP_NAME FROM HLS_BP_MASTER HBM WHERE HBM.BP_ID = HAC.BP_ID ) bp_name,
+            hac.document_type,
+            (
+                SELECT
+                    scv.meaning
+                FROM
+                    sys_code_b scb,
+                    sys_code_value_b scv
+                WHERE
+                    scb.CODE = 'HLS_ASSET_CLASS_HEAD_TYPE'
+                  AND scb.CODE_ID = scv.CODE_ID
+                  AND scv.value = hac.document_type
+            ) DOCUMENT_TYPE_N,
+            nvl( ( SELECT count( HACL.class_line_id ) FROM HLS_ASSET_CLASS_LINE HACL WHERE HACL.class_head_id = hac.class_head_id ), 0 ) CONTRACT_QUANTITY,
+            HACL.CLASS_LINE_ID,
+            HACL.CONTRACT_ID,
+            HACL.CONTRACT_NUMBER,
+            HACL.BUSINESS_TYPE,
+            ( SELECT hbt.DESCRIPTION FROM HLS_BUSINESS_TYPE hbt WHERE hbt.BUSINESS_TYPE = HACl.BUSINESS_TYPE AND hbt.document_category = 'CONTRACT' ) AS BUSINESS_TYPE_N,
+            HACL.INITIAL_LEVEL,
+            (
+                SELECT
+                    scv.meaning
+                FROM
+                    sys_code_b scb,
+                    sys_code_value_b scv
+                WHERE
+                    scb.CODE = 'ASSET_CLASS'
+                  AND scb.CODE_ID = scv.CODE_ID
+                  AND scv.value = HACL.INITIAL_LEVEL
+            ) INITIAL_LEVEL_N,
+            HACL.REVIEW_LEVEL,
+            (
+                SELECT
+                    scv.meaning
+                FROM
+                    sys_code_b scb,
+                    sys_code_value_b scv
+                WHERE
+                    scb.CODE = 'ASSET_CLASS'
+                  AND scb.CODE_ID = scv.CODE_ID
+                  AND scv.value = HACl.REVIEW_LEVEL
+            ) REVIEW_LEVEL_N,
+            HACL.CONTRACT_AMOUNT,
+            HACL.DELIVERY_TIME,
+            TO_CHAR( HACL.DELIVERY_TIME, 'YYYY-MM-DD' ) DELIVERY_TIME_N,
+            HACL.LEASE_TERM,
+        round(
+        (select sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount, 0))
+        from con_contract_cashflow ccc
+        where ccc.contract_id = cc.contract_id
+        and ccc.cf_type = 1),
+        2) REMAINING_RENT,
+        round(
+        (select sum(nvl(ccc.principal,0) - nvl(ccc.received_principal, 0))
+        from con_contract_cashflow ccc
+        where ccc.contract_id = cc.contract_id
+        and ccc.cf_type = 1),
+        2) REMAINING_PRINCIPAL,
+            <!--HACL.REMAINING_RENT,
+            HACL.REMAINING_PRINCIPAL,-->
+            (
+                SELECT
+                    sum( nvl( ccc.principal, 0 ) - nvl( ccc.received_principal, 0 ) )
+                FROM
+                    con_contract cc,
+                    con_contract_cashflow ccc
+                WHERE
+                    ccc.contract_id = cc.contract_id
+                  AND ccc.cf_type = 1
+                  AND cc.CONTRACT_NUMBER = HACL.CONTRACT_NUMBER
+                GROUP BY
+                    cc.CONTRACT_NUMBER
+            ) AS REMAINING_PRINCIPAL_WO,
+            HACL.OVERDUE_RENT,
+            HACL.OVERDUE_DAYS,
+            HACL.FX_OVERDUE_RENT,
+            HACL.FX_OVERDUE_DAYS,
+            HACL.PENALTY_INTEREST,
+        nvl(round((select sum(nvl(csh.transaction_amount, 0)) -
+        sum(nvl(csh.write_off_amount, 0))
+        from csh_transaction csh
+        where csh.contract_id = cc.contract_id
+        and csh.business_type = 'DEPOSIT'),
+        2),
+        0) REMAINING_MARGIN,
+        (round(
+        (select sum(nvl(ccc.principal,0) - nvl(ccc.received_principal, 0))
+        from con_contract_cashflow ccc
+        where ccc.contract_id = cc.contract_id
+        and ccc.cf_type = 1),
+        2) - nvl(round((select sum(nvl(csh.transaction_amount, 0)) -
+        sum(nvl(csh.write_off_amount, 0))
+        from csh_transaction csh
+        where csh.contract_id = cc.contract_id
+        and csh.business_type = 'DEPOSIT'),
+        2),
+        0)) REMAINING_EXPOSURE,
+       <!-- HACL.REMAINING_MARGIN,
+            HACL.remaining_exposure,-->
+            ( SELECT hbm.BP_NAME FROM HLS_BP_MASTER hbm WHERE cc.BP_ID_VENDER = hbm.BP_ID ) BP_ID_VENDER,
+            ( SELECT hbm.BP_NAME FROM HLS_BP_MASTER hbm WHERE cc.FACTORY_ID = hbm.BP_ID ) FACTORY_NAME
+        FROM
+            hls_asset_class_head hac
+                LEFT JOIN HLS_ASSET_CLASS_LINE hacl ON hac.CLASS_HEAD_ID = hacl.CLASS_HEAD_ID
+                INNER JOIN CON_CONTRACT cc ON hacl.CONTRACT_ID = cc.CONTRACT_ID
+        <where>
+            <if test="classHeadId!=null">
+                and hac.class_head_id = #{classHeadId}
+            </if>
+            <if test="approveStatus!=null">
+                and hac.approve_status = #{approveStatus}
+            </if>
+            <if test="batchNum!=null">
+                and hac.batch_num = #{batchNum}
+            </if>
+            <if test="classYear!=null">
+                and hac.class_year = #{classYear}
+            </if>
+            <if test="classSeason!=null">
+                and hac.class_season = #{classSeason}
+            </if>
+            <if test="documentType!=null">
+                and hac.document_type = #{documentType}
+            </if>
+            <if test="bpIds !=null">
+                and hac.bp_id in
+                <foreach collection="bpIds" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="bpIdVender != null">
+                and cc.BP_ID_VENDER = #{bpIdVender}
+            </if>
+            <if test="factoryId != null">
+                and cc.FACTORY_ID = #{factoryId}
+            </if>
+        </where>
+        order by hac.batch_num desc
+    </select>
+
+</mapper>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.HlsCusConContractArchiveMapper">
+
+    <resultMap id="ArchiveResultMap" type="com.hand.hls.cont.dto.HlsCusConContractArchive">
+        <result column="CONTRACT_ARCHIVE_ID" property="contractArchiveId"/>
+        <result column="CONTRACT_ID" property="contractId"/>
+        <result column="STATUS" property="status"/>
+        <result column="status_n" property="statusN"/>
+        <result column="OTHER_INSTRUCTION" property="otherInstruction"/>
+        <result column="CONTRACT_STATUS" property="contractStatus"/>
+        <result column="DOCUMENT_TYPE" property="documentType"/>
+        <result column="contract_archive_number" property="contractArchiveNumber"/>
+        <result column="contract_name" property="contractName"/>
+        <result column="contract_number" property="contractNumber"/>
+        <result column="bp_name" property="bpName"/>
+        <result column="host_project_manager_n" property="hostProjectManagerN"/>
+        <result column="confirm_person" property="confirmPerson"/>
+        <result column="confirm_person_n" property="confirmPersonN"/>
+        <result column="confirm_date" property="confirmDate"/>
+        <result column="legal_contract_number" property="legalContractNumber"/>
+    </resultMap>
+
+    <select id="archiveQuery" resultMap="ArchiveResultMap">
+        select * from (
+            select
+            cc.contract_id,
+            cca.contract_archive_number,
+            cc.contract_name,
+            case when pp.document_type in('PRJL','PRJLB') then
+            cc.contract_number else pp.contract_number end contract_number,
+            cc.legal_contract_number,
+            cca.contract_archive_id,
+            cca.status,
+            (SELECT meaning
+                FROM sys_code_value_b_v v
+                WHERE v.code = 'ARCHIVE_STATUS'
+                AND v.code_value = nvl(cca.status,'NEW')
+                AND V.ENABLED_FLAG='Y') status_n,
+            cca.confirm_person,
+            (select s.DESCRIPTION from sys_user s where s.user_id=cca.confirm_person) confirm_person_n,
+            cca.confirm_date,
+            (select hbm.bp_name from hls_bp_master hbm where hbm.bp_id = cc.tenant_id) bp_name,
+            case when pp.document_type in('PRJL','PRJLB') then
+            (SELECT em.name FROM fnd_employee em WHERE em.employee_id = cc.EMPLOYEE_ID) else
+            (select s.description from sys_user s where s.user_id = cc.host_project_manager) end host_project_manager_n,
+            pp.document_type
+        from
+            CON_CONTRACT_ARCHIVE cca, con_contract cc, prj_project pp
+        where cca.contract_id = cc.contract_id
+        and cc.project_id = pp.project_id
+        <if test="createdBy!=null">
+            and (
+            #{createdBy}=cc.host_project_manager
+            or #{createdBy}=cc.ASSIST_PROJECT_MANAGER
+            OR exists(
+                select 1
+                from fnd_org_unit a1,fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4
+                where a3.employee_id=a2.employee_id
+                and a3.unit_id=a1.unit_id
+                and a4.position_id=a3.position_id
+                and a4.chief_position_flag='Y'
+                  and employee_code=#{request.employeeCode}
+                AND A1.UNIT_ID IN(
+                    select b.unit_id
+                    from sys_user_allocation a,fnd_employee_assigns b
+                    where a.user_id=cc.host_project_manager
+                      AND a.employee_assign_id=b.employee_assign_id))
+            or #{request.employeeCode} in('ADMIN','HULITING')
+            )
+        </if>
+        )t
+        <where>
+            <if test="contractArchiveNumber !=null">
+                and t.contract_archive_number like concat('%',concat(#{contractArchiveNumber},'%'))
+            </if>
+            <if test="contractName !=null">
+                and t.contract_name like concat('%',concat(#{contractName},'%'))
+            </if>
+            <if test="contractNumber !=null">
+                and t.contract_number like concat('%',concat(#{contractNumber},'%'))
+            </if>
+            <if test="legalContractNumber !=null">
+                and t.legal_contract_number like concat('%',concat(#{legalContractNumber},'%'))
+            </if>
+        </where>
+        order by t.contract_number desc
+    </select>
+
+</mapper>

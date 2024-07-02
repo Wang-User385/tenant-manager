@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script src="${/request/@context_path}/common/code?reverseRuleCode=GLD.JE_REVERSE_RULE"
+                type="text/javascript"></script>
+        <script><![CDATA[
+
+        /*$L.onReady(function () {
+            console.log($('document_type_ds'));
+        });*/
+
+        function gld_je_template_detail_query() {
+            $('gld_je_template_detail_ds').query();
+        }
+
+        function gld_je_template_detail_add() {
+            $('gld_je_template_detail_ds').create();
+        }
+
+        function gld_je_template_detail_save() {
+            var ds = $('gld_je_template_detail_ds');
+            if (ds.validate()) {
+                ds.setSubmitUrl('${/request/@context_path}/gld/je/template/submitModify');
+                ds.submit();
+            }
+        }
+
+        function gld_je_template_detail_quit() {
+            $('${/parameter/@winid}').close();
+        }
+
+        function onSubmitSuccess_gld_je_template_detail_ds(ds) {
+            gld_je_template_detail_query();
+        }
+        function before_click_lov(lov) {
+            var ds = $('gld_je_template_detail_ds');
+            var record = ds.getCurrentRecord();
+            var par;
+            if(lov.binder.name!=null){
+                par= record.getMeta().getField(lov.binder.name);
+                par.setLovPara('jeTrx', '${/parameter/@je_trx}');
+        }
+        }
+        function lov_change( component , value, oldValue){
+            if(value == ""){
+                var name = component.binder.name.replaceAll("_desc","");
+                component.binder.ds.getAt(0).set(name,"");
+            }
+        }
+        function commit_lov(lov,res){
+            var ds = $('gld_je_template_detail_ds');
+            var record = ds.getCurrentRecord();
+            var par;
+            if(lov.binder.name!=null){
+                par= record.getMeta().getField(lov.binder.name);
+                par.setLovPara('jeTrx', '${/parameter/@je_trx}');
+                // par.setLovPara(toCamel(lov.binder.name), lov.binder.name);
+            }
+        }
+        //下划线转驼峰
+        function toCamel(str) {
+            return str.replace(/([^_])(?:_+([^_]))/g, function ($0, $1, $2) {
+                return $1 + $2.toUpperCase();
+            });
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="DRCR_ds" loadData="true" lookupCode="DRCR"/>
+            <a:dataSet id="gld_je_template_detail_query_ds">
+                <a:fields>
+                    <a:field name="je_template_id" defaultValue="${/parameter/@je_template_id}"/>
+                    <a:field name="je_trx" defaultValue="${/parameter/@je_trx}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="gld_je_template_detail_ds" autoPageSize="true" autoQuery="true"
+                       queryDataSet="gld_je_template_detail_query_ds"
+                       deleteUrl="${/request/@context_path}/gld/je/template/remove"
+                       queryUrl="${/request/@context_path}/gld/je/template/query" selectable="true">
+                <a:fields>
+                    <a:field name="document_type_desc" autoComplete="true" lovGridHeight="300" lovHeight="510"
+                             lovLabelWidth="100"
+                             lovService="/fnd200/type/queryForLov?documentCategory=GLD_JE_HEAD&amp;enabledFlag=Y~com.hand.hls.gld.dto.LovDocumentType"
+                             lovWidth="600"
+                             title="单据类型选择">
+                        <a:mapping>
+                            <a:map from="description" to="document_type_desc"/>
+                            <a:map from="document_type" to="document_type"/>
+                            <a:map from="business_type" to="business_type"/>
+                            <a:map from="document_category" to="document_category"/>
+                        </a:mapping>
+                    </a:field>
+                    <!--<a:field name="je_template_id" defaultValue="${/parameter/@je_template_id}"/>-->
+                    <a:field name="je_trx" defaultValue="${/parameter/@je_trx}"/>
+                    <a:field name="je_company_id"/>
+                    <a:field name="je_company_id_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/company~com.hand.hls.gld.dto.LovGldJeTemplateA" lovWidth="300"
+                             title="公司" fetchRemote="false" prompt="公司">
+                        <a:mapping>
+                            <a:map from="company_id" to="je_company_id"/>
+                            <a:map from="je_company_id" to="je_company_id_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="je_date"/>
+                    <a:field name="je_date_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/jeDate~com.hand.hls.gld.dto.LovGldJeTemplateB" lovWidth="300"
+                             title="日期" fetchRemote="false" prompt="日期">
+                        <a:mapping>
+                            <a:map from="je_date_key" to="je_date"/>
+                            <a:map from="je_date" to="je_date_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="je_account_id"/>
+                    <a:field name="je_account_id_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/account~com.hand.hls.gld.dto.LovGldJeTemplateC" lovWidth="300"
+                             title="科目" fetchRemote="false" prompt="科目">
+                        <a:mapping>
+                            <a:map from="je_account_id" to="je_account_id_desc"/>
+                            <a:map from="account_id" to="je_account_id"/>
+                        </a:mapping>
+
+                    </a:field>
+                    <a:field name="je_cost_center_id"/>
+                    <a:field name="je_cost_center_id_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/costCenter~com.hand.hls.gld.dto.LovGldJeTemplateD" lovWidth="300"
+                             title="成本中心" fetchRemote="false" prompt="成本中心">
+                        <a:mapping>
+                            <a:map from="je_cost_center_id" to="je_cost_center_id_desc"/>
+                            <a:map from="cost_center_id" to="je_cost_center_id"/>
+                        </a:mapping>
+                    </a:field>
+
+                    <a:field name="dr_cr_n" options="DRCR_ds" displayField="code_value_name"
+                             valueField="code_value" returnField="dr_cr"/>
+
+                    <a:field name="dr_amount"/>
+                    <a:field name="dr_amount_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/drAmount~com.hand.hls.gld.dto.LovGldJeTemplateF" lovWidth="300"
+                             title="借方金额" fetchRemote="false" prompt="借方金额">
+                        <a:mapping>
+                            <a:map from="dr_amount" to="dr_amount_desc"/>
+                            <a:map from="dr_amount_key" to="dr_amount"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="dr_functional_amount"/>
+                    <a:field name="dr_functional_amount_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/drFunctionAmount~com.hand.hls.gld.dto.LovGldJeTemplateG" lovWidth="300"
+                             title="借方本币金额" fetchRemote="false" prompt="借方本币金额">
+                        <a:mapping>
+                            <a:map from="dr_functional_amount_key" to="dr_functional_amount"/>
+                            <a:map from="dr_functional_amount" to="dr_functional_amount_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="cr_amount"/>
+                    <a:field name="cr_amount_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/crAmount~com.hand.hls.gld.dto.LovGldJeTemplateH" lovWidth="300"
+                             title="贷方金额" fetchRemote="false" prompt="贷方金额">
+                        <a:mapping>
+                            <a:map from="cr_amount_key" to="cr_amount"/>
+                            <a:map from="cr_amount" to="cr_amount_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="cr_functional_amount"/>
+                    <a:field name="cr_functional_amount_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/crFunctionAmount~com.hand.hls.gld.dto.LovGldJeTemplateI" lovWidth="300"
+                             title="贷方本币金额" fetchRemote="false" prompt="贷方本币金额">
+                        <a:mapping>
+                            <a:map from="cr_functional_amount" to="cr_functional_amount_desc"/>
+                            <a:map from="cr_functional_amount_key" to="cr_functional_amount"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="je_currency"/>
+                    <a:field name="je_currency_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/currency~com.hand.hls.gld.dto.LovGldJeTemplateJ" lovWidth="300"
+                             title="币种" fetchRemote="false" prompt="币种">
+                        <a:mapping>
+                            <a:map from="je_currency" to="je_currency_desc"/>
+                            <a:map from="currency" to="je_currency"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="exchange_rate"/>
+                    <a:field name="exchange_rate_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/exchangeRate~com.hand.hls.gld.dto.LovGldJeTemplateK" lovWidth="300"
+                             title="汇率" fetchRemote="false" prompt="汇率">
+                        <a:mapping>
+                            <a:map from="exchange_rate" to="exchange_rate_desc"/>
+                            <a:map from="exchange_rate_key" to="exchange_rate"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment1"/>
+                    <a:field name="segment1_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent1~com.hand.hls.gld.dto.LovGldJeTemplateL" lovWidth="300"
+                             title="段1" fetchRemote="false" prompt="段1">
+                        <a:mapping>
+                            <a:map from="segment1" to="segment1_desc"/>
+                            <a:map from="segment_code1" to="segment1"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment2"/>
+                    <a:field name="segment2_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent2~com.hand.hls.gld.dto.LovGldJeTemplateM" lovWidth="300"
+                             title="段2" fetchRemote="false" prompt="段2">
+                        <a:mapping>
+                            <a:map from="segment2" to="segment2_desc"/>
+                            <a:map from="segment_code2" to="segment2"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment3"/>
+                    <a:field name="segment3_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent3~com.hand.hls.gld.dto.LovGldJeTemplateN" lovWidth="300"
+                             title="段3" fetchRemote="false" prompt="段3">
+                        <a:mapping>
+                            <a:map from="segment3" to="segment3_desc"/>
+                            <a:map from="segment_code3" to="segment3"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment4"/>
+                    <a:field name="segment4_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent4~com.hand.hls.gld.dto.LovGldJeTemplateO" lovWidth="300"
+                             title="段4" fetchRemote="false" prompt="段4">
+                        <a:mapping>
+                            <a:map from="segment4" to="segment4_desc"/>
+                            <a:map from="segment_code4" to="segment4"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment5"/>
+                    <a:field name="segment5_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent5~com.hand.hls.gld.dto.LovGldJeTemplateP" lovWidth="300"
+                             title="段5" fetchRemote="false" prompt="段5">
+                        <a:mapping>
+                            <a:map from="segment5" to="segment5_desc"/>
+                            <a:map from="segment_code5" to="segment5"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment6"/>
+                    <a:field name="segment6_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent6~com.hand.hls.gld.dto.LovGldJeTemplateQ" lovWidth="300"
+                             title="段6" fetchRemote="false" prompt="段6">
+                        <a:mapping>
+                            <a:map from="segment6" to="segment6_desc"/>
+                            <a:map from="segment_code6" to="segment6"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment7"/>
+                    <a:field name="segment7_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent7~com.hand.hls.gld.dto.LovGldJeTemplateR" lovWidth="300"
+                             title="段7" fetchRemote="false" prompt="段7">
+                        <a:mapping>
+                            <a:map from="segment7" to="segment7_desc"/>
+                            <a:map from="segment_code7" to="segment7"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment8"/>
+                    <a:field name="segment8_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent8~com.hand.hls.gld.dto.LovGldJeTemplateS" lovWidth="300"
+                             title="段8" fetchRemote="false" prompt="段8">
+                        <a:mapping>
+                            <a:map from="segment8" to="segment8_desc"/>
+                            <a:map from="segment_code8" to="segment8"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment9"/>
+                    <a:field name="segment9_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent9~com.hand.hls.gld.dto.LovGldJeTemplateT" lovWidth="300"
+                             title="段9" fetchRemote="false" prompt="段9">
+                        <a:mapping>
+                            <a:map from="segment9" to="segment9_desc"/>
+                            <a:map from="segment_code9" to="segment9"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="segment10"/>
+                    <a:field name="segment10_desc" autoComplete="false" editable="true" lovGridHeight="300" lovHeight="450" required="false"
+                             lovLabelWidth="100"
+                             lovService="/lov/je/template/segMent10~com.hand.hls.gld.dto.LovGldJeTemplateU" lovWidth="300"
+                             title="段10" fetchRemote="false" prompt="段10">
+                        <a:mapping>
+                            <a:map from="segment10" to="segment10_desc"/>
+                            <a:map from="segment_code9" to="segment10"/>
+                        </a:mapping>
+                    </a:field>
+
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_gld_je_template_detail_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="gld_je_template_detail_quit" text="关闭"/>
+                <a:gridButton click="gld_je_template_detail_save" text="HAP.SAVE"/>
+            </a:screenTopToolbar>
+
+            <a:tabPanel width="600" height="377">
+                <a:tabs>
+                    <a:tab prompt="基本信息" width="130" selected="true">
+                        <a:form title="凭证模板定义基本信息" labelWidth="100">
+                            <a:box column="2">
+                                <a:lov name="je_company_id_desc" bindTarget="gld_je_template_detail_ds" prompt="公司"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="je_date_desc" bindTarget="gld_je_template_detail_ds" prompt="日期"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                            <a:box column="2">
+                                <a:lov name="je_account_id_desc" bindTarget="gld_je_template_detail_ds" prompt="科目"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="je_cost_center_id_desc" bindTarget="gld_je_template_detail_ds" prompt="成本中心"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                            <a:box column="1">
+                                <a:textField name="je_description" bindTarget="gld_je_template_detail_ds" prompt="行摘要"
+                                             width="412">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:textField>
+                            </a:box>
+                        </a:form>
+                        <div style="color:red;margin-left:30px;">行摘要可以根据数据源中的结果替换值，例:合同ID:{$xxx$}可替换为合同ID:CON2017</div>
+                    </a:tab>
+                    <a:tab prompt="借贷信息" width="130">
+                        <a:form title="凭证模板定义借贷信息" labelWidth="100">
+                            <a:box column="1">
+                                <a:comboBox name="dr_cr_n" bindTarget="gld_je_template_detail_ds" prompt="借/贷"
+                                            width="165">
+                                </a:comboBox>
+                            </a:box>
+                            <a:box column="2">
+                                <a:lov name="dr_amount_desc" bindTarget="gld_je_template_detail_ds" prompt="借方金额"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="dr_functional_amount_desc" bindTarget="gld_je_template_detail_ds" prompt="借方本币金额"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                            <a:box column="2">
+                                <a:lov name="cr_amount_desc" bindTarget="gld_je_template_detail_ds" prompt="贷方金额"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="cr_functional_amount_desc" bindTarget="gld_je_template_detail_ds" prompt="贷方本币金额"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                            <a:box column="2">
+                                <a:lov name="je_currency_desc" bindTarget="gld_je_template_detail_ds" prompt="币种"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="exchange_rate_desc" bindTarget="gld_je_template_detail_ds" prompt="汇率"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                        </a:form>
+
+                    </a:tab>
+
+                    <a:tab prompt="凭证段信息" width="130">
+                        <a:form title="凭证模板定义参考段信息" labelWidth="100">
+                            <a:box column="2">
+                                <a:lov name="segment1_desc" bindTarget="gld_je_template_detail_ds" prompt="段1"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="segment2_desc" bindTarget="gld_je_template_detail_ds" prompt="段2"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                            <a:box column="2">
+                                <a:lov name="segment3_desc" bindTarget="gld_je_template_detail_ds" prompt="段3"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="segment4_desc" bindTarget="gld_je_template_detail_ds" prompt="段4"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                            <a:box column="2">
+                                <a:lov name="segment5_desc" bindTarget="gld_je_template_detail_ds" prompt="段5"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="segment6_desc" bindTarget="gld_je_template_detail_ds" prompt="段6"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                            <a:box column="2">
+                                <a:lov name="segment7_desc" bindTarget="gld_je_template_detail_ds" prompt="段7"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="segment8_desc" bindTarget="gld_je_template_detail_ds" prompt="段8"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                            <a:box column="2">
+                                <a:lov name="segment9_desc" bindTarget="gld_je_template_detail_ds" prompt="段9"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                                <a:lov name="segment10_desc" bindTarget="gld_je_template_detail_ds" prompt="段10"
+                                       width="165">
+                                    <a:events>
+                                        <a:event name="beforetriggerclick" handler="before_click_lov"/>
+                                        <a:event name="change" handler="lov_change"/>
+                                    </a:events>
+                                </a:lov>
+                            </a:box>
+                        </a:form>
+
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+
+        </a:screenBody>
+    </a:view>
+</a:screen>

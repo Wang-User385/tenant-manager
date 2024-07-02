@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sys.mapper.HlsSystemNoticeMapper">
+	<resultMap id="BaseResultMap" type="com.hand.hls.sys.dto.HlsSystemNotice">
+		<id column="NOTICE_ID" jdbcType="BIGINT" property="noticeId"/>
+		<result column="NOTICE_MESSAGE" jdbcType="VARCHAR" property="noticeMessage"/>
+		<result column="NOTICE_DATETIME" jdbcType="TIMESTAMP" property="noticeDatetime"/>
+		<result column="NOTICE_TYPE" jdbcType="VARCHAR" property="noticeType"/>
+		<result column="NOTICE_URL" jdbcType="VARCHAR" property="noticeUrl"/>
+		<result column="NOTICE_LEVEL" jdbcType="VARCHAR" property="noticeLevel"/>
+		<result column="SOURCE_MODULE" jdbcType="VARCHAR" property="sourceModule"/>
+		<result column="SOURCE_EVENT" jdbcType="VARCHAR" property="sourceEvent"/>
+		<result column="SOURCE_DOCUMENT_CATEGORY" jdbcType="VARCHAR" property="sourceDocumentCategory"/>
+		<result column="SOURCE_DOCUMENT_ID" jdbcType="BIGINT" property="sourceDocumentId"/>
+		<result column="SOURCE_USER_ID" jdbcType="BIGINT" property="sourceUserId"/>
+		<result column="SOURCE_ALLOCATION_ID" jdbcType="BIGINT" property="sourceAllocationId"/>
+		<result column="OBJECT_VERSION_NUMBER" jdbcType="BIGINT" property="objectVersionNumber"/>
+		<result column="REQUEST_ID" jdbcType="BIGINT" property="requestId"/>
+		<result column="PROGRAM_ID" jdbcType="BIGINT" property="programId"/>
+		<result column="CREATED_BY" jdbcType="BIGINT" property="createdBy"/>
+		<result column="CREATION_DATE" jdbcType="TIMESTAMP" property="creationDate"/>
+		<result column="LAST_UPDATED_BY" jdbcType="BIGINT" property="lastUpdatedBy"/>
+		<result column="LAST_UPDATE_DATE" jdbcType="TIMESTAMP" property="lastUpdateDate"/>
+		<result column="LAST_UPDATE_LOGIN" jdbcType="BIGINT" property="lastUpdateLogin"/>
+		<result column="NOTICE_TITLE" jdbcType="VARCHAR" property="noticeTitle"/>
+		<result column="SOURCE_EVENT_ID" jdbcType="BIGINT" property="sourceEventId"/>
+		<result column="source_user_name" property="sourceUserName" jdbcType="VARCHAR"/>
+		<result column="read_flag" property="readFlag" jdbcType="VARCHAR"/>
+		<result column="done_flag" property="doneFlag" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="VARCHAR"/>
+        <result column="notice_count" property="noticeCount" jdbcType="VARCHAR"/>
+        <result column="todo_count" property="todoCount" jdbcType="VARCHAR"/>
+        <result column="read_flag_n" property="readFlagN" jdbcType="VARCHAR"/>
+        <result column="notice_information" property="noticeInformation" jdbcType="VARCHAR"/>
+	</resultMap>
+
+    <select id="selectUserNotice" resultMap="BaseResultMap" parameterType="java.util.HashMap">
+    SELECT
+    a.*,
+    hsno.read_flag as read_flag,
+    hsno.done_flag as done_flag,
+    su.description as source_user_name
+    FROM
+    hls_system_notice a
+    LEFT JOIN hls_system_notice_owner hsno
+    ON hsno.owner_allocation_id = #{allocation_id,jdbcType=BIGINT}
+    and hsno.notice_id=a.NOTICE_ID
+    ,sys_user su
+    <where>
+        a.SOURCE_USER_ID = su.USER_ID and
+        ((
+        a.NOTICE_LEVEL = 1
+        AND a.SOURCE_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT}
+        )
+        OR (a.NOTICE_LEVEL = 3)
+        OR (a.NOTICE_LEVEL = 2 AND a.SOURCE_ALLOCATION_ID =  #{allocation_id,jdbcType=BIGINT}))
+        AND (hsno.read_flag='N' or hsno.read_flag is null or hsno.read_flag='')
+        <if test="null != dto.noticeType">
+            and a.NOTICE_TYPE =#{dto.noticeType}
+        </if>
+        <if test="null != dto.noticeId">
+            and a.NOTICE_ID =#{dto.noticeId}
+        </if>
+        <if test="null != dto.noticeMessage">
+            and a.NOTICE_MESSAGE like concat(concat('%',#{dto.noticeMessage}),'%')
+        </if>
+        <if test="null != dto.readFlag">
+            and 1 = (case when #{dto.readFlag}='Y' and hsno.read_flag='Y' then 1 when #{dto.readFlag}='N' and (hsno.read_flag='N' or hsno.read_flag is null or hsno.read_flag='') then 1 else 0 end)
+        </if>
+    </where>
+    order by a.notice_datetime desc
+</select>
+    <select id="selectUserUnNotice" resultMap="BaseResultMap" parameterType="java.util.HashMap">
+        SELECT
+        a.*,
+        hsno.read_flag as read_flag,
+        hsno.done_flag as done_flag,
+        su.description as source_user_name
+        FROM
+        hls_system_notice a
+        LEFT JOIN hls_system_notice_owner hsno
+        ON hsno.owner_allocation_id = #{allocation_id,jdbcType=BIGINT}
+        and hsno.notice_id=a.NOTICE_ID
+        ,sys_user su
+        <where>
+            a.SOURCE_USER_ID = su.USER_ID and
+            ((
+            a.NOTICE_LEVEL = 1
+            AND a.SOURCE_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT}
+            )
+            OR (a.NOTICE_LEVEL = 3)
+            OR (a.NOTICE_LEVEL = 2 AND a.SOURCE_ALLOCATION_ID =  #{allocation_id,jdbcType=BIGINT}))
+            AND (hsno.read_flag='N' or hsno.read_flag is null or hsno.read_flag='')
+            <if test="null != dto.noticeType">
+                and a.NOTICE_TYPE =#{dto.noticeType}
+            </if>
+            <if test="null != dto.noticeId">
+                and a.NOTICE_ID =#{dto.noticeId}
+            </if>
+            <if test="null != dto.noticeMessage">
+                and a.NOTICE_MESSAGE like concat(concat('%',#{dto.noticeMessage}),'%')
+            </if>
+            <if test="null != dto.readFlag">
+                and 1 = (case when #{dto.readFlag}='Y' and hsno.read_flag='Y' then 1 when #{dto.readFlag}='N' and (hsno.read_flag='N' or hsno.read_flag is null or hsno.read_flag='') then 1 else 0 end)
+            </if>
+        </where>
+        order by a.notice_datetime desc
+    </select>
+    <select id="selectUserAllNotice" resultMap="BaseResultMap" parameterType="java.util.HashMap">
+       select  t.* from  ( SELECT
+        a.*,
+        hsno.read_flag as read_flag,
+        hsno.done_flag as done_flag,
+        su.description as source_user_name,
+        (case when  hsno.read_flag='Y' then '已读' else '未读' end ) read_flag_n,
+        concat(a.notice_message,a.notice_title)  notice_information
+        FROM
+        hls_system_notice a
+        LEFT JOIN hls_system_notice_owner hsno
+        ON hsno.owner_allocation_id = #{allocation_id,jdbcType=BIGINT}
+        and hsno.notice_id=a.NOTICE_ID
+        ,sys_user su
+        <where>
+            a.SOURCE_USER_ID = su.USER_ID and
+            ((
+            a.NOTICE_LEVEL = 1
+            AND a.SOURCE_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT}
+            )
+            OR (a.NOTICE_LEVEL = 3)
+            OR (a.NOTICE_LEVEL = 2 AND a.SOURCE_ALLOCATION_ID =  #{allocation_id,jdbcType=BIGINT}))
+            <if test="null != dto.noticeType">
+                and a.NOTICE_TYPE =#{dto.noticeType}
+            </if>
+            <if test="null != dto.noticeId">
+                and a.NOTICE_ID =#{dto.noticeId}
+            </if>
+            <if test="null != dto.noticeMessage">
+                and a.NOTICE_MESSAGE like concat(concat('%',#{dto.noticeMessage}),'%')
+            </if>
+            <if test="null != dto.readFlag">
+                and 1 = (case when #{dto.readFlag}='Y' and hsno.read_flag='Y' then 1 when #{dto.readFlag}='N' and (hsno.read_flag='N' or hsno.read_flag is null or hsno.read_flag='') then 1 else 0 end)
+            </if>
+        </where>
+        order by a.notice_datetime desc)  t
+    <where>
+        <if test="null != dto.noticeInformation">
+            and t.notice_information like concat(concat('%',#{dto.noticeInformation}),'%')
+        </if>
+        <if test="null != dto.readFlagN">
+            and t.read_flag_n =#{dto.readFlagN}
+        </if>
+    </where>
+    </select>
+    <select id="selectUserTodo" resultMap="BaseResultMap" parameterType="java.util.HashMap">
+        SELECT
+        a.*,
+        hsno.read_flag as read_flag,
+        hsno.done_flag as done_flag,
+        su.description as source_user_name
+        FROM
+        hls_system_notice a
+        LEFT JOIN hls_system_notice_owner hsno
+        ON hsno.owner_allocation_id = #{allocation_id,jdbcType=BIGINT}
+        and hsno.notice_id=a.NOTICE_ID
+        ,sys_user su
+        <where>
+            a.SOURCE_USER_ID = su.USER_ID
+            and a.notice_type='TODO'
+            and (hsno.done_flag is null or hsno.done_flag != 'Y')
+            and a.SOURCE_DOCUMENT_ID  in (
+            select distinct t1.ID_ from act_ru_task t1
+            )
+            and
+            ((
+            a.NOTICE_LEVEL = 1
+            AND a.SOURCE_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT}
+            )
+            OR (a.NOTICE_LEVEL = 3)
+            OR (a.NOTICE_LEVEL = 2 AND a.SOURCE_ALLOCATION_ID =  #{allocation_id,jdbcType=BIGINT}))
+            <if test="null != dto.noticeId">
+                and a.NOTICE_ID =#{dto.noticeId}
+            </if>
+            <if test="null != dto.noticeMessage">
+                and a.NOTICE_MESSAGE like concat(concat('%',#{dto.noticeMessage}),'%')
+            </if>
+        </where>
+        order by a.notice_datetime desc
+    </select>
+
+    <update id="setAllRead" parameterType="java.util.HashMap">
+        UPDATE HLS_SYSTEM_NOTICE_OWNER t1
+        SET t1.read_flag = 'Y'
+        WHERE t1.OWNER_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT}
+    </update>
+
+    <update id="noticeDelete" parameterType="java.util.HashMap">
+        delete from HLS_SYSTEM_NOTICE_OWNER
+        WHERE t1.notice_id = #{noticeId,jdbcType=BIGINT}
+    </update>
+
+    <!--查询未办所有的消息-->
+    <select id="queryNoticeByTodoAndDocId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+		SELECT
+			*
+		FROM
+			hls_system_notice hsn
+		LEFT JOIN hls_system_notice_owner hsno
+		ON hsno.notice_id = hsn.NOTICE_ID
+		WHERE hsn.SOURCE_DOCUMENT_ID = #{source_document_id}
+		AND hsn.SOURCE_DOCUMENT_CATEGORY='WFL.TO_DO'
+		AND (hsno.done_flag is null or hsno.done_flag != 'Y')
+	</select>
+
+    <!--查询用户未读消息和待办数量-->
+    <select id="userUnreadCount" resultMap="BaseResultMap" parameterType="java.util.HashMap">
+        select
+        (SELECT count(*)
+            FROM hls_system_notice a
+            LEFT JOIN hls_system_notice_owner hsno
+            ON hsno.owner_allocation_id = #{allocation_id,jdbcType=BIGINT}
+            and hsno.notice_id=a.NOTICE_ID
+            <where> a.notice_type = 'NOTICE'
+                and ((a.NOTICE_LEVEL = 1 AND a.SOURCE_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT})
+                OR (a.NOTICE_LEVEL = 3)
+                OR (a.NOTICE_LEVEL = 2 AND a.SOURCE_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT})
+                )
+                and (hsno.read_flag='N' or hsno.read_flag is null or hsno.read_flag='')
+                <if test="null != dto.noticeId">
+                    and a.NOTICE_ID =#{dto.noticeId}
+                </if>
+                <if test="null != dto.noticeMessage">
+                    and a.NOTICE_MESSAGE like concat(concat('%',#{dto.noticeMessage}),'%')
+                </if>
+            </where>
+        ) as notice_count,
+        (SELECT count(*)
+            FROM hls_system_notice a
+            left JOIN hls_system_notice_owner hsno
+            ON hsno.owner_allocation_id = #{allocation_id,jdbcType=BIGINT}
+            and hsno.notice_id = a.NOTICE_ID
+            <where> a.notice_type = 'TODO'
+                and (hsno.done_flag = 'N' or hsno.done_flag is null)
+                and a.SOURCE_DOCUMENT_ID  in (
+                select distinct t1.ID_ from act_ru_task t1
+                )
+                and ((a.NOTICE_LEVEL = 1 AND a.SOURCE_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT})
+                OR (a.NOTICE_LEVEL = 3)
+                OR (a.NOTICE_LEVEL = 2 AND a.SOURCE_ALLOCATION_ID = #{allocation_id,jdbcType=BIGINT})
+                <if test="null != dto.noticeId">
+                    and a.NOTICE_ID =#{dto.noticeId}
+                </if>
+                <if test="null != dto.noticeMessage">
+                    and a.NOTICE_MESSAGE like concat(concat('%',#{dto.noticeMessage}),'%')
+                </if>
+            )
+            </where>
+        ) as todo_count
+        from dual
+    </select>
+
+    <!--<select id="selectSendNotice" parameterType="com.hand.hls.sys.dto.HlsSystemNotice" resultMap="BaseResultMap">
+		select r.user_id
+		from hls_user_relationship r
+		where r.relation_user_id = #{sourceUserId,jdbcType=BIGINT}
+		and r.relation_type = 'P2P'
+		union
+		select r.user_id
+		from hls_user_relationship r
+		where r.relation_document_category = #{sourceDocumentCategory}
+		and r.relation_document_id =#{sourceDocumentId,jdbcType=BIGINT}
+		and r.relation_type = 'P2D'
+		union
+		select ur.user_id
+		from hls_user_relationship ur,hls_doc_relationship dr
+		where ur.relation_document_category = #{sourceDocumentCategory}
+		and ur.relation_document_id = #{sourceDocumentId,jdbcType=BIGINT}
+		and ur.relation_type = 'P2D'
+		and ur.relation_document_category = dr.document_category
+		and ur.relation_document_id = dr.document_id
+		and dr.relation_type = 'D2D'
+		UNION
+		SELECT hur.USER_ID FROM hls_user_relationship hur
+		WHERE hur.RELATION_DOCUMENT_CATEGORY='RPT_REPORT'
+		AND hur.RELATION_DOCUMENT_ID=#{sourceDocumentId,jdbcType=BIGINT}
+	</select>-->
+    <resultMap id="prjListMap" type="java.util.Map">
+        <result column="noticeId" property="noticeId"/>
+        <result column="message" property="message"/>
+        <result column="dateTime" property="dateTime"/>
+        <result column="documentType" property="documentType"/>
+        <result column="eventCode" property="eventCode"/>
+        <result column="category" property="category"/>
+        <result column="documentId" property="documentId"/>
+        <result column="contractId" property="contractId"/>
+    </resultMap>
+    <!--根据项目id查询项目相关的消息-->
+    <select id="queryPrjByid" resultMap="prjListMap" parameterType="java.lang.String">
+        SELECT
+        hls.NOTICE_ID as noticeId,
+        hls.NOTICE_MESSAGE as message,
+        hls.NOTICE_DATETIME as dateTime,
+        hls.SOURCE_MODULE as documentType,
+        hls.SOURCE_DOCUMENT_ID as documentId,
+        hls.SOURCE_EVENT as eventCode,
+        hls.SOURCE_DOCUMENT_CATEGORY as category
+        FROM hls_system_notice hls
+        WHERE hls.NOTICE_TYPE='NOTICE'
+        AND hls.SOURCE_DOCUMENT_CATEGORY='PRJ_PROJECT'
+        AND hls.SOURCE_DOCUMENT_ID=(select chance_id from prj_project where project_id = #{projectId})
+        UNION
+        SELECT
+        hls.NOTICE_ID as noticeId,
+        hls.NOTICE_MESSAGE as message,
+        hls.NOTICE_DATETIME as dateTime,
+        hls.SOURCE_MODULE as documentType,
+        hls.SOURCE_DOCUMENT_ID as documentId,
+        hls.SOURCE_EVENT as eventCode,
+        hls.SOURCE_DOCUMENT_CATEGORY as category
+        FROM hls_system_notice hls
+        WHERE hls.NOTICE_TYPE='NOTICE'
+        AND hls.SOURCE_DOCUMENT_CATEGORY='CONTRACT_COMPLETE'
+        AND hls.SOURCE_DOCUMENT_ID in(
+        <if test="contractId != null">
+            select cct.contract_termination_id
+            from con_contract_termination cct
+            where cct.contract_id = #{contractId}
+        </if>
+        <if test="contractId == null">
+            select cct.contract_termination_id
+            from con_contract_termination cct
+            where cct.contract_id in (
+                SELECT cc.contract_id FROM con_contract cc WHERE cc.project_id=#{projectId}
+            )
+        </if>
+        )
+    </select>
+
+    <!--根据起租id查询相关的消息-->
+    <select id="queryInceptByid" resultMap="prjListMap" parameterType="java.lang.String">
+        SELECT
+        hls.NOTICE_ID as noticeId,
+        hls.NOTICE_MESSAGE as message,
+        hls.NOTICE_DATETIME as dateTime,
+        hls.SOURCE_MODULE as documentType,
+        hls.SOURCE_DOCUMENT_ID as documentId,
+        hls.SOURCE_EVENT as eventCode,
+        hls.SOURCE_DOCUMENT_CATEGORY as category
+        FROM hls_system_notice hls
+        WHERE hls.NOTICE_TYPE='NOTICE'
+        AND hls.SOURCE_DOCUMENT_CATEGORY='CONTRACT_INCEPT'
+        AND hls.SOURCE_DOCUMENT_ID in(
+        <if test="inceptId != null">
+            select cci.CONTRACT_INCEPT_REQ_ID
+            from con_contract_incept cci
+            where cci.contract_incept_id = #{inceptId}
+        </if>
+        <if test="inceptId == null">
+            0
+        </if>
+        )
+        order by hls.NOTICE_DATETIME asc
+    </select>
+
+    <!--根据合同id查询签约notice-->
+    <select id="querySignNoticeByid" resultMap="prjListMap" parameterType="java.lang.String">
+        SELECT
+        hls.NOTICE_ID as noticeId,
+        hls.NOTICE_MESSAGE as message,
+        hls.NOTICE_DATETIME as dateTime,
+        hls.SOURCE_MODULE as documentType,
+        hls.SOURCE_DOCUMENT_ID as documentId,
+        hls.SOURCE_EVENT as eventCode,
+        hls.SOURCE_DOCUMENT_CATEGORY as category,
+		#{contractId} contractId
+        FROM hls_system_notice hls
+        WHERE hls.NOTICE_TYPE='NOTICE'
+        AND hls.SOURCE_DOCUMENT_CATEGORY='CONTRACT_SIGN'
+        AND hls.SOURCE_DOCUMENT_ID in (
+            SELECT ccs.contract_sign_id
+            FROM con_contract_sign ccs
+            WHERE ccs.contract_id = #{contractId}
+        )
+        order by hls.NOTICE_DATETIME asc
+    </select>
+</mapper>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2019年2月19日
+    $Revision: 1.0
+    $Purpose: 收款管理
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+
+    <a:view>
+        <a:link id="recovery_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH306/csh_transaction_recovery_detail.lview"/>
+        <script><![CDATA[
+
+
+        Leaf.onReady(function () {
+            debugger;
+            var ds = $('csh_transaction_recovery_query_ds');
+            var record = ds.getCurrentRecord();
+            var date = new Date();
+            record.set('due_date_from', new Date(date.getFullYear(),0,1));
+            record.set('due_date_to', CurrentMonthLast());
+        });
+
+        function CurrentMonthLast() {
+            debugger;
+            var date = new Date();
+            var currentMonth = date.getMonth();
+            var nextMonthFirstDay = new Date(date.getFullYear(), currentMonth, 1);
+            var oneDay = 1000 * 60 * 60 * 24;
+            return new Date(nextMonthFirstDay - oneDay);
+        }
+
+        function csh306_transaction_query() {
+            $('csh_transaction_recovery_result_ds').query();
+        }
+
+        function csh306_transaction_reset() {
+            $('csh_transaction_recovery_query_ds').reset();
+        }
+
+        function percent_render(value,record,name){
+            if(name == 'recovery_rate'){
+                var value = record.get('recovery_rate');
+                value = parseFloat(value * 100).toFixed(2) + '%';
+                return value;
+            }
+        }
+
+        function csh306_transaction_detail(){
+            var win = new Leaf.Window({
+                id: 'csh_transaction_recovery_detail_winId',
+                url: $('recovery_detail_link').getUrl(),
+                params: {
+                    winId: 'csh_transaction_recovery_detail_winId'
+                },
+                title: '租金回收率明细',
+                fullScreen: true,
+                draggable: true
+            });        }
+
+        ]]></script>
+
+        <a:dataSets>
+
+            <a:dataSet id="spv_company_ds" lookupCode="SPV_COMPANY"/>
+            <a:dataSet id="posted_flag_ds" lookupCode="CSH.POST_SELECT"/>
+
+            <a:dataSet id="csh_transaction_recovery_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="due_date_from"/>
+                    <a:field name="due_date_to"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_transaction_recovery_result_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/ct/csh/unit/recovery/rate/home" autoCreate="true"
+                       queryDataSet="csh_transaction_recovery_query_ds"
+                       selectable="true">
+                <a:fields>
+                    <a:field name="unit_name"/>
+                    <a:field name="due_amount"/>
+                    <a:field name="received_amount"/>
+                    <a:field name="surplus_amount"/>
+                    <a:field name="recovery_rate"/>
+                </a:fields>
+            </a:dataSet>
+
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="csh306_transaction_query" text="HLS.QUERY"/>
+                <a:gridButton click="csh306_transaction_reset" text="HLS.RESET"/>
+<!--                <a:gridButton click="" text="手工维护"/>-->
+                <a:gridButton click="csh306_transaction_detail" text="查看明细"/>
+            </a:screenTopToolbar>
+            <a:form bindTarget="" labelWidth="120" marginWidth="80"
+                    title="查询条件" style="margin-left:20px">
+                <a:hBox>
+                    <a:fieldSet column="4" labelWidth="150" title="HLS.QUERY_TITLE">
+                        <a:datePicker name="due_date_from" bindTarget="csh_transaction_recovery_query_ds"
+                                      prompt="起始日期" />
+                        <a:datePicker name="due_date_to" bindTarget="csh_transaction_recovery_query_ds"
+                                      prompt="截止日期"/>
+                    </a:fieldSet>
+                </a:hBox>
+            </a:form>
+            <a:fieldSet labelWidth="150" title="应收查询" style="margin-left:20px">
+                <a:grid id="csh_transaction_recovery_grid_ds" bindTarget="csh_transaction_recovery_result_ds"
+                        marginHeight="190" marginWidth="80" navBar="true">
+                    <a:columns>
+                        <a:column name="unit_name" prompt="业务部门" align="center" width="200"/>
+                        <a:column name="due_amount" prompt="应收租赁款项" align="right" renderer="Leaf.formatMoney"
+                                  width="200"/>
+                        <a:column name="received_amount" prompt="已收金额" align="right" renderer="Leaf.formatMoney"
+                                  width="200"/>
+                        <a:column name="surplus_amount" prompt="未收金额" align="right" renderer="Leaf.formatMoney"
+                                  width="200"/>
+                        <a:column name="recovery_rate" prompt="租金回收率" align="right" width="200" renderer="percent_render"/>
+                    </a:columns>
+                </a:grid>
+            </a:fieldSet>
+        </a:screenBody>
+        <script><![CDATA[
+        ]]></script>
+    </a:view>
+</a:screen>

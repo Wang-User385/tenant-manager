@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fp.mapper.JcFundingPlanMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fp.dto.JcFundingPlan">
+        <result column="FUNDING_ID" property="fundingId" jdbcType="DECIMAL" />
+        <result column="REPORT_CODE" property="reportCode" jdbcType="VARCHAR" />
+        <result column="REPORT_NAME" property="reportName" jdbcType="VARCHAR" />
+        <result column="UNIT_CODE" property="unitCode" jdbcType="VARCHAR" />
+        <result column="UNIT_CODE_N" property="unitCodeN" jdbcType="VARCHAR" />
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryAll" parameterType="com.hand.hls.fp.dto.JcFundingPlan" resultMap="BaseResultMap">
+        SELECT
+            t.*, (
+                SELECT
+                    v.meaning
+                FROM
+                    sys_code_value_b_v v
+                WHERE
+                    v. CODE = 'JC.MONER_CHART_FILL'
+                AND v.code_value = t.unit_code
+            ) unit_code_n
+        FROM
+	    jc_funding_plan t
+    </select>
+
+    <select id="queryUintCodeList" parameterType="com.hand.hls.fp.dto.JcFundingPlan" resultMap="BaseResultMap">
+        SELECT
+            t.*, (
+                SELECT
+                    v.meaning
+                FROM
+                    sys_code_value_b_v v
+                WHERE
+                    v. CODE = 'JC.MONER_CHART_FILL'
+                AND v.code_value = t.unit_code
+            ) unit_code_n
+        FROM
+	    jc_funding_plan t
+	    <where>
+            1=1
+            and t.unit_code = #{unitCode}
+            and t.enabled_flag = 'Y'
+        <if test="reportCode != null and reportCode != ''">
+            and t.report_code = #{reportCode}
+        </if>
+        </where>
+    </select>
+
+    <select id="queryByReportCode" parameterType="com.hand.hls.fp.dto.JcFundingPlan" resultMap="BaseResultMap">
+        SELECT
+        t.*, (
+        SELECT
+        v.meaning
+        FROM
+        sys_code_value_b_v v
+        WHERE
+        v. CODE = 'JC.MONER_CHART_FILL'
+        AND v.code_value = t.unit_code
+        ) unit_code_n
+        FROM
+        jc_funding_plan t
+        <where>
+            1=1
+            and t.report_code = #{reportCode}
+        </where>
+    </select>
+
+</mapper>

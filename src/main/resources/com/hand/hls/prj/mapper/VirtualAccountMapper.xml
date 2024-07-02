@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.VirtualAccountMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.VirtualAccount">
+        <result column="ACCOUNT_ID" property="accountId" jdbcType="DECIMAL" />
+        <result column="ACCOUNT_NAME" property="accountName" jdbcType="VARCHAR" />
+        <result column="ACCOUNT_FULL_NAME" property="accountFullName" jdbcType="VARCHAR" />
+        <result column="ACCOUNT_NUM" property="accountNum" jdbcType="VARCHAR" />
+        <result column="MANUFACTURER_ID" property="manufacturerId" jdbcType="DECIMAL" />
+        <result column="TENANT_ID" property="tenantId" jdbcType="DECIMAL" />
+        <result column="PRIMARY_FLAG" property="primaryFlag" jdbcType="VARCHAR" />
+        <result column="manufacturer_id_n" property="manufacturerIdN" jdbcType="VARCHAR" />
+        <result column="TENANT_ID_n" property="tenantIdN" jdbcType="VARCHAR" />
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL" />
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="bank_code" property="bankCode" jdbcType="VARCHAR" />
+        <result column="bank_name" property="bankName" jdbcType="VARCHAR" />
+        <result column="contract_id_n" property="contractIdN" jdbcType="VARCHAR" />
+        <result column="bank_code_n" property="bankCodeN" jdbcType="VARCHAR" />
+        <result column="is_auto_writeoff_flag" property="isAutoWriteoffFlag" jdbcType="VARCHAR" />
+        <result column="is_auto_writeoff_flag_n" property="isAutoWriteoffFlagN" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryVirtualAccountDetail" resultMap="BaseResultMap">
+          SELECT   hva.account_id,
+                   hva.account_name,
+                   hva.account_full_name,
+                   hva.account_num,
+                   hva.manufacturer_id,
+                   hva.tenant_id,
+                   hva.primary_flag,
+                   hva.is_auto_writeoff_flag,
+                   (select v.meaning value_name
+                    from sys_code_value_b_v v
+                    where v.code = 'SYS.YES_NO'
+                       and v.code_value = hva.is_auto_writeoff_flag) is_auto_writeoff_flag_n,
+                   (select hbm.bp_name
+                   from hls_bp_master hbm
+                   where hbm.bp_id = hva.manufacturer_id) manufacturer_id_n,
+                   (select hbm.bp_name
+                   from hls_bp_master hbm
+                   where hbm.bp_id = hva.tenant_id) tenant_id_n,
+                    hva.contract_id,
+                    cc.contract_number,
+                    cc.contract_number contract_id_n,
+                    hva.bank_code,
+                    (select cb.bank_name
+                    from csh_bank cb
+                    where cb.bank_code = hva.bank_code) bank_name,
+        (select cb.bank_name
+        from csh_bank cb
+        where cb.bank_code = hva.bank_code) bank_code_n
+          FROM hls_virtual_account hva
+        left join con_contract cc
+        on cc.contract_id = hva.contract_id
+        <where>
+            <if test="manufacturerId != null">
+                and hva.manufacturer_id = #{manufacturerId}
+            </if>
+            <if test="tenantId != null">
+                and hva.tenant_id = #{tenantId}
+            </if>
+            <if test="contractId != null">
+                and hva.contract_id = #{contractId}
+            </if>
+            <if test="bankCode != null">
+                and hva.bank_code = #{bankCode}
+            </if>
+            <if test="accountFullName != null">
+                and hva.account_full_name like concat('%',concat(#{accountFullName},'%'))
+            </if>
+            <if test="accountNum != null">
+                and hva.account_num like concat('%',concat(#{accountNum},'%'))
+            </if>
+            <if test="contractNumber != null">
+                and cc.contract_number like concat('%',concat(#{contractNumber},'%'))
+            </if>
+            <if test="accountName != null">
+                and hva.account_name like concat('%',concat(#{accountName},'%'))
+            </if>
+            <if test="bankName != null">
+                and (select cb.bank_name
+                from csh_bank cb
+                where cb.bank_code = hva.bank_code) like concat('%',concat(#{bankName},'%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="queryUnusedVirtualAccount" resultMap="BaseResultMap">
+        SELECT   hva.account_id,
+        hva.account_name,
+        hva.account_full_name,
+        hva.account_num,
+        hva.manufacturer_id,
+        hva.tenant_id,
+        hva.primary_flag
+        FROM hls_virtual_account hva
+        <where>
+            hva.tenant_id is null
+            <if test="manufacturerId != null">
+                and hva.manufacturer_id = #{manufacturerId}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryRepeatAccount" resultType="long">
+        select count(*)
+        from hls_virtual_account t
+        where t.contract_id = #{contractId}
+          and t.account_id != nvl(#{accountId}, -1)
+    </select>
+</mapper>

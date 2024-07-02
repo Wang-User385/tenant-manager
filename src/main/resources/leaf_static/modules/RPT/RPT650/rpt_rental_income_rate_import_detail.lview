@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure outputPath="/parameter">
+        <a:model-query model="$com.hand.hls.fnd.service.IHlsFndAttributeSequenceService.selectHeaderId"
+                       rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator=","
+                        status_field="/parameter/@ImportSuccess" template_code="RPT_RENTAL_INCOME_RATE"
+                        user_id="${/session/@user_id}"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+
+        function saveBtn() {debugger;
+            var head_id = '${/model/header/record/@header_id}';
+            Leaf.request({
+                type: 'POST',
+                url: "${/request/@context_path}/rpt/rental/income/rateExcelImportConfirm?headerId=" + head_id,
+                async: true, //设为同步
+                contentType: "application/json; charset=utf-8",
+                success: function (res) {
+                    Leaf.showMessage('提示',res.message);
+                }
+            });
+        }
+
+        function disableBtn() {
+            $('saveBtn_id').disable();
+        }
+
+        function returnBack() {
+            top.refreshFrame();
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="temp_interface_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/rpt/rental/income/rateExcelImportSelect?headerId=${/model/header/record/@header_id}">
+                <a:events>
+                    <a:event name="submitsuccess" handler="disableBtn"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form id="success_form" height="400" title="租金回收明细导入确认" width="1200">
+                <a:grid id="temp_interface_grid_id" bindTarget="temp_interface_ds" marginHeight="150" navBar="true"
+                        width="1100">
+                    <a:columns>
+                        <a:column name="attributes_1" width="130" prompt="序号" align="left"/>
+                        <a:column name="attributes_2" width="160" prompt="机构名称" align="left"/>
+                        <a:column name="attributes_3" width="160" prompt="客户名称" align="left"/>
+                        <a:column name="attributes_4" width="100" prompt="合同编号" align="left"/>
+                        <a:column name="attributes_5" width="100" prompt="应收日期" align="left" renderer="Leaf.formatDate"/>
+                        <a:column name="attributes_6" width="160" prompt="期次" align="left"/>
+                        <a:column name="attributes_7" width="100" prompt="现金流项目" align="left"/>
+                        <a:column name="attributes_8" width="130" prompt="最后支付日" align="left" renderer="Leaf.formatDate"/>
+                        <a:column name="attributes_9" width="150" prompt="币种" align="right" />
+                        <a:column name="attributes_10" width="160" prompt="汇率" align="right"/>
+                        <a:column name="attributes_11" width="160" prompt="应收租赁款项" align="left"/>
+                        <a:column name="attributes_12" width="100" prompt="实收金额"  align="left"/>
+                        <a:column name="attributes_13" width="100" prompt="逾期金额" align="left"/>
+                        <a:column name="attributes_14" width="100" prompt="业务部门" align="left"/>
+                        <a:column name="attributes_15" width="150" prompt="计划判定" align="left"/>
+                    </a:columns>
+                </a:grid>
+                <a:screenTopToolbar>
+                    <a:gridButton id="saveBtn_id" click="saveBtn" text="DETERMINING_IMPORT"/>
+                    <a:gridButton click="returnBack" text="HAP_BACK"/>
+                </a:screenTopToolbar>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="bank_account_detail_id"
+                url="${/request/@context_path}/modules/CAP/CAP201H/bank_account_flow_prediction_detail.lview"/>
+        <script><![CDATA[
+
+        function not_confirm_detail_open(record_id,ds_id) {debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var form_ds_id = '${/parameter/@layout_code}_F_QUERY__ds';
+            var formRecord = $(form_ds_id).getCurrentRecord();
+            var startPeriod = formRecord.get('start_period');
+            var endPeriod = formRecord.get('end_period');
+            param['function_code'] = 'CAP201F2';
+            param['function_usage'] = 'READONLY';
+            param['url_title'] = '暂未确认账户收支预测明细';
+            param['start_period'] = startPeriod;
+            param['end_period'] = endPeriod;
+            hls_doc_get_layout_code(param, 'bank_account_detail_id', null, 'CAP201H');
+        }
+
+        function bank_account_detail_open(record_id,ds_id) {debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var form_ds_id = '${/parameter/@layout_code}_F_QUERY__ds';
+            var formRecord = $(form_ds_id).getCurrentRecord();
+            var startPeriod = formRecord.get('start_period');
+            var endPeriod = formRecord.get('end_period');
+            param['function_code'] = 'CAP201F1';
+            param['function_usage'] = 'READONLY';
+            param['url_title'] = '资金账户收支预测明细';
+            param['winid'] = 'bank_account_detail_open_id';
+            param['start_period'] = startPeriod;
+            param['end_period'] = endPeriod;
+            hls_doc_get_layout_code(param, 'bank_account_detail_id', null, 'CAP201H');
+        }
+
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {debugger;
+            var link_function = '';
+            if (name === 'detail') {
+                link_function = 'not_confirm_detail_open';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">明细</a>';
+            }
+            if (name === 'details') {
+                link_function = 'bank_account_detail_open';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">明细</a>';
+            }
+
+        };
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {debugger;
+            var now = new Date;
+            var lastDay= new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            record.set('start_period',new Date());
+            record.set('end_period',lastDay);
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

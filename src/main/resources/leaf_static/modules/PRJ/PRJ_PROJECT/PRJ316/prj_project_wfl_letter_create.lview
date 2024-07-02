@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: hxh
+    Date: 2020/05/11 9:13
+    Revision: 1.0
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            html,body{
+                height: 1000px;
+                width: 90%;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="prj_project_wfl_detail_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ330/prj_project_meeting_notice_static.lview"/>
+        <a:link id="prj_project_wfl_query_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ330/prj_project_meeting_notice_static_query.lview"/>
+        <script><![CDATA[
+        //debugger;
+
+
+        var businessKey = '${/parameter/@businessKey}';
+        var url;
+        if (!businessKey) {
+            businessKey = parent.currentTaskInfo.process_instance.business_key;
+        }
+
+        var process_instance_id;
+        if(parent.currentTaskInfo.process_instance != undefined){
+            process_instance_id = parent.currentTaskInfo.process_instance.id;
+        }else{
+            process_instance_id = parent.currentTaskInfo.execution_variables[0].execution_id;
+        }
+
+        var current_activity_id = parent.currentTaskInfo.task_definition_key;
+
+        var task_def_key = 'sid-MIsoxvsm-m65O-4CJK-8fn0-iJ4czlsn8Rc4';
+        var task_def_key_temp = 'sid-MIsoxvsm-m65O-4CJK-8fn0-iJ4czlsn8Rc4';
+        var change_flag = 'N';
+        var process_definition_id =  parent.currentTaskInfo.process_definition_id;
+        if(process_definition_id != undefined){
+            var workflow_types = process_definition_id.split(':');
+            if(workflow_types[0] == 'PRJ_PROJECT_RISK_CHANGE_WFL'){
+                change_flag = 'Y';
+                task_def_key_temp = 'sid-hxMOsdG6-oaH6-4LPC-8CIc-lrgBKfdP6ugn';
+            }
+            if(workflow_types[0] == 'PRJ_PROJECT_RISK_PRICE_CHANGE_WFL'){
+                change_flag = 'Y';
+                task_def_key_temp = 'sid-loJJLMUN-89Zr-4aFC-8T3d-MNXqiK1KCoAs';
+            }
+            if(workflow_types[0] == 'PRJ_PROJECT_CHANGEWILL_WFL'){
+                change_flag = 'Y';
+            }
+        }else{
+            var execution_variables = parent.currentTaskInfo.execution_variables;
+            for(var i =0;i<execution_variables.length;i++){
+                var str = execution_variables[i].cached_value;
+                if(typeof(str)=='string'){
+                    if(str.indexOf('PRJ_PROJECT_RISK_CHANGE_WFL') != -1){
+                        change_flag = 'Y';
+                        task_def_key_temp = 'sid-hxMOsdG6-oaH6-4LPC-8CIc-lrgBKfdP6ugn';
+                    }
+                    if(str.indexOf('PRJ_PROJECT_RISK_PRICE_CHANGE_WFL') != -1){
+                        change_flag = 'Y';
+                        task_def_key_temp = 'sid-loJJLMUN-89Zr-4aFC-8T3d-MNXqiK1KCoAs';
+                    }
+                    if(str.indexOf('PRJ_PROJECT_CHANGEWILL_WFL') != -1){
+                        change_flag = 'Y';
+                    }
+                }
+            }
+        }
+
+        var project = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "projectId";
+        });
+        var projectId = project[0].value;
+
+        var refProjectId = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "projectIdOld";
+        });
+        if(refProjectId && refProjectId.length === 1){
+            refProjectId = refProjectId[0].value;
+        }
+        var refProcessInstanceId = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "refProcessInstanceId";
+        });
+        if(refProcessInstanceId && refProcessInstanceId.length === 1){
+            refProcessInstanceId = refProcessInstanceId[0].value;
+        }
+
+        var edit_flag = 'Y';
+        if(current_activity_id != 'sid-5hDyiUWP-krDt-4Cvt-8NvN-BMGvkRLL3ae4' && current_activity_id != 'sid-hxMOsdG6-oaH6-4LPC-8CIc-lrgBKfdP6ugn' && current_activity_id != 'sid-loJJLMUN-89Zr-4aFC-8T3d-MNXqiK1KCoAs' && current_activity_id != 'sid-DXwbrged-H3zl-4rlu-8CBD-vB3fNCeUONBr'){
+            edit_flag = 'N';
+            url = $('prj_project_wfl_query_link_id').getUrl();
+            if(change_flag == 'Y'){
+                task_def_key = task_def_key_temp;
+            }
+        }else{
+            edit_flag = 'Y';
+            url = $('prj_project_wfl_detail_link_id').getUrl();
+        }
+
+        var pageChooser = new PageChooser({
+            url: url,
+            function_code: 'PRJ316F2',
+            context_path: '${/request/@context_path}',
+            opt: {
+                project_id:      projectId,
+                ref_project_id: refProjectId,
+                process_instance_id: process_instance_id,
+                task_def_key: task_def_key,
+                change_flag: change_flag,
+                refProcessInstanceId: refProcessInstanceId,
+                edit_flag: edit_flag
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

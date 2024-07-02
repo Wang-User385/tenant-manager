@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.plm.pli.mapper.PlmPliUpcomingMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.plm.pli.dto.PlmPliUpcoming">
+        <result column="UPCOMING_ID" property="upcomingId" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR" />
+        <result column="INSPECTION_TYPE" property="inspectionType" jdbcType="VARCHAR" />
+        <result column="APPOINTED_DATE" property="appointedDate" jdbcType="DATE" />
+        <result column="REMIND_DATE" property="remindDate" jdbcType="DATE" />
+        <result column="ENABLE_FLAG" property="enableFlag" jdbcType="VARCHAR" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+
+        <result column="BP_CODE" property="bpCode" jdbcType="VARCHAR" />
+        <result column="appointed_year" property="appointedYear" jdbcType="VARCHAR" />
+        <result column="appointed_month" property="appointedMonth" jdbcType="VARCHAR" />
+        <result column="inspection_type_n" property="inspectionTypeN" jdbcType="VARCHAR" />
+
+    </resultMap>
+
+    <select id="selectUpcomingList" parameterType="com.hand.hls.plm.pli.dto.PlmPliUpcoming" resultMap="BaseResultMap">
+        SELECT
+            PPU.UPCOMING_ID,
+            PPU.BP_ID,
+            PPU.BP_NAME,
+            HBM.BP_CODE,
+            PPU.INSPECTION_TYPE,
+            PPU.APPOINTED_DATE,
+            PPU.REMIND_DATE,
+            PPU.ENABLE_FLAG,
+            PPU.STATUS,
+            PPU.DESCRIPTION,
+            (SELECT meaning
+            from sys_code_value_b_v
+            where code = 'PLI.INSPECTION_TYPE'
+            and code_value = PPU.INSPECTION_TYPE)INSPECTION_TYPE_N
+
+        FROM
+            PLM_PLI_UPCOMING PPU LEFT JOIN HLS_BP_MASTER HBM ON PPU.BP_ID = HBM.BP_ID
+        WHERE
+            PPU.STATUS = 'Y'
+            AND PPU.ENABLE_FLAG = 'Y'
+            AND to_char PPU.REMIND_DATE, 'YYYY-MM-DD' ) &lt;= to_char sysdate, 'YYYY-MM-DD' )
+            <if test="isPlaneCheck=='Y'.toString()" >
+                AND PPU.INSPECTION_TYPE='OFF_SITE_INSPECT_PLAN'
+            </if>
+            <if test="isPlaneCheck!='Y'.toString()" >
+                AND PPU.INSPECTION_TYPE!='OFF_SITE_INSPECT_PLAN'
+            </if>
+    </select>
+
+
+    <select id="selectUpcomingListNotAnyCondition" parameterType="com.hand.hls.plm.pli.dto.PlmPliUpcoming" resultMap="BaseResultMap">
+        SELECT
+        PPU.UPCOMING_ID,
+        PPU.BP_ID,
+        PPU.BP_NAME,
+        HBM.BP_CODE,
+        PPU.INSPECTION_TYPE,
+        PPU.APPOINTED_DATE,
+        PPU.REMIND_DATE,
+        PPU.ENABLE_FLAG,
+        PPU.STATUS,
+        PPU.DESCRIPTION,
+         ppu.appointed_date||'年' appointed_year,
+        ppu.appointed_date ||'月' appointed_month,
+       (select v.meaning
+        from sys_code_value_b_v v
+        where v.code = 'PLM.INSPECTION_TYPE'
+        and v.code_value = PPU.inspection_type) as inspection_type_n
+
+        FROM
+        PLM_PLI_UPCOMING PPU LEFT JOIN HLS_BP_MASTER HBM ON PPU.BP_ID = HBM.BP_ID
+        WHERE
+        PPU.STATUS = 'Y'
+        AND PPU.ENABLE_FLAG = 'Y'
+        AND to_char PPU.REMIND_DATE, 'YYYY-MM-DD' ) &lt;= to_char sysdate, 'YYYY-MM-DD' )
+
+    </select>
+
+</mapper>

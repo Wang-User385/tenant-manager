@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaorong
+    $Date: 2019-4-16 上午11:48:56
+    $Revision: 2.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, record, config_records, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            if (ds_id == ds.id) {
+                ds.setQueryParameter('add_flag', 'Y');
+            }
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            if (ds.id === ds_id) {
+                record.set('add_flag', 'Y');
+            }
+        };
+
+        //提交审批按钮
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            debugger;
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            var records = $(ds_id).getSelected();
+            if (records.length != 1) {
+                Leaf.showMessage('提示', '至少选择一条保险信息提交审批！');
+                return false;
+            }
+            new Leaf.showConfirm('${l:HLS.PROMPT}', '确认提交审批吗?', function okFun() {
+                if ('${/parameter/@function_code}' == 'IM100F3') {
+                    window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                        window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                        Leaf.request({
+                            url: "${/request/@context_path}/prj/project/insure/approve/wfl",
+                            async: false,
+                            para: records[0].data,
+                            success: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                Leaf.SideBar.show({
+                                    msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                    duration: 2000
+                                });
+                            },
+                            error: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            failure: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            }
+                        });
+                    });
+                }else if('${/parameter/@function_code}' == 'IM100F2'){
+                    Leaf.request({
+                        url: "${/request/@context_path}/prj/project/insure/approve/wfl",
+                        async: false,
+                        para: records[0].data,
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.SideBar.show({
+                                msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                duration: 2000
+                            });
+                        },
+                        error: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        }
+                    });
+                }
+            });
+
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

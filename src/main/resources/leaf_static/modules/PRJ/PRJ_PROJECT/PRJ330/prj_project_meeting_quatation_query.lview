@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:p="uncertain.proc" xmlns:c="leaf.application.action"
+          xmlns:s="leaf.plugin.script" customizationEnabled="true" trace="true">
+
+    <a:view>
+        <style>
+            html, body {
+                background: #fff;
+            }
+
+            .item-tab-table {
+                -webkit-box-shadow: none !important;
+                -moz-box-shadow: none !important;
+                -o-box-shadow: none !important;
+                -ms-box-shadow: none !important;
+                box-shadow: none !important;
+            }
+
+            /*滚动条样式*/
+            .item-tab .tab::-webkit-scrollbar { /*滚动条整体样式*/
+                width: 8px; /*高宽分别对应横竖滚动条的尺寸*/
+                height: 8px;
+            }
+
+            .item-tab .tab::-webkit-scrollbar-thumb { /*滚动条里面小方块*/
+                border-radius: 5px;
+                -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                background-color: rgb(204, 204, 204);
+            }
+
+            .item-tab .tab::-webkit-scrollbar-track { /*滚动条里面轨道*/
+                -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                border-radius: 0;
+                background-color: white;
+            }
+        </style>
+        <script><![CDATA[
+
+
+        function onQuery_meeting_quatation_fun(ds, para){
+            para['quotation_id'] = '${/parameter/@quotation_id}';
+
+        }
+
+
+        function onSubmitSuccess_meeting_quatation_fun(ds) {
+            vat_waiting_meeting_query();
+        }
+
+        function vat_waiting_meeting_query() {
+            var ds_id = 'meeting_quatation_notice_ds${/parameter/@order_seq}';
+            $(ds_id).query();
+        }
+
+        function quotation_detail(){
+            var quatation_record = $('meeting_quatation_notice_ds${/parameter/@order_seq}').getCurrentRecord();
+            var project_id = quatation_record.get('project_id');
+            var quotation_id = quatation_record.get('quotation_id');
+            parent_quotation_detail(project_id,quotation_id,'meeting_quatation_notice_ds${/parameter/@order_seq}');
+        }
+
+        ]]>
+        </script>
+
+        <a:dataSets>
+            <a:dataSet id="meeting_quatation_notice_ds${/parameter/@order_seq}" autoPageSize="true"  autoCreate="true" selectable="true"
+                       queryUrl="${/request/@context_path}/hls/prj/approve/noticequatation"
+                       submitUrl="${/request/@context_path}/prj/quatation/elements/submit"
+                       deleteUrl="${/request/@context_path}/prj/quatation/elements/remove">
+                <a:fields>
+                    <!--                    <a:field name="project_id" defaultValue="${/parameter/@project_id}"/>-->
+                    <a:field name="project_id" defaultValue="${/parameter/@project_id}"/>
+                    <a:field name="quotation_id" defaultValue="${/parameter/@quotation_id}"/>
+                </a:fields>
+
+                <a:events>
+                    <a:event   name="query" handler="onQuery_meeting_quatation_fun"/>
+                    <a:event   name="submitsuccess" handler="onSubmitSuccess_meeting_quatation_fun"/>
+                </a:events>
+
+            </a:dataSet>
+
+        </a:dataSets>
+
+        <a:screenBody style="background-color:#fff">
+            <a:button click="quotation_detail" width="150" text="报价详情"/>
+            <a:grid id="meeting_quatation_notice_id${/parameter/@order_seq}" marginHeight="200" marginWidth="120" bindTarget="meeting_quatation_notice_ds${/parameter/@order_seq}" >
+                <a:toolBar>
+<!--                    <a:button click="quotation_detail" text="报价详情"/>-->
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="row_seq" prompt="序号" width="100" align="center"/>
+                    <a:column name="project_elements" prompt="项目要素" width="200"/>
+                    <a:column name="elements_describe" prompt="要素描述" width="700"/>
+                </a:columns>
+
+<!--                <a:editors>-->
+<!--                    <a:textField id="project_elements_grid_tf${/parameter/@order_seq}"/>-->
+<!--                    <a:textField id="elements_describe_grid_tf${/parameter/@order_seq}"/>-->
+<!--                </a:editors>-->
+
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+
+</a:screen>

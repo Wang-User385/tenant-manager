@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="false"
+          trace="true">
+    <a:view>
+        <style>
+            html,body{
+                height: 1000px;
+                width: 90%;
+            }
+        </style>
+        <script type="text/javascript" src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="csh002_csh_payment_detail_approve_id" url="${/request/@context_path}/modules/CSH/CSH_SET/CSH002/csh002_csh_payment_req_hd_detail.lview"/>
+        <a:link id="csh002_csh_payment_wfl_modify_id"
+                url="${/request/@context_path}/modules/CSH/CSH_SET/CSH002/csh002_csh_payment_req_hd_detail.lview"/>
+        <script><![CDATA[
+
+        var businessKey = '${/parameter/@businessKey}';
+        if (!businessKey) {
+            //一直获取不到businessKey,只能先这样取
+            businessKey = '${/parameter/@modifyFlag}';
+            var a = businessKey.indexOf("=")
+            businessKey = businessKey.substring(a+1);
+        }
+
+        var param = parent.currentTaskInfo.execution_variables;
+        var creditFlag = param.filter(function (o) {
+                return o.name == "creditFlag";
+            })[0].value;
+        if(!creditFlag){
+            creditFlag = 'N';
+        }
+
+        var param = parent.currentTaskInfo.execution_variables;
+        var projectId = param.filter(function (o) {
+            return o.name == "projectId";
+        })[0].value;
+
+        //初审岗
+        var first_task_id = 'sid-AK5u7DkN-I1ZA-43qt-8AHY-RzToxOJzJNGe';
+        var financial_audit_task_id = 'sid-LpGAJnOo-XdtZ-4NLr-8l2T-HUqlp2ryhow6'
+        var current_activity_id = parent.currentTaskInfo.task_definition_key;
+        var function_code = 'CSH002F2QNEW2';
+        if(creditFlag == 'Y'){
+            function_code = 'CSH002F2QNEW2_CREDIT';
+        }
+        //var function_code = 'CSH002F2';
+        var maintain_type = 'READONLY';
+        var function_usage = 'QUERY';
+
+        var wflurl = $('csh002_csh_payment_detail_approve_id').getUrl();
+        if('${/parameter/@modifyFlag}' == 'Y'){
+            function_code = 'CSH002F2WFLNEW';
+            if(creditFlag == 'Y'){
+                function_code = 'CSH002F2WFLNEW_CREDIT';
+            }
+            maintain_type = 'MODIFY';
+            function_usage = 'MODIFY';
+        }
+        if (current_activity_id === financial_audit_task_id) {
+            function_code = 'CSH002F2QNEW2';
+            if(creditFlag == 'Y'){
+                function_code = 'CSH002F2QNEW2_CREDIT';
+            }
+            maintain_type = 'MODIFY';
+            function_usage = 'MODIFY';
+        }
+        /*if(current_activity_id == first_task_id){
+            //function_code = 'CSH002F2WFL';
+            function_code = 'CSH002F2';
+            maintain_type = 'MODIFY';
+            function_usage = 'MODIFY';
+        }*/
+
+        //退回经办人节点可以编辑
+        if(parent.currentTaskInfo.task_definition_key == "sid-rHAU6o6D-6QbN-4laU-89LQ-cSSMgkK3aMmb"  ){
+            function_code = 'CSH002F2';
+            if(creditFlag == 'Y'){
+                function_code = 'CSH002F2_CREDIT';
+            }
+            maintain_type = 'MODIFY';
+            function_usage = 'MODIFY';
+            wflurl = $('csh002_csh_payment_wfl_modify_id').getUrl();
+        }
+
+        var pageChooser = new PageChooser({
+
+            url: wflurl,
+            function_code: function_code,
+            context_path: '${/request/@context_path}',
+            opt: {
+                payment_req_id: businessKey,
+                function_code: function_code,
+                maintain_type: maintain_type,
+                function_usage: function_usage,
+                wfl_flag : 'Y',
+                projectId: projectId
+            },
+            success: function (realUrl) {
+                debugger;
+                location.href = realUrl;
+            }
+        });
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

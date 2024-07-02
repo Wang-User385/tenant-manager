@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+
+        <a:link id="bp100_bp_master_modify_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+
+        <a:link id="project_credit_notice_detail_linkid"
+                url="${/request/@context_path}/modules/RPT/RPT630/prj_project_pay_condition_info.lview"/>
+        <script><![CDATA[
+        function open_contract_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '合同明细维护';
+            param['function_code'] = 'CONT301F1';
+            param['winid'] = 'con_contract_detail_winid';
+            //param['layout_debugger_flag'] = 'Y';
+            //
+            // if (param['contract_status'] !== 'NEW' && param['contract_status'] !== 'APPROVED_RETURN') {
+            //     param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc'];
+            //     param['maintain_type'] = 'READONLY';
+            //     param['function_usage'] = 'QUERY';
+            // }
+            param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc'];
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['report_flag'] = 'Y';
+            hls_doc_get_layout_code(param, 'con_contract_detail_id', ds_id, 'CONT301');
+        }
+
+        function open_bp_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '客户信息维护';
+            if (param['bp_class'] == 'ORG') {
+                param['function_code'] = 'BP100F1';
+            } else {
+                param['function_code'] = 'BP100F2';
+            }
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'bp_master_modify_winid';
+
+            hls_doc_get_layout_code(param, 'bp100_bp_master_modify_id', ds_id, 'BP100');
+        }
+
+
+
+
+        function open_pay_conditions_win(ds_id, record_id){
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var project_id=record.get('project_id');
+            var win = new Leaf.Window({
+                id: 'project_credit_notice_detail_winid',
+                url: $('project_credit_notice_detail_linkid').getUrl(),
+                params: {
+                    winId: 'project_notice_detail_winid',
+                    project_id: project_id,
+                },
+                title: '付款前提条件',
+                fullScreen: true,
+                draggable: true
+            });
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = '';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'contract_number') {
+                link_function ='open_contract_detail_win';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+            else if(name == 'bp_code'){
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+
+            else if(name == 'pay_conditions'){
+                return '<a href="javascript:open_pay_conditions_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '详情' + '</a>';
+            }
+
+
+
+
+        };
+
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            $(ds_id).query();
+        };
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

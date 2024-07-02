@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.lease.mapper.YxLeaseItemClassifyMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.lease.dto.YxLeaseItemClassify">
+        <result column="classify_id" property="classifyId" jdbcType="DECIMAL"/>
+        <result column="classify_code" property="classifyCode" jdbcType="VARCHAR"/>
+        <result column="label" property="label" jdbcType="VARCHAR"/>
+        <result column="label_n" property="labelN" jdbcType="VARCHAR"/>
+        <result column="attribute" property="attribute" jdbcType="VARCHAR"/>
+        <result column="attribute_n" property="attributeN" jdbcType="VARCHAR"/>
+        <result column="attribute_value" property="attributeValue" jdbcType="VARCHAR"/>
+        <result column="superior_classify_id" property="superiorClassifyId" jdbcType="DECIMAL"/>
+        <result column="superior_classify_id_n" property="superiorClassifyIdN" jdbcType="VARCHAR"/>
+        <result column="manufacturer_id" property="manufacturerId" jdbcType="DECIMAL"/>
+        <result column="manufacturer_id_n" property="manufacturerIdN" jdbcType="VARCHAR"/>
+        <result column="advanced_equipment_flag" property="advancedEquipmentFlag" jdbcType="VARCHAR"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="create_date" property="createDate" jdbcType="VARCHAR"/>
+        <result column="create_user_id" property="createUserId" jdbcType="DECIMAL"/>
+        <result column="create_user_id_n" property="createUserIdN" jdbcType="VARCHAR"/>
+        <result column="expand_flag" property="expandFlag" jdbcType="VARCHAR"/>
+        <result column="seq_num" property="seqNum" jdbcType="VARCHAR"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="created_by" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="last_update_date" property="lastUpdateDate" jdbcType="DATE"/>
+        <result column="last_updated_by" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+        <result column="durable_years" property="durableYears" jdbcType="DECIMAL"/>
+        <result column="residuals_rate" property="residualsRate" jdbcType="VARCHAR"/>
+    </resultMap>
+    <update id="updateAdvancedEquipmentFlag">
+        UPDATE YX_LEASE_ITEM_CLASSIFY t
+        SET t.ADVANCED_EQUIPMENT_FLAG = #{advancedEquipmentFlag}
+        WHERE
+            t.CLASSIFY_ID = #{classifyId}
+           OR t.SUPERIOR_CLASSIFY_ID = #{classifyId}
+    </update>
+
+    <select id="yxLeaseItemClassifyQueryForImport" resultMap="BaseResultMap">
+        select v.*
+        from (select t.classify_id,
+        t.classify_code,
+        t.label,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'LEASE_ITEM_LABEL'
+        and sv.code_value = t.label) label_n,
+        t.attribute,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'LEASE_ITEM_ATTRIBUTE'
+        and sv.code_value = t.attribute) attribute_n,
+        t.attribute_value,
+        t.superior_classify_id,
+        (select ic.attribute_value
+        from yx_lease_item_classify ic
+        where ic.classify_id = t.superior_classify_id) superior_classify_id_n,
+        t.manufacturer_id,
+        (select m.manufacturer_name
+        from yx_lease_item_manufacturer m
+        where m.manufacturer_id = t.manufacturer_id) manufacturer_id_n,
+        t.advanced_equipment_flag,
+        t.enabled_flag,
+        to_char(t.creation_date, 'yyyy-mm-dd') create_date,
+        t.created_by create_user_id,
+        (select su.description
+        from sys_user su
+        where su.user_id = t.created_by) create_user_id_n,
+        case
+        when t.classify_id in
+        (select ic.classify_id
+        from yx_lease_item_classify ic
+        start with ic.classify_id = nvl(#{classifyId},-1)
+        connect by ic.classify_id = prior ic.superior_classify_id) then
+        'Y'
+        else
+        'N'
+        end expand_flag,
+        (select wm_concat(ic.classify_id)
+        from yx_lease_item_classify ic
+        start with ic.classify_id = t.classify_id
+        connect by ic.classify_id = prior ic.superior_classify_id) seq_num,
+        t.last_update_date,
+        t.last_updated_by
+        from yx_lease_item_classify t) v
+        <where>
+            <if test="classifyCode!=null">
+                and v.classify_code = #{classifyCode}
+            </if>
+            <if test="label!=null">
+                and v.label = #{label}
+            </if>
+            <if test="attribute!=null">
+                and v.attribute = #{attribute}
+            </if>
+            <if test="attributeValue!=null">
+                and  v.attribute_value = #{attributeValue}
+            </if>
+            <if test="superiorClassifyId!=null">
+                and v.superior_classify_id = #{superiorClassifyId}
+            </if>
+            <if test="manufacturerId!=null">
+                and v.manufacturer_id = #{manufacturerId}
+            </if>
+            <if test="manufacturerIdN!=null">
+                and v.manufacturer_id_n = #{manufacturerIdN}
+            </if>
+            <if test="advancedEquipmentFlag!=null">
+                and v.advanced_equipment_flag = #{advancedEquipmentFlag}
+            </if>
+            <if test="enabledFlag!=null">
+                and v.enabled_flag = #{enabledFlag}
+            </if>
+            <if test="createDateFrom!=null">
+                and to_date(v.create_date,'yyyy-mm-dd') &gt;= to_date(#{createDateFrom},'yyyy-mm-dd')
+            </if>
+            <if test="createDateTo!=null">
+                and to_date(v.create_date,'yyyy-mm-dd') &lt;= to_date(#{createDateTo},'yyyy-mm-dd')
+            </if>
+            <if test="createUserId!=null">
+                and v.create_user_id = #{createUserId}
+            </if>
+        </where>
+        order by v.classify_code
+    </select>
+
+    <select id="yxLeaseItemClassifyQuery" resultMap="BaseResultMap">
+        select v.*
+        from (select t.classify_id,
+        t.classify_code,
+        t.label,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'LEASE_ITEM_LABEL'
+        and sv.code_value = t.label) label_n,
+        t.attribute,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'LEASE_ITEM_ATTRIBUTE'
+        and sv.code_value = t.attribute) attribute_n,
+        t.attribute_value,
+        t.superior_classify_id,
+        (select ic.attribute_value
+        from yx_lease_item_classify ic
+        where ic.classify_id = t.superior_classify_id) superior_classify_id_n,
+        t.manufacturer_id,
+        (select m.manufacturer_name
+        from yx_lease_item_manufacturer m
+        where m.manufacturer_id = t.manufacturer_id) manufacturer_id_n,
+        (select m.BP_ID
+        from yx_lease_item_manufacturer m
+        where m.manufacturer_id = t.manufacturer_id) BP_ID,
+        t.advanced_equipment_flag,
+        t.enabled_flag,
+        to_char(t.creation_date, 'yyyy-mm-dd') create_date,
+        t.created_by create_user_id,
+        (select su.description
+        from sys_user su
+        where su.user_id = t.created_by) create_user_id_n,
+        case
+        when t.classify_id in
+        (select ic.classify_id
+        from yx_lease_item_classify ic
+        start with ic.classify_id = nvl(#{classifyId},-1)
+        connect by ic.classify_id = prior ic.superior_classify_id) then
+        'Y'
+        else
+        'N'
+        end expand_flag,
+        (select wm_concat(ic.classify_id)
+        from yx_lease_item_classify ic
+        start with ic.classify_id = t.classify_id
+        connect by ic.classify_id = prior ic.superior_classify_id) seq_num,
+        t.last_update_date,
+        t.last_updated_by,
+        t.durable_years,
+        t.residuals_rate
+        from yx_lease_item_classify t) v
+        <where>
+            <if test="createdBy!=null">
+                and (
+                /*非进件部门与管理公司*/
+                exists(
+                    select 1
+                    from fnd_org_unit fu,  sys_user_allocation su,fnd_employee_assigns fa
+                    where su.user_id=#{createdBy}
+                    and su.EMPLOYEE_ASSIGN_ID=fa.EMPLOYEE_ASSIGN_ID
+                    and fa.unit_id =fu.unit_id
+                    and (fu.unit_code != 'BUSINESS_DEPT_MANUFACTURER'
+                        OR FA.POSITION_ID =(SELECT P.POSITION_ID FROM FND_ORG_POSITION P WHERE P.POSITION_CODE='MC0001')))
+                or
+                    /*用户关联合作方= 产品生产厂商关联合作方*/
+                    (
+                    SELECT
+                    case
+                    when t.BP_CATEGORY ='主机厂' and t.RELATION_TYPE='MANUFACTURER' then t.RELATED_BP_ID
+                    when t.BP_CATEGORY ='主机厂' and t.RELATION_TYPE !='MANUFACTURER' then null
+                    when t.BP_CATEGORY ='经销商' and t.RELATION_TYPE='MANUFACTURER'  then t.RELATED_BP_ID
+                    when t.BP_CATEGORY ='经销商' and t.RELATION_TYPE !='MANUFACTURER' then up_RELATED_BP_ID
+                    else null end as RELATED_manufacture_ID
+                    FROM
+                    (
+                    SELECT
+                    U1.BP_CATEGORY,
+                    hr.RELATION_TYPE,
+                    hr.RELATED_BP_ID,
+                    CASE
+                    WHEN hr.RELATION_TYPE = 'VENDER' THEN
+                    ( SELECT rr.RELATED_BP_ID FROM hls_bp_master_relation rr WHERE rr.bp_id = hr.RELATED_BP_ID AND rr.RELATION_TYPE = 'MANUFACTURER' and rr.ENABLED_FLAG = 'Y') ELSE NULL
+                    END AS up_RELATED_BP_ID
+                    FROM sys_user_allocation su1,SYS_USER u1, hls_bp_master_relation hr
+                    WHERE u1.USER_ID = su1.USER_ID
+                    AND hr.bp_id = u1.bp_id
+                    and hr.ENABLED_FLAG = 'Y'
+                    AND SU1.ENABLED_FLAG='Y'
+                    AND U1.USER_ID=#{createdBy}
+                    ) t
+                    )=v.BP_ID
+                )
+            </if>
+            <if test="classifyCode!=null">
+                and v.classify_code like concat(concat('%',#{classifyCode}),'%')
+            </if>
+            <if test="label!=null">
+                and v.label = #{label}
+            </if>
+            <if test="attribute!=null">
+                and v.attribute = #{attribute}
+            </if>
+            <if test="attributeValue!=null">
+                and  v.attribute_value  like concat(concat('%',#{attributeValue}),'%')
+            </if>
+            <if test="superiorClassifyId!=null">
+                and v.superior_classify_id = #{superiorClassifyId}
+            </if>
+            <if test="manufacturerId!=null">
+                and v.manufacturer_id = #{manufacturerId}
+            </if>
+            <if test="advancedEquipmentFlag!=null">
+                and v.advanced_equipment_flag = #{advancedEquipmentFlag}
+            </if>
+            <if test="enabledFlag!=null">
+                and v.enabled_flag = #{enabledFlag}
+            </if>
+            <if test="createDateFrom!=null">
+                and to_date(v.create_date,'yyyy-mm-dd') &gt;= to_date(#{createDateFrom},'yyyy-mm-dd')
+            </if>
+            <if test="createDateTo!=null">
+                and to_date(v.create_date,'yyyy-mm-dd') &lt;= to_date(#{createDateTo},'yyyy-mm-dd')
+            </if>
+            <if test="createUserId!=null">
+                and v.create_user_id = #{createUserId}
+            </if>
+        </where>
+        order by v.classify_code
+    </select>
+
+    <select id="yxLeaseItemClassifyTreeQuery" resultMap="BaseResultMap">
+        select v.*
+        from (select t.classify_id,
+        t.classify_code,
+        t.label,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'LEASE_ITEM_LABEL'
+        and sv.code_value = t.label) label_n,
+        t.attribute,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'LEASE_ITEM_ATTRIBUTE'
+        and sv.code_value = t.attribute) attribute_n,
+        t.attribute_value,
+        t.superior_classify_id,
+        (select ic.attribute_value
+        from yx_lease_item_classify ic
+        where ic.classify_id = t.superior_classify_id) superior_classify_id_n,
+        t.manufacturer_id,
+        (select m.manufacturer_name
+        from yx_lease_item_manufacturer m
+        where m.manufacturer_id = t.manufacturer_id) manufacturer_id_n,
+        t.advanced_equipment_flag,
+        t.enabled_flag,
+        to_char(t.creation_date, 'yyyy-mm-dd') create_date,
+        t.created_by create_user_id,
+        (select su.description
+        from sys_user su
+        where su.user_id = t.created_by) create_user_id_n,
+        case
+        when t.classify_id in
+        (select ic.classify_id
+        from yx_lease_item_classify ic
+        where ic.classify_id != nvl(#{classifyId},-1)
+        start with ic.classify_id = nvl(#{classifyId},-1)
+        connect by ic.classify_id = prior ic.superior_classify_id) then
+        'Y'
+        else
+        'N'
+        end expand_flag
+        from yx_lease_item_classify t
+        where t.enabled_flag = 'Y') v
+    </select>
+
+    <select id="yxLeaseItemClassifyQueryByProductModel" resultMap="BaseResultMap">
+        select ic.classify_id,
+               ic.classify_code,
+               ic.label,
+               ic.attribute,
+               ic.attribute_value,
+               ic.superior_classify_id,
+               ic.manufacturer_id,
+               ic.advanced_equipment_flag,
+               ic.enabled_flag,
+               ic.creation_date,
+               ic.created_by,
+               ic.last_update_date,
+               ic.last_updated_by
+        from yx_lease_item_classify ic, yx_lease_item_manufacturer im
+        where ic.manufacturer_id = im.manufacturer_id
+          and ic.attribute_value = #{attributeValue}
+          and im.bp_id = #{bpId}
+          and im.enabled_flag = 'Y'
+          and ic.enabled_flag = 'Y'
+    </select>
+
+    <select id="yxLeaseItemClassifyForLov" resultMap="BaseResultMap">
+        select v.*
+        from (select t.classify_id,
+        t.attribute_value,
+        (select m.manufacturer_name
+        from yx_lease_item_manufacturer m
+        where m.manufacturer_id = t.manufacturer_id) manufacturer_id_n
+        from yx_lease_item_classify t) v
+        <where>
+            <if test="attributeValue != null">
+                AND v.attribute_value LIKE CONCAT(CONCAT('%',#{attributeValue}),'%')
+            </if>
+            <if test="manufacturerIdN != null">
+                AND v.manufacturer_id_n LIKE CONCAT(CONCAT('%',#{manufacturerIdN}),'%')
+            </if>
+        </where>
+    </select>
+
+    <resultMap id="comparePriceMap" type="Map">
+        <result column="compare_price" property="compare_price"/>
+    </resultMap>
+
+    <select id="queryComparePrice" resultMap="comparePriceMap">
+        select decode((select count(1)
+                       from prj_project p, prj_project_lease_item pi
+                       where pi.classify_id = #{classifyId}
+                         and pi.project_id = p.project_id
+                         and nvl(p.second_hand_flag, 'NEW_LOCOMOTIVE') = 'NEW_LOCOMOTIVE'
+            and exists(select * from con_contract cc where cc.project_id = p.project_id and cc.contract_status in('INCEPT','PENDING','TERMINATE','ET'))
+            and p.lease_channel = '10'
+            and p.division = 'ENGINEERING_MACHINERY'
+            and trunc(p.creation_date) >= trunc(sysdate) - 90),
+              0,
+              (select nvl(round(sum(pi.price) / count(*), 2), 0)
+                 from prj_project p, prj_project_lease_item pi
+                where pi.classify_id in
+                      (select ic.classify_id
+                         from yx_lease_item_classify ic
+                        where ic.superior_classify_id =
+                              (select ic1.superior_classify_id
+                                 from yx_lease_item_classify ic1
+                                where ic1.classify_id = #{classifyId}))
+                  and pi.project_id = p.project_id
+                  and nvl(p.second_hand_flag, 'NEW_LOCOMOTIVE') = 'NEW_LOCOMOTIVE'
+                  and exists(select * from con_contract cc where cc.project_id = p.project_id and cc.contract_status in('INCEPT','PENDING','TERMINATE','ET'))
+                  and p.lease_channel = '10'
+                  and p.division = 'ENGINEERING_MACHINERY'
+                  and trunc(p.creation_date) >= trunc(sysdate) - 90),
+              (select nvl(round(sum(pi.price) / count(*), 2), 0)
+                 from prj_project p, prj_project_lease_item pi
+                where pi.classify_id = #{classifyId}
+                  and pi.project_id = p.project_id
+                  and nvl(p.second_hand_flag, 'NEW_LOCOMOTIVE') = 'NEW_LOCOMOTIVE'
+                  and exists(select * from con_contract cc where cc.project_id = p.project_id and cc.contract_status in('INCEPT','PENDING','TERMINATE','ET'))
+                  and p.lease_channel = '10'
+                  and p.division = 'ENGINEERING_MACHINERY'
+                  and trunc(p.creation_date) >= trunc(sysdate) - 90)) compare_price
+        from dual
+    </select>
+
+    <resultMap id="sysCodeMap" type="Map">
+        <result column="code_value" property="codeValue"/>
+    </resultMap>
+
+    <select id="querySysCodeByValue" resultMap="sysCodeMap">
+        select t.code_value
+        from sys_code_value_b_v t
+        where t.code = #{code}
+          and t.meaning = #{codeName}
+    </select>
+
+    <select id="queryRepeatData" resultType="long">
+        select count(*)
+        from yx_lease_item_classify ic
+        where ic.label = #{label}
+          and ic.attribute = #{attribute}
+          and ic.attribute_value = #{attributeValue}
+          and ic.manufacturer_id = #{manufacturerId}
+          and ic.superior_classify_id = #{superiorClassifyId}
+          and ic.classify_id != nvl(#{classifyId},-1)
+    </select>
+
+    <select id="classifyQueryYearsOrRateNull" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select ic.*
+        from yx_lease_item_classify ic
+        where ic.attribute = #{attribute}
+        and ic.ENABLED_FLAG = 'Y'
+        and (ic.durable_years is null or ic.residuals_rate is null)
+    </select>
+</mapper>

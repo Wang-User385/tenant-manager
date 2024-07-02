@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: gq
+    $Date: 2021-05-10
+    $Description: 租金催收
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq){
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_G_RENT_COLLECTION_con_rent_info_ds':
+                    qpara['tenant_id'] = '${/parameter/@tenant_id}';
+                    break;
+            }
+        }
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_rent_info')) {
+                $(ds.id).getCurrentRecord().set('bp_id', '${/parameter/@tenant_id}');
+                $(ds.id).getCurrentRecord().set('bp_id_n', '${/parameter/@tenant_id_n}');
+                var date = Leaf.formatDate(new Date());
+                $(ds.id).getCurrentRecord().set('cn_date', date);
+                $(ds.id).getCurrentRecord().set('overdue_amount', '${/parameter/@overdue_amount}');
+                $(ds.id).getCurrentRecord().set('cn_person', '${/session/@user_id}');
+                $(ds.id).getCurrentRecord().set('cn_person_n', '${/session/@employeeName}');
+            }
+        };
+
+        // 超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function;
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'attachment') {
+                link_function = '${/parameter/@layout_code}_attachment_detail';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + name + '\');">' + config_record.get('prompt') + '</a>';
+            }
+        };
+
+        /*附件上传超链接函数*/
+        window['${/parameter/@layout_code}_attachment_detail'] = function (record_id, name) {
+            var record = window['${/parameter/@layout_code}_hls_link_render_record'][record_id + '---' + name];
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+
+            }
+            var win = new Leaf.Window({
+                id: '${/parameter/@layout_code}_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: record.get('record_id'),
+                    table_name: 'CON_RENT_INFO',
+                    winid: '${/parameter/@layout_code}_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传',
+                width: 800,
+                height: 575
+            });
+            // win.on('close', function () {
+            //     var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_rent_info');
+            //     $(ds_id).query();
+            // });
+
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

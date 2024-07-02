@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_attachment');
+            if (ds_id == ds.id) {
+                $(ds_id).setQueryParameter('payment_req_id', '${/parameter/@payment_req_id}');
+                $(ds_id).setQueryParameter('project_attachment_category', '${/parameter/@project_attachment_category}');
+            }
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            record.set('payment_req_id', '${/parameter/@payment_req_id}');
+            record.set('project_attachment_category', '${/parameter/@project_attachment_category}');
+        };
+
+        //附件
+        var win;
+        window['${/parameter/@layout_code}_attach_link'] = function (record_id, name) {
+            var record = window['${/parameter/@layout_code}_hls_link_render_record'][record_id + '---' + name];
+            if (record.get('csh_attcahment_id')) {
+                var url;
+                if ('${/parameter/@function_usage}' == 'QUERY') {
+                    url = '${/request/@context_path}/downloadFile.lview';
+                } else {
+                    url = '${/request/@context_path}/uploadFile.lview';
+                }
+                win = new Leaf.Window({
+                    id: '${/parameter/@layout_code}_open_attachment_winid',
+                    url: url,
+                    params: {
+                        header_id: record.get('csh_attcahment_id'),
+                        table_name: 'csh_payment_attachment',
+                        winid: '${/parameter/@layout_code}_open_attachment_winid',
+                        function_usage: '${/parameter/@function_usage}'
+                    },
+                    title: '附件',
+                    width: 800,
+                    height: 575
+                });
+                win.on('close', function () {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_attachment');
+                    $(ds_id).query();
+                });
+            } else {
+                $L.showInfoMessage("提示", "请先保存!", null);
+            }
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'attach_link') {
+                var link_function = '${/parameter/@layout_code}_attach_link';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + name + '\');">' + config_record.get('prompt') + '</a>';
+            }
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

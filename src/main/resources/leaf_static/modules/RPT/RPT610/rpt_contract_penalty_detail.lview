@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="transaction_manual_allocation_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_detail.lview"/>
+        <a:link id="transaction_add_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_add.lview"/>
+
+        <a:link id="transaction_modify_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_modify.lview"/>
+
+        <a:link id="transaction_query_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_query.lview"/>
+
+        <a:link id="transaction_reverse_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_reverse.lview"/>
+        <a:link id="transaction_writeoff_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_writeoff.lview"/>
+
+        <a:link id="transaction_writeoff_reverse_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_writeoff_reverse.lview"/>
+
+        <a:link id="transaction_writeoff_refund_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_refund.lview"/>
+
+        <a:link id="transaction_writeoff_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_writeoff_detail_query.lview"/>
+
+        <a:link id="transaction_refund_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_refund_detail_query.lview"/>
+
+        <a:link id="csh301_receipt_post_link"
+                url="${/request/@context_path}/csh/transaction/post"/>
+
+        <a:link id="transaction_match_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_match.lview"/>
+
+        <a:link id="transaction_refund_apply_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH801/csh_transaction_receipt_refund_query.lview"/>
+
+        <a:link id="transaction_manual_allocation_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation.lview"/>
+
+        <a:link id="transaction_manual_allocation_modify_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_modify.lview"/>
+
+        <a:link id="transaction_manual_allocation_query_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_query.lview"/>
+
+
+        <a:link id="csh301_transaction_receipt_allocation_link" url="${/request/@context_path}/csh/allocation/match"/>
+
+        <a:link id="transaction_batch_writeoff_reverse_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_batch_writeoff_reverse.lview"/>
+
+        <script><![CDATA[
+        Leaf.onReady(function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_write_off');
+            $(ds_id).setQueryParameter('contract_id','${/parameter/@contract_id}');
+            $(ds_id).query();
+        });
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var allocation_id_str = record.get('allocation_id_str');
+            if (name === 'transaction_num') {
+                return '<a  href="#' + Math.random() + '" onclick="open_allocation_window(\'' + allocation_id_str + '\')">' + value + '</a>';
+            }
+        };
+
+        function open_allocation_window(allocation_id_str) {
+            var win = new Leaf.Window({
+                id: 'transaction_allocation_winId',
+                url: $('transaction_manual_allocation_detail_link').getUrl(),
+                params: {
+                    allocation_id_str: allocation_id_str,
+                    winId: 'transaction_allocation_winId'
+                },
+                title: '匹配结果查询',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                // csh301_transaction_query();
+            });
+
+        }
+
+        function write_off_detail_renderer(value, record, name) {
+
+            var transaction_id = record.get('transaction_id');
+
+            return '<a  href="#' + Math.random() + '" onclick="open_write_off_detail_window(' + transaction_id + ')">' + Leaf.formatMoney(value) + '</a>';
+        }
+
+        //一次性全部反冲
+        function open_write_off_detail_window(transaction_id) {
+            var win = new Leaf.Window({
+                id: 'transaction_writeoff_detail_winId',
+                url: $('transaction_writeoff_detail_link').getUrl(),
+                params: {
+                    winId: 'transaction_writeoff_detail_winId',
+                    transaction_id: transaction_id,
+                    reversed_receipt_flag : 'Y' //反冲收款标志（如果核销债权反冲，需要同时反冲收款）
+                },
+                title: '核销明细,一次性全部反冲',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh301_transaction_query();
+            });
+        }
+
+        function csh301_transaction_query() {
+            $('csh_transaction_receipt_maintain_result_ds').query();
+        }
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Revision: 1.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+
+        <a:link id="prj100_prj_change_create_link_id" url="${/request/@context_path}/hls/cus/prj/project/change/req/submit"/>
+        <a:link id="prj100_project_change_create_link_id" url="${/request/@context_path}/modules/PRJ/PRJ_CHANGE/PRJ100/prj_project_change_modify.lview"/>
+
+        <script><![CDATA[
+        function PRJ100_CHANGE_CLOSE(){
+            $('${/parameter/@winid}').close();
+        }
+
+        function PRJ100_CHANGE_CREATE(){
+
+            if($('prj_change_prj100_change_ds').validate()){
+
+                $L.Masker.mask(Ext.getBody(),"变更创建中")
+
+                var data = $('prj_change_prj100_change_ds').getJsonData()[0];
+
+                Leaf.request({
+                    url: $('prj100_prj_change_create_link_id').getUrl(),
+                    para: data,
+                    success: function (res) {
+                        $L.Masker.unmask(Ext.getBody());
+                        $L.showInfoMessage("提示","创建成功!",function () {
+                            /*var record = res.result.record[0];
+                            var param = record, function_code;
+
+                            param['url_title'] = '项目变更明细';
+                            function_code = 'PRJ110F1';
+                            param['winid'] = 'prj100_project_change_create_winid';
+                            param['function_code'] = function_code;
+                            param['source_project_id'] = '${/parameter/@source_project_id}';
+
+                            hls_doc_get_layout_code(param, 'prj100_project_change_create_link_id', null, function_code,'${/parameter/@winid}','Y');*/
+                            //不打开详情页,返回主页
+                            $('${/parameter/@winid}').close();
+                        });
+                    },
+                    failure: function () {
+                        $L.Masker.unmask(Ext.getBody());
+                    },
+                    error: function () {
+                        $L.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+
+        }
+        ]]></script>
+
+        <a:dataSets>
+            <a:dataSet id="prj_change_prj100_change_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="change_info_desc" required="true"/>
+                    <a:field name="change_effct_desc" required="true"/>
+                    <a:field name="change_req_user_name" defaultValue="${/session/@employeeName}"/>
+                    <a:field name="project_id" defaultValue="${/parameter/@source_project_id}"/>
+                    <!--<a:field name="change_type" defaultValue="PROJECT_RISK_CHANGE"/>-->
+                    <a:field name="change_type" defaultValue="PROJECT_ALL_CHANGE"/>
+                    <a:field name="approve_number" defaultValue="${/parameter/@project_number}"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+
+        <a:screenBody>
+
+            <a:screenTopToolbar>
+                <a:gridButton click="PRJ100_CHANGE_CLOSE" text="关闭"/>
+                <a:gridButton click="PRJ100_CHANGE_CREATE" text="创建"/>
+            </a:screenTopToolbar>
+
+            <a:form title="变更类型" bindTarget="prj_change_prj100_change_ds">
+                <a:box column="1" labelWidth="140">
+                    <a:textField name="approve_number" bindTarget="prj_change_prj100_change_ds" readOnly="true"
+                                 prompt="工作联系单审批编号"/>
+                </a:box>
+              <!--  <a:box column="2" labelWidth="140">
+                    <a:radio bindTarget="prj_change_prj100_change_ds" width="400" name="change_type" prompt="变更类型">
+                        <a:items>
+                            <a:item label="全部变更" value="PROJECT_ALL_CHANGE"/>
+                        </a:items>
+                        <a:events>
+
+                        </a:events>
+                    </a:radio>
+                </a:box>-->
+
+                <a:box column="1" labelWidth="140">
+                    <a:textArea name="change_info_desc" bindTarget="prj_change_prj100_change_ds" required="true"
+                                prompt="变更情况说明" width="550" height="100"/>
+                </a:box>
+                <a:box column="1" labelWidth="140">
+                    <a:textArea name="change_effct_desc" bindTarget="prj_change_prj100_change_ds" required="true"
+                                prompt="变更影响分析" width="550" height="100"/>
+                </a:box>
+            </a:form>
+
+
+
+        </a:screenBody>
+
+    </a:view>
+</a:screen>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fct.mapper.HlsCusHlsCreditLineGuarantorMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsCusHlsCreditLineGuarantor">
+        <result column="credit_line_guarantor_id" property="creditLineGuarantorId" jdbcType="DECIMAL"/>
+        <result column="credit_line_id" property="creditLineId" jdbcType="DECIMAL"/>
+        <result column="project_id" property="projectId" jdbcType="DECIMAL"/>
+        <result column="guarantor_bp_id" property="guarantorBpId" jdbcType="DECIMAL"/>
+        <result column="guarantor_bp_id_n" property="guarantorBpIdN" jdbcType="VARCHAR"/>
+        <result column="guarantee_type" property="guaranteeType" jdbcType="VARCHAR"/>
+        <result column="guarantee_type_desc" property="guaranteeTypeDesc" jdbcType="VARCHAR"/>
+        <result column="guarantee_method" property="guaranteeMethod" jdbcType="VARCHAR"/>
+        <result column="guarantee_currency" property="guaranteeCurrency" jdbcType="VARCHAR"/>
+        <result column="guarantee_currency_n" property="guaranteeCurrencyN" jdbcType="VARCHAR"/>
+        <result column="guarantee_amount" property="guaranteeAmount" jdbcType="DECIMAL"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+    </resultMap>
+    <select id="queryCreditLineGuarantor" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineGuarantor"
+            resultMap="BaseResultMap">
+        select
+        hclg.credit_line_guarantor_id,
+        hclg.credit_line_id,
+        hclg.project_id,
+        hclg.guarantor_bp_id,
+        hclg.guarantee_type,
+        hclg.guarantee_currency,
+        hclg.guarantee_amount,
+        (
+        select fc.currency_name
+        from fnd_currency fc
+        where fc.currency_code=hclg.guarantee_currency
+        ) guarantee_currency_n,
+        (
+        select hbm.bp_name
+        from hls_bp_master hbm
+        where hbm.bp_id=hclg.guarantor_bp_id
+        )as guarantor_bp_id_n
+        from hls_credit_line_guarantor hclg
+        <where>
+            <if test="creditLineId!=null">
+                and hclg.credit_line_id = #{creditLineId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

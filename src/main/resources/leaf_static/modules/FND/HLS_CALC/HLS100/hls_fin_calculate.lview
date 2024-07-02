@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Revision: 1.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="hls100_calc_price_save_link_id" url="${/request/@context_path}/finance/calc/price/submit"/>
+        <a:link id="hls100_calc_price_quotation_common_link_id" url="${/request/@context_path}/modules/FND/HLS_COMMON/HLS900/quotation_calc_common.lview"/>
+        <script><![CDATA[
+
+        //保存
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            $('${/parameter/@layout_code}_G_RESULT_finance_calc_price_ds').validate();
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+            var datas = $('${/parameter/@layout_code}_G_RESULT_finance_calc_price_ds').getJsonData();
+
+            Leaf.request({
+                url: $('hls100_calc_price_save_link_id').getUrl(),
+                para:datas,
+                success: function (res) {
+                    $L.showInfoMessage("提示","保存成功!",function () {
+                        $('${/parameter/@layout_code}_G_RESULT_finance_calc_price_ds').query();
+                    });
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true,
+                scope: this
+            });
+
+
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {
+            if(ds.id === '${/parameter/@layout_code}_G_RESULT_finance_calc_price_ds'){
+                record.set('calc_user_id','${/session/@user_id}');
+                record.set('calc_user_id_n','${/session/@employeeName}');
+            }
+        }
+
+        //删除报价
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            $('${/parameter/@layout_code}_G_RESULT_finance_calc_price_layout_grid_id').remove()
+        };
+
+        //新建报价
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            $('${/parameter/@layout_code}_G_RESULT_finance_calc_price_ds').create();
+        };
+
+        //报价链接
+        window['calc_price_list'] = function(record_id,quotationId,priceList){
+            if (quotationId != null && quotationId != '') {
+
+                var url = '${/request/@context_path}/modules/FND/HLS_COMMON/HLS900/quotation_calc_common.lview?quotationId=' + quotationId+'&priceList='+priceList;
+
+                var param = {};
+                param['quotationId'] = quotationId;
+                param['quotation_id'] = quotationId;
+                param['priceList'] = priceList;
+                param['function_code'] = "HLS900";
+                param['layout_code'] = "CALC_QUOTATUON";
+                param['url_title'] = '报价计算';
+                hls_doc_get_layout_code(param, 'hls100_calc_price_quotation_common_link_id', null, "HLS900");
+
+                //打开报价窗口
+                /*var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotationId+'&priceList='+priceList;
+                var win = new Leaf.Window({
+                    id: 'hls100_open_price_winid',
+                    url: url,
+                    title: '报价测算',
+                    fullScreen: true
+                });*/
+            } else {
+                Leaf.showMessage("提示", "报价未计算成功，无法查看!", null);
+                return false;
+            }
+        };
+
+        //输出结果
+        window['result_link_function'] = function(){
+            $L.showInfoMessage("提示","暂无数据!");
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            var calc_link_function = 'calc_price_list';
+            var result_link_function = 'result_link_function';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'calc_link') {
+                return '<a href="javascript:window[\'' + calc_link_function + '\'](\'' + record.id + '\',\'' + (record.get('quotation_id')|| '') + '\',\'' + record.get('price_list') + '\');">报价</a>';
+            }
+            if (name == 'calc_result'){
+                return '<a href="javascript:window[\'' + result_link_function + '\'](\'' + record.id + '\',\'' + record.get('quotation_id') + '\');">输出结果</a>';
+            }
+        };
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>

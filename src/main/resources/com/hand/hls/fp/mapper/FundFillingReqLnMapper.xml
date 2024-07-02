@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fp.mapper.FundFillingReqLnMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fp.dto.FundFillingReqLn">
+        <result column="FILLING_LN_ID" property="fillingLnId" jdbcType="BIGINT"/>
+        <result column="FILLING_ID" property="fillingId" jdbcType="DECIMAL"/>
+        <result column="FILL_ITEM_CODE" property="fillItemCode" jdbcType="VARCHAR"/>
+        <result column="FILL_ITEM" property="fillItem" jdbcType="VARCHAR"/>
+        <result column="FIELD1" property="field1" jdbcType="DECIMAL"/>
+        <result column="FIELD2" property="field2" jdbcType="DECIMAL"/>
+        <result column="FIELD3" property="field3" jdbcType="DECIMAL"/>
+        <result column="FIELD4" property="field4" jdbcType="DECIMAL"/>
+        <result column="FIELD5" property="field5" jdbcType="DECIMAL"/>
+        <result column="FIELD6" property="field6" jdbcType="DECIMAL"/>
+        <result column="FIELD7" property="field7" jdbcType="DECIMAL"/>
+        <result column="FIELD8" property="field8" jdbcType="DECIMAL"/>
+        <result column="FIELD9" property="field9" jdbcType="DECIMAL"/>
+        <result column="FIELD10" property="field10" jdbcType="DECIMAL"/>
+        <result column="FIELD11" property="field11" jdbcType="DECIMAL"/>
+        <result column="FIELD12" property="field12" jdbcType="DECIMAL"/>
+        <result column="FIELD13" property="field13" jdbcType="DECIMAL"/>
+        <result column="FIELD14" property="field14" jdbcType="DECIMAL"/>
+        <result column="FIELD15" property="field15" jdbcType="DECIMAL"/>
+        <result column="FIELD16" property="field16" jdbcType="DECIMAL"/>
+        <result column="SUM_AMOUNT" property="sumAmount" jdbcType="DECIMAL"/>
+        <result column="UNIT_CODE" property="unitCode" jdbcType="VARCHAR"/>
+        <result column="fill_type" property="fillType"/>
+        <result column="fill_quarter" property="fillQuarter"/>
+        <result column="fill_week" property="fillWeek"/>
+        <result column="fill_year" property="fillYear"/>
+        <result column="unit_id" property="unitId"/>
+        <result column="fill_mon" property="fillMon"/>
+    </resultMap>
+    <select id="queryAllLn" parameterType="com.hand.hls.fp.dto.FundFillingReqLn" resultMap="BaseResultMap">
+        select
+        t.FILLING_ID,
+        t.FILLING_LN_ID,
+        t.FILL_ITEM,
+        t.FILL_ITEM_CODE,
+        t.FIELD1,
+        t.FIELD2,
+        t.FIELD3,
+        t.FIELD4,
+        t.FIELD5,
+        t.FIELD6,
+        t.FIELD7,
+        t.FIELD8,
+        t.FIELD9,
+        t.FIELD10,
+        t.FIELD11,
+        t.FIELD12,
+        t.FIELD13,
+        t.FIELD14,
+        t.FIELD15,
+        t.FIELD16,
+        (select f.fill_type from jc_fund_filling f where f.filling_id = t.filling_id)fill_type,
+        (select f.fill_quarter from jc_fund_filling f where f.filling_id = t.filling_id)fill_quarter,
+        (select f.fill_week from jc_fund_filling f where f.filling_id = t.filling_id)fill_week,
+        (select f.fill_year from jc_fund_filling f where f.filling_id = t.filling_id)fill_year,
+        (
+        nvl(t.FIELD1, 0) + nvl(t.FIELD2, 0) + nvl(t.FIELD3, 0) + nvl(t.FIELD4, 0) + nvl(t.FIELD5, 0) +
+        nvl(t.FIELD6, 0) + nvl(t.FIELD7, 0) + nvl(t.FIELD8, 0) + nvl(t.FIELD9, 0) + nvl(t.FIELD10, 0) +
+        nvl(t.FIELD11, 0) + nvl(t.FIELD12, 0) + nvl(t.FIELD13, 0) + nvl(t.FIELD14, 0) + nvl(t.FIELD15, 0)
+        + nvl(t.FIELD16, 0)
+        ) SUM_AMOUNT,
+        t.CREATION_DATE
+        from jc_fund_filling_req_ln t
+        <where>
+            1=1
+            <if test="fillingId != null">
+                and t.filling_id = #{fillingId}
+            </if>
+        </where>
+        order by t.filling_ln_id asc
+    </select>
+    <select id="queryAllForUpdateAmount" parameterType="com.hand.hls.fp.dto.FundFillingReqLn" resultMap="BaseResultMap">
+        SELECT
+        t.*
+        FROM
+        jc_fund_filling_req_ln t
+        <where>
+            1=1
+            <if test="fillingId!=null">
+                and t.filling_id = #{fillingId}
+            </if>
+        </where>
+        order by t.FILLING_LN_ID asc
+    </select>
+
+    <select id="queryAllDetailNew" parameterType="com.hand.hls.fp.dto.FundFillingReqLn" resultMap="BaseResultMap">
+        SELECT
+        t.FILLING_ID,
+        t.FILLING_LN_ID,
+        t.FILL_ITEM,
+        t.FILL_ITEM_CODE,
+        t.FIELD1,
+        t.FIELD2,
+        t.FIELD3,
+        t.FIELD4,
+        t.FIELD5,
+        t.FIELD6,
+        t.FIELD7,
+        t.FIELD8,
+        t.FIELD9,
+        t.FIELD10,
+        t.FIELD11,
+        t.FIELD12,
+        t.FIELD13,
+        t.FIELD14,
+        t.FIELD15,
+        t.FIELD16,
+        (select f.fill_type from jc_fund_filling f where f.filling_id = t.filling_id)fill_type,
+        (select f.unit_id from jc_fund_filling f where f.filling_id = t.filling_id)unit_id,
+        (select f.fill_quarter from jc_fund_filling f where f.filling_id = t.filling_id)fill_quarter,
+        (select f.fill_week from jc_fund_filling f where f.filling_id = t.filling_id)fill_week,
+        (select f.fill_year from jc_fund_filling f where f.filling_id = t.filling_id)fill_year,
+        (select f.fill_mon from jc_fund_filling f where f.filling_id = t.filling_id)fill_mon,
+        (
+        nvl(t.FIELD1, 0) + nvl(t.FIELD2, 0) + nvl(t.FIELD3, 0) + nvl(t.FIELD4, 0) + nvl(t.FIELD5, 0) +
+        nvl(t.FIELD6, 0) + nvl(t.FIELD7, 0) + nvl(t.FIELD8, 0) + nvl(t.FIELD9, 0) + nvl(t.FIELD10, 0) +
+        nvl(t.FIELD11, 0) + nvl(t.FIELD12, 0) + nvl(t.FIELD13, 0) + nvl(t.FIELD14, 0) + nvl(t.FIELD15, 0)
+        + nvl(t.FIELD16, 0)
+        ) SUM_AMOUNT
+        FROM
+        jc_fund_filling_req_ln t
+        <where>
+            1=1
+            <if test="fillingId!=null">
+                and t.filling_id = #{fillingId}
+            </if>
+            <if test="fillingLnId!=null">
+                and t.filling_ln_id = #{fillingLnId}
+            </if>
+        </where>
+        order by t.FILLING_LN_ID asc
+    </select>
+</mapper>

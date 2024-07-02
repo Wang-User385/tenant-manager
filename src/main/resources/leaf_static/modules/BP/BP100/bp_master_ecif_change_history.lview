@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Date: 2020-4-28
+    $Revision: 1.0
+    $Purpose: 上报总行版本管理
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="hls_bp_master_change_history_detail_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_ecif_change.lview"/>
+        <script><![CDATA[
+
+
+        function open_ecif_change_detail(value, record, name) {
+            var status = record.get("wfl_status");
+            return '<a href="javascript:winOpen_ecif_change_detail(\'' + record.get('ecif_change_id') + '\',\'' + status + '\');">' + '明细信息' + '</a>';
+
+        }
+
+       function winOpen_ecif_change_detail(ecif_change_id,status){
+           var ds_id = {};
+           var param = {};
+           param['url_title'] = '客户信息变更明细';
+           param['function_code'] = 'BP100F101';
+           param['ecif_change_id']=ecif_change_id;
+
+           if(status=='APPROVING' || status=='APPROVED' || status=='CANCEL'){
+               param['maintain_type'] = 'READONLY';
+               param['function_usage'] = 'QUERY';
+           }
+           param['layout_debugger_flag'] = 'Y';
+           param['winid'] = 'hls_bp_master_change_history_deatil_winid';
+           hls_doc_get_layout_code(param, 'hls_bp_master_change_history_detail_link_id', ds_id, 'BP100F101');
+       }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="hls_bp_master_ecif_change_history_ds" autoPageSize="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/hls/ecif/bp/master/change/history?bpId=${/parameter/@bp_id}">
+
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:grid id="hls_bp_master_ecif_change_history_grid" bindTarget="hls_bp_master_ecif_change_history_ds" width="800"
+                    height="440" navBar="true">
+                <a:columns>
+                    <a:column width="120" name="change_number" prompt="上报编号" align="center"/>
+                    <a:column width="120" name="submit_date" prompt="创建时间" align="center" renderer="Leaf.formatDate"/>
+                    <a:column width="120" name="submit_user_id_n"  prompt="创建人员"
+                              align="center"/>
+                    <a:column width="100" name="wfl_status_n" prompt="审批状态"
+                              align="center"/>
+                    <a:column width="150" name="msg"  prompt="返回信息"
+                              align="left"/>
+                    <a:column width="100" name="detail" renderer="open_ecif_change_detail" prompt="明细"
+                              align="center"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

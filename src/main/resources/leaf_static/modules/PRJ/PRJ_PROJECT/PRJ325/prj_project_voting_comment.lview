@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+
+        function voting_comment_ds_query(ds, para) {
+            debugger;
+            var ds_id = '${/parameter/@ds_id}';
+            var approver_ds_id = $(ds_id).getSelected();
+            var approver_record_id = approver_ds_id[0].get('approver_record_id');
+            para['approverRecordId'] = approver_record_id;
+        }
+
+        function voting_comment_submit() {
+            debugger;
+            var comment_ds_id = $('prj325_voting_comment_ds');
+            var para = [];
+            var commentRec = comment_ds_id.getCurrentRecord();
+            var vote_comment = commentRec.get('vote_comment');
+
+            if('${/parameter/@vote_result}' == 'VETO' || '${/parameter/@vote_result}' == 'FURTHER'){
+                if(vote_comment == null){
+                    $L.showMessage('提示','请填写投票意见！');
+                    return false;
+                }
+            }
+
+            var ds_id = '${/parameter/@ds_id}';
+            var records = $(ds_id).getSelected();
+            for (var i = 0; i < records.length; i++) {
+                records[i].set('vote_result', '${/parameter/@vote_result}');
+                records[i].set('vote_comment', vote_comment);
+                if ('${/parameter/@vote_result}' !== 'OPINION_DRAFT') {
+                    records[i].set('vote_status', 'VOTE_COMPLETE');
+                }
+                records[i].set('__status', 'update');
+                para.push(records[i].data);
+            }
+
+            Leaf.request({
+                url: "${/request/@context_path}/prj/project/meeting/approver/submit",
+                para: para,
+                success: function () {
+                    Leaf.SideBar.show({
+                        msg: '提交成功',
+                        duration: 2000
+                    });
+                    Leaf.Masker.unmask(Ext.getBody());
+                    $('${/parameter/@winid}').close();
+                    $(ds_id).query();
+                },
+                failure: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+        function voting_comment_win_close() {
+            $('${/parameter/@winid}').close();
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="prj325_voting_comment_ds" autoCreate="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/prj/project/meeting/approver/judge/query">
+                <a:fields>
+                    <a:field name="vote_comment"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="voting_comment_ds_query"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="voting_comment_submit" text="完成"/>
+                <a:gridButton click="voting_comment_win_close" text="取消"/>
+            </a:screenTopToolbar>
+            <a:box>
+                <a:textArea name="vote_comment" height="200" width="570" bindTarget="prj325_voting_comment_ds"
+                            style="font-size:15px"/>
+            </a:box>
+        </a:screenBody>
+    </a:view>
+</a:screen>

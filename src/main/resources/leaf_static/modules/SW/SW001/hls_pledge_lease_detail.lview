@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaorong
+    $Date: 2019-4-16 上午11:48:56
+    $Revision: 2.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <!--<a:link id="HLS200_LEASE_ITEM_WARRANT"
+                url="${/request/@context_path}/modules/LEASE/LEASE002/lease_item_warrant_detail.lview"/>
+        <a:link id="HLS200_LEASE_ITEM_INSURANCE"
+                url="${/request/@context_path}/modules/LEASE/LEASE003/lease_item_insure_detail.lview"/>-->
+        <a:link id="pledge_detail_import_link_id"
+                url="${/request/@context_path}/modules/SW/SW001/pledge_detail_import_entrance.lview"/>
+
+        <script><![CDATA[
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq){
+
+        }
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+            countTotal(pledge_ds_id,ds)
+
+        };
+
+
+        //
+        //动产抵押导入
+        window['${/parameter/@layout_code}_G_MOVABLES_LEASE_LIST_USER_BUTTON1_layout_dynamic_tab_click'] = function (){
+
+
+
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+            if(pledge_ds_id==''){
+                return;
+            }
+            var  hlsLease_records = $(pledge_ds_id).getAll();
+            var leaseItemId = hlsLease_records[0].data.lease_item_id;
+            var patternDet = "MOVABLE_PROPERTY_PLEDGE";
+            if (typeof (leaseItemId) === 'undefined' || 'undefined' === leaseItemId) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            var win = new Leaf.Window({
+                id: 'item_receipt_import_win_id',
+                params: {
+                    winid: 'item_receipt_import_win_id',
+                    lease_item_id :leaseItemId,
+                    patternDet:patternDet
+                },
+                url: '${/request/@context_path}/modules/SW/SW001/hls_pledge_lease_list_import.lview',
+                title: '新增导入',
+                fullScreen: false,
+                width: 500,
+                height: 400,
+                draggable: true
+            });
+            win.on('close', function () {
+                $(pledge_ds_id).query();
+            });
+        };
+
+
+        //不动产抵押导入
+        window['${/parameter/@layout_code}_G_NO_MOVABLES_LEASE_LIST_USER_BUTTON1_layout_dynamic_tab_click'] = function (){
+
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+            if(pledge_ds_id==''){
+                return;
+            }
+            var  hlsLease_records = $(pledge_ds_id).getAll();
+            var leaseItemId = hlsLease_records[0].data.lease_item_id;
+            var patternDet = "NO_MOVABLE_PROPERTY_PLEDGE";
+            if (typeof (leaseItemId) === 'undefined' || 'undefined' === leaseItemId) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            var win = new Leaf.Window({
+                id: 'item_receipt_import_win_id',
+                params: {
+                    winid: 'item_receipt_import_win_id',
+                    lease_item_id :leaseItemId,
+                    patternDet:patternDet
+                },
+                url: '${/request/@context_path}/modules/SW/SW001/hls_pledge_lease_no_import.lview',
+                title: '新增导入',
+                fullScreen: false,
+                width: 500,
+                height: 400,
+                draggable: true
+            });
+            win.on('close', function () {
+                $(pledge_ds_id).query();
+            });
+        };
+        //
+        window['${/parameter/@layout_code}_G_PLEDGE_LIST_USER_BUTTON1_layout_dynamic_tab_click'] = function (){
+
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+            if(pledge_ds_id==''){
+                return;
+            }
+            var  hlsLease_records = $(pledge_ds_id).getAll();
+            var leaseItemId = hlsLease_records[0].data.lease_item_id;
+            var patternDet = "DZ_PROPERTY_PLEDGE";
+            if (typeof (leaseItemId) === 'undefined' || 'undefined' === leaseItemId) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            var win = new Leaf.Window({
+                id: 'item_receipt_import_win_id',
+                params: {
+                    winid: 'item_receipt_import_win_id',
+                    lease_item_id :leaseItemId,
+                    patternDet:patternDet
+                },
+                url: '${/request/@context_path}/modules/SW/SW001/hls_pledge_lease_zhiya_import.lview',
+                title: '新增导入',
+                fullScreen: false,
+                width: 500,
+                height: 400,
+                draggable: true
+            });
+            win.on('close', function () {
+                $(pledge_ds_id).query();
+            });
+        };
+        //动产抵押ocr识别
+        window['${/parameter/@layout_code}_G_MOVABLES_LEASE_LIST_USER_BUTTON2_layout_dynamic_tab_click'] = function (){
+            ocrImport();
+        }
+        //不动产抵押ocr识别
+        window['${/parameter/@layout_code}_G_NO_MOVABLES_LEASE_LIST_USER_BUTTON2_layout_dynamic_tab_click'] = function (){
+            ocrImport();
+        }
+        //质押清单ocr识别
+        window['${/parameter/@layout_code}_G_PLEDGE_LIST_USER_BUTTON2_layout_dynamic_tab_click'] = function (){
+            ocrImport();
+        }
+        function ocrImport(){
+            jQuery("#flieLoad").click();
+            jQuery("#flieLoad").off('change').change(function () {
+                Leaf.Masker.mask(Ext.getBody(), '识别中。。');
+                for (var i = 0; i < jQuery("#flieLoad").get(0).files.length; i++) {
+                    var file = jQuery("#flieLoad").get(0).files[i];
+                    if (file == undefined) {
+                        continue;
+                    }
+
+                    var fileType = file.name;
+                    var index= fileType.lastIndexOf(".");
+                    var fileType = fileType.substr(index+1);
+                    var url = "";
+                    if(fileType=='pdf'){
+                        url = '${/request/@context_path}/pdf/ocr/import';
+                    }else{
+                        url = '${/request/@context_path}/table/ocr/import';
+                    }
+
+                    var fileName = encodeURI(file.name);
+                    var formData = new FormData();
+                    formData.append("fileToUpload", file);  //上传一个files对象
+                    formData.append("filename", fileName);  //上传一个files对象
+                    formData.append("_csrf", "${/session/@_csrf.token}");
+                    jQuery.ajax({
+                        url: url,
+                        dataType: "json",
+                        type: "post",
+                        data: formData,
+                        async: false,
+                        processData: false,//不去处理发送的数据
+                        contentType: false,//不去设置Content-Type请求头
+                        error: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            Leaf.showErrorMessage('提示', res.message);
+                            return;
+                        },
+                        success: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            if(res.success == false){
+                                Leaf.showErrorMessage('提示', res.message);
+                            }else{
+                                window.location.href = "${/request/@context_path}/ocr/attachment/package/download?fileName=" + res;
+                            }
+                            return;
+                        }
+
+                    })
+                }
+                Leaf.Masker.unmask(Ext.getBody());
+            })
+        }
+
+        function countTotal(pledge_ds_id,ds){
+
+            var g_movables_lease_list_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_detail','G_MOVABLES_LEASE_LIST');
+            var g_no_movables_lease_list_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_detail','G_NO_MOVABLES_LEASE_LIST');
+            var g_pledge_list_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_detail','G_PLEDGE_LIST');
+            //抵押物
+            var asset_totalValue = 0;
+            //
+            var asset_totalDzValue = 0;
+            //质押物
+            var pledge_totalValue = 0;
+            var pledge_totalDzValue = 0;
+            debugger;
+            //动产抵押清单
+           /* if(g_movables_lease_list_id!=''&&ds.id===g_movables_lease_list_id){
+                alert(123)
+            }*/
+            if(g_movables_lease_list_id!=''&&$(g_movables_lease_list_id).getAll().length!=0){
+                var hls_movables_lease_list_id_records = $(g_movables_lease_list_id).getAll();
+                for (var i = 0; i < hls_movables_lease_list_id_records.length; i++) {   //PURCHASE_PRICE
+                    if(typeof (hls_movables_lease_list_id_records[i].data.purchase_price) !== 'undefined' || 'undefined' !== hls_movables_lease_list_id_records[i].data.purchase_price){
+                        if (typeof ( hls_movables_lease_list_id_records[i].data.quantity) !== 'undefined' && undefined !== hls_movables_lease_list_id_records[i].data.quantity){
+                            asset_totalValue += hls_movables_lease_list_id_records[i].data.purchase_price * hls_movables_lease_list_id_records[i].data.quantity;
+                        }else {
+                            asset_totalValue += hls_movables_lease_list_id_records[i].data.purchase_price;
+                        }
+                        //ASSET_VALUE_TOTAL  ASSET_VALUE  EVALUATION_VALUE hls_movables_lease_list_id_records[i].data.quantity
+                    }
+                    if(typeof (hls_movables_lease_list_id_records[i].data.evaluation_value) !== 'undefined' || 'undefined' !== hls_movables_lease_list_id_records[i].data.evaluation_value){
+                        if (typeof ( hls_movables_lease_list_id_records[i].data.quantity) !== 'undefined' && undefined !== hls_movables_lease_list_id_records[i].data.quantity){
+                            asset_totalDzValue += hls_movables_lease_list_id_records[i].data.evaluation_value * hls_movables_lease_list_id_records[i].data.quantity;
+                        }else {
+                            asset_totalDzValue += hls_movables_lease_list_id_records[i].data.evaluation_value;
+                        }
+                    }
+
+
+                }
+            }
+            //不动产抵押清单
+            if(g_no_movables_lease_list_id!=''&&$(g_no_movables_lease_list_id).getAll().length!=0){
+                var no_movables_lease_list_id_records = $(g_no_movables_lease_list_id).getAll();
+                for (var i = 0; i < no_movables_lease_list_id_records.length; i++) {
+                    if(typeof (no_movables_lease_list_id_records[i].data.purchase_price) !== 'undefined' || 'undefined' !== no_movables_lease_list_id_records[i].data.purchase_price){
+                        asset_totalValue += no_movables_lease_list_id_records[i].data.purchase_price;
+                    }
+                    if(typeof (no_movables_lease_list_id_records[i].data.evaluation_value) !== 'undefined' || 'undefined' !== hls_movables_lease_list_id_records[i].data.evaluation_value){
+                        asset_totalDzValue += no_movables_lease_list_id_records[i].data.evaluation_value;
+                    }
+
+
+                }
+            }
+            //质押物清单
+
+            if(g_pledge_list_id!=''&&$(g_pledge_list_id).getAll().length!=0){
+                var g_pledge_list_id_records = $(g_pledge_list_id).getAll();
+                for (var i = 0; i < g_pledge_list_id_records.length; i++) {
+                        //PLEDGE_ASSET_VALUE
+                    if(typeof (g_pledge_list_id_records[i].data.pledge_asset_value) !== 'undefined' || 'undefined' !== g_pledge_list_id_records[i].data.pledge_asset_value){
+                        pledge_totalValue += g_pledge_list_id_records[i].data.pledge_asset_value;
+                    }
+                    if(typeof (g_pledge_list_id_records[i].data.evaluation_value) !== 'undefined' || 'undefined' !== hls_movables_lease_list_id_records[i].data.evaluation_value){
+                        pledge_totalDzValue += g_pledge_list_id_records[i].data.evaluation_value;
+                    }
+
+
+                }
+            }
+
+            //如果存在评估就取最新的评估值
+            // var lease_asset_in_list_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_in','G_REVALUE_INFO');
+            // if(lease_asset_in_list_id!=''&&$(lease_asset_in_list_id).getAll().length!=0){
+            //     var lease_asset_in_list_id_records = $(lease_asset_in_list_id).getAll();
+            //     for (var i = 0; i < lease_asset_in_list_id_records.length; i++) {
+            //
+            //         if(typeof (lease_asset_in_list_id_records[i].data.fair_value) !== 'undefined' || 'undefined' !== lease_asset_in_list_id_records[i].data.fair_value){
+            //             asset_totalDzValue = lease_asset_in_list_id_records[0].data.fair_value;
+            //             break;
+            //         }
+            //
+            //
+            //     }
+            // }
+
+
+
+            if($(pledge_ds_id).getCurrentRecord()!=null&&asset_totalValue!=NaN){
+                //ORIGINAL_ASSET_VALUE_TOTAL
+                $(pledge_ds_id).getCurrentRecord().set('original_asset_value_total', asset_totalValue);
+                //$(pledge_ds_id).getCurrentRecord().set('net_asset_value', totalValue);
+            }
+
+            if($(pledge_ds_id).getCurrentRecord()!=null&&asset_totalDzValue!=NaN){
+                //ORIGINAL_ASSET_VALUE_TOTAL
+                $(pledge_ds_id).getCurrentRecord().set('asset_value_total', asset_totalDzValue);
+                //$(pledge_ds_id).getCurrentRecord().set('net_asset_value', totalValue);
+            }
+            if($(pledge_ds_id).getCurrentRecord()!=null&&pledge_totalDzValue!=NaN){
+                //ORIGINAL_ASSET_VALUE_TOTAL
+                $(pledge_ds_id).getCurrentRecord().set('pledge_value_total', pledge_totalDzValue);
+                //$(pledge_ds_id).getCurrentRecord().set('net_asset_value', totalValue);
+            }
+            if($(pledge_ds_id).getCurrentRecord()!=null&&pledge_totalValue!=NaN){
+                //ORIGINAL_ASSET_VALUE_TOTAL
+                $(pledge_ds_id).getCurrentRecord().set('original_pledge_value_total', pledge_totalValue);
+                //$(pledge_ds_id).getCurrentRecord().set('net_asset_value', totalValue);
+            }
+
+            return ;
+
+        }
+
+        //保存前调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+           // debugger;
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item','F_BASIC');
+            if(pledge_ds_id!=''){
+                countTotal(pledge_ds_id,ds);
+            }
+
+            var check_flag = true;
+            var document_category = 'PLEDGE';
+            var document_type = 'PLEDGE';
+            var business_type = 'PLEDGE';
+
+            if(pledge_ds_id!='' && $(pledge_ds_id).getCurrentRecord()!=null){
+
+                $(pledge_ds_id).getCurrentRecord().set('lease_item_type', 'PLEDGE');
+                $(pledge_ds_id).getCurrentRecord().set('owner_user_id', '${/session/@employeeId}');
+
+            var lease_item_code =$(pledge_ds_id).getCurrentRecord().get('lease_item_code');
+            $(pledge_ds_id).getCurrentRecord().set('owner_user_id', '${/session/@employeeId}');
+            if(!lease_item_code) {
+                //window['${/parameter/@layout_code}_set_authority_rule_string']();
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type,
+                    success: function (res) {
+                        $(pledge_ds_id).getCurrentRecord().set('lease_item_code', res.result.record[0]);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = true;
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    },
+                    sync: true,
+                    scope: this
+                });
+
+            }
+          }
+
+            //生成权限字符串  authority_rule_string
+            Leaf.request({
+                url: "${/request/@context_path}/hls/lease/item/generateAuthorityString",
+                success: function (res) {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+                    $(ds_id).getCurrentRecord().set('authority_rule_string', res.result.record[0]);
+                },
+                sync: true,
+                scope: this
+            });
+            return check_flag;
+        };
+
+
+        function open_attach(id) {
+            if (typeof (id) === 'undefined' || 'undefined' === id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                //url = '${/request/@context_path}/downloadFile.lview';
+                $L.showInfoMessage("提示", "当前无法上传文件!");
+                return;
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'lease_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: id,
+                    table_name: 'HLS_LEASE_ITEM_ATTACHMENT',
+                    winid: 'lease_open_attachment_winid'
+                },
+                title: '附件',
+                width: 800,
+                height: 575
+            });
+
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_attachment');
+                $(ds_id).query();
+            });
+        }
+
+
+        // 超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+
+            if (name == 'upload') {
+                return '<a href="javascript:open_attach(\'' + record.get('lease_item_attachment_id') + '\')">附件上传</a>';
+            }
+
+            if (name == 'file_name' && value) {
+                var str = value.split(',');
+                var url = '' ;
+                for(var i = 0;i < str.length;i++){
+                    var temp = record.get('attachment_id').split(',');
+                    url = url + '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + temp[i] +'">' + str[i] +' ; </a>';
+                }
+                return url;
+                //return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + record.get('attachment_id') + '">' + value + '</a>';
+            }
+
+        };
+
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_attachment');
+
+            if(ds.id === ds_id){
+                record.set('attachment_category','LEASE');
+            }
+            //G_MOVABLES_LEASE_LIST
+            var hls_lease_list_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+
+            var g_movables_lease_list_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_detail','G_MOVABLES_LEASE_LIST');
+            if(hls_lease_list_id!=''&&ds.id===g_movables_lease_list_id){//LEASE_ITEM_DET_ID PATTERN
+                var lease_item_id = $(hls_lease_list_id).getAll()[0].data.lease_item_id;
+                //$(g_movables_lease_list_id).getCurrentRecord().set('lease_item_det_id', lease_item_id);
+                $(g_movables_lease_list_id).getCurrentRecord().set('pattern_det', "MOVABLE_PROPERTY_PLEDGE");
+            }
+
+            var g_no_movables_lease_list_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_detail','G_NO_MOVABLES_LEASE_LIST');
+            if(hls_lease_list_id!=''&&ds.id===g_no_movables_lease_list_id){//LEASE_ITEM_DET_ID PATTERN
+                var lease_item_id = $(hls_lease_list_id).getAll()[0].data.lease_item_id;
+                //$(g_no_movables_lease_list_id).getCurrentRecord().set('lease_item_det_id', lease_item_id);
+                $(g_no_movables_lease_list_id).getCurrentRecord().set('pattern_det', "NO_MOVABLE_PROPERTY_PLEDGE");
+            }
+
+            //G_PLEDGE_LIST
+            var g_pledge_list_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_detail','G_PLEDGE_LIST');
+            if(hls_lease_list_id!=''&&ds.id===g_pledge_list_id){//LEASE_ITEM_DET_ID PATTERN
+                var lease_item_id = $(hls_lease_list_id).getAll()[0].data.lease_item_id;
+                //$(g_pledge_list_id).getCurrentRecord().set('lease_item_det_id', lease_item_id);
+                $(g_pledge_list_id).getCurrentRecord().set('pattern_det', "DZ_PROPERTY_PLEDGE");
+            }
+
+
+
+        }
+
+
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+            $(ds_id).setQueryParameter('lease_item_id', $(ds_id).getAt(0).get("lease_item_id"));
+            $(ds_id).query();
+            var att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_attachment');
+            $(att_ds_id).query();
+
+        };
+        ]]></script>
+        <input type="file" name="image" id="flieLoad" multiple="" accept="image/jpeg,image/jpg,image/png,image/svg,application/pdf" style="display:none"/>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

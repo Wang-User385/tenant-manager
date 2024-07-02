@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sys.mapper.SysUserMapper">
+	<resultMap id="BaseResultMap" type="com.hand.hls.sys.dto.SysUser">
+		<id column="USER_ID" property="userId" jdbcType="BIGINT"/>
+		<result column="USER_TYPE" property="userType" jdbcType="VARCHAR"/>
+		<result column="USER_NAME" property="userName" jdbcType="VARCHAR"/>
+		<result column="PASSWORD_ENCRYPTED" property="passwordEncrypted" jdbcType="VARCHAR"/>
+		<result column="EMAIL" property="email" jdbcType="VARCHAR"/>
+		<result column="PHONE" property="phone" jdbcType="VARCHAR"/>
+		<result column="START_ACTIVE_DATE" property="startActiveDate" jdbcType="TIMESTAMP"/>
+		<result column="END_ACTIVE_DATE" property="endActiveDate" jdbcType="TIMESTAMP"/>
+		<result column="STATUS" property="status" jdbcType="VARCHAR"/>
+		<result column="OBJECT_VERSION_NUMBER" property="objectVersionNumber" jdbcType="DECIMAL"/>
+		<result column="REQUEST_ID" property="requestId" jdbcType="BIGINT"/>
+		<result column="PROGRAM_ID" property="programId" jdbcType="BIGINT"/>
+		<result column="CREATED_BY" property="createdBy" jdbcType="BIGINT"/>
+		<result column="CREATION_DATE" property="creationDate" jdbcType="TIMESTAMP"/>
+		<result column="LAST_UPDATED_BY" property="lastUpdatedBy" jdbcType="BIGINT"/>
+		<result column="LAST_UPDATE_DATE" property="lastUpdateDate" jdbcType="TIMESTAMP"/>
+		<result column="LAST_UPDATE_LOGIN" property="lastUpdateLogin" jdbcType="BIGINT"/>
+		<result column="ATTRIBUTE_CATEGORY" property="attributeCategory" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE1" property="attribute1" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE2" property="attribute2" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE3" property="attribute3" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE4" property="attribute4" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE5" property="attribute5" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE6" property="attribute6" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE7" property="attribute7" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE8" property="attribute8" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE9" property="attribute9" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE10" property="attribute10" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE11" property="attribute11" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE12" property="attribute12" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE13" property="attribute13" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE14" property="attribute14" jdbcType="VARCHAR"/>
+		<result column="ATTRIBUTE15" property="attribute15" jdbcType="VARCHAR"/>
+		<result column="LAST_LOGIN_DATE" property="lastLoginDate" jdbcType="TIMESTAMP"/>
+		<result column="LAST_PASSWORD_UPDATE_DATE" property="lastPasswordUpdateDate" jdbcType="TIMESTAMP"/>
+		<result column="frozen_flag" property="frozenFlag" jdbcType="VARCHAR"/>
+		<result column="frozen_date" property="frozenDate" jdbcType="TIMESTAMP"/>
+		<result column="password_lifespan_type" property="passwordLifespanType" jdbcType="VARCHAR"/>
+		<result column="password_lifespan_days" property="passwordLifespanDays" jdbcType="BIGINT"/>
+		<result column="password_lifespan_times" property="passwordLifespanTimes" jdbcType="BIGINT"/>
+		<result column="description" property="description" jdbcType="VARCHAR"/>
+
+		<!--查询所有可能要添加的人的字段-->
+		<result column="company_full_name" property="companyFullName" jdbcType="VARCHAR"/>
+		<result column="position_name" property="positionName" jdbcType="VARCHAR"/>
+		<result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+		<result column="relation_id" property="relationId" jdbcType="BIGINT"/>
+		<result column="relation_user_id" property="relationUserId" jdbcType="BIGINT"/>
+		<result column="userDescrip" property="userDescrip" jdbcType="VARCHAR"/>
+		<result column="ALLOCATION_ID" property="allocationId" jdbcType="BIGINT"/>
+	</resultMap>
+
+	<select id="selectUserById" parameterType="java.lang.Long" resultType="com.hand.hls.sys.dto.SysUser">
+        SELECT * FROM sys_user u WHERE u.USER_ID = #{userId,jdbcType=BIGINT}
+    </select>
+
+	<select id="queryUserByUserName" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT *  FROM sys_user u WHERE u.user_name = #{userName}
+    </select>
+
+	<select id="queryUserByDescription" parameterType="java.lang.String" resultMap="BaseResultMap">
+		SELECT *  FROM sys_user u WHERE u.description = #{description}
+	</select>
+
+	<select id="selectUserNameById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT u.user_id ,u.user_name ,u.status ,u.description FROM sys_user u WHERE u.USER_ID = #{userId,jdbcType=BIGINT}
+    </select>
+
+	<select id="queryCarbonCopyByAssignee" resultMap="BaseResultMap" parameterType="java.util.Set">
+		select * from sys_user s where 1=1
+		<if test="usersSet!=null">
+			AND s.user_name IN
+			<foreach collection="usersSet" index="index" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+
+
+	<!-- 查询合同对应主协办项目经理、财务部负责人和资金部门负责人会计岗-->
+	<select id="selectContractChiefUnitUser" resultMap="BaseResultMap">
+
+		<if test="documentCategory == 'FCT_CONTRACT'">
+			SELECT
+			SU.*
+			FROM
+			FCT_CONTRACT FC
+			JOIN
+			FCT_PROJECT FP
+			ON
+			FC.PROJECT_ID=FP.PROJECT_ID
+			JOIN
+			SYS_USER_ALLOCATION SUA
+			ON
+			SUA.EMPLOYEE_ASSIGN_ID=FP.PROJECT_ASSISTANT_ASSIGNS_ID
+			JOIN
+			SYS_USER SU
+			ON
+			SU.USER_ID=SUA.USER_ID
+			WHERE 1=1
+			AND FC.CONTRACT_ID=#{contractId}
+			UNION
+			SELECT
+			SU.*
+			FROM
+			FCT_CONTRACT FC
+			JOIN
+			FCT_PROJECT FP
+			ON
+			FC.PROJECT_ID=FP.PROJECT_ID
+			JOIN
+			FND_EMPLOYEE_ASSIGNS FEA
+			ON
+			FEA.EMPLOYEE_ID=FP.EMPLOYEE_ID
+			JOIN
+			SYS_USER_ALLOCATION SUA
+			ON
+			SUA.EMPLOYEE_ASSIGN_ID=FEA.EMPLOYEE_ASSIGN_ID
+			JOIN
+			SYS_USER SU
+			ON
+			SU.USER_ID=SUA.USER_ID
+			WHERE 1=1
+			AND FC.CONTRACT_ID=#{contractId}
+			UNION
+		</if>
+
+
+		<if test="documentCategory == 'CON_CONTRACT'">
+			SELECT
+			SU.*
+			FROM
+			CON_CONTRACT FC
+			JOIN
+			PRJ_PROJECT FP
+			ON
+			FC.PROJECT_ID=FP.PROJECT_ID
+			JOIN
+			SYS_USER_ALLOCATION SUA
+			ON
+			SUA.EMPLOYEE_ASSIGN_ID=FP.PROJECT_ASSISTANT_ASSIGNS_ID
+			JOIN
+			SYS_USER SU
+			ON
+			SU.USER_ID=SUA.USER_ID
+			WHERE 1=1
+			AND FC.CONTRACT_ID=#{contractId}
+			UNION
+			SELECT
+			SU.*
+			FROM
+			CON_CONTRACT FC
+			JOIN
+			PRJ_PROJECT FP
+			ON
+			FC.PROJECT_ID=FP.PROJECT_ID
+			JOIN
+			FND_EMPLOYEE_ASSIGNS FEA
+			ON
+			FEA.EMPLOYEE_ID=FP.EMPLOYEE_ID
+			JOIN
+			SYS_USER_ALLOCATION SUA
+			ON
+			SUA.EMPLOYEE_ASSIGN_ID=FEA.EMPLOYEE_ASSIGN_ID
+			JOIN
+			SYS_USER SU
+			ON
+			SU.USER_ID=SUA.USER_ID
+			WHERE 1=1
+			AND FC.CONTRACT_ID=#{contractId}
+			UNION
+		</if>
+
+		SELECT
+		SU.*
+		FROM
+		FND_ORG_UNIT FOU
+		JOIN
+		FND_ORG_POSITION FOP
+		ON
+		FOU.CHIEF_POSITION_ID=FOP.POSITION_ID
+		AND FOU.ENABLED_FLAG='Y'
+		JOIN
+		FND_EMPLOYEE_ASSIGNS FEA
+		ON
+		FOP.POSITION_ID=FEA.POSITION_ID
+		AND FOP.ENABLED_FLAG='Y'
+		AND FEA.ENABLED_FLAG='Y'
+		JOIN
+		FND_COMPANY FC
+		ON
+		FC.COMPANY_ID=FEA.COMPANY_ID
+		AND FC.ENABLED_FLAG='Y'
+		JOIN
+		FND_EMPLOYEE FE
+		ON
+		FE.EMPLOYEE_ID=FEA.EMPLOYEE_ID
+		AND FE.ENABLED_FLAG='Y'
+		JOIN
+		SYS_USER_ALLOCATION SUA
+		ON
+		SUA.EMPLOYEE_ASSIGN_ID=FEA.EMPLOYEE_ASSIGN_ID
+		JOIN
+		SYS_USER SU
+		ON
+		SU.USER_ID=SUA.USER_ID
+		WHERE
+		FOU.UNIT_CODE IN ('001')
+		AND FEA.COMPANY_ID=#{companyId}
+		UNION
+		SELECT
+		SU.*
+		FROM
+
+		FND_ORG_POSITION FOP
+		JOIN
+		FND_EMPLOYEE_ASSIGNS FEA
+		ON
+		FOP.POSITION_ID=FEA.POSITION_ID
+		AND FOP.ENABLED_FLAG='Y'
+		JOIN
+		FND_COMPANY FC
+		ON
+		FC.COMPANY_ID=FEA.COMPANY_ID
+		AND FC.ENABLED_FLAG='Y'
+		JOIN
+		FND_EMPLOYEE FE
+		ON
+		FE.EMPLOYEE_ID=FEA.EMPLOYEE_ID
+		AND FE.ENABLED_FLAG='Y'
+		JOIN
+		SYS_USER_ALLOCATION SUA
+		ON
+		SUA.EMPLOYEE_ASSIGN_ID=FEA.EMPLOYEE_ASSIGN_ID
+		JOIN
+		SYS_USER SU
+		ON
+		SU.USER_ID=SUA.USER_ID
+		WHERE
+		FOP.POSITION_CODE IN ('05220',
+		'00120')
+		AND FEA.COMPANY_ID=#{companyId}
+	</select>
+
+
+	<!-- 查询某个岗位的用户-->
+	<select id="selectUserByPositionCode" resultMap="BaseResultMap">
+		SELECT DISTINCT
+		SU.*
+		FROM
+		FND_ORG_POSITION FOP
+		JOIN
+		FND_EMPLOYEE_ASSIGNS FEA
+		ON
+		FOP.POSITION_ID=FEA.POSITION_ID
+		AND FOP.ENABLED_FLAG='Y'
+		JOIN
+		FND_COMPANY FC
+		ON
+		FC.COMPANY_ID=FEA.COMPANY_ID
+		AND FC.ENABLED_FLAG='Y'
+		JOIN
+		FND_EMPLOYEE FE
+		ON
+		FE.EMPLOYEE_ID=FEA.EMPLOYEE_ID
+		AND FE.ENABLED_FLAG='Y'
+		JOIN
+		SYS_USER_ALLOCATION SUA
+		ON
+		SUA.EMPLOYEE_ASSIGN_ID=FEA.EMPLOYEE_ASSIGN_ID
+		JOIN
+		SYS_USER SU
+		ON
+		SU.USER_ID=SUA.USER_ID
+		WHERE
+		1=1
+		<if test="positionCodeList != null">
+			AND   FOP.POSITION_CODE IN
+			<foreach collection="positionCodeList" index="index" item="item" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="companyId != null">
+			AND FEA.COMPANY_ID=#{companyId}
+		</if>
+
+	</select>
+
+	<select id="selectHeadOfRiskManagement" resultMap="BaseResultMap">
+        SELECT SU.USER_NAME FROM SYS_USER SU
+        LEFT JOIN SYS_USER_ALLOCATION SUA ON SU.USER_ID = SUA.USER_ID
+        LEFT JOIN FND_EMPLOYEE_ASSIGNS FEA ON SUA.EMPLOYEE_ASSIGN_ID = FEA.EMPLOYEE_ASSIGN_ID
+        LEFT JOIN FND_ORG_POSITION FOP ON FEA.POSITION_ID = FOP.POSITION_ID
+        WHERE FOP.POSITION_CODE = '00300'
+    </select>
+
+	<select id="selectAllocationIdByRoleCode" resultType="java.lang.Long">
+		SELECT
+		UR.allocation_id
+		FROM
+		sys_user U
+		LEFT JOIN SYS_USER_ALLOCATION UR ON UR.USER_ID = U.USER_ID
+		LEFT JOIN SYS_ROLE_B R ON R.ROLE_ID = UR.ROLE_ID
+		WHERE
+		R.ROLE_CODE = #{roleCode}
+	</select>
+
+	<select id="selectEemployeeUtil" resultMap="BaseResultMap" parameterType="com.hand.hls.sys.dto.SysUser">
+		select sua.user_id,sua.allocation_id from fnd_org_unit fou
+		left join fnd_org_position fop on fou.UNIT_ID = fop.unit_id
+		left join fnd_employee_assigns fea on fop.position_id = fea.POSITION_ID
+		left join sys_user_allocation sua on sua.employee_assign_id = fea.EMPLOYEE_ASSIGN_ID
+		left join sys_user su on su.USER_ID = sua.user_id
+		left join fnd_employee emp on emp.EMPLOYEE_ID = fea.EMPLOYEE_ID where 1=1
+		<if test="unitIdList!=null">
+			AND fou.UNIT_ID IN
+			<foreach collection="unitIdList" item="item" index="index" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		<if test="positionIdList!=null">
+			AND fop.position_id IN
+			<foreach collection="positionIdList" item="item" index="index" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+	</select>
+</mapper>

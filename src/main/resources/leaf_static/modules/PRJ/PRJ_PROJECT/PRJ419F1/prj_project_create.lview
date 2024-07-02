@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Date: 2019-2-13 上午16:09:00
+    $Revision: 1.0
+    $Purpose: 项目创建入口
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="PRJ419f2_project_create_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_modify.lview"/>
+        <a:link id="PRJ419f2_project_create_new_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_modify_new.lview"/>
+        <a:link id="check_before_create_link" url="${/request/@context_path}/project/check/before/create"/>
+        <script><![CDATA[
+
+        $L.Masker.mask(Ext.getBody(), "正在加载...");
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+        };
+
+        function PRJ419F1_CLOSE() {
+            debugger
+            $('${/parameter/@winid}').close();
+        }
+
+        function PRJ419F1_SURE() {
+            debugger
+            var record = $('${/parameter/@layout_code}_F_PROJECT_prj_project_ds').getAt(0);
+            var default_para_record = $("hls_default_parameter_ds").getAt(0);
+            if(record.get('lease_channel')== '10'){
+                if (PRJ419f1_ds_validate()) {
+                    if (!record.get("factory_id")) {
+                        $L.showInfoMessage("提示", "未找到主机厂!");
+                        return;
+                    }
+                    var factory_id = record.get("factory_id");
+                    //根据主机厂查询厂商
+                    Leaf.request({
+                        url: '${/request/@context_path}/hls/manufacturer/query?factoryId=' + factory_id,
+                        success: function (res) {
+                            if (res.manufacturer_id == null) {
+                                $L.showInfoMessage("提示", "未找到厂商!");
+                                return;
+                            }
+                            var manufacturer_id = res.manufacturer_id;
+                            var manufacturer_id_n = res.manufacturer_id_n;
+                            var virtual_account_flag = res.virtual_account_flag;
+                            Leaf.request({
+                                url: $('check_before_create_link').getUrl(),
+                                scope: this,
+                                para: {
+                                    manufacturer_id: manufacturer_id,
+                                    division: record.get("division"),
+                                    business_type: record.get("business_type"),
+                                    bp_id: record.get("bp_id")
+                                },
+                                success: function (res) {
+                                    var result = res.result.record[0];
+                                    if(result != "PASS"){
+                                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        Leaf.showMessage("提示", result, null);
+                                    }else{
+                                        debugger
+                                        var param = record.data;
+                                        param['manufacturer_id'] = manufacturer_id;
+                                        param['ref_v02'] = default_para_record.get("ref_v02");
+                                        param['manufacturer_id_n'] = manufacturer_id_n;
+                                        param['virtual_account_flag'] = virtual_account_flag;
+                                        var function_code, windId;
+                                        if (param.document_type == 'PRJL') {
+                                            function_code = 'PRJ419F2';
+                                            windId = 'PRJ419f2_project_create_new_id';
+                                        }
+                                        if (param.document_type == 'PRJLB') {
+                                            function_code = 'PRJ419F2';
+                                            windId = 'PRJ419f2_project_create_new_id';
+                                        }
+                                        param['function_code'] = function_code;
+                                        param['function_usage'] = 'CREATE';
+                                        param['url_title'] = '项目新建';
+                                        hls_doc_get_layout_code(param, windId, null, function_code, null, null, 'PRJ419F1_CLOSE');
+                                    }
+                                },
+                                failure: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                    Leaf.showMessage("提示", "附件清单规则校验失败！请联系系统管理员！", null);
+                                    check_flag = false;
+                                },
+                                error: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                    Leaf.showMessage("提示", "附件清单规则校验失败！请联系系统管理员！", null);
+                                    check_flag = false;
+                                },
+                                scope: this,
+                                sync: true
+                            });
+                        },
+                        scope: this
+                    });
+                }
+            }else if(record.get('lease_channel')== '20'){
+                var param = record.data;
+                param['function_code'] = 'PRJ419F4';
+                param['function_usage'] = 'CREATE';
+                param['url_title'] = '项目新建';
+                hls_doc_get_layout_code(param, 'PRJ419f2_project_create_id', null, 'PRJ419F3', null, null, 'PRJ419F1_CLOSE');
+            }
+
+
+
+        }
+
+        //数据校验
+        function PRJ419f1_ds_validate() {
+            var record = $('${/parameter/@layout_code}_F_PROJECT_prj_project_ds').getAt(0);
+            if ($('${/parameter/@layout_code}_F_PROJECT_prj_project_ds').validate()) {
+                if (record.get("factory_id") == null) {
+                    $L.showInfoMessage("提示", "请维护主机厂!");
+                    return false;
+                }
+
+                return true;
+            } else {
+                return false;
+            }
+        }
+        //更新时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, oldvalue) {
+            debugger
+            if (value != oldvalue) {
+                if (name == 'document_type_n') {
+                    // var default_record = $('hls_document_type_ds').find('document_type', record.get('document_type'));
+                    // if (default_record) {
+                    //     record.set('business_type', default_record.get('business_type'));
+                    //     record.set('business_type_n', default_record.get('business_type_desc'));
+                    // }
+                    if(value=='直接租赁'){
+                        record.set('business_type', 'LEASE');
+                        record.set('business_type_n', '直接租赁');
+                    }else{
+                        record.set('business_type', 'LEASEBACK');
+                        record.set('business_type_n', '售后回租');
+                    }
+                }
+            }
+
+            var default_para_record = $("hls_default_parameter_ds").getAt(0);
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var head_record = $(ds_id).getAt(0);
+            if(head_record.get('factory_id')!=null){
+                getManufacturerId(head_record.get('factory_id'),head_record);
+            }
+
+        };
+
+        function onLoad_hls_document_type_ds() {
+            documentTypeLoaded = true;
+            if (documentTypeLoaded && defaultParaLoaded) {
+                setDefaultPara();
+            }
+        }
+
+        var documentTypeLoaded = false;
+        var defaultParaLoaded = false;
+        Leaf.onReady(function () {
+            $("hls_document_type_ds").query();
+            $("hls_default_parameter_ds").query();
+        });
+        
+        function getManufacturerId(factory_id,head_record) {
+            Leaf.request({
+                url: '${/request/@context_path}/hls/manufacturer/query?factoryId=' + factory_id,
+                success: function (res) {
+                    debugger
+                    // console.log(res);
+                    var manufacturer_id = res.manufacturer_id;
+                    var manufacturer_id_n = res.manufacturer_id_n;
+                    head_record.set('manufacturer_id_n',manufacturer_id_n);
+                    head_record.set('manufacturer_id',manufacturer_id);
+
+                }
+            });
+        }
+
+        function setDefaultPara() {
+            debugger
+            var default_para_record = $("hls_default_parameter_ds").getAt(0);
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var head_record = $(ds_id).getAt(0);
+
+            // head_record.set('manufacturer_id_n', default_para_record.get("manufacturer_id_n"));
+
+            head_record.set('company_id', default_para_record.get("company_id"));
+            // head_record.set('manufacturer_id', default_para_record.get("manufacturer_id"));
+            //判断是主机厂还是经销商
+            debugger
+            if('${/parameter/@employeeFlag}'=='true'){
+                head_record.set('lease_channel', '10');
+                head_record.set('lease_channel_n', '厂商租赁');
+                head_record.getField("factory_id_n").setReadOnly(false);
+                head_record.getField("factory_id_n").setRequired(true);
+            }else{
+                var factory_combobox = $("${/parameter/@layout_code}_F_PROJECT_factory_id_combobox_ds");
+                if ("VENDER" == default_para_record.get("ref_v02")) {
+                    getManufacturerId(default_para_record.get("ref_n01"),head_record);
+                    head_record.set('factory_id', default_para_record.get("ref_n01"));//主机厂
+                    head_record.set('factory_id_n', default_para_record.get("ref_v01"));
+                    head_record.getField("bp_vender_name_n").setReadOnly(false);
+                    head_record.set('lease_channel', '10');
+                    head_record.set('lease_channel_n', '厂商租赁');
+                } else if ("DEALER" == default_para_record.get("ref_v02")) {
+                    getManufacturerId(default_para_record.get("ref_n01"),head_record);
+                    factory_combobox.setQueryParameter("bp_vender_name", default_para_record.get("ref_n01"));
+
+                    head_record.set('bp_vender_name', default_para_record.get("ref_n01"));//经销商
+                    head_record.set('bp_vender_name_n', default_para_record.get("ref_v01"));
+
+                    head_record.getField("factory_id_n").setReadOnly(false);
+                    head_record.getField("factory_id_n").setRequired(true);
+                    head_record.set('lease_channel', '10');
+                    head_record.set('lease_channel_n', '厂商租赁');
+                }else if ("MANUFACTURER" === default_para_record.get("ref_v02")){
+                    getManufacturerId(default_para_record.get("ref_n01"),head_record);
+                    factory_combobox.setQueryParameter("manufacturer", default_para_record.get("ref_n01"));
+                    head_record.getField("bp_vender_name_n").setReadOnly(false);
+                    head_record.getField("factory_id_n").setReadOnly(false);
+                    head_record.getField("factory_id_n").setRequired(true);
+                    head_record.set('lease_channel', '10');
+                    head_record.set('lease_channel_n', '厂商租赁');
+                }else if ("MANAGEMENT_COMPANY" == default_para_record.get("ref_v02")) {
+                    factory_combobox.setQueryParameter("management_company", default_para_record.get("ref_n01"));
+
+                    head_record.getField("bp_vender_name_n").setReadOnly(false);
+
+
+                    head_record.getField("factory_id_n").setReadOnly(false);
+                    head_record.getField("factory_id_n").setRequired(true);
+                    head_record.set('lease_channel', '10');
+                    head_record.set('lease_channel_n', '厂商租赁');
+                } else if ("PARTNER" == default_para_record.get("ref_v02")) {
+                    head_record.set('manufacturer_id', default_para_record.get("ref_n01"));
+                    head_record.set('manufacturer_id_n', default_para_record.get("ref_v01"));
+                    head_record.set('lease_channel', '20');
+                    head_record.set('lease_channel_n', '汽车租赁');
+                    head_record.getField("factory_id").setReadOnly(true);
+                    head_record.getField("factory_id_n").setReadOnly(true);
+                    head_record.getField("bp_vender_name_n").setReadOnly(false);
+                    head_record.getField("bp_vender_name_n").setRequired(true);
+                    head_record.getField("seller_id").setReadOnly(true);
+                    head_record.getField("seller_id_n").setReadOnly(true);
+                    head_record.getField("seller_id").setRequired(false);
+                    head_record.getField("seller_id_n").setRequired(false);
+                } else {
+                    head_record.set('lease_channel', '10');
+                    head_record.set('lease_channel_n', '厂商租赁');
+                }
+            }
+            head_record.set('owner_user_id', '${/session/@user_id}');
+
+            $L.Masker.unmask(Ext.getBody());
+        }
+
+        function onLoad_hls_default_parameter_ds() {
+            defaultParaLoaded = true;
+            if (documentTypeLoaded && defaultParaLoaded) {
+                setDefaultPara();
+            }
+        }
+
+        $L.manager.on("ajaxfailed", function () {
+            $L.Masker.unmask(Ext.getBody());
+        });
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+        <a:dataSets>
+            <a:dataSet id="hls_document_type_ds" fetchAll="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/fnd200/type/query">
+                <a:events>
+                    <a:event name="load" handler="onLoad_hls_document_type_ds"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="hls_default_parameter_ds" fetchAll="true" autoQuery="true" loadData="true"
+                       queryUrl="${/request/@context_path}/hls/defalut/para/query">
+                <a:events>
+                    <a:event name="load" handler="onLoad_hls_default_parameter_ds"/>
+                </a:events>
+            </a:dataSet>
+
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="PRJ419F1_CLOSE" text="关闭"/>
+                <a:gridButton click="PRJ419F1_SURE" text="确定"/>
+            </a:screenTopToolbar>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="bill001f2_entrance_create_link_id"
+                url="${/request/@context_path}/modules/BILL/BILL001/hls_bill_request_create_detail.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var hls_bill_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bill_request', 'F_FORM');
+            var head = $(hls_bill_ds_id).getCurrentRecord();
+            var hls_payment_discharge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_payment_discharge');
+            var records = $(hls_payment_discharge_ds_id).getSelected();
+
+            var hls_refund_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_refund_deposit');
+            var records2 = $(hls_refund_deposit_ds_id).getSelected();
+
+            if ($(hls_payment_discharge_ds_id).isModified()) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                Leaf.showMessage('提示', '${l:EXIT_BEFORE_SAVE}');
+                return;
+            }
+            if ($(hls_refund_deposit_ds_id).isModified()) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                Leaf.showMessage('提示', '${l:EXIT_BEFORE_SAVE}');
+                return;
+            }
+            if (records2 >= 1 && records >= 1) {
+                Leaf.showErrorMessage('提示', '请选择一条新建的单据信息!');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return false;
+            } else if (records.length == 1) {
+                if ($(hls_payment_discharge_ds_id).validate()) {
+                    var payment_discharge_id = records[0].get('payment_discharge_id');
+                    if (payment_discharge_id != null) {
+                        new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                            Leaf.request({
+                                url: '${/request/@context_path}/hls/payment/discharge/update',
+                                para: {
+                                    payment_discharge_id: payment_discharge_id,
+                                    status: 'CONFIRM'
+                                },
+                                success: function (res) {
+
+                                    Leaf.request({
+                                        url: '${/request/@context_path}/hls/bill/discharge/updateData',
+                                        para: {
+                                            bill_id: '${/parameter/@bill_id}'
+
+                                        },
+                                        success: function (res) {
+                                            if (res.success) {
+                                                if (head.get('bill_type') == 'INTERNATIONAL_CREDIT') {
+                                                    Leaf.request({
+                                                        url: '${/request/@context_path}/hls/bill/discharge/sendEmail',
+                                                        para: {
+                                                            payment_discharge_id: payment_discharge_id
+                                                        },
+                                                        success: function (res) {
+                                                            $(hls_bill_ds_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+                                                            $(hls_bill_ds_id).query();
+                                                            $(hls_payment_discharge_ds_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+                                                            $(hls_payment_discharge_ds_id).query();
+                                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                                                        },
+                                                        failure: function () {
+                                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                                        },
+                                                        error: function () {
+                                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                                        },
+                                                        scope: this
+                                                    });
+
+
+                                                } else {
+                                                    $(hls_bill_ds_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+                                                    $(hls_bill_ds_id).query();
+                                                    $(hls_payment_discharge_ds_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+                                                    $(hls_payment_discharge_ds_id).query();
+                                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                                }
+
+
+                                            }
+                                        },
+                                        failure: function () {
+                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        },
+                                        error: function () {
+                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        },
+                                        scope: this
+                                    });
+                                },
+                                failure: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                },
+                                error: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                },
+                                scope: this
+                            });
+                        }, function cancel() {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        }, 200, 100);
+                    } else {
+                        $L.showInfoMessage("提示", "请先保存!", null);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    }
+
+                } else {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                }
+
+            } else if (records2.length == 1) {
+
+                if ($(hls_refund_deposit_ds_id).validate()) {
+                    var refund_deposit_id = records2[0].get('refund_deposit_id');
+                    if (refund_deposit_id != null) {
+                        new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                            Leaf.request({
+                                url: '${/request/@context_path}/hls/refund/deposit/update',
+                                para: {
+                                    refund_deposit_id: refund_deposit_id,
+                                    status: 'CONFIRM'
+                                },
+                                success: function (res) {
+                                    Leaf.request({
+                                        url: '${/request/@context_path}/hls/bill/discharge/updateData',
+                                        para: {
+                                            bill_id: '${/parameter/@bill_id}'
+
+                                        },
+                                        success: function (res) {
+                                            if (res.success) {
+                                                if (res.success) {
+                                                    $(hls_bill_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+                                                    $(hls_bill_id).query();
+                                                    $(hls_refund_deposit_ds_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+                                                    $(hls_refund_deposit_ds_id).query();
+                                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                                                }
+
+                                            }
+                                        },
+                                        failure: function () {
+                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        },
+                                        error: function () {
+                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        },
+                                        scope: this
+                                    });
+                                },
+                                failure: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                },
+                                error: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                },
+                                scope: this
+                            });
+                        }, function cancel() {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        }, 200, 100);
+                    } else {
+                        $L.showInfoMessage("提示", "请先保存!", null);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    }
+
+                } else {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                }
+            } else {
+                Leaf.showErrorMessage('提示', '请选择一条新建的单据信息!');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }
+        }
+
+
+        //更新时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bill_request');
+            var dis_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_payment_discharge');
+            var head = $(ds_id).getCurrentRecord();
+            if (ds.id == dis_ds_id) {
+                // 兑付/解付比例(%)
+                if (name == 'payment_discharge_radio') {
+                    if (head.get('bill_amount') == 0 || head.get('bill_amount') == undefined) {
+                        record.set('payment_discharge_amount', 0.00);
+                    } else if (value == 0) {
+                        record.set('payment_discharge_amount', 0.00);
+                    } else {
+                        var payment_discharge_amount = record.get('payment_discharge_radio') * head.get('bill_amount') / 100;
+                        record.set('payment_discharge_amount', payment_discharge_amount);
+                    }
+                    if (record.get('payment_discharge_rate') != null && record.get('payment_discharge_rate') != undefined) {
+                        var amount2 = record.get('payment_discharge_amount') * record.get('payment_discharge_rate');
+                        record.set('cash_discharge_amount', amount2);
+
+                        if (record.get('deduct_margin_yes_no') != null && record.get('deduct_margin_yes_no') != undefined) {
+                            if (record.get('deduct_margin_yes_no') == 'Y') {
+                                record.getField('release_margin_amount').setRequired(true);
+                                record.set('payment_amount', record.get('cash_discharge_amount') - record.get('release_margin_amount'));
+                            } else {
+                                record.getField('release_margin_amount').setRequired(false);
+                                record.set('release_margin_amount', 0);
+                                record.set('payment_amount', record.get('cash_discharge_amount'));
+                            }
+                        }
+                    }
+                }
+                //兑付/解付日期  日期
+                if (name == 'payment_discharge_date') {
+                    if (head.get('curreny') == 'CNY') {
+                        var amount = 1;
+                        var amount2 = amount * record.get('payment_discharge_amount');
+                        var amount3 = amount * record.get('payment_discharge_amount') - record.get('release_margin_amount');
+                        record.set('payment_discharge_rate', amount);
+                        record.set('cash_discharge_amount', amount2);
+                        record.set('payment_amount', amount3);
+                    } else {
+                        Leaf.request({
+                            url: '${/request/@context_path}/hls/bill/request/dailyrate/query',
+                            para: {
+                                curreny: head.get('curreny'),
+                                payment_discharge_date: record.get('payment_discharge_date')
+
+                            },
+                            success: function (res) {
+                                debugger;
+                                if (res.success) {
+                                    var amount = res.result.record[0].daily_rate;
+                                    var amount2 = record.get('payment_discharge_radio') * head.get('bill_amount') * amount;
+                                    var amount3 = record.get('payment_discharge_radio') * head.get('bill_amount') * amount - record.get('release_margin_amount');
+                                    record.set('payment_discharge_rate', amount);
+                                    record.set('cash_discharge_amount', amount2 / 100);
+                                    record.set('payment_amount', amount3);
+
+                                } else {
+                                    $L.showInfoMessage("提示", "未找到汇率!", null);
+                                    var amount = 1;
+                                    var amount2 = record.get('payment_discharge_radio') * head.get('bill_amount') * amount;
+                                    var amount3 = record.get('payment_discharge_radio') * head.get('bill_amount') * amount - record.get('release_margin_amount');
+                                    record.set('payment_discharge_rate', amount);
+                                    record.set('cash_discharge_amount', amount2 / 100);
+                                    record.set('payment_amount', amount3);
+                                }
+                            },
+                            failure: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            error: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            scope: this
+                        });
+                    }
+                }
+                //兑付/解付当日汇率
+                if (name == 'payment_discharge_rate' && value) {
+                    debugger;
+                    var amount2 = record.get('payment_discharge_amount') * value;
+                    var amount3 = record.get('payment_discharge_amount') * value - record.get('release_margin_amount');
+                    record.set('cash_discharge_amount', amount2);
+                    record.set('payment_amount', amount3);
+                }
+                //兑付/解付金额原币
+                if (name == 'payment_discharge_amount' && value) {
+                    var amount2 = record.get('payment_discharge_rate') * value;
+                    var amount3 = record.get('payment_discharge_rate') * value - record.get('release_margin_amount');
+                    record.set('cash_discharge_amount', amount2);
+                    record.set('payment_amount', amount3);
+                }
+                //是否内扣保证金
+                if (name == 'deduct_margin_yes_no') {
+                    if (value == 'Y') {
+                        record.getField('release_margin_amount').setRequired(true);
+                        record.getField('release_margin_amount').setReadOnly(false);
+                        record.set('release_margin_amount', 0);
+                    } else {
+                        record.getField('release_margin_amount').setRequired(false);
+                        record.getField('release_margin_amount').setReadOnly(true);
+                        record.set('release_margin_amount', 0);
+                        record.set('payment_amount', record.get('cash_discharge_amount'));
+                    }
+                }
+                //释放保证金金额(元)
+                if (name == 'release_margin_amount') {
+                    var amount = record.get('cash_discharge_amount') - Number(record.get('release_margin_amount'));
+                    record.set('payment_amount', parseFloat(amount).toFixed(2));
+                }
+                if (name == 'cash_discharge_amount') {
+                    var amount = record.get('cash_discharge_amount') - Number(record.get('release_margin_amount'));
+                    record.set('payment_amount', parseFloat(amount).toFixed(2));
+                }
+            }
+        }
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            var att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_payment_discharge');
+            if (ds.id == att_ds_id) {
+                var att_records = $(att_ds_id).getAll();
+                for (var i = 0; i < att_records.length; i++) {
+                    if (att_records[i].data['status'] != 'NEW') {
+                        att_records[i].getField('payment_discharge_radio').setReadOnly(true);
+                        att_records[i].getField('payment_discharge_amount').setReadOnly(true);
+                        att_records[i].getField('payment_discharge_date').setReadOnly(true);
+
+                        att_records[i].getField('payment_discharge_rate').setReadOnly(true);
+                        att_records[i].getField('cash_discharge_amount').setReadOnly(true);
+                        att_records[i].getField('deduct_margin_yes_no').setReadOnly(true);
+                        att_records[i].getField('deduct_margin_yes_no_n').setReadOnly(true);
+
+                        att_records[i].getField('release_margin_amount').setReadOnly(true);
+                        att_records[i].getField('payment_amount').setReadOnly(true);
+                    } else {
+                        if (att_records[i].getField('deduct_margin_yes_no') != 'Y') {
+                            att_records[i].getField('release_margin_amount').setRequired(false);
+
+                        }
+                    }
+                }
+            }
+
+            var att_ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_refund_deposit');
+            if (ds.id == att_ds_id1) {
+                var record = $(att_ds_id1).getAll();
+                for (var i = 0; i < record.length; i++) {
+                    if (record[i].data['status'] != 'NEW') {
+                        record[i].getField('refund_deposit_date').setReadOnly(true);
+                        record[i].getField('refund_deposit_amount').setReadOnly(true);
+                        record[i].getField('payment_discharge_date').setReadOnly(true);
+                    }
+                }
+            }
+            var att_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bill_request');
+
+            var head = $(att_ds_id2).getCurrentRecord();
+
+            if (head.get('bill_amount_balance') == undefined) {
+                head.set('bill_amount_balance', parseFloat(head.get('bill_amount')).toFixed(6));
+
+            }
+
+
+        };
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            if (record.get('status') == undefined) {
+                record.set('status', 'NEW');
+                record.set('status_n', '新建')
+
+            }
+
+        }
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_payment_discharge', 'G_GRID_1');
+            var records = $(ds_id).getAll();
+            var hls_bill_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bill_request', 'F_FORM');
+            var head = $(hls_bill_ds_id).getCurrentRecord();
+            var sum = 0.0;
+            var sum2 = 0.0;
+            for (var i = 0; i < records.length; i++) {
+                // if (records[i].data.cash_discharge_amount - records[i].data.release_margin_amount < 0) {
+                //     $L.showInfoMessage("提示", "兑付解付金额需大于等于释放保证金金额!", null);
+                //     $(ds_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+                //     $(ds_id).query();
+                //
+                //     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                //     return false;
+                //
+                // }
+                sum = sum + records[i].data.payment_discharge_amount;
+                sum2 = sum2 + records[i].data.release_margin_amount;
+
+            }
+            if (sum > head.get('bill_amount')) {
+
+
+                $L.showInfoMessage("提示", "兑付解付金额加和需小于等于开票金额!", null);
+                $(ds_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+                $(ds_id).query();
+
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                return false;
+            }
+            // if (sum2 > head.get('marge_amount')) {
+            //
+            //
+            //     $L.showInfoMessage("提示", "释放保证金金额不允许超过保证金金额!", null);
+            //     $(ds_id).setQueryParameter('bill_id', '${/parameter/@bill_id}');
+            //     $(ds_id).query();
+            //
+            //     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //
+            //     return false;
+            // }
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sign.mapper.SignPartyMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.sign.dto.SignParty" autoMapping="true">
+        <result column="object_id" property="objectId" jdbcType="DECIMAL"/>
+        <result column="project_attachment_id" property="projectAttachmentId" jdbcType="DECIMAL"/>
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL"/>
+        <result column="keyword" property="keyword" jdbcType="VARCHAR"/>
+        <result column="seal_code" property="sealCode" jdbcType="VARCHAR"/>
+        <result column="seal_person" property="sealPerson" jdbcType="VARCHAR"/>
+        <result column="id_card_no" property="idCardNo" jdbcType="VARCHAR"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="sign_status" property="signStatus" jdbcType="VARCHAR"/>
+        <result column="sign_time" property="signTime" jdbcType="DATE"/>
+        <result column="sign_type" property="signType" jdbcType="VARCHAR"/>
+        <result column="parent_id" property="parentId" jdbcType="DECIMAL"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="created_by" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="last_update_date" property="lastUpdateDate" jdbcType="DATE"/>
+        <result column="last_updated_by" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="sign_status_n" property="signStatusN" jdbcType="VARCHAR"/>
+        <result column="sign_type_n" property="signTypeN" jdbcType="VARCHAR"/>
+        <result column="bp_id_n" property="bpIdN" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="querySignParties" resultMap="BaseResultMap">
+        SELECT p.*,
+        (select hbm.bp_name from hls_bp_master hbm where hbm.bp_id = p.bp_id) bp_name,
+        (select hbm.bp_name from hls_bp_master hbm where hbm.bp_id = p.bp_id) BP_ID_N,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.CODE = 'ORG_SIGN_STATE'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE= p.sign_status
+        ) SIGN_STATUS_N,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.CODE = 'SIGN_TYPE'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE= p.sign_type
+        ) SIGN_TYPE_N
+        FROM PRJ_SIGN_PARTY p
+        <where>
+            <if test="objectId != null">
+                and p.object_id = #{objectId}
+            </if>
+            <if test="projectAttachmentId != null">
+                and p.project_attachment_id = #{projectAttachmentId}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryToSign" resultMap="BaseResultMap">
+        SELECT p.* FROM PRJ_SIGN_PARTY p
+        WHERE p.parent_id is null and p.project_attachment_id = #{projectAttachmentId}
+    </select>
+
+    <select id="queryUnsigned" resultMap="BaseResultMap">
+        SELECT p.* FROM PRJ_SIGN_PARTY p
+        WHERE p.sign_status != 'SIGNED' and p.project_attachment_id = #{projectAttachmentId}
+    </select>
+</mapper>

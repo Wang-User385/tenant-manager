@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="prj316_project_modify_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify.lview"/>
+        <a:link id="prj316_project_create_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F1/prj_project_create.lview"/>
+
+        <a:link id="fnd213_calculate_open_id"
+                url="${/request/@context_path}/modules/FND/FND_BUS/FND213/hls_fin_calculate.lview"/>
+
+        <a:link id="project_change_info_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANGE/PRJ100/prj_project_change_info.lview"/>
+
+        <a:link id="project_notice_detail_linkid"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ330/prj_project_meeting_notice_static.lview"/>
+
+        <a:link id="project_notice_detail_veto_linkid"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ330/prj_project_meeting_notice_veto.lview"/>
+
+        <a:link id="project_credit_credit_notice_link"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316T1/prj_project_credit_transition_query.lview"/>
+
+        <a:link id="project_supplement_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316T3/prj_project_modify_supplement.lview"/>
+
+
+        <a:link id="project_query_supplement_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316T2/prj_project_modify_query_supple.lview"/>
+
+        <a:link id="prj110_prj_change_detail_link_id" url="${/request/@context_path}/modules/PRJ/PRJ_CHANGE/PRJ100/prj_project_change_modify.lview"/>
+
+        <script><![CDATA[
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'project_number' && value) {
+                return '<a href="javascript:open_project_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+            return value;
+        };
+
+        //项目维护
+        function open_project_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '项目变更明细';
+            //param['winid'] = 'prj110_prj_change_detail_link_id';
+            var maintain_type= 'MODIFY';
+            var function_usage= 'MODIFY';
+            if (record.get('credit_flag')=='Y'){
+                param['function_code'] = 'PRJ110F1_CREDIT';
+                maintain_type = 'READONLY';
+                function_usage = 'QUERY';
+            }else {
+                param['function_code'] = 'PRJ110F1';
+            }
+            param['maintain_type'] = maintain_type; //MODIFY READONLY UPDATE
+            param['function_usage'] = function_usage; //UPDATE CREATE MODIFY QUERY
+            param['source_project_id'] = '${/parameter/@source_project_id}';
+            param['project_id'] = record.get('project_id');
+            hls_doc_get_layout_code(param, 'prj110_prj_change_detail_link_id', ds_id, 'PRJ110F1');
+        }
+
+        //项目变更
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var prj_project_result_ds = $(ds_id);
+            var records = prj_project_result_ds.getSelected();
+
+            if (records.length != 1) {
+                $L.showInfoMessage("提示", "请选择一个项目进行变更!");
+                return;
+            }
+
+            var record = records[0];
+
+            var project_status = record.get('project_status');
+
+            if(project_status == 'PENDING'){
+                $L.showInfoMessage("提示","当前项目正在变更中!");
+                return;
+            }
+
+            if(project_status != 'APPROVED'){
+                $L.showInfoMessage("提示","非审批通过的立项不可变更!");
+                return;
+            }
+
+            var project_id = record.get('project_id');
+            var project_number = record.get('project_number');
+
+            var changeWin = new Leaf.Window({
+                id: 'prj100_open_change_create_winid',
+                url: '${/request/@context_path}/modules/PRJ/PRJ_CHANGE/PRJ100/prj_project_change_create.lview',
+                params: {
+                    source_project_id: project_id,
+                    project_number:project_number,
+                    winid: 'prj100_open_change_create_winid'
+                },
+                title: '批复变更创建',
+                height: 430,
+                width: 800
+            });
+
+            changeWin.on('close',function(){
+                $(ds_id).query();
+            });
+        }
+
+        //变更历史查看
+        window['${/parameter/@layout_code}_user_button4_layout_dynamic_click'] = function () {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var prj_project_result_ds = $(ds_id);
+            var records = prj_project_result_ds.getSelected();
+
+            if (records.length != 1) {
+                $L.showInfoMessage("提示", "请选择一个项目查看变更信息!");
+                return;
+            }
+
+            var record = records[0];
+
+            var project_id = record.get('project_id');
+
+            var param = {};
+            param['url_title'] = '批复变更信息';
+            param['function_code'] = 'PRJCHANGE100';
+            // param['function_usage'] = 'CREATE';
+            param['winid'] = 'project_change_info_winid';
+            param['screen_width'] = '800';
+            param['side'] = 'right';
+            param['source_project_id'] = project_id;
+
+            hls_doc_get_layout_code(param, 'project_change_info_id', ds_id, 'PRJCHANGE100');
+        };
+
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            //qpara['change_req_project'] = 'Y'
+            qpara['created_by'] = '${/session/@user_id}';
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

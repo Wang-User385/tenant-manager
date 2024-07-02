@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.HlsCusBpMasterContactInfoMapper" >
+  <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.HlsCusBpMasterContactInfo" >
+    <id column="contact_info_id" property="contactInfoId" jdbcType="BIGINT" />
+    <result column="bp_id" property="bpId" jdbcType="BIGINT" />
+    <result column="address_id" property="addressId" jdbcType="BIGINT" />
+    <result column="emergency_contact" property="emergencyContact" jdbcType="VARCHAR" />
+    <result column="contact_person" property="contactPerson" jdbcType="VARCHAR" />
+    <result column="position" property="position" jdbcType="VARCHAR" />
+    <result column="cell_phone" property="cellPhone" jdbcType="VARCHAR" />
+    <result column="phone" property="phone" jdbcType="VARCHAR" />
+    <result column="fax" property="fax" jdbcType="VARCHAR" />
+    <result column="email" property="email" jdbcType="VARCHAR" />
+    <result column="contact_address" property="contactAddress" jdbcType="VARCHAR" />
+    <result column="id_type" property="idType" jdbcType="VARCHAR" />
+    <result column="id_type_n" property="idTypeN" jdbcType="VARCHAR" />
+    <result column="id_card_no" property="idCardNo" jdbcType="VARCHAR" />
+    <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR" />
+    <result column="is_sign_person" property="isSignPerson" jdbcType="VARCHAR" />
+    <result column="contact_info" property="contactInfo" jdbcType="VARCHAR" />
+    <result column="address_info" property="addressInfo"/>
+    <result column="position_n" property="positionN"/>
+    <result column="gender" property="gender" jdbcType="VARCHAR" />
+    <result column="gender_n" property="genderN" jdbcType="VARCHAR" />
+    <result column="title" property="title" jdbcType="VARCHAR" />
+    <result column="ref_n01" property="refN01"/>
+    <result column="person_type" property="personType"/>
+    <result column="id_expiration_date" property="idExpirationDate"/>
+      <result column="country" property="country"/>
+      <result column="province" property="province"/>
+      <result column="city" property="city"/>
+      <result column="district" property="district"/>
+      <result column="country_n" property="countryN"/>
+      <result column="province_n" property="provinceN"/>
+      <result column="city_n" property="cityN"/>
+      <result column="district_n" property="districtN"/>
+      <result column="address" property="address"/>
+      <result column="title_n" property="titleN"/>
+      <result column="REF_V01" jdbcType="VARCHAR" property="refV01"/>
+      <result column="REF_V01_N" jdbcType="VARCHAR" property="refV01N"/>
+
+  </resultMap>
+
+  <select id="selectIsSignPersonByBpId" resultMap="BaseResultMap"
+          parameterType="com.hand.hls.bp.dto.HlsCusBpMasterContactInfo">
+    select
+    c.contact_info_id,
+    c.bp_id,
+    c.email,
+    c.phone,
+    c.fax,
+    c.position,
+    (select sc.meaning value_name
+    from sys_code_value_b_v sc
+    where sc.code = 'FND.BP_POSITION'
+    and sc.code_value = c.position) position_n,
+    c.is_sign_person,
+    c.contact_person,
+    c.contact_person||c.cell_phone contact_info,
+    c.cell_phone,
+    c.address_id,
+    a.country||a.province||a.city ||a.district||a.address contact_address,
+    c.enabled_flag,
+    c.emergency_contact
+    from hls_bp_master_contact_info c
+    left join (
+    select
+    ma.address_id,
+    ma.country,
+    (select fp.description from fnd_province fp where fp.province = ma.province) province,
+    (select fc.description from fnd_city fc where fc.city = ma.city) city,
+    (select fd.description from fnd_district fd where fd.district = ma.district) district,
+    ma.address
+    from
+    hls_bp_master_address ma
+    ) a
+    on c.address_id=a.address_id
+    where c.bp_id = #{bpId}
+    <if test="position!=null and position!=''">
+      and c.position =#{position}
+    </if>
+    <if test="contactPerson!=null and contactPerson!=''">
+      and c.contact_person like concat('%',concat(#{contactPerson},'%'))
+    </if>
+    <if test="cellPhone!=null and cellPhone!=''">
+      and c.CELL_PHONE like concat('%',concat(#{cellPhone},'%'))
+    </if>
+  </select>
+
+  <select id="queryAll" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterContactInfo">
+    select
+    c.contact_info_id,
+    c.bp_id,
+    c.email,
+    c.phone,
+    c.fax,
+    c.position,
+    c.gender,
+    c.title,
+    c.id_type,
+    c.id_card_no,
+    c.contact_address,
+    c.REF_N01,
+      (select sc.meaning value_name
+      from sys_code_value_b_v sc
+      where sc.code = 'BP_TITLE'
+      and sc.code_value = c.title) title_n,
+      (select sc.meaning value_name
+      from sys_code_value_b_v sc
+      where sc.code = 'FND.EMPLOYEE_ID_TYPE'
+      and sc.code_value = c.id_type) id_type_n,
+      (select sc.meaning value_name
+      from sys_code_value_b_v sc
+      where sc.code = 'HLS211_GENDER'
+      and sc.code_value = c.gender) gender_n,
+    (select sc.meaning value_name
+    from sys_code_value_b_v sc
+    where sc.code = 'FND.BP_POSITION'
+    and sc.code_value = c.position) position_n,
+    c.is_sign_person,
+    c.contact_person,
+    -- c.contact_person||c.cell_phone contact_info,
+    c.cell_phone,
+    c.address_id,
+--     a.country||a.province||a.city ||a.district||a.address contact_address,
+    c.enabled_flag,
+    c.emergency_contact,
+    (select wm_concat(t.contract_name) from (select t.CONTRACT_name from FCT_PROJECT t where t.project_id in (select
+    fb.PROJECT_ID from
+      FCT_PROJECT_bp fb where fb.CONTACT_INFO_ID in(select hd.CONTACT_INFO_ID from hls_bp_master_contact_info hd where
+      hd.bp_id= #{bpId,jdbcType=BIGINT}) ) and t.CONTRACT_STATUS not in('END','CANCEL') and
+    t.DATA_TYPE='NORMAL'
+    union
+    select t.CONTRACT_name from prj_PROJECT t where t.project_id in (select fb.PROJECT_ID from
+      PRJ_PROJECT_BP fb where fb.CONTACT_INFO_ID in(select hd.CONTACT_INFO_ID from hls_bp_master_contact_info hd where
+      hd.bp_id= #{bpId,jdbcType=BIGINT}) ) and t.CONTRACT_STATUS not in('END','CANCEL') and
+    t.DATA_TYPE='NORMAL') t)contact_info
+    from hls_bp_master_contact_info c
+    left join (
+    select
+    ma.address_id,
+    ma.country,
+    (select fp.description from fnd_province fp where fp.province = ma.province) province,
+    (select fc.description from fnd_city fc where fc.city = ma.city) city,
+    (select fd.description from fnd_district fd where fd.district = ma.district) district,
+    ma.address
+    from
+    hls_bp_master_address ma
+    ) a
+    on c.address_id=a.address_id
+    where c.bp_id = #{bpId}
+    and c.person_type = 'CONTACT'
+    <if test="position!=null and position!=''">
+      and c.position =#{position}
+    </if>
+    <if test="contactPerson!=null and contactPerson!=''">
+      and c.contact_person like concat('%',concat(#{contactPerson},'%'))
+    </if>
+    <if test="cellPhone!=null and cellPhone!=''">
+      and c.CELL_PHONE like concat('%',concat(#{cellPhone},'%'))
+    </if>
+  </select>
+
+
+    <select id="queryAllAuthorize" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterContactInfo">
+        select
+        c.contact_info_id,
+        c.bp_id,
+        c.email,
+        c.phone,
+        c.fax,
+        c.position,
+        c.gender,
+        c.title,
+        c.id_type,
+        c.id_card_no,
+        c.id_expiration_date,
+        c.contact_address,
+        c.REF_N01,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND.EMPLOYEE_ID_TYPE'
+        and sc.code_value = c.id_type) id_type_n,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'HLS211_GENDER'
+        and sc.code_value = c.gender) gender_n,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND.BP_POSITION'
+        and sc.code_value = c.position) position_n,
+        c.is_sign_person,
+        c.contact_person,
+        c.cell_phone,
+        c.address_id,
+        c.enabled_flag,
+        c.emergency_contact,
+        (select wm_concat(t.contract_name) from (select t.CONTRACT_name from FCT_PROJECT t where t.project_id in (select
+        fb.PROJECT_ID from
+        FCT_PROJECT_bp fb where fb.CONTACT_INFO_ID in(select hd.CONTACT_INFO_ID from hls_bp_master_contact_info hd where
+        hd.bp_id= #{bpId,jdbcType=BIGINT}) ) and t.CONTRACT_STATUS not in('END','CANCEL') and
+        t.DATA_TYPE='NORMAL'
+        union
+        select t.CONTRACT_name from prj_PROJECT t where t.project_id in (select fb.PROJECT_ID from
+        PRJ_PROJECT_BP fb where fb.CONTACT_INFO_ID in(select hd.CONTACT_INFO_ID from hls_bp_master_contact_info hd where
+        hd.bp_id= #{bpId,jdbcType=BIGINT}) ) and t.CONTRACT_STATUS not in('END','CANCEL') and
+        t.DATA_TYPE='NORMAL') t)contact_info
+        from hls_bp_master_contact_info c
+        left join (
+        select
+        ma.address_id,
+        ma.country,
+        (select fp.description from fnd_province fp where fp.province = ma.province) province,
+        (select fc.description from fnd_city fc where fc.city = ma.city) city,
+        (select fd.description from fnd_district fd where fd.district = ma.district) district,
+        ma.address
+        from
+        hls_bp_master_address ma
+        ) a
+        on c.address_id=a.address_id
+        <where> c.bp_id = #{bpId}
+         and c.person_type = 'AUTHORIZE'
+        <if test="position!=null and position!=''">
+            and c.position =#{position}
+        </if>
+        <if test="contactPerson!=null and contactPerson!=''">
+            and c.contact_person like concat('%',concat(#{contactPerson},'%'))
+        </if>
+        <if test="cellPhone!=null and cellPhone!=''">
+            and c.CELL_PHONE like concat('%',concat(#{cellPhone},'%'))
+        </if>
+        </where>
+    </select>
+
+
+    <select id="queryAllBenifit" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterContactInfo">
+        select
+        c.contact_info_id,
+        c.bp_id,
+        c.email,
+        c.phone,
+        c.fax,
+        c.position,
+        c.gender,
+        c.title,
+        c.id_type,
+        c.id_card_no,
+        c.contact_address,
+        c.address,
+        c.country,
+        c.province,
+        c.city,
+        c.district,
+        (select b.country_name
+        from fnd_country b
+        where b.country = c.country) as country_n,
+        (select p.description
+        from fnd_province p
+        where p.province = c.province) as province_n,
+        (select f.description from fnd_city f where f.city = c.city) as city_n,
+        (select d.description
+        from fnd_district d
+        where d.district = c.district) as district_n,
+        c.REF_N01,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND.EMPLOYEE_ID_TYPE'
+        and sc.code_value = c.id_type) id_type_n,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'HLS211_GENDER'
+        and sc.code_value = c.gender) gender_n,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND.BP_POSITION'
+        and sc.code_value = c.position) position_n,
+        c.is_sign_person,
+        c.contact_person,
+        c.cell_phone,
+        c.address_id,
+        c.enabled_flag,
+        c.emergency_contact,
+        c.id_expiration_date,
+        (select wm_concat(t.contract_name) from (select t.CONTRACT_name from FCT_PROJECT t where t.project_id in (select
+        fb.PROJECT_ID from
+        FCT_PROJECT_bp fb where fb.CONTACT_INFO_ID in(select hd.CONTACT_INFO_ID from hls_bp_master_contact_info hd where
+        hd.bp_id= #{bpId,jdbcType=BIGINT}) ) and t.CONTRACT_STATUS not in('END','CANCEL') and
+        t.DATA_TYPE='NORMAL'
+        union
+        select t.CONTRACT_name from prj_PROJECT t where t.project_id in (select fb.PROJECT_ID from
+        PRJ_PROJECT_BP fb where fb.CONTACT_INFO_ID in(select hd.CONTACT_INFO_ID from hls_bp_master_contact_info hd where
+        hd.bp_id= #{bpId,jdbcType=BIGINT}) ) and t.CONTRACT_STATUS not in('END','CANCEL') and
+        t.DATA_TYPE='NORMAL') t)contact_info
+        from hls_bp_master_contact_info c
+        left join (
+        select
+        ma.address_id,
+        ma.country,
+        (select fp.description from fnd_province fp where fp.province = ma.province) province,
+        (select fc.description from fnd_city fc where fc.city = ma.city) city,
+        (select fd.description from fnd_district fd where fd.district = ma.district) district,
+        ma.address
+        from
+        hls_bp_master_address ma
+        ) a
+        on c.address_id=a.address_id
+        <where> c.bp_id = #{bpId}
+         and c.person_type = 'BENEFIT'
+            <if test="position!=null and position!=''">
+                and c.position =#{position}
+            </if>
+            <if test="contactPerson!=null and contactPerson!=''">
+                and c.contact_person like concat('%',concat(#{contactPerson},'%'))
+            </if>
+            <if test="cellPhone!=null and cellPhone!=''">
+                and c.CELL_PHONE like concat('%',concat(#{cellPhone},'%'))
+            </if>
+        </where>
+    </select>
+    <select id="queryContractInfoDetails" resultMap="BaseResultMap" parameterType="java.util.Map">
+    select hbmci.*,
+    (
+        SELECT
+        v.meaning
+        FROM
+        sys_code_value_b_v v
+        WHERE
+        v. CODE = 'HLS211_POSITION'
+        AND v.code_value = POSITION
+        )positionN,
+        (
+        SELECT
+        v.meaning
+        FROM
+        sys_code_value_b_v v
+        WHERE
+        v. CODE = 'HLS211_ID_TYPE'
+        AND v.code_value = ID_TYPE
+        )idTypeN
+    from hls_bp_master_contact_info hbmci
+    where
+    hbmci.bp_id = #{bpId}
+  </select>
+    <select id="query1" resultMap="BaseResultMap">
+        select CONTACT_PERSON,REF_V01,position,CONTACT_INFO,ID_TYPE,ID_CARD_NO,PHONE,FAX,EMAIL,
+               (
+                   SELECT
+                       v.meaning
+                   FROM
+                       sys_code_value_b_v v
+                   WHERE
+                       v. CODE = 'FND.EMPLOYEE_ID_TYPE'
+                     AND v.code_value = ID_TYPE
+               ) idTypeN,
+            (
+                      SELECT
+                          v.meaning
+                      FROM
+                          sys_code_value_b_v v
+                      WHERE
+                          v. CODE = 'HLS211_GENDER'
+                        AND v.code_value = ref_V01
+                  ) refV01N,
+               (
+                   SELECT
+                       v.meaning
+                   FROM
+                       sys_code_value_b_v v
+                   WHERE
+                       v. CODE = 'BP_TITLE'
+                     AND v.code_value = position
+               ) positionN
+        from hls_bp_master_contact_info
+        where
+            bp_id = #{bpId}
+    </select>
+    <resultMap id="ComboBoxMap" type="map">
+        <result column="value_code" property="value_code"/>
+        <result column="value_name" property="value_name" />
+    </resultMap>
+
+</mapper>

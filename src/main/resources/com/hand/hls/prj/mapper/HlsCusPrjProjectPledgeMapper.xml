@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.HlsCusPrjProjectPledgeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.HlsCusPrjProjectPledge">
+        <result column="project_pledge_id" property="projectPledgeId" jdbcType="DECIMAL" />
+        <result column="project_id" property="projectId" jdbcType="DECIMAL" />
+        <result column="seq_number" property="seqNumber" jdbcType="DECIMAL" />
+        <result column="pledge_persion_id" property="pledgePersionId" jdbcType="DECIMAL"/>
+        <result column="pledge_Type" property="pledgeType" jdbcType="VARCHAR" />
+        <result column="pledge_creditor_company" property="pledgeCreditorCompany" jdbcType="VARCHAR" />
+        <result column="pledge_creditor_rate" property="pledgeCreditorRate" jdbcType="DECIMAL" />
+        <result column="pledge_pre_evaluation_value" property="pledgePreEvaluationValue" jdbcType="DECIMAL" />
+        <result column="pledge_evaluation_value" property="pledgeEvaluationValue" jdbcType="DECIMAL" />
+        <result column="pledge_rate" property="pledgeRate" jdbcType="DECIMAL" />
+        <result column="evaluation_bp_id" property="evaluationBpId" jdbcType="DECIMAL" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="evaluation_bp_name" property="evaluationBpName" jdbcType="VARCHAR"/>
+        <result column="lease_item_id" property="leaseItemId" jdbcType="DECIMAL"/>
+
+        <result column="LEASE_ITEM_TYPE_N" property="leaseItemTypeN" jdbcType="VARCHAR" />
+        <result column="MORTGAGOR_N" property="mortgagorN" jdbcType="VARCHAR" />
+        <result column="CURRENCY_N" property="currencyN" jdbcType="VARCHAR" />
+        <result column="REGULATORY_ASSET_CLASS_N" property="regulatoryAssetClassN" jdbcType="VARCHAR" />
+        <result column="REGULATORY_ASSET_CLASS_SUB_N" property="regulatoryAssetClassSubN" jdbcType="VARCHAR" />
+        <result column="collateral_categories_N" property="collateralCategoriesN" jdbcType="VARCHAR" />
+        <result column="collateral_classify_one_N" property="collateralClassifyOneN" jdbcType="VARCHAR" />
+        <result column="collateral_classify_two_N" property="collateralClassifyTwoN" jdbcType="VARCHAR" />
+        <result column="MORTGAGE_SEQUENCE_N" property="mortgageSequenceN" jdbcType="VARCHAR" />
+        <result column="USAGE_TYPE_N" property="usageTypeN" jdbcType="VARCHAR" />
+        <result column="lease_create_date" property="leaseCreateDate" jdbcType="VARCHAR" />
+        <result column="owner_user_name" property="ownerUserName" jdbcType="VARCHAR" />
+        <result column="CREATION_DATE" property="creationDate" jdbcType="VARCHAR" />
+        <result column="PATTERN_N" property="patternN" jdbcType="VARCHAR" />
+        <result column="MORTGAGE_SEQUENCE_N" property="mortgageSequenceN" jdbcType="VARCHAR"/>
+        <result column="MORTGAGE_DATE_FROM" property="mortgageDateFrom" jdbcType="DATE"/>
+        <result column="mortgage_date_to" property="mortgageDateTo" jdbcType="DATE"/>
+        <result column="MORTGAGE_AMOUNT" property="mortgageAmount" jdbcType="VARCHAR"/>
+        <result column="ASSET_VALUE" property="assetValue" jdbcType="VARCHAR"/>
+        <result column="VALUATION_DATE" property="valuationDate" jdbcType="DATE"/>
+        <result column="VALUATION_UNIT" property="valuationUnit" jdbcType="VARCHAR"/>
+        <result column="BUILDING_AREA" property="buildingArea" jdbcType="VARCHAR"/>
+        <result column="EQUITY_NUMBER" property="equityNumber" jdbcType="VARCHAR"/>
+        <result column="FLOOR_AREA" property="floorArea" jdbcType="VARCHAR"/>
+        <result column="IF_SINCE_THE_MORTGAGE_N" property="ifSinceTheMortgageN" jdbcType="VARCHAR"/>
+        <result column="LAND_LOCATED" property="landLocated" jdbcType="VARCHAR"/>
+        <result column="LAND_USE" property="landUse" jdbcType="VARCHAR"/>
+        <result column="ASSET_VALUE_TOTAL" property="assetValueTotal" jdbcType="VARCHAR"/>
+        <result column="MORTGAGE_AMOUNT_TOTAL" property="mortgageAmountTotal" jdbcType="VARCHAR"/>
+        <result column="full_name" property="fullName" jdbcType="VARCHAR"/>
+        <result column="lease_item_id_n" property="leaseItemIdN" jdbcType="VARCHAR"/>
+        <result column="excel_id" property="excelId" jdbcType="VARCHAR"/>
+        <result column="result_id" property="resultId" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_PROPORTION" property="pledgeProportion" jdbcType="DECIMAL"/>
+        <result column="PLEDGE_AMOUNT" property="pledgeAmount" jdbcType="DECIMAL"/>
+        <result column="PRJ_BP_ID" property="prjBpId" jdbcType="DECIMAL"/>
+        <result column="full_name_n" property="fullNameN"/>
+        <result column="lease_item_code" property="leaseItemCode"/>
+
+    </resultMap>
+    <select id="queryProjectPledge" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectPledge"
+            resultMap="BaseResultMap">
+        SELECT
+        ppb.PRJ_BP_ID,
+            pp.project_id,
+            hli.lease_item_id,
+            hli.lease_item_code,
+            hli.lease_item_code as lease_item_id_n,
+            hli.full_name,
+            hli.full_name as full_name_n,
+            hli.lease_item_type,
+            (select meaning
+            from sys_code_value_b_v
+            where code = 'HLS.COLLATERAL_TYPE'
+            and code_value = hli.LEASE_ITEM_TYPE) LEASE_ITEM_TYPE_N,
+            hli.PATTERN,
+            (select meaning
+            from sys_code_value_b_v
+            where code in ('HLS.MORTGAGE_TYPE','HLS.PLEDGE_TYPE')
+            and code_value = hli.PATTERN) PATTERN_N,
+            hli.MORTGAGOR,
+            (select hbm.bp_name from hls_bp_master hbm where hbm.bp_id = hli.MORTGAGOR) MORTGAGOR_N,
+            hli.VALUATION_UNIT,
+            hli.VALUATION_DATE,
+            (select a.EVALUATION_VALUE from
+            (select hlid.lease_item_id, sum(hlid.EVALUATION_VALUE) as EVALUATION_VALUE
+            from hls_lease_item_detail hlid group by hlid.lease_item_id) a where a.lease_item_id = hli.lease_item_id) ASSET_VALUE_TOTAL,
+            (select a.MORTGAGE_PLEDGE_AMOUNT from
+            (select hlid.lease_item_id, sum(hlid.MORTGAGE_PLEDGE_AMOUNT) as MORTGAGE_PLEDGE_AMOUNT
+            from hls_lease_item_detail hlid group by hlid.lease_item_id) a where a.lease_item_id = hli.lease_item_id) MORTGAGE_AMOUNT_TOTAL,
+            ( select h.excel_id
+            from hls_web_excel h
+            where h.enabled_flag = 'Y'
+            and h.excel_type = 'MORTGAGE_PLEDGE_REPORT') excel_id,
+            ( select max(hr.result_id)
+            from hls_web_excel_calc_result hr
+            where  hr.source_document_id = hli.lease_item_id
+            and hr.source_document_category = 'MORTGAGE_PLEDGE_REPORT') result_id,
+        ppb.PLEDGE_PROPORTION,
+        (ppb.PLEDGE_PROPORTION*(select a.MORTGAGE_PLEDGE_AMOUNT from
+        (select hlid.lease_item_id, sum(hlid.MORTGAGE_PLEDGE_AMOUNT) as MORTGAGE_PLEDGE_AMOUNT
+        from hls_lease_item_detail hlid group by hlid.lease_item_id) a where a.lease_item_id = hli.lease_item_id)) PLEDGE_AMOUNT
+
+        FROM prj_project_bp ppb, prj_project pp, hls_lease_item hli
+        <where>
+            hli.LEASE_ITEM_TYPE in ('MORTGAGE','PLEDGE')
+            and ppb.bp_role_type in ('PLEDGOR', 'MORTGAGOR')
+            and ppb.lease_item_id = hli.lease_item_id
+            and ppb.project_id = pp.project_id
+            <if test="projectId != null">
+                and pp.project_id = #{projectId}
+            </if>
+        </where>
+    </select>
+    <select id="selectPledgeDetail" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectPledge" resultMap="BaseResultMap">
+        select hli.lease_item_id,
+        hli.full_name,
+        hli.LEASE_ITEM_TYPE,
+        (select meaning
+        from sys_code_value_b_v
+        where code = 'HLS.COLLATERAL_TYPE'
+        and code_value = hli.LEASE_ITEM_TYPE) LEASE_ITEM_TYPE_N,
+--         hli.PATTERN,
+        (select meaning
+        from sys_code_value_b_v
+        where code in ('HLS.COLLATERAL_TYPE','HLS.PLEDGE_TYPE')
+        and code_value = hli.PATTERN) PATTERN_N,
+        hli.REGULATORY_ASSET_CLASS,
+        (select t.description
+        from hls_business_type t where t.document_category = 'REGULATORY_ASSET_CLASS'
+        and t.business_type = hli.REGULATORY_ASSET_CLASS) REGULATORY_ASSET_CLASS_N,
+        hli.REGULATORY_ASSET_CLASS_SUB,
+        (select t.description
+        from hls_document_type t where t.document_category = 'REGULATORY_ASSET_CLASS'
+        and t.business_type = hli.REGULATORY_ASSET_CLASS
+        and t.document_type = hli.REGULATORY_ASSET_CLASS_SUB) REGULATORY_ASSET_CLASS_SUB_N,
+        hli.collateral_categories,
+        (select t.description
+        from hls_collateral_categories t where t.collateral_categories = hli.collateral_categories) collateral_categories_N,
+        hli.collateral_classify_one,
+        (select t.description
+        from hls_collateral_classify_one t
+        where t.collateral_classify_one = hli.collateral_classify_one) collateral_classify_one_N,
+        hli.collateral_classify_two,
+        (select t.description
+        from hls_collateral_classify_two  t
+        where t.collateral_classify_two = hli.collateral_classify_two) collateral_classify_two_N,
+        hli.MORTGAGOR,
+        (select su.description from sys_user su where su.user_id = hli.MORTGAGOR) MORTGAGOR_N,
+        hli.MORTGAGE_SEQUENCE,
+        (select meaning
+        from sys_code_value_b_v
+        where code = 'HLS.MORTGAGE_SEQUENCE'
+        and code_value = hli.MORTGAGE_SEQUENCE) MORTGAGE_SEQUENCE_N,
+        hli.MORTGAGE_DATE_FROM,
+        hli.mortgage_date_to,
+        hli.MORTGAGE_AMOUNT,
+        hli.CURRENCY,
+        (select meaning
+        from sys_code_value_b_v
+        where code = 'CHS.CURRENCY_TYPE'
+        and code_value = hli.CURRENCY) CURRENCY_N,
+        hli.ASSET_VALUE,
+        hli.VALUATION_DATE,
+        hli.VALUATION_UNIT,
+        hli.USAGE_TYPE,
+        (select meaning
+        from sys_code_value_b_v
+        where code = 'HLS.USAGE_TYPE'
+        and code_value = hli.USAGE_TYPE) USAGE_TYPE_N,
+        hli.BUILDING_AREA,
+        hli.EQUITY_NUMBER,
+        hli.FLOOR_AREA,
+        hli.IF_SINCE_THE_MORTGAGE,
+        (select meaning
+        from sys_code_value_b_v
+        where code = 'SYS.YES_NO'
+        and code_value = hli.IF_SINCE_THE_MORTGAGE) IF_SINCE_THE_MORTGAGE_N,
+        hli.LAND_LOCATED,
+        hli.LAND_USE
+        from hls_lease_item hli,prj_project_pledge ppp
+        <where>
+            hli.LEASE_ITEM_TYPE in ('MORTGAGE','PLEDGE')
+            and hli.lease_item_id = ppp.lease_item_id
+            <if test="projectId != null">
+                and ppp.project_id = #{projectId}
+            </if>
+        </where>
+    </select>
+</mapper>

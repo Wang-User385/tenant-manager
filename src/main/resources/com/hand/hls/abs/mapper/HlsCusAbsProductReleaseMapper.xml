@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProductReleaseMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProductRelease">
+        <result column="RELEASE_ID" property="releaseId" jdbcType="DECIMAL" />
+        <result column="SOURCE_DOC_ID" property="sourceDocId" jdbcType="DECIMAL" />
+        <result column="PRODUCT_ID" property="productId" jdbcType="DECIMAL" />
+        <result column="SUBSCRIBE_ID" property="subscribeId" jdbcType="DECIMAL" />
+        <result column="RELEASE_AMOUNT" property="releaseAmount" jdbcType="DECIMAL" />
+        <result column="RELEASE_STATUS" property="releaseStatus" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="SOURCE_DOC_CATEGORY" property="sourceDocCategory" jdbcType="VARCHAR" />
+        <result column="RELEASE_DATE" property="releaseDate" jdbcType="DATE" />
+
+        <result column="SUBSCRIBE_MAIN" property="subscribeMain" jdbcType="DECIMAL" />
+        <result column="SUBSCRIBE_MAIN_NAME" property="subscribeMainName" jdbcType="VARCHAR" />
+        <result column="PROJECT_GRADE" property="projectGrade" jdbcType="VARCHAR" />
+        <result column="SUBSCRIBE_AMOUNT" property="subscribeAmount" jdbcType="DECIMAL" />
+        <result column="AL_RELEASE_AMOUNT" property="alReleaseAmount" jdbcType="DECIMAL" />
+        <result column="RELE_CREDIT_FLAG" property="releCreditFlag" jdbcType="VARCHAR" />
+        <result column="CREDIT_LINE_ID" property="creditLineId" jdbcType="DECIMAL" />
+        <result column="SUB_PRECENT" property="subPercent" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <select id="selectProductReleaseData" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductRelease" resultMap="BaseResultMap">
+    SELECT
+        CAPR.*,
+        CAPSS.SUBSCRIBE_MAIN,
+        CAPSS.SUBSCRIBE_MAIN_NAME,
+        CAPT.PROJECT_GRADE,
+        CAPSS.SUBSCRIBE_AMOUNT,
+        CAPSS.RELE_CREDIT_FLAG,
+        CAPSS.CREDIT_LINE_ID,
+        nvl(CPE.AL_RELEASE_AMOUNT,0) AL_RELEASE_AMOUNT,
+        ROUND(CAPSS.SUBSCRIBE_AMOUNT/CAP.ISSUE_AMOUNT,2)*100 || '%' SUB_PRECENT
+    FROM
+        CT_ABS_PRODUCT_RELEASE CAPR
+    JOIN
+        CT_ABS_PRODUCT_SUBSCRIBE CAPSS
+    ON
+        CAPR.SUBSCRIBE_ID=CAPSS.SUBSCRIBE_ID
+    JOIN
+        CT_ABS_PRODUCT CAP
+      ON
+        CAP.PRODUCT_ID=CAPR.PRODUCT_ID
+    LEFT JOIN
+        CT_ABS_PRODUCT_STRUCTURE CAPT
+    ON
+        CAPT.STRUCTURE_ID=CAPSS.STRUCTURE_ID
+    LEFT JOIN
+        (
+            SELECT
+                R.SUBSCRIBE_ID,
+                SUM(R.RELEASE_AMOUNT) AL_RELEASE_AMOUNT
+            FROM
+                CT_ABS_PRODUCT_RELEASE R
+            WHERE
+                R.RELEASE_STATUS='CONFIRM'
+            GROUP BY
+                R.SUBSCRIBE_ID ) CPE
+    ON
+        CPE.SUBSCRIBE_ID=CAPSS.SUBSCRIBE_ID
+    WHERE
+         1=1
+     <if test="sourceDocId != null">
+            AND CAPR.SOURCE_DOC_ID = #{sourceDocId}
+     </if>
+     <if test="sourceDocCategory != null">
+            AND CAPR.SOURCE_DOC_CATEGORY = #{sourceDocCategory}
+     </if>
+     <if test="productId != null">
+            AND CAPR.PRODUCT_ID = #{productId}
+     </if>
+    </select>
+
+
+    <select id="selectRealseAmounSum" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductRelease" resultType="java.math.BigDecimal">
+        SELECT
+            nvl(SUM(CAPR.RELEASE_AMOUNT),0) RELEASE_AMOUNT
+        FROM
+            CT_ABS_PRODUCT_RELEASE CAPR
+        WHERE 1=1
+         <if test="sourceDocId != null">
+                AND CAPR.SOURCE_DOC_ID = #{sourceDocId}
+         </if>
+         <if test="sourceDocCategory != null">
+                AND CAPR.SOURCE_DOC_CATEGORY = #{sourceDocCategory}
+         </if>
+    </select>
+</mapper>

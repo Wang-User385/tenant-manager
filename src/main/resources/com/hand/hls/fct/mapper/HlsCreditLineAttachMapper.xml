@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fct.mapper.HlsCreditLineAttachMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsCreditLineAttach">
+        <result column="CHANCE_ATTACHMENT_ID" property="chanceAttachmentId" jdbcType="DECIMAL" />
+        <result column="CHANCE_ID" property="chanceId" jdbcType="DECIMAL" />
+        <result column="DOCUMENT_NAME" property="documentName" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="ATTACHMENT_CATEGORY" property="attachmentCategory" jdbcType="VARCHAR" />
+        <result column="UPLOAD_DATE" property="uploadDate" jdbcType="DATE" />
+        <result column="UPLOAD_PERSON" property="uploadPerson" jdbcType="VARCHAR" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="necessary_upload_flag" property="necessaryUploadFlag" jdbcType="VARCHAR" />
+
+        <result column="file_names" property="fileNames" jdbcType="VARCHAR" />
+        <result column="file_name" property="fileName" jdbcType="VARCHAR" />
+        <result column="file_type" property="fileType" jdbcType="VARCHAR" />
+        <result column="file_id" property="fileId" jdbcType="VARCHAR" />
+        <result column="source_key" property="sourceKey" jdbcType="VARCHAR" />
+        <result column="upload_person_n" property="uploadPersonN" jdbcType="VARCHAR" />
+        <result column="attachment_id" property="attachmentId" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryCredAttachment" resultMap="BaseResultMap" parameterType="com.hand.hls.fct.dto.HlsCreditLineAttach">
+        SELECT hra.chance_id,
+        hra.document_name,
+        hra.chance_attachment_id,
+        hra.description,
+        hra.attachment_category,
+        -- hra.upload_date,
+        (select wm_concat(fa.attachment_id)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in ('HLS_CREDIT_LINE_CHANCE','HLS_CREDIT_CHANCE_DOCX')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) attachment_id,
+        (select wm_concat(fa.file_name)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in ('HLS_CREDIT_LINE_CHANCE','HLS_CREDIT_CHANCE_DOCX')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) file_name,
+        /* (SELECT su.DESCRIPTION
+        FROM sys_user su
+        WHERE hra.UPLOAD_PERSON = su.user_id) upload_person_n,*/
+        (select max(fa.created_by)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in
+        ('HLS_CREDIT_LINE_CHANCE', 'HLS_CREDIT_CHANCE_DOCX')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) upload_person,
+        (SELECT su.DESCRIPTION
+        FROM sys_user su
+        WHERE su.user_id =
+        (select max(fa.created_by)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in
+        ('HLS_CREDIT_LINE_CHANCE', 'HLS_CREDIT_CHANCE_DOCX')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value)) upload_person_n,
+        (select max(fa.creation_date)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in
+        ('HLS_CREDIT_LINE_CHANCE', 'HLS_CREDIT_CHANCE_DOCX')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) upload_date,
+        hra.status,
+        nvl2((select distinct necessary_upload_flag
+        from sys_document_list sdl
+        where sdl.document_category = 'PRJ_CHANCE'
+        and hra.document_name = sdl.document_list_name),
+        'Y',
+        'N') necessary_upload_flag,
+        case
+        when hra.document_name = '立项申请表' then
+        0
+        else
+        1
+        end as ordernum
+        FROM hls_credit_line_attach hra
+        <where>
+            hra.attachment_category in ('CHANCE_ATT','HLS_CREDIT_CHANCE_DOCX')
+            and hra.CHANCE_ID = nvl(#{chanceId},-99)
+        </where>
+        order by ordernum
+    </select>
+
+    <select id="selectCreditChangeAttachmentInfo" resultMap="BaseResultMap" parameterType="com.hand.hls.fct.dto.HlsCreditLineAttach">
+        SELECT hra.chance_id,
+        hra.document_name,
+        hra.chance_attachment_id,
+        hra.description,
+        hra.attachment_category,
+        -- hra.upload_date,
+        (select wm_concat(fa.attachment_id)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in ('HLS_CREDIT_LINE_CHANCE','HLS_CREDIT_CHANCE_DOCX', 'CHANGE_REQ_INFO')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) attachment_id,
+        (select wm_concat(fa.file_name)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in ('HLS_CREDIT_LINE_CHANCE','HLS_CREDIT_CHANCE_DOCX', 'CHANGE_REQ_INFO')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) file_name,
+        /* (SELECT su.DESCRIPTION
+        FROM sys_user su
+        WHERE hra.UPLOAD_PERSON = su.user_id) upload_person_n,*/
+        (select max(fa.created_by)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in
+        ('HLS_CREDIT_LINE_CHANCE', 'HLS_CREDIT_CHANCE_DOCX', 'CHANGE_REQ_INFO')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) upload_person,
+        (SELECT su.DESCRIPTION
+        FROM sys_user su
+        WHERE su.user_id =
+        (select max(fa.created_by)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in
+        ('HLS_CREDIT_LINE_CHANCE', 'HLS_CREDIT_CHANCE_DOCX', 'CHANGE_REQ_INFO')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value)) upload_person_n,
+        (select max(fa.creation_date)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name in
+        ('HLS_CREDIT_LINE_CHANCE', 'HLS_CREDIT_CHANCE_DOCX', 'CHANGE_REQ_INFO')
+        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) upload_date,
+        hra.status,
+        nvl2((select distinct necessary_upload_flag
+        from sys_document_list sdl
+        where sdl.document_category = 'PRJ_CHANCE'
+        and hra.document_name = sdl.document_list_name),
+        'Y',
+        'N') necessary_upload_flag,
+        case
+        when hra.document_name = '立项申请表' then
+        0
+        else
+        1
+        end as ordernum
+        FROM hls_credit_line_attach hra
+        <where>
+            hra.attachment_category in ('CHANGE_REQ_INFO')
+            and hra.CHANCE_ID = nvl(#{chanceId},-99)
+        </where>
+        order by ordernum
+    </select>
+
+</mapper>

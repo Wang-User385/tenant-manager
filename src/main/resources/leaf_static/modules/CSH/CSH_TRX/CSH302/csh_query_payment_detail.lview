@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="csh_payment_req_payment_link" url="${/request/@context_path}/csh/write/off/payment"/>
+        <a:link id="hls_payment_dt_link"
+                url="${/request/@context_path}/modules/CAP/CAP100/hls_payment_dt.lview"/>
+
+        <script><![CDATA[
+
+        var itemFlag = 'N';
+        Leaf.onReady(function() {
+            var csh_payment_req_hd_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            // $(csh_payment_req_hd_ds).create();
+
+        });
+
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+           /* debugger;
+            var csh_payment_req_hd_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            if(ds.id === csh_payment_req_hd_ds ){
+                csh_record.set('transaction_date', '${/parameter/@transaction_date}');
+            }*/
+
+        };
+
+        //查询时调用 formcshPaymentDetailByCon
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function(ds, qpara, bp_seq) {
+            debugger;
+            if(ds.bindname === "CSH007F1_F_PAY_INFO_csh_payment_req_hd"){
+                ds.setQueryParameter('contract_id', '${/parameter/@contract_id}');
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            debugger;
+            if(ds.bindname === "CSH007F1_G_PLAN_hls_funding_plan_ln"){
+                ds.setQueryParameter('funding_plan_id', '${/parameter/@funding_plan_id}');
+                ds.setQueryParameter('payment_req_id' , '${/parameter/@payment_req_id}');
+            }
+            if(ds.bindname === "CSH007F1_G_TRANSFER_eft_fund_transfer_list"){
+                ds.setQueryParameter('payment_req_id', '${/parameter/@payment_req_id}');
+            }
+        };
+
+
+        // 超链接渲染 抵扣明细
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+
+            if (name == 'payment_deduction') {
+                return '<a href="javascript:open_payment_dt_detail_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '抵扣明细' + '</a>';
+            }
+            return value;
+        };
+
+        function open_payment_dt_detail_win(ds_id, record_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['function_code'] = 'DT001';
+            param['url_title'] = '抵扣明细';
+            param['function_usage'] = 'QUERY';
+
+            param['winid'] = 'hls_payment_dt_detail_winid';
+
+            hls_doc_get_layout_code(param, 'hls_payment_dt_link', ds_id, 'CSH007');
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>

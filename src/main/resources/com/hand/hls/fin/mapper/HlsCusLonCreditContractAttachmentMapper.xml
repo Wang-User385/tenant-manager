@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fin.mapper.HlsCusLonCreditContractAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fin.dto.HlsCusLonCreditContractAttachment">
+        <result column="credit_attachment_id" property="creditAttachmentId" jdbcType="DECIMAL"/>
+        <result column="credit_contract_id" property="creditContractId" jdbcType="DECIMAL"/>
+        <result column="credit_attachment_category" property="creditAttachmentCategory" jdbcType="VARCHAR"/>
+        <result column="document_name" property="documentName" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="credit_source_type" property="creditSourceType" jdbcType="VARCHAR"/>
+        <result column="source_id" property="sourceId" jdbcType="DECIMAL"/>
+        <result column="file_names" property="fileNames" jdbcType="VARCHAR"/>
+        <result column="file_Id" property="fileId"/>
+        <result column="file_type" property="fileType"/>
+        <result column="source_type" property="sourceType"/>
+        <result column="source_key" property="sourceKey"/>
+        <result column="attachment_id" property="attachmentId" jdbcType="DECIMAL"/>
+         <result column="attachment_code" property="attachmentCode"/>
+          <result column="order_number" property="orderNumber"/>
+
+        <!--上传人-->
+        <result column="upload_person" property="uploadPerson" jdbcType="VARCHAR"/>
+        <result column="file_name" property="fileName" jdbcType="VARCHAR"/>
+        <result column="file_size" property="fileSize" jdbcType="DECIMAL"/>
+        <result column="upload_date" property="uploadDate" jdbcType="TIMESTAMP"/>
+        <result column="update_status" property="updateStatus" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="lonCreditContractAttachmentDetailQuery" parameterType="com.hand.hls.fin.dto.HlsCusLonCreditContractAttachment"
+            resultMap="BaseResultMap">
+        SELECT lcca.document_name,lcca.credit_attachment_id,lcca.credit_contract_id,lcca.credit_attachment_category,
+        lcca.description,lcca.source_id,lcca.attachment_code,lcca.order_number,lcca.creation_date,
+        (select wm_concat(fat.file_name) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+        and faam.table_name = 'LON_CREDIT_ATTACHMENT' and faam.table_pk_value = lcca.credit_attachment_id
+        ) file_name
+        FROM lon_credit_attachment lcca
+        <where>
+            lcca.credit_contract_id =  #{creditContractId}
+            AND lcca.credit_attachment_category = #{creditAttachmentCategory}
+        </where>
+        order by order_number,creation_date
+    </select>
+
+    <select id="queryAllLonCreditContractFileDocumentListName" parameterType="com.hand.hls.fin.dto.HlsCusLonCreditContractAttachment"
+            resultMap="BaseResultMap">
+        select hba.bp_attachment_id,
+        hba.document_name,
+        (
+        SELECT
+        wm_concat(sf.file_name)
+        FROM
+        sys_attachment sa,
+        sys_file sf
+        WHERE
+        hba.bp_attachment_id = sa.source_key
+        AND sa.source_type = 'lon_credit_attachment'
+        AND sa.attachment_id = sf.attachment_id
+        ) file_name,
+        hba.description
+        from lon_credit_attachment hba
+        where 1 = 1
+        and hba.bp_source_type = 'lon_credit_attachment'
+        <if test="creditContractId != null and creditContractId != ''">
+            and hba.credit_contract_id = #{creditContractId}
+        </if>
+        GROUP BY
+        hba.credit_attachment_id
+        order by last_update_date desc
+
+    </select>
+
+
+    <select id="queryAllFile" parameterType="com.hand.hls.fin.dto.HlsCusLonCreditContractAttachment" resultMap="BaseResultMap">
+        select * from(
+        select hba.bp_attachment_id as bp_attachment_id,
+        hba.document_name as document_name,
+        sa.attachment_id attachment_id,
+        sf.file_id as file_id,
+        sf.file_name as file_name,
+        sf.file_size as file_size,
+        (select su.description
+        from sys_user su
+        where sf.last_updated_by = su.user_id) as upload_person,
+        sf.last_update_date as uploadDate
+        from lon_credit_attachment hba,
+        sys_attachment sa,
+        sys_file sf
+        where hba.credit_attachment_id = sa.source_key
+        and hba.credit_source_type = sa.source_type
+        and sa.attachment_id = sf.attachment_id
+        <if test="creditAttachmentId != null and creditAttachmentId != ''">
+            and hba.credit_attachment_id = #{creditAttachmentId}
+        </if>
+        <if test="creditContractid != null and creditContractid != ''">
+            and hba.credit_contract_id = #{creditContractid}
+        </if>
+        ) qf
+        order by qf.uploadDate desc
+    </select>
+    <delete id="deleteSysFile" parameterType="java.lang.Long">
+        delete sf from sys_file sf
+        where sf.file_id = #{fileId}
+    </delete>
+    <delete id="deleteSysAttachment" parameterType="java.lang.Long">
+        delete sa from sys_attachment sa
+        where sa.attachment_id = #{attachmentId}
+    </delete>
+
+    <select id="selectOrderNumberMax" parameterType="java.lang.Long" resultType="java.lang.Long">
+        select
+            nvl(max(hba.order_number),0)+1 order_number
+        from
+            lon_credit_attachment hba
+        where
+             hba.credit_contract_id=#{creditContractId}
+    </select>
+
+    <select id="selectAttachmentCodeNullCount" resultType="int">
+        select
+           count(1)
+        from
+           lon_credit_attachment lcca
+        where
+          lcca.attachment_code is null
+        and
+           lcca.credit_contract_id =  #{creditContractId}
+    </select>
+</mapper>

@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhuxianfei
+    $Date: 2018-07-12 下午2:20:47
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:s="leaf.plugin.script" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.fnd.service.IHlsFndAttributeSequenceService.selectHeaderId" rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator="," status_field="/parameter/@ImportSuccess" user_id="${/session/@user_id}"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="hls_bp_master_modify_entrance_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_BP/PRJ306/hls_bp_master_modify_entrance.lview"/>
+        <script><![CDATA[
+        Leaf.onReady(function() {debugger;
+            Leaf.Masker.unmask(Ext.getBody());
+        });
+
+        function loadComplete() {
+            var ds = $("balance_sheet_column_ds");
+            var cloumnName =  ds.getCurrentRecord();
+
+        }
+
+        function loadBalanceSheetColumn(ds,grid){
+            var records =  ds.data;
+            var attributeMap = new Map();
+            records.forEach(function(record){
+                var attributes_key = "attributes_";
+                for (var i=1;i< 7; i++){
+                    key = attributes_key + i;
+                    var attribute = record.get(key);
+                    if (attribute){
+                        attributeMap.set(key ,attribute)
+                    }
+                }
+            });
+            grid.setColumnPrompt("attributes_1",attributeMap.get("attributes_1"));
+            grid.setColumnPrompt("attributes_2",attributeMap.get("attributes_2"));
+            grid.setColumnPrompt("attributes_3",attributeMap.get("attributes_3"));
+            grid.setColumnPrompt("attributes_4",attributeMap.get("attributes_4"));
+            grid.setColumnPrompt("attributes_5",attributeMap.get("attributes_5"));
+            grid.setColumnPrompt("attributes_6",attributeMap.get("attributes_6"));
+        }
+
+        function loadBpmasterSheetColumnDs(){
+            var ds = $("bpmaster_sheet_column_ds");
+            var grid = $("bpmaster_sheet_grid_id");
+            loadBalanceSheetColumn(ds ,grid);
+        }
+
+        function loadBalanceSheetColumnDs(){
+            var ds = $("balance_sheet_column_ds");
+            var grid = $("balance_sheet_grid_id");
+            loadBalanceSheetColumn(ds ,grid);
+        }
+        function loadProfitStatementColumnDs(){
+            var ds = $("profit_statement_column_ds");
+            var grid = $("profit_statement_grid");
+            loadBalanceSheetColumn(ds ,grid);
+        }
+        function loadCashFlowStatementColumnDs(){
+            var ds = $("cash_flow_statement_column_ds");
+            var grid = $("cash_flow_statement_grid");
+            loadBalanceSheetColumn(ds ,grid);
+        }
+        function loadFinancialIndexColumnDs(){
+            var ds = $("financial_index_column_ds");
+            var grid = $("financial_index_grid");
+            loadBalanceSheetColumn(ds ,grid);
+        }
+
+        function saveBtn() {
+            debugger;
+            $('saveBtn_id').disable();
+            var header_id = '${/model/header/record/@header_id}';
+            var fin_statement_templet_hd_id = '${/parameter/@fin_statement_templet_hd_id}';
+            Leaf.Masker.mask(Ext.getBody(), '${l:BEING_IMPLEMENTED}');
+            Leaf.request({
+                url: '${/request/@context_path}/fnd/statement/submit',
+                para: {
+                    headerId: header_id,
+                    fin_statement_templet_hd_id: fin_statement_templet_hd_id,
+                    bp_id: '${/parameter/@bp_id}'
+                },
+                success: function() {
+                    $('saveBtn_id').enable();
+                    Leaf.Masker.unmask(Ext.getBody());
+                    $L.showInfoMessage("提示","导入成功!");
+                },
+                error: function() {
+                    $('saveBtn_id').enable();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function() {
+                    $('saveBtn_id').enable();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+        function backBtn(e) {
+            debugger;
+            top.refreshFrame();
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fiscal_year_ds">
+                <a:datas>
+                    <a:record fiscal_year="${/parameter/@fiscal_year}"/>
+                </a:datas>
+            </a:dataSet>
+
+            <a:dataSet id="bpmaster_sheet_ds" pageSize="999" fetchAll="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/excel/query?headerId=${/model/header/record/@header_id}&amp;sheetName=客户财报基本信息">
+            </a:dataSet>
+            <a:dataSet id="balance_sheet_ds" pageSize="999" fetchAll="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/excel/query?headerId=${/model/header/record/@header_id}&amp;sheetName=资产负债表">
+
+            </a:dataSet>
+            <a:dataSet id="profit_statement_ds" pageSize="999" fetchAll="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/excel/query?headerId=${/model/header/record/@header_id}&amp;sheetName=利润表">
+
+            </a:dataSet>
+            <a:dataSet id="cash_flow_statement_ds" pageSize="999" fetchAll="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/excel/query?headerId=${/model/header/record/@header_id}&amp;sheetName=现金流量表">
+
+            </a:dataSet>
+            <a:dataSet id="financial_index_ds" pageSize="999" fetchAll="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/excel/query?headerId=${/model/header/record/@header_id}&amp;sheetName=补充资料表">
+
+            </a:dataSet>
+
+            <a:dataSet id="bpmaster_sheet_column_ds" autoPageSize="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/clounm/query?headerId=${/model/header/record/@header_id}&amp;sheetName=sheetName">
+                <a:events>
+                    <a:event name="load" handler="loadBpmasterSheetColumnDs"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="balance_sheet_column_ds" autoPageSize="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/clounm/query?headerId=${/model/header/record/@header_id}&amp;sheetName=sheetName">
+                <a:events>
+                    <a:event name="load" handler="loadBalanceSheetColumnDs"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="profit_statement_column_ds" autoPageSize="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/clounm/query?headerId=${/model/header/record/@header_id}&amp;sheetName=sheetName">
+                <a:events>
+                    <a:event name="load" handler="loadProfitStatementColumnDs"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="cash_flow_statement_column_ds" autoPageSize="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/clounm/query?headerId=${/model/header/record/@header_id}&amp;sheetName=sheetName">
+                <a:events>
+                    <a:event name="load" handler="loadCashFlowStatementColumnDs"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="financial_index_column_ds" autoPageSize="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/clounm/query?headerId=${/model/header/record/@header_id}&amp;sheetName=sheetName">
+                <a:events>
+                    <a:event name="load" handler="loadFinancialIndexColumnDs"/>
+                </a:events>
+            </a:dataSet>
+
+        </a:dataSets>
+        <a:screenBody id="testScreenBody">
+
+            <a:tabPanel id="mainTab" height="420" width="1100">
+                <a:tabs>
+                    <a:tab prompt="客户财报基本信息" width="185" selected="true"
+                           bodyClassName="cls" bodyStyle="s">
+                        <a:form labelwidth="110" labelWidth="100">
+                            <a:grid id="bpmaster_sheet_grid_id" bindTarget="bpmaster_sheet_ds"  height="320"
+                                    navBar="true" width="1100">
+                                <a:columns>
+                                    <a:column name="attributes_1" width="150" align="center"/>
+                                    <a:column name="attributes_2" width="150" align="center"/>
+                                    <a:column name="attributes_3" width="150" align="center"/>
+                                    <a:column name="attributes_4" width="150" align="center"/>
+                                    <a:column name="attributes_5" width="150" align="center"/>
+                                    <a:column name="attributes_6" width="150" align="center"/>
+                                </a:columns>
+                            </a:grid>
+                        </a:form>
+                    </a:tab>
+
+                    <a:tab prompt="资产负债表" width="185" selected="true"
+                           bodyClassName="cls" bodyStyle="s">
+                        <a:form labelwidth="110" labelWidth="100">
+                            <a:grid id="balance_sheet_grid_id" bindTarget="balance_sheet_ds"  height="320"
+                                    navBar="true" width="1100">
+                                <a:columns>
+                                    <a:column name="attributes_1" width="150" align="center"/>
+                                    <a:column name="attributes_2" width="150" align="center"/>
+                                    <a:column name="attributes_3" width="150" align="center"/>
+                                    <a:column name="attributes_4" width="150" align="center"/>
+                                    <a:column name="attributes_5" width="150" align="center"/>
+                                    <a:column name="attributes_6" width="150" align="center"/>
+                                </a:columns>
+                            </a:grid>
+                        </a:form>
+                    </a:tab>
+                    <a:tab prompt="利润表" width="185"
+                           bodyClassName="cls" bodyStyle="s">
+                        <a:form labelwidth="110" labelWidth="100">
+                            <a:grid id="profit_statement_grid" bindTarget="profit_statement_ds" height="320"
+                                    navBar="true" width="1100">
+                                <a:columns>
+                                    <a:column name="attributes_1" width="150" align="center"/>
+                                    <a:column name="attributes_2" width="150" align="center"/>
+                                    <a:column name="attributes_3" width="150" align="center"/>
+                                    <a:column name="attributes_4" width="150" align="center"/>
+                                    <a:column name="attributes_5" width="150" align="center"/>
+                                    <a:column name="attributes_6" width="150" align="center"/>
+                                </a:columns>
+                            </a:grid>
+                        </a:form>
+                    </a:tab>
+                    <a:tab prompt="现金流量表" width="185"
+                           bodyClassName="cls" bodyStyle="s">
+                        <a:form labelwidth="110" labelWidth="100">
+                            <a:grid id="cash_flow_statement_grid" bindTarget="cash_flow_statement_ds"
+                                    height="320"
+                                    navBar="true" width="1100">
+                                <a:columns>
+                                    <a:column name="attributes_1" width="150" align="center"/>
+                                    <a:column name="attributes_2" width="150" align="center"/>
+                                    <a:column name="attributes_3" width="150" align="center"/>
+                                    <a:column name="attributes_4" width="150" align="center"/>
+                                    <a:column name="attributes_5" width="150" align="center"/>
+                                    <a:column name="attributes_6" width="150" align="center"/>
+                                </a:columns>
+                            </a:grid>
+                        </a:form>
+                    </a:tab>
+                    <a:tab prompt="补充资料表" width="185"
+                           bodyClassName="cls" bodyStyle="s">
+                        <a:form labelwidth="110" labelWidth="100">
+                            <a:grid id="financial_index_grid" bindTarget="financial_index_ds"  height="320"
+                                    navBar="true" width="1100">
+                                <a:columns>
+                                    <a:column name="attributes_1" width="150" align="center"/>
+                                    <a:column name="attributes_2" width="150" align="center"/>
+                                    <a:column name="attributes_3" width="150" align="center"/>
+                                    <a:column name="attributes_4" width="150" align="center"/>
+                                    <a:column name="attributes_5" width="150" align="center"/>
+                                    <a:column name="attributes_6" width="150" align="center"/>
+                                </a:columns>
+                            </a:grid>
+                        </a:form>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+
+        </a:screenBody>
+        <a:screenTopToolbar>
+            <a:gridButton id="saveBtn_id" click="saveBtn" text="确定导入"/>
+            <a:gridButton click="backBtn" text="返回"/>
+        </a:screenTopToolbar>
+    </a:view>
+</a:screen>

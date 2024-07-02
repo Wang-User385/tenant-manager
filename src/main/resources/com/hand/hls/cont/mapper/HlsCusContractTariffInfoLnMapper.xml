@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.HlsCusContractTariffInfoLnMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.HlsCusContractTariffInfoLn">
+        <result column="tariff_line_id" property="tariffLineId" jdbcType="DECIMAL" />
+        <result column="tariff_id" property="tariffId" jdbcType="DECIMAL" />
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL" />
+        <result column="cashflow_id" property="cashflowId" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="times" property="times" jdbcType="DECIMAL" />
+        <result column="times_n" property="timesN" jdbcType="DECIMAL" />
+        <result column="cf_item_n" property="cfItemN" jdbcType="VARCHAR" />
+        <result column="due_date" property="dueDate" jdbcType="DATE" />
+        <result column="due_amount" property="dueAmount" jdbcType="DECIMAL" />
+    </resultMap>
+    <select id="queryContractTariffLnInfo" resultMap="BaseResultMap">
+        SELECT
+        ln.tariff_line_id,
+        ccc.times,
+        ccc.times AS times_n,
+        ( SELECT i.description FROM hls_cashflow_item i WHERE i.cf_item = ccc.cf_item ) cf_item_n,
+        ccc.due_date,
+        ccc.due_amount
+        FROM
+        con_contract_tariff_info_ln ln,
+        con_contract_cashflow ccc
+        <where>
+            ln.cashflow_id = ccc.cashflow_id
+            <if test="tariffId!=null">
+                and ln.tariff_id = #{tariffId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

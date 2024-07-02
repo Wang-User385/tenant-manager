@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+
+        <a:link id="FIN003F7_create_add_id"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_withdraw_create_entrance.lview"/>
+
+        <a:link id="fin003_tikuan_lon_detail_id"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_withdraw_detail.lview"/>
+
+        <a:link id="fin003_pending_detail_id"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_change_create_detail.lview"/>
+
+        <script><![CDATA[
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            debugger
+            var link_function = 'detailFunction';
+            if (name == 'detail') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' +record.ds.id + '\',\'' + record.id  + '\',\'' + record.data.contract_id + '\',\'' + record.data.withdraw_id + '\',\'' + record.data.withdraw_status  + '\');">' + '明细' + '</a>';
+            }
+            if (name == 'withdraw_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' +record.ds.id + '\',\'' + record.id  + '\',\'' + record.data.contract_id + '\',\'' + record.data.withdraw_id + '\',\'' + record.data.withdraw_status  + '\');">' +  value + '</a>';
+            }
+        };
+
+
+        function detailFunction(ds_id, record_id,contractId,withdrawId,withdrawStatus) {
+
+            // debugger;
+            var editFlag = 'Y';
+            var changeFlag='N';
+            var record = $(ds_id).findById(record_id);
+            if (withdrawStatus == 'APPROVED' || withdrawStatus == 'APPROVING'||withdrawStatus == 'PENDING') {
+                editFlag = 'N';
+                var param = record.data;
+                param['contractId'] = contractId;
+                param['withdrawId'] = withdrawId;
+                param['withdrawStatus'] = withdrawStatus;
+                param['function_code'] = 'FIN003S3';
+                param['function_usage'] = 'QUERY';
+                param['editFlag'] = editFlag;
+                param['changeFlag'] = changeFlag;
+                param['url_title'] = '融资提款详细信息';
+                hls_doc_get_layout_code(param, 'fin003_tikuan_lon_detail_id', null, 'FIN003S1');
+            }else{
+                var param = {};
+                param['contractId'] = contractId;
+                param['withdrawId'] = withdrawId;
+                param['withdrawStatus'] = withdrawStatus;
+                param['function_code'] = 'FIN003S3';
+                param['function_usage'] = 'MODIFY';
+                param['editFlag'] = editFlag;
+                param['changeFlag'] = changeFlag;
+                param['url_title'] = '融资提款详细信息';
+                hls_doc_get_layout_code(param, 'fin003_tikuan_lon_detail_id', null, 'FIN003S1');
+            }
+
+        };
+
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            //debugger;
+
+            var param = {};
+            param['url_title'] = '融资提款创建';
+            param['function_code'] = 'FIN003F7';
+            param['winid'] = 'FIN003F7_create_add_win_id';
+            param['function_usage']='CREATE';
+            param['screen_width']= '900';
+            param['side']='right';
+            hls_doc_get_layout_code(param, 'FIN003F7_create_add_id', null, 'FIN003S1');
+
+
+        };
+
+
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

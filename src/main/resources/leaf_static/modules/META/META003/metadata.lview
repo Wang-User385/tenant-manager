@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Author:
+    Date: 
+    Revision: 1.0  
+    Purpose:数据建模 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="edit_sys_role_metadata_link" url="${/request/@context_path}/modules/META/META003/sys_role_metadata.lview"/>
+        <script><![CDATA[
+        function metadata_screen_query() {
+            $('metadata_ds').query();
+        }
+
+        function metadata_screen_reset() {
+            $('metadata_query_ds').reset();
+            $('metadata_ds').query();
+        }
+
+        function render_metadata_ds_grid(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'edit' && !!record.get('meta_id')) {
+                    return '<a href="javascript:winOpen_metadata_edit(\'' + record.id + '\');">编辑</a>';
+                }
+                return '';
+            }
+            return '';
+        }
+
+        <!--打开窗口：建模平台-->
+        function winOpen_metadata_edit(record_id) {
+            var record = $('metadata_ds').findById(record_id);
+            var data_type = record.get("data_type");
+            var metadata_id = record.get("meta_id");
+            var data_id = record.get("data_id") || "";
+            if (data_type == "DATA") {
+                new Leaf.Window({
+                    id: "metadata_edit_window",
+                    url: "${/request/@context_path}/modules/META/META003/metadata_edit.lview",
+                    title: '数据建模',
+                    params: {
+                        metadata_id: metadata_id,
+                        data_id: data_id,
+                        winId: "metadata_edit_window"
+                    },
+                    fullScreen: true,
+                    draggable: false,
+                    closeable: true
+                });
+            } else {
+                Leaf.showErrorMessage("提示", "目前仅支持数据建模");
+            }
+        }
+
+        function metadata_ds_grid_ef(record, name) {
+            if (record.isNew) {
+                if (name == "name") {
+                    return "metadata_ds_grid_tf"
+                }
+            }
+            return ''
+        }
+
+        function onSubmitsuccess_metadata_ds(){
+            $("metadata_ds").query();
+        }
+
+        function metadata_ds_add(){
+            $("metadata_ds").create({
+                data_type:"DATA",
+                data_type_cn:$("metadata_type_ds").find("code_value","DATA").get("code_value_name")
+            });
+        }
+
+        function render_metadata_assign(value, record, name){
+            var metadata_id = record.get('id');
+            if (metadata_id) {
+                return '<a href="javascript:winOpen_metadata_assign(' + record.id + ')">权限分配</a>';
+            } else {
+                return '';
+            }
+        }
+
+        <!--打开窗口：权限分配-->
+        function winOpen_metadata_assign(record_id){
+            var record = $('metadata_ds').findById(record_id);
+            new Leaf.Window({
+                id: 'win_metadata_assign',
+                url: $("edit_sys_role_metadata_link").getUrl(),
+                params: {
+                    metadata_id: record.get('id'),
+                    winid: 'win_metadata_assign'
+                },
+                title: '权限分配',
+                side:'right',
+                width:800
+            });
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="metadata_type_ds" lookupCode="META.METADATA_TYPE" />
+            <a:dataSet id="metadata_query_ds">
+                <a:fields>
+                    <a:field name="name"/>
+                    <a:field name="description"/>
+                    <a:field name="data_type" defaultValue="DATA"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="metadata_ds" autoPageSize="true" selectable="true"
+                       autoQuery="true" queryDataSet="metadata_query_ds"
+                       queryUrl="${/request/@context_path}/metadata/query"
+                       submitUrl="${/request/@context_path}/metadata/submit"
+                       deleteUrl="${/request/@context_path}/metadata/delete">
+                <a:fields>
+                    <a:field name="id"/>
+                    <a:field name="name" required="true"/>
+                    <a:field name="description"/>
+                    <a:field name="locked_by"/>
+                    <a:field name="data_type" required="true" defaultValue="DATA"/>
+                    <a:field name="data_type_n" options="metadata_type_ds" returnField="data_type"
+                             valueField="code_value" displayField="code_value_name"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitsuccess_metadata_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="metadata_ds_add" text="HAP.NEW"/>
+                <a:gridButton bind="metadata_ds_grid" type="delete"/>
+                <a:gridButton bind="metadata_ds_grid" type="save"/>
+                <a:gridButton bind="metadata_ds_grid" type="query"/>
+                <a:gridButton click="metadata_screen_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="4" title="查询条件" labelwidth="100">
+                <a:textField name="name" bindTarget="metadata_query_ds" prompt="名称" emptyText="名称">
+                    <a:events>
+                        <a:event name="enterdown" handler="metadata_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="description" bindTarget="metadata_query_ds" prompt="描述" emptyText="描述">
+                    <a:events>
+                        <a:event name="enterdown" handler="metadata_screen_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="metadata_ds_grid" bindTarget="metadata_ds" marginHeight="105" marginWidth="30" navBar="true">
+                <a:columns>
+                    <!--<a:column width="250" name="id" prompt="唯一标识" align="center"/>-->
+<!--                    <a:column width="270" name="id" prompt="ID" align="center"/>-->
+                    <a:column width="270" name="name" prompt="名称" editorFunction="metadata_ds_grid_ef" align="center"/>
+                    <a:column width="270" name="data_type_n" prompt="类型" editorFunction="metadata_ds_grid_ef"
+                              align="center"/>
+                    <a:column width="345" name="description" editor="metadata_ds_grid_tf" prompt="描述" align="center"/>
+                    <a:column width="120" name="locked_by" prompt="被锁定" align="center"/>
+                    <a:column width="130" name="edit" renderer="render_metadata_ds_grid" prompt="编辑" align="center"/>
+                    <a:column width="130" align="center" prompt="权限分配" renderer="render_metadata_assign"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="metadata_ds_grid_tf"/>
+                    <a:comboBox id="metadata_ds_grid_combo"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

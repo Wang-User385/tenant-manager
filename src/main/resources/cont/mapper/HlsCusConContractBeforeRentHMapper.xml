@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.HlsCusConContractBeforeRentHMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.HlsCusConContractBeforeRentH">
+        <result column="RENT_ID" property="rentId" jdbcType="DECIMAL"/>
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL"/>
+        <result column="SEQ_NUMBER" property="seqNumber" jdbcType="DECIMAL"/>
+        <result column="CALCULATE_END_DATE" property="calculateEndDate" jdbcType="DATE"/>
+        <result column="CALCULATE_SETTLEMENT_DATE" property="calculateSettlementDate" jdbcType="DATE"/>
+        <result column="RECEIVABLE_DATE" property="receivableDate" jdbcType="DATE"/>
+        <result column="CALCULATE_DAYS" property="calculateDays" jdbcType="DECIMAL"/>
+        <result column="CALCULATE_AMOUNT" property="calculateAmount" jdbcType="DECIMAL"/>
+        <result column="ZERO_TIME_FLAG" property="zeroTimeFlag" jdbcType="VARCHAR"/>
+        <result column="RENT_SERVICING_FREQUENCY" property="rentServicingFrequency" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="BeforeRentMap" type="map">
+        <result column="rent_id" property="rent_id"/>
+        <result column="project_id" property="project_id"/>
+        <result column="cashflow_id" property="cashflow_id"/>
+        <result column="receivable_date" property="receivable_date"/>
+        <result column="seq_number" property="seq_number"/>
+    </resultMap>
+
+    <select id="selectInfoByProject" resultMap="BeforeRentMap">
+        select
+          c.rent_id,
+          c.project_id,
+          c.cashflow_id,
+          c.receivable_date,
+          (@i :=@i + 1) AS  seq_number
+        from CON_CONTRACT_BEFORE_RENT_H c,(SELECT @i := 0) AS row_seq
+        where
+           c.project_id = #{projectId}
+    </select>
+
+    <select id="selectBeforeRentHCount" parameterType="java.lang.Long" resultType="java.lang.Long">
+        SELECT
+        count(*)
+        FROM con_contract_before_rent_h ccbr
+        WHERE ccbr.project_id = #{projectId}
+        and ccbr.company_id = #{companyId}
+        and ccbr.cashflow_id = #{cashflowId}
+        and ccbr.zero_time_flag = 'N'
+    </select>
+
+    <select id="selectBeforeRentHInformation" parameterType="com.hand.hls.cont.dto.HlsCusConContractBeforeRentH"
+            resultMap="BaseResultMap">
+        SELECT
+        *
+        FROM con_contract_before_rent_h ccbr
+        WHERE ccbr.project_id = #{projectId}
+        and ccbr.company_id = #{companyId}
+        and ccbr.zero_time_flag = 'N'
+        order by ccbr.receivable_date asc
+    </select>
+
+    <select id="selectBeforeRentH" parameterType="com.hand.hls.cont.dto.HlsCusConContractBeforeRentH"
+            resultMap="BaseResultMap">
+        SELECT
+        *
+        FROM con_contract_before_rent_h ccbr
+        WHERE ccbr.project_id = #{projectId}
+        and ccbr.company_id = #{companyId}
+        and ccbr.calculate_settlement_date = #{calculateSettlementDate}
+        and ccbr.zero_time_flag = 'N'
+        order by ccbr.receivable_date asc
+    </select>
+
+    <select id="selectBeforeRentHQuery" parameterType="com.hand.hls.cont.dto.HlsCusConContractBeforeRentH"
+            resultMap="BaseResultMap">
+        SELECT
+        *
+        FROM con_contract_before_rent_h ccbr
+        WHERE ccbr.project_id = #{projectId}
+        and ccbr.company_id = #{companyId}
+        and ccbr.calculate_settlement_date = #{calculateSettlementDate}
+        and ccbr.receivable_date = #{receivableDate}
+        and ccbr.zero_time_flag = 'N'
+    </select>
+
+    <select id="selectBeforeRentHCountNum" parameterType="java.lang.Long" resultType="java.lang.Long">
+        SELECT
+        count(*)
+        FROM con_contract_before_rent_h ccbr
+        WHERE ccbr.project_id = #{projectId}
+        and ccbr.company_id = #{companyId}
+        and ccbr.zero_time_flag = 'N'
+    </select>
+
+
+    <select id="selectBeforeRentHZeroTimeFlagInformation" parameterType="com.hand.hls.cont.dto.HlsCusConContractBeforeRentH"
+            resultMap="BaseResultMap">
+        SELECT
+        *
+        FROM con_contract_before_rent_h ccbr
+        WHERE ccbr.project_id = #{projectId}
+        and ccbr.company_id = #{companyId}
+        and ccbr.zero_time_flag = 'Y'
+    </select>
+
+    <select id="selectBeforeRentHZeroTimeFlagInformationQuery"
+            parameterType="com.hand.hls.cont.dto.HlsCusConContractBeforeRentH" resultMap="BaseResultMap">
+        SELECT
+        *
+        FROM con_contract_before_rent_h ccbr
+        WHERE ccbr.project_id = #{projectId}
+        and ccbr.company_id = #{companyId}
+        and ccbr.zero_time_flag = 'N'
+        order by ccbr.receivable_date desc
+    </select>
+
+
+    <select id="selectBeforeRentHZeroTimeFlagQuery" parameterType="com.hand.hls.cont.dto.HlsCusConContractBeforeRentH"
+            resultMap="BaseResultMap">
+        SELECT
+        *
+        FROM con_contract_before_rent_h ccbr
+        WHERE ccbr.project_id = #{projectId}
+        and ccbr.company_id = #{companyId}
+        and ccbr.calculate_settlement_date = #{calculateSettlementDate}
+        and ccbr.receivable_date = #{receivableDate}
+        and ccbr.zero_time_flag = 'Y'
+    </select>
+
+
+    <select id="selectBeforeRentByCondition" parameterType="java.util.HashMap"
+            resultMap="BaseResultMap">
+        select distinct ca.cashflow_id, ca.contract_id,ca.receivable_date- #{days} receivable_date,ca.receivable_date
+        due_date
+        from con_contract_before_rent_h ca,con_contract con
+        where ca.receivable_date - #{days} = to_char(sysdate,'yyyy/mm/dd')
+        and con.contract_id=ca.contract_id and ca.calculate_days is not null
+        and ca.calculate_amount is not null
+        <if test="leaseItemkindArray !=null and leaseItemkindArray !=''">
+            and con.lease_item_kind in
+            <foreach item="item" index="index" collection="leaseItemkindArray" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+    <delete id="deleteRent">
+    delete from con_contract_before_rent_h t where t.receivable_date>#{inceptOfLease} and t.project_Id=#{projectId}
+</delete>
+</mapper>

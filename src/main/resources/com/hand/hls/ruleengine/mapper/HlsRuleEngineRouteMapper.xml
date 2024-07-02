@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.ruleengine.mapper.HlsRuleEngineRouteMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.ruleengine.dto.HlsRuleEngineRoute">
+        <result column="route_id" property="routeId" jdbcType="DECIMAL" />
+        <result column="rule_engine_id" property="ruleEngineId" jdbcType="DECIMAL" />
+        <result column="parent_route_id" property="parentRouteId" jdbcType="DECIMAL" />
+        <result column="rule_desc" property="ruleDesc" jdbcType="VARCHAR" />
+        <result column="finnal_flag" property="finnalFlag" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="selectRuleEngineRoute" parameterType="com.hand.hls.ruleengine.dto.HlsRuleEngineRoute"
+            resultMap="BaseResultMap">
+       select * from hls_rule_engine_route t where t.rule_engine_id = #{ruleEngineId} and t.parent_route_id is null
+    </select>
+    <select id="selectRuleEngineChildRoute" parameterType="com.hand.hls.ruleengine.dto.HlsRuleEngineRoute"
+            resultMap="BaseResultMap">
+        select * from hls_rule_engine_route t where t.parent_route_id=#{routeId}
+    </select>
+    <select id="selectRuleEnginerRouteTree" parameterType="com.hand.hls.ruleengine.dto.HlsRuleEngineRoute"
+            resultMap="BaseResultMap">
+        select * from hls_rule_engine_route t where t.rule_engine_id = #{ruleEngineId} order by t.route_id
+    </select>
+    <delete id="removeRuleEngineByRouteId1" parameterType="com.hand.hls.ruleengine.dto.HlsRuleEngineRoute">
+        delete from hls_rule_engine_route  where route_id = #{routeId} or parent_route_id = #{routeId}
+    </delete>
+    <delete id="removeRuleEngineByRouteId2" parameterType="com.hand.hls.ruleengine.dto.HlsRuleEngineRoute">
+        delete from hls_rule_engine_condition where route_id = #{routeId}
+    </delete>
+    <delete id="removeRuleEngineByRouteId3" parameterType="com.hand.hls.ruleengine.dto.HlsRuleEngineRoute">
+        delete from hls_rule_engine_result where route_id = #{routeId}
+    </delete>
+
+    <select id="selectRuleEngineRouteByFunctionCode"
+            resultMap="BaseResultMap">
+        SELECT *
+            FROM hls_rule_engine_route hrer
+         WHERE hrer.rule_engine_id = #{ruleEngineId}
+             AND hrer.parent_route_id IS NULL
+             AND EXISTS (SELECT 1
+					FROM hls_rule_engine_condition hrec
+				 WHERE hrec.route_id = hrer.route_id
+					 AND hrec.xcondition_type = 'FIELD'
+					 AND hrec.xcondition_value = 'function_code'
+					 AND hrec.calulate_symbol = '='
+					 AND hrec.ycondition_type = 'MANUAL'
+					 AND hrec.ycondition_value1 = #{functionCode})
+    </select>
+</mapper>

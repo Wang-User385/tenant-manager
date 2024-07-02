@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure outputPath="/parameter">
+        <a:model-query model="$com.hand.hls.fnd.service.IHlsFndAttributeSequenceService.selectHeaderId"
+                       rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator=","
+                        status_field="/parameter/@ImportSuccess" template_code="ACR_INVOICE_LN"
+                        user_id="${/session/@user_id}"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+
+        function saveBtn() {debugger;
+            var head_id = '${/model/header/record/@header_id}';
+            Leaf.request({
+                type: 'POST',
+                url: "${/request/@context_path}/vat/acr/invoiceExcelImportConfirm?headerId=" + head_id,
+                async: true, //设为同步
+                contentType: "application/json; charset=utf-8",
+                success: function (res) {
+                    //Leaf.showMessage('提示',res.message);
+                    top.refreshFrame();
+                }
+            });
+        }
+
+        function disableBtn() {
+            $('saveBtn_id').disable();
+        }
+
+        function returnBack() {
+            top.refreshFrame();
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="temp_interface_ds" autoPageSize="true" autoQuery="true"
+                       queryDataSet="temp_interface_query_ds"
+                       queryUrl="${/request/@context_path}/acr/invoice/ln/selectImportTempList?headerId=${/model/header/record/@header_id}">
+                <a:events>
+                    <a:event name="submitsuccess" handler="disableBtn"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form id="success_form" height="400" title="销项发票导入确认" width="1200">
+                <a:grid id="temp_interface_grid_id" bindTarget="temp_interface_ds" marginHeight="150" navBar="true"
+                        width="1100">
+                    <a:columns>
+                        <a:column name="attributes_1" width="130" prompt="发票代码" align="left"/>
+                        <a:column name="attributes_2" width="160" prompt="发票号码" align="left"/>
+                        <a:column name="attributes_3" width="160" prompt="购方企业名称" align="left"/>
+                        <a:column name="attributes_4" width="100" prompt="购方税号" align="left"/>
+                        <a:column name="attributes_5" width="100" prompt="银行账号" align="left"/>
+                        <a:column name="attributes_6" width="130" prompt="地址电话" align="left"/>
+                        <a:column name="attributes_7" width="150" prompt="开票日期" align="right" renderer="Leaf.formatDate"/>
+                        <a:column name="attributes_8" width="160" prompt="商品编码版本号" align="right"/>
+                        <a:column name="attributes_9" width="160" prompt="单据号" align="left"/>
+                        <a:column name="attributes_10" width="100" prompt="商品名称"  align="left"/>
+                        <a:column name="attributes_11" width="100" prompt="规格" align="left"/>
+                        <a:column name="attributes_12" width="100" prompt="单位" align="left"/>
+                        <a:column name="attributes_13" width="150" prompt="数量" align="left"/>
+                        <a:column name="attributes_14" width="150" prompt="单价" align="left" renderer="Leaf.formatMoney"/>
+                        <a:column name="attributes_15" width="150" prompt="金额" align="left" renderer="Leaf.formatMoney"/>
+                        <a:column name="attributes_16" width="150" prompt="税率" align="left"/>
+                        <a:column name="attributes_17" width="150" prompt="税额" align="left" renderer="Leaf.formatMoney"/>
+                        <a:column name="attributes_18" width="150" prompt="税收分类编码" align="left"/>
+                    </a:columns>
+                </a:grid>
+                <a:screenTopToolbar>
+                    <a:gridButton id="saveBtn_id" click="saveBtn" text="DETERMINING_IMPORT"/>
+                    <a:gridButton click="returnBack" text="HAP_BACK"/>
+                </a:screenTopToolbar>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

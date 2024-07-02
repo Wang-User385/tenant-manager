@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hls.mapper.HlsDurationDepositMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hls.dto.HlsDurationDeposit">
+        <id column="source_id" property="sourceId" jdbcType="DECIMAL" />
+        <result column="hd_id" property="hdId" jdbcType="DECIMAL" />
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL" />
+        <result column="is_refund_flag" property="isRefundFlag" jdbcType="VARCHAR"/>
+        <result column="refund_date" property="refundDate" jdbcType="DATE"/>
+        <result column="is_deduction_flag" property="isDeductionFlag" jdbcType="VARCHAR"/>
+        <result column="currency_code" property="currencyCode" jdbcType="VARCHAR"/>
+        <result column="bp_bank_account_id" property="bpBankAccountId" jdbcType="DECIMAL"/>
+        <result column="bank_account_id" property="bankAccountId" jdbcType="DECIMAL"/>
+        <result column="execute_status" property="executeStatus" jdbcType="VARCHAR"/>
+        <result column="process_instance_id" property="processInstanceId" jdbcType="DECIMAL"/>
+
+
+        <!-- 关联查询字段 -->
+        <result column="is_refund_flag_n" property="isRefundFlagN"/>
+        <result column="is_deduction_flag_n" property="isDeductionFlagN"/>
+        <result column="bank_account_num" property="bankAccountNum"/>
+        <result column="bank_account_name" property="bankAccountName"/>
+        <result column="bp_bank_account_num" property="bpBankAccountNum"/>
+        <result column="bp_bank_account_name" property="bpBankAccountName"/>
+        <result column="deposit_residual_amount" property="depositResidualAmount"/>
+        <result column="deposit_refund_amount" property="depositRefundAmount"/>
+        <result column="deposit_deduction_amount" property="depositDeductionAmount"/>
+        <result column="outstanding_deposit" property="outstandingDeposit"/>
+        <result column="currency_code_n" property="currencyCodeN"/>
+        <result column="bp_bank_account_id_n" property="bpBankAccountIdN"/>
+        <result column="duration_number" property="durationNumber"/>
+        <result column="contract_number" property="contractNumber"/>
+        <result column="bp_name" property="bpName"/>
+        <result column="execute_status_n" property="executeStatusN"/>
+        <result column="contract_id_n" property="contractIdN"/>
+
+        <result column="project_name" property="projectName"/>
+        <result column="project_number" property="projectNumber"/>
+        <result column="company_spv_n" property="companySpvN"/>
+        <result column="host_project_manager_n" property="hostProjectManagerN"/>
+        <result column="host_unit_name" property="hostUnitName"/>
+        <result column="contract_name" property="contractName"/>
+        <result column="bp_code" property="bpCode"/>
+        <result column="deposit_amount" property="depositAmount"/>
+        <result column="bp_id" property="bpId"/>
+        <result column="bank_account_id_n" property="bankAccountIdN"/>
+        <result column="bank_full_name" property="bankFullName"/>
+        <result column="swift" property="swift"/>
+        <result column="iban" property="iban"/>
+        <result column="bank_code" property="bankCode"/>
+
+        <result column="prj_project_name" property="prjProjectName"/>
+        <result column="contract_currency" property="contractCurrency"/>
+        <result column="finance_amount" property="financeAmount"/>
+        <result column="SUM_TOUFANG_AMOUNT" property="sumToufangAmount"/>
+        <result column="CONTRACT_BALANCE" property="contractBalance"/>
+        <result column="currency" property="currency"/>
+
+    </resultMap>
+    <select id="hlsDurationDepositDetailQuery" resultMap="BaseResultMap" parameterType="com.hand.hls.hls.dto.HlsDurationDeposit">
+        SELECT t.*,
+               (t.deposit_residual_amount - t.deposit_refund_amount -
+                t.deposit_deduction_amount) outstanding_deposit,
+               t.bp_bank_account_name as bp_bank_account_id_n,
+               (SELECT  cba.BANK_ACCOUNT_NAME  FROM csh_bank_account  cba  where  cba.BANK_ACCOUNT_ID=t.BANK_ACCOUNT_ID)  BANK_ACCOUNT_ID_n,
+        ( SELECT
+        ppp.PROJECT_NAME
+        FROM
+        prj_project ppp
+        WHERE
+        ppp.project_id =(
+        SELECT
+        p.REF_PROJECT_ID
+        FROM
+        PRJ_PROJECT P
+        WHERE
+        P.PROJECT_ID =(
+        SELECT
+        hd.project_id
+        FROM
+        HLS_DURATION_HD HD
+        WHERE
+        hd.HD_ID = t.hd_id
+        )))  prj_project_name,
+        (SELECT fc.currency_code
+        FROM fnd_currency fc
+        WHERE fc.currency_code =
+        (select pq1.CURRENCY
+        from prj_quotation pq1
+        where pq1.SOURCE_DOCUMENT_ID =(select  ct.project_id  from  con_contract ct  where  ct.contract_id=t.contract_id)
+        and pq1.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+        and pq1.DATA_CLASS = 'VIRTUAL_CON')) CONTRACT_currency,
+        (select pq1.lease_item_amount_org
+        from prj_quotation pq1
+        where pq1.SOURCE_DOCUMENT_ID =(select  ct.project_id  from  con_contract ct  where  ct.contract_id=t.contract_id)
+        and pq1.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+        and pq1.DATA_CLASS = 'VIRTUAL_CON') FINANCE_AMOUNT,
+        (SELECT sum(ccc.RECEIVED_AMOUNT)
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id IN
+        (SELECT ct.CONTRACT_ID
+        FROM con_contract ct
+        WHERE ct.PROJECT_ID = (select  ct.project_id  from  con_contract ct  where  ct.contract_id=t.contract_id))
+        AND ccc.CF_ITEM = 0)  SUM_TOUFANG_AMOUNT,
+        (SELECT sum(ccc.RECEIVED_AMOUNT)
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id IN
+        (SELECT ct.CONTRACT_ID
+        FROM con_contract ct
+        WHERE ct.PROJECT_ID = (select  ct.project_id  from  con_contract ct  where  ct.contract_id=t.contract_id))
+        AND ccc.CF_ITEM = 0) CONTRACT_BALANCE,
+        (select pq1.CURRENCY
+        from prj_quotation pq1
+        where pq1.QUOTATION_ID =(select  ct.QUOTATION_ID  from  con_contract ct  where  ct.contract_id=t.contract_id)
+        and pq1.payment_status = 'CONFIRM'
+
+        and pq1.DATA_CLASS = 'CONTRACT_PLAN')  CURRENCY
+        FROM (SELECT hdd.source_id,
+                     hdd.hd_id,
+                     hdd.contract_id,
+        (SELECT bp.bp_id
+        FROM hls_bp_master bp
+        WHERE bp.bp_id = (select  c.tenant_id  from con_contract c  where c.contract_id=hdd.contract_id)) bp_id,
+        (
+        SELECT
+        bp.bp_name
+        FROM
+        hls_bp_master bp
+        WHERE
+        bp.bp_id = ( SELECT c.tenant_id FROM con_contract c WHERE c.contract_id = hdd.contract_id )) bp_name,
+                     nvl(hdd.is_refund_flag,'N')is_refund_flag,
+                     hdd.refund_date,
+                     nvl(hdd.is_deduction_flag,'N')is_deduction_flag,
+                     hdd.currency_code,
+                     hdd. bank_account_id,
+                     hdd.bp_bank_account_id,
+                     hdd.execute_status,
+                     hdd. process_instance_id,
+                     (select cc.contract_number from con_contract cc where cc.contract_id = hdd.contract_id) as contract_id_n,
+                     (case when hdd.is_refund_flag = 'Y' then '是' else '否' end) is_refund_flag_n,
+                     (case when hdd.is_deduction_flag = 'Y' then '是' else '否' end) is_deduction_flag_n,
+                     (SELECT a.bank_account_num
+                      FROM hls_bp_master_bank_account a
+                      WHERE a.bank_account_id = hdd.bp_bank_account_id) bp_bank_account_num,
+                     (SELECT a.bank_account_name
+                      FROM hls_bp_master_bank_account a
+                      WHERE a.bank_account_id = hdd.bp_bank_account_id) bp_bank_account_name,
+        ( SELECT a.BANK_FULL_NAME  FROM hls_bp_master_bank_account a WHERE a.bank_account_id = hdd.bp_bank_account_id ) BANK_FULL_NAME,
+        ( SELECT a.SWIFT_code  FROM hls_bp_master_bank_account a WHERE a.bank_account_id = hdd.bp_bank_account_id ) SWIFT,
+        ( SELECT a.IBAN  FROM hls_bp_master_bank_account a WHERE a.bank_account_id = hdd.bp_bank_account_id ) IBAN,
+        ( SELECT a.BANK_CODE  FROM hls_bp_master_bank_account a WHERE a.bank_account_id = hdd.bp_bank_account_id ) BANK_CODE,
+
+        (select cba.bank_account_num from csh_bank_account cba where cba.bank_account_id = hdd.bank_account_id)bank_account_num,
+                     (select cba.bank_account_name from csh_bank_account cba where cba.bank_account_id = hdd.bank_account_id)bank_account_name,
+                     (SELECT fc.currency_name
+                      FROM fnd_currency fc
+                      WHERE fc.currency_code = hdd.currency_code) currency_code_n,
+
+                     nvl((SELECT SUM(nvl(ccc.due_amount, 0))
+                        FROM con_contract_cashflow ccc
+                        WHERE ccc.contract_id = hdd.contract_id
+                        AND ccc.cf_item IN (52, 502,54)
+                        AND ccc.cf_status = 'RELEASE'),
+                        0) deposit_amount,
+                    nvl((SELECT SUM(nvl(ccc.received_amount, 0))
+                        FROM con_contract_cashflow ccc
+                        WHERE ccc.contract_id = hdd.contract_id
+                        AND ccc.cf_item IN (51, 501, 53)
+                        AND ccc.cf_status = 'RELEASE'),
+                        0) deposit_received_amount,
+                     nvl((SELECT SUM(nvl(ccc.due_amount, 0) -
+                                     nvl(ccc.received_amount, 0))
+                          FROM con_contract_cashflow ccc
+                          WHERE ccc.contract_id = hdd.contract_id
+                            AND ccc.cf_item IN (52, 502,54)
+                            AND ccc.cf_status = 'RELEASE'),
+                         0) deposit_residual_amount,
+
+                     nvl((SELECT SUM(nvl(ln.refund_amount, 0))
+                          FROM hls_duration_ln ln
+                          WHERE ln.hd_id = hdd.hd_id
+                            AND ln.source_type IN ('DEPOSIT', 'INTEREST')
+                            and ln.source_id = hdd.source_id),
+                         0) deposit_refund_amount,
+
+                     nvl((SELECT SUM(nvl(ln.deduction_amount, 0))
+                          FROM hls_duration_ln ln
+                          WHERE ln.hd_id = hdd.hd_id
+                            AND ln.source_type IN ('DEPOSIT', 'INTEREST')
+                            and ln.source_id = hdd.source_id),
+                         0) deposit_deduction_amount,
+                nvl((SELECT SUM(nvl(ln.refund_amount, 0))
+                        FROM hls_duration_ln ln, hls_duration_deposit d
+                        WHERE d.source_id = ln.source_id
+                        AND d.execute_status = 'APPROVED'
+                        AND ln.source_type IN ('DEPOSIT', 'INTEREST')),
+                        0) execute_refund_amount,
+
+                nvl((SELECT SUM(nvl(ln.deduction_amount, 0))
+                        FROM hls_duration_ln ln, hls_duration_deposit d
+                        WHERE d.source_id = ln.source_id
+                        AND d.execute_status = 'APPROVED'
+                        AND ln.source_type IN ('DEPOSIT', 'INTEREST')),
+                        0) execute_deduction_amount
+
+
+        FROM hls_duration_deposit hdd) t
+        <where>
+            t.hd_id = #{hdId}
+            <if test="contractId!=null">
+                and  t.contract_id = #{contractId}
+            </if>
+            <if test="sourceId!=null">
+                and t.source_id = #{sourceId}
+            </if>
+        </where>
+    </select>
+
+    <select id="depositManagementQuery" resultMap="BaseResultMap" parameterType="com.hand.hls.hls.dto.HlsDurationDeposit">
+        SELECT t1.*,
+    /*    (t1.deposit_residual_amount1 - t1.deposit_refund_amount -
+        t1.deposit_deduction_amount) outstanding_deposit*/
+        ( t1.deposit_residual_amount - t1.deposit_deduction_amount ) outstanding_deposit
+        FROM (SELECT t.*,
+                     h.duration_number,
+                     c.contract_number,
+                    (SELECT v.meaning
+                    FROM sys_code_value_b_v v
+                    WHERE v.code = 'DEPOSIT_WFL_STATUS'
+                    AND v.code_value = t.execute_status) execute_status_n,
+                     (SELECT bp.bp_name
+                      FROM hls_bp_master bp
+                      WHERE bp.bp_id = c.tenant_id) bp_name,
+                    nvl((SELECT SUM(nvl(ccc.due_amount, 0))
+                        FROM con_contract_cashflow ccc
+                        WHERE ccc.contract_id = t.contract_id
+                        AND ccc.cf_item IN (52, 502,54)
+                        AND ccc.cf_status = 'RELEASE'),
+                        0)deposit_amount,
+
+                    nvl((SELECT SUM(nvl(ccc.RECEIVED_AMOUNT, 0))
+                    FROM con_contract_cashflow ccc
+                    WHERE ccc.contract_id = t.contract_id
+                    AND ccc.cf_item IN  (51, 501, 53)
+                    AND ccc.cf_status = 'RELEASE'),0)deposit_received_amount,
+
+                     nvl((SELECT SUM(nvl(ccc.due_amount, 0) -
+                                     nvl(ccc.received_amount, 0))
+                          FROM con_contract_cashflow ccc
+                          WHERE ccc.contract_id = t.contract_id
+                            AND ccc.cf_item IN (52, 502,54)
+                            AND ccc.cf_status = 'RELEASE'),
+                         0) deposit_residual_amount1,
+
+                     nvl((SELECT SUM(nvl(ln.refund_amount, 0))
+                          FROM hls_duration_ln ln
+                          WHERE ln.hd_id = t.hd_id
+                            AND ln.source_type IN ('DEPOSIT', 'INTEREST')
+                            AND ln.source_id = t.source_id),
+                         0) deposit_refund_amount,
+
+                     nvl((SELECT SUM(nvl(ln.deduction_amount, 0))
+                          FROM hls_duration_ln ln
+                          WHERE ln.hd_id = t.hd_id
+                            AND ln.source_type IN ('DEPOSIT', 'INTEREST')
+                            AND ln.source_id = t.source_id),
+                         0) deposit_deduction_amount,
+
+                    nvl((SELECT SUM(nvl(ln.refund_amount, 0))
+                    FROM hls_duration_ln ln, hls_duration_deposit d
+                    WHERE d.source_id = ln.source_id
+                    AND d.execute_status = 'APPROVED'
+                    AND ln.source_type IN ('DEPOSIT', 'INTEREST')),
+                    0) execute_refund_amount,
+
+                    nvl((SELECT SUM(nvl(ln.deduction_amount, 0))
+                    FROM hls_duration_ln ln, hls_duration_deposit d
+                    WHERE d.source_id = ln.source_id
+                    AND d.execute_status = 'APPROVED'
+                    AND ln.source_type IN ('DEPOSIT', 'INTEREST')),
+                    0) execute_deduction_amount,
+
+                    (SELECT a.bank_account_num
+                    FROM hls_bp_master_bank_account a
+                    WHERE a.bank_account_id = t.bp_bank_account_id) bank_account_num,
+                    (SELECT a.bank_account_name
+                    FROM hls_bp_master_bank_account a
+                    WHERE a.bank_account_id = t.bp_bank_account_id) bank_account_name
+
+              FROM hls_duration_deposit t, hls_duration_hd h, con_contract c
+              WHERE h.hd_id = t.hd_id
+                AND t.contract_id = c.contract_id
+                and h.duration_status = 'APPROVED') t1
+        <where>
+            <if test="durationNumber!=null">
+                <bind name="durationNumber" value="'%' + durationNumber + '%'"/>
+                and t1.duration_number like #{durationNumber}
+            </if>
+            <if test="contractNumber!=null">
+                <bind name="contractNumber" value="'%' + contractNumber + '%'"/>
+                and t1.contract_number like #{contractNumber}
+            </if>
+            <if test="bpName!=null">
+                <bind name="bpName" value="'%' + bpName + '%'"/>
+                and t1.bp_name like #{bpName}
+            </if>
+            <if test="contractId!=null">
+                and t1.contract_id = #{contractId}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="hlsDurationDepositQuery" resultMap="BaseResultMap" parameterType="com.hand.hls.hls.dto.HlsDurationDeposit">
+        SELECT t.*,
+        (t.deposit_residual_amount - t.deposit_refund_amount -
+        t.deposit_deduction_amount) outstanding_deposit,
+        t.bp_bank_account_name as bp_bank_account_id_n
+        FROM (SELECT hdd.source_id,
+        hdd.hd_id,
+        hdd.contract_id,
+        nvl(hdd.is_refund_flag,'N')is_refund_flag,
+        hdd.refund_date,
+        nvl(hdd.is_deduction_flag,'N')is_deduction_flag,
+        hdd.currency_code,
+        hdd. bank_account_id,
+        hdd.bp_bank_account_id,
+        hdd.execute_status,
+        hdd. process_instance_id,
+        (select cc.contract_number from con_contract cc where cc.contract_id = hdd.contract_id) as contract_id_n,
+        (case when hdd.is_refund_flag = 'Y' then '是' else '否' end) is_refund_flag_n,
+        (case when hdd.is_deduction_flag = 'Y' then '是' else '否' end) is_deduction_flag_n,
+        (SELECT a.bank_account_num
+        FROM hls_bp_master_bank_account a
+        WHERE a.bank_account_id = hdd.bp_bank_account_id) bp_bank_account_num,
+        (SELECT a.bank_account_name
+        FROM hls_bp_master_bank_account a
+        WHERE a.bank_account_id = hdd.bp_bank_account_id) bp_bank_account_name,
+        (select cba.bank_account_num from csh_bank_account cba where cba.bank_account_id = hdd.bank_account_id)bank_account_num,
+        (select cba.bank_account_name from csh_bank_account cba where cba.bank_account_id = hdd.bank_account_id)bank_account_name,
+        (SELECT fc.currency_name
+        FROM fnd_currency fc
+        WHERE fc.currency_code = hdd.currency_code) currency_code_n,
+
+        nvl((SELECT SUM(nvl(ccc.due_amount, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = hdd.contract_id
+        AND ccc.cf_item IN (52, 502,54)
+        AND ccc.cf_status = 'RELEASE'),
+        0) deposit_amount,
+
+        nvl((SELECT SUM(nvl(ccc.received_amount, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = hdd.contract_id
+        AND ccc.cf_item IN (51, 501, 53)
+        AND ccc.cf_status = 'RELEASE'),
+        0) deposit_received_amount,
+
+        nvl((SELECT SUM(nvl(ccc.due_amount, 0) -
+        nvl(ccc.received_amount, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = hdd.contract_id
+        AND ccc.cf_item IN (52, 502,54)
+        AND ccc.cf_status = 'RELEASE'),
+        0) deposit_residual_amount,
+
+        nvl((SELECT SUM(nvl(ln.refund_amount, 0))
+        FROM hls_duration_ln ln
+        WHERE ln.hd_id = hdd.hd_id
+        AND ln.source_type IN ('DEPOSIT', 'INTEREST')
+        and ln.source_id = hdd.source_id),
+        0) deposit_refund_amount,
+
+        nvl((SELECT SUM(nvl(ln.deduction_amount, 0))
+        FROM hls_duration_ln ln
+        WHERE ln.hd_id = hdd.hd_id
+        AND ln.source_type IN ('DEPOSIT', 'INTEREST')
+        and ln.source_id = hdd.source_id),
+        0) deposit_deduction_amount,
+        nvl((SELECT SUM(nvl(ln.refund_amount, 0))
+        FROM hls_duration_ln ln, hls_duration_deposit d
+        WHERE d.source_id = ln.source_id
+        AND d.execute_status = 'APPROVED'
+        AND ln.source_type IN ('DEPOSIT', 'INTEREST')),
+        0) execute_refund_amount,
+
+        nvl((SELECT SUM(nvl(ln.deduction_amount, 0))
+        FROM hls_duration_ln ln, hls_duration_deposit d
+        WHERE d.source_id = ln.source_id
+        AND d.execute_status = 'APPROVED'
+        AND ln.source_type IN ('DEPOSIT', 'INTEREST')),
+        0) execute_deduction_amount
+
+
+        FROM hls_duration_deposit hdd) t
+        <where>
+            t.source_id = #{sourceId}
+            <if test="hd_id!=null">
+                and  t.hd_id = #{hdId}
+            </if>
+            <if test="contractId!=null">
+                and  t.contract_id = #{contractId}
+            </if>
+        </where>
+    </select>
+
+    <select id="depositReportQuery" resultMap="BaseResultMap" parameterType="com.hand.hls.hls.dto.HlsDurationDeposit">
+        select
+        t.*,
+        (t.deposit_received_amount - t.deposit_refund_amount -
+        t.deposit_deduction_amount) deposit_residual_amount
+        from (
+        SELECT c.contract_id,
+               c.contract_number,
+               p.project_number,
+               p.project_name,
+               c.contract_name,
+                (SELECT bp_code FROM hls_bp_master WHERE bp_id = c.tenant_id) AS bp_code,
+                (SELECT bp_name FROM hls_bp_master WHERE bp_id = c.tenant_id) AS bp_name,
+               (SELECT t.company_full_name
+                FROM fnd_company t
+                WHERE t.company_id = p.company_spv) company_spv_n,
+               (SELECT s.description
+                FROM sys_user s
+                WHERE s.user_id = p.host_project_manager) host_project_manager_n,
+               (SELECT fou.unit_name
+                FROM fnd_org_unit fou
+                WHERE fou.unit_id = p.host_unit_id) host_unit_name,
+               (SELECT SUM(cc.due_amount)
+                FROM con_contract_cashflow cc
+                WHERE cc.contract_id = c.contract_id
+                  AND cc.cf_status = 'RELEASE'
+                  AND cc.cf_item IN (52, 502, 54)) deposit_amount,
+                nvl((SELECT SUM(nvl(cc.received_amount, 0))
+                    FROM con_contract_cashflow cc
+                    WHERE cc.contract_id = c.contract_id
+                    AND cc.cf_item IN (51, 501, 53)
+                    AND cc.cf_status = 'RELEASE'),
+                    0) deposit_received_amount,
+               nvl((SELECT SUM(nvl(ln.refund_amount, 0))
+                    FROM hls_duration_ln ln,hls_duration_deposit dd
+                    WHERE ln.source_type IN ('DEPOSIT', 'INTEREST')
+                      and dd.source_id = ln.source_id
+                      AND ln.contract_id = c.contract_id
+                      and dd.execute_status = 'APPROVED'),
+                   0) deposit_refund_amount,
+               nvl((SELECT SUM(nvl(ln.deduction_amount, 0))
+                    FROM hls_duration_ln ln,hls_duration_deposit dd
+                    WHERE ln.source_type IN ('DEPOSIT', 'INTEREST')
+                      and dd.source_id = ln.source_id
+                      AND ln.contract_id = c.contract_id
+                      and dd.execute_status = 'APPROVED'),
+                   0) deposit_deduction_amount
+
+        FROM con_contract c, prj_project p
+        WHERE c.project_id = p.project_id
+          AND EXISTS (SELECT 1
+                      FROM con_contract_cashflow cc
+                      WHERE cc.contract_id = c.contract_id
+                        AND cc.cf_status = 'RELEASE'
+                        AND cc.cf_item IN (52, 502, 54))
+          AND c.data_class = 'NORMAL') t
+        <where>
+            <if test="projectNumber !=null">
+                and t.project_number LIKE concat('%',concat(#{projectNumber},'%') )
+            </if>
+            <if test="contractNumber !=null">
+                and t.contract_number LIKE concat('%',concat(#{contractNumber},'%') )
+            </if>
+            <if test="companySpvN !=null">
+                and t.company_spv_n LIKE concat('%',concat(#{companySpvN},'%') )
+            </if>
+            <if test="contractName !=null">
+                and t.contract_name LIKE concat('%',concat(#{contractName},'%') )
+            </if>
+            <if test="bpCode !=null">
+                and t.bp_code LIKE concat('%',concat(#{bpCode},'%') )
+            </if>
+            <if test="bpName !=null">
+                and t.bp_name LIKE concat('%',concat(#{bpName},'%') )
+            </if>
+            <if test="hostProjectManagerN !=null">
+                and t.host_project_manager_n LIKE concat('%',concat(#{hostProjectManagerN},'%') )
+            </if>
+            <if test="hostUnitName !=null">
+                and t.host_unit_name LIKE concat('%',concat(#{hostUnitName},'%') )
+            </if>
+
+        </where>
+        order by t.contract_number
+    </select>
+
+    <select id="getDepositResidualAmountByProjectId" parameterType="java.lang.Long" resultType="java.lang.Double">
+        SELECT SUM(nvl(ccc.due_amount, 0) - nvl(ccc.received_amount, 0))deposit_residual_amount
+        FROM con_contract_cashflow ccc,prj_project pp ,con_contract cc
+        <where>
+            ccc.cf_item IN (52, 502, 54)
+            and cc.contract_id = ccc.contract_id
+            and pp.project_id = cc.project_id
+            AND ccc.cf_status = 'RELEASE'
+            <if test="projectId!=null">
+                and pp.project_id = #{projectId}
+            </if>
+        </where>
+
+    </select>
+    <select id="getDepositResidualAmountByContractId" parameterType="java.lang.Long" resultType="java.lang.Double">
+        SELECT SUM(nvl(ccc.due_amount, 0) - nvl(ccc.received_amount, 0))deposit_residual_amount
+        FROM con_contract_cashflow ccc ,con_contract cc
+        <where>
+            ccc.cf_item IN (52, 502, 54)
+            and cc.contract_id = ccc.contract_id
+            AND ccc.cf_status = 'RELEASE'
+            <if test="contractId!=null">
+                and cc.contract_id = #{contractId}
+            </if>
+        </where>
+
+    </select>
+
+
+
+</mapper>

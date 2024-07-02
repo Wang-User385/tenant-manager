@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2019年3月15日
+    $Revision: 1.0
+    $Purpose: 保证金管理
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+
+    <a:view>
+
+
+        <a:link id="rpt_report_detail_id"
+                url="${/request/@context_path}/modules/RPT/RPT500/rpt_payable_report_detail.lview"/>
+        <a:link id="transaction_add_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_add.lview"/>
+
+        <a:link id="transaction_modify_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_modify.lview"/>
+
+        <a:link id="transaction_query_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_query.lview"/>
+
+        <a:link id="transaction_reverse_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_reverse.lview"/>
+        <a:link id="transaction_writeoff_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_writeoff.lview"/>
+
+        <a:link id="transaction_writeoff_reverse_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_writeoff_reverse.lview"/>
+
+        <a:link id="transaction_writeoff_refund_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_refund.lview"/>
+
+        <a:link id="transaction_writeoff_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_writeoff_detail_query.lview"/>
+
+        <a:link id="transaction_refund_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_refund_detail_query.lview"/>
+
+        <a:link id="csh301_receipt_post_link"
+                url="${/request/@context_path}/csh/transaction/post"/>
+
+        <a:link id="transaction_match_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_match.lview"/>
+
+        <a:link id="transaction_refund_apply_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH801/csh_transaction_receipt_refund_query.lview"/>
+
+        <a:link id="transaction_manual_allocation_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation.lview"/>
+
+        <a:link id="transaction_manual_allocation_modify_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_modify.lview"/>
+
+        <a:link id="transaction_manual_allocation_query_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_query.lview"/>
+
+
+        <a:link id="csh301_transaction_receipt_allocation_link" url="${/request/@context_path}/csh/allocation/match"/>
+
+        <a:link id="transaction_manual_allocation_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_detail.lview"/>
+
+        <a:link id="transaction_batch_writeoff_reverse_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_batch_writeoff_reverse.lview"/>
+
+        <script type="text/javascript"><![CDATA[
+
+        Leaf.onReady(function () {
+            //debugger;
+            var ds = $('rpt_real_income_query_ds');
+            var record = ds.getCurrentRecord();
+            var firstDate = new Date();
+            firstDate.setDate(1);
+            record.set('report_date_from',firstDate);
+            var lastDate = new Date();
+            lastDate.setMonth(firstDate.getMonth() + 1);
+            lastDate.setDate(1);
+            record.set('report_date_to',new Date(lastDate.getTime()-1000*60*60*24));
+            rpt520_deposit_query();
+
+        });
+
+        function rpt520_deposit_query() {
+            $('rpt_real_income_result_ds').query();
+
+        }
+
+        function rpt520_deposit_reset() {
+            $('rpt_real_income_query_ds').reset();
+            $('rpt_real_income_result_ds').removeAll()
+        }
+
+        //百分数格式化
+        function percentFormat(value, record, name) {
+            if (name == 'vat_rate') {
+                if (!isNaN(value)) {
+                    return parseFloat(value * 100).toFixed(2) + '%';
+                } else {
+                    return '';
+                }
+            }
+        }
+
+        /*function write_off_detail_renderer(value, record, name) {
+
+            var cashflow_id = record.get('cashflow_id');
+
+
+            return '<a  href="#' + Math.random() + '" onclick="open_write_off_detail_window(' + cashflow_id + ')">' + Leaf.formatMoney(value) + '</a>';
+        }
+
+        function open_write_off_detail_window(cashflow_id) {
+            var ds_id = 'rpt_real_income_result_ds';
+            alert(cashflow_id);
+            var param = {};
+            param['url_title'] = '核销明细';
+            param['function_code'] = 'RPT500F1';
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'rpt_report_detail_id_winId';
+            param['cashflow_id'] = cashflow_id;
+            hls_doc_get_layout_code(param, 'rpt_report_detail_id', ds_id, 'RPT500');
+
+        }*/
+
+
+
+        function write_off_detail_renderer(value, record, name) {
+            var transaction_id = record.get('transaction_id');
+            return '<a  href="#' + Math.random() + '" onclick="open_write_off_detail_window(' + transaction_id + ')">' + Leaf.formatMoney(value) + '</a>';
+        }
+
+
+        function open_write_off_detail_window(transaction_id) {
+            var win = new Leaf.Window({
+                id: 'transaction_writeoff_detail_winId',
+                url: $('transaction_writeoff_detail_link').getUrl(),
+                params: {
+                    winId: 'transaction_writeoff_detail_winId',
+                    transaction_id: transaction_id,
+                    ready_only_flag:'Y'
+                },
+                title: '核销明细',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                //csh301_transaction_query();
+            });
+
+        }
+
+
+        function allocation_renderer(value, record, name) {
+            var allocation_id_str = record.get('allocation_id_str');
+            return '<a  href="#' + Math.random() + '" onclick="open_allocation_window(\'' + allocation_id_str + '\')">' + Leaf.formatMoney(value) + '</a>';
+        }
+
+
+        function open_allocation_window(allocation_id_str) {
+            var win = new Leaf.Window({
+                id: 'transaction_allocation_winId',
+                url: $('transaction_manual_allocation_detail_link').getUrl(),
+                params: {
+                    allocation_id_str: allocation_id_str,
+                    winId: 'transaction_allocation_winId'
+                },
+                title: '匹配结果查询',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                rpt520_deposit_query();
+            });
+
+
+        }
+
+        ]]></script>
+
+        <a:dataSets>
+            <a:dataSet id="business_type_comboBox_query_ds" lookupCode="CSH301_TRANSACTION_TYPE"/>
+            <a:dataSet id="if_plan_comboBox_query_ds">
+                <a:datas>
+                    <a:record code_value="计划内" code_value_name="计划内"/>
+                    <a:record code_value="计划外" code_value_name="计划外"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="rpt_real_income_query_ds">
+                <a:fields>
+                    <a:field name="report_date_from" required="true" prompt="报表区间从"/>
+                    <a:field name="report_date_to" required="true" prompt="报表区间到"/>
+                    <a:field name="cf_item_n" autoComplete="true" lovGridHeight="350"
+                             lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/ast/contract/cashflow/item/queryLov~com.hand.hls.layout.dto.LovConCashflowItemLov"
+                             lovWidth="450"
+                             title="现金流项目" prompt="现金流项目">
+                        <a:mapping>
+                            <a:map from="cf_project" to="cf_item_n"/>
+                            <a:map from="cf_item" to="cf_item"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="if_plan_n" options="if_plan_comboBox_query_ds" displayField="code_value_name"
+                             valueField="code_value"
+                             returnField="if_plan"/>
+                    <a:field name="business_type_n" options="business_type_comboBox_query_ds" displayField="code_value_name"
+                             valueField="code_value"
+                             returnField="business_type"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="rpt_real_income_result_ds" autoQuery="false"
+                       queryUrl="${/request/@context_path}/con/contract/cashflow/queryRpt"
+                       queryDataSet="rpt_real_income_query_ds"
+                       selectable="true">
+                <a:fields>
+                    <a:field name="due_date" datatype="date"/>
+                    <a:field name="write_off_date" datatype="date"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="rpt520_deposit_query" text="HLS.QUERY"/>
+                <a:gridButton click="rpt520_deposit_reset" text="HLS.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="4" marginWidth="50">
+                <a:fieldSet title="查询条件" marginWidth="100">
+                    <a:box column="4" labelWidth="150">
+                        <a:datePicker name="report_date_from" bindTarget="rpt_real_income_query_ds"
+                                      prompt="报表区间从"/>
+                        <a:datePicker name="report_date_to" bindTarget="rpt_real_income_query_ds"
+                                      prompt="报表区间到"/>
+                        <a:textField name="bp_name" bindTarget="rpt_real_income_query_ds"
+                                     prompt="客户名称"/>
+                        <a:textField name="payment_number" bindTarget="rpt_real_income_query_ds"
+                                     prompt="支付表编号"/>
+                    </a:box>
+
+                    <a:box column="4" labelWidth="150">
+                        <a:textField name="contract_number" bindTarget="rpt_real_income_query_ds"
+                                     prompt="合同编号"/>
+                        <a:textField name="contract_name" bindTarget="rpt_real_income_query_ds"
+                                     prompt="合同名称"/>
+                        <a:lov name="cf_item_n" bindTarget="rpt_real_income_query_ds"
+                               prompt="现金流项目"/>
+                        <a:numberField name="due_amount_from" bindTarget="rpt_real_income_query_ds"
+                                       prompt="应收金额从"/>
+
+                    </a:box>
+                    <a:box column="4" labelWidth="150">
+                        <a:numberField name="due_amount_to" bindTarget="rpt_real_income_query_ds"
+                                       prompt="应收金额到"/>
+                        <a:textField name="unit_name" bindTarget="rpt_real_income_query_ds"
+                                     prompt="业务部门"/>
+                        <a:numberField name="received_amount_from" bindTarget="rpt_real_income_query_ds"
+                                       prompt="已收金额从"/>
+                        <a:numberField name="received_amount_to" bindTarget="rpt_real_income_query_ds"
+                                       prompt="已收金额到"/>
+                    </a:box>
+                    <!--<a:box column="4" labelWidth="150">-->
+                        <!--<a:comboBox name="if_plan_n" bindTarget="rpt_real_income_query_ds"-->
+                                       <!--prompt="计划内/外"/>-->
+                        <!--<a:textField name="transaction_num" bindTarget="rpt_real_income_query_ds"-->
+                                       <!--prompt="收款编号"/>-->
+                        <!--<a:comboBox name="business_type_n" bindTarget="rpt_real_income_query_ds"-->
+                                     <!--prompt="收款类型"/>-->
+                    <!--</a:box>-->
+                </a:fieldSet>
+            </a:form>
+            <a:grid id="rpt_real_income_grid_id"
+                    bindTarget="rpt_real_income_result_ds" marginHeight="80" marginWidth="50"
+                    navBar="true">
+                <a:toolBar>
+                    <a:button type="excel"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="bp_name" prompt="客户名称" width="200" lock="true"/>
+                    <a:column name="payment_number" prompt="支付表编号"
+                              width="150" lock="true"/>
+                    <a:column name="contract_number" prompt="合同编号"
+                              width="150" lock="true"/>
+                    <a:column name="contract_name" prompt="合同名称"
+                              width="220" lock="true"/>
+                    <a:column name="tenant_sec_id_n" prompt="共同承租人" width="150"/>
+                    <a:column name="counterparty" prompt="担保人" width="150"/>
+                    <a:column name="identification_tax_structure" prompt="税务结构认定" width="120"
+                    />
+                    <a:column name="vat_rate" prompt="合同税率" renderer="percentFormat" width="80"/>
+                    <a:column name="times" prompt="期数" width="80"/>
+                    <a:column name="cf_item_n" prompt="现金流项目" width="120"/>
+
+                    <a:column name="due_amount" prompt="应收金额"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="net_due_amount" prompt="不含税应收金额"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="vat_due_amount" prompt="增值税额"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="interest" prompt="应收利息"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="net_interest" prompt="不含税应收利息"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="vat_interest" prompt="利息增值税额"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+
+                    <a:column name="principal" prompt="本金（含税）"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="net_principal" prompt="本金（不含税）"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="vat_principal" prompt="本金增值税额"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+
+                    <a:column name="received_amount" prompt="已收金额"
+                              align="right" renderer="allocation_renderer"
+                              width="130"/>
+                    <a:column name="received_principal" prompt="已收本金"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="received_interest" prompt="已收利息"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+
+                    <a:column name="overdue_amount" prompt="逾期金额"
+                              align="right" renderer="Leaf.formatMoney"
+                              width="130"/>
+                    <a:column name="due_date" align="center" prompt="应收日期" width="100"
+                              renderer="Leaf.formatDate"/>
+                    <a:column name="currency_name" prompt="币种" width="120"/>
+                    <a:column name="host_project_manager_n" prompt="主办项目经理" width="120"/>
+                    <a:column name="company_spv_n" prompt="SPV/公司" width="120"/>
+                    <a:column name="unit_name" prompt="业务部门" width="120"/>
+                    <!--<a:column name="if_plan" prompt="计划内/外" width="120"/>-->
+                    <!--<a:column name="write_off_date" align="center" prompt="最后核销日期" width="100"-->
+                              <!--renderer="Leaf.formatDate"/>-->
+                    <!--<a:column name="transaction_num" prompt="收款编号" width="120" renderer="allocation_renderer"/>-->
+                    <!--<a:column name="business_type_n" prompt="收款类型" width="120"/>-->
+
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+
+

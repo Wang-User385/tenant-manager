@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+
+        <a:link id="csh901f1_penalty_reduce_detail"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH901LS/csh_penalty_interest_reduce_detail.lview"/>
+
+        <script><![CDATA[
+
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            var csh_ds_id = '${/parameter/@layout_code}_G_GRID_con_contract_cashflow_ds';
+            var csh_record = $(csh_ds_id).getSelected();
+            debugger
+
+            if(csh_record.length == 0){
+                Leaf.showMessage('提示','未选择一条数据！');
+            }
+            else if(csh_record[0].data.fine_reduce_status == 'APPROVING'){
+                Leaf.showMessage('提示','该合同正在罚息减免审批中！');
+            }
+            // else if(csh_record[0].data.fine_reduce_status == 'APPROVED'){
+            //     Leaf.showMessage('提示','该合同罚息减免已审批通过！');
+            // }
+            else{
+                var bo=true;
+                var bpName=csh_record[0].data.manufacturer_name;
+                for(var i=1;i<csh_record.length;i++){
+                    if(csh_record[i].data.manufacturer_name!=bpName){
+                     bo=false;
+                    }
+                }
+
+                if(bo==true){
+                var param = csh_record[0].data;
+
+                var contractIdList = [];
+                for(var i=0;i<csh_record.length;i++){
+                    contractIdList.push(csh_record[i].data.contract_id);
+                }
+                param['function_code'] = 'CSH901LSF1';
+                param['function_usage'] = 'CREATE';
+                param['url_title'] = '罚息减免详细界面';
+                param['parent_ds_id'] = csh_ds_id;
+                param['hidden_button_code'] = ['SAVE'];
+                param['contract_num']=csh_record.length;
+                param['contract_id_list']=JSON.stringify(contractIdList);
+
+                hls_doc_get_layout_code(param, 'csh901f1_penalty_reduce_detail', null, 'CSH901LS');}
+                else{Leaf.showMessage('提示','非同一厂商不可批量提交');}
+            }
+        };
+
+
+
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

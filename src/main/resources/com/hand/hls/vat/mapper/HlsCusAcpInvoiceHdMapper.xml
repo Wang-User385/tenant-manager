@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.vat.mapper.HlsCusAcpInvoiceHdMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.vat.dto.HlsCusAcpInvoiceHd">
+        <id column="invoice_hd_id" property="invoiceHdId" jdbcType="BIGINT"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
+        <result column="document_number" property="documentNumber" jdbcType="VARCHAR"/>
+        <result column="document_type" property="documentType" jdbcType="VARCHAR"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="business_type" property="businessType" jdbcType="VARCHAR"/>
+        <result column="billing_method" property="billingMethod" jdbcType="VARCHAR"/>
+        <result column="invoice_kind" property="invoiceKind" jdbcType="VARCHAR"/>
+        <result column="bp_id" property="bpId" jdbcType="BIGINT"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="bp_tax_registry_num" property="bpTaxRegistryNum" jdbcType="VARCHAR"/>
+        <result column="bp_address_phone_num" property="bpAddressPhoneNum" jdbcType="VARCHAR"/>
+        <result column="bp_bank_account" property="bpBankAccount" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="total_amount" property="totalAmount" jdbcType="DOUBLE"/>
+        <result column="net_amount" property="netAmount" jdbcType="DOUBLE"/>
+        <result column="tax_amount" property="taxAmount" jdbcType="DOUBLE"/>
+        <result column="currency" property="currency" jdbcType="VARCHAR"/>
+        <result column="invoice_date" property="invoiceDate" jdbcType="TIMESTAMP"/>
+        <result column="invoice_number" property="invoiceNumber" jdbcType="VARCHAR"/>
+        <result column="invoice_status" property="invoiceStatus" jdbcType="VARCHAR"/>
+        <result column="reversed_flag" property="reversedFlag" jdbcType="VARCHAR"/>
+        <result column="reverse_date" property="reverseDate" jdbcType="TIMESTAMP"/>
+        <result column="source_invoice_header_id" property="sourceInvoiceHeaderId" jdbcType="BIGINT"/>
+        <result column="confirmed_date" property="confirmedDate" jdbcType="TIMESTAMP"/>
+        <result column="confirmed_by" property="confirmedBy" jdbcType="BIGINT"/>
+        <result column="posted_date" property="postedDate" jdbcType="TIMESTAMP"/>
+        <result column="posted_by" property="postedBy" jdbcType="BIGINT"/>
+        <result column="invoice_kind_desc" property="invoiceKindDesc" jdbcType="VARCHAR"/>
+        <result column="contract_id" property="contractId" jdbcType="BIGINT"/>
+        <result column="cashflow_id" property="cashflowId" jdbcType="BIGINT"/>
+        <result column="write_off_due_amount" property="writeOffDueAmount" jdbcType="DOUBLE"/>
+        <result column="write_off_interest" property="writeOffInterest" jdbcType="DOUBLE"/>
+        <result column="write_off_principal" property="writeOffPrincipal" jdbcType="DOUBLE"/>
+        <result column="total_interest" property="totalInterest" jdbcType="DOUBLE"/>
+        <result column="total_principal" property="totalPrincipal" jdbcType="DOUBLE"/>
+        <result column="ranks" property="ranks" jdbcType="BIGINT"/>
+        <result column="cf_item_desc" property="cfItemDesc" jdbcType="VARCHAR"/>
+        <result column="cf_item" property="cfItem" jdbcType="BIGINT"/>
+        <result column="diff_amount" property="diffAmount" jdbcType="DOUBLE"/>
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="contract_name" property="contractName" jdbcType="VARCHAR"/>
+        <result column="times" property="times" jdbcType="BIGINT"/>
+        <result column="company_full_name" property="companyFullName" jdbcType="VARCHAR"/>
+        <result column="billing_amount" property="billingAmount" jdbcType="DOUBLE"/>
+
+        <result column="diff" property="diff" jdbcType="VARCHAR"/>
+        <result column="count" property="count" jdbcType="BIGINT"/>
+        <result column="flag" property="flag" jdbcType="VARCHAR"/>
+        <result column="cashflowItems" property="cashflowItems" jdbcType="VARCHAR"/>
+        <result column="amountFrom" property="count" jdbcType="DOUBLE"/>
+        <result column="amountTo" property="count" jdbcType="DOUBLE"/>
+        <result column="contractInfo" property="contractInfo" jdbcType="VARCHAR"/>
+        <result column="timesFrom" property="timesFrom" jdbcType="BIGINT"/>
+        <result column="timesTo" property="timesTo" jdbcType="BIGINT"/>
+        <result column="specialNum" property="specialNum" jdbcType="DOUBLE"/>
+        <result column="normalNum" property="normalNum" jdbcType="DOUBLE"/>
+        <result column="invoice_code" property="invoiceCode" />
+        <result column="posted_type" property="postedType" />
+    </resultMap>
+
+    <select id="acpInvoiceQuery" parameterType="com.hand.hls.vat.dto.HlsCusAcpInvoiceHd" resultMap="BaseResultMap">
+        SELECT
+        *
+        FROM
+        (
+        SELECT
+        t.*,(
+        (
+        SELECT
+        SUM(ail.tax_amount)
+        FROM
+        acp_invoice_ln ail
+        WHERE
+        ail.cashflow_id = t.cashflow_id
+        ) - vat_due_amount
+        ) diff_amount
+        FROM
+        (
+        SELECT
+        cc.cashflow_id ,
+        c.contract_number ,
+        c.contract_name ,
+        cc.cf_item ,
+        (
+        SELECT
+        i.description
+        FROM
+        hls_cashflow_item i
+        WHERE
+        i.cf_item = cc.cf_item
+        ) cf_item_desc ,
+        cc.times ,
+        (
+        SELECT
+        fc.company_full_name
+        FROM
+        fnd_company fc WHERE fc.company_id = c.company_id
+        ) company_full_name ,
+        nvl(cc.billing_amount , 0) billing_amount ,
+        (
+        SELECT sum(nvl(l.total_amount , 0)) FROM acp_invoice_ln l WHERE l.cashflow_id = cc.cashflow_id
+        ) total_amount ,
+        nvl(cc.vat_due_amount , 0) AS vat_due_amount FROM con_contract c ,
+        con_contract_cashflow cc WHERE c.contract_id = cc.contract_id AND EXISTS(
+        SELECT 1 FROM acp_invoice_ln l WHERE l.cashflow_id = cc.cashflow_id
+        )
+        ) t
+        ) t1
+        <where>
+            <if test="count == 7">
+                AND EXISTS (
+                SELECT
+                1
+                FROM
+                acp_invoice_hd h,
+                acp_invoice_ln l
+                WHERE
+                h.invoice_hd_id = l.invoice_hd_id
+                AND l.cashflow_id = t1.cashflow_id
+                AND h.invoice_date between ADDDATE(h.invoice_date,INTERVAL -7 day) and sysdate
+                )
+            </if>
+            <if test="count == 1">
+                AND EXISTS (
+                SELECT
+                1
+                FROM
+                acp_invoice_hd h,
+                acp_invoice_ln l
+                WHERE
+                h.invoice_hd_id = l.invoice_hd_id
+                AND l.cashflow_id = t1.cashflow_id
+                AND h.invoice_date between ADDDATE(h.invoice_date,INTERVAL -1 month) and sysdate
+                )
+            </if>
+            <if test="count == 3">
+                AND EXISTS (
+                SELECT
+                1
+                FROM
+                acp_invoice_hd h,
+                acp_invoice_ln l
+                WHERE
+                h.invoice_hd_id = l.invoice_hd_id
+                AND l.cashflow_id = t1.cashflow_id
+                AND h.invoice_date between ADDDATE(h.invoice_date,INTERVAL -3 month) and sysdate
+                )
+            </if>
+            <if test="diff ==&quot;Y&quot;">
+                and t1.diff_amount !=0
+            </if>
+            <if test="diff ==&quot;N&quot;">
+                and t1.diff_amount =0
+            </if>
+            <if test="cashflowItems !=null and cashflowItems !='' and flag==&quot;Y&quot;">
+                and t1.cf_item in
+                <foreach item="item" index="index" collection="cashflowItems" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="flag ==&quot;N&quot;">
+                and t1.cf_item not in(0,10)
+            </if>
+
+            <if test="amountFrom !=null and  amountFrom !=''">
+                and t1.billing_amount > #{amountFrom}
+            </if>
+            <if test="amountTo !=null and amountTo !=''">
+                and #{amountTo} > t1.billing_amount
+            </if>
+            <if test="contractInfo !=null and  contractInfo !=''">
+                and (t1.contract_name like '%${contractInfo}%' or t1.contract_number like '%${contractInfo}%')
+            </if>
+
+            <if test="timesFrom !=null and  timesFrom !=''">
+                and t1.times >= #{timesFrom}
+            </if>
+            <if test="timesTo !=null and timesTo !=''">
+                and #{timesTo} >= t1.times
+            </if>
+        </where>
+    </select>
+
+
+    <select id="acpInvoiceScaleQuery" resultMap="BaseResultMap">
+    select
+    (select count(*) from acp_invoice_hd aih where aih.invoice_kind = 0) specialNum,
+    (select count(*) from acp_invoice_hd aih where aih.invoice_kind = 2) normalNum
+    from dual
+    </select>
+
+    <select id="acpInvoicedTotleQuery" resultMap="BaseResultMap">
+
+    SELECT
+    ail.cf_item,
+    sum(ail.total_amount) total_amount,
+	sum(case when aih.invoice_kind = 0 then ail.total_amount end) specialNum,
+	sum(case when aih.invoice_kind = 1 then ail.total_amount end) normalNum
+    FROM
+    acp_invoice_ln ail,
+    acp_invoice_hd aih
+    WHERE
+    ail.invoice_hd_id = aih.invoice_hd_id
+    AND aih.reversed_flag = 'N'
+    GROUP BY
+    ail.cf_item
+    </select>
+
+    <select id="acpInvoicedGroupQuery" resultMap="BaseResultMap"  parameterType="java.lang.Long">
+
+        <!--SELECT hci.description,count(*) count from (SELECT ail.cf_item,ail.cashflow_id FROM acr_invoice_ln ail) v,
+        hls_cashflow_item hci
+        WHERE v.cf_item = hci.cf_item
+        GROUP BY v.cf_item-->
+        SELECT
+        v.cf_item,
+        hci.description,
+        sum(v.total_amount) totalAmount
+        FROM
+        (
+        SELECT
+        ail.*, ccc.cf_item,aih.company_id
+        FROM
+        acr_invoice_ln ail,
+        acr_invoice_hd aih,
+        acr_invoice_relationship air,
+        con_contract_cashflow ccc
+        WHERE
+        air.invoice_ln_id = ail.invoice_ln_id
+        AND ail.invoice_hd_id = aih.invoice_hd_id
+        AND ccc.cashflow_id = air.source_document_id
+        ) v,
+        hls_cashflow_item hci
+        WHERE
+        v.cf_item = hci.cf_item and v.company_id = #{companyId}
+        GROUP BY
+        v.cf_item,hci.description
+    </select>
+
+    <sql id="queryVatAcpInvoiceDetail_APPROVAL_NUMBER">
+        (SELECT DISTINCT
+        fp.APPROVAL_NUMBER
+        FROM
+        FCT_CONTRACT fc
+        LEFT JOIN FCT_PROJECT fp ON fc.PROJECT_ID = fp.PROJECT_ID
+        WHERE
+        fc.CONTRACT_ID = ail.contract_id)
+    </sql>
+
+    <select id="queryVatAcpInvoiceDetail" resultMap="BaseResultMap">
+        SELECT * FROM (
+             SELECT
+                aih.invoice_code,
+                aih.invoice_number,
+                aih.invoice_date,
+                aih.bp_tax_registry_num,
+                aih.bp_name,
+                aih.total_amount,
+                aih.tax_amount,
+                aih.posted_type,
+                aih.posted_date,
+                aih.invoice_kind,
+                aih.invoice_status,
+<!--                CASE WHEN ail.contract_id IS NULL THEN (select cc.contract_number from con_contract cc where cc.contract_id = ail.contract_id and cc.data_class = 'NORMAL')-->
+<!--                ELSE <include refid="queryVatAcpInvoiceDetail_APPROVAL_NUMBER"/> END AS contract_number,-->
+<!--                (select cc.contract_name from con_contract cc where cc.contract_id = ail.contract_id and cc.data_class = 'NORMAL') contract_name-->
+                ail.contract_name,
+                ail.contract_number
+                FROM
+                acp_invoice_ln ail,
+                acp_invoice_hd aih
+                WHERE
+                ail.invoice_hd_id = aih.invoice_hd_id
+
+                <if test="acpInvoiceDateFrom != null">
+                    and aih.invoice_date &gt;= to_date(#{acpInvoiceDateFrom},'yyyy-mm-dd hh24:mi:ss')
+                </if>
+
+                <if test="acpInvoiceDateTo != null">
+                    and aih.invoice_date &lt;= to_date(#{acpInvoiceDateTo},'yyyy-mm-dd hh24:mi:ss')
+                </if>
+                <if test="acpPostedDateFrom != null">
+                    and aih.posted_date &gt;= to_date(#{acpPostedDateFrom},'yyyy-mm-dd hh24:mi:ss')
+                </if>
+
+                <if test="acpPostedDateTo != null">
+                    and aih.posted_date &lt;= to_date(#{acpPostedDateTo},'yyyy-mm-dd hh24:mi:ss')
+                </if>
+
+
+                <if test="invoiceCode !=null">
+                    and (aih.invoice_code like '%${invoiceCode}%' )
+                </if>
+
+                <if test="invoiceNumber !=null">
+                    and (aih.invoice_number like '%${invoiceNumber}%')
+                </if>
+
+                <if test="companyId !=null">
+                    and aih.COMPANY_ID = #{companyId}
+                </if>
+        ) TAB
+        <where>
+        <if test="contractName !=null">
+            and (TAB.contract_name like '%${contractName}%')
+        </if>
+
+            <if test="contractNumber !=null">
+                and (TAB.contract_number like '%${contractNumber}%')
+            </if>
+    </where>
+
+    </select>
+
+
+</mapper>

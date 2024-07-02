@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="con_contract_delay_date_link"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_delay_date.lview"/>
+        <a:link id="project_rent_delay_link"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_rent_date_detail.lview"/>
+
+        <script><![CDATA[
+
+        //延后调整 按钮
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var flag = 'Y';
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            console.log(ds_id);
+            var records = $(ds_id).getSelected();
+            var contractRecord = [];
+            if (records.length == 0) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                $L.showInfoMessage("提示", "请至少选择一条数据进行财务起租");
+            } else {
+                for (var i = 0; i < records.length; i++) {
+                    debugger;
+                    var lease_account_date_delay = records[i].data.lease_account_date_delay;
+                   /* if(lease_account_date_delay == null || lease_account_date_delay == '' || lease_account_date_delay == undefined){
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        $L.showInfoMessage("提示", "请输入延后调整核算日!");
+                        return;
+                    }*/
+                    var quatation_id = records[i].data.quotation_id;
+                    var lease_account_date = records[i].data.lease_account_date;
+                    //格式化日期
+                    var currenct_date = Leaf.formatDate(new Date());
+                    var lease_account_date_date =Leaf.formatDate(lease_account_date);
+                    var lease_account_date_delay =Leaf.formatDate(lease_account_date_delay);
+
+                    var delay_month = lease_account_date_delay.split('-');
+                    var lease_month = lease_account_date_date.split('-');
+                    var current_month = currenct_date.split('-');
+
+                    if(currenct_date > lease_account_date_date ){
+                        //判断年份是否大于当年 ， 若年份超过 ， 则 不符合要求
+                        if(current_month[0] > lease_month[0] ){
+                            flag = 'N';
+                        }else if( current_month[1] > lease_month[1] ){
+                           flag = 'N';
+                        }
+                    }
+                 /*   if(lease_account_date_delay < currenct_date){
+                        $L.showInfoMessage("提示","延后调整核算日不能小于当天!");
+                        return;
+                    }*/
+
+                    contractRecord.push(records[i].data);
+                }
+                if(flag == 'N'){
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    $L.showInfoMessage("提示","当前时间已超过财务起租核算日的月底!");
+                    return ;
+                }else{
+                    debugger;
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    var quotation_id = records[0].get('quotation_id');
+                    var project_id = records[0].get('project_id');
+                    var lease_accont_date = records[0].get('lease_accont_date');
+
+                    var win = new Leaf.Window({
+                        id: 'con_contract_delay_date_winid',
+                        url: $('con_contract_delay_date_link').getUrl(),
+                        params: {
+                            winId: 'con_contract_delay_date_winid',
+                            lease_accont_date : lease_accont_date
+
+                        },
+                        title: '起租核算日延后调整弹窗',
+                        width: 600,
+                        height: 200,
+                        draggable: true
+                    });
+                    win.on('close', function () {
+                        $(ds_id).query();
+                    });
+
+                  /*  Leaf.request({
+                        url: "${/request/@context_path}/contract/incept/delaylease/finance",
+                        async: false,
+                        para: contractRecord,
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.SideBar.show({
+                                msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                duration: 2000
+                            });
+                        },
+                        error: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });*/
+                }
+
+            }
+
+
+        };
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            var link_function = 'delay_query_open_detail';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'delay_detail') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\',\'' + record.get('project_id') + '\',\'' + record.get('quotation_id')  + '\',\'' + record.get('contract_id')  + '\');">延后明细</a>';
+            }
+        };
+
+        function delay_query_open_detail(record_id, ds_id ,project_id , quotation_id , contract_id){
+            debugger;
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '延后调整明细';
+            param['function_code'] = 'CONT301F331';
+            param['winid'] = 'project_rent_delay_id';
+            param['function_usage'] = 'QUERY';
+            param['maintain_type'] = 'READONLY';
+            param['screen_width'] = '600';
+            param['side'] = 'right';
+            console.log(param);
+            hls_doc_get_layout_code(param, 'project_rent_delay_link', ds_id, 'CONT301F33');
+
+        }
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.rw.mapper.HlsCusRiskWarningMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.rw.dto.HlsCusRiskWarning">
+        <result column="risk_warning_id" property="riskWarningId" jdbcType="DECIMAL"/>
+        <result column="risk_warning_number" property="riskWarningNumber" jdbcType="VARCHAR"/>
+        <result column="company_id" property="companyId" jdbcType="DECIMAL"/>
+        <result column="document_type" property="documentType" jdbcType="VARCHAR"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="business_type" property="businessType" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL"/>
+        <result column="creation_user_id" property="creationUserId" jdbcType="DECIMAL"/>
+        <result column="is_release_warning" property="isReleaseWarning" jdbcType="VARCHAR"/>
+        <result column="is_presence_warning" property="isPresenceWarning" jdbcType="VARCHAR"/>
+        <result column="data_class" property="dataClass" jdbcType="VARCHAR"/>
+        <result column="apply_date" property="applyDate" jdbcType="DATE"/>
+        <result column="ref_risk_warning_id" property="refRiskWarningId" jdbcType="DECIMAL"/>
+        <result column="change_apply_desc" property="changeApplyDesc" jdbcType="VARCHAR"/>
+
+        <result column="risk_warning_info_id" property="riskWarningInfoId" jdbcType="DECIMAL"/>
+        <result column="five_classification_id" property="fiveClassificationId" jdbcType="DECIMAL"/>
+
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="bp_category" property="bpCategory" jdbcType="VARCHAR"/>
+        <result column="bp_category_description" property="bpCategoryDescription" jdbcType="VARCHAR"/>
+        <result column="bp_type" property="bpType" jdbcType="VARCHAR"/>
+        <result column="bp_type_description" property="bpTypeDescription" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="bp_class" property="bpClass" jdbcType="VARCHAR"/>
+        <result column="associated_division" property="associatedDivision" jdbcType="VARCHAR"/>
+
+        <result column="risk_level" property="riskLevel" jdbcType="VARCHAR"/>
+        <result column="info_collection_method" property="infoCollectionMethod" jdbcType="VARCHAR"/>
+        <result column="risk_info_source" property="riskInfoSource" jdbcType="VARCHAR"/>
+        <result column="creation_name" property="creationName" jdbcType="VARCHAR"/>
+        <result column="RISK_TYPE" property="riskType" jdbcType="VARCHAR" />
+        <result column="TOTAL_NUM" property="totalNum" jdbcType="VARCHAR" />
+        <result column="RISK_INFO" property="riskInfo" jdbcType="VARCHAR" />
+        <result column="EXCEPTION_INFO" property="exceptionInfo" jdbcType="VARCHAR" />
+        <result column="RISK_RE_ME" property="riskReMe" jdbcType="VARCHAR" />
+        <result column="status_n" property="statusN"/>
+        <result column="created_by_n" property="createdByN"/>
+        <result column="bp_id_n" property="bpIdN"/>
+        <result column="risk_type_n" property="riskTypeN"/>
+        <result column="process_instance_id" property="processInstanceId"/>
+        <result column="COMPANY_NAME" property="companyName" jdbcType="VARCHAR" />
+        <result column="SUBMIT_STATUS" property="submitStatus" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+
+    <select id="queryHlsCusRiskWarningByDocumentId" parameterType="com.hand.hls.rw.dto.HlsCusRiskWarning" resultMap="BaseResultMap">
+        select
+        tii.*
+        from plm_risk_warning tii
+        <where>
+            tii.bp_id = #{bpId}
+            and to_char(tii.apply_date, 'YYYY-MM-DD') = to_char(sysdate, 'YYYY-MM-DD')
+        </where>
+
+    </select>
+    
+
+
+
+    <select id="queryAllNew" resultMap="BaseResultMap" >
+        select t.*
+        from
+        (SELECT
+        b.created_by as bp_created_by,
+        p.*, (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb. CODE = 'LON.CONTRACT_WITHDRAW_STATUS'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE = p. STATUS
+        ) status_n,
+        (select b.bp_name from hls_bp_master b where b.bp_id = p.bp_id)bp_id_n,
+        (select s.description from sys_user s where s.user_id = p.created_by)created_by_n,
+        (SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb. CODE = 'RISK WARNING TYPE'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE = p.risk_type)risk_type_n
+        FROM
+        plm_risk_warning p,hls_bp_master b
+        where p.bp_id = b.bp_id)t
+        <where>
+            1=1
+            <if test="createdBy != null">
+                and (t.bp_created_by = #{createdBy}
+                or EXISTS (SELECT
+                1
+                FROM
+                sys_user U
+                LEFT JOIN SYS_USER_ALLOCATION UR ON UR.USER_ID = U.USER_ID
+                LEFT JOIN SYS_ROLE_B R ON R.ROLE_ID = UR.ROLE_ID
+                WHERE
+                R.ROLE_CODE = 'ADMIN' and U.USER_ID = #{createdBy}))
+            </if>
+            <if test="riskWarningId != null">
+                and  t.risk_warning_id = #{riskWarningId}
+            </if>
+            <if test="riskWarningNumber != null">
+                and  t.risk_warning_number = #{riskWarningNumber}
+            </if>
+            <if test="bpIdN != null">
+                and t.bp_id_n  like concat('%',concat(#{bpIdN},'%'))
+            </if>
+            <if test="guarantor != null">
+                and t.bp_id  in (select ppb.bp_id from prj_project_bp ppb where ppb.project_id = #{projectId} and ppb.bp_type = 'WARRANTOR')
+            </if>
+            <if test="applyDateFrom!=null">
+                and t.apply_date &gt;= TO_DATE(#{applyDateFrom},'YYYY/MM/DD')
+            </if>
+            <if test="applyDateTo!=null">
+                and t.apply_date &lt;= TO_DATE(#{applyDateTo},'YYYY/MM/DD')
+            </if>
+           order by t.risk_warning_id desc
+        </where>
+
+    </select>
+
+    <select id="selectRiskWarningALL" resultMap="BaseResultMap" parameterType="com.hand.hls.rw.dto.HlsCusRiskWarning">
+        select rw.* from plm_risk_warning rw  where rw.risk_warning_id = #{riskWarningId}
+    </select>
+
+    <select id="queryAll" resultMap="BaseResultMap" parameterType="com.hand.hls.rw.dto.HlsCusRiskWarning">
+        SELECT
+        rw.risk_warning_id,
+        rw.risk_warning_number,
+        rw.company_id,
+        rw.document_type,
+        rw.document_category,
+        rw.business_type,
+        rw.creation_user_id,
+        rw.is_release_warning,
+        rw.is_presence_warning,
+        rw.status,
+        rw.data_class,
+        rw.apply_date,
+        rw.ref_risk_warning_id,
+        rw.change_apply_desc,
+        (select su.description from sys_user su where su.user_id=rw.created_by) creation_name,
+        rwi.risk_warning_info_id,
+        hbmrr.bp_id,
+        hbmrr.bp_name,
+        hbmrr.bp_code,
+        hbmrr.bp_category,
+        hbmrr.bp_category_description,
+        hbmrr.bp_type,
+        hbmrr.bp_type_description,
+        hbmrr.bp_class,
+        hbmrr.associated_division
+        FROM plm_risk_warning rw
+        LEFT JOIN plm_risk_warning_info rwi ON rw.risk_warning_id = rwi.risk_warning_id
+        LEFT JOIN (
+        SELECT
+        hbm.bp_id,
+        hbm.bp_name,
+        hbm.bp_code,
+        hbm.bp_class,
+        hbm.associated_division,
+        hbmrr.bp_category,
+        hbmrr.bp_type,
+        hbc.description AS bp_category_description,
+        hbt.description AS bp_type_description
+        FROM
+        hls_bp_master hbm
+        LEFT JOIN (
+        SELECT
+            mr.bp_id,
+            mr.bp_category,
+            mr.bp_type
+        FROM
+            (
+                SELECT
+                    <!-- ROW_NUMBER() OVER(PARTITION BY hbmr.bp_id ORDER BY hbmr.CREATION_DATE ) RN,-->
+                    IF (
+                        @p = hbmr.bp_id,
+                        @rank := @rank + 1 ,@rank := 1
+                    ) AS RN,
+                    @p := hbmr.bp_id as rank1,
+                    hbmr.bp_id,
+                    hbmr.bp_category,
+                    hbmr.bp_type
+                FROM
+                    hls_bp_master_role hbmr,(SELECT @p := NULL ,@rank := 0) r) mr
+        WHERE
+            RN = 1
+        ) hbmrr ON hbm.bp_id = hbmrr.bp_id
+        LEFT JOIN hls_bp_category hbc ON hbmrr.bp_category = hbc.bp_category
+        LEFT JOIN hls_bp_type hbt ON hbmrr.bp_type = hbt.bp_type
+        ) hbmrr ON rw.bp_id = hbmrr.bp_id
+        <where>
+            hbmrr.bp_type = rw.bp_type
+            <if test="riskWarningId!=null and riskWarningId!=''">
+                AND rw.risk_warning_id = #{riskWarningId}
+            </if>
+            <if test="riskWarningId==null and dataClass==null">
+                AND rw.data_class='NORMAL'
+            </if>
+            <if test="isReleaseWarning!=null and isReleaseWarning!=''">
+                AND rw.is_release_warning = #{isReleaseWarning}
+            </if>
+            <if test="isPresenceWarning!=null and isPresenceWarning!=''">
+                AND rw.is_presence_warning = #{isPresenceWarning}
+            </if>
+            <if test="companyId!=null and companyId!=''">
+                AND rw.company_id = #{companyId}
+            </if>
+            <if test="status!=null and status!=''">
+                AND rw.status = #{status}
+            </if>
+              <if test="dataClass!=null">
+                AND rw.data_class=#{dataClass}
+            </if>
+            <if test="refRiskWarningId!=null and refRiskWarningId!=''">
+                AND rw.ref_risk_warning_id = #{refRiskWarningId}
+            </if>
+            <if test="changeIq!=null and changeIq!=''">
+                AND rwi.change_iq = #{changeIq}
+            </if>
+        </where>
+    </select>
+
+    <select id="homeThirdQuery" parameterType="com.hand.hls.rw.dto.HlsCusRiskWarning" resultMap="BaseResultMap">
+        SELECT
+        DISTINCT
+      rw.CREATION_DATE AS warningStartDateS,
+       AHP.END_TIME_  AS warningEndDateS,
+        rw.risk_warning_id,
+        rw.status,
+        rw.is_release_warning,
+        rw.is_presence_warning,
+        rwi.risk_level,
+        rwi.info_collection_method,
+        hbmrr.bp_code,
+        hbmrr.bp_name,
+        hbmrr.bp_type_description,
+        rw.creation_date
+        FROM
+        plm_risk_warning rw
+        LEFT JOIN plm_risk_warning_info rwi ON rw.risk_warning_id = rwi.risk_warning_id
+        LEFT JOIN (
+        SELECT
+        hbm.bp_id,
+        hbm.bp_name,
+        hbm.bp_code,
+        hbm.associated_division,
+        hbmrr.bp_category,
+        hbmrr.bp_type,
+        hbc.description AS bp_category_description,
+        hbt.description AS bp_type_description
+        FROM
+        hls_bp_master hbm
+        LEFT JOIN (
+        SELECT
+        hbmr.bp_id,
+        hbmr.bp_category,
+        hbmr.bp_type,
+        min(hbmr.CREATION_DATE)
+        FROM
+        hls_bp_master_role hbmr
+        GROUP BY
+        hbmr.bp_id,
+        hbmr.bp_category,
+        hbmr.bp_type
+        ) hbmrr ON hbm.bp_id = hbmrr.bp_id
+        LEFT JOIN hls_bp_category hbc ON hbmrr.bp_category = hbc.bp_category
+        LEFT JOIN hls_bp_type hbt ON hbmrr.bp_type = hbt.bp_type
+        /* WHERE
+        hbmrr.bp_category IN (
+        'TENANT',
+        'MORTGAGOR',
+        'PLEDGOR',
+        'WARRANTOR',
+        'VENDER',
+        'SELLER',
+        'BUYER',
+        'EVALUATOR',
+        'OTHER_AGENCY',
+        'TENANT_SEC'
+        )*/
+        ) hbmrr ON rw.bp_id = hbmrr.bp_id
+        LEFT JOIN  act_hi_procinst AHP
+        ON rw.RISK_WARNING_ID= ahp.BUSINESS_KEY_
+        and (AHP.PROC_DEF_ID_ like 'RW_RISK_WARNING_WFL%' or
+        AHP.PROC_DEF_ID_ like 'RW_RISK_WARNING_CHANGE_RELEASE_WFL%')
+        <where>
+            rw.company_id = #{companyId}
+            AND hbmrr.bp_type = rw.bp_type
+            AND rwi.change_iq = 'NORMAL'
+            AND rw.data_class='NORMAL'
+            <if test="riskInfoSource!=null and riskInfoSource!=''">
+                AND rw.risk_info_source like concat(concat('%',#{riskInfoSource}),'%')
+            </if>
+            <if test="bpName!=null and bpName!=''">
+                AND (hbmrr.bp_name like concat(concat('%',#{bpName}),'%')
+                OR hbmrr.bp_code like concat(concat('%',#{bpName}),'%'))
+            </if>
+            <if test="bpCode!=null and bpCode!=''">
+                AND hbmrr.bp_code like concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="status!=null and status!=''">
+                AND rw.status = #{status}
+            </if>
+            <if test="riskLevelArray!=null">
+                AND rwi.risk_level IN
+                <foreach collection="riskLevelArray" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="isReleaseWarnings!=null">
+                AND rw.is_release_warning IN
+                <foreach collection="isReleaseWarnings" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="statuses!=null">
+                AND rw.status IN
+                <foreach collection="statuses" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="warningStartDateS != null">
+                AND to_char(rw.CREATION_DATE, 'YYYY-MM-DD')  &gt;= #{warningStartDateS,jdbcType=VARCHAR}
+            </if>
+            <if test ="warningStartDateE != null">
+                AND to_char(rw.CREATION_DATE,'YYYY-MM-DD') &lt;= #{warningStartDateE,jdbcType=VARCHAR}
+            </if>
+            <if test="warningEndDateS != null">
+                AND to_char(AHP.END_TIME_ ,'YYYY-MM-DD')&gt;= #{warningEndDateS,jdbcType=VARCHAR}
+            </if>
+            <if test="warningEndDateE != null">
+                AND to_char(AHP.END_TIME_ ,'YYYY-MM-DD')&lt;= #{warningEndDateE,jdbcType=VARCHAR}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectIsReleasing" parameterType="com.hand.hls.rw.dto.HlsCusRiskWarning" resultMap="BaseResultMap">
+        SELECT
+        rw.*
+        FROM
+        plm_risk_warning rw
+        WHERE
+        rw.company_id = #{companyId}
+        AND bp_id = #{bpId}
+        AND rw.is_release_warning = 'N'
+        and rw.data_class='NORMAL'
+    </select>
+
+    <resultMap id="rwHomeCountMap" type="java.util.Map">
+        <result column="status" property="status"/>
+        <result column="riskWarningCount" property="riskWarningCount"/>
+        <result column="rwCountPercent" property="rwCountPercent"/>
+        <result column="rwSumCount" property="rwSumCount"/>
+        <result column="currentMonthAppend" property="currentMonthAppend"/>
+    </resultMap>
+
+    <select id="selectHomeChart" resultMap="rwHomeCountMap" parameterType="com.hand.hls.rw.dto.HlsCusRiskWarning">
+        select
+nvl(rw.status,'NEW') as status,
+count(rw.risk_warning_id) as riskWarningCount,
+count(rw.risk_warning_id)/(select count(risk_warning_id) from plm_risk_warning rrw where rrw.company_id=#{companyId} AND rrw.data_class='NORMAL')*100 as rwCountPercent,
+(select count(risk_warning_id) from plm_risk_warning rrw where rrw.company_id=#{companyId} AND rrw.data_class='NORMAL') as rwSumCount,
+(select count(risk_warning_id) from  plm_risk_warning rrw  where rrw.creation_date &gt; (CURDATE() - DAY (CURDATE()) + 1) and rrw.company_id=#{companyId} AND rrw.data_class='NORMAL') as currentMonthAppend
+ from plm_risk_warning rw WHERE rw.company_id = #{companyId} AND rw.data_class='NORMAL' group by rw.status
+    </select>
+
+    <update id="updateRiskWarningStatus" parameterType="com.hand.hls.rw.dto.HlsCusRiskWarning">
+        update plm_risk_warning rw
+         set rw.status = #{status},
+         rw.SUBMIT_STATUS = #{submitStatus}
+         where rw.risk_warning_id = #{riskWarningId}
+    </update>
+
+    <update id="updateRiskWarningStatusByRiskWarningNumber" parameterType="com.hand.hls.rw.dto.HlsCusRiskWarning">
+        update plm_risk_warning rw
+         set rw.status = #{status},
+         rw.SUBMIT_STATUS = #{submitStatus}
+         where rw.risk_warning_number = #{riskWarningNumber}
+    </update>
+
+</mapper>

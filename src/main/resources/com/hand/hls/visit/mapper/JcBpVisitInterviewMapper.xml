@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.visit.mapper.JcBpVisitInterviewMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.visit.dto.JcBpVisitInterview">
+        <result column="visit_id" property="visitId" jdbcType="DECIMAL" />
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL" />
+        <result column="visit_name" property="visitName" jdbcType="VARCHAR" />
+        <result column="visit_person" property="visitPerson" jdbcType="VARCHAR" />
+        <result column="visit_date" property="visitDate" jdbcType="DATE" />
+        <result column="visit_place" property="visitPlace" jdbcType="VARCHAR" />
+        <result column="note" property="note" jdbcType="VARCHAR" />
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR" />
+        <result column="created_by_n" property="createdByN" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryJcBpVisitInterview" parameterType="com.hand.hls.visit.dto.JcBpVisitInterview" resultMap="BaseResultMap">
+        SELECT
+        t.visit_id,
+        t.bp_id,
+        t.visit_person,
+        (
+        SELECT
+        b.bp_name
+        FROM
+        hls_bp_master b
+        WHERE
+        b.bp_id = t.bp_id
+        ) bp_name,
+        t.visit_name,
+        t.visit_place,
+        t.visit_date,
+        t.note,
+        (
+        SELECT
+        f. NAME
+        FROM
+        sys_user_allocation s,
+        fnd_employee_assigns fa,
+        fnd_employee f
+        WHERE
+        fa.employee_id = f.employee_id
+        AND s.user_id = t.created_by
+        AND fa.EMPLOYEE_ASSIGN_ID = s.EMPLOYEE_ASSIGN_ID
+        ) created_by_n
+        FROM
+        jc_bp_visit_interview t
+        <where>
+            t.bp_id =#{bpId}
+        </where>
+    </select>
+</mapper>

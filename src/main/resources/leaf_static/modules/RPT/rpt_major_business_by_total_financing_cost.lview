@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: why
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+
+        <script><![CDATA[
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            ds.queryurl=ds.queryurl+'&wflRuleControlFlag=Y';
+        }
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'open_contract_detail_win';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'contract_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        function open_contract_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '合同明细维护';
+            param['function_code'] = 'CONT301F1';
+            param['winid'] = 'con_contract_detail_winid';
+            if (('${/parameter/@function_code}' == 'CONT301F15') || (param['contract_status'] !== 'NEW' && param['contract_status'] !== 'APPROVED_RETURN' && param['contract_status'] !== 'REJECTED')) {
+                param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc', 'quotation_calc'];
+                param['maintain_type'] = 'READONLY';
+                param['function_usage'] = 'QUERY';
+                param['function_code'] = 'CONT301F1';
+            } else {
+                param['maintain_type'] = 'MODIFY';
+                param['function_usage'] = 'MODIFY';
+                param['function_code'] = 'CONT301F1';
+            }
+            hls_doc_get_layout_code(param, 'con_contract_detail_id', ds_id, 'RPT221');
+        }
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

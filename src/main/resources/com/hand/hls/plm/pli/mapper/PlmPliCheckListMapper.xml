@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.plm.pli.mapper.PlmPliCheckListMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.plm.pli.dto.PlmPliCheckList">
+        <result column="LIST_ID" property="listId" jdbcType="DECIMAL" />
+        <result column="LIST_TYPE" property="listType" jdbcType="VARCHAR" />
+        <result column="LIST_CATEGORY" property="listCategory" jdbcType="VARCHAR" />
+        <result column="MATTER" property="matter" jdbcType="VARCHAR" />
+        <result column="VALUE_KEY" property="valueKey" jdbcType="VARCHAR" />
+        <result column="ENABLE_FLAG" property="enableFlag" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+
+        <result column="list_category_n" property="listCategoryN" jdbcType="VARCHAR" />
+        <result column="list_type_n" property="listTypeN" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+
+    <select id="selectPlmPliCheckListQuery" parameterType="com.hand.hls.plm.pli.dto.PlmPliCheckList" resultMap="BaseResultMap">
+     select t.*,
+      (select v.meaning
+        from sys_code_value_b_v v
+        where v.code = 'PLM.ITEM_TYPE'
+        and v.code_value = t.list_type) as list_type_n,
+      (select v.meaning
+        from sys_code_value_b_v v
+        where v.code = 'PLI.LIST_CATEGORY'
+        and v.code_value = t.list_category) as list_category_n
+      from PLM_PLI_CHECK_LIST t
+        WHERE 1=1
+        <if test="listType!=null">
+            and t.list_type = #{listType}
+        </if>
+    </select>
+</mapper>

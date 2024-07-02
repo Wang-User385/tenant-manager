@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaorong
+    $Date: 2019-4-16 上午11:48:56
+    $Revision: 2.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
+
+            var records = $(ds_id).getSelected();
+            var saveData = [];
+
+            for (var i = 0; i < records.length; i++) {
+                records[i].set('funding_plan_id','${/parameter/@funding_plan_id}');
+                saveData.push(records[i].data);
+            }
+
+                new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: '${/request/@context_path}/hls/funding/plan/select/plan',
+                        para: saveData,
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+
+
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }, function cancel() {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                }, 200, 100);
+
+
+
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaorong
+    $Date: 2019-4-16 上午11:48:56
+    $Revision: 2.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+        //页面加载时调用
+     /*   $L.onReady(function () {
+            if ('CREATE' !== '${/parameter/@function_usage}') {
+                var bp_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+                $(bp_ds).setQueryParameter('bp_id', '${/parameter/@bp_id}');
+                $(bp_ds).query();
+            }
+        });*/
+        //保存前调用获取融资机构编码
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var document_category = '${/parameter/@document_category}';
+            var document_type = '${/parameter/@document_type}';
+
+            var business_type = '${/parameter/@business_type}';
+            var employee_code = record.get('employee_code');
+            if (!record.get('bp_category')) {
+                var bp_category = '${/parameter/@bp_category}';
+                record.set('bp_category', bp_category);
+            }
+            //设置权限字符串
+            //window['${/parameter/@layout_code}_set_authority_rule_string'](document_type, business_type, division, employee_code);
+            if (record.get('bp_code')) {
+                return true;
+            }
+            Leaf.request({
+                url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type + "&employeeCode=" + employee_code,
+                success: function (res) {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+                    $(ds_id).getCurrentRecord().set('bp_code', res.result.record[0]);
+                    check_flag = true;
+                },
+                error: function (res) {
+                    record.set('bp_code', res.result.record[0]);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (res) {
+                    record.set('bp_code', res.result.record[0]);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true,
+                scope: this
+            });
+            return check_flag;
+        };
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+         /*   var bp_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            $(bp_ds).setQueryParameter('bp_id', $(bp_ds).getAt(0).get("bp_id"));
+            $(bp_ds).query();*/
+            var account_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_bank_account');
+            $(account_ds).query();
+            var address_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_address');
+            $(address_ds).query();
+          /*  var contact_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_contact_info');
+            $(contact_ds).query();*/
+            var att_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'bp_master_attachment');
+            $(att_ds).query();
+
+        };
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var role_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_role');
+            if(ds.id === ds_id){
+                if (name == 'bp_type') {
+                    $(role_ds_id).getAt(0).set('bp_type',value);
+                }
+            }
+        };
+
+        //附件上传超链接
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'attach_link' && record.isNew) {
+                return null;
+            } else if (name == 'attach_link' && !record.isNew) {
+                return '<a href="javascript:fin001f1_open_attach(\'' + record.get('bp_attachment_id') + '\')">上传</a>';
+            }
+            return value;
+        };
+
+        //附件
+        var win;
+
+        function fin001f1_open_attach(bp_attachment_id) {
+            win = new Leaf.Window({
+                id: 'fin001f1_open_attachment_winid',
+                url: '${/request/@context_path}/uploadFile.lview?projectAttachmentId=' + bp_attachment_id,
+                params: {
+                    header_id: bp_attachment_id,
+                    table_name: 'bp_master_attachment',
+                    winid: 'fin001f1_open_attachment_winid'
+                },
+                title: '文件上传',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'bp_master_attachment');
+                $(ds_id).query();
+            });
+        }
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_address')) {
+                $(ds.id).getCurrentRecord().set('country_id', 46);
+                $(ds.id).getCurrentRecord().set('country_id_n', '中国');
+            } else if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'bp_master_attachment')) {
+                $(ds.id).getCurrentRecord().set('bp_attachment_category', 'LON_CONTRACT');
+            } else if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_bank_account')) {
+                $(ds.id).getCurrentRecord().set('company_id', '${/session/@companyId}');
+            } else if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_visit_record')) {
+                $(ds.id).getCurrentRecord().set('company_id', '${/session/@companyId}');
+            }
+
+        };
+
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            if ('${/parameter/@function_code}' == 'FIN001F1'  && '${/parameter/@function_usage}' == 'CREATE') {
+                var head_record = ds.getAt(0);
+
+
+                head_record.set('created_by','${/session/@user_id}');
+                head_record.set('create_n','${/session/@employeeName}');
+
+                head_record.set('creation_date',new Date());
+                head_record.set('bp_class','ORG');
+                head_record.set('bp_category','HLS_BP_CREDIT');
+                head_record.set('bp_type','HLS_BP_CREDIT');
+                head_record.set('data_class','NORMAL');
+            }
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

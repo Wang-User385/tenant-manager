@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.eas.mapper.HlsCusEasSourceRecordMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.eas.dto.HlsCusEasSourceRecord">
+        <result column="record_id" property="recordId" jdbcType="DECIMAL" />
+        <result column="source_id" property="sourceId" jdbcType="DECIMAL" />
+        <result column="source_table" property="sourceTable" jdbcType="VARCHAR" />
+        <result column="source_type" property="sourceType" jdbcType="VARCHAR" />
+        <result column="record_date" property="recordDate" jdbcType="DATE" />
+        <result column="code" property="code" jdbcType="DECIMAL" />
+        <result column="message" property="message" jdbcType="VARCHAR" />
+        <result column="time" property="time" jdbcType="VARCHAR" />
+
+        <result column="source_number" property="sourceNumber" jdbcType="VARCHAR" />
+        <result column="source_name" property="sourceName" jdbcType="VARCHAR" />
+        <result column="type_number" property="typeNumber" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="eas_code" property="easCode" jdbcType="VARCHAR" />
+        <result column="eas_bp_name" property="easBpName" jdbcType="VARCHAR" />
+
+
+        <result column="if_from_contract" property="ifFromContract" jdbcType="VARCHAR" />
+        <result column="bp_bank_account_name" property="bpBankAccountName" jdbcType="VARCHAR" />
+        <result column="eas_pay_code" property="easPayCode" jdbcType="VARCHAR" />
+        <result column="eas_pay_bp_code" property="easPayBpCode" jdbcType="VARCHAR" />
+        <result column="eas_bp_code" property="easBpCode" jdbcType="VARCHAR" />
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR" />
+        <result column="payment_req_id" property="paymentReqId" jdbcType="DECIMAL" />
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL" />
+        <result column="eas_bp_count" property="easBpCount" jdbcType="DECIMAL" />
+
+    </resultMap>
+
+
+
+    <select id="selectEasType01" parameterType="com.hand.hls.eas.dto.HlsCusEasSourceRecord" resultMap="BaseResultMap">
+         select t1.source_number,
+       t1.source_name,
+       t1.type_number,
+       t1.source_table,
+       (select cc.eas_bp_code
+          from con_contract cc
+         where cc.eas_bp_name = t1.source_name and cc.eas_bp_code is not null and rownum=1) eas_code,
+        #{contractId} as source_id
+  from (select 'HX' || replace( wm_concat(v.bp_id) , ',', '/') as source_number,
+               replace(wm_concat(v.bp_name), ',', '/') as source_name,
+               '01' as type_number,
+               'CON_CONTRACT' as source_table
+          from (select h.bp_id, h.bp_name
+                  from con_contract cc, hls_bp_master h, prj_project_bp bp
+                 where cc.project_id = bp.project_id
+                   and bp.bp_categroy = 'CON_CONTRACT'
+                   and h.bp_id = bp.bp_id
+                   and bp.bp_type in ('TENANT', 'TENANT_SEC')
+                   and cc.contract_id = #{contractId}
+                 order by h.bp_id) v) t1
+
+    </select>
+
+
+    <select id="selectEasType04" parameterType="com.hand.hls.eas.dto.HlsCusEasSourceRecord" resultMap="BaseResultMap">
+        select nvl(h.eas_bp_code,'HX'||h.bp_code) as source_number, h.bp_name as source_name, '04' as type_number, h.bp_name as description ,h.bp_id as source_id,'HLS_BP_MASTER' as source_table
+  from con_contract cc, hls_bp_master h, prj_project_bp bp
+ where cc.project_id = bp.project_id
+   and bp.bp_categroy = 'CON_CONTRACT'
+   and h.bp_id = bp.bp_id
+   and bp.bp_type ='VENDER'  and
+   exists (select 1 from hls_bp_master_role hr where hr.bp_id=h.bp_id and hr.enabled_flag='Y')
+  and cc.contract_id=#{contractId}
+  and not exists (select 1 from  eas_source_record e where e.source_id=h.bp_id and e.source_table='HLS_BP_MASTER' and e.source_type='04' and e.code in ('200', '101'))
+    </select>
+
+
+    <select id="selectEasType05" parameterType="com.hand.hls.eas.dto.HlsCusEasSourceRecord" resultMap="BaseResultMap">
+       select cc.eas_code as source_number,  cc.contract_number as source_name, '05' as type_number, cc.contract_name as description ,cc.contract_id as source_id,'CON_CONTRACT' as source_table,cc.eas_code
+  from con_contract cc
+ where
+ cc.contract_id=#{contractId}
+ and not exists
+ (select 1 from  eas_source_record e where e.source_id=cc.contract_id and e.source_table='CON_CONTRACT' and e.source_type='05' and e.code in('200','101'))
+    </select>
+
+
+    <select id="selectEasTypebm" parameterType="com.hand.hls.eas.dto.HlsCusEasSourceRecord" resultMap="BaseResultMap">
+        select  nvl(fo.eas_code,'HX'||fo.unit_id) as source_number,  fo.unit_name as source_name,  'bm' as type_number, fo.unit_name as description,cc.unit_id as source_id,'FND_ORG_UNIT' as source_table
+    from con_contract cc,fnd_org_unit fo
+    where
+    cc.unit_id=fo.unit_id
+      and  cc.contract_id=#{contractId}
+      and not exists
+      (select 1 from  eas_source_record e where e.source_id=cc.unit_id and e.source_table='FND_ORG_UNIT' and e.source_type='bm' and e.code in('200','100','101'))
+    </select>
+
+
+    <select id="selectEasType11" parameterType="com.hand.hls.eas.dto.HlsCusEasSourceRecord" resultMap="BaseResultMap">
+        select fc.ws_com_code as source_number,
+       fc.fin_company_name as source_name,
+       '11' as type_number,
+       fc.fin_company_name as description,
+       fc.company_id as source_id,
+       'FND_COMPANY' as source_table
+
+  from con_contract cc, fnd_company fc
+ where cc.company_id = fc.company_id
+   and cc.contract_id = #{contractId}
+   and not exists (select 1
+          from eas_source_record e
+         where e.source_id = fc.company_id
+           and e.source_table = 'FND_COMPANY'
+           and e.source_type = '11'
+           and e.code in ('200', '101'))
+union all
+select fc.ws_com_code as source_number,
+       fc.fin_company_name as source_name,
+       '11' as type_number,
+       fc.fin_company_name as description,
+       fc.company_id as source_id,
+       'FND_COMPANY' as source_table
+
+  from con_contract cc, fnd_company fc
+ where cc.company_spv = fc.company_id
+   and cc.contract_id = #{contractId}
+   and not exists (select 1
+          from eas_source_record e
+         where e.source_id = fc.company_id
+           and e.source_table = 'FND_COMPANY'
+           and e.source_type = '11'
+           and e.code in ('200', '101'))
+union all
+select
+distinct
+nvl(h.eas_bp_code,'HX'||h.bp_code) as source_number,
+       h.bp_name as source_name,
+       '11' as type_number,
+       h.bp_name as description,
+       h.bp_id as source_id,
+       'HLS_BP_MASTER' as source_table
+  from con_contract cc, hls_bp_master h, prj_project_bp bp
+ where cc.project_id = bp.project_id
+   and bp.bp_categroy = 'CON_CONTRACT'
+   and h.bp_id = bp.bp_id
+   and cc.contract_id = #{contractId}
+   and not exists (select 1
+          from eas_source_record e
+         where e.source_id = h.bp_id
+           and e.source_table = 'HLS_BP_MASTER'
+           and e.source_type = '11'
+           and e.code in ('200', '101'))
+    </select>
+
+
+
+    <select id="selectEasTypePay04" parameterType="com.hand.hls.eas.dto.HlsCusEasSourceRecord" resultMap="BaseResultMap">
+     select nvl(lnn.if_from_contract, 'N') if_from_contract,
+       lnn.bp_bank_account_name,
+       lnn.bp_id,
+       (select t1.eas_code
+          from csh_payment_req_ln t1
+         where t1.bp_bank_account_name = lnn.bp_bank_account_name
+           and lnn.eas_code is not null
+           and rownum=1) eas_pay_code,
+       (select h.eas_bp_code
+          from hls_bp_master h
+         where h.bp_name = lnn.bp_bank_account_name
+           and h.eas_bp_code is not null
+           and rownum=1) eas_pay_bp_code,
+       (select h.bp_id
+          from hls_bp_master h
+         where h.bp_name = lnn.bp_bank_account_name
+           and h.eas_bp_code is not null
+           and rownum=1) eas_pay_bp_id,
+       (select h.eas_bp_code from hls_bp_master h where h.bp_id = lnn.bp_id) eas_bp_code,
+       (select h.bp_name from hls_bp_master h where h.bp_id = lnn.bp_id) bp_name,
+       (select count(*) from eas_source_record eas where eas.source_table='HLS_BP_MASTER' and eas.source_id=lnn.bp_id and eas.source_type='04' and eas.code in ('200', '101'))eas_bp_count,
+       lnn.payment_req_ln_id as source_id,
+       'CSH_PAYMENT_REQ_LN' as source_table
+  from csh_payment_req_ln lnn
+ where
+   lnn.payment_req_id=#{paymentReqId}
+    </select>
+
+
+
+
+    <select id="selectEasTypeCommon" parameterType="com.hand.hls.eas.dto.HlsCusEasSourceRecord" resultMap="BaseResultMap">
+    select
+    t1.source_type as type_number,
+
+    case
+    when t1.source_table ='HLS_BP_MASTER' then
+    (select nvl(h.eas_bp_code,'HX'||h.bp_code) from hls_bp_master h where h.bp_id = t1.source_id)
+    when t1.source_table = 'FND_COMPANY' then
+    (select fc.ws_com_code
+    from fnd_company fc
+    where fc.company_id = t1.source_id)
+    when t1.source_table = 'FND_ORG_UNIT' then
+    (select nvl(fou.eas_code,'HX'||fou.unit_id)
+    from fnd_org_unit fou
+    where fou.unit_id = t1.source_id)
+    when t1.source_table = 'CON_CONTRACT' and t1.source_type='05' then
+    (select cc.eas_code
+    from con_contract cc
+    where cc.contract_id = t1.source_id)
+    when t1.source_table = 'CON_CONTRACT' and t1.source_type='01' then
+    (select cc.eas_bp_code
+    from con_contract cc
+    where cc.contract_id = t1.source_id)
+    when t1.source_table = 'CSH_PAYMENT_REQ_LN' then
+    (select t.eas_code from csh_payment_req_ln t where t.payment_req_ln_id=t1.source_id)
+    else
+    null
+    end source_number,
+
+
+
+    case
+    when t1.source_table ='HLS_BP_MASTER' then
+    (select h.bp_name from hls_bp_master h where h.bp_id = t1.source_id)
+    when t1.source_table = 'FND_COMPANY' then
+    (select fc.fin_company_name
+    from fnd_company fc
+    where fc.company_id = t1.source_id)
+    when t1.source_table = 'FND_ORG_UNIT' then
+    (select fou.unit_name
+    from fnd_org_unit fou
+    where fou.unit_id = t1.source_id)
+    when t1.source_table = 'CON_CONTRACT' and t1.source_type='05' then
+    (select cc.contract_number
+    from con_contract cc
+    where cc.contract_id = t1.source_id)
+    when t1.source_table = 'CON_CONTRACT' and t1.source_type='01' then
+    (select cc.eas_bp_name
+    from con_contract cc
+    where cc.contract_id = t1.source_id)
+    when t1.source_table = 'CSH_PAYMENT_REQ_LN' then
+    (select t.bp_bank_account_name from csh_payment_req_ln t where t.payment_req_ln_id=t1.source_id)
+    else
+    null
+    end source_name,
+
+    case
+    when t1.source_table ='HLS_BP_MASTER' then
+    (select h.bp_name from hls_bp_master h where h.bp_id = t1.source_id)
+    when t1.source_table = 'FND_COMPANY' then
+    (select fc.fin_company_name
+    from fnd_company fc
+    where fc.company_id = t1.source_id)
+    when t1.source_table = 'FND_ORG_UNIT' then
+    (select fou.unit_name
+    from fnd_org_unit fou
+    where fou.unit_id = t1.source_id)
+    when t1.source_table = 'CON_CONTRACT' and t1.source_type='05' then
+    (select cc.contract_number
+    from con_contract cc
+    where cc.contract_id = t1.source_id)
+    when t1.source_table = 'CON_CONTRACT' and t1.source_type='01' then
+    (select cc.eas_bp_name
+    from con_contract cc
+    where cc.contract_id = t1.source_id)
+    when t1.source_table = 'CSH_PAYMENT_REQ_LN' then
+    (select t.bp_bank_account_name from csh_payment_req_ln t where t.payment_req_ln_id=t1.source_id)
+    else
+    null
+    end description,
+    t1.source_id,
+    t1.source_table
+    from ws_document_record_list t1
+    where
+    t1.outbound_id =#{outboundId}
+
+    </select>
+</mapper>

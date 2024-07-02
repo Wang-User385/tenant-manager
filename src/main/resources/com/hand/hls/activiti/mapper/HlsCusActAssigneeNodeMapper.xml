@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.activiti.mapper.HlsCusActAssigneeNodeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.activiti.dto.HlsCusActAssigneeNode">
+        <result column="assignee_id" property="assigneeId" jdbcType="DECIMAL"/>
+        <result column="assignee_type" property="assigneeType" jdbcType="VARCHAR"/>
+        <result column="assignee_code" property="assigneeCode" jdbcType="VARCHAR"/>
+        <result column="assignee_code_at" property="assigneeCodeAt" jdbcType="VARCHAR"/>
+        <result column="process_instance_id" property="processInstanceId" jdbcType="DECIMAL"/>
+        <result column="project_document_category" property="projectDocumentCategory" jdbcType="VARCHAR"/>
+        <result column="project_id" property="projectId" jdbcType="DECIMAL"/>
+        <result column="user_name" property="userName" jdbcType="VARCHAR"/>
+        <result column="user_name_at" property="userNameAt" jdbcType="VARCHAR"/>
+
+
+    </resultMap>
+
+    <select id="selectNodeByIdAndType" parameterType="com.hand.hls.activiti.dto.HlsCusActAssigneeNode"
+            resultMap="BaseResultMap">
+
+        SELECT aan.assignee_id,aan.assignee_code,aan.assignee_code_at,
+        (
+        select
+        distinct su.USER_NAME
+        from
+        sys_user su ,
+        sys_user_allocation sua ,
+        fnd_employee_assigns fea ,
+        fnd_employee fe
+        where
+        su.USER_ID = sua.user_id
+        and sua.employee_assign_id = fea.employee_assign_id
+        and fe.employee_id = fea.employee_id
+        and fe.employee_code = aan.assignee_code
+        )as user_name,
+        (
+        select
+        distinct su.USER_NAME
+        from
+        sys_user su ,
+        sys_user_allocation sua ,
+        fnd_employee_assigns fea ,
+        fnd_employee fe
+        where
+        su.USER_ID = sua.user_id
+        and sua.employee_assign_id = fea.employee_assign_id
+        and fe.employee_id = fea.employee_id
+        and fe.employee_code = aan.assignee_code_at
+        )as user_name_at
+        from act_assignee_node aan
+        where
+        1 = 1
+        <if test="assigneeType !=null and assigneeType != ''">
+            and aan.assignee_type =#{assigneeType}
+        </if>
+        <if test="projectId !=null">
+            and aan.project_id =#{projectId}
+        </if>
+        <if test="projectDocumentCategory !=null and projectDocumentCategory != ''">
+            and aan.project_document_category=#{projectDocumentCategory}
+        </if>
+        <if test="processInstanceId !=null">
+            and aan.process_instance_id=#{processInstanceId}
+        </if>
+
+    </select>
+
+    <select id="updateAssigneeCodeByIdAndType" parameterType="com.hand.hls.activiti.dto.HlsCusActAssigneeNode">
+        update act_assignee_node
+        set assignee_code = #{assigneeCode},assignee_code_at = #{assigneeCodeAt}
+        where
+        1 = 1
+        <if test="assigneeType !=null and assigneeType != ''">
+            and assignee_type =#{assigneeType}
+        </if>
+        <if test="projectId !=null and projectId != ''">
+            and project_id =#{projectId}
+        </if>
+        <if test="projectDocumentCategory !=null and projectDocumentCategory != ''">
+            and project_document_category=#{projectDocumentCategory}
+        </if>
+    </select>
+</mapper>

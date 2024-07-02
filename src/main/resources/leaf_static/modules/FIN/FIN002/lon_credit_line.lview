@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" customizationEnabled="true"
+          dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        $L.onReady(function () {
+            $("FIN002F1_F_LONBP_INFO_lon_credit_contract_ds").setSubmitUrl("${/request/@context_path}/hlsLon/credit/contract/update");
+
+            $('${/parameter/@layout_code}_F_BASIC_INFO_LON_CREDIT_CONTRACT_CREDIT_LINE_AMT').on('change', function (combo, value, oldValue) {
+                if(value){
+                    var record = $('FIN002F1_F_LONBP_INFO_lon_credit_contract_ds').getAt(0);
+                    if(record.get('isMix') === 'N'){
+                        record.set('credit_unexposure_amt', value - record.get('credit_exposure_amt'));
+                    }else{
+                        record.set('credit_unexposure_amt', value - record.get('withdraw_balance_sum'));
+                    }
+                    if(record.get('credit_available_amt_sum') > record.get('credit_unexposure_amt')){
+                        record.set('actual_available_amt_sum', value - record.get('credit_unexposure_amt'));
+                    }else{
+                        record.set('actual_available_amt_sum', value - record.get('credit_available_amt_sum'));
+                    }
+                }
+            });
+
+
+            $('${/parameter/@layout_code}_F_LONBP_INFO_LON_CREDIT_CONTRACT_CREDIT_BP_ID').on('commit', function (combo, value, oldValue) {
+                $('FIN002F1_F_SUB_ITEM_lon_credit_contract_line_ds').setQueryParameter('is_carry_flag', 'Y');
+                $('FIN002F1_F_SUB_ITEM_lon_credit_contract_line_ds').setQueryParameter('credit_bp_id', value.data.credit_bp_id);
+                $('FIN002F1_F_SUB_ITEM_lon_credit_contract_line_ds').setQueryParameter('credit_contract_id', -1);
+                $('FIN002F1_F_SUB_ITEM_lon_credit_contract_line_ds').query();
+            });
+
+        });
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            if(!record.get('lon_company_id')){
+                record.set('lon_company_id', '${/session/@companyId}');
+                record.set('lon_company_id_n', '${/session/@companyName}');
+            }
+
+            if ('${/parameter/@function_usage}' === 'MODIFY') {
+                record.getField('credit_bp_id').setReadOnly(true);
+                record.getField('credit_bp_id_n').setReadOnly(true);
+            }
+        };
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            //附件
+            if(ds.bindname === "FIN002F1_G_ATTACH_INFO_lon_credit_attachment"){
+                record.set('credit_attachment_category', 'LON_CREDIT_ATTACHMENT');
+            }
+        }
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            if (ds.bindname === "FIN002F1_G_ATTACH_INFO_lon_credit_attachment") {
+                ds.setQueryParameter('credit_attachment_category', 'LON_CREDIT_ATTACHMENT');
+            }
+
+            if (ds.bindname === "FIN002F1_F_SUB_ITEM_lon_credit_contract_line") {
+                var record = $('FIN002F1_F_LONBP_INFO_lon_credit_contract_ds').getAt(0)
+                ds.setQueryParameter('credit_available_amt', record.get('credit_unexposure_amt'));
+            }
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'upload_file';
+            if (name === 'upload' && record.get('credit_attachment_id')){
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('credit_attachment_id') + '\');">附件</a>';
+            }
+            return value;
+        };
+
+        window['upload_file'] = function(record_id,credit_attachment_id){
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'fin002_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': credit_attachment_id,
+                    'table_name': 'LON_CREDIT_ATTACHMENT',
+                    winid: 'cont301_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var document_list_ds_id = "FIN002F1_G_ATTACH_INFO_lon_credit_attachment_ds";
+                $(document_list_ds_id).query();
+            });
+        }
+
+
+
+        window['${/parameter/@layout_code}_customed_save_layout_dynamic_click'] = function () {
+            var ds_id = 'FIN002F1_F_LONBP_INFO_lon_credit_contract_ds';
+            var line_id = 'FIN002F1_F_SUB_ITEM_lon_credit_contract_line_ds';
+            var file_id = 'FIN002F1_G_ATTACH_INFO_lon_credit_attachment_ds';
+            if (!($(ds_id).validate() && $(line_id).validate() && $(file_id).validate())){
+                return;
+            }
+            $(file_id).submit();
+            $L.Masker.mask(document.body, "保存中..");
+            var data = $(ds_id).getJsonData()[0];
+            if(!data){
+                $(ds_id).getAt(0).dirty = true;
+                data = $(ds_id).getJsonData()[0];
+                $(ds_id).getAt(0).dirty = false;
+            }
+            data.creditContractLineList = $(line_id).getAll().map((v)=>v.data);
+            Leaf.request({
+                url: "${/request/@context_path}/hlsLon/credit/contract/update",
+                para: data,
+                success: function (res) {
+                    var creditContractId = res.result.record[0].credit_contract_id;
+                    $(ds_id).setQueryParameter("credit_contract_id",creditContractId);
+                    $(ds_id).query();
+                    $L.Masker.unmask(document.body);
+                    Leaf.showMessage("提示", "保存成功!", null);
+                },
+                error: function () {
+                    $L.Masker.unmask(document.body);
+                    Leaf.showMessage("提示", "保存出错!", null);
+                },
+                scope: this
+            });
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

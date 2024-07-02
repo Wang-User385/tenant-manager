@@ -1,0 +1,2281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:c="leaf.application.action" xmlns:p="uncertain.proc"
+          xmlns:a="http://www.leaf-framework.org/application" xmlns:s="leaf.plugin.script"
+          trace="true">
+    <a:init-procedure>
+        //菜单加载
+        <a:model-query fetchAll="true" model="$com.hand.hls.sys.service.ISysRoleModuleService.selectLeafRoleModule" rootPath="main_menu_list"/>
+        <a:model-query fetchAll="true" model="$com.hand.hls.sys.service.ISysRoleModuleService.selectLeafRoleSubModule" rootPath="sub_menu_list"/>
+        <a:model-query fetchAll="true" model="$com.hand.hap.function.service.IFunctionService.selectFunctionRoleMap" rootPath="menu_function_list"/>
+        <a:model-query fetchAll="true" model="$com.hand.hls.sys.service.IUserThemeService.selectFunctionRoleMap" rootPath="sys_user_theme_path"/>
+
+        <s:server-script><![CDATA[
+            var sys_user_theme_path = $ctx.get('/model/sys_user_theme_path').getChildren();
+            if(sys_user_theme_path.length > 0){
+            $ctx.session.theme = sys_user_theme_path[0].THEME;
+            $ctx.session.subject = sys_user_theme_path[0].SUBJECT;
+            $session.theme = sys_user_theme_path[0].THEME;
+            $session.subject = sys_user_theme_path[0].SUBJECT;
+            } else {
+            $ctx.session.theme = 'hap-green';
+            $ctx.session.subject = 'HAP';
+            $session.theme = 'hap-green';
+            $session.subject = 'HAP';
+<!--            $ctx.session.theme = 'hap';-->
+<!--            $ctx.session.subject = 'HAP';-->
+<!--            $session.theme = 'hap';-->
+<!--            $session.subject = 'HAP';-->
+            }
+            $ctx.parameter.global_tab_flag='Y';
+            ]]></s:server-script>
+    </a:init-procedure>
+    <a:view>
+        <link href="${/request/@context_path}/css/${/session/@theme}/home_page/home-page-css.css" rel="stylesheet"
+              type="text/css"/>
+        <link href="${/request/@context_path}/leafresources/css/MAIN/indexFloatDiv.css" rel="stylesheet"
+              type="text/css"/>
+        <link href="${/request/@context_path}/css/common/main_common.css" rel="stylesheet"
+              type="text/css"/>
+        <script src="${/request/@context_path}/javascripts/jquery.slimscroll.min.js"
+                type="text/javascript"></script>
+        <script src="${/request/@context_path}/javascripts/jquery.mousewheel.min.js"
+                type="text/javascript"></script>
+        <script src="${/request/@context_path}/lib/websocket/sockjs.js"
+                type="text/javascript"></script>
+
+        <a:link id="gloabl_tab_iframe_link" url="${/request/@context_path}/global_tab_iframe.lview"/>
+        <a:link id="theme_select_link" url="${/request/@context_path}/theme_select.lview"/>
+        <script><![CDATA[
+
+        //此处进行修改在确定系统超时的时候设置istimeout标记到cookie中
+
+        function showlogin() {
+            Leaf.setCookie('ISTIMEOUT', true, 0.05);
+            Leaf.showWarningMessage('提示','登陆已过期请重新登陆！',goLogin);
+            /*new Leaf.Window({
+                id: 'login_timeout',
+                url: $('login_timeout_id').getUrl(),
+                title: '系统已超时锁定，请解锁',
+                height: 280,
+                width: 400,
+                draggable: false,
+                closeable: false
+            });*/
+        }
+
+        function goLogin(){
+            top.location.href = '${/request/@context_path}/login';
+        }
+
+
+        /*ds事件函数*/
+        function userDsHandler() {
+            var userDs = $('userDs').getAll();
+            var userName, phone, email, address, positionName;
+            userDs.forEach(function (value) {
+                if (value.data.user_id == ${/session/@user_id}) {
+                    userName = value.data.user_name;
+                    phone = value.data.phone;
+                    email = value.data.email;
+                    if(value.data.address == null){
+                        address = "北京";
+                    }else{
+                        address = value.data.address;
+                    }
+                    positionName = value.data.position_name;
+                }
+            });
+            $jq("#user_name").val(userName);
+            $jq("#row-user-name-id").val(userName);
+            $jq("#phone").val(phone);
+            $jq("#email").val(email);
+            $jq("#address").val(address);
+            $jq("#position_name").val(positionName);
+            //显示用户名
+            $jq("#userName").text(userName);
+        }
+        function updatepasswordsuccess(data) {
+            Leaf.showSuccessMessage('提示', '密码修改成功', function () {
+                Leaf.request({
+                    url: 'logout.lsc',
+                    para: {},
+                    success: function () {
+                        try {
+                            if (window.opener) {
+                                opener.location.href = 'login';
+                                window.close();
+                            } else {
+                                location.href = 'login';
+                            }
+                        } catch (e) {
+                            window.close();
+                        }
+                    },
+                    scope: this
+                })
+            })
+        }
+        function onLoad_sys_notice_msg_result_main_ds (ds) {
+            renderSysNotice(ds);
+        }
+        function onLoad_sys_todo_msg_result_main_ds (ds) {
+            renderSysTodo(ds);
+        }
+        function render_sysmsg_unread_flag(ds){
+            var record = ds.getAll()[0];
+            var notice_msg_count = record.get("notice_count") || 0,todo_count = record.get("todo_count") || 0 ;
+            if((Number(notice_msg_count ) || Number(todo_count)) && Number(notice_msg_count)+Number(todo_count)>0) {
+                $jq("#message_img").attr('src', "${/request/@context_path}/leafresources/images/MAIN/message_menu@2x.png")
+            } else {
+                $jq("#message_img").attr('src', "${/request/@context_path}/leafresources/images/MAIN/message_menu_no@2x.png")
+            }
+            $jq("#notice_message_num").parent().attr("title",notice_msg_count+"未读");
+        }
+
+        //渲染系统模板下载
+        function render_sys_template(ds) {
+            renderSysTemplate(ds);
+        }
+        ]]></script>
+
+        <!--用户信息-->
+        <a:dataSets>
+            <a:dataSet id="temp"/>
+            <a:dataSet id="userDs" autoQuery="true" queryUrl="${/request/@context_path}/sys/user/leaf/home/query" pageSize="100">
+                <a:events>
+                    <a:event name="load" handler="userDsHandler"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="selfpassword" autoCreate="true" submitUrl="${/request/@context_path}/sys/user/leaf/password/reset">
+                <a:fields>
+                    <a:field name="current_password" prompt="当前密码" required="true"/>
+                    <a:field name="new_pwd" prompt="新密码" required="true"/>
+                    <a:field name="pwd_confirm" prompt="确认新密码" required="true"/>
+                    <a:field name="user_id" defaultValue="${/session/@user_id}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="updatepasswordsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <!--系统通知待办-->
+        <a:dataSets>
+            <a:dataSet id="sys_notice_count_ds" loadData="true" autoQuery="true" fetchAll="false" pageSize="10"
+                       queryUrl="${/request/@context_path}/hls/system/unread/count">
+                <a:events>
+                    <a:event name="load" handler="render_sysmsg_unread_flag"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys_notice_msg_result_main_ds" loadData="true" autoQuery="true" fetchAll="false" pageSize="10"
+                       queryUrl="${/request/@context_path}/hls/system/notice/query">
+                <a:events>
+                    <a:event name="load" handler="onLoad_sys_notice_msg_result_main_ds"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="sys_todo_msg_result_main_ds" loadData="true" autoQuery="true" fetchAll="false" pageSize="10"
+                       queryUrl="${/request/@context_path}/hls/system/todo/query">
+                <a:events>
+                    <a:event name="load" handler="onLoad_sys_todo_msg_result_main_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <!--系统模板下载-->
+        <a:dataSets>
+            <a:dataSet id="sys_template_query_ds">
+                <a:fields>
+                    <a:field name="query_info"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys_template_ds" loadData="true" autoQuery="true" fetchAll="false" pageSize="10"
+                       queryUrl="${/request/@context_path}/sys/template/user/queryFile" queryDataSet="sys_template_query_ds">
+                <a:events>
+                    <a:event name="load" handler="render_sys_template"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+
+        <!-- 导航栏+面包屑 -->
+        <div class="hap-main-screen-toolbar-contain" style="overflow: hidden;">
+            <div id="page-topbar" style="position: fixed;Z-INDEX: 1000;width: 100%; background-size: 100% 48px;">
+                <div class="topbar topbar-logo">
+                    <div class="page-topbar-menu-logo menu_hieght" onmouseover="lightButton(this)" onmouseleave="hideThis(this)">
+                        <img src="${/request/@context_path}/leafresources/images/MAIN/EASY/easy_horizon_bar@3x.png"/>
+                        <!--全部导航-->
+                        <div id="main_menu_id" style="opacity: 0.95" class="main_menu_back_contain"
+                             onmouseover="showThis(this)">
+                            <table id="main" border="0" cellPadding="0" cellSpacing="0" style="width:100%;height:100%;">
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <ul id="solidblockmenu" class="solidblockmenu">
+
+                                            <a:freeMarker><![CDATA[
+                                                <#if model.getObject("/model/main_menu_list").getChilds()??>
+                                                <#list model.getObject("/model/main_menu_list").getChilds() as item>
+                                                <#if item_index == 0>
+                                                <li id="M_MENU_${item.getString('module_code')}"
+                                                    class="first">
+                                                    <#else>
+                                                <li id="M_MENU_${item.getString('module_code')}">
+                                                </#if>
+
+                                                <#if item.getString('parent_menu_id')??>
+                                                <a hidefocus="true"
+                                                   href="#">${(item.getString('module_name')!"")?html}</a>
+                                                <#else>
+                                                <a hidefocus="true"
+                                                   onmouseover="javascript:mainSetTargeturl('${item.getString('module_code')}');"
+                                                   onmouseleave="hideTargetUrl('${item.getString('module_code')}')"
+                                                   href="javascript:goToModuleWidge('${item.getString('sys_role_module_id')}','${item.getString('module_code')}','${item.getString('module_name')}','${item.getString('module_flag')}')">
+                                                    <span>${(item.getString('module_name')!"")?html}</span>
+                                                    <span style="display: inline-block;float: right;">&gt;</span>
+                                                </a>
+
+                                            </#if>
+
+                                            </li>
+                                        </#list>
+                                    </#if>
+                                    ]]>
+                                    </a:freeMarker>
+
+                                    <div class="middle"/>
+
+                                    </ul>
+                                    </td>
+                                </tr>
+                                <tr style="position: absolute;left:200px;">
+                                    <td id="subMenu" class="subMenu">
+                                        <div style="position:relative">
+                                            <a:freeMarker><![CDATA[
+                                                <#if model.getObject("/model/main_menu_list").getChilds()??>
+                                                <#list model.getObject("/model/main_menu_list").getChilds() as main_menu>
+                                                <div style="height:100%;">
+                                                    <div class="leaf_main_menu_bar menu" data-bind="${main_menu.getString('menu_count')}"  id="SUBMENU_${main_menu.getString('module_code')}" onmouseover="cleanKeepMainMenu(this)">
+
+                                                        <#if model.getObject("/model/sub_menu_list").getChilds()??>
+                                                        <#list model.getObject("/model/sub_menu_list").getChilds() as sm>
+                                                        <#if sm.getString('parent_module_code') == main_menu.getString('module_code')>
+
+                                                        <#if (main_menu.getString('function_count')?number == 0)>
+                                                        <script>
+                                                            $jq("#SUBMENU_${main_menu.getString('module_code')}").removeClass("leaf_main_menu_bar");
+                                                        </script>
+                                                        <ul style="margin: 0px;padding: 0px;">
+                                                            <li class="leaf_main_menu_item_ul_li" onmouseout="javascript:hide_tool_tip(this);" onmouseover="javascript:show_tool_tip(this,'${(sm.getString('module_code')!"")?html}');" onclick="goToModuleFunction('${sm.getString('sys_role_module_id')}','${sm.getString('module_code')}','${sm.getString('module_name')}','${sm.getString('url')!""}','${sm.getString('module_name')}','${sm.getString('parent_module_name')!""}','two')">
+                                                            <a style="min-width: 170px;">
+                                                                ${(sm.getString('module_name')!"")?html}
+                                                            </a>
+                                                            </li>
+                                                        </ul>
+                                                    </#if>
+
+                                                    <#if (main_menu.getString('function_count')?number != 0)>
+                                                    <script>
+                                                        $jq("#SUBMENU_${main_menu.getString('module_code')}").addClass("leaf_main_menu_bar");
+                                                        $jq("#SUBMENU_${main_menu.getString('module_code')}").width(${main_menu.getString('menu_count')}*204+50);
+
+                                                    </script>
+                                                    <div  class="leaf_main_menu_item">
+
+                                                        <div style="min-width: 120px;" class="leaf_main_menu_item_title"
+                                                             onmouseout="javascript:hide_tool_tip(this);"
+                                                             onmouseover="javascript:show_tool_tip(this,'${(sm.getString('module_code')!"")?html}');"
+                                                        hidefocus="true"
+                                                        onclick="goToModuleFunction('${sm.getString('sys_role_module_id')}','${sm.getString('module_code')}','${sm.getString('module_name')}','${sm.getString('url')!""}','${sm.getString('module_name')}','${sm.getString('parent_module_name')!""}','two')">
+                                                        <span>${(sm.getString('module_name')!"")?html}</span>
+                                                    </div>
+                                                    <ul class="leaf_main_menu_item_ul">
+                                                        <#if model.getObject("/model/menu_function_list").getChilds()??>
+                                                        <#list model.getObject("/model/menu_function_list").getChilds() as function>
+                                                        <#if function.getString('module_code') == sm.getString('module_code')>
+                                                        <li class="leaf_main_menu_item_ul_li" onmouseout="javascript:hide_tool_tip(this);"
+                                                            onmouseover="javascript:show_tool_tip(this,'${(function.getString('function_code')!"")?html}');"
+                                                        hidefocus="true">
+                                                        <a class="leaf_main_menu_item_ul_li_function"
+                                                           href="javascript:goToModuleFunction('${function.getString('function_id')}','${function.getString('function_code')}','${function.getString('function_name')}','${function.getString('url')}','${function.getString('module_name')}','${function.getString('PARENT_MODULE_NAME')}','three')"
+                                                        >${(function.getString('function_name')!"")?html}</a>
+                                                        </li>
+                                                    </#if>
+                                                </#list>
+                                            </#if>
+                                            </ul>
+                                        </div>
+                                    </#if>
+                                </#if>
+                                </#list>
+                            </#if>
+
+                        </div>
+                    </div>
+                </#list>
+            </#if>
+            ]]></a:freeMarker>
+
+        </div>
+        </td>
+        </tr>
+
+
+        </tbody>
+        </table>
+        </div>
+        </div>
+        <div class="page-topbar-product-logo menu_hieght">
+            <img src="${/request/@context_path}/lib/assets/pages/img/login/gt_home.png"
+                 onclick="goToHomePage()" style="cursor: pointer;height: 40px;margin-top: 0px;"/>
+        </div>
+        <div onclick="showNavigation()" class="menu-toggler sidebar-toggler-top"
+             style="margin-left: 23px;margin-top: 18px;position: absolute;display: none"></div>
+        <!--用户信息-->
+        <div style="" id="show-user-message-id"
+             onclick="showUserMsg(this)" class="show-user-message">
+            <img alt="" class="img-circle"
+                 src="${/request/@context_path}/lib/assets/layouts/layout4/img/avatar9.jpg"/>
+            <span class="username username-hide-on-mobile" id="userName"></span>
+
+            <ul class="dropdown-menu dropdown-menu-default" id="userDetail">
+                <li>
+                    <a href="javascript:myProfile();">
+                        <!--<i class="icon-user"></i>-->
+                        <span>用户信息</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="${/request/@context_path}/role">
+                        <!--<i class="fa fa-cogs"></i>-->
+                        <span>切换角色</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="javascript:showTheme();">
+                        <!--<i class="fa fa-cogs"></i>-->
+                        <span>切换皮肤</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="javascript:exitSystem();">
+                        <!--<i class="icon-key"></i>-->
+                        <span>退出</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <!--分隔线-->
+        <div class="slide-divider" style=" margin-right: 11px;margin-left: 12px;margin-top: 16px;float: right;"/>
+        <!--工作流消息-->
+        <div class="page-topbar-fast-menu menu_hieght" id="system_notice_button" style="padding: 0 11px">
+            <img class="menu-right-img" id="message_img"
+                 src="${/request/@context_path}/leafresources/images/MAIN/message_menu_no@2x.png"
+                 style="width: 26px"/>
+            <div id="notice_menu" class="notice_menu">
+                <div class="notice_menu_header">
+                    <div class="notice_menu_body">
+                        <div class="notice_menu_body_common notice_menu_header_line_height">
+                            <span>通知</span><span id="notice_message_num"></span></div>
+                        <div class="notice_menu_body_common notice_menu_header_line_height">
+                            <span>待办</span><span id="todo_message_num"></span></div>
+                    </div>
+                </div>
+
+                <div class="notice_menu_body_class">
+                    <div class="notice_menu_search">
+                        <div class="notice_menu_search_content">
+                            <img class="notice_menu_search_img"
+                                 src="${/request/@context_path}/leafresources/images/MAIN/EASY/easy_search@2x.png"/>
+                            <input class="notice_menu_search_input" placeholder="查询通知"
+                                   id="notice_search_input"/>
+                        </div>
+                    </div>
+                    <div class="notice_menu_contain" id="system_notice"></div>
+                    <div class="todo_menu_foot">
+                        <div class="todo_menu_foot_common " onclick="openFnMyNotice()">更多通知 </div>
+                        <div class="todo_menu_foot_common " onclick="cleanNoticeMsg()">清空通知 </div>
+
+                    </div>
+                </div>
+                <div class="notice_menu_body_class">
+                    <div class="notice_menu_search">
+                        <div class="notice_menu_search_content">
+                            <img class="notice_menu_search_img"
+                                 src="${/request/@context_path}/leafresources/images/MAIN/EASY/easy_search@2x.png"/>
+                            <input class="notice_menu_search_input" placeholder="查询待办"
+                                   id="todo_search_input"/>
+                        </div>
+                    </div>
+                    <div class="notice_menu_contain" id="system_todo"></div>
+                    <div class="todo_menu_foot">
+                        <div class="todo_menu_foot_common" onclick="openFnMyTask()">更多待办</div>
+                        <div class="todo_menu_foot_common" onclick="openFnMyHisTask()">待办历史</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <!--系统模板下载-->
+        <div class="page-topbar-fast-menu menu_hieght" id="sys-template-toolbar" style="display: none;">
+            <img class="menu-right-img"
+                 src="${/request/@context_path}/leafresources/images/MAIN/template_download.png"/>
+            <div id="sys_template_body" class="sys_template_body" style="display: none;">
+                <div class="notice_menu_header">
+                    <div class="notice_menu_body" style="margin: 0">
+                        <div class="notice_menu_body_left notice_menu_body_common notice_menu_header_line_height"
+                             style="border-bottom: 2px solid #5A7FFF;color: #5A7FFF;">
+                            <span>系统模板下载</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sys_template_search">
+                    <div class="sys_template_search_content">
+                        <img class="sys_template_search_img" src="${/request/@context_path}/leafresources/images/MAIN/EASY/easy_search@2x.png"/>
+                        <input class="sys_template_search_input" placeholder="模板搜索" id="sys_template_search_input"/>
+                    </div>
+                </div>
+                <div class="sys_template_body_class" id="sys_template_content"/>
+            </div>
+        </div>
+        <!--快速导航-->
+        <div class="page-topbar-fast-menu menu_hieght" id="fast-menu-toolbar" style="display: none;">
+            <img class="menu-right-img"
+                 src="${/request/@context_path}/leafresources/images/MAIN/fast_menu.png"/>
+            <!--<span class="menu-right-span">快速导航</span>-->
+            <div id="fast_button" class="fast_toolbar_button">
+                <div class="notice_menu_header">
+                    <div class="notice_menu_body" style="margin: 0">
+                        <div class="notice_menu_body_left notice_menu_body_common notice_menu_header_line_height"
+                             style="border-bottom: 2px solid #5A7FFF;color: #5A7FFF;">
+                            <span>快速导航</span></div>
+                    </div>
+                </div>
+                <div class="fast_menu_body_class" id="fast_toolbar_body">
+                </div>
+                <div class="notice_menu_foot" id="fast_button_foot_edit" style="display: block"
+                     onclick="editFastFunction(this)">
+                    编辑
+                </div>
+                <div class="notice_menu_foot" id="fast_button_foot_save" style="display: none"
+                     onclick="saveFastFunction()">
+                    确定
+                </div>
+            </div>
+        </div>
+        <!--分隔线-->
+        <div class="slide-divider" style="margin-left: 22px;margin-right:12px;margin-top: 16px;float: right;"/>
+        <!--功能搜索-->
+        <li style="display: inline-block;float: right;">
+            <div class="search">
+                <div id="search_box" class="searchbox" onmouseover="extendInput()"
+                     onmouseleave="disExtend()">
+                    <input name="function_code" placeholder="请输入要查找的功能" id="sp-searchtext" accessKey="s"
+                           autocomplete="off" onfocus="borderInput(this)"
+                           type="text"/>
+                    <span id="my-search" >
+                    <img class="aliyun-common-search-icon"
+                         src="${/request/@context_path}/leafresources/images/MAIN/search-icon.png"
+                         onclick="doSearch()"></img>
+                    </span>
+                    <!--<a:screen-include screen="modules/zjwfl/zj_wfl_approval_comments.lview?instance_id=${/parameter/@instance_id}&amp;node_id=${/parameter/@node_id}&amp;"/>-->
+                </div>
+            </div>
+        </li>
+        <div class="clearfix"/>
+        </div>
+        <div class="function_tool_bar">
+            <div id="bread" class="function_home_height function_home_line_height function_float_left">
+                <div class="function_home_title_img function_home_height">
+                    <img onclick="mainJumpUrl('user_role_home_page.lview','主页','SYS_HOME_PAGE','系统首页','系统首页','two')"
+                         src="${/request/@context_path}/leafresources/images/MAIN/function_home_page.png"/>
+                </div>
+                <div class="function_toolbar function_home_height">
+                    <img id="main_back" class="main-bread-img"
+                         src="${/request/@context_path}/leafresources/images/MAIN/function_left.png" width="20"
+                         height="20"/>
+                    <img id="main_forward" class="main-bread-img"
+                         src="${/request/@context_path}/leafresources/images/MAIN/function_right.png" width="20"
+                         height="20"/>
+                    <img class="main-bread-img"
+                         src="${/request/@context_path}/leafresources/images/MAIN/function_reflash.png" width="20"
+                         height="20" onclick="refreshFrame()"/>
+                </div>
+
+                <span class="function_descript function_home_height function_home_line_height">
+                        <span style="height: 60px;margin-left: 15px;display: inline-block;overflow: hidden;white-space: nowrap;text-overflow: ellipsis;"/>
+                    </span>
+            </div>
+            <div class="function_history_content_pre function_history_content_button"
+                 id="function_history_content_pre"></div>
+            <div id="function_history_content"
+                 class="function_home_height function_home_line_height function_float_left">
+                <div id="function_history_content_x"
+                     class="function_home_height function_home_line_height"></div>
+            </div>
+            <div class="function_history_content_next function_history_content_button"
+                 id="function_history_content_next"></div>
+        </div>
+        <div class="topbar topbar-user-role">
+        </div>
+        </div>
+        <div id="history" class="history_class" onmouseover="showPageHistory()"
+             onmouseleave="hidePageHistory()"></div>
+        <div id="fast-link" style="display: none;position: fixed;z-index: 1000;width: 100%;top: 40px;">
+            <div class="fast-link-contain" style="height:50px;line-height: 50px;">
+                <span id="allBar" class="topbar-light" onmouseover="lightButton(this)"
+                      onmouseleave="disableLight(this)">
+                    <div style="display: inline-block;position: absolute;top: 18px;">
+                        <span class="sidebar-toggler"></span>
+                    </div>
+                    <span style="margin-left: 28px;">全部导航</span>
+                </span>
+                <div id="addtionBtn" class="hap-main-addtinBtn" onmouseover="showAddtion()"
+                     onmouseleave="hideAddtion()"
+                     style="display: none;position: fixed;top: 98px;width: 200px;padding: 4px 0;right: 0"></div>
+                <span id="pullDown"
+                      style="display: none;height: 40px;float: left;padding: 14px 20px 0 0;cursor: pointer;"
+                      onmouseover="showAddtion()" onmouseleave="hideAddtion()">
+                    <img src="${/request/@context_path}/images/home_page/pull-down.png" width="20" height="20"></img>
+                </span>
+            </div>
+        </div>
+        </div>
+<!--        <div id="borderLand" style="position: fixed;height: 0px;background: #00C1DE;z-index: 1001;top: 102px;"></div>-->
+        <!-- 用户信息 -->
+        <div id="user-info" style="z-index: 1000;display: none">
+            <div class="info-content" id="info-content">
+                <div class="content-top">
+                    <div class="content-bottom" style="width: 26px"></div>
+                    <div class="info-base activited" id="user-info-id" onclick="showBaseInfo()">个人信息</div>
+                    <div class="info-base" id="user-password-id" onclick="showPassword()">修改密码</div>
+                    <div class="content-bottom" style="width: 368px"></div>
+                    <div class="close" onclick="closeUserInfo()"><img
+                            src="${/request/@context_path}/leafresources/images/close@2x.png"/></div>
+                </div>
+                <div class="content-body">
+                    <div class="content-body-info" id="info-content-id">
+                        <div class="info-row">
+                            <div class="user-img">
+                                <img src="${/request/@context_path}/leafresources/images/user-img@2x.png"/>
+                            </div>
+                            <div class="row-user-info">
+                                <input class="row-user-name" id="row-user-name-id" style="border:0" readonly="readonly"/>
+                                <div class="row-user-button" style="display:none;">编辑图片</div>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="add-name">姓名</div>
+                                <input class="content-input"  id="user_name" name="user_name" readonly="readonly"/>
+                            </div>
+                            <div class="row">
+                                <div class="add-name">职位</div>
+                                <input class="content-input" id="position_name" name="position_name"
+                                       readonly="readonly"/>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="add-name">联系方式</div>
+                                <input class="content-input" id="phone" name="phone"/>
+                            </div>
+                            <div class="row">
+                                <div class="add-name">电子邮件</div>
+                                <input class="content-input" id="email" name="email"/>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="add-name">城市</div>
+                                <input class="content-input" id="address" name="address"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="content-body-info" id="password-content-id" style="display: none">
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="add-name">当前密码</div>
+                                <input type="password" class="content-input" id="oldPwd" name="oldPwd"
+                                       required="required"/>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="add-name">新密码</div>
+                                <input type="password" class="content-input" id="newPwd" name="newPwd"
+                                       required="required"/>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="add-name">确认新密码</div>
+                                <input type="password" class="content-input" id="newPwdAgain" name="newPwdAgain"
+                                       required="required"></input>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="content-foot">
+                    <div class="save_button" onclick="saveInfo()">保存</div>
+                </div>
+            </div>
+
+        </div>
+        <a:screenBody id="hideForm" style="display:none">
+            <a:form column="1" title=" ">
+                <a:passWord id="current_password" name="current_password" bindTarget="selfpassword"/>
+                <a:passWord id="new_pwd" name="new_pwd" bindTarget="selfpassword"/>
+                <a:passWord id="pwd_confirm" name="pwd_confirm" bindTarget="selfpassword"/>
+            </a:form>
+        </a:screenBody>
+        <!-- mainTab -->
+        <a:tabPanel id="mainTab" marginHeight="0" marginWidth="0" style="margin-top:48px;width:100%;background:#f7f7f8;"/>
+        <!-- websocket消息 -->
+        <div id="msg_append"></div>
+
+        <script><![CDATA[
+
+        /*全局变量*/
+        var hideTimerFirst, hideTimerSecond, mainMenuTimeOut, keepMainMenuTimeOuts_copy;
+        var keepMainMenuTimeOuts = [];//用于存放主菜单timouts
+        var isSearchFocus = false;
+        var topToolbarHeight = 45;//顶部高度
+        var firstBarHeight = 48;
+        var secondBarHeight = 40;
+        var marginTop = 0;
+        var frameId = 0;
+        var historyList = {};
+        var histories = [];
+        var initLoadMainFlag = 'N';
+        var subMenuTimeOuts = [];//二级菜单timeouts数列
+        var fastFunctionList = [],fastFunctionEableClick=true;
+        var firstOpenMenu = 'Y';
+
+        /*polyfill*/
+        (function () {
+            if (!("classList" in document.documentElement)) {
+                Object.defineProperty(HTMLElement.prototype, 'classList', {
+                    get: function () {
+                        var self = this;
+                        function update(fn) {
+                            return function (value) {
+                                var classes = self.className.split(/\s+/g),
+                                    index = classes.indexOf(value);
+
+                                fn(classes, index, value);
+                                self.className = classes.join(" ");
+                            }
+                        }
+                        return {
+                            add: update(function (classes, index, value) {
+                                if (!~index) classes.push(value);
+                            }),
+                            remove: update(function (classes, index) {
+                                if (~index) classes.splice(index, 1);
+                            }),
+
+                            toggle: update(function (classes, index, value) {
+                                if (~index)
+                                    classes.splice(index, 1);
+                                else
+                                    classes.push(value);
+                            }),
+                            contains: function (value) {
+                                return !!~self.className.split(/\s+/g).indexOf(value);
+                            },
+                            item: function (i) {
+                                return self.className.split(/\s+/g)[i] || null;
+                            }
+                        };
+                    }
+                });
+            }
+        })();
+        if (!!window.ActiveXObject || "ActiveXObject" in window) {
+            NodeList.prototype.forEach = Array.prototype.forEach || function (callback) {
+                var isArray = Object.prototype.toString.call(this) == '[object Array]';
+                if (isArray) {
+                    for (var key in this) {
+                        if (key != 'forEach') {
+                            callback.call(this[key], key, this[key], this);
+                        }
+                    }
+                } else {
+                    throw TypeError;
+                }
+            };
+        }
+
+        /*初始化样式*/
+        initMainSize();
+        if ('${/session/@theme}' != 'hap') {
+            jQuery("#page-topbar").css("background-image", "url('${/request/@context_path}/images/${/session/@theme}/toolBar.png')");
+        }
+        document.getElementById('main_menu_id').style.height = Leaf.getViewportHeight() - topToolbarHeight + 'px';
+        $jq('#solidblockmenu').css('height', Leaf.getViewportHeight() - 50 + 'px');
+        $jq('#solidblockmenu').css('overflow', 'auto');
+        $jq('#solidblockmenu').slimScroll({height: Leaf.getViewportHeight() - 50,railColor: '#272B2E'});
+
+        /*事件*/
+        Ext.onReady(function () {
+            Ext.lib.Event.on(window, "resize", function () {
+                initMainSize();
+            }, this);
+            Ext.get('sp-searchtext').on('focus', function () {
+                Ext.get('search_box').addClass('s_active');
+            }).on('blur', function () {
+                Ext.get('search_box').removeClass('s_active');
+            }).on('keydown', function (e) {
+                if (e.keyCode == 13) {
+                    doSearch();
+                }
+            });
+
+            //消息的搜索框
+            Ext.get('notice_search_input').on('keydown', function (e) {
+                if (e.keyCode == 13) {
+                    doSearchMessage();
+                }
+            });
+            //待办的搜索框
+            Ext.get('todo_search_input').on('keydown', function (e) {
+                if (e.keyCode == 13) {
+                    doSearchWorkflow();
+                }
+            });
+
+            $jq(".page-topbar-menu-logo").click(function(e){
+                e.stopPropagation();
+            });
+
+            jQuery("#function_history_content_pre").click(function () {
+                jQuery("#function_history_content").scrollLeft(jQuery("#function_history_content").scrollLeft() - 140);
+            });
+            jQuery("#function_history_content_next").click(function () {
+                jQuery("#function_history_content").scrollLeft(jQuery("#function_history_content").scrollLeft() + 140);
+            });
+            $jq("#function_history_content").on('mousewheel',function(e){
+                if(e.deltaY > 0){
+                    jQuery("#function_history_content").scrollLeft(jQuery("#function_history_content").scrollLeft() - 30);
+                }else{
+                    jQuery("#function_history_content").scrollLeft(jQuery("#function_history_content").scrollLeft() + 30);
+                }
+            });
+            $jq("#system_notice_button").click(function (e) {
+                if ($jq("#notice_menu").css("display") == 'none') {
+                    // doSearchMessage();
+                    refreshNoticeTodo();
+                    $jq("#notice_menu").show();
+                    jQuery("#system_notice_button").addClass("system_notice_button_background");
+                    jQuery("#notice_menu").animate({height: "495px"});
+                } else {
+                    if (!jQuery(e.target).parents().hasClass("notice_menu")) {
+                        jQuery("#system_notice_button").removeClass("system_notice_button_background");
+                        jQuery("#notice_menu").animate({height: "0px"}, function () {
+                            jQuery("#notice_menu").hide();
+                        });
+                    }
+                }
+                //隐藏快速导航条
+                hideUserInfo();
+                hideFastButton();
+                hideSysTemplate();
+                e.stopPropagation();
+            });
+            jQuery("#fast-menu-toolbar").click(function (e) {
+                if (jQuery(".fast_toolbar_button").css("display") == 'none') {
+                    jQuery(".fast_toolbar_button").show();
+                    jQuery("#fast-menu-toolbar").addClass("fast-menu-toolbar-background");
+                    jQuery(".fast_toolbar_button").animate({height: "455px"});
+                } else {
+                    if (!jQuery(e.target).parents().hasClass("fast_toolbar_button")) {
+                        hideFastButton();
+                    }
+                }
+                //隐藏消息提示
+                hideUserInfo();
+                hideSystemNotice();
+                hideSysTemplate();
+                e.stopPropagation();
+            });
+            jQuery("#sys-template-toolbar").click(function (e) {
+                if (jQuery(".sys_template_body").css("display") == 'none') {
+                    jQuery(".sys_template_body").show();
+                    jQuery("#sys-template-toolbar").addClass("fast-menu-toolbar-background");
+                    jQuery(".sys_template_body").animate({height: "455px"});
+                } else {
+                    if (!jQuery(e.target).parents().hasClass("sys_template_body")) {
+                        hideSysTemplate();
+                    }
+                }
+                //隐藏消息提示
+                hideUserInfo();
+                hideSystemNotice();
+                hideFastButton();
+                e.stopPropagation();
+            });
+            jQuery("#sys_template_search_input").keydown(function (e) {
+                if (e.keyCode == 13) {
+                    refreshTemplate();
+                }
+            });
+        });
+
+        /*消息待办*/
+        (function initSysNotice() {
+            $jq(".notice_menu_body_common").eq(0).addClass("notice_menu_body_common_hover");
+            $jq(".notice_menu_body_class").eq(0).show();
+            $jq(".notice_menu_body_common").each(function (index, obj) {
+                this.index = index;
+                $jq(this).click(function () {
+                    $jq(".notice_menu_body_common").removeClass("notice_menu_body_common_hover");
+                    $jq(".notice_menu_body_class").hide();
+                    $jq(".notice_menu_body_class").eq(this.index).show();
+                    $jq(".notice_menu_body_common").eq(this.index).addClass("notice_menu_body_common_hover");
+                });
+            });
+        })();
+        //渲染快速导航栏
+        !function () {
+            document.getElementById('fast_button').style.width = '336px';
+            Leaf.request({
+                url: "${/request/@context_path}/user/fast/function/queryAll",
+                para: {
+                    role_id: "${/session/@role_id}",
+                    user_id: "${/session/@user_id}"
+                },
+                scope: this,
+                success: function (res) {
+                    if (res.success && res.result.record) {
+                        fastFunctionList = res.result.record;
+                        if (Array.isArray(fastFunctionList)) {
+                            fastFunctionList = fastFunctionList
+                        } else {
+                            fastFunctionList = [fastFunctionList]
+                        }
+                        fastFunctionRender(fastFunctionList);
+                    }
+                }
+            })
+        }();
+
+        /*socket消息*/
+        initWebSocket();
+
+        /*打开首页*/
+        mainJumpUrl("user_role_home_page.lview", "主页", "SYS_HOME_PAGE", "系统首页", "系统首页", "two");
+
+        //编辑快捷功能
+        function editFastFunction(dom) {
+            //修改openFastFunction逻辑不能跳转
+            fastFunctionEableClick = false;
+            $jq.each(fastFunctionList, function (index, value) {
+                document.getElementById(value.function_code).style.display = 'block';
+                var imgId = value.function_code + '_img';
+                document.getElementById(imgId).style.display = 'block'
+            });
+
+            //编辑按钮隐藏
+            document.getElementById('fast_button_foot_edit').style.display = 'none';
+            //确定按钮显示
+            document.getElementById('fast_button_foot_save').style.display = 'block';
+        }
+        //点击图片进行增加或删除功能
+        function editFastFunctionImg(dom, index) {
+            if (fastFunctionList[index].user_enabled_flag == 'Y') {
+                fastFunctionList[index].user_enabled_flag = 'N';
+                dom.src = "${/request/@context_path}/resources/images/MAIN/EASY/easy-add@2x.png";
+                // saveUserFastFun('N', fastFunctionList[index].home_page_id)
+            } else {
+                fastFunctionList[index].user_enabled_flag = 'Y';
+                dom.src = "${/request/@context_path}/resources/images/MAIN/EASY/easy-delete@2x.png";
+                // saveUserFastFun('Y', fastFunctionList[index].home_page_id)
+            }
+        }
+        //fast导航按钮逻辑
+        function openFastFunction(dom) {
+            if (fastFunctionEableClick) {
+                var functionCode = dom.id;
+                var functionUrl = dom.dataset.url;
+                var functionName = dom.dataset.name;
+                if(functionUrl){
+                    hideFastButton();
+                    if(functionUrl.indexOf("?")){
+                        functionUrl += "&function_code=" +  functionCode;
+                    }else{
+                        functionUrl += "?function_code=" +  functionCode;
+                    }
+                    mainJumpUrl(functionUrl, (functionName || "快捷功能"), functionCode, "快捷功能", "快捷功能", "two");
+                }
+            }
+        }
+        //快捷功能遮罩
+        function fast_function_toggle_mask(flag){
+            var target = Ext.get("fast_button");
+            if(flag){
+                Leaf.Masker.mask(target, '正在处理......');
+            }else{
+                Leaf.Masker.unmask(target);
+            }
+        }
+        //保存快捷功能
+        function saveFastFunction() {
+            fast_function_toggle_mask(true);
+            Leaf.request({
+                url: "${/request/@context_path}/user/fast/function/save",
+                scope: this,
+                para: {
+                    list:fastFunctionList,
+                    user_id:'${/session/@user_id}',
+                    role_id:'${/session/@role_id}'
+                },
+                success: function (res) {
+                    fastFunctionEableClick = true;
+                    //编辑按钮显示
+                    document.getElementById('fast_button_foot_edit').style.display = 'block';
+                    //确定按钮隐藏
+                    document.getElementById('fast_button_foot_save').style.display = 'none';
+                    if (res.success) {
+                        fastFunctionRender(fastFunctionList);
+                        fast_function_toggle_mask(false);
+                    }
+                }
+            })
+        }
+        function fastFunctionRender(fastFunctionList) {
+            var html = '';
+            $jq.each(fastFunctionList, function (index, value) {
+                var picUrl = "${/request/@context_path}/resources/images/MAIN/EASY/easy-add@2x.png";
+                var display = "none";
+                if (value.user_enabled_flag == 'Y') {
+                    var display = "block";
+                    picUrl = "${/request/@context_path}/resources/images/MAIN/EASY/easy-delete@2x.png"
+                }
+                html += '<div class="function-button" style="display: ' + display + '" id="' + value.function_code + '" data-url = "'+ value.function_url +'" data-name="' + value.function_name + '" onclick="openFastFunction(this)"><span>' + value.function_name + '</span>';
+                html += '<img class="function-button-img" id="' + value.function_code + '_img" style="display: none" onclick="editFastFunctionImg(this,' + index + ')" src="' + picUrl + '"/>';
+                html += '</div>';
+            })
+            document.getElementById('fast_toolbar_body').innerHTML = html;
+        }
+        function show_tool_tip(e, code) {
+            $L.ToolTip.show(e, code);
+        }
+        function hide_tool_tip(e) {
+            $L.ToolTip.hide(e);
+        }
+        function hideTargetUrl(code) {};
+        function extendInput() {
+            if (!isSearchFocus) {
+                Ext.get('sp-searchtext').stopFx();
+                Ext.get('sp-searchtext').shift({
+                    width: 400, //元素的新宽度
+                    easing: 'easeOut',
+                    duration: .5
+                })
+            }
+        }
+        function disExtend() {
+            if (!isSearchFocus) {
+                Ext.get('sp-searchtext').stopFx();
+                Ext.get('sp-searchtext').shift({
+                    width: 200,
+                    easing: 'easeOut',
+                    duration: .5
+                })
+            }
+        }
+        function borderInput(dom) {
+            isSearchFocus = true;
+
+            jQuery("#search_box").addClass("searchBbox_active");
+        }
+        function disBorderInput(dom) {
+            isSearchFocus = false;
+            jQuery("#search_box").removeClass("searchBbox_active");
+            disExtend();
+        }
+        function refreshFrame() {
+            $("mainTab").selectTab($("mainTab").getTab($("mainTab").activeTab).index, true);
+        }
+        function mainSetTargeturl(code) {
+            keepMainMenuTimeOuts.push(setTimeout(chooseMainMenu(code).bind(this), 300));
+        }
+        function lightButton(dom) {
+            dom.classList.remove('main_menu_clear');
+            if (hideTimerFirst && hideTimerSecond) {
+                // window.clearTimeout(hideTimerFirst);
+                window.clearTimeout(hideTimerSecond);
+            }
+            //dom.style.background = 'rgba(62,72,104,.6)';
+            window.clearTimeout(mainMenuTimeOut);
+            if ($jq("#main_menu_id").css("display") === 'none') {
+                document.getElementById('main_menu_id').style.display = 'block';
+                document.getElementById('main_menu_id').classList.add('main_menu_show_up');
+                setTimeout(function () {
+                    document.getElementById('main_menu_id').classList.remove('main_menu_show_up');
+                }, 500);
+            }
+        }
+        function showThis(dom) {
+            window.clearTimeout(keepMainMenuTimeOuts_copy);
+            window.clearTimeout(mainMenuTimeOut);
+            if (!checkIsColse()) {
+                dom.style.display = 'block';
+            }
+        }
+        function chooseMainMenu(code) {
+            return function () {
+                if (!checkIsColse()) {
+                    document.querySelectorAll('.head_c').forEach(function (value) {
+                        value.style.color = '#fff';
+                    });
+                    var subMenuFlag = false;
+                    document.querySelectorAll('.menu').forEach(function (value) {
+                        ($jq(value).css('display') !== 'none') && (subMenuFlag = true);
+                    });
+                    document.querySelectorAll('.menu').forEach(function (value) {
+                        value.style.display = 'none'
+                    });
+                    if (window.currentModel && window.currentModel != code) {
+                        window.subModel = null;
+                        document.querySelectorAll('div[childMenu]').forEach(function (value) {
+                            value.style.display = 'none';
+                        });
+                        Ext.get('M_MENU_' + window.currentModel).child('a').removeClass('active');
+                        document.getElementById('SUBMENU_' + window.currentModel).style.display = 'none';
+                    }
+                    window.currentModel = code;
+                    Ext.get('M_MENU_' + code).child('a').addClass('active');
+
+
+                    window.subModel = code;
+                    var x = Ext.get('M_MENU_' + code).child('a').getXY()[0];
+//              Ext.get('SUBMENU_' + code).setLeft(x - 10);
+//                     Ext.get('SUBMENU_' + code).fadeIn();
+                    Ext.get('SUBMENU_' + code).dom.style.display = 'block';
+                    Ext.get('SUBMENU_' + code).setHeight($jq('#main_menu_id').height());
+                    $jq('#SUBMENU_' + code).niceScroll({
+                        cursorwidth: 8
+                    });
+                    if (!subMenuFlag) {
+                        document.querySelectorAll('#SUBMENU_' + code + ' ul').forEach(function (value) {
+                            value.style.display = 'none';
+                        });
+                        document.querySelectorAll('#SUBMENU_' + code + ' span').forEach(function (value) {
+                            value.style.display = 'none';
+                        });
+                        Ext.get('SUBMENU_' + code).dom.classList.add('main_menu_show_up');
+                        setTimeout(function () {
+                            document.querySelectorAll('#SUBMENU_' + code + ' span').forEach(function (value) {
+                                value.style.display = '';
+                            });
+                            document.querySelectorAll('#SUBMENU_' + code + ' ul').forEach(function (value) {
+                                value.style.display = '';
+                            });
+                            Ext.get('SUBMENU_' + code).dom.classList.remove('main_menu_show_up');
+
+                        }, 300);
+                    }
+                }
+            }
+        }
+        function checkIsColse() {
+            var isClose = false;
+            document.querySelectorAll('div[childMenu]').forEach(function (value) {
+                value.classList.contains('child_menu_clear') && (isClose = true);
+            });
+            document.querySelectorAll('.subMenu .menu').forEach(function (value) {
+                value.classList.contains('main_menu_clear') && (isClose = true);
+            });
+            document.querySelectorAll('#main_menu_id').forEach(function (value) {
+                value.classList.contains('main_menu_clear') && (isClose = true);
+            });
+            return isClose;
+        }
+        function hideThis(dom) {
+            keepMainMenuTimeOuts_copy = (window.setTimeout(function () {
+                document.querySelectorAll('div[childMenu]').forEach(function (value) {
+                    hideMenu(value, 'child_menu_clear', '.menu a');
+                });
+                window.hideTimerFirst = setTimeout(function () {
+                    document.querySelectorAll('.subMenu .menu').forEach(function (value) {
+                        hideMenu(value, 'main_menu_clear', '.subMenu .menu span,.subMenu .menu ul');
+                    });
+                }.bind(this), 100);
+                window.hideTimerSecond = setTimeout(function () {
+                    hideMenu(document.getElementById('main_menu_id'), 'main_menu_clear', '.subMenu .menu span,.subMenu .menu ul');
+                }.bind(this), 200);
+            }, 500));
+
+
+            // dom.style.display = 'none';
+        }
+        function cleanKeepMainMenu(dom) {
+            var subCode = dom.id.substring(8);
+            keepMainMenuTimeOuts.forEach(function (value) {
+                window.clearTimeout(value);
+            });
+            keepMainMenuTimeOuts = [];
+            chooseMainMenu(subCode)();
+
+        }
+        function hideMenu(dom, className, domstr) {
+            if (dom.style && $jq(dom).css("display") !== 'none') {
+                dom.classList.add(className);
+                setTimeout(function () {
+                    document.querySelectorAll(domstr).forEach(function (value1) {
+                        value1.style.display = 'none';
+                    })
+                }, 20);
+                setTimeout(function () {
+                    document.querySelectorAll(domstr).forEach(function (value1) {
+                        value1.style.display = 'inline-block';
+                    });
+                    dom.style.display = 'none';
+                    dom.classList.remove(className);
+                }.bind(this), 100);
+            }
+        }
+        //模块首页
+        function goToModuleWidge(function_group_id, module_code, module_name, module_flag) {
+            if (module_flag === 'role_module' || module_flag === 'module') {
+                mainJumpUrl("user_module_home_page.lview?function_group_id=" + function_group_id + ";module_code=" + module_code + ";module_flag=" + module_flag, module_name, module_code, "模块首页");
+            }
+        }
+        //功能页面
+        function goToModuleFunction(function_group_id, function_code, function_name, url, second_module_name, first_module_name, type) {
+            if(url == ""){
+                return;
+            }
+            if (url.indexOf("?") == -1) {
+                mainJumpUrl(url + "?function_group_id=" + function_group_id + "&function_code=" + function_code, function_name, function_code, first_module_name, second_module_name, type);
+            } else {
+                mainJumpUrl(url + "&function_group_id=" + function_group_id + "&function_code=" + function_code, function_name, function_code, first_module_name, second_module_name, type);
+            }
+        }
+        function makeBread(url, first_module_name, func_name, second_module_name, type) {
+            var html = "";
+            var text;
+            if (type == 'two') {
+                text = first_module_name + '&nbsp;&nbsp;/&nbsp;&nbsp;'
+                    + func_name;
+            } else if (type == 'three') {
+                text = first_module_name + '&nbsp;&nbsp;/&nbsp;&nbsp;' + second_module_name + '&nbsp;&nbsp;/&nbsp;&nbsp;'
+                    + func_name;
+            }
+
+            html = '<span style="margin-left: 15px;width: 295px;display: inline-block;overflow: hidden;white-space: nowrap;text-overflow: ellipsis;" title="' + text + '">' + text + '</span>'
+
+            initBread(url, html);
+        }
+        //生成面包屑数据
+        function initBread(url, html) {
+            document.querySelector('#bread > span').innerHTML = html;
+
+            var sort = 0;
+            histories.forEach(function (value, index) {
+                (value.url === url) && (sort = index);
+            })
+            if (sort + 1 === histories.length) {
+                document.getElementById('main_forward').classList.remove('main-bread-img');
+                document.getElementById('main_forward').classList.add('main-bread-img-cannot');
+                if (sort === 0) {
+                    document.getElementById('main_back').classList.remove('main-bread-img');
+                    document.getElementById('main_back').classList.add('main-bread-img-cannot');
+                } else {
+                    document.getElementById('main_back').classList.remove('main-bread-img-cannot');
+                    document.getElementById('main_back').classList.add('main-bread-img');
+                }
+                document.getElementById('main_forward').onclick = function (ev) {
+                };
+                document.getElementById('main_back').onclick = function (ev) {
+                    mainJumpUrl(histories[sort - 1].url, histories[sort - 1].function_name, histories[sort - 1].code, histories[sort - 1].module_name);
+                }
+            } else {
+                document.getElementById('main_forward').classList.remove('main-bread-img-cannot');
+                document.getElementById('main_forward').classList.add('main-bread-img');
+                if (sort === 0) {
+                    document.getElementById('main_back').classList.remove('main-bread-img');
+                    document.getElementById('main_back').classList.add('main-bread-img-cannot');
+                } else {
+                    document.getElementById('main_back').classList.remove('main-bread-img-cannot');
+                    document.getElementById('main_back').classList.add('main-bread-img');
+                }
+                document.getElementById('main_forward').onclick = function (ev) {
+                    mainJumpUrl(histories[sort + 1].url, histories[sort + 1].function_name, histories[sort + 1].code, histories[sort + 1].first_module_name, histories[sort + 1].second_module_name, histories[sort + 1].type);
+                };
+                document.getElementById('main_back').onclick = function (ev) {
+                    mainJumpUrl(histories[sort - 1].url, histories[sort - 1].function_name, histories[sort - 1].code, histories[sort - 1].first_module_name, histories[sort - 1].second_module_name, histories[sort - 1].type);
+                }
+            }
+            //makePullDown();
+            jQuery("#function_history_content").css("width", jQuery(window).width() - (jQuery("#bread").width() == 0 ? 476 : jQuery("#bread").width()) - 120);
+        }
+        function mainJumpUrl(url, func_name, code, first_module_name, second_module_name, type) {
+            makeBread(url, first_module_name, func_name, second_module_name, type);
+            var screenHeight = Leaf.getViewportHeight();
+
+            if (code == 'SYS_HOME_PAGE' && initLoadMainFlag == 'N') {
+                initLoadMainFlag = 'Y';
+                jQuery(".function_tool_bar").hide();
+                $('mainTab').setMainHeight(screenHeight - firstBarHeight + marginTop-5);
+                jQuery("#mainTab").css("margin-top", firstBarHeight - marginTop);
+                //jQuery("#mainTab").css("margin-top", 0);
+            } else {
+                jQuery(".function_tool_bar").show();
+                $('mainTab').setMainHeight(screenHeight - firstBarHeight - secondBarHeight + marginTop-5);
+                jQuery("#mainTab").css("margin-top", firstBarHeight + secondBarHeight - marginTop);
+                if (firstOpenMenu === 'Y') {
+                    jQuery('iframe').each(function () {
+                        if (this.src.indexOf('user_role_home_page.lview') !== -1) {
+                            this.contentWindow.location.reload();
+                        }
+                    });
+                    firstOpenMenu = 'N';
+                }
+                //jQuery("#mainTab").css("margin-top", firstBarHeight + secondBarHeight - 30);
+            }
+            Leaf.setThemeUnload('${/session/@theme}');
+            Leaf.setSubjectUnload('${/session/@subject}');
+            hideCurrentMenu();
+            Leaf.setCookie('TARGETURL', url, 0.5);
+            openTab($('gloabl_tab_iframe_link').getUrl() + '?frame_id=' + (++frameId) + '&screen=' + url, func_name);
+            historyList[url] = func_name;
+            var html = '',newTabFlag = true,smartScroll = 0;
+            if (checkHistories(url)) {
+                histories.push({
+                    url: url,
+                    function_name: func_name,
+                    first_module_name: first_module_name,
+                    second_module_name: second_module_name,
+                    code: code,
+                    type: type
+                });
+            }else{
+                newTabFlag = false;
+            }
+            for (var key in historyList) {
+                var function_code = findCodeByUrl(key);
+                var className = 'function_float_left function_history_item';
+                if (key == url) {
+                    className = className + " function_history_item_hover";
+                }
+                html = html + '<div key="' + key + '" class="' + className + '"><span class="history_description" title="' + historyList[key] + '" onclick="mainJumpUrl(\'' + key + '\',\'' + historyList[key] + '\',\'' + function_code + '\',\'' + findFirstModuleNameByUrl(key) + '\',\'' + findSecondModuleNameByUrl(key) + '\',\'' + findTypeByUrl(key) + '\')">' + historyList[key] + '</span>';
+                if (key !== 'user_role_home_page.lview') {
+                    html = html + '<span class="history_close" onclick="removeHistory(\'' + key + '\',\'' + function_code + '\')">X</span></div>';
+                } else {
+                    html = html + '</div>';
+                }
+            }
+
+            jQuery("#function_history_content_x").html(html);
+            jQuery("#function_history_content_x").css("width", jQuery("#function_history_content_x div").length * 135 + "px");
+            if ((jQuery("#function_history_content_x").width() > jQuery("#function_history_content").width()) && jQuery("#function_history_content").width() != 0) {
+                jQuery("#function_history_content_next").show();
+                jQuery("#function_history_content_pre").show();
+            }
+
+            if(newTabFlag){
+                smartScroll = $jq(".function_history_item_hover").offset().left;
+            }else{
+                smartScroll = jQuery("#function_history_content").scrollLeft();
+            }
+
+            //显示面包屑
+            document.getElementById('bread').style.display = 'inline-block';
+            jQuery("#function_history_content").scrollLeft(smartScroll);
+        }
+        function findCodeByUrl(url) {
+            for (var i = 0; i < histories.length; i++) {
+                if (histories[i].url == url) {
+                    return histories[i].code
+                }
+            }
+        }
+        function findFirstModuleNameByUrl(url) {
+            for (var i = 0; i < histories.length; i++) {
+                if (histories[i].url == url) {
+                    return histories[i].first_module_name
+                }
+            }
+        }
+        function findSecondModuleNameByUrl(url) {
+            for (var i = 0; i < histories.length; i++) {
+                if (histories[i].url == url) {
+                    return histories[i].second_module_name
+                }
+            }
+        }
+        function findTypeByUrl(url) {
+            for (var i = 0; i < histories.length; i++) {
+                if (histories[i].url == url) {
+                    return histories[i].type
+                }
+            }
+        }
+        function hideCurrentMenu() {
+            if (window.subModel) {
+                hideSubmenu(window.subModel);
+            }
+        }
+        function checkHistories(url) {
+            var result = true;
+            histories.forEach(function (value) {
+                value.url == url && (result = false)
+            })
+            return result;
+        }
+        function hideSubmenu(code) {
+            document.getElementById('SUBMENU_' + code).style.display = 'none';
+            document.querySelectorAll('div[childMenu]').forEach(function (value) {
+                value.style.display = 'none'
+            });
+            window.subModel = null;
+        }
+        function openTab(url, prompt) {
+            var tabArr = $('mainTab').items;
+            if (tabArr && tabArr.length && tabArr.length > 0) {
+                for (var i = 0; i < tabArr.length; i++) {
+                    if (tabArr[i].prompt == prompt) {
+                        $('mainTab').selectTab(i);
+                        var frameIDReg = /frame_id=\d+\&/;
+                        var frameIDStrArr = tabArr[i].ref.match(frameIDReg);
+                        if (frameIDStrArr && frameIDStrArr[0]) {
+                            var frameID = frameIDStrArr[0].replace('frame_id=', '').replace('&', '');
+                            /*document.getElementById('tabFrame' + frameID).src = window['frame_url_' + frameID];*/
+                        }
+                        return;
+                    }
+                }
+            }
+            $('mainTab').openTab(url, prompt);
+            var ifarme = $jq("iframe").filter(function (index, obj) {
+                return obj.src == url;
+            });
+        }
+        function removeHistory(key, code, index) {
+            var name = historyList[key];
+            var index = 0;
+            for (var v in historyList) {
+                if (v == key) {
+                    $("mainTab").closeTab(index);
+                }
+                index++;
+            }
+            delete historyList[key];
+            // document.getElementById('history').removeChild(document.querySelector('a[url="'+ key +'"]'));
+            document.getElementById('function_history_content_x').removeChild(document.querySelector('div[key="' + key + '"]'));
+            if (jQuery(".function_history_item_hover").length == 0) {
+                jQuery(".function_history_item").eq(index - 2).addClass("function_history_item_hover");
+                jQuery(".function_history_item").eq(index - 2).find(".history_description").click();
+            }
+            jQuery("#function_history_content_x").css("width", jQuery("#function_history_content_x div").length * 135 + "px");
+            if (jQuery("#function_history_content_x").width() <= jQuery("#function_history_content").width()) {
+                jQuery("#function_history_content_next").hide();
+                jQuery("#function_history_content_pre").hide();
+            }
+            if (window.currentTab === code) {
+                /*goToHomePage();*/
+                document.querySelectorAll('.fast_btn_span').forEach(function (value) {
+                    value.style.color = '#fff';
+                    value.style.borderBottom = '';
+                })
+            }
+            document.getElementById('history').style.display = 'none';
+        }
+        function initMainSize() {
+            var tabFunctionHeight = 38;
+            var topBarHeight = Ext.fly('page-topbar').getHeight();
+            var fastBarHeight = Ext.fly('fast-link').getHeight();
+            var screenWidth = Leaf.getViewportWidth()-5;
+            var screenHeight = Leaf.getViewportHeight()-5;
+            var bottomHeight = screenHeight - topBarHeight - tabFunctionHeight - fastBarHeight;
+            $L.setCookie('vh', bottomHeight);
+            $L.setCookie('vw', screenWidth);
+            var marginWidth = 2;
+            var marginHeight = 0;
+            $('mainTab').setWidth(screenWidth - marginWidth);
+            $jq("#mainTab table").css("width",screenWidth - marginWidth);
+            if($jq(".function_tool_bar").css("display") == "none"){
+                $('mainTab').setMainHeight(screenHeight - firstBarHeight + marginTop);
+                jQuery("#mainTab").css("margin-top", firstBarHeight - marginTop);
+            }else{
+                $('mainTab').setMainHeight(screenHeight - firstBarHeight - secondBarHeight + marginTop);
+                jQuery("#mainTab").css("margin-top", firstBarHeight + secondBarHeight - marginTop);
+            }
+        }
+
+
+        // 搜索按钮事件
+        jQuery("#my-search").click(function(event){
+            // 阻止事件冒泡, 防止触发父元素隐藏面板事件
+            event.stopPropagation();
+            doSearch()
+        })
+
+        function doSearch() {
+            var data = (document.getElementById('sp-searchtext').value).toUpperCase();
+            if (data == "") {
+                return;
+            }
+            initSearchBlock(data);
+            /*Leaf.request({
+                url: '${/request/@context_path}/sys/function/home/search',
+                para: {
+                    functionCode: function_code
+                    // function_name: function_code
+                },
+                scope: this,
+                success: function (res) {
+                    if (res.result.record) {
+                        if (res.result.record[0]) {
+                            var data = res.result.record[0];
+                            function_code = data.FUNCTION_CODE;
+                            Leaf.setCookie('FUNCTION_CODE', function_code, 0.5);
+                            var mainServiceName = data.URL;
+                            var layout_code = data.LAYOUT_CODE;
+                            var module_name = data.MODULE_NAME;
+                            if (Ext.isEmpty(mainServiceName)) {
+                                Leaf.showMessage('提示', '功能不存在');
+                                return;
+                            } else {
+                                if (layout_code) {
+                                    mainServiceName = mainServiceName + '?layout_code=' + layout_code + '&function_code=' + function_code;
+                                }
+                                var func_name = data.FUNCTION_NAME;
+                                mainJumpUrl(mainServiceName, func_name, function_code, module_name);
+                            }
+                        } else {
+                            Leaf.showMessage("提示", "功能不存在!");
+                        }
+                    } else {
+                        Leaf.showMessage("提示", "功能不存在!");
+                    }
+                }
+            });*/
+
+
+        }
+        function mainScreen_hitPage(function_code) {
+            if (Ext.isEmpty(function_code)) {
+                return;
+            }
+            Leaf.setCookie('FUNCTION_CODE', function_code, 0.5);
+
+            Leaf.request({
+                url: '${/request/@context_path}/sys/function/home/search',
+                para: {
+                    functionCode: function_code
+                    // function_name: function_code
+                },
+                scope: this,
+                success: function (res) {
+                    var mainServiceName = res.result['main_service_name'];
+                    var layout_code = res.result['layout_code'];
+                    if (Ext.isEmpty(mainServiceName)) {
+                        Leaf.showMessage('提示', '功能不存在');
+                        return;
+                    } else {
+                        if (layout_code) {
+                            mainServiceName = mainServiceName + '?layout_code=' + layout_code + '&function_code=' + function_code;
+                        }
+                        var func_name = res.result['function_name'];
+                        mainJumpUrl(mainServiceName, func_name, function_code);
+                    }
+                }
+            });
+        }
+        function showUserMsg(dom) {
+            hideSystemNotice();
+            hideSysTemplate();
+            hideFastButton();
+            var display = document.getElementById('userDetail').style.display || 'none';
+            if (display == 'none') {
+                jQuery("#show-user-message-id").addClass("fast-menu-toolbar-background");
+                jQuery("#userDetail").show();
+                jQuery("#userDetail").animate({height: "164px"});
+                //document.getElementById('userDetail').style.display = 'block';
+            } else {
+                hideUserInfo()
+            }
+        }
+        function hideUserInfo() {
+            jQuery("#userDetail").animate({height: "0px"}, function () {
+                jQuery("#show-user-message-id").removeClass("fast-menu-toolbar-background");
+                jQuery("#userDetail").hide();
+            });
+        }
+        function hideSystemNotice() {
+            jQuery("#notice_menu").animate({height: "0px"}, function () {
+                jQuery("#system_notice_button").removeClass("system_notice_button_background");
+                jQuery("#notice_menu").hide();
+            });
+        }
+        function hideFastButton() {
+            jQuery("#fast-menu-toolbar").removeClass("fast-menu-toolbar-background");
+            jQuery(".fast_toolbar_button").animate({height: "0px"}, function () {
+                jQuery(".fast_toolbar_button").hide();
+                /*saveFastFunction();*/
+            });
+        }
+        function myProfile() {
+            var left = Math.abs((Leaf.getViewportWidth() - 623) / 2);
+            var top = Math.abs((Leaf.getViewportHeight() - 468) / 2);
+            document.getElementById('info-content').style.marginLeft = left + 'px';
+            document.getElementById('info-content').style.marginTop = top + 'px';
+            document.getElementById('user-info').style.display = 'block';
+        }
+        function showPassword() {
+            //user-info-id
+            //user-password-id
+            document.getElementById('user-info-id').style.color = 'rgba(75,80,90,0.85)';
+            document.getElementById('user-info-id').style.borderBottom = '1px solid #DCDFE6';
+            document.getElementById('info-content-id').style.display = "none";
+            document.getElementById('user-password-id').style.color = '#5A7FFF';
+            document.getElementById('user-password-id').style.borderBottom = 'none';
+            document.getElementById('password-content-id').style.display = "block"
+        }
+        function showBaseInfo() {
+            //user-info-id
+            //user-password-id
+            document.getElementById('user-info-id').style.color = '#5A7FFF';
+            document.getElementById('user-info-id').style.borderBottom = 'none';
+            document.getElementById('info-content-id').style.display = "block";
+            document.getElementById('user-password-id').style.color = 'rgba(75,80,90,0.85)';
+            document.getElementById('user-password-id').style.borderBottom = '1px solid #DCDFE6';
+            document.getElementById('password-content-id').style.display = "none"
+
+        }
+        function closeUserInfo() {
+            document.getElementById('user-info').style.display = 'none';
+        }
+        function saveInfo() {
+            var infoContent = $jq(top.document.getElementById("info-content-id"));
+            var passwordContent = $jq(top.document.getElementById("password-content-id"));
+            if (infoContent.css("display") != 'none') {
+                saveUserMsg()
+            }
+            if (passwordContent.css("display") != 'none') {
+                updatePasswordsumbit();
+            }
+        }
+        function showTheme() {
+            var url = $('theme_select_link').getUrl();
+            var themeWindow = new Leaf.Window({
+                id: 'theme_window',
+                url: url,
+                title: '切换皮肤',
+                height: 397,
+                width: 730
+            });
+        }
+        function showSubject(){
+            $L.showInfoMessage("提示","敬请期待!");
+        }
+        function exitSystem() {
+            Leaf.showConfirm('退出系统', '确定退出吗', function () {
+                Leaf.request({
+                    url: 'logout.lsc',
+                    para: {},
+                    success: function () {
+                        try {
+                            if (window.opener) {
+                                opener.location.href = 'login';
+                                window.close();
+                            } else {
+                                location.href = 'login';
+                            }
+                        } catch (e) {
+                            window.close();
+                        }
+                    },
+                    scope: this
+                })
+            }, function () {
+
+            }, 433, 239)
+        }
+        function updatePasswordsumbit() {
+            $('current_password').setValue($jq('[name="oldPwd"]').val());
+            $('new_pwd').setValue($jq('[name="newPwd"]').val());
+            $('pwd_confirm').setValue($jq('[name="newPwdAgain"]').val());
+
+            var ds = $('selfpassword');
+            if (ds.validate()) {
+                var record = ds.getAt(0);
+                if (record.get('new_pwd') != record.get('pwd_confirm')) {
+                    Leaf.showMessage('${l:PROMPT}', '您两次输入的密码不匹配！', null, 250, 100);
+                } else {
+                    ds.submit();
+                }
+            }
+        }
+        function saveUserMsg() {
+            var regMobilePhone = new RegExp(/^1[34578]\d{9}$/);
+            var regTelephone = new RegExp(/^((0\d{2,3})-?)(\d{7,8})(-(\d{3,}))?$/);
+            if ($jq('[name="email"]').val() &&
+                $jq('[name="phone"]').val()) {
+                if (!$jq("input[name='email']").val().match(/^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$/)) {
+                    Leaf.showErrorMessage('错误', '邮箱格式不正确');
+                    return
+                }
+                var phone = $jq('[name="phone"]').val();
+                if (!regMobilePhone.test(phone) && !regTelephone.test(phone)) {
+                    Leaf.showErrorMessage('错误', '电话格式不正确');
+                    return;
+                }
+                Leaf.request({
+                    url: '${/request/@context_path}/sys/user/leaf/update',
+                    scope: this,
+                    para: {
+                        user_id: ${/session/@user_id},
+                        email: $jq('[name="email"]').val(),
+                        phone: $jq('[name="phone"]').val(),
+                        address: $jq('[name="address"]').val()
+
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            Leaf.showSuccessMessage('提示', '修改成功');
+                        }
+                    }
+                })
+            } else {
+                Leaf.showErrorMessage('错误', '联系方式或电子邮箱未填写');
+            }
+        }
+        function chooseSubMenu(dom) {
+            return function () {
+                //
+                if (!checkIsColse()) {
+                    document.querySelectorAll('.head_c').forEach(function (value) {
+                        //value.style.color = '#fff';
+
+                    });
+                    //dom.style.color = '#000';
+
+                    var childMenuFlag = false;
+                    document.querySelectorAll('div[childMenu]').forEach(function (val) {
+                        val.style.display !== 'none' && (childMenuFlag = true);
+                    });
+                    document.querySelectorAll('div[childMenu]').forEach(function (val) {
+                        val.style.display = 'none'
+                    });
+                    if (!childMenuFlag) {
+                        document.querySelectorAll('.childMenu a').forEach(function (value) {
+                            value.style.display = 'none';
+                        });
+                        dom.lastChild.classList.add('child_menu_show_up');
+                        setTimeout(function () {
+                            document.querySelectorAll('.childMenu a').forEach(function (value) {
+                                value.style.display = 'inline-block';
+                            });
+                            dom.lastChild.classList.remove('child_menu_show_up');
+                        }.bind(this), 300);
+                    }
+                    dom.lastChild.style.display = 'inline';
+                } else {
+                    document.getElementById('main_menu_id').style.display = 'block';
+                }
+                document.querySelectorAll('.menu').forEach(function (value) {
+                    value.style.borderTopRightRadius = '0px';
+                    value.style.borderBottomRightRadius = '0px';
+                });
+            }
+        }
+        function cleanKeepSubMenu() {
+            subMenuTimeOuts.forEach(function (value) {
+                window.clearTimeout(value);
+            });
+            subMenuTimeOuts = [];
+        }
+        function showSubChildMenu(dom) {
+            subMenuTimeOuts.push(window.setTimeout(chooseSubMenu(dom), 300));
+        }
+        function noticeMenuHide(){
+            $jq("#notice_menu").hide()
+        }
+        function doSearchMessage(page) {
+            var noticeMessage = document.getElementById('notice_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_notice_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            if(page){
+                $("sys_notice_msg_result_main_ds").query(page);
+            }else{
+                $("sys_notice_msg_result_main_ds").query();
+            }
+        }
+        function doSearchWorkflow(page) {
+            var noticeMessage = document.getElementById('todo_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_todo_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            if(page){
+                $("sys_todo_msg_result_main_ds").query(page);
+            }else{
+                $("sys_todo_msg_result_main_ds").query();
+            }
+        }
+        function renderSysNotice(ds){
+            var records = ds.getAll();
+            var total = ds.totalCount,
+                curIndex = ds.currentIndex,
+                curPageTotal = records.length;
+            $jq("#system_notice").empty();
+            var html = "";
+            records.forEach(function (record, index) {
+                var obj = record.getObject();
+                var picUrl = "${/request/@context_path}/leafresources/images/MAIN/system_notice0@2x.png";
+                if(obj.notice_level == 1 || obj.notice_level == 3){
+                    picUrl = "${/request/@context_path}/leafresources/images/MAIN/system_notice_level" + obj.notice_level + "@2x.png";
+                }
+                var message = obj.notice_title + '--' + obj.notice_message;
+                var time = obj.notice_datetime;
+                var url = obj.notice_url;
+                var instance_id = obj.source_event_id;
+                var notice_msg_id = '';
+                html += '<div class="notice_menu_item notice_menu_item_height">';
+                html += '<div class="notice_menu_item_img notice_menu_item_height">';
+                html += '<img src="' + picUrl + '"/></div>';
+                html += '<div class="notice_menu_item_content notice_menu_item_height" onclick="onClick_msg_notice(\'' + record.id + '\')">';
+                html += '<div class="notice_menu_item_content_msg" title="' + message + '">' + message + '</div>';
+                html += '<div class="notice_menu_item_content_time">' + time ;
+                if(obj.read_flag == 'Y'){
+                    html = html + '<span style="float:right;">已读</span>';
+                }
+                html += '</div></div></div>';
+            });
+            if(!!curIndex && (!!total || total == 0) ){
+                var curStart = curIndex;
+                var curEnd = curIndex + (curPageTotal==0?0:(curPageTotal-1));
+                html += '<div class="notice_menu_item_footer">' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/last_end.png" onClick="javascript:firstPageNotice()" alt="第一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/last.png" onClick="javascript:prePageNotice()" alt="上一页"/>' +
+                    '<span>显示条目 </span>' +
+                    '<span> ' + curStart + ' </span>' +
+                    '<span> - </span>' +
+                    '<span> ' + curEnd + ' </span>' +
+                    '<span> 共 </span>' +
+                    '<span> ' + total + ' </span>' +
+                    '<span>条 </span>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/next.png" onClick="javascript:nextPageNotice()" alt="下一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/next_end.png" onClick="javascript:lastPageNotice()" alt="最后一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/refresh.png" onClick="javascript:refreshNoticeTodo()" alt="刷新" style="width:15px;"/>' +
+                    '</div>';
+            }
+            $jq("#system_notice").html(html);
+
+            $jq("#notice_message_num").html("(" + total + ")");
+        }
+        function renderSysTodo(ds){
+            var records = ds.getAll();
+            var total = ds.totalCount,
+                curIndex = ds.currentIndex,
+                curPageTotal = records.length;
+            $jq("#system_todo").empty();
+            var todoHtml = "";
+            records.forEach(function (record, index) {
+                var obj = record.getObject();
+                if(obj.done_flag == "Y"){
+                    return ;
+                }
+                var title = obj.notice_title;
+                var time = obj.notice_datetime;
+                var content = obj.notice_message;
+                var submit = obj.source_user_name;
+                var instance_id = obj.instance_id;
+                var node_id = obj.node_id;
+                var record_id = obj.record_id;
+                var workflow_id = obj.workflow_id;
+                var record_type = obj.record_type;
+                todoHtml += '<div class="notice_menu_item todo_menu_item_height">';
+                todoHtml += '<div class="todo_menu_item_content todo_menu_item_height" onclick="onClick_todo_notice(\'' + record.id + '\')">';
+                todoHtml += '<div class="todo_title">';
+                todoHtml += '<span class="title" title="' + title + '">' + title + '</span>';
+                todoHtml += '</div>';
+                todoHtml += '<div class="todo_msg" title="' + content + '">' + content ;
+                todoHtml += '</div></div></div>';
+            });
+            if(!!curIndex && (!!total || total == 0) ){
+                var curStart = curIndex;
+                var curEnd = curIndex + (curPageTotal==0?0:(curPageTotal-1));
+                todoHtml += '<div class="notice_menu_item_footer">' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/last_end.png" onClick="javascript:firstPageTodo()" alt="第一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/last.png" onClick="javascript:prePageTodo()" alt="上一页"/>' +
+                    '<span>显示条目 </span>' +
+                    '<span> ' + curStart + ' </span>' +
+                    '<span> - </span>' +
+                    '<span> ' + curEnd + ' </span>' +
+                    '<span> 共 </span>' +
+                    '<span> ' + total + ' </span>' +
+                    '<span>条 </span>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/next.png" onClick="javascript:nextPageTodo()" alt="下一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/next_end.png" onClick="javascript:lastPageTodo()" alt="最后一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/refresh.png" onClick="javascript:refreshNoticeTodo()" alt="刷新" style="width:15px;"/>' +
+                    '</div>';
+            }
+            $jq("#system_todo").html(todoHtml);
+
+            $jq("#todo_message_num").html("(" + total + ")");
+        }
+        function firstPageNotice(){
+            var noticeMessage = document.getElementById('notice_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_notice_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            var ds = $("sys_notice_msg_result_main_ds");
+            ds.firstPage();
+        }
+        function prePageNotice(){
+            var noticeMessage = document.getElementById('notice_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_notice_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            var ds = $("sys_notice_msg_result_main_ds");
+            var curPage = ds.currentPage;
+            if(curPage>1){
+                ds.prePage();
+            }else{
+                Leaf.SideBar.show({
+                    type:'warning',
+                    msg: '已经是第一页',
+                    duration: 2000
+                });
+            }
+        }
+        function nextPageNotice(){
+            var noticeMessage = document.getElementById('notice_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_notice_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            var ds = $("sys_notice_msg_result_main_ds");
+            var curPage = ds.currentPage;
+            var totalPage = ds.totalPage;
+            if(curPage + 1 <= totalPage){
+                ds.nextPage();
+            }else{
+                Leaf.SideBar.show({
+                    type:'warning',
+                    msg: '已经是最后一页',
+                    duration: 2000
+                });
+            }
+        }
+        function lastPageNotice(){
+            var noticeMessage = document.getElementById('notice_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_notice_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            var ds = $("sys_notice_msg_result_main_ds");
+            ds.lastPage();
+        }
+        function refreshNoticeTodo(){
+            var noticeMessage = document.getElementById('notice_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_notice_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            $("sys_notice_msg_result_main_ds").query();
+
+            var todoMessage = document.getElementById('todo_search_input').value;
+            if(!!todoMessage || todoMessage == ""){
+                $("sys_todo_msg_result_main_ds").qpara.noticeMessage = todoMessage;
+            }
+            $("sys_todo_msg_result_main_ds").query();
+
+            $("sys_notice_count_ds").query();
+        }
+        function firstPageTodo(){
+            var noticeMessage = document.getElementById('todo_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_notice_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            var ds = $("sys_todo_msg_result_main_ds");
+            ds.firstPage();
+        }
+        function prePageTodo(){
+            var noticeMessage = document.getElementById('todo_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_todo_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            var ds = $("sys_todo_msg_result_main_ds");
+            var curPage = ds.currentPage;
+            if(curPage>1){
+                ds.prePage();
+            }else{
+                Leaf.SideBar.show({
+                    type:'warning',
+                    msg: '已经是第一页',
+                    duration: 2000
+                });
+            }
+        }
+        function nextPageTodo(){
+            var noticeMessage = document.getElementById('todo_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_todo_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            var ds = $("sys_todo_msg_result_main_ds");
+            var curPage = ds.currentPage;
+            var totalPage = ds.totalPage;
+            if(curPage + 1 <= totalPage){
+                ds.nextPage();
+            }else{
+                Leaf.SideBar.show({
+                    type:'warning',
+                    msg: '已经是最后一页',
+                    duration: 2000
+                });
+            }
+        }
+        function lastPageTodo(){
+            var noticeMessage = document.getElementById('todo_search_input').value;
+            if(!!noticeMessage || noticeMessage == ""){
+                $("sys_todo_msg_result_main_ds").qpara.noticeMessage = noticeMessage;
+            }
+            var ds = $("sys_todo_msg_result_main_ds");
+            ds.lastPage();
+        }
+        function onClick_msg_notice(record_id) {
+            var ds = $("sys_notice_msg_result_main_ds");
+            var record = ds.findById(record_id);
+            if(!!record.get("notice_url")){
+                var url = record.get("notice_url");
+                if(!(url.charAt(0)=='/')){
+                    url='/'+url;
+                }
+                var noticeWin = new Leaf.Window({
+                    id: 'sys_notice_url',
+                    url: '${/request/@context_path}/modules' + url,
+                    params: {
+                        winid: 'sys_notice_url'
+                    },
+                    title: '明细',
+                    fullScreen: true
+                });
+                noticeMenuHide();
+                noticeWin.on('close', function () {
+                    if(record.get("read_flag") != "Y"){
+                        setNoticeRead(record.get("notice_id"));
+                    }
+                });
+            }else{
+                var detail = '';
+                var notice_id = record.get("notice_id");
+                detail += !!record.get("notice_message") ? "消息内容  :  " + record.get("notice_message") + "</br>" : '' ;
+                detail += !!record.get("source_user_name") ? "来源用户  :  " + record.get("source_user_name") + "(id:" + record.get("source_user_id") + ")" + "</br>" : '' ;
+                detail += (!!record.get("source_document_category") && !!record.get("source_document_id")) ? "来源单据  :  " + record.get("source_document_category") + " (id:" + record.get("source_document_id") + ") " + "</br>" : '' ;
+                Leaf.showInfoMessage(record.get("notice_title")||"消息",detail,function(){
+                    if(record.get("read_flag") != "Y"){
+                        setNoticeRead(record.get("notice_id"));
+                    }
+                },582,405);
+            }
+        }
+        function onClick_todo_notice(record_id) {
+            var ds = $("sys_todo_msg_result_main_ds");
+            var record = ds.findById(record_id);
+            if(!!record.get("notice_url")){
+                var url = record.get("notice_url");
+                var currentProcessInstanceId = getParaFromUrl(url,"currentProcessInstanceId") || getParaFromUrl(url,"processInstanceId");
+                var taskId = getParaFromUrl(url,"taskId");
+                noticeMenuHide();
+                var win = new Leaf.Window({
+                    id: 'task_detail_win',
+                    url: '${/request/@context_path}/modules/MYWFL/MYWFL001/task_detail.lview',
+                    params: {
+                        url: '${/request/@context_path}/modules/zjwfl/ZJWFL5110/zj_wfl_approve.lview',
+                        processInstanceId: currentProcessInstanceId,
+                        taskId: taskId,
+                        isAdmin:false,
+                        winid: 'task_detail_win'
+                    },
+                    title: '工作流审批',
+                    height: 500,
+                    width: 860,
+                    fullScreen: true
+                });
+                win.on('close', function () {
+                    $("sys_todo_msg_result_main_ds").query();
+                });
+            }else{
+                Leaf.showErrorMessage("错误","未找到待办url，请联系管理员");
+            }
+        }
+        function setNoticeRead(notice_id){
+            //消息已读
+            Leaf.request({
+                url: 'hls/system/notice/setread',
+                scope: this,
+                para: {
+                    notice_id: notice_id
+                },
+                success: function (res) {
+                    if (res.success) {
+                        $("sys_notice_msg_result_main_ds").query();
+                        $("sys_notice_count_ds").query();
+                    }
+                }
+            })
+        }
+        function goToHomePage(){
+            mainJumpUrl('user_role_home_page.lview','主页','SYS_HOME_PAGE','系统首页','系统首页','two');
+        }
+        function getParaFromUrl(url,pName){
+            var ret = '';
+            if(url.indexOf("?") < 0){
+                return ret;
+            }
+            var urlParaStr = url.substr(url.indexOf("?")+1);
+            var urlParaArr = urlParaStr.split("&");
+            for(var i=0;i<urlParaArr.length;i++){
+                if(urlParaArr[i].split("=")[0] == pName){
+                    ret = urlParaArr[i].split("=")[1];
+                    return ret;
+                }
+            };
+            return ret;
+        }
+        function cleanNoticeMsg() {
+            Leaf.Masker.mask(document.getElementById("notice_menu"),"loading...");
+            //所有消息已读
+            Leaf.request({
+                url: 'hls/system/notice/setallread',
+                scope: this,
+                success: function (res) {
+                    if (res.success) {
+                        refreshNoticeTodo();
+                        Leaf.Masker.unmask(document.getElementById("notice_menu"));
+                        Leaf.SideBar.show({
+                            msg: '操作成功',
+                            duration: 1000
+                        });
+                    }
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask(document.getElementById("notice_menu"));
+                    Leaf.SideBar.show({
+                        type:'warning',
+                        msg: '操作失败',
+                        duration: 1000
+                    });
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask(document.getElementById("notice_menu"));
+                    Leaf.SideBar.show({
+                        type:'warning',
+                        msg: '操作失败',
+                        duration: 1000
+                    });
+                }
+            })
+        }
+        function openFnMyTask(){
+            goToModuleFunction('','MYWFL001','我的待办','modules/MYWFL/MYWFL001/my_task.lview','我的待办','我的工作流','two')
+        }
+        function openFnMyNotice(){
+            goToModuleFunction('','MYWFL004','我的通知','modules/MYWFL/MYWFL004/my_notice.lview','我的通知','我的工作流','two')
+        }
+        function openFnMyHisTask(){
+            goToModuleFunction('','MYWFL002','历史流程','modules/MYWFL/MYWFL002/process_history.lview','历史流程','我的工作流','two')
+        }
+        function initWebSocket() {
+            socket = new SockJS('${/request/@context_path}/websocket');
+            socket.onmessage = function (event) {
+                var data = JSON.parse(event.data);
+                if(data != null && data.action == 'NOTICE'){
+                    push_float_msg_by_websocket(data);
+                }
+            }
+        }
+        function push_float_msg_by_websocket(data){
+            var messageLength = jQuery(".page-notification-container").length;//现有的message条数
+            if(messageLength>=3){
+                return;
+            }
+            var topNumber="59px";
+            if(messageLength==1){
+                topNumber="80px";
+            }else if(messageLength==2){
+                topNumber="90px";
+            }
+            //创建节点
+            var msgHtml='';
+            msgHtml+='<div id="moment_notice_'+messageLength+'" class="page-notification-container" style="top:'+topNumber+'">';
+            msgHtml+='<div class="page-notification  bounceInRight animated ">';
+            msgHtml+='<div class="notification-media">';
+            msgHtml+='<img style="width:36px;height:36px;"  class="show_hide" src="${/request/@context_path}/leafresources/images/MAIN/socket_msg.png">';
+            msgHtml+='</div>';
+            msgHtml+='<div style="word-break: break-all;padding-right: 5px; " class="notification-info">';
+            msgHtml+='<h4 style="font-size: 13px;white-space:nowrap; overflow:hidden; text-overflow:ellipsis;width: 170px;margin-top:10px;" class="notification-title">'+data.noticeTitle+'</h4>';
+            msgHtml+=' <p style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;width: 170px;" class="notification-desc">'+data.noticeMessage+'</p></div>';
+            msgHtml+='<div style="width: 75px;padding: 25px;border-left: 1px solid #dbdbdb" class="notification-btn single-btn">';
+            msgHtml+='<a href="#" onclick="removeNoticeDiv(this);" style="font-weight: 700" data-dismiss="notification">Close</a>';
+            msgHtml+='</div></div></div>';
+            //添加节点
+            jQuery("#msg_append").append(jQuery(msgHtml));
+            //给当前添加的这个节点指定动画事件
+            if(messageLength==0){
+                setTimeout("messageFadeOut("+messageLength+")",2000);
+            }else if(messageLength==1){
+                setTimeout("messageFadeOut("+messageLength+")",2500);
+            }else {
+                setTimeout("messageFadeOut("+messageLength+")",3000);
+            }
+
+//        if($("#moment_notice_1").height()){
+//            document.getElementById('moment_notice_1').style.cssText="margin-top:"+($("#moment_notice_0").height()-5)+"px!important";
+//        }
+//        if($("#moment_notice_2").height()){
+//            document.getElementById('moment_notice_2').style.cssText="margin-top:"+($("#moment_notice_0").height()+$("#moment_notice_1").height()-10)+"px!important";
+//        }
+        }
+        function removeNoticeDiv(this_node){
+            this_node.parentElement.parentElement.parentElement.remove();
+        }
+        function messageFadeOut(i){
+            var index = i;
+            if(index==0){
+                //如果是第一个节点 直接向右隐藏然后移除
+                jQuery("#moment_notice_0").animate({right:'-500px'},700,function(){
+                    jQuery("#moment_notice_0").remove();
+                })
+            }else if(index==1){
+                //如果是第二个节点
+                jQuery("#moment_notice_1").animate({right:'-500px'},700,function(){
+                    jQuery("#moment_notice_1").remove();
+                });
+            }else if(index==2){
+                jQuery("#moment_notice_2").animate({right:'-500px'},700,function(){
+                    jQuery("#moment_notice_2").remove();
+                    currentMessageIndex=0;//直到第三个节点也全部移除 才允许重新添加事件提醒
+                })
+            }
+
+        }
+        //隐藏系统模板下载
+        function hideSysTemplate() {
+            jQuery("#sys-template-toolbar").removeClass("fast-menu-toolbar-background");
+            jQuery(".sys_template_body").animate({height: "0px"}, function () {
+                jQuery(".sys_template_body").hide();
+            });
+        }
+        function renderSysTemplate(ds){
+            var records = ds.getAll();
+            var total = ds.totalCount,
+                curIndex = ds.currentIndex,
+                curPageTotal = records.length;
+            $jq("#sys_template_content").empty();
+            var _html = "";
+            records.forEach(function (record, index) {
+                var obj = record.getObject();
+                if(obj.done_flag == "Y"){
+                    return ;
+                }
+                var title = obj.description;
+                var content = obj.file_name;
+                var attachment_id = obj.attachment_id;
+
+                _html += '<div class="notice_menu_item notice_menu_item_height" title="点击下载" onclick="onClick_sys_template_file(\'' + record.id + '\')">';
+                _html += '<div class="notice_menu_item_content notice_menu_item_height">';
+                _html += '<div class="notice_menu_item_content_msg" title="' + title + '">' + title + '</div>';
+                _html += '<div class="notice_menu_item_content_time" title="' + content + '">' + content ;
+                _html += '</div></div>';
+                _html += '<div class="notice_menu_item_img notice_menu_item_height">';
+                _html += '<span>下载</span></div>';
+                _html += '</div>';
+            });
+            if((!!curIndex || curIndex == 0) && (!!total || total == 0) ){
+                var curStart = curIndex;
+                var curEnd = curIndex + (curPageTotal==0?0:(curPageTotal-1));
+                _html += '<div class="sys_template_item_footer">' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/last_end.png" onClick="javascript:firstPageTemplate()" alt="第一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/last.png" onClick="javascript:prePageTemplate()" alt="上一页"/>' +
+                    '<span>显示条目 </span>' +
+                    '<span> ' + curStart + ' </span>' +
+                    '<span> - </span>' +
+                    '<span> ' + curEnd + ' </span>' +
+                    '<span> 共 </span>' +
+                    '<span> ' + total + ' </span>' +
+                    '<span>条 </span>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/next.png" onClick="javascript:nextPageTemplate()" alt="下一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/next_end.png" onClick="javascript:lastPageTemplate()" alt="最后一页"/>' +
+                    '<img src="${/request/@context_path}/leafresources/images/home_page/refresh.png" onClick="javascript:refreshTemplate()" alt="刷新" style="width:15px;"/>' +
+                    '</div>';
+            }
+            $jq("#sys_template_content").html(_html);
+        }
+        function firstPageTemplate(){
+            var queryInfo = document.getElementById('sys_template_search_input').value;
+            if(!!queryInfo || queryInfo == ""){
+                $("sys_template_ds").qpara.queryInfo = queryInfo;
+            }
+            var ds = $("sys_template_ds");
+            ds.firstPage();
+        }
+        function prePageTemplate(){
+            var queryInfo = document.getElementById('sys_template_search_input').value;
+            if(!!queryInfo || queryInfo == ""){
+                $("sys_template_ds").qpara.queryInfo = queryInfo;
+            }
+            var ds = $("sys_template_ds");
+            var curPage = ds.currentPage;
+            if(curPage>1){
+                ds.prePage();
+            }else{
+                Leaf.SideBar.show({
+                    type:'warning',
+                    msg: '已经是第一页',
+                    duration: 2000
+                });
+            }
+        }
+        function nextPageTemplate(){
+            var queryInfo = document.getElementById('sys_template_search_input').value;
+            if(!!queryInfo || queryInfo == ""){
+                $("sys_template_ds").qpara.queryInfo = queryInfo;
+            }
+            var ds = $("sys_template_ds");
+            var curPage = ds.currentPage;
+            var totalPage = ds.totalPage;
+            if(curPage + 1 <= totalPage){
+                ds.nextPage();
+            }else{
+                Leaf.SideBar.show({
+                    type:'warning',
+                    msg: '已经是最后一页',
+                    duration: 2000
+                });
+            }
+        }
+        function lastPageTemplate(){
+            var queryInfo = document.getElementById('sys_template_search_input').value;
+            if(!!queryInfo || queryInfo == ""){
+                $("sys_template_ds").qpara.queryInfo = queryInfo;
+            }
+            var ds = $("sys_template_ds");
+            ds.lastPage();
+        }
+        function refreshTemplate(){
+            var queryInfo = document.getElementById('sys_template_search_input').value;
+            if(!!queryInfo || queryInfo == ""){
+                $("sys_template_ds").qpara.queryInfo = queryInfo;
+            }
+            $("sys_template_ds").query();
+        }
+        function onClick_sys_template_file(record_id){
+            var ds = $("sys_template_ds");
+            var record = ds.findById(record_id);
+            attach_download(record.get("attachment_id"));
+        }
+        function attach_download(id) {
+            if(!!id){
+                var url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + id;
+                jQuery("#emptyForDownload").attr("src",url);
+            }else{
+                Leaf.showMessage('${l:HLS.PROMPT}', '未找到当前资源，请联系管理员');
+            }
+        }
+        ]]></script>
+        <a:screen-include screen="modules/HOME/search/search_engine.lview"/>
+        <iframe id="emptyForDownload" style="display: none;"/>
+    </a:view>
+</a:screen>

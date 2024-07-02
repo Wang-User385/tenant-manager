@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="fp300d01d_detail_modify_id"
+                url="${/request/@context_path}/modules/FP/FP300/fund_filling_summary_detail.lview"/>
+        <a:link id="fp300d_detail_save_mon_filed_id"
+                url="${/request/@context_path}/modules/FP/FP300/fund_filling_summary_save.lview"/>
+        <script><![CDATA[
+        var field1_start_date, field2_start_date, field3_start_date, field4_start_date;
+        var field1_end_date, field2_end_date, field3_end_date, field4_end_date;
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            var fill_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_fund_filling');
+            if (ds.id == fill_id && record && ('${/parameter/@function_usage}' == 'CREATE')) {
+                record.set('fill_type', '${/parameter/@fill_type}');
+                record.set('fill_type_n', '${/parameter/@fill_type_n}');
+                record.set('fill_year', '${/parameter/@fill_year}');
+                record.set('fill_year_n', '${/parameter/@fill_year_n}');
+                record.set('unit_id', '${/parameter/@unit_id}');
+                record.set('unit_id_n', '${/parameter/@unit_id_n}');
+                record.set('fill_user_id', '${/parameter/@fill_user_id}');
+                record.set('fill_user_id_n', '${/parameter/@fill_user_id_n}');
+            }
+        }
+
+        //页面加载 初始化行项目
+        Leaf.onReady(function () {
+            if ('${/parameter/@fill_type}' == 'MON') {
+                Leaf.request({
+                    url: "${/request/@context_path}/jc/fund/filling/mon/prompt/query",
+                    para: {
+                        fill_week: '${/parameter/@fill_week}',
+                        fill_year: '${/parameter/@fill_year}',
+                        fill_type: '${/parameter/@fill_type}',
+                        unit_id: '${/parameter/@unit_id}',
+                        fill_quarter: '${/parameter/@fill_quarter}',
+                        fill_mon: '${/parameter/@fill_mon}',
+                        filling_id: '${/parameter/@filling_id}'
+                    },
+                    type: "POST",
+                    success: function (res) {
+                        debugger;
+                        var record = res.result.record[0];
+                        var field1_start_date = record.field1_start_date;
+                        var field2_start_date = record.field2_start_date;
+                        var field3_start_date = record.field3_start_date;
+                        var field4_start_date = record.field4_start_date;
+                        var field1_end_date = record.field1_end_date;
+                        var field2_end_date = record.field2_end_date;
+                        var field3_end_date = record.field3_end_date;
+                        var field4_end_date = record.field4_end_date;
+                        var grid_id = 'FP200D06_G_QUERY_RESULT_jc_fund_filling_ln_layout_grid_id';
+                        var field1_prompt = "第一周(" + record.field1_prompt + ")";
+                        var field2_prompt = "第二周(" + record.field2_prompt + ")";
+                        var field3_prompt = "第三周(" + record.field3_prompt + ")";
+                        var field4_prompt = "第四周(" + record.field4_prompt + ")";
+                        $(grid_id).setColumnPrompt('field1', field1_prompt);
+                        $(grid_id).setColumnPrompt('field2', field2_prompt);
+                        $(grid_id).setColumnPrompt('field3', field3_prompt);
+                        $(grid_id).setColumnPrompt('field4', field4_prompt);
+                    },
+                    error: function (res) {
+                        Leaf.SideBar.show({
+                            type: 'warning',
+                            msg: '操作失败',
+                            duration: 1000
+                        });
+                    },
+                    failure: function (res) {
+                        Leaf.SideBar.show({
+                            type: 'warning',
+                            msg: '操作失败',
+                            duration: 1000
+                        });
+                    },
+                    scope: this
+                });
+
+            }
+
+        });
+
+        //初始化
+        function initialization_fill() {
+            var fill_ln_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_fund_filling_ln');
+            var fill_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_fund_filling');
+            var fill_record = $(fill_ds).getCurrentRecord();
+            var filedNameDate = ['field_1', 'field_2', 'field_3', 'field_4', 'field_5', 'field_6', 'field_7', 'field_8', 'field_9', 'field_10', 'field_11', 'field_12'];
+            Leaf.Masker.mask(Ext.getBody(), '初始化中...');
+            Leaf.request({
+                url: "${/request/@context_path}/jc/fund/filling/summary/mon/init/query",
+                para: {
+                    fill_week: '${/parameter/@fill_week}',
+                    fill_year: '${/parameter/@fill_year}',
+                    fill_type: '${/parameter/@fill_type}',
+                    unit_id: '${/parameter/@unit_id}',
+                    fill_quarter: '${/parameter/@fill_quarter}',
+                    fill_mon: '${/parameter/@fill_mon}',
+                    filling_id: '${/parameter/@filling_id}'
+                },
+                type: "POST",
+                success: function (res) {
+                    debugger;
+                    var filling_id = res.result.record[0].filling_id;
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                    var hd_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_fund_filling');
+                    $(hd_ds).setQueryParameter('filling_id', filling_id);
+                    $(hd_ds).query();
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        type: 'warning',
+                        msg: '操作失败',
+                        duration: 1000
+                    });
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        type: 'warning',
+                        msg: '操作失败',
+                        duration: 1000
+                    });
+                },
+                scope: this
+            });
+        }
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            Leaf.showConfirm('提示', '初始化后已手工维护数据将被清空，是否确认初始化？', function () {
+                //置灰按钮
+                var layout_code = '${/parameter/@layout_code}';
+                var dis_but = layout_code + '_user_button1';
+                $(dis_but).disable();
+                initialization_fill();
+            });
+        }
+        //提交工作流
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            Leaf.Masker.mask(Ext.getBody(), '提交中...');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_fund_filling');
+            var record = $(ds_id).getCurrentRecord();
+            if (record.get('summary_status') == 'APPROVING' || record.get('summary_status') == 'APPROVED') {
+                Leaf.Masker.unmask(Ext.getBody());
+                $L.showMessage('提示', '只有新建和拒绝的单据才可提交审批！');
+                return false;
+            } else {
+                var param = {};
+                param.filling_id = record.get("filling_id");
+                param.summary_status = record.get("summary_status");
+                Leaf.request({
+                    url: "${/request/@context_path}/jc/fund/filling/summary/submit/wfl",
+                    para: param,
+                    success: function (r) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        $("${/parameter/@winid}").close();
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                        Leaf.SideBar.show({
+                            type: 'warning',
+                            msg: '提交失败',
+                            duration: 1000
+                        });
+                    },
+                    scope: this
+                });
+            }
+        }
+
+        //数字输入保存函数
+        function inputNum(ds_id, record_id, name) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '资金计划填报明细';
+            param['fill_item'] = record.get('fill_item');
+            param['filling_ln_id'] = record.get('filling_ln_id');
+            param['function_code'] = 'FP300S';
+            param['fill_year'] = '${/parameter/@fill_year}';
+            param['fill_quarter'] = '${/parameter/@fill_quarter}';
+            param['fill_mon'] = '${/parameter/@fill_mon}';
+            param['fill_week'] = '${/parameter/@fill_week}';
+            param['fill_type'] = '${/parameter/@fill_type}';
+            param['filling_id'] = '${/parameter/@filling_id}';
+            param['name'] = name;
+            param['function_usage'] = '${/parameter/@function_usage}';
+            param['winid'] = 'fp300_summary_quarter_winId';
+            hls_doc_get_layout_code(param, 'fp300d_detail_save_mon_filed_id', ds_id, 'FP200');
+            // var win = new Leaf.Window({
+            //     id: 'fp300_summary_quarter_winId',
+            //     url: $('fp300d_detail_save_mon_filed_id').getUrl(),
+            //     params: {
+            //         filling_ln_id: record.get("filling_ln_id"),
+            //         name: name,
+            //         fill_item:record.get("fill_item"),
+            //         function_code: "FP300S",
+            //         function_usage: '${/parameter/@function_usage}',
+            //         // layout_debugger_flag:"Y",
+            //         fill_year: '${/parameter/@fill_year}',
+            //         unit_id:'${/parameter/@unit_id}',
+            //         fill_quarter:'${/parameter/@fill_quarter}',
+            //         fill_mon: '${/parameter/@fill_mon}',
+            //         fill_week:'${/parameter/@fill_week}',
+            //         fill_type:'${/parameter/@fill_type}',
+            //         filling_id:'${/parameter/@filling_id}',
+            //         winId: 'fp300_summary_quarter_winId'
+            //     },
+            //     title: '资金计划汇总填报',
+            //     fullScreen: false,
+            //     width: 1300,
+            //     height: 440,
+            //     draggable: true
+            // });
+            // win.on('close', function () {
+            //     debugger;
+            //     var ln_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_fund_filling_ln');
+            //     $(ln_ds_id).query();
+            // });
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            //针对所有字段超链接进行识别
+            if (record.get('fill_item_code') == 'PRINCIPAL' || record.get('fill_item_code') == 'INTEREST' || record.get('fill_item_code') == 'LEGAL_FEE' || record.get('fill_item_code') == 'DEPOSIT' || record.get('fill_item_code') == 'LOAN_DELIVERY') {
+                if (name === 'field1' || name === 'field2' || name === 'field3' || name === 'field4' || name === 'field5' || name === 'field6'
+                    || name === 'field7' || name === 'field8' || name === 'field9' || name === 'field10' || name === 'field11' || name === 'field12') {
+                    if (value) {
+                        return '<a href="javascript:open_fp_detail_win(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + name + '\')">' + Leaf.formatMoney(value) + '</a>';
+                    } else {
+                        return '<a href="javascript:open_fp_detail_win(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + name + '\')">' + Leaf.formatMoney(0.00)  + '</a>';
+                    }
+                }
+            } else if (record.get('fill_item_code') != 'IN_THE') {
+                if (record.get('fill_item_code') == 'SX_KYHA' || record.get('fill_item_code') == 'SX_BLHA' || record.get('fill_item_code') == 'TJ_KYHA' || record.get('fill_item_code') == 'TJ_BLHA' || record.get('fill_item_code') == 'ZB_AMOUNT'
+                    || record.get('fill_item_code') == 'WD_AMOUNT_NEW' || record.get('fill_item_code') == 'WD_AMOUNT_CHANGE' || record.get('fill_item_code') == 'YD_AMOUNT_NEW' || record.get('fill_item_code') == 'ZQ_AMOUNT' || record.get('fill_item_code') == 'PJ_AMOUNT'
+                    || record.get('fill_item_code') == 'OTHER_AMOUNT' || record.get('fill_item_code') == 'ZB_AMOUNT1' || record.get('fill_item_code') == 'WD_AMOUNT_NEW1' || record.get('fill_item_code') == 'WD_AMOUNT_CHANGE1' || record.get('fill_item_code') == 'YD_AMOUNT_NEW1'
+                    || record.get('fill_item_code') == 'ZQ_AMOUNT1' || record.get('fill_item_code') == 'PJ_AMOUNT1' || record.get('fill_item_code') == 'OTHER_AMOUNT1' || record.get('fill_item_code') == 'PRINCIPAL_WD' || record.get('fill_item_code') == 'INTEREST_WD'
+                    || record.get('fill_item_code') == 'LEGAL_FEE_WD' || record.get('fill_item_code') == 'PRINCIPAL_YD2' || record.get('fill_item_code') == 'PRINCIPAL_YD3' || record.get('fill_item_code') == 'LEGAL_FEE_YD3' || record.get('fill_item_code') == 'FEE_ZQ'
+                    || record.get('fill_item_code') == 'DEPOSIT_WD' || record.get('fill_item_code') == 'PRINCIPAL_YD1' || record.get('fill_item_code') == 'INTEREST_YD1' || record.get('fill_item_code') == 'DEPOSIT_YD1' || record.get('fill_item_code') == 'LEGAL_FEE_PJ'
+                    || record.get('fill_item_code') == 'PRINCIPAL_WD_TJ' || record.get('fill_item_code') == 'DEPOSIT_YD' || record.get('fill_item_code') == 'INTEREST_YD2' || record.get('fill_item_code') == 'DEPOSIT_YD2' || record.get('fill_item_code') == 'DEPOSIT_PJ'
+                    || record.get('fill_item_code') == 'INTEREST_WD_TJ' || record.get('fill_item_code') == 'LEGAL_FEE_YD' || record.get('fill_item_code') == 'INTEREST_YD3' || record.get('fill_item_code') == 'DEPOSIT_YD3' || record.get('fill_item_code') == 'PLUS_PJ'
+                    || record.get('fill_item_code') == 'LEGAL_FEE_WD_TJ' || record.get('fill_item_code') == 'INTEREST_YD' || record.get('fill_item_code') == 'LEGAL_FEE_YD1' || record.get('fill_item_code') == 'PRINCIPAL_ZQ' || record.get('fill_item_code') == 'LEGAL_FEE_PJ_TJ'
+                    || record.get('fill_item_code') == 'DEPOSIT_WD_TJ' || record.get('fill_item_code') == 'PRINCIPAL_YD' || record.get('fill_item_code') == 'LEGAL_FEE_YD2' || record.get('fill_item_code') == 'INTEREST_ZQ' || record.get('fill_item_code') == 'DEPOSIT_PJ_TJ'
+                    || record.get('fill_item_code') == 'PLUS_PJ_TJ' || record.get('fill_item_code') == 'SALARY_BONUS' || record.get('fill_item_code') == 'TAX_FEE' || record.get('fill_item_code') == 'PURCHASE_OTHER') {
+                    if (value) {
+                        record.getField(name).setReadOnly(false);
+                        record.isReady = false;
+                        return '<a  href="#' + Math.random() + '" onclick="inputNum(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + name + '\')">' + Leaf.formatMoney(value) + '</a>';
+                    } else {
+                        record.getField(name).setReadOnly(false);
+                        record.isReady = false;
+                        return '<a  href="#' + Math.random() + '" onclick="inputNum(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + name + '\')">' + Leaf.formatMoney(0.00) + '</a>';
+                    }
+                } else {
+                    if (value) {
+                        return Leaf.formatMoney(value);
+                    } else {
+                        return Leaf.formatMoney(0.00);
+                    }
+
+                }
+            }
+        }
+
+        function open_fp_detail_win(ds_id, record_id, name) {
+            // debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var fund_type;
+            var fill_mon = '${/parameter/@fill_mon}';
+            var fill_year = record.get('fill_year');
+            if (name == 'field1') {
+                fund_type = fill_year + '-'+ fill_mon +'-01';
+                param['field_start_date'] = field1_start_date;
+                param['field_end_date'] = field1_end_date;
+            } else if (name == 'field2') {
+                fund_type = fill_year + '-'+ fill_mon +'-02';
+                param['field_start_date'] = field2_start_date;
+                param['field_end_date'] = field2_end_date;
+            } else if (name == 'field3') {
+                fund_type = fill_year  + '-'+ fill_mon +'-03';
+                param['field_start_date'] = field3_start_date;
+                param['field_end_date'] = field3_end_date;
+            } else if (name == 'field4') {
+                fund_type = fill_year  + '-'+ fill_mon +'-04';
+                param['field_start_date'] = field4_start_date;
+                param['field_end_date'] = field4_end_date;
+            }
+            param['url_title'] = '资金计划填报汇总明细';
+            param['fill_item'] = record.get('fill_item');
+            param['fund_type'] = fund_type;
+            param['filling_ln_id'] = record.get('filling_ln_id');
+            param['function_code'] = 'FP200D01D';
+            param['function_usage'] = '${/parameter/@function_usage}';
+            param['winid'] = 'fp3_d01d_detail_winid';
+            hls_doc_get_layout_code(param, 'fp300d01d_detail_modify_id', ds_id, 'FP200');
+        }
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_fund_filling_ln');
+            var record = $(ds_id).getCurrentRecord();
+            Leaf.Masker.mask(Ext.getBody(), '金额更新中...');
+            Leaf.request({
+                url: "${/request/@context_path}/jc/fund/filling/detail/summary/update",
+                para: {
+                    fill_year: record.get('fill_year'),
+                    host_unit_id: record.get('unit_id'),
+                    filling_id: record.get('filling_id'),
+                    fill_type: record.get('fill_type'),
+                    fill_quarter: record.get('fill_quarter'),
+                    fill_mon: record.get('fill_mon'),
+                    fill_week: record.get('fill_week')
+                },
+                type: "POST",
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        type: 'warning',
+                        msg: '操作失败',
+                        duration: 1000
+                    });
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        type: 'warning',
+                        msg: '操作失败',
+                        duration: 1000
+                    });
+                },
+                scope: this
+            });
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

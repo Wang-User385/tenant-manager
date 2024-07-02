@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="warrrant_info_detaill_id"
+                url="${/request/@context_path}/modules/WARRANT/WARRANT001/warrant_info_detail.lview"/>
+        <a:link id="warrrant_stock_out_in_link"
+                url="${/request/@context_path}/modules/WARRANT/WARRANT004/warrant_stock_out_in_detail.lview"/>
+
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+
+        <script><![CDATA[
+
+        //维护权证明细
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_warrant');
+            var dsRecord = $(ds_id).getSelected();
+            if(dsRecord.length != 1){
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                $L.showInfoMessage("提示","请选择一条合同进行权证信息维护!");
+                return ;
+            }else {
+                var param = dsRecord[0].data;
+                param['url_title'] = '权证详细信息';
+                param['function_code'] = 'WARRANT001F1';
+                param['winid'] = 'warrant_detail_new_winid';
+                param['ds_id'] = ds_id;
+                param['function_usage'] = 'MODIFY';
+                var link_id = 'warrrant_info_detaill_id';
+                console.log(param);
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                hls_doc_get_layout_code(param, link_id, ds_id, 'WARRANT001');
+
+            }
+        }
+
+
+
+        //查看出入库记录
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item_warrant');
+            var dsRecord = $(ds_id).getSelected();
+            if(dsRecord.length != 1){
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                $L.showInfoMessage("提示","请选择一条合同查看出入库记录!");
+                return ;
+            }else {
+                var project_id = '';
+                for(var i = 0 ; i < dsRecord.length ; i ++ ){
+                    project_id = dsRecord[0].data.project_id ;
+                }
+
+                var param = dsRecord[0].data;
+                param['url_title'] = '权证出入库记录';
+                param['function_code'] = 'WARRANT004';
+                param['ds_id'] = ds_id;
+                param['function_usage'] = 'MODIFY';
+                param['project_id'] = project_id;
+                var link_id = 'warrrant_stock_out_in_link';
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                hls_doc_get_layout_code(param, link_id, ds_id, 'WARRANT001');
+
+            }
+        }
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'open_contract_detail_win';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'contract_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+
+            var warrant_detail_link_detail = 'warrant_detail_link_detail';
+            if(name == 'warrant_detail'){
+                return '<a href="javascript:window[\'' + warrant_detail_link_detail + '\'](\'' + record.id + '\',\'' + record.ds.id  + '\');">权证明细</a>';
+            }
+
+            var warrant_stock_link_function = 'warrant_stock_link_detail';
+            if(name == 'warrant_inout_detail'){
+                return '<a href="javascript:window[\'' + warrant_stock_link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\',\'' + record.get('project_id')  + '\');">出入库记录</a>';
+            }
+        };
+
+
+        function open_contract_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '合同明细';
+            param['function_code'] = 'CONT301F1';
+            param['winid'] = 'con_contract_detail_winid';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+
+            hls_doc_get_layout_code(param, 'con_contract_detail_id', ds_id, 'WARRANT001');
+        }
+
+        function warrant_detail_link_detail(record_id  , ds_id ) {
+
+
+            var param =  $(ds_id).findById(record_id).data;
+            param['url_title'] = '权证详细信息';
+            param['function_code'] = 'WARRANT001F1';
+            param['winid'] = 'warrant_detail_new_winid';
+            param['ds_id'] = ds_id;
+            param['function_usage'] = 'QUERY';
+            var link_id = 'warrrant_info_detaill_id';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            hls_doc_get_layout_code(param, link_id, ds_id, 'WARRANT001');
+
+        }
+
+
+        function warrant_stock_link_detail(record_id  , ds_id , project_id) {
+
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '权证出入库记录';
+            param['function_code'] = 'WARRANT004';
+            param['function_usage'] = 'QUERY';
+            param['project_id'] = project_id;
+            var link_id = 'warrrant_stock_out_in_link';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            hls_doc_get_layout_code(param, link_id, null , 'WARRANT001');
+
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure outputPath="/parameter">
+        <a:model-query model="$com.hand.hls.fnd.service.IHlsFndAttributeSequenceService.selectHeaderId"
+                       rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator=","
+                        status_field="/parameter/@ImportSuccess" template_code="CSH_TRANSACTION_RECEIPT"
+                        user_id="${/session/@user_id}"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+
+        function returnBack() {
+            top.refreshFrame();
+        }
+
+        function saveBtn() {
+            var winId = '${/parameter/@winId}';
+            Leaf.Masker.mask($(winId).wrap, '导入中');
+            var head_id = '${/model/header/record/@header_id}';
+            Leaf.request({
+                type: 'POST',
+                url: "${/request/@context_path}/csh/transaction/receipt/import?headerId=" + head_id+"&templateCode=XINGYE&readLine=0",
+                async: true, //设为同步
+                contentType: "application/json; charset=utf-8",
+                success: function (res) {
+                    Leaf.showMessage('提示', res.message);
+                    $('saveBtn_id').enable();
+
+                    returnBack();
+                },error: function (e) {
+                    $('saveBtn_id').enable();
+                },
+                failure: function (e) {
+                    $('saveBtn_id').enable();
+                }
+            });
+
+        }
+
+        function disableBtn() {
+            $('saveBtn_id').disable();
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="temp_interface_ds" autoQuery="true"
+                       queryDataSet="temp_interface_query_ds"
+                       queryUrl="${/request/@context_path}/fnd/interface/lines/query?headerId=${/model/header/record/@header_id}&amp;readLine=0">
+                <a:events>
+                    <a:event name="submitsuccess" handler="disableBtn"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form id="success_form" height="400" title="收款新增导入" marginWidth="100">
+                <a:grid id="temp_interface_grid_id" bindTarget="temp_interface_ds" marginHeight="150" navBar="true"
+                        marginWidth="150">
+                    <a:columns>
+                        <a:column name="attributes_1" width="150" prompt="银行流水号" align="left"/>
+                        <a:column name="attributes_16" width="80" prompt="收款日期" align="center"/>
+                        <a:column name="attributes_8" width="100" prompt="收款金额" align="right"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column name="attributes_10" width="150" prompt="摘要"/>
+                        <a:column name="attributes_12" width="130" prompt="对方账户" align="left"/>
+                        <a:column name="attributes_11" width="120" prompt="对方账号" align="left"/>
+                        <a:column name="attributes_13" width="130" prompt="银行名称" align="left"/>
+
+                    </a:columns>
+                </a:grid>
+                <a:screenTopToolbar>
+                    <a:gridButton id="saveBtn_id" click="saveBtn" text="DETERMINING_IMPORT"/>
+                    <a:gridButton click="returnBack" text="HAP_BACK"/>
+                </a:screenTopToolbar>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,766 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="csh_payment_req_payment_link" url="${/request/@context_path}/csh/write/off/payment"/>
+        <a:link id="hls_payment_dt_link"
+                url="${/request/@context_path}/modules/CAP/CAP100/hls_payment_dt.lview"/>
+        <a:link id="bill001f111_query_link_id"
+                url="${/request/@context_path}/modules/BILL/BILL001/hls_bill_request_wfl.lview"/>
+        <script><![CDATA[
+
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+
+
+            if ('${/parameter/@function_code}' == 'CSH008' && '${/parameter/@function_usage}' == 'MODIFY') {
+                var head_record = ds.getAt(0);
+
+
+                head_record.set('financial_unit_id_n', '${/session/@unitName}');
+                head_record.set('financial_unit_id', '${/session/@unitId}');
+                head_record.set('financial_agent_id', '${/session/@employeeId}');
+                head_record.set('financial_agent_id_n', '${/session/@employeeName}');
+
+
+            }
+        }
+
+        //去支付
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            //先校验是否维护了实际付款
+            var up_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account', 'F-ACTPAY_UP1');
+            //var down_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account', 'F-ACTPAY_DOWN1');
+            var up_records = $(up_ds_id).getAll();
+            //var down_records = $(down_ds_id).getAll();
+
+            /*if(up_records.length === 0 && down_records.length === 0){
+                $L.showInfoMessage("提示", "请维护实际支付信息!", null);
+                return false;
+            } else {
+                if (up_records.length > 0 && (up_records[0].get('csh_bank_id') === undefined || up_records[0].get('csh_bank_id') === null)){
+                    $L.showInfoMessage("提示", "请先保存实际支付信息!", null);
+                    return false;
+                }
+                if (down_records.length > 0 && (down_records[0].get('csh_bank_id') === undefined || down_records[0].get('csh_bank_id') === null)){
+                    $L.showInfoMessage("提示", "请先保存实际支付信息!", null);
+                    return false;
+                }
+
+                window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                    pay();
+                });
+            }*/
+
+            if(up_records.length === 0 ){
+                $L.showInfoMessage("提示", "请维护实际支付信息!", null);
+                return false;
+            } else {
+                if (up_records.length > 0 && (up_records[0].get('csh_bank_id') === undefined || up_records[0].get('csh_bank_id') === null)){
+                    $L.showInfoMessage("提示", "请先保存实际支付信息!", null);
+                    return false;
+                }
+
+
+                window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                    pay();
+                });
+            }
+        };
+
+        function pay() {
+            debugger;
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var csh_payment_req_hd_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd', 'F_FORM');
+            var csh_record = $(csh_payment_req_hd_ds).getCurrentRecord();
+            var itemFlag = 'N';
+            /*var hls_funding_plan_ln_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_funding_plan_ln');
+            var fund_record = $(hls_funding_plan_ln_ds).getAll();*/
+
+            /*var eft_fund_transfer_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'eft_fund_transfer_list');
+            var transfer_record = $(eft_fund_transfer_ds).getAll();*/
+
+            //取投放净值 ，作为付款金额
+            var transaction_amount = csh_record.get('loan_net_amount');
+            var transaction_date = csh_record.get('transaction_date');
+            var actual_pay_date = csh_record.get('actual_pay_date');
+            var currency = csh_record.get('currency');
+            var contract_id = csh_record.get('contract_id');
+            var funding_plan_id = '${/parameter/@funding_plan_id}';
+            var payment_req_id = csh_record.get('payment_req_id');
+
+
+            var today_date = Leaf.formatDate(new Date());
+
+            transaction_date = Leaf.formatDate(transaction_date);
+            actual_pay_date = Leaf.formatDate(actual_pay_date);
+
+            if (!actual_pay_date) {
+                Leaf.showErrorMessage('提示', '请选择实际支付日期');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return false;
+            }
+            if (actual_pay_date > today_date) {
+                Leaf.showErrorMessage('提示', '实际支付日期不能大于当前日期');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return false;
+            }
+            //资金投放计划 , 付款行表  , csh_write_off表
+            //判断是否支付设备款 itemFlag
+            /*var hlsCusCshPaymentReqLns = [];
+            for (var i = 0; i < fund_record.length; i++) {
+
+                if (fund_record[i].data.cf_item == 0 || fund_record[i].data.cf_item == 90) {
+                    itemFlag = 'Y';
+                }
+                fund_record[i].data.payment_completed_date = transaction_date;
+                hlsCusCshPaymentReqLns.push(fund_record[i].data);
+
+            }*/
+
+            //调拨信息 -- 即插入到现金事务明细表 , csh_transaction_dtl 表
+            /*var hlsCusCshTransactionDtls = [];
+            for (var i = 0; i < transfer_record.length; i++) {
+
+                transfer_record[i].data.payment_completed_date = transaction_date;
+                hlsCusCshTransactionDtls.push(transfer_record[i].data);
+            }*/
+
+
+            new Leaf.showConfirm("提示", "确认支付么？", function okFun() {
+
+
+                Leaf.request({
+                    url: $('csh_payment_req_payment_link').getUrl(),
+                    para: {
+                        //hlsCusCshPaymentReqLns: hlsCusCshPaymentReqLns,
+                        //hlsCusCshTransactionDtls: hlsCusCshTransactionDtls,
+                        transactionAmount: transaction_amount,
+                        transactionDate: actual_pay_date,
+                        actual_pay_date: actual_pay_date,
+                        currency: currency,
+                        contract_id: contract_id,
+                        //itemFlag: itemFlag,
+                        fundingPlanId: funding_plan_id,
+                        payment_req_id: payment_req_id
+                    },
+                    success: function (res) {
+
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        $L.showInfoMessage("提示", "付款支付成功!", function () {
+                            $('${/parameter/@parent_ds}').query();
+                            $('${/parameter/@winid}').close();
+                        });
+
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+
+            }, function cancel() {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }, 200, 100);
+
+
+        }
+
+        function send(informations) {
+
+            var winId = '${/parameter/@winId}';
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: '${/request/@context_path}/csh/write/off/payment/submit',
+                method: "POST",
+                dataType: "json",
+                async: false,
+                contentType: "application/json",
+                para: {hlsCusCshWriteOffList: informations},
+                success: function (json) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    if (json.success) {
+                        Leaf.showInfoMessage("提示", "支付成功", function (event) {
+                            $('${/parameter/@parent_ds}').query();
+                            $('${/parameter/@winid}').close();
+                        })
+                    } else {
+                        Leaf.showErrorMessage(json.message);
+                        return false;
+                    }
+                },
+                error: function (e) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (e) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                }
+            });
+        }
+
+        // 超链接渲染 抵扣明细
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+
+            if (name == 'payment_deduction') {
+                return '<a href="javascript:open_payment_dt_detail_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '抵扣明细' + '</a>';
+            } else if (name == 'bill' && record.get('bill_id')) {
+                return '<a href="javascript:open_bill_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '票据明细' + '</a>';
+            }
+            return value;
+        };
+
+
+        function open_bill_win(ds_id, record_id) {
+
+            var record = $(ds_id).findById(record_id);
+            var param = {};
+            param['bill_id'] = record.data.bill_id;
+            param['function_code'] = 'BILL001F5';
+            param['url_title'] = '票据开具申请查询';
+            param['function_usage'] = 'QUERY';
+            hls_doc_get_layout_code(param, 'bill001f111_query_link_id', ds_id, 'BILL001F2');
+
+
+        }
+
+        function open_payment_dt_detail_win(ds_id, record_id) {
+
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['function_code'] = 'DT001';
+            param['url_title'] = '抵扣明细';
+            param['function_usage'] = 'QUERY';
+
+            param['winid'] = 'hls_payment_dt_detail_winid';
+
+            hls_doc_get_layout_code(param, 'hls_payment_dt_link', ds_id, 'CSH007');
+        }
+
+
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            var redemption_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln');
+
+            if ($(ds_id).isModified()) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('提示', '${l:EXIT_BEFORE_SAVE}');
+                return;
+            }
+            if ($(ds_id).validate()) {
+                var record = $(ds_id).data[0].data;
+                var payment_req_id = record.payment_req_id;
+                if (payment_req_id != null) {
+                    new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                        window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                        Leaf.request({
+                            url: "${/request/@context_path}/hls/cus/con/payment/submit/wfl?paymentReqId=" + payment_req_id,
+                            success: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                if (res.success) {
+                                    //$('${/parameter/@parent_winid}').close();
+                                    $("${/parameter/@winid}").close();
+
+                                } else {
+                                    Leaf.showErrorMessage('提示', res.message);
+                                }
+                            },
+                            failure: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            error: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            scope: this
+                        });
+                    }, function cancel() {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    }, 200, 100);
+                } else {
+                    $L.showInfoMessage("提示", "请先保存!", null);
+                }
+            } else {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }
+
+        }
+        //indexchange事件(grid,attach,gridbox,table)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_indexchange'] = function (ds, record, bp_seq) {
+            debugger;
+            if (ds.id === '${/parameter/@layout_code}_G_PLAN_csh_payment_req_ln_ds' && '${/parameter/@function_code}' == 'CSH008NEW') {
+                var payment_req_ln_id = record.get('payment_req_ln_id');
+                //线上支付Tab
+                var up_bank_account_ds = $('${/parameter/@layout_code}_F-ACTPAY_UP1_csh_pay_req_ln_bank_account_ds');
+                up_bank_account_ds.setQueryParameter('payment_req_ln_id', payment_req_ln_id);
+                up_bank_account_ds.setQueryParameter('payment_name', 'TT');
+                up_bank_account_ds.query();
+                //线下支付Tab
+                // var down_bank_account_ds = $('${/parameter/@layout_code}_F-ACTPAY_DOWN1_csh_pay_req_ln_bank_account_ds');
+                // down_bank_account_ds.setQueryParameter('payment_req_ln_id', payment_req_ln_id);
+                // down_bank_account_ds.setQueryParameter('payment_name', 'OTHER');
+                // down_bank_account_ds.query();
+            }
+        };
+
+
+        function getActualAmount(payment_req_id) {
+
+            var amount = null;
+            Leaf.request({
+                url: '${/request/@context_path}/csh/payment/queryActualPaymentAmount',
+                para: {
+                    paymentReqId: payment_req_id
+
+                },
+                sync: true,
+                success: function (datas) {
+                    if (datas.result.record.length > 0) {
+                        amount = datas.result.record[0];
+                    }
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                scope: this
+            });
+            return amount;
+        }
+
+        function getPayAmount(payment_req_id) {
+
+            var payAmount = null;
+            Leaf.request({
+                url: '${/request/@context_path}/csh/payment/queryPaymentAmount',
+                para: {
+                    paymentReqId: payment_req_id
+
+                },
+                sync: true,
+                success: function (datas) {
+                    if (datas.result.record.length > 0) {
+                        payAmount = datas.result.record[0];
+                    }
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                scope: this
+            });
+            return payAmount;
+        }
+
+        //保存前调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+
+            //TODO 二期功能：检验实际支付金额
+            // var up_ln_bank_account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account','F-ACTPAY_UP1');
+            // var upBankAccountRecords = $(up_ln_bank_account_ds_id).getAll();
+            // var upReqPaymentAmount = 0;
+            //
+            // var down_ln_bank_account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account','F-ACTPAY_DOWN1');
+            // var downBankAccountRecords = $(down_ln_bank_account_ds_id).getAll();
+            // var downReqPaymentAmount = 0;
+
+            var actual_payment_amount = getActualAmount('${/parameter/@payment_req_id}');
+
+
+            var payment_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd','F_FORM');
+            var hdRecords = $(payment_hd_ds_id).getAll();
+            var headReqPaymentAmount = 0;
+            if(hdRecords.length !== 0){
+                for(i=0;i<hdRecords.length;i++){
+                    headReqPaymentAmount =  plus(headReqPaymentAmount,hdRecords[i].get('loan_total_amount'));
+                }
+            }
+
+            if (minus(actual_payment_amount, headReqPaymentAmount) > 0){
+                check_flag = false;
+                Leaf.showMessage('提示', '实际支付信息的付款金额大于本次付款总额，请修改后再保存！');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return check_flag;
+            }
+
+            // if (upBankAccountRecords.length !== 0){
+            //     for (i = 0; i < upBankAccountRecords.length; i++) {
+            //         upReqPaymentAmount = plus(upReqPaymentAmount, upBankAccountRecords[i].get('actual_payment_amount'));
+            //     }
+            //     if (minus(upReqPaymentAmount, headReqPaymentAmount) > 0){
+            //         check_flag = false;
+            //         Leaf.showMessage('提示', '实际支付信息的付款金额大于本次付款总额，请修改后再保存！');
+            //         window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //         return check_flag;
+            //     }
+            // }
+            //
+            // if (downBankAccountRecords.length !== 0){
+            //     for (i = 0; i < downBankAccountRecords.length; i++) {
+            //         downReqPaymentAmount = plus(downReqPaymentAmount, downBankAccountRecords[i].get('payment_amount'));
+            //     }
+            //     if (minus(downReqPaymentAmount, headReqPaymentAmount) > 0){
+            //         check_flag = false;
+            //         Leaf.showMessage('提示', '实际支付信息的付款金额大于本次付款总额，请修改后再保存！');
+            //         window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //         return check_flag;
+            //     }
+            // }
+
+            var ln_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln');
+            var records = $(ln_ds_id).getAll();
+            if(records.length != 0){
+                for(i=0;i<records.length;i++){
+                    var unpaid_amount = minus(records[i].get("sum_due_amount"),records[i].get("paid_amount_total"));
+                    if(minus(records[i].get("current_applied_amount") , unpaid_amount) > 0 ){
+                        check_flag = false;
+                        Leaf.showMessage('提示', '累计已支付金额与本次申请金额之和大于总额，请修改后保存！');
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        return check_flag;
+                    }
+
+                    var current_applied_amount = records[i].get("current_applied_amount");
+                    if(current_applied_amount == 0){
+                        check_flag = false;
+                        Leaf.showMessage('提示', '本次申请金额不能为0，请修改后保存！');
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        return check_flag;
+                    }
+                }
+            }
+
+            Leaf.request({
+                url: '${/request/@context_path}/csh/payment/req/hd/status',
+                para: {
+                    paymentReqId: '${/parameter/@payment_req_id}'
+                },
+                sync: true,
+                success: function (datas) {
+                    if (datas.result.record.length > 0) {
+                        if (datas.result.record[0].payment_approved_status == "APPROVING" || datas.result.record[0].payment_approved_status == "APPROVED") {
+                            check_flag = false;
+                            Leaf.showMessage('提示！', '该笔单据已经提交审批,不能更改！');
+                        }
+                    }
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                scope: this
+            });
+
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            return check_flag;
+        };
+        //更新时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            var head = $(ds_id).getCurrentRecord();
+            if (name == 'payment_amount') {
+                if (head.get('currency') == 'CNY') {
+                    var amount = 1;
+                    var amount1 = record.get('payment_amount') * amount;
+                    record.set('rate', amount);
+                    record.set('actual_payment_amount', amount1);
+
+                } else {
+                    Leaf.request({
+                        url: '${/request/@context_path}/csh/payment/dailyrate/query',
+                        para: {
+                            currency: head.get('currency'),
+                            actual_pay_date: head.get('actual_pay_date')
+                        },
+                        success: function (res) {
+
+                            if (res.result.record.length > 0) {
+                                var amount = res.result.record[0].daily_rate;
+                                var amount1 = record.get('payment_amount') * amount;
+                                record.set('rate', amount);
+                                record.set('actual_payment_amount', amount1);
+                            } else {
+                                $L.showInfoMessage("提示", "未找到汇率!", null);
+                            }
+
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }
+
+            }
+            if (name == 'payment_method' && '${/parameter/@function_code}' == 'CSH008F2') {
+
+                if (value == 'BANK_ACCEPTANCE' || value == 'BUSINESS_ACCEPTANCE' || value == 'INTERNATIONAL_CREDIT' || value == 'DOMESTIC_CREDIT' || value == 'LETTER_GUARANTEE') {
+                    record.getField('bill_id').setRequired(true);
+                    record.getField('bill_id_n').setRequired(true);
+
+                } else {
+                    record.getField('bill_id_n').setRequired(false);
+                    record.getField('bill_id').setRequired(false);
+
+                }
+            }
+
+            /* if(name=='actual_payment_amount'){
+                var  sum= getActualAmount('${/parameter/@payment_req_id}')
+                 head.set('actual_hd_pay_amount',sum)
+             }*/
+            //工作流更新实际付款日 保存
+            if('${/parameter/@function_code}' == 'CSH008F2'){
+                if(name=='actual_pay_date' && value){
+
+                    $(ds_id).submit();
+                }
+            }
+
+            //二期功能：金额校验
+            if (name == 'payment_amount'){
+                var up_ln_bank_account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account','F-ACTPAY_UP1');
+                var upBankAccountRecords = $(up_ln_bank_account_ds_id).getAll();
+                var upReqPaymentAmount = 0;
+
+                // var down_ln_bank_account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account','F-ACTPAY_DOWN1');
+                // var downBankAccountRecords = $(down_ln_bank_account_ds_id).getAll();
+                // var downReqPaymentAmount = 0;
+
+
+                var ds_ln_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln');
+                var line_record = $(ds_ln_id).getCurrentRecord();
+                var lnDueAmount = line_record.get('due_amount_ln');
+
+                if (upBankAccountRecords.length !== 0){
+                    for (i = 0; i < upBankAccountRecords.length; i++) {
+                        upReqPaymentAmount = plus(upReqPaymentAmount, upBankAccountRecords[i].get('payment_amount'));
+                    }
+                    if (minus(upReqPaymentAmount, lnDueAmount) > 0){
+                        Leaf.showMessage('提示', '实际支付信息的付款金额之和大于当前付款信息行金额，请检查！');
+                    }
+                }
+                /*if (downBankAccountRecords.length !== 0){
+                    for (i = 0; i < downBankAccountRecords.length; i++) {
+                        downReqPaymentAmount = plus(downReqPaymentAmount, downBankAccountRecords[i].get('payment_amount'));
+                    }
+                    if (minus(downReqPaymentAmount, lnDueAmount) > 0){
+                        Leaf.showMessage('提示', '实际支付信息的付款金额之和大于当前付款信息行金额，请检查！');
+
+                    }
+                }*/
+            }
+            if (name == 'actual_payment_amount'){
+                var up_ln_bank_account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account','F-ACTPAY_UP1');
+                var upBankAccountRecords = $(up_ln_bank_account_ds_id).getAll();
+                var upReqPaymentAmount = 0;
+
+                //var down_ln_bank_account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account','F-ACTPAY_DOWN1');
+                //var downBankAccountRecords = $(down_ln_bank_account_ds_id).getAll();
+                //var downReqPaymentAmount = 0;
+
+
+                var ds_ln_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln');
+                var line_record = $(ds_ln_id).getCurrentRecord();
+                var lnDueAmount = line_record.get('due_amount_ln');
+
+                if (upBankAccountRecords.length !== 0){
+                    for (i = 0; i < upBankAccountRecords.length; i++) {
+                        upReqPaymentAmount = plus(upReqPaymentAmount, upBankAccountRecords[i].get('actual_payment_amount'));
+                    }
+                    if (minus(upReqPaymentAmount, lnDueAmount) > 0){
+                        Leaf.showMessage('提示', '实际支付信息的付款金额之和大于当前付款信息行金额，请检查！');
+                    }
+                }
+                /*if (downBankAccountRecords.length !== 0){
+                    for (i = 0; i < downBankAccountRecords.length; i++) {
+                        downReqPaymentAmount = plus(downReqPaymentAmount, downBankAccountRecords[i].get('actual_payment_amount'));
+                    }
+                    if (minus(downReqPaymentAmount, lnDueAmount) > 0){
+                        Leaf.showMessage('提示', '实际支付信息的付款金额之和大于当前付款信息行金额，请检查！');
+
+                    }
+                }*/
+            }
+
+        }
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            debugger
+            var ds_head_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            var head_record = $(ds_head_id).getCurrentRecord();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account');
+            if (ds_id == ds.id && ds.id) {
+                record.set('payment_name', decodeURI(decodeURI(decodeURI('${/parameter/@companySpvN}'))));
+                record.set('payment_name_id', '${/parameter/@companySpv}');
+                record.set('process_instance_id', '${/parameter/@process_instance_id}');
+            }
+            /*if (!head_record.get('actual_pay_date')) {
+                Leaf.showMessage('${l:PROMPT}', '请维护首次支付日期');
+                return false;
+            }*/
+
+            // 二期功能：根据付款行中的付款方式设置实际付款信息新增方式
+            if (ds.id ===  '${/parameter/@layout_code}_F-ACTPAY_UP1_csh_pay_req_ln_bank_account_ds'){
+                record.set('payment_name','TT');
+
+            }
+            //20230310 update:业务要求去掉这部分校验
+            /*var ds_ln_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln');
+            var line_record = $(ds_ln_id).getCurrentRecord();
+            if ("TT" === line_record.get('payment_method')){
+                if (ds.id ===  '${/parameter/@layout_code}_F-ACTPAY_UP1_csh_pay_req_ln_bank_account_ds'){
+                    record.set('payment_name',line_record.get('payment_method'));
+
+                }else if (ds.id ===  '${/parameter/@layout_code}_F-ACTPAY_DOWN1_csh_pay_req_ln_bank_account_ds'){
+                    ds.remove(record);
+                    Leaf.showMessage('提示', '当前付款行的付款方式下，只能在 线上支付 标签页下进行新增！');
+                    return false;
+                }
+            }
+
+            if ("OTHER" === line_record.get('payment_method')){
+                if (ds.id ===  '${/parameter/@layout_code}_F-ACTPAY_UP1_csh_pay_req_ln_bank_account_ds'){
+                    ds.remove(record);
+                    Leaf.showMessage('提示', '当前付款行的付款方式下，只能在 线下支付 标签页下进行新增！');
+                    return false;
+                }else if (ds.id ===  '${/parameter/@layout_code}_F-ACTPAY_DOWN1_csh_pay_req_ln_bank_account_ds'){
+
+                }
+            }*/
+
+
+        }
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            var ln_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln');
+
+
+            if (ds.id == ln_ds_id && record) {
+                if ('${/parameter/@function_code}' == 'CSH008F2') {
+                    if (record.get('payment_method') == 'TT' || record.get('payment_method') == 'OTHER') {
+                        record.getField('seq_num').setRequired(false);
+
+                        record.getField('bill_id').setRequired(false);
+                        record.getField('bill_id_n').setRequired(false);
+                    } else {
+                        if(record.get('paid_amount_total') > 0){
+                            record.getField('bill_id_n').setRequired(true);
+                            record.getField('bill_id').setRequired(true);
+                        }
+                        record.getField('seq_num').setRequired(true);
+
+                    }
+                }
+
+                if('${/parameter/@function_code}' == 'CSH008'&&'${/parameter/@wfl_flag}'!="Y"){
+                    record.set("current_applied_amount",0);
+                }
+
+
+            }
+
+        }
+
+        //保存submitsuccess调用
+        /*  window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+
+              debugger;
+              var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln_bank_account');
+              if (ds.id === ds_id) {
+                  var  sum= getActualAmount('${/parameter/@payment_req_id}')
+                  record.set('actual_hd_pay_amount',sum)
+              }
+              window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+          }*/
+        function beforeSubmit(countiune) {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            var record1 = $(ds_id).getCurrentRecord();
+            if ('${/parameter/@function_code}' == 'CSH008F2') {
+                if (!record1.get('actual_pay_date')){
+                    Leaf.showMessage('${l:PROMPT}', '请维护首次支付日期');
+                    return false;
+                }
+                var csh_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account');
+                if ($(csh_ds_id).isModified()) {
+                    $L.showMessage('提示', '请先保存实际支付情况！');
+                    return false;
+                }
+                var ds_records = $(csh_ds_id).getAll();
+                if (ds_records.length <= 0) {
+                    Leaf.showMessage('${l:PROMPT}', '请维护实际支付信息');
+                    return false;
+                } else {
+                    var payment_amount = getPayAmount('${/parameter/@payment_req_id}');
+                    if (minus(payment_amount , record1.get('loan_total_amount')) > 0) {
+                        Leaf.showMessage('${l:PROMPT}', '实际支付信息付款总额之和不能大于本次付款总额');
+                        return false;
+                    }
+                }
+
+
+                var csh_ln_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln');
+                var csh_ln_records = $(csh_ln_id).getAll();
+                if(csh_ln_records.length > 0){
+                    for(var i = 0; i < csh_ln_records.length; i++){
+                        var payment_req_ln_id = csh_ln_records[i].data.payment_req_ln_id;
+                        Leaf.request({
+                            url: '${/request/@context_path}/csh/payment/req/ln/account',
+                            para: {
+                                paymentReqLnId: payment_req_ln_id
+                            },
+                            sync: true,
+                            success: function (datas) {
+                                if (datas.result.record.length > 0) {
+                                    if (csh_ln_records[i].get('payment_method') == 'TT' || csh_ln_records[i].get('payment_method') == 'OTHER') {
+                                        csh_ln_records[i].getField('bill_id').setRequired(false);
+                                        csh_ln_records[i].getField('bill_id_n').setRequired(false);
+                                    } else {
+                                        csh_ln_records[i].getField('bill_id_n').setRequired(true);
+                                        csh_ln_records[i].getField('bill_id').setRequired(true);
+                                    }
+                                }
+                            },
+                            failure: function () {
+                            },
+                            error: function () {
+                            },
+                            scope: this
+                        });
+
+                    }
+                }
+
+                if (!$(ds_id).validate()){
+                    return false;
+                }else{
+                    $(ds_id).submit();
+                }
+
+                $(csh_ds_id).submit();
+
+                countiune();
+                return true;
+            }
+
+            countiune();
+            return true;
+
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>

@@ -1,0 +1,600 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+        <script><![CDATA[
+        <!-- operations -->
+        function vat_invoice_pay_query() {
+            $('vat_invoice_pay_ds').query();
+        }
+
+        function vat_invoice_pay_reset() {
+            $('vat_invoice_pay_query_ds').reset();
+            $('vat_invoice_pay_ds').query();
+        }
+
+        function vat_invoice_pay_add() {
+            $('vat_invoice_pay_ds').create();
+        }
+        function getTotalAmount(contract_id) {
+            var totalAmount = null;
+            Leaf.request({
+                url: '${/request/@context_path}/acr/invoice/ln/queryTotalAmount',
+                para: {
+
+                    contract_id: contract_id
+                },
+                sync: true,
+                success: function (datas) {
+                    if (datas.result.record.length > 0) {
+                        totalAmount = datas.result.record[0];
+                    }
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                scope: this
+            });
+            return totalAmount;
+        }
+        function getContractAmount(contract_id) {
+            var contractAmount = null;
+            Leaf.request({
+                url: '${/request/@context_path}/acr/invoice/ln/queryContractAmount',
+                para: {
+
+                    contract_id: contract_id
+                },
+                sync: true,
+                success: function (datas) {
+                    if (datas.result.record.length > 0) {
+                        contractAmount = datas.result.record[0];
+                    }
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                scope: this
+            });
+            return contractAmount;
+        }
+        function vat_invoice_pay_save() {
+
+            var records = $('vat_invoice_pay_ds').getAll();
+            var invoice_num_check_flag =true;
+            for (var i = 0; i < records.length; i++) {
+                var record = records[i];
+                //对新建的进行校验
+                if(!record.get('document_number')){
+                    var documentCategory = 'AP_INVOICE';
+                    var documentType = 'ACP';
+                    var businessType = 'ACP';
+                    Leaf.request({
+                        url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory + "&documentType=" + documentType + "&businessType=" + businessType,
+                        success: function (res) {
+                            record.set('document_number',res.result.record[0])
+                        },
+                        error: function (res) {
+
+                        },
+                        failure: function (res) {
+
+                        },
+                        sync: true,
+                        scope: this
+                    });
+                }
+                if (record.get('invoice_status') == 'NEW') {
+                    var invoice_num = record.get('invoice_number');
+                 /*   var attach_count = record.get('attach_count');*/
+                    if (invoice_num.length >= 8 && invoice_num.length <= 12) {
+                        invoice_num_check_flag = true;
+                    } else {
+                        invoice_num_check_flag = false;
+                        Leaf.showMessage('提示', '请输入正确的发票号码（8~12位）！');
+                        return;
+                    }
+                   var   invoice_code = record.get('invoice_code');
+                    if (invoice_code.length >= 10 && invoice_code.length <= 12) {
+                        invoice_num_check_flag = true;
+                    } else {
+                        invoice_num_check_flag = false;
+                        Leaf.showMessage('提示', '请输入正确的发票代码（10~12位）！');
+                        return;
+                    }
+                    var record_date = record.get('record_date');
+                    if (record_date == undefined || record_date.length == 0){
+                        Leaf.showMessage('提示','请输入开票日期！');
+                        invoice_num_check_flag = false;
+                        return ;
+                    } else {
+                        invoice_num_check_flag = true;
+                    }
+                    var bp_name = record.get('bp_name');
+                    if (bp_name == undefined || bp_name.length == 0){
+                        Leaf.showMessage('提示','请输入销售方名称！');
+                        invoice_num_check_flag = false;
+                        return;
+                    } else {
+                        invoice_num_check_flag = true;
+                    }
+                    var total_amount = record.get('total_amount');
+                    if (parseInt(total_amount) >= 0){
+                        invoice_num_check_flag = true;
+                    } else {
+                        invoice_num_check_flag = false;
+                        Leaf.showMessage('提示','请输入正确的金额(大于0元)！');
+                        return;
+                    }
+                    var tax_type_rate = record.get('tax_type_rate');
+                    if (tax_type_rate == undefined || tax_type_rate.length == 0) {
+                        invoice_num_check_flag = true;
+                    } else {
+                        //保存时校验 税率 正确性
+                        var pattern = /^\d+(\.\d+)?$/;
+                        if (pattern.test(tax_type_rate)){
+                            invoice_num_check_flag = true;
+                        } else {
+                            Leaf.showErrorMessage('提示', '请输入正确的税率！');
+                            invoice_num_check_flag = false;
+                            return;
+                        }
+                    }
+
+                }
+            }
+            if (invoice_num_check_flag) {
+                $('vat_invoice_pay_ds').submit();
+            }
+        }
+
+        function vat_invoice_pay_del() {
+            $('vat_invoice_pay_ds_grid').remove();
+        }
+
+        function onSubmitSuccess_vat_invoice_pay_ds(ds) {
+            vat_invoice_pay_query();
+        }
+
+        // function on_data_update(ds, record, name, value, oldValue) {
+        //     //计算价税合计
+        //     if (name == 'net_amount' || name == 'tax_amount') {
+        //         if (record.get('net_amount') && record.get('tax_amount')) {
+        //             record.set('total_amount', (parseFloat(record.get('net_amount')) + parseFloat(record.get('tax_amount'))).toFixed(2));
+        //         } else {
+        //             record.set('total_amount', null);
+        //         }
+        //     }
+        // }
+
+        function lovPreEvent(lov) {
+            if (lov.binder.name == 'contract_id_n') {
+                lov.controller = '/con/contract/selectContractByStatus?contractStatus=INCEPT';
+            }
+            if (lov.binder.name == 'cf_item_n') {
+                var contractId = lov.record.data.contract_id;
+                if (contractId != undefined) {
+                    lov.controller = '/con/contract/cashflow/selectOutFlowByContractId?contractId=' + contractId;
+                }
+            }
+            if (lov.binder.name == 'bp_name') {
+                var contractId = lov.record.data.contract_id;
+                if (contractId != undefined) {
+                    lov.controller = '/con/contract/bp/queryByContractId?contractId=' + contractId;
+                }
+            }
+        }
+
+        function atm_render(value, record, name) {
+            var invoice_status = record.get('invoice_status');
+            return '<a href="javascript:winOpen_attach(\'' + value + '\',\'' + invoice_status + '\');">附件上传</a>';
+        }
+
+        function winOpen_attach(invoice_ln_id, invoice_status) {
+            var url, usage;
+            if (invoice_status == 'CONFIRM') {
+                url = '${/request/@context_path}/downloadFile.lview';
+                usage = 'QUERY';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+                usage = 'CREATE';
+            }
+
+            new Leaf.Window({
+                id: 'open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: invoice_ln_id,
+                    table_name: 'acp_invoice_ln',
+                    winid: 'open_attachment_winid',
+                    function_usage: usage
+                },
+                title: '附件上传',
+                width: 800,
+                height: 475
+            });
+        }
+
+        // function vat_invoice_pay_import() {
+        //     new Leaf.Window({
+        //         id: 'invoice_import_win_id',
+        //         params: {
+        //             winid: 'invoice_import_win_id'
+        //         },
+        //         url: '${/request/@context_path}/modules/VAT/VAT_INVOICE_PAY/ACP001/invoice_pay_import_file.lview',
+        //         title: '进项发票导入',
+        //         fullScreen: false,
+        //         width: 500,
+        //         height: 480,
+        //         draggable: true
+        //     });
+        // }
+
+        function vat_invoice_pay_import() {
+            new Leaf.Window({
+                id: 'upload_handle_winId',
+                params: {
+                    session_id: '${/session/@session_id}'
+                },
+                url: '${/request/@context_path}/modules/VAT/VAT_INVOICE_PAY/ACP001/vat_invoice_pay_import_handle.lview',
+                title: '进项发票导入',
+                width: 430,
+                height: 360
+            });
+        }
+
+        function ocr_import() {
+            jQuery("#flieLoad").click();
+            jQuery("#flieLoad").off('change').change(function () {
+                Leaf.Masker.mask(Ext.getBody(), '识别中。。');
+                for(var i=0;i<jQuery("#flieLoad").get(0).files.length; i++){
+                    var file = jQuery("#flieLoad").get(0).files[i];
+                    if(file == undefined){
+                        continue ;
+                    }
+
+                    var fileName = encodeURI(file.name);
+                    var formData = new FormData();
+                    formData.append("fileToUpload",file);  //上传一个files对象
+                    formData.append("filename",fileName);  //上传一个files对象
+                    formData.append("_csrf","${/session/@_csrf.token}");
+                    jQuery.ajax({
+                        url: '${/request/@context_path}/vat/acp/invoice/ocr/import',
+                        dataType: "json",
+                        type: "post",
+                        data: formData,
+                        async: false,
+                        processData: false,//不去处理发送的数据
+                        contentType: false,//不去设置Content-Type请求头
+                        error: function (res) {
+                            Leaf.showErrorMessage('提示', res.message);
+                            return;
+                        },
+                        success: function (res) {
+                            if(!res.success){
+                                Leaf.showErrorMessage('提示', res.message);
+                            }
+                            return;
+                        }
+
+                    })
+                }
+                $('vat_invoice_pay_ds').query($('vat_invoice_pay_ds').currentPage);
+                Leaf.Masker.unmask(Ext.getBody());
+
+            });
+        }
+
+
+
+        function vat_invoice_pay_ds_grid_editor(record, name) {
+
+            if (record.get('invoice_status') == 'NEW' || record.isNew) {
+                if (name == 'contract_number') {
+                    return 'vat_invoice_pay_ds_grid_lv';
+                }
+                if (name == 'invoice_type_n') {
+                    return 'vat_invoice_pay_ds_grid_cb';
+                }
+                if (name == 'invoice_code') {
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+                if (name == 'invoice_number') {
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+                if (name == 'record_date') {
+                    return 'vat_invoice_pay_ds_grid_dp';
+                }
+                if (name == 'bp_name') {
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+                if (name == 'bp_tax_registry_num') {
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+                if (name == 'total_amount') {
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+                if (name == 'tax_amount') {
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+                if (name == 'tax_type_rate') {
+                    //name == 'tax_type_rate_n'
+                    // return 'vat_invoice_pay_ds_grid_cb';
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+                if (name == 'description') {
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+                if (name == 'ref_v01') {
+                    return 'vat_invoice_pay_ds_grid_tf';
+                }
+            }
+        }
+
+        function onUpdate_vat_invoice_pay_ds(ds, record, name, value, oldvalue) {
+            if (name == 'invoice_number') {
+                if (value.length < 8 || value.length > 12) {
+                    Leaf.showMessage('提示', '请输入正确的发票号码（8~12位）！');
+                }
+            }else if(name=='invoice_code'){
+                if (value.length < 10 || value.length > 12) {
+                    Leaf.showMessage('提示', '请输入正确的发票代码（10~12位）！');
+                }
+            }else if(name=='tax_type_rate'){
+                if (value.length != 0){
+                    var pattern = /^\d+(\.\d+)?$/;
+                    if (pattern.test(value)){
+                    } else {
+                        Leaf.showErrorMessage('提示', '请输入正确的税率！');
+                    }
+                }
+                var total_amount = record.get('total_amount');
+                var tax_type_rate = record.get('tax_type_rate');
+                // debugger;
+                record.set('tax_amount',mul(div(parseFloat(total_amount),1 + parseFloat(tax_type_rate)),parseFloat(tax_type_rate)));
+                record.set('net_price',(parseFloat(total_amount) - (mul(div(parseFloat(total_amount),1 + parseFloat(tax_type_rate)),parseFloat(tax_type_rate)))))
+
+            }else if(name == 'total_amount'){
+                if (parseInt(value) < 0){
+                    Leaf.showMessage('提示','请输入正确的金额(大于0元)！');
+                }
+            } else if (name == 'bp_name'){
+                if (value.length == 0){
+                    Leaf.showMessage('提示','请输入销售方名称！');
+                }
+            } else if (name = 'record_date') {
+                if (value.length < 0) {
+                    Leaf.showMessage('提示','请输入开票日期！');
+                }
+            }
+           //  debugger;
+           // var   totalAmount = getTotalAmount(record.get('contract_id'));
+           //      var   contractAmount = getContractAmount(record.get('contract_id'));
+           //
+           //      var  sum=record.get('total_amount')+totalAmount;
+           //      alert(totalAmount);
+           //      alert(contractAmount);
+           //      if (sum - contractAmount >0){
+           //
+           //          Leaf.showMessage('提示', '单一合同的发票金额之和不能大于原合同的金额!');
+           //          return false;
+           //      }
+           //  }
+        }
+
+        function tax_type_rate_rederer(value,record, name){
+            debugger;
+            if (name == 'tax_type_rate') {
+                if (!isNaN(value)) {
+                    return parseFloat(value * 100).toFixed(2) + '%';
+                } else {
+                    return '';
+                }
+            }
+        }
+
+        function rw_beforesubmit_check() {debugger;
+            // var ds_id = $('vat_invoice_pay_ds');
+            // var records = ds_id.getAll();
+            // if(records.length > 0){
+            //     for(var i=0;i<records.length;i++){
+            //         if(records[i].get('invoice_status') == 'NEW'){
+            //             records[i].set('tax_type_rate',parseDouble(records[i].get('tax_type_rate')));
+            //         }
+            //     }
+            // }
+        }
+
+        function tax_rederer(value,record,name){
+            if (!isNaN(value)) {
+                return parseInt(value * 100) + '%';
+            } else {
+                return '';
+            }
+        }
+
+        function menoy(value,record,name) {
+            if (!isNaN(value)){
+                return Leaf.formatMoney(value);
+            } else {
+                return '';
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="vat_invoice_kind_ds"
+                       queryUrl="${/request/@context_path}/acp/invoice/ln/selectInvoiceKind"
+                       autoQuery="true">
+            </a:dataSet>
+<!--            <a:dataSet id="tax_type_rate_ds">-->
+<!--                <a:datas>-->
+<!--                    <a:record code_value="0" code_value_name="0%"/>-->
+<!--                    <a:record code_value="0.03" code_value_name="3%"/>-->
+<!--                    <a:record code_value="0.05" code_value_name="5%"/>-->
+<!--                    <a:record code_value="0.06" code_value_name="6%"/>-->
+<!--                    <a:record code_value="0.09" code_value_name="9%"/>-->
+<!--                    <a:record code_value="0.13" code_value_name="13%"/>-->
+<!--                    <a:record code_value="0.16" code_value_name="16%"/>-->
+<!--                    <a:record code_value="0.17" code_value_name="17%"/>-->
+<!--                </a:datas>-->
+<!--            </a:dataSet>-->
+            <a:dataSet id="vat_invoice_pay_query_ds">
+                <a:fields>
+                    <a:field name="contract_number" autoComplete="true" lovGridHeight="300" lovHeight="450"
+                             lovService="/hls/csh/virtual/list/query~com.hand.hls.ast.dto.VirtualConContractLov" lovWidth="500"
+                             title="HLS.CONTRACT_NUMBER">
+                        <a:mapping>
+                            <a:map from="contract_id" to="contract_id"/>
+                            <a:map from="contract_number" to="contract_number"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="vat_invoice_pay_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/acp/invoice/ln/queryAcpInvoiceDetail"
+                       submitUrl="${/request/@context_path}/acp/invoice/ln/submit"
+                       deleteUrl="${/request/@context_path}/acp/invoice/ln/remove"
+                       queryDataSet="vat_invoice_pay_query_ds" selectable="true">
+                <a:fields>
+<!--                    <a:field name="tax_type_rate_n" options="tax_type_rate_ds" displayField="code_value_name"-->
+<!--                             valueField="code_value"-->
+<!--                             returnField="tax_type_rate" required="true"/>-->
+<!--                    <a:field name="tax_type_rate" required="true"/>-->
+<!--                    <a:field name="tax_type_rate_n"/>-->
+                    <a:field name="invoice_type_n" options="vat_invoice_kind_ds" displayField="meaning"
+                             valueField="code" required="true"
+                             returnField="invoice_type"/>
+                    <a:field name="contract_number" lovGridHeight="300" lovHeight="450" autoComplete="true"
+                             required="false"
+                             lovService="/hls/csh/virtual/list/query~com.hand.hls.ast.dto.VirtualConContractLov" lovWidth="500"
+                             title="HLS.CONTRACT_NUMBER">
+                        <a:mapping>
+                            <a:map from="contract_id" to="contract_id"/>
+                            <a:map from="contract_number" to="contract_number"/>
+                            <a:map from="contract_name" to="contract_name"/>
+                            <a:map from="tax_type_rate" to="tax_type_rate" />
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="record_date" required="true"/>
+                    <a:field name="invoice_number" required="true"/>
+                    <a:field name="invoice_code" required="true"/>
+                    <a:field name="record_date" required="true" datatype="date"/>
+                    <a:field name="total_amount" required="true"/>
+                    <a:field name="cf_item_n" defaultValue="设备款"/>
+                    <a:field name="invoice_status" defaultValue="NEW"/>
+                    <a:field name="invoice_status_n" defaultValue="新建"/>
+                    <a:field name="tax_amount" />
+                    <a:field name="net_price" />
+                    <a:field name="bp_name" required="true"/>
+<!--
+                    <a:field name="bp_tax_registry_num" required="true"/>
+-->
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdate_vat_invoice_pay_ds"/>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_vat_invoice_pay_ds"/>
+                    <a:event name="beforesubmit" handler="rw_beforesubmit_check"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="vat_invoice_pay_query" text="HAP.QUERY"/>
+                <a:gridButton click="vat_invoice_pay_reset" text="HAP.RESET"/>
+                <a:gridButton click="vat_invoice_pay_add" text="HAP.NEW"/>
+<!--                <a:gridButton click="vat_invoice_pay_del" text="HAP.DELETE"/>-->
+                <a:gridButton click="vat_invoice_pay_save" text="HAP.SAVE"/>
+                <a:gridButton click="vat_invoice_pay_import" text="PROMPT.IMPORT"/>
+<!--                <a:gridButton click="ocr_import" text="OCR识别录入"/>-->
+                <input type="file" name="image" id="flieLoad" multiple="" accept="image/jpeg,image/jpg,image/png,image/svg" style="display:none"/>
+            </a:screenTopToolbar>
+            <a:form  title="查询条件" style="width:100%">
+                <a:box column="4" labelWidth="150">
+                    <a:lov name="contract_number" bindTarget="vat_invoice_pay_query_ds" prompt="合同编号">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_pay_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="contract_name" bindTarget="vat_invoice_pay_query_ds" prompt="合同名称">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_pay_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="invoice_code" bindTarget="vat_invoice_pay_query_ds" prompt="发票代码">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_pay_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:textField name="invoice_number" bindTarget="vat_invoice_pay_query_ds" prompt="发票号码">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_pay_query"/>
+                        </a:events>
+                    </a:textField>
+                </a:box>
+                <a:box column="4" labelWidth="150">
+                    <a:datePicker name="record_date_from" bindTarget="vat_invoice_pay_query_ds" prompt="开票日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_pay_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="record_date_to" bindTarget="vat_invoice_pay_query_ds" prompt="开票日期到">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_pay_query"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:box>
+            </a:form>
+            <a:grid id="vat_invoice_pay_ds_grid" bindTarget="vat_invoice_pay_ds" marginHeight="190" marginWidth="10"
+                    navBar="true">
+                <a:columns>
+                    <a:column name="document_number" width="130" prompt="单据编号" align="left"
+                              editorFunction="vat_invoice_pay_ds_grid_editor" />
+                    <a:column name="contract_number" width="130" prompt="合同编号" align="left"
+                              editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                    <a:column name="contract_name" width="160" prompt="合同名称" align="left"/>
+                    <a:column name="cf_item_n" width="100" prompt="应付项目"
+                              align="left"/>
+                    <a:column name="invoice_type_n" width="100" prompt="发票类别" align="left"
+                              editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                    <a:column name="invoice_code" width="100" prompt="发票代码" align="left"
+                              editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                    <a:column name="invoice_number" width="130" prompt="发票号码"
+                              align="right" editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                    <a:column name="record_date" width="150" prompt="开票日期"
+                              align="right" editorFunction="vat_invoice_pay_ds_grid_editor"
+                              renderer="Leaf.formatDate"/>
+                    <a:column name="bp_name" width="200" prompt="销售方名称"
+                              align="left" editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                    <a:column name="ref_v01" width="200" prompt="货物或应税劳务、服务名称"
+                              align="left" editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                <!--    <a:column name="bp_tax_registry_num" width="160" prompt="销方税号" align="left"
+                              editorFunction="vat_invoice_pay_ds_grid_editor"/>-->
+                    <a:column name="total_amount" width="100" prompt="价税合计(元)" renderer="Leaf.formatMoney" align="right"
+                              editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                    <a:column name="tax_type_rate" width="100" prompt="税率(%)" align="right" renderer="tax_rederer"
+                              editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                    <a:column name="tax_amount" width="100" prompt="税额(元)" align="right" renderer="Leaf.formatMoney" />
+                              <!--editorFunction="vat_invoice_pay_ds_grid_editor"-->
+                    <a:column name="net_price" width="100" prompt="税前金额(元)" align="right" renderer="menoy" />
+                    <a:column name="description" width="200" prompt="备注" align="left"
+                              editorFunction="vat_invoice_pay_ds_grid_editor"/>
+                    <a:column name="invoice_status_n" width="100" prompt="发票状态" align="left"/>
+                    <a:column name="invoice_ln_id" width="100" prompt="附件" renderer="atm_render" align="center"/>
+                </a:columns>
+
+                <a:editors>
+                    <a:textField id="vat_invoice_pay_ds_grid_tf"/>
+                    <a:checkBox id="vat_invoice_pay_ds_grid_ck"/>
+                    <a:lov id="vat_invoice_pay_ds_grid_lv"/>
+                    <a:datePicker id="vat_invoice_pay_ds_grid_dp"/>
+                    <a:comboBox id="vat_invoice_pay_ds_grid_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

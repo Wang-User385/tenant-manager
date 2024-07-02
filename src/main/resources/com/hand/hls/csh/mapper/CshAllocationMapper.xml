@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.CshAllocationMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.CshAllocation">
+        <id column="allocation_id" property="allocationId" jdbcType="DECIMAL"/>
+        <result column="allocation_number" property="allocationNumber" jdbcType="VARCHAR"/>
+        <result column="allocation_date" property="allocationDate" jdbcType="DATE"/>
+        <result column="allocation_source" property="allocationSource" jdbcType="VARCHAR"/>
+        <result column="allocation_status" property="allocationStatus" jdbcType="VARCHAR"/>
+
+
+        <result column="total_amount" property="totalAmount" jdbcType="DECIMAL"/>
+        <result column="allocation_source_desc" property="allocationSourceDesc" jdbcType="VARCHAR"/>
+        <result column="allocation_status_desc" property="allocationStatusDesc" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="created_by_name" property="createdByName" jdbcType="VARCHAR"/>
+        <result column="transaction_num" property="transactionNum" jdbcType="VARCHAR"/>
+
+        <result column="un_write_off_amount" property="unWriteOffAmount" jdbcType="DECIMAL"/>
+        <result column="can_write_off_amount" property="canWriteOffAmount" jdbcType="DECIMAL"/>
+
+
+
+    </resultMap>
+
+
+    <select id="allocationQuery" parameterType="com.hand.hls.csh.dto.CshAllocation" resultMap="BaseResultMap">
+        select * from (
+        select t.*,
+        (case when t.allocation_source = 'MANUAL' then '手工分配' else '自动匹配' end)as allocation_source_desc,
+        (case when t.allocation_status = 'Y' then '是' else '否' end)as allocation_status_desc,
+        (select sum(ct.transaction_amount) from csh_transaction ct,csh_allocation_receipt car where
+        car.allocation_id=t.allocation_id and car.transaction_id = ct.transaction_id)as total_amount,
+        (select wm_concat(bp.bp_name) from CSH_TRANSACTION ct ,csh_allocation_receipt car
+        ,hls_bp_master bp where car.allocation_id=t.allocation_id and car.transaction_id = ct.transaction_id
+        and ct.bp_id = bp.bp_id)as bp_name,
+        (select wm_concat(ct.transaction_num) from CSH_TRANSACTION ct ,csh_allocation_receipt car
+        where car.allocation_id=t.allocation_id and car.transaction_id = ct.transaction_id)as transaction_num,
+        (select u.description from sys_user u where u.user_id = t.created_by) as created_by_name,
+        (select sum(ct.transaction_amount)-sum(ct.write_off_amount) from csh_transaction ct,csh_allocation_receipt car
+        where car.transaction_id = ct.transaction_id and car.allocation_id = t.allocation_id)as un_write_off_amount,
+        (select sum(cc.due_amount)-sum(cc.received_amount) from con_contract_cashflow cc,csh_allocation_credit cac
+        where cc.cashflow_id = cac.cashflow_id and cac.allocation_id = t.allocation_id)as can_write_off_amount
+        from csh_allocation t) t1
+        <where>
+            1=1
+            <if test="allocationNumber!=null">
+                <bind name="allocationNumber" value="'%'+allocationNumber+'%'"/>
+                and t1.allocation_number like #{allocationNumber}
+            </if>
+            <if test="transactionNum!=null">
+                <bind name="transactionNum" value="'%'+transactionNum+'%'"/>
+                and t1.transaction_num like #{transactionNum}
+            </if>
+            <if test="allocationIdS!=null">
+                and t1.allocation_id in
+                <foreach collection="allocationIdS" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="allocationId!=null">
+                and t1.allocation_id = #{allocationId}
+            </if>
+        </where>
+        order by t1.allocation_number desc
+    </select>
+</mapper>

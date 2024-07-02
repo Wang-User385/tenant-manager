@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.pam.mapper.AssetsDisposalMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.pam.dto.AssetsDisposal">
+        <result column="ASSETS_DISPOSAL_ID" property="assetsDisposalId" jdbcType="DECIMAL" />
+        <result column="ASSETS_APPL_NUMBER" property="assetsApplNumber" jdbcType="VARCHAR" />
+        <result column="EMPLOYEE_ID" property="employeeId" jdbcType="DECIMAL" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="TENANT_ID" property="tenantId" jdbcType="DECIMAL" />
+        <result column="FINANCE_AMOUNT" property="financeAmount" jdbcType="DECIMAL" />
+        <result column="OVERDEU_DATE" property="overdeuDate" jdbcType="DATE" />
+        <result column="OVERDEU_AMOUNT" property="overdeuAmount" jdbcType="DECIMAL" />
+        <result column="APPROVAL_STATUS" property="approvalStatus" jdbcType="VARCHAR" />
+        <result column="CONTRACT_STATUS" property="contractStatus" jdbcType="VARCHAR" />
+        <result column="FROM_DATE" property="fromDate" jdbcType="DATE" />
+        <result column="START_DATE" property="startDate" jdbcType="DATE" />
+        <result column="TO_DATE" property="toDate" jdbcType="DATE" />
+        <result column="PROCESS_INSTANCE_ID" property="processInstanceId" jdbcType="DECIMAL" />
+        <result column="APPROVAL_STATUS_N" property="approvalStatusN" jdbcType="VARCHAR" />
+        <result column="CONTRACT_STATUS_N" property="contractStatusN" jdbcType="VARCHAR" />
+        <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR" />
+        <result column="EMPLOYEE_ID_N" property="employeeIdN" jdbcType="VARCHAR" />
+        <result column="CONTRACT_AMOUNT" property="contractAmount" jdbcType="DECIMAL" />
+
+        <result column="OVERDUE_MAX_DAYS" property="overdueMaxDays" jdbcType="DECIMAL" />
+        <result column="OVERDUE_AMOUNT" property="overdueAmount" jdbcType="DECIMAL" />
+    </resultMap>
+
+    <select id="queryAssetsDisposal" parameterType="com.hand.hls.pam.dto.AssetsDisposal"
+            resultMap="BaseResultMap">
+        select
+
+    ad.ASSETS_DISPOSAL_ID,
+    ad.ASSETS_APPL_NUMBER,
+    ad.APPROVAL_STATUS,
+    ad.EMPLOYEE_ID,
+        ad.PROJECT_ID,
+        ad.FINANCE_AMOUNT,
+        p.CONTRACT_AMOUNT,
+        ad.FROM_DATE,
+        ad.TO_DATE,
+        ad.CONTRACT_NUMBER,
+        ad.START_DATE,
+
+    (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'CREDIT.APPROVE_STATUS'
+        AND v.code_value = ad.APPROVAL_STATUS)APPROVAL_STATUS_N,
+    p.CONTRACT_STATUS,
+    (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'CON.CONTRACT_STATUS'
+        AND v.code_value = p.CONTRACT_STATUS)CONTRACT_STATUS_N,
+        (SELECT em.name
+        FROM fnd_employee em
+        where em.employee_id = ad.EMPLOYEE_ID) EMPLOYEE_ID_N,
+
+        p.PROJECT_NUMBER,
+        p.TENANT_ID,
+        CASE
+        WHEN p.BUSINESS_TYPE in('T+N_LEASE_FACTORING','T+0_LEASE_FACTORING') THEN
+        ( SELECT wm_concat(b.bp_name)
+        FROM hls_bp_master b ,prj_project_bp hclcb
+        WHERE p.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'RECEIVABLE_DEBTOR'
+        )
+        WHEN p.BUSINESS_TYPE in('LEASE_WITHOUT_RECOURSE_IN','OPERATING_LEASE_WITHOUT_RECOURSE_IN') THEN
+        ( SELECT wm_concat(b.bp_name)
+        FROM hls_bp_master b ,prj_project_bp hclcb
+        WHERE p.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'ASSET_TRANSFEROR'
+        )
+        ELSE
+        ( SELECT wm_concat(b.bp_name)
+        FROM hls_bp_master b ,prj_project_bp hclcb
+        WHERE p.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'TENANT'
+        )
+        END AS tenant_id_n,
+
+--         (
+--         SELECT
+--         b.bp_name
+--         FROM
+--         hls_bp_master b
+--         WHERE
+--         b.bp_id = p.tenant_id
+--         ) tenant_id_n,
+        (select nvl(max(f.OVERDUE_MAX_DAYS),0)  from con_contract c,con_contract_cashflow f where c.CONTRACT_ID = f.CONTRACT_ID and c.PROJECT_ID = p.PROJECT_ID) OVERDUE_MAX_DAYS,
+        (select nvl(sum(f.OVERDUE_AMOUNT),0) from con_contract c,con_contract_cashflow f where c.CONTRACT_ID = f.CONTRACT_ID and c.PROJECT_ID = p.PROJECT_ID) OVERDUE_AMOUNT
+    from assets_disposal ad,prj_project p
+    <where>
+         ad.PROJECT_ID = p.PROJECT_ID
+         and p.DATA_CLASS = 'VIRTUAL_CON'
+        <if test="createdBy != null">
+            and (p.created_by = #{createdBy}
+            or EXISTS (SELECT
+            1
+            FROM
+            sys_user U
+            LEFT JOIN SYS_USER_ALLOCATION UR ON UR.USER_ID = U.USER_ID
+            LEFT JOIN SYS_ROLE_B R ON R.ROLE_ID = UR.ROLE_ID
+            WHERE
+            R.ROLE_CODE = 'ADMIN' and U.USER_ID = #{createdBy}))
+        </if>
+        <if test="assetsApplNumber!=null">
+         and ad.ASSETS_APPL_NUMBER = #{assetsApplNumber}
+        </if>
+        <if test="projectNumber!=null">
+         and p.PROJECT_NUMBER = #{projectNumber}
+        </if>
+
+        <if test="contractNumber!=null">
+            and ad.CONTRACT_NUMBER = #{contractNumber}
+        </if>
+        <if test="employeeId!=null">
+            and ad.EMPLOYEE_ID = #{employeeId}
+        </if>
+        <if test="tenantId!=null">
+         and p.TENANT_ID = #{tenantId}
+        </if>
+        <if test="assetsDisposalId!=null">
+            and ad.ASSETS_DISPOSAL_ID = #{assetsDisposalId}
+        </if>
+        <if test="approvalStatus!=null">
+            and ad.APPROVAL_STATUS = #{approvalStatus}
+        </if>
+        <if test="startDate!=null">
+            <if test="toDate!=null">
+               and ad.FROM_DATE between #{startDate} and #{toDate}
+            </if>
+        </if>
+
+        order by ad.ASSETS_DISPOSAL_ID desc
+    </where>
+
+    </select>
+</mapper>

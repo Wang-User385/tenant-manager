@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.app.mapper.HlsCashflowAyncMapper">
+    <resultMap id="repayment" type="com.hand.hls.app.dto.HlsCashflowAyncDto">
+        <result column="itf_id" property="itfId" jdbcType="DECIMAL"></result>
+        <result column="contract_id" property="contractId"  jdbcType="DECIMAL" />
+        <result column="type" property="type" jdbcType="DECIMAL" />
+        <result column="inception_date" property="inceptionDate" />
+        <result column="post_flag" property="postFlag" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="getRepayment" resultMap="repayment">
+        select *
+        from (
+        select *
+        from YH_ITF_CASHFLOW_AYNC y
+        /*where y.post_flag = 'N'*/
+        ) t
+        <where>
+            1=1
+            <if test="fromDate!=null and fromDate!=''">
+                and t.inception_date &gt;= to_date( #{fromDate}, 'YYYY-MM-DD' )
+            </if>
+            <if test="toDate!=null and toDate!=''">
+                and t.inception_date &lt;= to_date( #{toDate}, 'YYYY-MM-DD' )
+            </if>
+        </where>
+    </select>
+
+    <select id="getAllRepayment" resultMap="repayment">
+        select *
+        from (
+                 select *
+                 from YH_ITF_CASHFLOW_AYNC y
+                 /*where y.post_flag = 'N'*/
+             ) t
+    </select>
+
+    <select id="getOneRepayment" resultMap="repayment">
+        select *
+        from (
+                 select *
+                 from YH_ITF_CASHFLOW_AYNC y
+                 where y.contract_id = #{contractId}
+             ) t
+    </select>
+</mapper>

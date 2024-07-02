@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.plm.fc.mapper.HlsCusFiveClassificationMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.plm.fc.dto.HlsCusFiveClassification">
+        <result column="five_classification_id" property="fiveClassificationId" jdbcType="DECIMAL"/>
+        <result column="five_classification_type" property="fiveClassificationType" jdbcType="VARCHAR"/>
+        <result column="five_classification_number" property="fiveClassificationNumber" jdbcType="VARCHAR"/>
+        <result column="company_id" property="companyId" jdbcType="DECIMAL"/>
+        <result column="document_type" property="documentType" jdbcType="VARCHAR"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="business_type" property="businessType" jdbcType="VARCHAR"/>
+        <result column="categorizer" property="categorizer" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="belongs_to_id" property="belongsToId" jdbcType="DECIMAL"/>
+
+        <result column="classification_reason" property="classificationReason" jdbcType="VARCHAR"/>
+
+        <result column="loss_number" property="lossNumber" jdbcType="DECIMAL"/>
+        <result column="suspicious_number" property="suspiciousNumber" jdbcType="DECIMAL"/>
+        <result column="secondary_number" property="secondaryNumber" jdbcType="DECIMAL"/>
+        <result column="attention_number" property="attentionNumber" jdbcType="DECIMAL"/>
+        <result column="normal_number" property="normalNumber" jdbcType="DECIMAL"/>
+        <result column="all_number" property="allNumber" jdbcType="DECIMAL"/>
+
+        <result column="meet_time" property="meetTime" jdbcType="VARCHAR"/>
+        <result column="judge_num" property="judgeNum" jdbcType="DECIMAL"/>
+        <result column="meet_name" property="meetName" jdbcType="VARCHAR"/>
+        <result column="meet_date" property="meetDate" jdbcType="DATE"/>
+
+        <result column="approval_number" property="approvalNumber" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="final_classification_time" property="finalClassificationTime" jdbcType="VARCHAR"/>
+        <result column="final_classification_result" property="finalClassificationResult" jdbcType="VARCHAR"/>
+        <result column="status_n" property="statusN" jdbcType="VARCHAR"/>
+
+
+    </resultMap>
+
+    <select id="homeRollTableQuery" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.plm.fc.dto.HlsCusFiveClassification">
+        select
+        pfc.five_classification_id,
+        pfc.five_classification_number,
+        pfc.CREATION_DATE,
+        pfc.status,
+        (select v.MEANING from sys_code_value_b_v v where v.code  = 'ASSESS_RESULT' AND v.code_value = pfc.status)status_n,
+        (select count(*) from plm_five_classify_con pfcc
+        where pfcc.five_classification_id = pfc.five_classification_id) all_number,
+        (
+        case when (select count(*) from plm_five_classify_con pfcc
+        where pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE') &gt; 0 then (select count(*) from
+        plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'LOSS'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE')
+        else
+        (
+        select count(*) from plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'LOSS'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'FIRST_NODE'
+        ) end
+        ) AS loss_number,
+
+        (
+        case when (select count(*) from plm_five_classify_con pfcc
+        where pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE') &gt; 0 then (select count(*) from
+        plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'SUSPICIOUS'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE')
+        else
+        (
+        select count(*) from plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'SUSPICIOUS'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'FIRST_NODE'
+        ) end
+        ) AS suspicious_number,
+
+        (
+        case when (select count(*) from plm_five_classify_con pfcc
+        where pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE') &gt; 0 then (select count(*) from
+        plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'SECONDARY'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE')
+        else
+        (
+        select count(*) from plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'SECONDARY'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'FIRST_NODE'
+        ) end
+        ) AS secondary_number,
+
+        (
+        case when (select count(*) from plm_five_classify_con pfcc
+        where pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE') &gt; 0 then (select count(*) from
+        plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'ATTENTION'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE')
+        else
+        (
+        select count(*) from plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'ATTENTION'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'FIRST_NODE'
+        ) end
+        ) AS attention_number,
+
+        (
+        case when (select count(*) from plm_five_classify_con pfcc
+        where pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE') &gt; 0 then (select count(*) from
+        plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'NORMAL'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'END_NODE')
+        else
+        (
+        select count(*) from plm_five_classify_con pfcc
+        where pfcc.final_classification_result = 'NORMAL'
+        AND pfcc.five_classification_id = pfc.five_classification_id
+        AND pfcc.change_iq = 'NORMAL' AND pfcc.approval_node = 'FIRST_NODE'
+        ) end
+        ) AS normal_number,
+        fpcc.approval_number,
+        fpcc.unit_name,
+        fpcc.bp_name,
+        fpcc.final_classification_time,
+        fpcc.final_classification_result
+        FROM
+        plm_five_classification pfc
+        LEFT JOIN
+            (
+                SELECT
+                    pc.five_classification_id,
+                    wm_concat(DISTINCT fc.approval_number) approval_number,
+                    wm_concat(DISTINCT fou.unit_name)      unit_name,
+                    wm_concat( DISTINCT hbm.bp_name)       bp_name,
+                    wm_concat(DISTINCT pc.final_classification_time)
+                                                                       final_classification_time,
+                    wm_concat(DISTINCT sc.meaning) final_classification_result
+                FROM
+                    plm_five_classify_con pc
+                JOIN
+                    fct_contract fc
+                ON
+                    fc.contract_id=pc.contract_id
+                AND pc.contract_type='FCT'
+                JOIN
+                    fnd_org_unit fou
+                ON
+                    fou.unit_Id=fc.unit_Id
+                JOIN
+                    fct_project_bp pb
+                ON
+                    pb.project_id=fc.project_Id
+                AND pb.credit_grantor_party='Y'
+                JOIN
+                    hls_bp_master hbm
+                ON
+                    pb.bp_id=hbm.bp_id
+                LEFT JOIN
+                    <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail" /> sc
+                ON sc.code_value=pc.final_classification_result
+                AND sc.code='PLM.FC_RESULT'
+                GROUP BY
+                    pc.five_classification_id
+                union all
+
+                SELECT
+                    pc.five_classification_id,
+                    wm_concat(DISTINCT pp.approval_number) approval_number,
+                    wm_concat(DISTINCT fou.unit_name)      unit_name,
+                    wm_concat( DISTINCT hbm.bp_name)       bp_name,
+                    wm_concat(DISTINCT pc.final_classification_time)
+                                                                                   final_classification_time,
+                    wm_concat(DISTINCT sc.meaning) final_classification_result
+                FROM
+                    plm_five_classify_con pc
+                JOIN
+                    con_contract fc
+                ON
+                    fc.contract_id=pc.contract_id
+                AND pc.contract_type='CON'
+                JOIN
+                     prj_project pp
+                  ON
+                     pp.project_id=fc.project_id
+                JOIN
+                    fnd_org_unit fou
+                ON
+                    fou.unit_Id=fc.unit_Id
+                JOIN
+                    hls_bp_master hbm
+                ON
+                    hbm.bp_id=fc.tenant_id
+                         LEFT JOIN
+                    <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail" /> sc
+                ON sc.code_value=pc.final_classification_result
+                AND sc.code='PLM.FC_RESULT'
+                GROUP BY
+                    pc.five_classification_id
+        ) fpcc
+        ON
+            fpcc.five_classification_id=pfc.five_classification_id
+        <where>
+            pfc.five_classification_type = 'FC'
+
+            <if test="fiveClassificationId!=null">
+                AND pfc.five_classification_id = #{fiveClassificationId}
+            </if>
+            <if test="creationDateFrom!=null">
+                AND to_char(pfc.creation_date, 'yyyy/mm/dd' ) &gt;=to_char(to_date(#{creationDateFrom},'yyyy/mm/dd'),'yyyy/mm/dd')
+            </if>
+            <if test="creationDateTo!=null">
+                AND to_char(pfc.creation_date, 'yyyy/mm/dd' ) &lt;=to_char(to_date(#{creationDateTo},'yyyy/mm/dd'),'yyyy/mm/dd')
+            </if>
+            <if test="documentStatusArray!=null">
+                AND pfc.status IN
+                <foreach collection="documentStatusArray" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        order by five_classification_number desc
+    </select>
+
+    <select id="selectFcByBelongsToId" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.plm.fc.dto.HlsCusFiveClassification">
+        SELECT
+        pfc.*
+        FROM
+        plm_postloan_inspection ppi
+        LEFT JOIN plm_five_classification pfc ON ppi.postLoan_inspection_id = pfc.belongs_to_id
+        WHERE
+        pfc.five_classification_type = #{fiveClassificationType}
+        AND pfc.belongs_to_id = #{belongsToId}
+    </select>
+
+    <select id="selectFiveClassficationByBelongsToId" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.plm.fc.dto.HlsCusFiveClassification">
+        SELECT
+        pfc.*
+        FROM
+       plm_five_classification pfc
+        WHERE
+        pfc.five_classification_type = #{fiveClassificationType}
+        AND pfc.belongs_to_id = #{belongsToId}
+    </select>
+
+
+    <select id="queryAll" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.plm.fc.dto.HlsCusFiveClassification">
+        SELECT
+        pfc.*
+        FROM
+        plm_five_classification pfc
+        WHERE 1=1
+        <if test="fiveClassificationId!=null">
+           and pfc.five_classification_id = #{fiveClassificationId}
+        </if>
+    </select>
+</mapper>

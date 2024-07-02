@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Date: 2018-12-20
+    $Revision: 1.0
+    $Purpose: 基准利率集定义
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script src="${/request/@context_path}/common/code?rateTypeData=FND.BASE_RATE_TYPE_SET&amp;codeYesNo=SYS.YES_NO"
+                type="text/javascript"></script>
+        <script><![CDATA[
+        <!--获取resource type中英文映射数组，存入Map-->
+        var rateTypeECMap = {};
+        rateTypeData.forEach(function (i) {
+            rateTypeECMap[i.value] = i.meaning;
+        });
+
+        <!--将type中英文存入对应的ds-->
+        $L.onReady(function () {
+            rateTypeData.forEach(function (i) {
+                $("rate_type_ds").create({"base_rate_type": i.value, "base_rate_type_cn": i.meaning});
+            });
+        });
+
+        <!--新增-->
+        function base_rate_set_ds_grid_add() {
+            $('base_rate_set_ds').query();
+        }
+
+        function base_rate_set_screen_query() {
+            $('base_rate_set_ds').query();
+        }
+
+        function base_rate_set_screen_reset() {
+            $('base_rate_set_query_ds').reset();
+            $('base_rate_set_ds').query();
+        }
+
+        function base_rate_set_screen_save() {
+            var ds = $('base_rate_set_ds');
+            if (ds.validate()) {
+                ds.setSubmitUrl("${/request/@context_path}/fnd/baserateset/save");
+                ds.submit();
+            }
+            $('base_rate_set_ds').query();
+        }
+        submitUrl="${/request/@context_path}/fnd/baserateset/save"
+
+        function render_base_rate_set_ds_grid(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'detail' && !!record.get('base_rate_set') && !!record.get('currency_code')) {
+                    return (
+                        '<a href="#"' +
+                        ' onclick="javascript:winOpen_base_rate_set_detail(' +
+                        '\'' + record.get('base_rate_set') + '\',' +
+                        '\'' + record.get('currency_code') + '\',' +
+                        '\'' + record.get('currency_name') + '\');">明细</a>'
+                    );
+                }
+            }
+            if (name == "valid_from") {
+                if (!!value) {
+                    var date = new Date(value);
+                    if (date.toString() === "Invalid Date") {
+                        console.error("日期格式错误");
+                    } else {
+                        return $L.formatDate(date);
+                    }
+                }
+                return "";
+            }
+            if (name == "valid_to") {
+                if (!!value) {
+                    var date = new Date(value);
+                    if (date.toString() === "Invalid Date") {
+                        console.error("日期格式错误");
+                    } else {
+                        return $L.formatDate(date);
+                    }
+                }
+                return "";
+            }
+            return '';
+        }
+
+        <!--打开窗口：利率集明细-->
+        function winOpen_base_rate_set_detail(base_rate_set, currency_code, currency_name) {
+            new Leaf.Window({
+                id: "base_rate_set_detail_win",
+                url: "${/request/@context_path}/modules/FND/FND_SET/FND102/fnd_base_rate.lview",
+                title: '利率集明细',
+                params: {
+                    base_rate_set: base_rate_set,
+                    currency_code: currency_code,
+                    currency_name: currency_name,
+                    winId: 'base_rate_set_detail_win'
+                },
+                fullScreen: false,
+                draggable: true,
+                closeable: true,
+                width: 850,
+                height: 450,
+                side: 'right'
+            });
+        }
+
+        <!--组件change事件-->
+        function base_rate_set_ds_grid_change(editor, newVal, oldVal) {
+            if ((editor.binder.name === 'base_rate_type' || editor.binder.name == "valid_from") && editor.record.isNew) {
+                var record = editor.record;
+                var base_rate_type = record.get("base_rate_type") || '';
+                var valid_from = $L.formatDate(record.get("valid_from") || '');
+                record.set("base_rate_set", base_rate_type + valid_from);
+            }
+        }
+
+        <!--editorFunction-->
+        function base_rate_set_ds_grid_ef(record, name) {
+            if (record.isNew) {
+                if (name == "description") {
+                    return "base_rate_set_ds_grid_tf";
+                }
+                if (name == "base_rate_type_cn" || name == "currency_name") {
+                    return "base_rate_set_ds_grid_combo";
+                }
+                if (name == "valid_from" || name == "valid_to") {
+                    return "base_rate_set_ds_grid_dp";
+                }
+            }
+        }
+
+
+        function base_rate_set_copy() {
+
+            //debugger;
+            Leaf.Masker.mask(Ext.getBody(), '复制中...');
+            var ds = $('base_rate_set_ds');
+            //校验最新的
+            var records = ds.getSelected();
+            if (records.length == 0) {
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '未选择一条数据！');
+                return;
+            }
+            if (records.length > 1) {
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '请选择一条记录！');
+                return;
+            }
+            if (records[0].get('valid_to') != null) {
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '请选择最新的一条记录（有效期至需为空）！');
+                return;
+            }
+
+            var current_date  = Leaf.formatDate(new Date());
+            var current_month = current_date.split('-');
+            //console.log(current_month);
+
+            if(Leaf.formatDate(records[0].get('valid_from')) == current_date){
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '利率集代码重复，同一天内不能进行多次复制操作！');
+                return;
+            }
+
+            /*if(current_month[2] != '20'){
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '只有每月20号才能进行复制操作,请选择新增维护数据！');
+                return;
+            }*/
+
+            var pre_date = new Date();
+            pre_date.setDate(pre_date.getDate() - 1);
+            var last_date =  Leaf.formatDate(pre_date);
+            console.log(last_date);
+
+            var recordsNew = {};
+            assignValue(recordsNew , records[0].data);
+            records[0].set('valid_to' , last_date);
+
+            var base_rate_type = recordsNew.base_rate_type;
+            var valid_from = recordsNew.valid_from;
+            var description = "贷款基础利率" + current_date ;
+            var base_rate_set = base_rate_type +current_date;
+
+
+            recordsNew.valid_from = current_date;
+            recordsNew.base_rate_set = base_rate_set;
+            recordsNew.description = description;
+            recordsNew.valid_to = '';
+
+            var recordData = [];
+            recordData.push(records[0].data);
+            recordData.push(recordsNew);
+
+            Leaf.request({
+                url:  "${/request/@context_path}/fnd/baserateset/copy",
+                para: recordData,
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                    $('base_rate_set_ds').query();
+                },
+                failure: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+
+        }
+
+        function assignValue(record, data) {
+            for (var i in data) {
+                if (data[i] != null) {
+                    record[i] = data[i];
+                }
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="currency_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls_currency/query" queryMethod="GET">
+                <a:fields>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_name"/>
+                    <a:field name="currencySymbol"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="rate_type_ds">
+                <a:fields>
+                    <a:field name="base_rate_type"/>
+                    <a:field name="base_rate_type_cn"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="base_rate_set_query_ds">
+                <a:fields>
+                    <a:field name="base_rate_set"/>
+                    <a:field name="description"/>
+                    <a:field name="base_rate_type_cn" options="rate_type_ds"
+                             displayField="base_rate_type_cn" valueField="base_rate_type" returnField="base_rate_type"/>
+                    <a:field name="currency_name" options="currency_ds"
+                             displayField="currency_name" valueField="currency_code" returnField="currency_code"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="base_rate_set_ds" autoPageSize="true" autoQuery="true" selectable="true"
+                       queryDataSet="base_rate_set_query_ds" queryMethod="POST"
+                       submitUrl="${/request/@context_path}/fnd/baserateset/save"
+                       queryUrl="${/request/@context_path}/fnd/baserateset/query"
+                       deleteUrl="${/request/@context_path}/fnd/baserateset/delete">
+                <a:fields>
+                    <a:field name="base_rate_set"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="base_rate_type_cn" required="true" options="rate_type_ds"
+                             displayField="base_rate_type_cn" valueField="base_rate_type" returnField="base_rate_type"/>
+                    <a:field name="currency_code"/>
+                    <a:field name="currency_name" required="true" options="currency_ds"
+                             displayField="currency_name" valueField="currency_code" returnField="currency_code"/>
+                    <a:field name="valid_from" required="true" dataType="date"/>
+                    <a:field name="valid_to" dataType="date"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="base_rate_set_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="base_rate_set_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton click="base_rate_set_screen_save" text="HAP.SAVE"/>
+                <a:gridButton click="base_rate_set_screen_query" text="HAP.QUERY"/>
+                <a:gridButton click="base_rate_set_screen_reset" text="HAP.RESET"/>
+                <a:gridButton click="base_rate_set_copy" text="复制"/>
+            </a:screenTopToolbar>
+            <a:form column="4" title="查询条件" labelwidth="100">
+                <a:textField name="base_rate_set" bindTarget="base_rate_set_query_ds" prompt="利率集代码" emptyText="利率集代码"
+                             width="130">
+                    <a:events>
+                        <a:event name="enterdown" handler="base_rate_set_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="description" bindTarget="base_rate_set_query_ds" prompt="描述" emptyText="描述"
+                             width="130">
+                    <a:events>
+                        <a:event name="enterdown" handler="base_rate_set_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:comboBox name="base_rate_type_cn" bindTarget="base_rate_set_query_ds" prompt="基准利率类型"
+                            emptyText="基准利率类型" width="130">
+                    <a:events>
+                        <a:event name="enterdown" handler="base_rate_set_screen_query"/>
+                    </a:events>
+                </a:comboBox>
+                <a:comboBox name="currency_name" bindTarget="base_rate_set_query_ds" prompt="币种" emptyText="币种"
+                            width="130">
+                    <a:events>
+                        <a:event name="enterdown" handler="base_rate_set_screen_query"/>
+                    </a:events>
+                </a:comboBox>
+            </a:form>
+            <a:grid id="base_rate_set_ds_grid" bindTarget="base_rate_set_ds" marginHeight="150" marginWidth="30" navBar="true">
+                <a:columns>
+                    <a:column width="270" name="base_rate_set" prompt="利率集代码" align="center"/>
+                    <a:column width="247" name="description" editorFunction="base_rate_set_ds_grid_ef" prompt="描述"/>
+                    <a:column width="147" name="base_rate_type_cn" editorFunction="base_rate_set_ds_grid_ef"
+                              prompt="基准利率类型"/>
+                    <a:column width="147" name="currency_name" editorFunction="base_rate_set_ds_grid_ef" prompt="币种"
+                              align="center"/>
+                    <a:column width="147" name="valid_from" renderer="render_base_rate_set_ds_grid"
+                              editorFunction="base_rate_set_ds_grid_ef" prompt="有效期从" align="center"/>
+                    <a:column width="157" name="valid_to" renderer="render_base_rate_set_ds_grid"
+                              editorFunction="base_rate_set_ds_grid_ef" prompt="有效期至" align="center"/>
+                    <a:column width="147" name="detail" renderer="render_base_rate_set_ds_grid" prompt="利率明细"
+                              align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="base_rate_set_ds_grid_tf"/>
+                    <a:datePicker id="base_rate_set_ds_grid_dp">
+                        <a:events>
+                            <a:event name="change" handler="base_rate_set_ds_grid_change"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:comboBox id="base_rate_set_ds_grid_combo">
+                        <a:events>
+                            <a:event name="change" handler="base_rate_set_ds_grid_change"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

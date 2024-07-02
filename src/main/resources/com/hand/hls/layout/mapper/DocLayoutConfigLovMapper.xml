@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.layout.mapper.DocLayoutConfigLovMapper">
+    <delete id="deleteByLayoutCodeAndTabCode">
+    DELETE
+    FROM
+        hls_doc_layout_config_lov
+    WHERE
+        config_id IN (
+              SELECT
+                config_id
+              FROM
+                hls_doc_layout_config
+              WHERE
+                layout_code = #{docLayoutTab.layoutCode}
+              AND tab_code =#{docLayoutTab.tabCode}
+            )
+    </delete>
+
+    <select id="selectLovCount" resultType="int">
+        select count(*)
+          from hls_doc_layout_config_lov a
+         where a.config_id = #{config_id}
+           and lower(a.lov_col_name) = lower(#{lov_col_name})
+    </select>
+    <select id="queryLov" resultType="com.hand.hls.layout.dto.LovDocLayoutConfigDto">
+        SELECT
+        t1.COLUMN_NAME columnName,
+        t1.PROMPT prompt,
+        t1.DISPLAY_ORDER displayOrder,
+        t1.INPUT_MODE inputMode,
+        t1.INPUT_MODE inputModeDesc
+        FROM
+        HLS_DOC_LAYOUT_CONFIG t1
+        <where>
+            t1.enabled_flag ='Y'
+            AND t1.display_flag='Y'
+            AND t1.layout_code=#{param.layoutCode}
+            AND t1.tab_code=#{param.tabCode}
+            <if test="param.columnName != null">
+                AND t1.COLUMN_NAME LIKE concat('%', concat(#{param.columnName,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="param.prompt != null">
+                AND t1.PROMPT LIKE concat('%', concat(#{param.prompt,jdbcType=VARCHAR}, '%'))
+            </if>
+        </where>
+        ORDER BY
+        t1.DISPLAY_ORDER
+
+    </select>
+</mapper>

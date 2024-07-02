@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true"
+          trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="rpt400_bp_master_modify_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <script><![CDATA[
+
+        function open_contract_detail_win(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var project_id = record.get('project_id');
+            var param = {};
+            param['url_title'] = '合同明细';
+            param['function_code'] = 'CONT301F1';
+            param['winid'] = 'con_contract_detail_winid';
+            //param['layout_debugger_flag'] = 'Y';
+            param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc', 'price_review', 'prj_notice_id'];
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['function_code'] = 'CONT301F1WFL2';
+            param['report_flag'] = 'Y';
+            param['project_id'] = project_id;
+            hls_doc_get_layout_code(param, 'con_contract_detail_id', ds_id, 'CONT301');
+        }
+
+        function open_bp_master_detail_win(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '客户信息维护';
+            if (param['bp_class'] == 'ORG') {
+                param['function_code'] = 'BP100F1';
+            } else {
+                param['function_code'] = 'BP100F2';
+            }
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'bp_master_modify_winid';
+
+            hls_doc_get_layout_code(param, 'rpt400_bp_master_modify_id', ds_id, 'BP100');
+        }
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            var query_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
+            if (ds.id === query_ds_id) {
+                record.set('query_date', new Date());
+            }
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'open_contract_detail_win';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'con_contract_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+            if (name == 'bp_code' && value) {
+                link_function = 'open_bp_master_detail_win';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

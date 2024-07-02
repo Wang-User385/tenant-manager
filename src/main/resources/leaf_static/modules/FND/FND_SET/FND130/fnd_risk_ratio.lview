@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        $L.onReady(function () {
+            $("risk_ratio_query_ds").create({
+                risk_ratio_set_code: "${/parameter/@risk_ratio_set_code}"
+            });
+        });
+
+        <!--刷新-->
+        function risk_ratio_refresh() {
+            $("fnd_risk_ratio_ds").query();
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="asset_class_ds" lookupCode="FIVE_CLASSIFICATION_RESULT"/>
+            <a:dataSet id="risk_ratio_query_ds">
+                <a:fields>
+                    <a:field name="risk_ratio_set_code"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd_risk_ratio_ds" autoQuery="true" queryDataSet="risk_ratio_query_ds" selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/risk/ratio/query"
+                       submitUrl="${/request/@context_path}/fnd/risk/ratio/submit"
+                       deleteUrl="${/request/@context_path}/fnd/risk/ratio/remove">
+                <a:fields>
+                    <a:field name="asset_class_id"/>
+                    <a:field name="risk_ratio_set_code" defaultValue="${/parameter/@risk_ratio_set_code}"/>
+                    <a:field name="currency" defaultValue="CNY"/>
+                    <a:field name="risk_ratio"/>
+                    <a:field name="asset_class"/>
+                    <a:field name="asset_class_n" options="asset_class_ds" displayField="code_value_name" valueField="code_value" returnField="asset_class"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton bind="fnd_risk_ratio_grid_id" type="add"/>
+                <a:gridButton bind="fnd_risk_ratio_grid_id" type="save"/>
+                <a:gridButton bind="fnd_risk_ratio_grid_id" type="delete"/>
+                <a:gridButton click="risk_ratio_refresh" text="HAP.REFRESH"/>
+            </a:screenTopToolbar>
+            <a:grid id="fnd_risk_ratio_grid_id" bindTarget="fnd_risk_ratio_ds" marginHeight="140" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="asset_class_n" align="right" width="200" prompt="对应资产分类" editor="fnd_risk_ratio_grid_cb"/>
+                    <a:column name="risk_ratio" align="right" width="200" prompt="风险准备金率" editor="fnd_risk_ratio_grid_nf"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd_risk_ratio_grid_tf"/>
+                    <a:numberField id="fnd_risk_ratio_grid_nf" allowDecimals="true" decimalPrecision="4"/>
+                    <a:comboBox id="fnd_risk_ratio_grid_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

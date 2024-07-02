@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+
+        <script><![CDATA[
+
+
+
+
+        window['approval_upload_file'] = function (record_id, litigation_management_id) {
+            if (typeof (litigation_management_id) === 'undefined' || 'undefined' === litigation_management_id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'MODIFY') {
+                url = '${/request/@context_path}/uploadFile.lview';
+            } else {
+                url = '${/request/@context_path}/downloadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'avs316wfl_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': litigation_management_id,
+                    'table_name': 'litigation_management',
+                    winid: 'avs320_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'litigation_management');
+                $(ds_id).query();
+            });
+        };
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq){
+
+            if (name == 'file_uplod') {
+
+                return '<a href="javascript:approval_upload_file(\'' + record.id + '\',\'' + record.get('litigation_management_id') + '\')">附件上传</a>';
+            }
+        }
+
+
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq){
+            //debugger;
+            //alert("score_id-->"+'${/parameter/@score_id}');
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_G_AVS_LIST_litigation_management_ds':
+                    qpara['litigation_management_id'] = '${/parameter/@litigation_management_id}';
+                    break;
+            }
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

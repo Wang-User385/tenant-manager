@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_common_release_repurchase_window_id"
+                url="${/request/@context_path}/modules/ABS/ABS023B/abs_assets_package_cashflow_info.lview"/>
+        <a:link id="abs_new_detail_link"
+                url="${/request/@context_path}/modules/ABS/ABS023B/abs_assets_package_add.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            //form数据
+            var info_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_pack');
+            if ($(info_ds).validate()) {
+                var info_record = $(info_ds).getCurrentRecord();
+                //grid数据
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_package');
+                var records = $(ds_id).getAll();
+
+                var dsRecord = info_record.data;
+                dsRecord['document_category']='ABS_ASSET_PACKAGE';
+                dsRecord['business_type']='ABS_ASSET_PACKAGE';
+                dsRecord['document_type']='ABS_ASSET_PACKAGE';
+                dsRecord['data_class']='NORMAL';
+                dsRecord['pack_status']='NORMAL';
+                dsRecord['change_req_id']='-1';
+                dsRecord['ref_pack_id']='-1';
+                dsRecord['company_id'] = '${/session/@companyId}';
+                dsRecord['user_id'] = '${/session/@userId}';
+                dsRecord['unit_id'] = '${/session/@unitId}';
+
+
+                if(records.length != 0){
+                    var absAssetsPackageList = [];
+                    for(i=0;i<records.length;i++){
+                        absAssetsPackageList.push(records[i].data);
+                        dsRecord['abs_assets_package_list']=absAssetsPackageList;
+                    }
+                }
+                //把其他属性去掉，避免栈溢出
+                dsRecord[ds_id.replace('_ds', '')] = undefined;
+
+                Leaf.request({
+                    url: '${/request/@context_path}/ct/abs/assets/pack/submit',
+                    type: "POST",
+                    dataType: "json",
+                    async: false,
+                    para: dsRecord,
+                    contentType: "application/json",
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.SideBar.show({
+                            msg:'操作成功' ,
+                            duration: 2000
+                        });
+                        //Leaf.showMessage('提示', '成功');
+                        $(info_ds).query();
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                })
+            }
+
+        };
+
+        //保存前调用 (调用编码规则 生成编号)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_pack');
+            var hdRecord = $(hd_ds_id).getCurrentRecord();
+            var documentCategory = 'ABS_ASSET_PACKAGE';
+            var documentType = 'ABS_ASSET_PACKAGE';
+            var businessType = 'ABS_ASSET_PACKAGE';
+            var companyId = '${/session/@companyId}';
+            var userId = '${/session/@userId}';
+            var unitId = '${/session/@unitId}';
+            hdRecord.set('company_id', companyId);
+            hdRecord.set('user_id', userId);
+            hdRecord.set('unit_id', unitId);
+            hdRecord.set('creation_date', Leaf.formatDate(new Date()));
+            hdRecord.set('document_category', documentCategory);
+            hdRecord.set('business_type', businessType);
+            hdRecord.set('document_type', documentType);
+            hdRecord.set('data_class', 'NORMAL');
+            hdRecord.set('pack_status', 'NORMAL');
+            hdRecord.set('change_req_id', '-1');
+            hdRecord.set('ref_pack_id', '-1');
+            if (!hdRecord.get('pack_id')) {
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory + "&documentType=" + documentType + "&businessType=" + businessType,
+                    success: function (res) {
+                        hdRecord.set('pack_number', res.result.record[0]);
+                        check_flag = true;
+                    },
+                    error: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            };
+
+            return check_flag;
+        };
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            var info_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_pack','F_QUERY');
+            $(info_ds).setQueryParameter('pack_id', $(info_ds).getCurrentRecord().get('pack_id'));
+            $(info_ds).query();
+        };
+
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_package','G_RESULT');
+            if (ds.id === ds_id) {
+                if(name == 'pack_date_from_n'|| name == 'pack_date_to_n'){
+                    if(record.get('pack_date_to_n') != null && record.get('pack_date_to_n') != '' && record.get('pack_date_from_n')!= null && record.get('pack_date_from_n')!= ''){
+                        Leaf.request({
+                            url: "${/request/@context_path}/ct/abs/assets/package/pack/date/check",
+                            sync: true,
+                            para: {
+                                contract_id:record.get("contract_id"),
+                                contract_number:record.get('contract_number'),
+                                package_id: record.get("package_id"),
+                                pack_date_from:record.get("pack_date_from"),
+                                pack_date_to:record.get("pack_date_to")},
+                            type: "POST",
+                            success: function (res) {
+                                var overdueStatusN = res.result.record[0].overdue_status_n;
+                                record.set("overdue_status_n",overdueStatusN);
+                            },
+                            error: function (res) {
+                            },
+                            failure: function (res) {
+                            },
+                            scope: this
+                        });
+                    }
+                }
+            }
+        }
+
+
+        //grid按钮
+        window['${/parameter/@layout_code}_G_RESULT_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+
+            var info_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_pack','F_QUERY');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_package','G_RESULT');
+            var hd_record = $(info_ds).getCurrentRecord();
+            if(hd_record.get('pack_id') == null || hd_record.get('pack_id') == ''){
+                Leaf.showMessage('提示','请先保存！');
+            }else{
+                var param = {};
+                param['url_title'] = '资产包新增';
+                param['function_code'] = 'ABS001S1'
+                param['winid'] = 'abs001s1_win';
+                param['pack_id'] = hd_record.get('pack_id');
+                param['function_usage'] = 'MODIFY';
+                param['parent_ds_id'] = ds_id;
+                hls_doc_get_layout_code(param, 'abs_new_detail_link', ds_id, 'ABS001S1');
+            }
+
+
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'cashflow_detail') {
+                var link_function = '${/parameter/@layout_code}_open_duration_detail_win';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + "明细" + '</a>';
+            }
+        };
+
+
+        //现金流详情
+        window['${/parameter/@layout_code}_open_duration_detail_win'] = function (record_id, ds_id) {
+            var record = $(ds_id).findById(record_id).data;
+            var param = {};
+            param['url_title'] = '现金流详情';
+            param['function_code'] = 'ABS001S2';
+            param['contract_id'] = record.contract_id;
+            param['winid'] = '${/parameter/@layout_code}_common_winid';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_release_repurchase_window_id', ds_id, '${/parameter/@function_code}');
+        }
+
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>

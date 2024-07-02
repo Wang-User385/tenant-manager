@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hand.hls.fnd.mapper.HlsFinStatementTmpltLnMapper">
+
+	<resultMap id="resultMap" type="com.hand.hls.fnd.dto.HlsFinStatementTmpltLn">
+		<id column="fin_statement_templet_ln_id" property="finStatementTempletLnId" jdbcType="BIGINT" />
+		<result column="fin_statement_templet_hd_id" property="finStatementTempletHdId" jdbcType="BIGINT" />
+		<result column="line_type" property="lineType" jdbcType="VARCHAR" />
+		<result column="line_seq_number" property="lineSeqNumber" jdbcType="BIGINT" />
+		<result column="fin_statement_item_name" property="finStatementItemName" jdbcType="VARCHAR"/>
+		<result column="fin_statement_item_type" property="finStatementItemType" jdbcType="VARCHAR" />
+		<result column="formula_priority" property="formulaPriority" jdbcType="BIGINT"/>
+		<result column="formula_text" property="formulaText" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<select id="query" parameterType="com.hand.hls.fnd.dto.HlsFinStatementTmpltLn" resultMap="resultMap">
+		select v.* FROM
+		(select ln.fin_statement_templet_ln_id,
+		ln.fin_statement_templet_hd_id,
+		ln.line_type,
+		ln.line_seq_number,
+		ln.fin_statement_item_name,
+		ln.fin_statement_item_type,
+		ln.formula_priority,ln.formula_text
+		FROM hls_fin_statement_tmplt_ln ln) v
+		<where> 1 = 1
+			<if test="finStatementTempletHdId !=null">
+				and v.fin_statement_templet_hd_id = #{finStatementTempletHdId}
+			</if>
+			<if test="lineType !=null">
+				and v.line_type = #{lineType}
+			</if>
+		</where>
+		ORDER BY V.line_seq_number ASC
+	</select>
+	<select id="queryByFormula" parameterType="com.hand.hls.fnd.dto.HlsFinStatementTmpltLn" resultMap="resultMap">
+		select v.* FROM
+		(select ln.fin_statement_templet_ln_id,
+		ln.fin_statement_templet_hd_id,
+		ln.line_type,
+		ln.line_seq_number,
+		ln.fin_statement_item_name,
+		ln.fin_statement_item_type,
+		ln.formula_priority,ln.formula_text
+		FROM hls_fin_statement_tmplt_ln ln) v
+		<where>
+			<if test="finStatementTempletHdId !=null">
+				v.fin_statement_templet_hd_id = #{finStatementTempletHdId}
+			</if>
+			<if test="lineType !=null">
+				and v.line_type = #{lineType}
+			</if>
+			AND v.formula_priority>0
+		</where>
+		ORDER BY v.formula_priority ASC,v.line_seq_number ASC
+	</select>
+
+
+	<select id="queryByItemName" parameterType="com.hand.hls.fnd.dto.HlsFinStatementTmpltLn" resultMap="resultMap">
+		select v.*
+		FROM hls_fin_statement_tmplt_ln  v
+		<where>
+				1=1
+			<if test="finStatementTempletHdId !=null">
+				and	v.fin_statement_templet_hd_id = #{finStatementTempletHdId}
+			</if>
+			<if test="finStatementItemName !=null">
+				and	trim(v.fin_statement_item_name) = #{finStatementItemName}
+			</if>
+			<if test="lineType !=null">
+				and v.line_type = #{lineType}
+			</if>
+		</where>
+		ORDER BY line_seq_number ASC
+
+	</select>
+
+
+</mapper>

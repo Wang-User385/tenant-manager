@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2019年2月28日
+    $Revision: 1.0  
+    $Purpose: 收款退款
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+
+
+        <a:link id="csh301_transaction_receipt_refund_link"
+                url="${/request/@context_path}/csh/transaction/refund/submit"/>
+
+        <script type="text/javascript"><![CDATA[
+
+
+        function csh301_transaction_receipt_refund_back() {
+            $('${/parameter/@winId}').close();
+        }
+
+        function onUpdate_csh301_receipt_refund(ds, record, name, value, oldvalue) {
+            if (name == 'bp_id') {
+                if (value != oldvalue) {
+                    record.set('bp_bank_account_id', '');
+                    record.set('bp_bank_account_name', '');
+                    record.set('bp_bank_account_num', '');
+                    record.set('bp_bank_name', '');
+                    record.set('bp_bank_branch_name', '');
+                }
+                record.getField('bp_bank_account_name').setLovPara('bpId', value);
+            } else if (name == 'return_due_amount') {
+                if (value === 0) {
+                    record.set('transaction_amount', '');
+                    record.set('return_due_amount', '');
+                    Leaf.showMessage('${l:PROMPT}', '退款金额不能为0');
+                }
+            } else if (name == 'bank_account_id') {
+                if (record.get('zero_amounts_allowed') == 'N' && record.get('return_due_amount') === 0) {
+                    Leaf.showMessage('${l:PROMPT}', '退款金额不能为0');
+                }
+            }
+        }
+
+        function csh301_transaction_receipt_refund() {
+            var ds = $('csh_transaction_receipt_maintain_result_ds');
+            var records = ds.getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '请选择一条记录！');
+                return;
+            }
+            if (records.length > 1) {
+                Leaf.showMessage('提示！', '只能勾选一条记录！');
+                return;
+            }
+
+            var line_ds = $('csh_transaction_receipt_refund_head_ds');
+
+            var record = line_ds.getAt(0);
+
+            var can_return_amount = record.get('can_return_amount');
+
+            if (can_return_amount == 0) {
+                Leaf.showMessage('提示！', '该笔收款无剩余可退款金额！');
+                return;
+            }
+
+            if (line_ds.validate()) {
+                var saveData = [];
+
+                saveData.push(record.data);
+
+                var winId = '${/parameter/@winId}';
+                Leaf.Masker.mask($(winId).wrap, '退款中。。');
+                Leaf.request({
+                    url: $('csh301_transaction_receipt_refund_link').getUrl(),
+                    para: saveData,
+                    success: function (res) {
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        $('csh_transaction_receipt_maintain_query_ds').query();
+                        Leaf.Masker.unmask($(winId).wrap);
+                        csh301_transaction_receipt_refund_back();
+                    },
+                    failure: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    scope: this
+                });
+            }
+        }
+        function onLoad_csh301_receipt_refund() {
+
+            var line_ds = $('csh_transaction_receipt_refund_head_ds');
+            var record = line_ds.getAt(0);
+             record.set('created_by','${/session/@user_id}');
+            record.set('created_by_n','${/session/@employeeName}');
+            record.set('return_due_amount','${/parameter/@un_write_off_amount}');
+           }
+
+
+        ]]></script>
+        <a:dataSets>
+     <a:dataSet id="transaction_type_ds" lookupCode="CSH301_TRANSACTION_TYPE"/>
+
+            <a:dataSet id="csh_transaction_receipt_refund_head_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/transaction/query/new?transactionId=${/parameter/@transaction_id}">
+                <a:fields>
+                    <a:field name="contract_number" readOnly="true" />
+                    <a:field name="contract_name" readOnly="true" />
+                    <a:field name="created_by_n" readOnly="true" />
+
+                    <a:field name="transaction_date" datatype="date" required="true" prompt="退款日期"/>
+                    <a:field name="return_due_amount"  prompt="退款金额"/>
+                    <a:field name="bank_account_name" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90" lovService="/csh/bank/account/query~hls.layout.dto.LovCshBankAccountDto"
+                             lovWidth="850" required="true" title="CSH511.BANK_ACCOUNT_CODE" prompt="收款账户">
+                        <a:mapping>
+                            <a:map from="bank_account_id" to="bank_account_id"/>
+                            <a:map from="bank_account_num" to="bank_account_num"/>
+                            <a:map from="bank_account_name" to="bank_account_name"/>
+                            <a:map from="bank_account_code" to="bank_account_code"/>
+                            <a:map from="bank_branch_name" to="bank_branch_name"/>
+                            <a:map from="currency" to="currency_code"/>
+                            <a:map from="currency_n" to="currency_n"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bank_account_num" readOnly="true"/>
+                    <a:field name="currency_n" readOnly="true"/>
+                    <a:field name="currency_code" readOnly="true"/>
+
+                    <a:field name="bp_name" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/hls/bp/queryBpMasterLov~hls.layout.dto.LovHlsBpMasterDto" lovWidth="550"
+                             title="HLS.BP_TITLE" prompt="商业伙伴">
+                        <a:mapping>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                            <a:map from="bp_code" to="bp_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="transaction_type_n" displayField="code_value_name" options="transaction_type_ds"
+                             returnField="transaction_type" valueField="code_value" readOnly="true"/>
+                    <a:field name="refund_method_n" displayField="code_value_name" options="payment_method_ds"
+                             returnField="payment_method" valueField="code_value"/>
+                    <a:field name="payment_method_n" displayField="code_value_name" options="payment_method_ds"
+                             returnField="payment_method" valueField="code_value"/>
+                    <a:field name="payment_method"/>
+                    <a:field name="bp_bank_account_name" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/hls/bp/bank/account/queryLov~hls.layout.dto.LovBpBankAccountDto"
+                             lovWidth="580" title="CSH511.BP_BANK_ACCOUNT_CODE" prompt="对方账户">
+                        <a:mapping>
+                            <a:map from="bank_account_id" to="bp_bank_account_id"/>
+                            <a:map from="bank_account_num" to="bp_bank_account_num"/>
+                            <a:map from="bank_account_name" to="bp_bank_account_name"/>
+                            <a:map from="bank_full_name" to="bp_bank_name"/>
+                            <a:map from="bank_branch_name" to="bp_bank_branch_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bp_bank_account_num" readOnly="true"/>
+                    <a:field name="bp_bank_name" readOnly="true"/>
+                    <a:field name="bp_bank_branch_name" readOnly="true"/>
+
+                    <a:field name="company_id" readOnly="true" defaultValue="${/session/@companyId}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdate_csh301_receipt_refund"/>
+                    <a:event name="load" handler="onLoad_csh301_receipt_refund"/>
+
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton id="csh301_transaction_receipt_refund_back_id"
+                              click="csh301_transaction_receipt_refund_back" text="HLS.RETURN"/>
+                <a:gridButton id="csh301_transaction_receipt_refund_id" click="csh301_transaction_receipt_refund"
+                              text="退款审批"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:fieldSet title="退款信息">
+                    <a:box column="3" >
+                        <a:comboBox name="transaction_type_n" bindTarget="csh_transaction_receipt_refund_head_ds" prompt="款项类型"/>
+
+                        <a:datePicker name="transaction_date" bindTarget="csh_transaction_receipt_refund_head_ds"
+                                      prompt="申请退款日期" renderer="Leaf.formatDate"/>
+                        <a:numberField name="return_due_amount" bindTarget="csh_transaction_receipt_refund_head_ds"
+                                       prompt="退款金额"/>
+
+                        <a:comboBox name="currency_n" bindTarget="csh_transaction_receipt_refund_head_ds" prompt="币种"/>
+<!--
+                        <a:comboBox name="bp_name" prompt="收款对象" width="200"/>
+-->
+                        <a:lov name="bp_name" bindTarget="csh_transaction_receipt_refund_head_ds" prompt="商业伙伴"/>
+
+                        <!--<a:lov name="bank_account_name" bindTarget="csh_transaction_receipt_refund_head_ds"
+                               prompt="退款账户"/>
+                        <a:textField name="bank_account_num" bindTarget="csh_transaction_receipt_refund_head_ds"
+                                     prompt="退款账号"/>-->
+                        <a:lov name="bp_bank_account_name" bindTarget="csh_transaction_receipt_refund_head_ds"
+                               prompt="开户银行名称" width="200"/>
+                        <a:textField name="bp_bank_account_num" bindTarget="csh_transaction_receipt_refund_head_ds"
+                                     prompt="开户银行账号" width="150"/>
+
+                        <a:textField name="contract_number" bindTarget="csh_transaction_receipt_refund_head_ds"
+                                     prompt="挂账合同编号" width="250"/>
+                        <a:textField name="contract_name" bindTarget="csh_transaction_receipt_refund_head_ds"
+                                     prompt="挂账合同名称" width="250"/>
+                        <a:textField name="created_by_n" bindTarget="csh_transaction_receipt_refund_head_ds"
+                                     prompt="申请人" width="250"/>
+                        <a:textField name="description" bindTarget="csh_transaction_receipt_refund_head_ds"
+                                     prompt="摘要" width="250"/>
+                    </a:box>
+                </a:fieldSet>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: congweijing
+    Date: 2021/05/20 10:30
+    Revision: 1.0
+    Purpose: 合同结束管理页面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="${/parameter/@layout_code}_common_release_repurchase_window_id"
+                url="${/request/@context_path}/modules/HLS/HLS300/hls_duration_common_release_repurchase.lview"/>
+        <script><![CDATA[
+        //合同详情
+        function open_contract_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '合同明细维护';
+            param['function_code'] = 'CONT301F1';
+            param['winid'] = 'con_contract_detail_winid';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['function_code'] = 'CONT301F1';
+            hls_doc_get_layout_code(param, 'con_contract_detail_id', ds_id, 'CONT301');
+        }
+
+        //存续期履约情况
+        window['${/parameter/@layout_code}_open_duration_detail_win'] = function (record_id, ds_id) {
+            var record = $(ds_id).findById(record_id).data;
+            var param = {};
+            param['url_title'] = '存续期履约情况';
+            param['function_code'] = 'HLS300CASHF1';
+            param['project_id'] = record.project_id;
+            param['winid'] = '${/parameter/@layout_code}_common_winid';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_release_repurchase_window_id', ds_id, '${/parameter/@function_code}');
+        }
+
+
+        //附件
+        window['${/parameter/@layout_code}_attachment_detail'] = function (record_id, name) {
+            var record = window['${/parameter/@layout_code}_hls_link_render_record'][record_id + '---' + name];
+            var header_id = record.get('project_id');
+            var table_name = "prj_project_terminate";
+            if (header_id) {
+                var url;
+                if ('${/parameter/@function_usage}' == 'QUERY') {
+                    url = '${/request/@context_path}/downloadFile.lview';
+                } else {
+                    url = '${/request/@context_path}/uploadFile.lview';
+                }
+                var win = new Leaf.Window({
+                    id: '${/parameter/@layout_code}_open_attachment_winid',
+                    url: url,
+                    params: {
+                        header_id: header_id,
+                        table_name: table_name,
+                        winid: '${/parameter/@layout_code}_open_attachment_winid',
+                        function_usage: '${/parameter/@function_usage}'
+                    },
+                    title: '文件上传',
+                    width: 800,
+                    height: 575
+                });
+                win.on('close', function () {
+                    var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var pageNum = $(prj_project_ds_id).currentPage;
+                    $(prj_project_ds_id).query(pageNum);
+                });
+            } else {
+                $L.showInfoMessage("提示", "请先保存!", null);
+            }
+
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'contract_number') {
+                var link_function = 'open_contract_detail_win';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            } else if (name === 'attach_link') {
+                var link_function = '${/parameter/@layout_code}_attachment_detail';
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + name + '\');">' + "上传/下载" + '</a>';
+            } else if (name == 'cashflow_detail') {
+                var link_function = '${/parameter/@layout_code}_open_duration_detail_win';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + "明细" + '</a>';
+            }
+        };
+
+        //提交审批
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var records = $(ds_id).getSelected();
+            if (records.length != 1) {
+                Leaf.showMessage("提示", "请选择一条单据进行发起!", null);
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return;
+            } else {
+                var record = records[0];
+                if (record.get("terminate_approval_status") == "APPROVING" || record.get("terminate_approval_status") == "APPROVED") {
+                    Leaf.showMessage("提示", "该合同已经发起审批!", null);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return;
+                }
+                Leaf.request({
+                    url: "${/request/@context_path}/submit/contract/terminate/wfl",
+                    para: {project_id: record.get("project_id")},
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                            $(ds_id).query();
+                        });
+                    },
+                    error: function (res) {
+                        $L.showInfoMessage("提示", "提交失败!");
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        $L.showInfoMessage("提示", "提交失败!");
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

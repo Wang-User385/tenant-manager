@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            var ct_abs_project_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+            var projectRecord = $(ct_abs_project_id).getCurrentRecord().data;
+            var project_id = projectRecord.project_id;
+
+            if (ds.id === '${/parameter/@layout_code}_G_ACCOUNT_ct_abs_bank_account_ds') {
+                qpara['source_type'] = 'ABS_PROJECT';
+                qpara['source_key'] = project_id;
+            }
+            if (ds.id === '${/parameter/@layout_code}_G_MID_ct_abs_project_organization_ds') {
+                qpara['project_id'] = project_id;
+            }
+            if (ds.id === '${/parameter/@layout_code}_G_FEE_ct_abs_pro_fee_info_ds') {
+                qpara['source_key'] = project_id;
+            }
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {
+            var ct_abs_project_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+            var projectRecord = $(ct_abs_project_id).getCurrentRecord().data;
+            var project_id = projectRecord.project_id;
+
+            if (ds.id === '${/parameter/@layout_code}_G_ACCOUNT_ct_abs_bank_account_ds') {
+                record.set('source_type','ABS_PROJECT');
+                record.set('source_key',project_id);
+            }
+            if (ds.id === '${/parameter/@layout_code}_G_FEE_ct_abs_pro_fee_info_ds') {
+                record.set('source_type','ABS_PROJECT');
+                record.set('source_key',project_id);
+            }
+        };
+
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            var fee_ds_id = '${/parameter/@layout_code}_G_FEE_ct_abs_pro_fee_info_ds';
+            if (ds.id === fee_ds_id && record && ('${/parameter/@function_usage}' !== 'QUERY')) {
+                //当费用名称选择增值税，则附加税为必填项，选项有12%、10%和6%；当费用名称选择非增值税，则为只读
+                if ( record.get('fee_name') == 'VAT') {
+                    record.getField('add_tax_rate').setReadOnly(false);
+                    record.getField('add_tax_rate').setRequired(true);
+                    record.getField('add_tax_rate_n').setReadOnly(false);
+                    record.getField('add_tax_rate_n').setRequired(true);
+                }else{
+                    record.getField('add_tax_rate').setReadOnly(true);
+                    record.getField('add_tax_rate').setRequired(false);
+                    record.getField('add_tax_rate_n').setReadOnly(true);
+                    record.getField('add_tax_rate_n').setRequired(false);
+                }
+            }
+        }
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            var fee_ds_id = '${/parameter/@layout_code}_G_FEE_ct_abs_pro_fee_info_ds';
+            if (ds.id === fee_ds_id && ('${/parameter/@function_usage}' !== 'QUERY')) {
+                //当费用名称选择增值税，则附加税为必填项，选项有12%、10%和6%；当费用名称选择非增值税，则为只读
+                if ( record.get('fee_name') == 'VAT') {
+                    record.getField('add_tax_rate').setReadOnly(false);
+                    record.getField('add_tax_rate').setRequired(true);
+                    record.getField('add_tax_rate_n').setReadOnly(false);
+                    record.getField('add_tax_rate_n').setRequired(true);
+                }else{
+                    record.getField('add_tax_rate').setReadOnly(true);
+                    record.getField('add_tax_rate').setRequired(false);
+                    record.getField('add_tax_rate_n').setReadOnly(true);
+                    record.getField('add_tax_rate_n').setRequired(false);
+                }
+            }
+        }
+
+        function attachment_action(project_attachment_id) {
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            win = new Leaf.Window({
+                id: 'fin001f1_open_attachment_winid',
+                url:url,
+                params: {
+                    header_id: project_attachment_id,
+                    table_name: 'ct_abs_project_attachment',
+                    winid: 'fin001f1_open_attachment_winid'
+                },
+                title: '文件上传',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project_attachment');
+                $(ds_id).query();
+            });
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'download') {
+                return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id='+record.get('attachment_id')+'">下载</a>';
+            }
+            if (name === 'upload' && !record.isNew) {
+                return '<a href="javascript:attachment_action(\'' + record.get('project_attachment_id') + '\')">上传</a>';
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: huangtianyang
+    Date: 2019/02/19 16:37
+    Revision: 1.0
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="CONT310_con_contact_teminate_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_cancel.lview"/>
+
+        <script><![CDATA[
+
+        function open_contract_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '合同明细维护';
+            param['function_code'] = 'CONT301F1';
+            param['winid'] = 'con_contract_detail_winid';
+            param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc', 'quotation_calc'];
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['function_code'] = 'CONT301F1';
+            hls_doc_get_layout_code(param, 'con_contract_detail_id', ds_id, 'CONT310');
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'open_contract_detail_win';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if ((name == 'contract_number_p' || name == 'legal_contract_number') && value ) {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            //debugger;
+            if (ds.id == '${/parameter/@layout_code}_G_CON_con_contract_ds') {
+                var form_ds_id = '${/parameter/@layout_code}_F_CON__ds';
+                var form_record = $(form_ds_id).getCurrentRecord();
+                var contract_number = form_record.get('contract_number');
+                var contract_name = form_record.get('contract_name');
+                var project_number = form_record.get('project_number');
+                var bp_id_tenant_n = form_record.get('bp_id_tenant_n');
+
+                if (contract_number != undefined) {
+                    qpara['contract_number'] = contract_number;
+                }
+                if (contract_name != undefined) {
+                    qpara['contract_name'] = contract_name;
+                }
+                if (project_number != undefined) {
+                    qpara['project_number'] = project_number;
+                }
+                if (bp_id_tenant_n != undefined) {
+                    qpara['bp_name'] = bp_id_tenant_n;
+                }
+
+            }
+        }
+
+        //结束合同
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            var records = $(prj_ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage('提示', '请选择一条记录！');
+                return;
+            }
+            var prj_record=records[0];
+
+            //if (prj_record[0].get('contract_status') == 'SIGN') {
+            Leaf.showConfirm('提示', '确定结束合同?', function () {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: "${/request/@context_path}/prj/project/terminate",
+                    para: {
+                        project_id: prj_record.get("project_id")
+                    },
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        $L.showInfoMessage("提示", "已关闭!");
+                        $(prj_ds_id).query();
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }, null, 200, 200)
+            //} else {
+            //    Leaf.showMessage('提示', '新建状态允许关闭');
+            //}
+
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

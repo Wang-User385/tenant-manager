@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="jc_transfer_application_new_id1"
+                url="${/request/@context_path}/modules/TAA/TAA001/transfer_application_detal.lview"/>
+        <script><![CDATA[
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_G_TAA_LIST_jc_transfer_application_ds':
+                    //管理页面查询自己的单据
+                    if('${/parameter/@function_code}' == 'TAA001'){
+                        qpara['authority'] = '${/session/@user_id}';
+                    }
+                    break;
+            }
+        };
+
+
+        //资产处置创建按钮
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function (){
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_transfer_application');
+            var param = {};
+            debugger;
+            param['url_title'] = '转账申请创建';
+            param['function_code'] = 'TAA001F1';
+            param['unit_id'] = '${/session/@unitId}';
+            param['winid'] = 'jc_transfer_application_new_winid12';
+            param['ds_id'] = ds_id;
+
+           // param['proposer_employee_name'] = '${/session/@employeeName}';
+
+            var link_id = 'jc_transfer_application_new_id1';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'TAA001F1');
+        }
+
+
+
+
+        // 超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            debugger;
+            var link_function = 'jc_transfer_application_detal_open';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'transfer_application_number') {
+                var param = $(record.ds.id).findById(record.id).data;
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id +  '\',\'' + record +  '\');">' + value + '</a>';
+            }
+        };
+
+        function jc_transfer_application_detal_open(record_id, ds_id , record) {
+            debugger;
+            var param = $(ds_id).findById(record_id).data;
+            var status = param.status;
+
+            param['url_title'] = '转账申请详细信息';
+            param['function_code'] = 'TAA001F1';
+            param['winid'] = 'jc_transfer_application_detal_winid';
+            param['ds_id'] = ds_id;
+            if(status == 'APPROVING' || status == 'APPROVED' ||'${/parameter/@function_code}' == 'TAA001F2'){
+                //param['maintain_type'] = 'READONLY';
+                param['function_usage'] = 'QUERY';
+            }else{
+                param['function_usage'] = 'UPDATE';
+            }
+
+
+            var link_id = 'jc_transfer_application_new_id1';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'TAA001F1');
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

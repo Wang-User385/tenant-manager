@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.HlsCusDepositDeductionHdMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.HlsCusDepositDeductionHd">
+        <result column="DEPOSIT_DEDUCTION_HD_ID" property="depositDeductionHdId" jdbcType="DECIMAL" />
+        <result column="TRANSACTION_ID" property="transactionId" jdbcType="DECIMAL" />
+        <result column="DEDUCTION_DATE" property="deductionDate" jdbcType="DATE" />
+        <result column="DEDUCTION_TYPE" property="deductionType" jdbcType="VARCHAR" />
+        <result column="DEPOSIT_STATUS" property="depositStatus" jdbcType="VARCHAR" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="DEPOSIT_STATUS" property="depositStatus" jdbcType="VARCHAR" />
+        <result column="DEDUCTION_DOC_CATEGORY" property="deductionDocCategory" jdbcType="VARCHAR" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="DEDUCTION_AMOUNT_SUM" property="deductionAmountSum" jdbcType="DECIMAL" />
+        <result column="DEDUCTION_INTEREST_SUM" property="deductionInterestSum" jdbcType="DECIMAL" />
+        <result column="DEDUCTION_PRINCIPAL_SUM" property="deductionPrincipalSum" jdbcType="DECIMAL" />
+        <result column="DEDUCTION_TYPE_DESC" property="deductionTypeDesc" jdbcType="VARCHAR" />
+        <result column="DEPOSIT_STATUS_DESC" property="depositStatusDesc" jdbcType="VARCHAR" />
+        <result column="TRANSACTION_AMOUNT" property="transactionAmount" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_AMOUNT" property="writeOffAmount" jdbcType="DECIMAL" />
+        <result column="LEFT_AMOUNT" property="leftAmount" jdbcType="DECIMAL" />
+        <result column="PRE_OCCUPY_AMOUNT" property="preOccupyAmount" jdbcType="DECIMAL" />
+        <result column="OTHER_OCCUPY_AMOUNT" property="otherOccupyAmount" jdbcType="DECIMAL" />
+        <result column="CREATION_DATE" property="creationDate" jdbcType="DATE" />
+    </resultMap>
+
+    <!-- 查询汇总界面 三个类型的数据汇总-->
+    <select id="selectHlsCusDepositHeaderData"  parameterType="com.hand.hls.csh.dto.HlsCusDepositDeductionHd" resultMap="BaseResultMap">
+     SELECT
+        CDDH.DEPOSIT_DEDUCTION_HD_ID,
+        CDDH.TRANSACTION_ID,
+        CDDH.DEDUCTION_DATE,
+        CDDH.DEDUCTION_TYPE,
+        CDDH.DEPOSIT_STATUS,
+        CDDH.CONTRACT_ID,
+        CDDH.DEDUCTION_DOC_CATEGORY,
+        CDDH.BP_ID,
+        nvl(nvl(CDDH.DEDUCTION_AMOUNT,CDD.DEDUCTION_AMOUNT_SUM),0) DEDUCTION_AMOUNT_SUM,
+        nvl(CDD.DEDUCTION_INTEREST_SUM,0) DEDUCTION_INTEREST_SUM,
+        nvl(CDD.DEDUCTION_PRINCIPAL_SUM,0) DEDUCTION_PRINCIPAL_SUM,
+        DTYPE.MEANING DEDUCTION_TYPE_DESC,
+        DSTATUS.MEANING DEPOSIT_STATUS_DESC
+     FROM
+            (SELECT
+                H.DEPOSIT_DEDUCTION_HD_ID,
+                H.TRANSACTION_ID,
+                H.DEDUCTION_DATE,
+                H.DEDUCTION_TYPE,
+                H.DEPOSIT_STATUS,
+                H.CONTRACT_ID,
+                H.DEDUCTION_DOC_CATEGORY,
+                H.BP_ID,
+                NULL DEDUCTION_AMOUNT
+            FROM
+                CSH_DEPOSIT_DEDUCTION_HD H
+            UNION
+            SELECT
+                R.DEPOSIT_REFUND_ID,
+                R.TRANSACTION_ID,
+                R.REFUND_DATE,
+                R.REFUND_TYPE,
+                R.REFUND_STATUS,
+                R.CONTRACT_ID,
+                R.REFUND_DOC_CATEGORY,
+                R.BP_ID,
+                R.REFUND_AMOUNT
+            FROM
+                CSH_DEPOSIT_REFUND R) CDDH
+    JOIN
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail" /> DTYPE
+    ON
+         DTYPE.CODE = 'CSH.DEPOSIT_DEDUCTION_TYPE'
+	AND
+         DTYPE.CODE_VALUE = CDDH.DEDUCTION_TYPE
+    JOIN
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail" /> DSTATUS
+    ON
+         DSTATUS.CODE = 'CSH.DEPOSIT_STATUS'
+	AND
+         DSTATUS.CODE_VALUE = CDDH.DEPOSIT_STATUS
+     LEFT JOIN
+      (
+         SELECT
+            C.DEPOSIT_DEDUCTION_HD_ID,
+            SUM(C.DEDUCTION_AMOUNT) DEDUCTION_AMOUNT_SUM,
+            SUM(C.DEDUCTION_INTEREST) DEDUCTION_INTEREST_SUM,
+            SUM(C.DEDUCTION_PRINCIPAL) DEDUCTION_PRINCIPAL_SUM
+         FROM
+            CSH_DEPOSIT_DEDUCTION C
+         GROUP BY
+            C.DEPOSIT_DEDUCTION_HD_ID ) CDD
+      ON
+        CDDH.DEPOSIT_DEDUCTION_HD_ID=CDD.DEPOSIT_DEDUCTION_HD_ID
+      WHERE
+            1=1
+      <if test="transactionId !=null">
+		AND CDDH.TRANSACTION_ID=#{transactionId}
+      </if>
+    </select>
+
+    <!--单个数据 详情界面需要数据-->
+    <select id="selectHlsCusDepositDeductionData" resultMap="BaseResultMap">
+     SELECT
+        CDDH.DEPOSIT_DEDUCTION_HD_ID,
+        CDDH.TRANSACTION_ID,
+        CDDH.DEDUCTION_DATE,
+        CDDH.DEDUCTION_TYPE,
+        CDDH.DEPOSIT_STATUS,
+        CDDH.CONTRACT_ID,
+        CDDH.DEDUCTION_DOC_CATEGORY,
+        CDDH.BP_ID,
+        CDDH.CREATION_DATE,
+        nvl(CDD.DEDUCTION_AMOUNT_SUM,0) DEDUCTION_AMOUNT_SUM,
+        nvl(CDD.DEDUCTION_INTEREST_SUM,0) DEDUCTION_INTEREST_SUM,
+        nvl(CDD.DEDUCTION_PRINCIPAL_SUM,0) DEDUCTION_PRINCIPAL_SUM,
+        CT.TRANSACTION_AMOUNT,
+        nvl(CT.WRITE_OFF_AMOUNT,0) WRITE_OFF_AMOUNT,
+        CT.TRANSACTION_AMOUNT-nvl(CT.WRITE_OFF_AMOUNT,0)-nvl(CON.LEFT_AMOUNT,0) LEFT_AMOUNT,
+		nvl((SELECT SUM(D.DEDUCTION_AMOUNT)
+		   FROM
+		      CSH_DEPOSIT_DEDUCTION D ,
+		      CSH_DEPOSIT_DEDUCTION_HD HD
+		   WHERE HD.TRANSACTION_ID=CT.TRANSACTION_ID
+		     AND D.DEPOSIT_DEDUCTION_HD_ID=HD.DEPOSIT_DEDUCTION_HD_ID
+		     AND HD.DEPOSIT_STATUS IN('NEW','APPROVED_RETURN','APPROVING','REJECTED')),0)
+        +
+        nvl((SELECT SUM(R.REFUND_AMOUNT)
+		   FROM
+		         CSH_DEPOSIT_REFUND R
+		   WHERE R.TRANSACTION_ID=CT.TRANSACTION_ID
+		     AND R.REFUND_STATUS!='APPROVED'),0)      PRE_OCCUPY_AMOUNT,
+           nvl((SELECT SUM(D.DEDUCTION_AMOUNT)
+		   FROM
+		      CSH_DEPOSIT_DEDUCTION D ,
+		      CSH_DEPOSIT_DEDUCTION HD
+		   WHERE HD.TRANSACTION_ID=CT.TRANSACTION_ID
+		     AND D.DEPOSIT_DEDUCTION_HD_ID=HD.DEPOSIT_DEDUCTION_HD_ID
+		     AND HD.DEPOSIT_STATUS IN('NEW','APPROVED_RETURN','APPROVING','REJECTED')
+             AND HD.DEPOSIT_DEDUCTION_HD_ID!=#{depositDeductionHdId}),0)
+             +
+              nvl((SELECT SUM(R.REFUND_AMOUNT)
+		   FROM
+		         CSH_DEPOSIT_REFUND R
+		   WHERE R.TRANSACTION_ID=CT.TRANSACTION_ID
+		     AND R.REFUND_STATUS!='APPROVED'),0)  OTHER_OCCUPY_AMOUNT
+     FROM
+         CSH_DEPOSIT_DEDUCTION_HD  CDDH
+    JOIN
+         CSH_TRANSACTION CT
+      ON
+         CT.TRANSACTION_ID=CDDH.TRANSACTION_ID
+     LEFT JOIN
+      (
+         SELECT
+            C.DEPOSIT_DEDUCTION_HD_ID,
+            SUM(C.DEDUCTION_AMOUNT) DEDUCTION_AMOUNT_SUM,
+            SUM(C.DEDUCTION_INTEREST) DEDUCTION_INTEREST_SUM,
+            SUM(C.DEDUCTION_PRINCIPAL) DEDUCTION_PRINCIPAL_SUM
+         FROM
+            CSH_DEPOSIT_DEDUCTION C
+         GROUP BY
+            C.DEPOSIT_DEDUCTION_HD_ID ) CDD
+      ON
+        CDDH.DEPOSIT_DEDUCTION_HD_ID=CDD.DEPOSIT_DEDUCTION_HD_ID
+    LEFT JOIN (
+       SELECT
+            FC.CONTRACT_ID,
+            'FCT_CONTRACT' DEDUCTION_DOC_CATEGORY,
+            nvl(SUM(FQC.DUE_AMOUNT),0)-nvl(SUM(FQC.RECEIVED_AMOUNT),0) LEFT_AMOUNT
+        FROM
+            FCT_CONTRACT FC
+        JOIN
+            FCT_QUOTATION_CASHFLOW FQC
+        ON
+            FC.CONTRACT_ID=FQC.CONTRACT_ID
+        AND FQC.CF_ITEM=14
+        GROUP BY
+            FC.CONTRACT_ID
+        UNION
+        SELECT
+            CC.CONTRACT_ID,
+            'CON_CONTRACT' DEDUCTION_DOC_CATEGORY,
+            nvl(SUM(CQC.DUE_AMOUNT),0)-nvl(SUM(CQC.RECEIVED_AMOUNT),0) LEFT_AMOUNT
+        FROM
+            CON_CONTRACT CC
+        JOIN
+            CON_CONTRACT_CASHFLOW CQC
+        ON
+            CC.CONTRACT_ID=CQC.CONTRACT_ID
+        AND CQC.CF_ITEM=14
+        GROUP BY
+            CC.CONTRACT_ID
+        ) CON
+       ON CDDH.DEDUCTION_DOC_CATEGORY=CON.DEDUCTION_DOC_CATEGORY
+      AND CDDH.CONTRACT_ID=CON.CONTRACT_ID
+      WHERE
+            1=1
+		AND CDDH.DEPOSIT_DEDUCTION_HD_ID=#{depositDeductionHdId}
+    </select>
+
+    <select id="selectProjectUnitAndCompany"  resultType="hashmap">
+      <if test="deductionDocCategory=='FCT_CONTRACT'">
+        SELECT
+            FP.COMPANY_ID,
+            FP.UNIT_ID
+        FROM
+            FCT_CONTRACT FC
+        JOIN
+            FCT_PROJECT FP
+        ON
+            FC.PROJECT_ID=FP.PROJECT_ID
+        WHERE 1=1
+          AND FC.CONTRACT_ID=#{contractId}
+       </if>
+        <if test="deductionDocCategory=='CON_CONTRACT'">
+        SELECT
+            FP.COMPANY_ID,
+            FP.UNIT_ID
+        FROM
+            CON_CONTRACT FC
+        JOIN
+            PRJ_PROJECT FP
+        ON
+            FC.PROJECT_ID=FP.PROJECT_ID
+        WHERE 1=1
+         AND FC.CONTRACT_ID=#{contractId}
+            </if>
+    </select>
+</mapper>

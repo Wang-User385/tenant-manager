@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangdan
+    $Date: 2022年12月
+    $Revision: 1.0
+    $Purpose: 保证金抵扣申请明细
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <!--<a:link id="csh_deposit_deduct_link" url="${/request/@context_path}/csh/write/off/submit"/>-->
+        <a:link id="csh_deposit_deduct_save_link" url="${/request/@context_path}/csh/deposit/deduct/req/hd/save"/>
+        <a:link id="csh_deposit_deduct_submit_link" url="${/request/@context_path}/csh/deposit/deduct/req/hd/submit"/>
+        <a:link id="csh_deposit_deduct_init_link" url="${/request/@context_path}/csh/deposit/deduct/req/hd/init/query"/>
+        <a:link id="csh_deposit_deduct_dtl_link" url="${/request/@context_path}/csh/deposit/deduct/req/hd/dtl/query"/>
+
+        <script type="text/javascript"><![CDATA[
+        var contract_id = '${/parameter/@contract_id}';
+        var transaction_id = '${/parameter/@transaction_id}';
+        var req_hd_id = '${/parameter/@req_hd_id}';
+
+        var can_return_amount_old = 0;
+        var can_return_amount_new = 0;
+
+        function csh308_deposit_deduct_add() {
+            $('csh_deposit_deduct_req_ln_grid').showEditorByRecord($('csh_deposit_deduct_req_ln_ds').create());
+        }
+
+        function csh308_deposit_deduct_delete() {
+            //释放剩余可核销金额
+            var ds = $('csh_deposit_deduct_req_ln_ds');
+            var records = ds.getAll();
+            var record = ds.getCurrentRecord();
+            var csh_write_off_amount = 0;
+            if (records.length >= 1) {
+                for (var i = 0; i < records.length; i++) {
+                    csh_write_off_amount = plus(csh_write_off_amount, records[i].get("write_off_due_amount") || 0);
+                }
+            }
+
+            var current_record_amount = record.get("write_off_due_amount") || 0;
+            var head_ds = $('csh_deposit_deduct_req_hd_ds');
+            var hd_record = head_ds.getCurrentRecord();
+            var transaction_amount = hd_record.get("transaction_amount") || 0;
+            var write_off_amount = hd_record.get("write_off_amount") || 0;
+
+            can_return_amount_old = plus(minus(minus(transaction_amount, write_off_amount), csh_write_off_amount), current_record_amount);
+            hd_record.set("can_return_amount", can_return_amount_old);
+            $('csh_deposit_deduct_req_ln_grid').clear();
+            csh308_deposit_deduct_save();
+        }
+
+        function csh308_deposit_deduct_save() {
+            var head_ds = $('csh_deposit_deduct_req_hd_ds');
+            var line_ds = $('csh_deposit_deduct_req_ln_ds');
+            if (head_ds.validate() && line_ds.validate()) {
+                var head_record = head_ds.getAt(0);
+                var params = head_record.data;
+                //删除头对应的绑定行
+                for (var k in params) {
+                    var item = params[k];
+                    if (item && item.xtype == 'dataset') {
+                        delete params[k];
+                    }
+                }
+
+                var cshDepositDeductReqLnList = [];
+                params.cshDepositDeductReqLnList = cshDepositDeductReqLnList;
+
+                var line_records = line_ds.getAll();
+                if (line_records.length == 0) {
+                    Leaf.showMessage('提示！', '请至少新增一条记录！');
+                    return;
+                }
+                for (var i = 0; i < line_records.length; i++) {
+                    var write_off_due_amount = line_records[i].get('write_off_due_amount');
+                    if (write_off_due_amount == 0) {
+                        Leaf.showMessage('提示！', '核销金额不能为0！');
+                        return;
+                    }
+                    cshDepositDeductReqLnList.push(line_records[i].data);
+                }
+
+                var winId = '${/parameter/@winId}';
+                Leaf.Masker.mask($(winId).wrap, '保存中。。');
+                Leaf.request({
+                    url: $('csh_deposit_deduct_save_link').getUrl(),
+                    para: params,
+                    success: function (res) {
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        Leaf.Masker.unmask($(winId).wrap);
+                        req_hd_id = res.result.record[0].req_hd_id;
+                        //head_ds.query();
+                        var queryUrl = $('csh_deposit_deduct_dtl_link').getUrl() + '?reqHdId=' + req_hd_id;
+                        head_ds.setQueryUrl(queryUrl);
+                        head_ds.query();
+                    },
+                    failure: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    scope: this
+                });
+            }
+        }
+
+        function csh308_deposit_deduct_submit() {
+            var head_ds = $('csh_deposit_deduct_req_hd_ds');
+            var line_ds = $('csh_deposit_deduct_req_ln_ds');
+            if (head_ds.isModified() || head_ds.isModified()) {
+                Leaf.showMessage('${HLS.PROMPT}', '${l:EXIT_BEFORE_SAVE}');
+                return;
+            }
+
+            var head_record = head_ds.getAt(0);
+            req_hd_id = head_record.get('req_hd_id');
+
+            var winId = '${/parameter/@winId}';
+            Leaf.Masker.mask($(winId).wrap, '提交中。。');
+            Leaf.request({
+                url: $('csh_deposit_deduct_submit_link').getUrl(),
+                para: {
+                    req_hd_id: req_hd_id
+                },
+                success: function (res) {
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                    Leaf.Masker.unmask($(winId).wrap);
+                    csh308_deposit_deduct_return();
+                },
+                failure: function () {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                error: function () {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                scope: this
+            });
+        }
+
+        function csh308_deposit_deduct_return() {
+            csh308_deposit_query();
+            $('${/parameter/@winId}').close();
+        }
+
+        function deposit_contract_number_lov_before_event(lov) {
+            var ds = $('csh_deposit_deduct_req_ln_ds');
+            var records = ds.getAll();
+            var record = ds.getCurrentRecord();
+            var not_cashflow_ids_str = '';
+            var csh_write_off_amount = 0;
+            if (records.length >= 1) {
+                for (var i = 0; i < records.length; i++) {
+                    if (i == 0) {
+                        not_cashflow_ids_str = records[i].get("cashflow_id")
+                    } else {
+                        not_cashflow_ids_str = not_cashflow_ids_str + ',' + records[i].get("cashflow_id");
+                    }
+                    csh_write_off_amount = plus(csh_write_off_amount, records[i].get("write_off_due_amount") || 0);
+                }
+            }
+            var current_record_amount = record.get("write_off_due_amount") || 0;
+
+            var contract_number = record.getMeta().getField('contract_number');
+            //排除掉之前选择的现金流
+            contract_number.setLovPara('notCashflowIdsStr', not_cashflow_ids_str);
+            contract_number.setLovPara('contractId', contract_id);
+            contract_number.setLovPara('cfStatus', 'RELEASE');
+            contract_number.setLovPara('cfDirection', 'INFLOW');
+            contract_number.setLovPara('SurplusAmountFlag', 'Y');
+            contract_number.setLovPara('depositFlag', 'Y');
+
+            var head_ds = $('csh_deposit_deduct_req_hd_ds');
+            var hd_record = head_ds.getCurrentRecord();
+            var transaction_amount = hd_record.get("transaction_amount") || 0;
+            var write_off_amount = hd_record.get("write_off_amount") || 0;
+
+            can_return_amount_old = plus(minus(minus(transaction_amount, write_off_amount), csh_write_off_amount), current_record_amount);
+            hd_record.set("can_return_amount", can_return_amount_old);
+            var quotation_number = '${parameter/@contract_seq_num}';
+            lov.controller = "/contract/cashflow/queryLov?quotation_number=" + quotation_number;
+        }
+
+        function deposit_contract_number_lov_commit_event(lov, r1, r2) {
+            //金额判断
+            var head_ds = $('csh_deposit_deduct_req_hd_ds');
+            var record = head_ds.getCurrentRecord();
+            var can_return_amount = can_return_amount_old;//record.get('can_return_amount');
+
+            var write_off_due_amount = r1.get('write_off_due_amount') || 0;
+            var write_off_principal = r1.get('write_off_principal') || 0;
+            var write_off_interest = r1.get('write_off_interest') || 0;
+
+            if (minus(can_return_amount, write_off_interest) <= 0) {
+                r1.set('write_off_due_amount', can_return_amount);
+                r1.set('write_off_principal', 0);
+                r1.set('write_off_interest', can_return_amount);
+                record.set('can_return_amount', minus(can_return_amount, can_return_amount));
+
+            } else if (minus(can_return_amount, write_off_interest) > 0 && minus(can_return_amount, write_off_due_amount) <= 0) {
+                r1.set('write_off_due_amount', can_return_amount);
+                r1.set('write_off_principal', minus(can_return_amount, write_off_interest));
+                r1.set('write_off_interest', write_off_interest);
+                record.set('can_return_amount', minus(can_return_amount, can_return_amount));
+            }
+
+            if (minus(can_return_amount, write_off_due_amount) > 0) {
+                r1.set('write_off_due_amount', write_off_due_amount);
+                r1.set('write_off_principal', write_off_principal);
+                r1.set('write_off_interest', write_off_interest);
+                record.set('can_return_amount', minus(can_return_amount, write_off_due_amount));
+            }
+
+            can_return_amount_new = record.get("can_return_amount");
+        }
+
+        function csh_deposit_deduct_req_ln_update(ds, record, name, value, oldValue) {
+            var head_ds = $('csh_deposit_deduct_req_hd_ds');
+            var head_record = head_ds.getCurrentRecord();
+            var can_return_amount = head_record.get('can_return_amount');
+            var write_off_due_amount = record.get('write_off_due_amount');
+
+            //更新剩余可核销金额
+            if (name == 'write_off_due_amount') {
+                var surplus_amount = record.get('surplus_amount') || 0;
+                var surplus_principal = record.get('surplus_principal') || 0;
+                var surplus_interest = record.get('surplus_interest') || 0;
+                if ((oldValue === 0 || oldValue)) {
+                    head_record.set('can_return_amount', minus(can_return_amount_new, minus(value, oldValue)));
+                    can_return_amount_new = head_record.get("can_return_amount");
+                }
+                if (minus(value, surplus_amount) > 0) {
+                    Leaf.showErrorMessage('提示', '金额超过剩余金额！', null, 200, 100);
+                    return;
+                } else if (minus(value, surplus_amount) <= 0 && minus(value, surplus_interest) <= 0) {
+                    record.set('write_off_principal', 0);
+                    record.set('write_off_interest', value || 0);
+                } else if (minus(value, surplus_amount) <= 0 && minus(value, surplus_interest) >= 0) {
+                    record.set('write_off_principal', minus(value, surplus_interest));
+                    record.set('write_off_interest', surplus_interest);
+                }
+            }
+        }
+
+        function csh_deposit_deduct_req_hd_load(ds, e) {
+            can_return_amount_new = ds.getAt(0).get('can_return_amount');
+        }
+
+        $L.onReady(function(){
+            var csh_deposit_deduct_req_hd_ds = $("csh_deposit_deduct_req_hd_ds");
+            var queryUrl;
+            if($L.isEmpty(req_hd_id) && !$L.isEmpty(transaction_id)){
+                queryUrl = $('csh_deposit_deduct_init_link').getUrl() + '?transactionId=' + transaction_id;
+            } else if(!$L.isEmpty(req_hd_id)){
+                queryUrl = $('csh_deposit_deduct_dtl_link').getUrl() + '?reqHdId=' + req_hd_id;
+            }
+            csh_deposit_deduct_req_hd_ds.setQueryUrl(queryUrl);
+            csh_deposit_deduct_req_hd_ds.query();
+        });
+        ]]></script>
+        <a:dataSets>
+            <!--<a:dataSet id="yes_no_ds" lookupCode="SYS.YES_NO"/>-->
+            <a:dataSet id="csh_deposit_deduct_req_hd_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/deposit/deduct/req/hd/dtl/query?transactionId=${/parameter/@transaction_id}&amp;reqHdId=${/parameter/@req_hd_id}">
+                <a:fields>
+                    <a:field name="req_number" readOnly="true"/>
+                    <a:field name="deduct_date" datatype="date" required="true" prompt="抵扣日期"/>
+                    <a:field name="transaction_num" readOnly="true"/>
+                    <a:field name="transaction_amount" readOnly="true"/>
+                    <a:field name="can_return_amount" readOnly="true"/>
+                    <!--<a:field name="is_polishing_deposit_n" returnField="is_polishing_deposit"
+                             options="yes_no_ds" displayField="code_value_name" valueField="code_value"
+                             required="true" prompt="是否补收保证金"/>
+                    <a:field name="is_polishing_deposit"/>-->
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="csh_deposit_deduct_req_hd_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="csh_deposit_deduct_req_ln_ds" bindName="csh_deposit_deduct_req_ln_list"
+                       bindTarget="csh_deposit_deduct_req_hd_ds" autoCount="true" autoPageSize="true"
+                       autoQuery="false"
+                       fetchAll="false"
+                       queryUrl="${/request/@context_path}/csh/deposit/deduct/req/ln/query" selectable="true">
+                <a:fields>
+                    <a:field name="contract_number" autoComplete="true" required="true" lovGridHeight="350"
+                             lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/contract/cashflow/queryLov~hls.layout.dto.LovContractCashflowDto"
+                             lovWidth="850"
+                             title="合同编号" prompt="合同编号">
+                        <a:mapping>
+                            <a:map from="contract_number" to="contract_number"/>
+                            <a:map from="cashflow_id" to="cashflow_id"/>
+                            <a:map from="contract_id" to="contract_id"/>
+                            <a:map from="times" to="times"/>
+                            <a:map from="contract_seq" to="contract_seq"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                            <a:map from="due_date" to="due_date"/>
+                            <a:map from="due_amount" to="due_amount"/>
+                            <a:map from="cf_item_n" to="cf_item_n"/>
+                            <a:map from="cf_item" to="cf_item"/>
+                            <a:map from="cf_type" to="cf_type"/>
+                            <a:map from="surplus_amount" to="surplus_amount"/>
+                            <a:map from="surplus_principal" to="surplus_principal"/>
+                            <a:map from="surplus_interest" to="surplus_interest"/>
+
+                            <a:map from="surplus_amount" to="write_off_due_amount"/>
+                            <a:map from="surplus_principal" to="write_off_principal"/>
+                            <a:map from="surplus_interest" to="write_off_interest"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="csh_deposit_deduct_req_ln_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="csh308_deposit_deduct_add" text="新增"/>
+                <a:gridButton click="csh308_deposit_deduct_delete" text="删除"/>
+                <a:gridButton click="csh308_deposit_deduct_save" text="保存"/>
+                <a:gridButton click="csh308_deposit_deduct_submit" text="提交审批"/>
+            </a:screenTopToolbar>
+            <a:form column="4" labelWidth="120">
+                <a:textField name="req_number" bindTarget="csh_deposit_deduct_req_hd_ds" prompt="抵扣编号"/>
+                <a:textField name="transaction_num" bindTarget="csh_deposit_deduct_req_hd_ds" prompt="现金事务编号"/>
+                <a:numberField name="transaction_amount" bindTarget="csh_deposit_deduct_req_hd_ds" prompt="保证金金额"/>
+                <a:numberField name="can_return_amount" bindTarget="csh_deposit_deduct_req_hd_ds" prompt="剩余可抵扣金额"/>
+                <a:datePicker name="deduct_date" bindTarget="csh_deposit_deduct_req_hd_ds" prompt="抵扣日期"/>
+                <a:textArea name="remarks" colspan="3" bindTarget="csh_deposit_deduct_req_hd_ds" prompt="说明" width="660"/>
+            </a:form>
+            <a:grid id="csh_deposit_deduct_req_ln_grid" bindTarget="csh_deposit_deduct_req_ln_ds" marginHeight="130" marginWidth="20" navBar="true">
+                <a:columns>
+                    <a:column name="contract_number" prompt="合同编号" editor="deposit_editor_lov" width="120"/>
+                    <a:column name="times" prompt="期数" width="80"/>
+                    <a:column name="bp_name" prompt="商业伙伴" width="200"/>
+                    <a:column name="due_date" prompt="支付日" width="150" renderer="Leaf.formatDate"/>
+                    <a:column name="due_amount" prompt="应收金额" renderer="Leaf.formatMoney" align="right" width="150"/>
+                    <!--<a:column name="cf_item_n" prompt="性质" width="80"/>-->
+                    <a:column name="surplus_amount" prompt="剩余应收金额" renderer="Leaf.formatMoney" align="right" width="150"/>
+                    <a:column name="write_off_due_amount" prompt="核销金额" editor="deposit_editor_nf"
+                              align="right" renderer="Leaf.formatMoney" width="150"/>
+                    <a:column name="write_off_principal" prompt="本金" align="right" renderer="Leaf.formatMoney" width="150"/>
+                    <a:column name="write_off_interest" prompt="利息" align="right" renderer="Leaf.formatMoney" width="150"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="deposit_editor_lov">
+                        <a:events>
+                            <a:event name="beforetriggerclick" handler="deposit_contract_number_lov_before_event"/>
+                            <a:event name="commit" handler="deposit_contract_number_lov_commit_event"/>
+                        </a:events>
+                    </a:lov>
+                    <a:numberField id="deposit_editor_nf" allowNegative="false"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

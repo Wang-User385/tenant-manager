@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author:zedong huang
+    $Date: 2019-03-11
+    $Revision: 1.0
+    $Purpose: 微件规则配置 数据源配置
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function sys_widgets_rule_screen_line_query() {
+            $('sys_widgets_rule_line_ds').query();
+        }
+        function sys_widgets_rule_line_screen_exit() {
+            $('${/parameter/@winid}').close();
+        }
+        function sys_widgets_rule_line_screen_reset() {
+            $('sys_widgets_rule_line_query_ds').reset();
+            sys_widgets_rule_screen_line_query();
+        }
+        function renderer_widget_line_clear(value,record,name){
+            if(record.isNew==true){
+                return "";
+            }else{
+                return '<a href="javascript:winOpen_sys_widget_rule_line(\'' + record.id + '\');">明细</a>';
+            }
+        }
+        function winOpen_sys_widget_rule_line(record_id){
+            var record = $("sys_widgets_rule_line_ds").findById(record_id);
+
+            if(!record.get("widget_id")){
+                Leaf.showErrorMessage("错误","请先选择微件模型");
+            }
+
+            var url = '${/request/@context_path}/modules/WIDGET/WIDGET_SETUP/WIDGET003/sys_widget_rule_line.lview';
+            new Leaf.Window({
+                id : "win_sys_widgets_rule_edit",
+                url : url,
+                title : '明细',
+                params: {
+                    rule_id: record.get("rule_id"),
+                    widget_id: record.get("widget_id"),
+                    winid:"win_sys_widgets_rule_edit"
+                },
+                fullScreen: false,
+                width:900,
+                height:535,
+                side:"right",
+                draggable: true
+            });
+        }
+        function submitsuccess_sys_widgets_rule_line_ds(){
+            sys_widgets_rule_screen_line_query();
+        }
+        function query_sys_widgets_rule_line_ds(ds,para){
+            para['rule_id'] = '${/parameter/@rule_id}';
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys_widgets_rule_line_query_ds">
+                <a:fields>
+                    <a:field name="type" defaultValue="SYS"/>
+                    <a:field name="widgets_name" title="选择微件模型" autoComplete="true" fetchRemote="false"
+                             lovWidth="500" lovHeight="450" lovGridHeight="300"
+                             lovService="/sys/widgets/query~com.hand.hls.widget.dto.SysWidgetsRuleLov">
+                        <a:mapping>
+                            <a:map from="widgets_name" to="widgets_name"/>
+                            <a:map from="widgets_type" to="widgets_type"/>
+                            <a:map from="widgets_id" to="widget_id"/><!--两个表字段不一样-->
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="data_name" title="选择数据源" autoComplete="true" fetchRemote="false"
+                             lovWidth="500" lovHeight="377" lovGridHeight="300"
+                             lovService="/metadata/query/lov~com.hand.hls.meta.dto.MetadataDescriptionLov">
+                        <a:mapping>
+                            <a:map from="name" to="data_name"/>
+                            <a:map from="description" to="description"/>
+                            <a:map from="id" to="metadata_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys_widgets_rule_line_ds" autoPageSize="true" autoQuery="true"  queryDataSet="sys_widgets_rule_line_query_ds" selectable="true"
+                       queryUrl ="${/request/@context_path}/sys/widgets/rule/line/query"
+                       submitUrl="${/request/@context_path}/sys/widgets/rule/line/submit"
+                       deleteUrl="${/request/@context_path}/sys/widgets/rule/line/remove">
+                <a:fields>
+                    <a:field name="rule_id" defaultValue="${/parameter/@rule_id}"/>
+                    <a:field name="metadata_id"/>
+                    <a:field name="seq" required="true"/>
+                    <a:field name="type" defaultValue="SYS"/>
+
+                    <a:field name="data_name" title="选择数据源" autoComplete="false" fetchRemote="false"
+                             lovWidth="500" lovHeight="377" lovGridHeight="300"
+                             lovService="/metadata/query/lov~com.hand.hls.meta.dto.MetadataDescriptionLov">
+                        <a:mapping>
+                            <a:map from="name" to="data_name"/>
+                            <a:map from="description" to="description"/>
+                            <a:map from="meta_id" to="metadata_id"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="submitsuccess_sys_widgets_rule_line_ds"/>
+                    <a:event name="query" handler="query_sys_widgets_rule_line_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="sys_widgets_rule_line_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="sys_widgets_rule_line_ds_grid" text="HAP.DELETE"  type="delete" />
+                <a:gridButton bind="sys_widgets_rule_line_ds_grid" text="HAP.SAVE"  type="save" />
+                <a:gridButton click="sys_widgets_rule_screen_line_query" text="HAP.QUERY"/>
+                <a:gridButton click="sys_widgets_rule_line_screen_reset" text="HAP.RESET"/>
+                <a:gridButton click="sys_widgets_rule_line_screen_exit" text="HLS.EXIT"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="100">
+                <!--<a:lov name="widgets_name" bindTarget="sys_widgets_rule_line_query_ds" prompt="微件模型" emptyText="选择微件模型" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="sys_widgets_rule_screen_line_query"/>
+                    </a:events>
+                </a:lov>-->
+                <a:lov name="data_name" bindTarget="sys_widgets_rule_line_query_ds" prompt="数据源" emptyText="选择数据源" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="sys_widgets_rule_screen_line_query"/>
+                    </a:events>
+                </a:lov>
+                <a:textField name="description" readOnly="true" bindTarget="sys_widgets_rule_line_query_ds" prompt="描述" width="165"/>
+            </a:form>
+            <a:grid id="sys_widgets_rule_line_ds_grid"  bindTarget="sys_widgets_rule_line_ds"
+                    width="700" marginHeight="150"  navBar="true">
+                <a:columns>
+                    <a:column width="50" name="seq" prompt="序号" editor="sys_widgets_rule_line_ds_grid_tf"  align="center"/>
+                    <a:column width="200" name="data_name" editor="sys_widgets_rule_line_ds_grid_lov"  prompt="数据源" align="center"/>
+                    <a:column width="400" name="description"   prompt="描述" align="center"/>
+                    <!--<a:column width="410" name="description" editor="sys_widgets_rule_line_ds_grid_lov" prompt="数据源" align="center"/>-->
+                </a:columns>
+                <a:editors>
+                    <a:lov id="sys_widgets_rule_line_ds_grid_lov"/>
+                    <a:textField id="sys_widgets_rule_line_ds_grid_tf"/>
+                    <a:checkBox id="sys_widgets_rule_line_ds_grid_check"/>
+                    <a:comboBox id="sys_widgets_rule_line_ds_grid_combo"/>
+                    <a:dateTimePicker id="sys_widgets_rule_line_ds_grid_dp"></a:dateTimePicker>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

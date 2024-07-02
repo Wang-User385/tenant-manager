@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hls.layout.mapper.HlsDocLayoutScreenMapper">
+
+    <delete id="deleteScreenTab">
+        delete from hls_doc_layout_screen
+        where
+            layout_code = #{layout_code}
+           and tab_code = #{tab_code}
+    </delete>
+
+    <select id="selectRepeatColumnNameCount" resultType="int" >
+        select count(1)
+        from (
+            select count(s.column_name)
+            from hls_doc_layout_screen s
+            where s.column_name is not null
+            and s.layout_code = #{layout_code}
+            and s.tab_code = #{tab_code}
+            group by s.column_name
+            having count(1) > 1
+        ) tmp
+    </select>
+
+    <select id="selectColumnCount" resultType="int" >
+        select nvl(t.column_count, 0)
+        from hls_doc_layout_tab t
+        where t.layout_code = #{layout_code}
+        and t.tab_code = #{tab_code}
+    </select>
+
+    <select id="selectColumnNotNullScreen" resultType="hls.layout.dto.HlsDocLayoutScreen" >
+        SELECT
+            t1.*
+        FROM
+            hls_doc_layout_screen t1
+        WHERE
+            t1.layout_code = #{layout_code}
+            AND t1.tab_code = #{tab_code}
+        	AND t1.column_name IS NOT NULL
+        ORDER BY
+            t1.order_seq DESC
+    </select>
+
+    <resultMap id="columnAndRowCountResultMap" type="map">
+        <result column="columnCount" property="columnCount" jdbcType="BIGINT" javaType="long"/>
+        <result column="rowCount" property="rowCount" jdbcType="BIGINT" javaType="long"/>
+    </resultMap>
+
+    <select id="selectColumnAndRowCount" resultMap="columnAndRowCountResultMap">
+        SELECT
+          nvl(t.COLUMN_COUNT, 1) columnCount,
+          nvl(t.ROW_COUNT, 1) rowCount
+        FROM
+          hls_doc_layout_tab t
+        WHERE t.LAYOUT_CODE = #{layout_code}
+          AND t.TAB_CODE = #{tab_code}
+    </select>
+
+</mapper>

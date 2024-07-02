@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.HlsCusPrjProjectInsureMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.HlsCusPrjProjectInsure">
+        <result column="INSURE_ID" property="insureId" jdbcType="DECIMAL"/>
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL"/>
+        <result column="INSURE_METHOD" property="insureMethod" jdbcType="VARCHAR"/>
+        <result column="INSURE_COMPANY" property="insureCompany" jdbcType="VARCHAR"/>
+        <result column="INSURE_AMOUNT" property="insureAmount" jdbcType="DECIMAL"/>
+        <result column="INSURE_FEE" property="insureFee" jdbcType="DECIMAL"/>
+        <result column="INSURE_NUMBER" property="insureNumber" jdbcType="VARCHAR"/>
+        <result column="INSURE_CATEGORY" property="insureCategory" jdbcType="VARCHAR"/>
+        <result column="INSURE_START_DATE" property="insureStartDate" jdbcType="DATE"/>
+        <result column="INSURE_END_DATE" property="insureEndDate" jdbcType="DATE"/>
+        <result column="INSURE_COM_CODE" property="insureComCode" jdbcType="VARCHAR"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="insure_com_code_desc" property="insureComCodeDesc" jdbcType="VARCHAR"/>
+        <result column="INSURE_PERSON_DESC" property="insurePersonDesc" jdbcType="VARCHAR"/>
+        <result column="INSURED_COM_PERSON" property="insuredComPerson" jdbcType="VARCHAR"/>
+        <result column="insure_method_n" property="insureMethodN" jdbcType="VARCHAR"/>
+
+        <result column="CONTRACT_ID" property="contractId" jdbcType="VARCHAR"/>
+        <result column="BENEFICIARY_CHANGE" property="beneficiaryChange" jdbcType="VARCHAR"/>
+        <result column="XY_LEASE_ITEM" property="xyLeaseItem" jdbcType="VARCHAR"/>
+        <result column="CONSISTENT_FLAG" property="consistentFlag" jdbcType="VARCHAR"/>
+
+        <result column="BENEFICIARY_CHANGE_N" property="beneficiaryChangeN" jdbcType="VARCHAR"/>
+        <result column="XY_LEASE_ITEM_N" property="xyLeaseItemN" jdbcType="VARCHAR"/>
+        <result column="CONSISTENT_FLAG_N" property="consistentFlagN" jdbcType="VARCHAR"/>
+        <result column="APPROVAL_STATUS" property="approvalStatus" jdbcType="VARCHAR"/>
+        <result column="APPROVAL_FLAG" property="approvalFlag" jdbcType="VARCHAR"/>
+        <result column="ADD_FLAG" property="addFlag" jdbcType="VARCHAR"/>
+        <result column="ADD_DATE" property="addDate" jdbcType="TIMESTAMP"/>
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_NAME" property="contractName" jdbcType="VARCHAR"/>
+
+        <result column="insured_person" property="insuredPerson" jdbcType="VARCHAR"/>
+        <result column="insured_matter" property="insuredMatter" jdbcType="VARCHAR"/>
+        <result column="num_unit" property="numUnit" jdbcType="VARCHAR"/>
+        <result column="insured_status" property="insuredStatus" jdbcType="VARCHAR"/>
+        <result column="note" property="note" jdbcType="VARCHAR"/>
+        <result column="policy_status" property="policyStatus" jdbcType="VARCHAR"/>
+        <result column="confirm_person" property="confirmPerson" jdbcType="VARCHAR"/>
+        <result column="confirm_person_n" property="confirmPersonN" jdbcType="VARCHAR"/>
+        <result column="confirm_note" property="confirmNote" jdbcType="VARCHAR"/>
+        <result column="policy_status_n" property="policyStatusN" jdbcType="VARCHAR"/>
+        <result column="insured_status_n" property="insuredStatusN" jdbcType="VARCHAR"/>
+        <result column="plan_id" property="planId" jdbcType="DECIMAL"/>
+        <result column="plan_id_n" property="planIdN" jdbcType="VARCHAR"/>
+        <result column="plan_number" property="planNumber" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="finance_amount" property="financeAmount" jdbcType="DECIMAL"/>
+        <result column="contract_amount" property="contractAmount" jdbcType="DECIMAL"/>
+        <result column="project_id_n" property="projectIdN" jdbcType="DECIMAL"/>
+        <result column="allocation_id" property="allocationId"/>
+        <result column="user_id" property="userId"/>
+
+        <result column="beneficiary_type_n" property="beneficiaryTypeN"/>
+        <result column="beneficiary_id" property="beneficiaryId"/>
+        <result column="beneficiary_type" property="beneficiaryType"/>
+        <result column="beneficiary_name" property="beneficiaryName"/>
+        <result column="beneficiary_number" property="beneficiaryNumber"/>
+        <result column="beneficiary_note" property="beneficiaryNote"/>
+
+
+    </resultMap>
+
+    <select id="queryMes" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectInsure"
+            resultMap="BaseResultMap">
+            SELECT
+               p.*,
+            p.CREATED_BY as user_id,
+	        (select a.ALLOCATION_ID from sys_user_allocation a where a.user_id = p.CREATED_BY)allocation_id,
+	        (
+                SELECT
+                    pp.contract_number
+                FROM
+                    prj_project pp
+                WHERE
+                    pp.project_id = p.project_id
+            ) contract_number
+            FROM
+                prj_project_insure p
+            WHERE
+                to_char(p.insure_end_date, 'yyyy/mm/dd') = to_char(date_add(sysdate, INTERVAL 1 MONTH), 'yyyy/mm/dd')
+
+    </select>
+
+    <select id="queryAll" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectInsure" resultMap="BaseResultMap">
+        select t2.*
+        from(select t1.*,
+        (
+        select s.DESCRIPTION
+        from sys_user s
+        where s.user_id =  t1.confirm_Person
+        ) as confirm_person_n,
+        (
+        select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'INSURE_STATUS'
+        and sc.code_value = t1.insured_status
+        ) as insured_status_n,
+        (
+        select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'POLICY_STATUS'
+        and sc.code_value = t1.policy_status
+        ) as policy_status_n,
+        (select pp.contract_number from prj_project pp where pp.project_id = t1.project_id) contract_number,
+        (select pp.contract_name from prj_project pp where pp.project_id = t1.project_id) contract_name,
+        (select p1.plan_number from jc_insurance_plan p1 where p1.plan_id = t1.plan_id)plan_number,
+        (SELECT b.bp_name FROM hls_bp_master b, prj_project ppt WHERE b.bp_id = ppt.tenant_id AND ppt.project_id =
+        t1.project_id ) bp_name,
+        (select pp.contract_amount from prj_project pp where pp.project_id = t1.project_id) contract_amount,
+        (select pp.finance_amount from prj_project pp where pp.project_id = t1.project_id) finance_amount,
+        (case when (select count(1) from prj_insure_settlement_list pl where pl.INSURE_ID = t1.INSURE_ID) > 0 then 'Y'
+        else 'N' end)settlement_yn,
+        (select pp.contract_number from prj_project pp where pp.project_id = t1.project_id)project_id_n,
+        (select a.plan_number from jc_insurance_plan a where a.plan_id = t1.plan_id)plan_id_n
+        from PRJ_PROJECT_INSURE t1
+        )t2
+        where 1 = 1
+        <if test="projectId!=null">
+            and t2.project_id = #{projectId}
+        </if>
+        <if test="contractName!=null">
+            and t2.contract_name = #{contractName}
+        </if>
+        <if test="bpName!=null">
+            and t2.bp_name = #{bpName}
+        </if>
+        <if test="insureNumber!=null">
+            and t2.insure_number = #{insureNumber}
+        </if>
+        <if test="insureFrom!=null">
+            and t2.insure_start_date &gt;= #{insureFrom}
+        </if>
+        <if test="insureTo!=null">
+            and t2.insure_start_date &lt;= #{insureTo}
+        </if>
+        <if test="settlement_yn!=null">
+            and t2.settlement_yn = #{settlement_yn}
+        </if>
+        <if test="policyStatus!=null">
+            and t2.policy_status = #{policyStatus}
+        </if>
+        <if test="insuredStatus!=null">
+            and t2.insured_status = #{insuredStatus}
+        </if>
+    </select>
+
+    <select id="queryAllReport" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectInsure" resultMap="BaseResultMap">
+        SELECT
+        t2.*
+        FROM
+        (
+        SELECT
+        t1.*,
+        ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.CODE = 'INSURE_STATUS' AND sc.code_value = t1.insured_status ) AS insured_status_n,
+        ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.CODE = 'POLICY_STATUS' AND sc.code_value = t1.policy_status ) AS policy_status_n,
+        pp.contract_number,
+        pp.contract_name,
+        p1.plan_number,
+        b.bp_name,
+        pp.contract_amount,
+        pp.finance_amount,
+        (
+        CASE
+
+        WHEN ( SELECT count( 1 ) FROM prj_insure_settlement_list pl WHERE pl.INSURE_ID = t1.INSURE_ID ) > 0 THEN
+        'Y' ELSE 'N'
+        END
+        ) settlement_yn,
+        pp.contract_number project_id_n,
+        p1.plan_number plan_id_n,
+        ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.CODE = 'BENEFICIARY_TYPE' AND sc.code_value = t.BENEFICIARY_TYPE ) BENEFICIARY_TYPE_N,
+        t.BENEFICIARY_ID,
+        t.BENEFICIARY_TYPE,
+        t.BENEFICIARY_NAME,
+        t.BENEFICIARY_NUMBER,
+        t.BENEFICIARY_NOTE
+        FROM
+        PRJ_PROJECT_INSURE t1
+        LEFT JOIN prj_insure_beneficiary t ON t1.INSURE_ID = t.INSURE_ID
+        LEFT JOIN prj_project pp ON pp.PROJECT_ID = t1.project_id
+        LEFT JOIN hls_bp_master b ON b.bp_id = pp.tenant_id
+        LEFT JOIN jc_insurance_plan p1 ON p1.plan_id = t1.plan_id
+        ) t2
+        where 1 = 1
+        <if test="projectId!=null">
+            and t2.project_id = #{projectId}
+        </if>
+        <if test="contractName!=null">
+            and t2.contract_name = #{contractName}
+        </if>
+        <if test="bpName!=null">
+            and t2.bp_name like concat('%',#{bpName},'%')
+        </if>
+        <if test="insureNumber!=null">
+            and t2.insure_number = #{insureNumber}
+        </if>
+        <if test="insureFrom!=null">
+            and t2.insure_start_date &gt;= #{insureFrom}
+        </if>
+        <if test="insureTo!=null">
+            and t2.insure_start_date &lt;= #{insureTo}
+        </if>
+        <if test="settlement_yn!=null">
+            and t2.settlement_yn = #{settlement_yn}
+        </if>
+        <if test="policyStatus!=null">
+            and t2.policy_status = #{policyStatus}
+        </if>
+        <if test="beneficiaryName!=null">
+            and t2.beneficiary_name like concat('%',#{beneficiaryName},'%')
+        </if>
+        <if test="beneficiaryType!=null">
+            and t2.beneficiary_type = #{beneficiaryType}
+        </if>
+        <if test="insuredStatus!=null">
+            and t2.insured_status = #{insuredStatus}
+        </if>
+    </select>
+
+    <select id="queryAllConfirm" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectInsure" resultMap="BaseResultMap">
+        select t2.*
+        from(select t1.*,
+        (
+        select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'INSURE_STATUS'
+        and sc.code_value = t1.insured_status
+        ) as insured_status_n,
+        (
+        select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'POLICY_STATUS'
+        and sc.code_value = t1.policy_status
+        ) as policy_status_n,
+        (select pp.contract_number from prj_project pp where pp.project_id = t1.project_id) contract_number,
+        (select pp.contract_name from prj_project pp where pp.project_id = t1.project_id) contract_name,
+        (select p1.plan_number from jc_insurance_plan p1 where p1.plan_id = t1.plan_id)plan_number,
+        (SELECT b.bp_name FROM hls_bp_master b, prj_project ppt WHERE b.bp_id = ppt.tenant_id AND ppt.project_id =
+        t1.project_id ) bp_name,
+        (select pp.contract_amount from prj_project pp where pp.project_id = t1.project_id) contract_amount,
+        (select pp.finance_amount from prj_project pp where pp.project_id = t1.project_id) finance_amount,
+        (case when (select count(1) from prj_insure_settlement_list pl where pl.INSURE_ID = t1.INSURE_ID) > 0 then 'Y'
+        else 'N' end)settlement_yn,
+        (select pp.contract_number from prj_project pp where pp.project_id = t1.project_id)project_id_n
+        from PRJ_PROJECT_INSURE t1
+        )t2
+        where t2.policy_status = 'HANDOVING'
+        <if test="projectId!=null">
+            and t2.project_id = #{projectId}
+        </if>
+        <if test="contractName!=null">
+            and t2.contract_name = #{contractName}
+        </if>
+        <if test="bpName!=null">
+            and t2.bp_name = #{bpName}
+        </if>
+        <if test="insureNumber!=null">
+            and t2.insure_number = #{insureNumber}
+        </if>
+        <if test="insureFrom!=null">
+            and t2.insure_start_date = #{insureFrom}
+        </if>
+        <if test="insureTo!=null">
+            and t2.insure_start_date = #{insureTo}
+        </if>
+        <if test="settlement_yn!=null">
+            and t2.settlement_yn = #{settlement_yn}
+        </if>
+        <if test="policyStatus!=null">
+            and t2.policy_status = #{policyStatus}
+        </if>
+
+    </select>
+
+    <select id="queryInsureInfoByProjectId" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectInsure"
+            resultMap="BaseResultMap">
+        select ppi.*,
+        (
+        select scvb.meaning
+        from
+        sys_code_b scb,sys_code_value_b scvb
+        where
+        scb.code_id = scvb.code_id
+        and scb.code = 'CON.INSURANCE_METHOD'
+        and scvb.value = ppi.INSURE_METHOD
+        ) as insure_method_n
+        from
+        PRJ_PROJECT_INSURE ppi
+        where
+        1=1
+        <if test="projectId!=null">
+            and ppi.project_id = #{projectId}
+        </if>
+    </select>
+
+    <select id="queryContractInsureInfo" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectInsure"
+            resultMap="BaseResultMap">
+        select t.insure_id,
+        t.project_id,
+        (select pp.contract_number from prj_project pp where pp.project_id = t.project_id) contract_number,
+        (select pp.contract_name from prj_project pp where pp.project_id = t.project_id) contract_name,
+        t.insure_category,
+        nvl(t.insure_amount, 0) insure_amount,
+        t.insure_end_date,
+        t.description,
+        t.insure_company,
+        t.creation_date add_date,
+        t.beneficiary_change,
+        t.xy_lease_item,
+        t.consistent_flag,
+        t.approval_status,
+        (select v.meaning
+        from sys_code_value_b_v v
+        where v.code = 'SYS.YES_NO'
+        and v.code_value = t.beneficiary_change) as beneficiary_change_n,
+        (select v.meaning
+        from sys_code_value_b_v v
+        where v.code = 'SYS.YES_NO'
+        and v.code_value = t.xy_lease_item) as xy_lease_item_n,
+        (select v.meaning
+        from sys_code_value_b_v v
+        where v.code = 'SYS.YES_NO'
+        and v.code_value = t.consistent_flag) as consistent_flag_n
+        from PRJ_PROJECT_INSURE t
+        <where>
+            <if test="projectId != null">
+                t.project_id = #{projectId}
+            </if>
+            <if test="insureId != null">
+                and t.insure_id = #{insureId}
+            </if>
+            <if test="approvalStatus != null">
+                and t.APPROVAL_STATUS = #{approvalStatus}
+            </if>
+            <if test="addFlag != null">
+                and t.ADD_FLAG = #{addFlag}
+            </if>
+        </where>
+    </select>
+
+</mapper>

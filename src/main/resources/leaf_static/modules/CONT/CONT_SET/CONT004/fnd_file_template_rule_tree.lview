@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zedong huang 21903
+    $Date: 2018-1-18
+    $Revision: 1.0
+    $Purpose: 合同设置-文件模板规则树
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function fnd_file_template_rule_tree_screen_query() {
+            $('fnd_file_template_rule_tree_ds').query();
+        }
+        function fnd_file_template_rule_tree_screen_reset() {
+            $('fnd_file_template_rule_tree_query_ds').reset();
+            fnd_file_template_rule_tree_screen_query();
+        }
+        function fnd_file_template_rule_tree_screen_save() {
+            var ds = $('fnd_file_template_rule_tree_ds');
+            if (ds.validate()) {
+                ds.setSubmitUrl("${/request/@context_path}/hls/doc/file/templet/rule/submit");
+                ds.submit();
+            }
+        }
+        <!--grid渲染-->
+        function editorFunctionInsert(record, name) {
+            if (record.isNew) {
+                if (name == 'templet_type_desc') {
+                    return 'fnd_file_template_rule_tree_ds_grid_combo';
+                }
+                return '';
+            }
+            return '';
+        }
+
+        function fnd_file_template_rule_tree_define_render(value, record, name) {
+            if (record.isNew == true) {
+                return "";
+            } else {
+                return '<a href="javascript:winOpen_hls_rule_tree_define(\'' + record.get('templet_type') + '\',\'' + record.get('rule_engine_id') + '\',\'' + record.get('data_source_id') + '\');">规则树明细</a>';
+            }
+        }
+
+        <!-- new window -->
+        function winOpen_hls_rule_tree_define(templetType, ruleEngineId, dataSourceId) {
+            new Leaf.Window({
+                id: 'rule_tree_define',
+                url: "${/request/@context_path}/modules/FND/FND_MODEL/FND117/hls_rule_engine_route.lview",
+                params:{
+                    ruleEngineId:ruleEngineId,
+                    dataSourceId: dataSourceId,
+                    templetType: templetType
+                },
+                title: '规则树明细',
+                side:'right',
+                fullScreen:true
+            }).on('close',function () {
+                //子页面中$被jQuery占用
+                if(!!$L.getCmp) $ = $L.getCmp;
+            });
+        }
+
+        //导出确认
+        function export_confirm(){
+            if($('fnd_file_template_rule_tree_ds').getSelected().length==0){
+                Leaf.showErrorMessage( '提示', '请选择记录！',null, 200, 100 );
+                return ;
+            }
+            Leaf.showConfirm('提示', '确定导出？', fnd_file_template_rule_tree_export, null, 200, 100 );
+
+        }
+        //导出
+        function fnd_file_template_rule_tree_export() {
+            var ds = $('fnd_file_template_rule_tree_ds');
+            var records = ds.getSelected();
+            var export_list;
+            for (var i = 0; i < records.length; i++) {
+                if(export_list){
+                    export_list = export_list + "," + records[i].data.templet_type;
+                }else{
+                    export_list = records[i].data.templet_type;
+                }
+            }
+            location.href = "${/request/@context_path}/hls/doc/file/templet/rule/export?idlist=" + export_list;
+        }
+
+        function import_confirm() {
+            jQuery("#file").click();
+        }
+
+        function hls_upload_file(){
+            var file = jQuery("#file")[0].files[0];
+            if(file == undefined){
+                return ;
+            }
+            var formData = new FormData();
+            formData.append("file",file);
+            formData.append("_csrf","${/session/@_csrf.token}");
+            Leaf.Masker.mask(Ext.getBody(), '上传中。。');
+            jQuery.ajax({
+                url:'${/request/@context_path}/hls/doc/file/templet/rule/import',
+                type:'post',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success:function(res){
+                Leaf.Masker.unmask(Ext.getBody());
+                    if (res.success) {
+                        Leaf.showMessage("提示", res.message || "导入成功", null);
+                    } else{
+                        Leaf.showErrorMessage("提示", res.message || res.error.message || "导入失败", null);
+                    }
+                }
+            })
+            document.getElementById('file').value = null;
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="template_ds" autoQuery="true" fetchAll="true" selectable="true"
+                       queryUrl="${/request/@context_path}/hls/doc/file/templet/type/query?enabledFlag=Y">
+            </a:dataSet>
+            <!--<a:dataSet id="rule_engine_type_ds" autoQuery="true" fetchAll="true"  selectable="true"-->
+            <!--queryUrl ="${/request/@context_path}/hls/db/combox?enabledFlag=Y&amp;usageType=CONTRACT_FILE">-->
+            <!--<a:fields>-->
+            <!--&lt;!&ndash; <a:field name="description"/>-->
+            <!--<a:field name="document_category"/>&ndash;&gt;-->
+            <!--</a:fields>-->
+            <!--</a:dataSet>-->
+            <a:dataSet id="fnd_file_template_rule_tree_query_ds">
+                <a:fields>
+<!--                    <a:field name="description"/>-->
+<!--                    <a:field name="templet_type_desc" displayField="description" options="template_ds"-->
+<!--                             valueField="templet_type" returnField="templet_type"/>-->
+                    <a:field name="templet_type_desc" title="模板类型选择" autoComplete="true" fetchRemote="false"
+                             lovWidth="350" lovHeight="300" lovGridHeight="300"
+                             lovService="/hls/doc/file/templet/type/lov~com.hand.hls.cont.dto.DocFileTempletTypeLov">
+                        <a:mapping>
+                            <a:map from="templet_type" to="templet_type"/>
+                            <a:map from="description" to="templet_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rule_engine_type_desc" title="规则引擎类型选择" autoComplete="true" fetchRemote="false"
+                             lovWidth="500" lovHeight="450" lovGridHeight="300"
+                             lovService="/hls/rule/engine/type/selectForLovIf~com.hand.hls.ruleengine.dto.RuleEngineTypeLovDto">
+                        <a:mapping>
+                            <a:map from="rule_engine_type" to="rule_engine_type"/>
+                            <a:map from="description" to="rule_engine_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+
+
+            </a:dataSet>
+            <!--grid数据源-->
+            <a:dataSet id="fnd_file_template_rule_tree_ds" autoPageSize="false" autoQuery="true"
+                       queryDataSet="fnd_file_template_rule_tree_query_ds" selectable="true"
+                       queryUrl="${/request/@context_path}/hls/doc/file/templet/rule/query"
+                       submitUrl="${/request/@context_path}/hls/doc/file/templet/rule/submit">
+                <a:fields>
+                    <a:field name="enabled_flag" type="boolean" checkedValue="Y" uncheckedValue="N"/>
+<!--                    <a:field name="description" readOnly="true"/>-->
+<!--                    <a:field name="templet_type_desc" displayField="description" options="template_ds"-->
+<!--                             valueField="templet_type" returnField="templet_type"/>-->
+                    <a:field name="templet_type_desc"  title="模板类型选择" autoComplete="true" fetchRemote="false"
+                             lovWidth="350" lovHeight="300" lovGridHeight="300"
+                             lovService="/hls/doc/file/templet/type/lov~com.hand.hls.cont.dto.DocFileTempletTypeLov">
+                        <a:mapping>
+                            <a:map from="templet_type" to="templet_type"/>
+                            <a:map from="description" to="templet_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="rule_engine_type_desc" title="规则引擎类型选择" autoComplete="true" fetchRemote="false"
+                             lovWidth="500" lovHeight="450" lovGridHeight="300"
+                             lovService="/hls/rule/engine/type/selectForLovIf~com.hand.hls.ruleengine.dto.RuleEngineTypeLovDto">
+                        <a:mapping>
+                            <a:map from="rule_engine_type" to="rule_engine_type"/>
+                            <a:map from="description" to="rule_engine_type_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="data_source_desc"
+                             lovService="/hls/db/data/source/leaf/query~hls.layout.dto.LovHLSDBDataSourceDto"
+                             lovGridHeight="350" lovHeight="500" lovLabelWidth="100" lovWidth="600">
+                        <a:mapping>
+                            <a:map from="data_source_id" to="data_source_id"/>
+                            <a:map from="description" to="data_source_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_id"/>
+                    <a:field name="rule_engineId"/>
+                    <a:field name="data_source_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd_file_template_rule_tree_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton click="fnd_file_template_rule_tree_screen_save" text="HAP.SAVE"/>
+                <a:gridButton click="fnd_file_template_rule_tree_screen_query" text="HAP.QUERY"/>
+                <a:gridButton bind="fnd_file_template_rule_tree_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton click="fnd_file_template_rule_tree_screen_reset" text="HAP.RESET"/>
+                <a:gridButton click="export_confirm" text="HLS.EXPORT"/>
+                <a:gridButton click="import_confirm" text="HLS.IMPORT"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="100">
+                <a:lov name="templet_type_desc" bindTarget="fnd_file_template_rule_tree_query_ds" prompt="模板类型"
+                       emptyText="模板类型" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd_file_template_rule_tree_screen_query"/>
+                    </a:events>
+                </a:lov>
+                <a:lov name="rule_engine_type_desc" bindTarget="fnd_file_template_rule_tree_query_ds" prompt="规则引擎类型"
+                       emptyText="规则引擎类型" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd_file_template_rule_tree_screen_query"/>
+                    </a:events>
+                </a:lov>
+            </a:form>
+
+            <a:grid id="fnd_file_template_rule_tree_ds_grid" bindTarget="fnd_file_template_rule_tree_ds"
+                    marginWidth="30" marginHeight="120" navBar="true">
+                <a:columns>
+                    <a:column width="210" name="templet_type_desc" prompt="模板类型"
+                              editor="hls_layout_code_rule_engine_ds_grid_lv"
+                              align="center"/>
+                    <a:column width="210" name="rule_engine_type_desc" prompt="规则引擎类型"
+                              editor="hls_layout_code_rule_engine_ds_grid_lv" align="center"/>
+                    <a:column width="310" name="data_source_desc" prompt="数据源" align="center"
+                              editor="hls_layout_code_rule_engine_ds_grid_lv"/>
+                    <a:column width="310" name="rule_engine_code" prompt="通用规则引擎代码" align="center"/>
+                    <a:column width="210" prompt="规则树" renderer="fnd_file_template_rule_tree_define_render"
+                              align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd_file_template_rule_tree_ds_grid_tf"/>
+                    <a:checkBox id="fnd_file_template_rule_tree_ds_grid_check"/>
+                    <a:comboBox id="fnd_file_template_rule_tree_ds_grid_combo"/>
+                    <a:lov id="hls_layout_code_rule_engine_ds_grid_lv"/>
+                </a:editors>
+            </a:grid>
+            <input type="file" name="file" id="file" value="" onChange="hls_upload_file()" style="display:none"/>
+        </a:screenBody>
+    </a:view>
+</a:screen>

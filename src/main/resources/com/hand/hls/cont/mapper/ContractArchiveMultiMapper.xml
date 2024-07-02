@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.ContractArchiveMultiMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.ContractArchiveMulti">
+        <result column="RECORD_ID" property="recordId" jdbcType="DECIMAL" />
+        <result column="CONTRACT_ARCHIVE_ID" property="contractArchiveId" jdbcType="DECIMAL" />
+        <result column="FILE_NAME_ID" property="fileNameId" jdbcType="DECIMAL" />
+        <result column="FILE_CATEGORY" property="fileCategory" jdbcType="VARCHAR" />
+        <result column="FILE_NAME" property="fileName" jdbcType="VARCHAR" />
+        <result column="ATTACHMENT_NAME" property="attachmentName" jdbcType="VARCHAR" />
+        <result column="UPLOAD_DATE" property="uploadDate" jdbcType="DATE" />
+        <result column="COPIES" property="copies" jdbcType="VARCHAR" />
+        <result column="REMARKS" property="remarks" jdbcType="VARCHAR" />
+        <result column="REF_V01" property="refV01" jdbcType="VARCHAR" />
+        <result column="REF_V02" property="refV02" jdbcType="VARCHAR" />
+        <result column="REF_V03" property="refV03" jdbcType="VARCHAR" />
+        <result column="REF_V04" property="refV04" jdbcType="VARCHAR" />
+        <result column="REF_V05" property="refV05" jdbcType="VARCHAR" />
+        <result column="REF_V06" property="refV06" jdbcType="VARCHAR" />
+        <result column="REF_V07" property="refV07" jdbcType="VARCHAR" />
+        <result column="REF_V08" property="refV08" jdbcType="VARCHAR" />
+        <result column="REF_V09" property="refV09" jdbcType="VARCHAR" />
+        <result column="REF_V10" property="refV10" jdbcType="VARCHAR" />
+        <result column="REF_V11" property="refV11" jdbcType="VARCHAR" />
+        <result column="REF_V12" property="refV12" jdbcType="VARCHAR" />
+        <result column="REF_V13" property="refV13" jdbcType="VARCHAR" />
+        <result column="REF_V14" property="refV14" jdbcType="VARCHAR" />
+        <result column="REF_V15" property="refV15" jdbcType="VARCHAR" />
+        <result column="REF_N01" property="refN01" jdbcType="DECIMAL" />
+        <result column="REF_N02" property="refN02" jdbcType="DECIMAL" />
+        <result column="REF_N03" property="refN03" jdbcType="DECIMAL" />
+        <result column="REF_N04" property="refN04" jdbcType="DECIMAL" />
+        <result column="REF_N05" property="refN05" jdbcType="DECIMAL" />
+        <result column="REF_N06" property="refN06" jdbcType="DECIMAL" />
+        <result column="REF_N07" property="refN07" jdbcType="DECIMAL" />
+        <result column="REF_N08" property="refN08" jdbcType="DECIMAL" />
+        <result column="REF_N09" property="refN09" jdbcType="DECIMAL" />
+        <result column="REF_N10" property="refN10" jdbcType="DECIMAL" />
+        <result column="REF_D01" property="refD01" jdbcType="VARCHAR" />
+        <result column="REF_D02" property="refD02" jdbcType="VARCHAR" />
+        <result column="REF_D03" property="refD03" jdbcType="VARCHAR" />
+        <result column="REF_D04" property="refD04" jdbcType="VARCHAR" />
+        <result column="REF_D05" property="refD05" jdbcType="VARCHAR" />
+
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="FILE_CATEGORY_N" property="fileCategoryN" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="chanceAttachmentQuery" resultMap="BaseResultMap">
+        select
+        ccma.RECORD_ID,
+        hcla.CHANCE_ATTACHMENT_ID FILE_NAME_ID,
+        'HLS_CREDIT_LINE_CHANCE' FILE_CATEGORY,
+        '立项资料' FILE_CATEGORY_N,hcla.DOCUMENT_NAME FILE_NAME,
+        (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = hcla.CHANCE_ATTACHMENT_ID
+         and faam.table_name =  'HLS_CREDIT_LINE_CHANCE') ATTACHMENT_NAME,
+         (select COUNT(faam.RECORD_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = hcla.CHANCE_ATTACHMENT_ID
+         and faam.table_name =  'HLS_CREDIT_LINE_CHANCE'
+        ) COPIES,
+        (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = hcla.CHANCE_ATTACHMENT_ID
+         and faam.table_name = 'HLS_CREDIT_LINE_CHANCE'
+        )) UPLOAD_DATE,
+        ccma.REMARKS,
+        (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+        ccma.CONTRACT_ARCHIVE_ID
+        from hls_credit_line_attach hcla left join con_contract_archive_multi ccma
+        on hcla.CHANCE_ATTACHMENT_ID = ccma.FILE_NAME_ID
+        where hcla.attachment_category in
+            ('CHANCE_ATT', 'HLS_CREDIT_CHANCE_DOCX')
+        and hcla.chance_id = #{id}
+    </select>
+
+    <select id="projectAttachmentQuery" resultMap="BaseResultMap">
+        select
+        ccma.RECORD_ID,
+        ppa.PROJECT_ATTACHMENT_ID FILE_NAME_ID,
+        ppa.project_attachment_category FILE_CATEGORY,
+        decode(ppa.project_attachment_category,'PRJ_LEASE','尽调资料（租赁物）',
+        'PRJ_BP_CZ','尽调资料（承租人）','PRJ_BP_DB','尽调资料（担保人）') FILE_CATEGORY_N,
+        ppa.DOCUMENT_NAME FILE_NAME,
+        (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+        and faam.table_name =  'PRJ_PROJECT_ATTACHMENT') ATTACHMENT_NAME,
+        (select COUNT(faam.RECORD_ID)
+        from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+        and faam.table_name =  'PRJ_PROJECT_ATTACHMENT'
+        ) COPIES,
+        (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+        from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+        and faam.table_name =  'PRJ_PROJECT_ATTACHMENT'
+        )) UPLOAD_DATE,
+        ccma.REMARKS,
+        (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+        ccma.CONTRACT_ARCHIVE_ID
+        from prj_project_attachment ppa left join con_contract_archive_multi ccma
+        on ppa.PROJECT_ATTACHMENT_ID = ccma.FILE_NAME_ID
+        <where>
+            ppa.project_attachment_category IN (
+            'PRJ_BP_CZ',
+            'PRJ_BP_DB',
+            'PRJ_LEASE'
+            )
+            and ppa.project_id = #{id}
+            <if test="archiveType !=null">
+                AND ppa.project_attachment_category = #{archiveType}
+            </if>
+        </where>
+    </select>
+
+    <select id="approvalAttachmentQuery" resultMap="BaseResultMap">
+        select
+        ccma.RECORD_ID,
+        ppa.PROJECT_ATTACHMENT_ID FILE_NAME_ID,
+        ppa.project_attachment_category FILE_CATEGORY,
+        '审批意见资料' FILE_CATEGORY_N,
+        ppa.DOCUMENT_NAME FILE_NAME,
+        (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+        and faam.table_name =  'PRJ_PROJECT_JD') ATTACHMENT_NAME,
+        (select COUNT(faam.RECORD_ID)
+        from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+        and faam.table_name =  'PRJ_PROJECT_JD'
+        ) COPIES,
+        (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+        from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+        and faam.table_name =  'PRJ_PROJECT_JD'
+        )) UPLOAD_DATE,
+        ccma.REMARKS,
+        (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+        ccma.CONTRACT_ARCHIVE_ID
+        from prj_project_attachment ppa left join con_contract_archive_multi ccma
+        on ppa.PROJECT_ATTACHMENT_ID = ccma.FILE_NAME_ID
+        where ppa.project_attachment_category = 'PRJ_PROJECT_JD'
+        and ppa.project_id = #{id}
+    </select>
+
+    <select id="contractAttachmentQuery" resultMap="BaseResultMap">
+        select
+        ccma.RECORD_ID,
+        ppa.PROJECT_ATTACHMENT_ID FILE_NAME_ID,
+        ppa.project_attachment_category FILE_CATEGORY,
+        '合同资料' FILE_CATEGORY_N,
+        ppa.DOCUMENT_NAME FILE_NAME,
+        (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+        and faam.table_name =  'PRJ_PROJECT_ATTACHMENT') ATTACHMENT_NAME,
+         (select COUNT(faam.RECORD_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+        and faam.table_name =  'PRJ_PROJECT_ATTACHMENT'
+        ) COPIES,
+        (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+         and faam.table_name =  'PRJ_PROJECT_ATTACHMENT'
+        )) UPLOAD_DATE,
+        ccma.REMARKS,
+        (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+        ccma.CONTRACT_ARCHIVE_ID
+        from prj_project_attachment ppa left join con_contract_archive_multi ccma
+        on ppa.PROJECT_ATTACHMENT_ID = ccma.FILE_NAME_ID
+        where ppa.project_attachment_category IN( 'CON_CONTRACT_ATT','HLS_PRJ_PROJECT_DOCX3')
+        and ppa.prj_project_type is null
+        and ppa.project_id = #{id}
+    </select>
+
+    <select id="retailContractAttachmentQuery" resultMap="BaseResultMap">
+        select
+            ccma.RECORD_ID,
+            ppa.PROJECT_ATTACHMENT_ID FILE_NAME_ID,
+            ppa.project_attachment_category FILE_CATEGORY,
+            '零售合同资料' FILE_CATEGORY_N,
+            ppa.DOCUMENT_NAME FILE_NAME,
+            (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+          and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+          and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+          and faam.table_name =  ppa.project_attachment_category) ATTACHMENT_NAME,
+            (select COUNT(faam.RECORD_ID)
+        from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+          and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+          and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+          and faam.table_name =  ppa.project_attachment_category
+            ) COPIES,
+            (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+            from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+            where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+          and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+          and faam.TABLE_PK_VALUE = ppa.PROJECT_ATTACHMENT_ID
+          and faam.table_name =  ppa.project_attachment_category
+            )) UPLOAD_DATE,
+            ccma.REMARKS,
+            (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+            ccma.CONTRACT_ARCHIVE_ID
+        from prj_project_attachment ppa left join con_contract_archive_multi ccma
+        on ppa.PROJECT_ATTACHMENT_ID = ccma.FILE_NAME_ID
+        where ppa.project_attachment_category IN( 'prj_project_attachment','ONLINE_SIGN_CONTRACT')
+          and ppa.prj_project_type is null
+          and ppa.project_id = #{id}
+    </select>
+
+    <select id="paymentAttachmentQuery" resultMap="BaseResultMap">
+        select
+        ccma.RECORD_ID,
+        cpa.CSH_ATTCAHMENT_ID FILE_NAME_ID,
+        cpa.project_attachment_category FILE_CATEGORY,
+        '放款资料' FILE_CATEGORY_N,
+        cpa.DOCUMENT_NAME FILE_NAME,
+        (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = cpa.CSH_ATTCAHMENT_ID
+        and faam.table_name =  'csh_payment_attachment') ATTACHMENT_NAME,
+         (select COUNT(faam.RECORD_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = cpa.CSH_ATTCAHMENT_ID
+        and faam.table_name =  'csh_payment_attachment'
+        ) COPIES,
+        (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = cpa.CSH_ATTCAHMENT_ID
+         and faam.table_name =  'csh_payment_attachment'
+        )) UPLOAD_DATE,
+        ccma.REMARKS,
+        (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+        ccma.CONTRACT_ARCHIVE_ID
+        from csh_payment_attachment cpa left join con_contract_archive_multi ccma
+        on cpa.CSH_ATTCAHMENT_ID = ccma.FILE_NAME_ID
+        where cpa.project_attachment_category = 'CON_PAYMENT'
+        and cpa.payment_req_id = #{id}
+    </select>
+
+    <select id="retailPaymentAttachmentQuery" resultMap="BaseResultMap">
+        select
+            ccma.RECORD_ID,
+            cpa.CSH_ATTCAHMENT_ID FILE_NAME_ID,
+            cpa.project_attachment_category FILE_CATEGORY,
+            '零售放款资料' FILE_CATEGORY_N,
+            cpa.DOCUMENT_NAME FILE_NAME,
+            (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+          and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+          and faam.TABLE_PK_VALUE = cpa.CSH_ATTCAHMENT_ID
+          and faam.table_name =  'csh_payment_attachment') ATTACHMENT_NAME,
+            (select COUNT(faam.RECORD_ID)
+        from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+          and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+          and faam.TABLE_PK_VALUE = cpa.CSH_ATTCAHMENT_ID
+          and faam.table_name =  'csh_payment_attachment'
+            ) COPIES,
+            (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+            from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+            where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+          and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+          and faam.TABLE_PK_VALUE = cpa.CSH_ATTCAHMENT_ID
+          and faam.table_name =  'csh_payment_attachment'
+            )) UPLOAD_DATE,
+            ccma.REMARKS,
+            (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+            ccma.CONTRACT_ARCHIVE_ID
+        from csh_payment_attachment cpa left join con_contract_archive_multi ccma
+        on cpa.CSH_ATTCAHMENT_ID = ccma.FILE_NAME_ID
+        where cpa.project_attachment_category = 'RETAIL_PAYMENT'
+          and cpa.payment_req_id = #{id}
+    </select>
+
+    <select id="otherAttachmentQuery" resultMap="BaseResultMap">
+        select
+        ccma.RECORD_ID,
+        ccma.FILE_NAME_ID,
+        ccma.file_category FILE_CATEGORY,
+        '其他' FILE_CATEGORY_N,
+        ccma.file_name FILE_NAME,
+        (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = ccma.file_name_id
+        and faam.table_name =  'con_contract_archive_multi') ATTACHMENT_NAME,
+         (select COUNT(faam.RECORD_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = ccma.file_name_id
+        and faam.table_name =  'con_contract_archive_multi'
+        ) COPIES,
+        (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = ccma.file_name_id
+         and faam.table_name =  'con_contract_archive_multi'
+        )) UPLOAD_DATE,
+        ccma.REMARKS,
+        (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+        ccma.CONTRACT_ARCHIVE_ID
+        from con_contract_archive_multi ccma
+        where ccma.file_category = 'OTHER'
+        and ccma.CONTRACT_ARCHIVE_ID = #{id}
+    </select>
+
+    <select id="riskAttachmentQuery" resultMap="BaseResultMap">
+        select
+        ccma.RECORD_ID,
+        pra.risk_attachment_id FILE_NAME_ID,
+        pra.attachment_category FILE_CATEGORY,
+        '租后资料（风险预警）' FILE_CATEGORY_N,
+        pra.DOCUMENT_NAME FILE_NAME,
+        (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = pra.risk_attachment_id
+        and faam.table_name =  'plm_risk_warning') ATTACHMENT_NAME,
+         (select COUNT(faam.RECORD_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = pra.risk_attachment_id
+         and faam.table_name =  'plm_risk_warning'
+        ) COPIES,
+        (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = pra.risk_attachment_id
+         and faam.table_name =  'plm_risk_warning'
+        )) UPLOAD_DATE,
+        ccma.REMARKS,
+        (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+        ccma.CONTRACT_ARCHIVE_ID
+        from plm_risk_attachment pra left join con_contract_archive_multi ccma
+        on pra.risk_attachment_id = ccma.FILE_NAME_ID
+        where pra.attachment_category in ('RISK_ATT')
+        and pra.risk_warning_id = #{id}
+    </select>
+
+    <select id="checkAttachmentQuery" resultMap="BaseResultMap">
+        select
+        ccma.RECORD_ID,
+        pra.risk_attachment_id FILE_NAME_ID,
+        pra.attachment_category FILE_CATEGORY,
+        '租后资料（租后检查）' FILE_CATEGORY_N,
+        pra.DOCUMENT_NAME FILE_NAME,
+        (select listagg(faa.file_name, '、') within group(order by faa.attachment_id)
+        from fnd_atm_attachment faa , fnd_atm_attachment_multi faam
+        where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+        and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+        and faam.TABLE_PK_VALUE = pra.risk_attachment_id
+        and faam.table_name =  'prj_check') ATTACHMENT_NAME,
+         (select COUNT(faam.RECORD_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = pra.risk_attachment_id
+         and faam.table_name =  'prj_check'
+        ) COPIES,
+        (select faa.CREATION_DATE
+        from fnd_atm_attachment faa
+        where faa.ATTACHMENT_ID =(select max(faa.ATTACHMENT_ID)
+         from fnd_atm_attachment_multi faam,fnd_atm_attachment faa
+         where faam.ATTACHMENT_ID = faa.ATTACHMENT_ID
+         and faam.RECORD_ID = faa.SOURCE_PK_VALUE
+         and faam.TABLE_PK_VALUE = pra.risk_attachment_id
+         and faam.table_name =  'prj_check'
+        )) UPLOAD_DATE,
+        ccma.REMARKS,
+        (select cca.contract_id
+        from con_contract_archive cca
+        where cca.contract_archive_id = ccma.contract_archive_id) CONTRACT_ID,
+        ccma.CONTRACT_ARCHIVE_ID
+        from plm_risk_attachment pra left join con_contract_archive_multi ccma
+        on pra.risk_attachment_id = ccma.FILE_NAME_ID
+        where pra.attachment_category in ('PRJ_CHECK_ATT')
+        and pra.risk_warning_id = #{id}
+    </select>
+
+
+</mapper>

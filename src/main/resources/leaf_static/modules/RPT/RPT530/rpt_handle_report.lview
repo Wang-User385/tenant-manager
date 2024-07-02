@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="rpt_report_detail_id"
+                url="${/request/@context_path}/modules/RPT/RPT530/rpt_handle_report_detail.lview"/>
+        <script><![CDATA[
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var cashflow_id = record.get('cashflow_id');
+
+            return '<a  href="#' + Math.random() + '" onclick="open_write_off_detail_window(' + cashflow_id + ')">' + Leaf.formatMoney(value) + '</a>';
+
+        };
+        function open_write_off_detail_window(cashflow_id) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
+
+            var param = {};
+            param['url_title'] = '核销明细';
+            param['function_code'] = 'RPT530F1';
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'rpt_report_detail_id_winId';
+            param['cashflow_id'] = cashflow_id;
+            hls_doc_get_layout_code(param, 'rpt_report_detail_id', ds_id, 'RPT530');
+
+        }
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

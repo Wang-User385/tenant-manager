@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:p="uncertain.proc" xmlns:c="leaf.application.action"
+          xmlns:s="leaf.plugin.script" customizationEnabled="true" trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        function admin_project_line_query() {
+            $('admin_cockpit_info_ds').query();
+        }
+
+        function admin_project_reset() {
+            $('adminCockpitMaintainDs').reset();
+            $('admin_cockpit_info_ds').query();
+        }
+
+        function percentFormat(value, record, name) {
+            debugger;
+            if (value) {
+                return parseFloat(value * 100).toFixed(2) + '%';
+            } else {
+                return '0%';
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="admin_prj_cockpit_query_ds">
+                <a:datas>
+                    <a:record/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="adminCockpitMaintainDs"
+                       autoQuery="true" autoCreate="true">
+                <a:fields>
+                    <a:field name="host_project_manager_n"/>
+                    <a:field name="host_unit_n"/>
+                    <a:field name="year"/>
+                    <a:field name="mon"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="admin_cockpit_info_ds" autoPageSize="true" pageSize="10" autoCount="true" autoQuery="true"
+                       selectable="true"
+                       fetchAll="false"  queryDataSet="adminCockpitMaintainDs"
+                       queryUrl="${/request/@context_path}/jc/cockpit/admin/query">
+                <a:fields>
+                    <a:field name="item"/>
+                    <a:field name="year"/>
+                    <a:field name="mon"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="admin_project_line_query" text="HAP.QUERY"/>
+                <a:gridButton click="admin_project_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="140">
+                <a:textField name="year" bindTarget="adminCockpitMaintainDs" prompt="年份"
+                             width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="admin_project_line_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="mon" bindTarget="adminCockpitMaintainDs" prompt="月份"
+                             width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="admin_project_line_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="item" bindTarget="adminCockpitMaintainDs" prompt="项目"
+                             width="150">
+                    <a:events>
+                        <a:event name="enterdown" handler="admin_project_line_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="admin_cockpit_into_define" bindTarget="admin_cockpit_info_ds"
+                    marginHeight="80" marginWidth="80" navBar="true">
+                <a:columns>
+                    <a:column width="60" name="year" align="center" prompt="年份"/>
+                    <a:column width="60" name="mon" align="center" prompt="月份"/>
+                    <a:column width="130" name="item" prompt="项目"/>
+                    <a:box column="3" labelWidth="120" prompt="业务一部">
+                        <a:column width="120" align="right" name="bus_one_amount" prompt="目标值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="completed_amount_od" prompt="完成值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="completed_ratio_od" prompt="完成率"
+                                  renderer="percentFormat"/>
+                    </a:box>
+                    <a:box column="3" labelWidth="120" prompt="业务二部">
+                        <a:column width="120" align="right" name="bus_two_amount" prompt="目标值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="completed_amount_td" prompt="完成值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="completed_ratio_td" prompt="完成率"
+                                  renderer="percentFormat"/>
+                    </a:box>
+                    <a:box column="3" labelWidth="120" prompt="业务三部">
+                        <a:column width="120" align="right" name="bus_three_amount" prompt="目标值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="completed_amount_thd" prompt="完成值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="completed_ratio_thd" prompt="完成率"
+                                  renderer="percentFormat"/>
+                    </a:box>
+                    <a:box column="3" labelWidth="120" prompt="战略业务部">
+                        <a:column width="120" align="right" name="bus_td_amount" prompt="目标值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="completed_amount_zd" prompt="完成值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="completed_ratio_zd" prompt="完成率"
+                                  renderer="percentFormat"/>
+                    </a:box>
+                    <a:box column="3" labelWidth="120" prompt="合计">
+                        <a:column width="120" align="right" name="total_amount" prompt="目标值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="total_completed_amount" prompt="完成值"
+                                  renderer="Leaf.formatMoney"/>
+                        <a:column width="120" align="right" name="total_completed_ratio" prompt="完成率"
+                                  renderer="percentFormat"/>
+                    </a:box>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

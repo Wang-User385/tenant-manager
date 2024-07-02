@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: congweijing
+    $Date:2021年5月13日
+    $Revision: 1.0
+    $Purpose: 关税管理资料清单行表
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="lease_asset_detail_winid"
+                url="${/request/@context_path}/modules/GRADE/GRADE001/customer_grade_main.lview"/>
+        <script><![CDATA[
+        //新增时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq){
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_tariff_info');
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+
+            if(attachment_ds_id == ds.id){
+                record.set('source_category', 'con_contract_tariff_info');
+                record.set('source_id', $(basic_ds_id).getCurrentRecord().get("tariff_id"));
+            }
+
+        };
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = '${/parameter/@layout_code}_attachment_detail';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'attach_link') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + name + '\');">' + "上传/下载" + '</a>';
+            }
+        }
+        //附件
+        window['${/parameter/@layout_code}_attachment_detail'] = function (record_id, name) {
+            var record = window['${/parameter/@layout_code}_hls_link_render_record'][record_id + '---' + name];
+            var header_id = record.get('attachment_id');
+            var table_name = "jczl_common_attachment";
+            if (header_id) {
+                var url;
+                if ('${/parameter/@function_usage}' == 'QUERY') {
+                    url = '${/request/@context_path}/downloadFile.lview';
+                } else {
+                    url = '${/request/@context_path}/uploadFile.lview';
+                }
+                var win = new Leaf.Window({
+                    id: '${/parameter/@layout_code}_open_attachment_winid',
+                    url: url,
+                    params: {
+                        header_id: header_id,
+                        table_name: table_name,
+                        winid: '${/parameter/@layout_code}_open_attachment_winid',
+                        function_usage: '${/parameter/@function_usage}'
+                    },
+                    title: '文件上传',
+                    width: 800,
+                    height: 575
+                });
+                win.on('close', function () {
+                    var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+                    var pageNum = $(attachment_ds_id).currentPage;
+                    $(attachment_ds_id).query(pageNum);
+                });
+            } else {
+                $L.showInfoMessage("提示", "请先保存!", null);
+            }
+
+        };
+
+        //初始化资料清单
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_tariff_info');
+            var record = $(ds_id).data[0].data;
+            var tariffId = record.tariff_id;
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: "${/request/@context_path}/tariff/contract/content/init",
+                para: {source_id: tariffId},
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+                    $(attachment_ds_id).query();
+                    $L.showInfoMessage("提示", "资料清单已经初始化!");
+                },
+                error: function (res) {
+                    $L.showInfoMessage("提示", "资料清单初始化失败!");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (res) {
+                    $L.showInfoMessage("提示", "资料清单初始化失败!");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true,
+                scope: this
+            });
+
+        }
+
+        //打包下载
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_tariff_info');
+            var record = $(ds_id).data[0].data;
+            var tariffId = record.tariff_id;
+            var url = "${/request/@context_path}/tariff/contract/content/package?sourceId=" + tariffId;
+            jQuery.ajax({
+                type: 'GET',
+                url: url,
+                async: false,
+                contentType: "application/json; charset=utf-8",
+                success: function (datas) {
+                    window.location.href = "${/request/@context_path}/attachment/package/download?fileName="+datas;
+                }
+            });
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

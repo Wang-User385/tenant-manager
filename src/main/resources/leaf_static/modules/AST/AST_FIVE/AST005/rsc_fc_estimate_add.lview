@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020-02-08
+    $Description:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="prj_chance_add_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail.lview"/>
+        <script><![CDATA[
+        Leaf.onReady(function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ast_fc_estimate');
+            $(ds_id).getCurrentRecord().set('employee_id','${/session/@employeeId}');
+            $(ds_id).getCurrentRecord().set('estimate_date', new Date());
+           // $(ds_id).getCurrentRecord().set('unit_id',"${/session/@unitId}");
+        });
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ast_fc_estimate');
+            if($(ds_id).validate()){
+                debugger;
+
+                var estimate_num = $(ds_id).getCurrentRecord().get('estimate_num');
+                //项目方案编号
+                var five_class_plan = $(ds_id).getCurrentRecord().get('five_class_plan');
+                //
+                var contract_number = $(ds_id).getCurrentRecord().get('contract_number');
+                var project_id = $(ds_id).getCurrentRecord().get('project_id');
+                var employee_id = $(ds_id).getCurrentRecord().get('employee_id');
+
+                //FROM_DATE
+                var estimate_date = $(ds_id).getCurrentRecord().get('estimate_date');
+                var param= $(ds_id).getAt(0).data;
+                param['estimate_num'] =  estimate_num ;
+                param['five_class_plan'] =  five_class_plan ;
+                param['contract_number'] =  contract_number ;
+                param['project_id'] =  project_id ;
+                param['employee_id'] = employee_id;
+                param['estimate_date'] = estimate_date;
+                param['company_id'] = '${/session/@companyId}';
+                param['unit_id'] = '${/session/@unitId}';
+                var document_category = 'ASSETS_CLASSIFICATION_NUMBER';
+                var document_type = 'ASSETS_CLASSIFICATION_NUMBER';
+                var business_type = 'ASSETS_CLASSIFICATION_NUMBER';
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type,
+                    success: function (res) {
+                        var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ast_fc_estimate');
+                        $(ds_id).getCurrentRecord().set('estimate_num', res.result.record[0]);
+
+
+                    },
+                    error: function (res) {
+
+
+                    },
+                    sync: true,
+                    scope: this
+                });
+                debugger;
+
+                Leaf.request({
+                    url: "${/request/@context_path}/ast/fc/estimate/create",
+                    para: {param: param},
+                    success: function (res) {
+                        console.log(res);
+                        var five_class_plan = res.result.record[0].five_class_plan;
+                        if (five_class_plan == 'undefined' || five_class_plan == '' || five_class_plan == null) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            Leaf.showInfoMessage('创建失败!');
+                            return;
+                        } else {
+                            // Leaf.Masker.unmask(Ext.getBody());
+                            // param['function_code'] = 'ADC001F2';
+                            // //param['function_code'] = 'ADC001';
+                            // param['url_title'] = '资产处置明细页面';
+                            // param['function_usage'] = 'CREATE';
+                            // param['assets_disposal_id'] =  assets_disposal_id ;
+                            // var link_id = 'a_disposal_detail_id';
+                            // hls_doc_get_layout_code(param, link_id, ds_id, 'ADC001F2');
+
+                            Leaf.showInfoMessage("提示", "创建成功!", function () {
+                                $('${/parameter/@winid}').close();
+                                var winId = '${/parameter/@winid}';
+                                if (!!winId) {
+                                    $(winId).close();
+                                }
+
+                                $('${/parameter/@ds_id}').query();
+                            });
+
+
+                        }
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+
+            }
+
+
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

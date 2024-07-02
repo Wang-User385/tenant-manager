@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bill.mapper.HlsBillRequestAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bill.dto.HlsBillRequestAttachment">
+        <result column="BILL_ATTACHMENT_ID" property="billAttachmentId" jdbcType="DECIMAL" />
+        <result column="BILL_ID" property="billId" jdbcType="DECIMAL" />
+        <result column="DOCUMENT_NAME" property="documentName" jdbcType="VARCHAR" />
+        <result column="UPLOAD_DATE" property="uploadDate" jdbcType="DATE" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="UPLOAD_PERSON" property="uploadPerson" jdbcType="VARCHAR" />
+        <result column="file_name" property="fileName" jdbcType="VARCHAR" />
+
+    </resultMap>
+    <select id="selectBillAttachmentInfo" resultMap="BaseResultMap">
+    SELECT
+	ppa.BILL_ATTACHMENT_ID,
+	ppa.BILL_ID,
+	ppa.UPLOAD_DATE,
+	ppa.DOCUMENT_NAME,
+	ppa.description,
+	(
+	SELECT
+		wm_concat( fa.file_name )
+	FROM
+		fnd_atm_attachment fa,
+		fnd_atm_attachment_multi fam
+	WHERE
+		fa.attachment_id = fam.attachment_id
+	AND fam.table_name = 'hls_bill_request_attachment'
+		AND ppa.BILL_ATTACHMENT_ID = fam.table_pk_value
+	) file_name
+FROM
+	hls_bill_request_attachment ppa
+WHERE
+     ppa.BILL_ID= #{billId}
+    </select>
+
+</mapper>

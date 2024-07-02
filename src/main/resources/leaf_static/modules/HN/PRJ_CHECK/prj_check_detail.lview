@@ -1,0 +1,741 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaorong
+    $Date: 2019-4-16 上午11:48:56
+    $Revision: 2.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <style>
+            #PRJ_CHECK_DETAIL_G_ATTACHMENT_jczl_common_attachment_layout_grid_id_wrap {
+                padding-top: 50px;
+            }
+        </style>
+        <a:link id="prj_contract_detail_id"
+                url="${/request/@context_path}/modules/AST/AST_FIVE/AST005/rsc_ten_enstimate.lview"/>
+        <a:link id="prj_bp_risk_warn_id"
+                url="${/request/@context_path}/modules/RISK/RISK100/risk_warning.lview"/>
+        <a:link id="con_prj_lease_detail_1_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="prj_finance_detail_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_finance_home.lview"/>
+        <a:link id="bp100_bp_master_modify_id11"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="paid_rental_id11"
+                url="${/request/@context_path}/modules/RPT/rpt_contract_payied_rental_report.lview"/>
+        <script><![CDATA[
+        var check_id = '${/parameter/@check_id}';
+        var query_flag = 'Y';
+        var wfl_flag = '${/parameter/@wfl_flag}'||'N';
+
+        //新增时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+
+            //风险情况
+            var risk_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'F_THIS_CHECK');
+            //项目批复
+            var reply_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'F_REPLY_SITUATION');
+            if (risk_ds_id == ds.id) {
+                record.set('hd_id', $(basic_ds_id).getCurrentRecord().get("risk_hd_id"));
+                record.set('check_type', 'RISK');
+            }
+            if (reply_ds_id == ds.id) {
+                record.set('hd_id', $(basic_ds_id).getCurrentRecord().get("risk_hd_id"));
+                record.set('check_type', 'REPLY');
+            }
+            //融资申请人
+            var tenant_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd', 'F_BASE');
+            var tenant_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC');
+            var tenant_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT');
+            var tenant_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE');
+            var tenant_received_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_RECEIVED');
+            if (tenant_basic_ds_id == ds.id) {
+                record.set('hd_id', $(tenant_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'TENANT_BASIC');
+            }
+            if (tenant_credit_ds_id == ds.id) {
+                record.set('hd_id', $(tenant_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'TENANT_CREDIT');
+            }
+            if (tenant_finance_ds_id == ds.id) {
+                record.set('hd_id', $(tenant_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'TENANT_FINANCE');
+            }
+            if (tenant_received_ds_id == ds.id) {
+                record.set('hd_id', $(tenant_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'TENANT_RECEIVED');
+            }
+
+            //担保人
+            var gurantor_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd', 'F_BASI_GU');
+            var gurantor_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC_GU');
+            var gurantor_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT_GU');
+            var gurantor_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE_GU');
+            if (gurantor_basic_ds_id == ds.id) {
+                record.set('hd_id', $(gurantor_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'GUARANTOR_BASIC');
+            }
+            if (gurantor_credit_ds_id == ds.id) {
+                record.set('hd_id', $(gurantor_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'GUARANTOR_CREDIT');
+            }
+            if (gurantor_finance_ds_id == ds.id) {
+                record.set('hd_id', $(gurantor_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'GUARANTOR_FINANCE');
+            }
+        };
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            //debugger;
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check', 'T_FROM');
+            var check_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check', 'F_THIS');
+            var conclusion_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check', 'F_MUNU10_FORM');
+            var base_record = $(base_ds_id).getCurrentRecord();
+
+            if (ds.id == base_ds_id) {
+                if (name == 'check_type_locale' && value == 'Y') {
+                    base_record.set('check_type_unlocale', 'N');
+                    base_record.set('check_type_other', 'N');
+                }
+                if (name == 'check_type_unlocale' && value == 'Y') {
+                    base_record.set('check_type_locale', 'N');
+                    base_record.set('check_type_other', 'N');
+                }
+                if (name == 'check_type_other' && value == 'Y') {
+                    base_record.set('check_type_unlocale', 'N');
+                    base_record.set('check_type_locale', 'N');
+                }
+            }
+
+            if (name == 'five_classification_result_n' && value) {
+                base_record.set('product_conclusion_n',value)
+            }
+            if (name == 'five_classification_result' && value) {
+                base_record.set('product_conclusion',value)
+            }
+
+            var items_ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'F_THIS_CHECK');
+            var items_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'F_REPLY_SITUATION');
+            var items_ds_id3 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC');
+            var items_ds_id4 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT');
+            var items_ds_id5 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE');
+            var items_ds_id6 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_RECEIVED');
+            var items_ds_id7 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC_GU');
+            var items_ds_id8 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT_GU');
+            var items_ds_id9 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE_GU');
+            var items_ds_id10 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_LEASE');
+            var items_ds_id11 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_PLEDGE');
+
+            if (ds.id == items_ds_id1 || ds.id == items_ds_id2 || ds.id == items_ds_id3 || ds.id == items_ds_id4 || ds.id == items_ds_id5
+                || ds.id == items_ds_id6 || ds.id == items_ds_id7 || ds.id == items_ds_id8 || ds.id == items_ds_id9
+                || ds.id == items_ds_id10 || ds.id == items_ds_id11) {
+                if (name == 'check_y' && value == 'Y') {
+                    $(ds.id).getCurrentRecord().set('check_n', 'N');
+                    $(ds.id).getCurrentRecord().getField('description').setRequired(false);
+                }
+                if (name == 'check_y' && value == 'N') {
+                    $(ds.id).getCurrentRecord().set('check_n', 'Y');
+                    $(ds.id).getCurrentRecord().getField('description').setRequired(true);
+                }
+                if (name == 'check_n' && value == 'Y') {
+                    $(ds.id).getCurrentRecord().set('check_y', 'N');
+                    $(ds.id).getCurrentRecord().getField('description').setRequired(true);
+                }
+                if (name == 'check_n' && value == 'N') {
+                    $(ds.id).getCurrentRecord().set('check_y', 'Y');
+                    $(ds.id).getCurrentRecord().getField('description').setRequired(false);
+                }
+            }
+
+            var hd_ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd', 'F_FINANCE_REPORT');
+            var hd_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd', 'F_FINANCE_REPORT_GU');
+
+            if (ds.id == hd_ds_id1 || ds.id == hd_ds_id2) {
+                if (name == 'audit_y' && value == 'Y') {
+                    $(ds.id).getCurrentRecord().set('audit_n', 'N');
+                }
+                if (name == 'audit_y' && value == 'N') {
+                    $(ds.id).getCurrentRecord().set('audit_n', 'Y');
+                }
+                if (name == 'audit_n' && value == 'Y') {
+                    $(ds.id).getCurrentRecord().set('audit_y', 'N');
+                }
+                if (name == 'audit_n' && value == 'N') {
+                    $(ds.id).getCurrentRecord().set('audit_y', 'Y');
+                }
+                if (name == 'compare_audit_y' && value == 'Y') {
+                    $(ds.id).getCurrentRecord().set('compare_audit_n', 'N');
+                }
+                if (name == 'compare_audit_y' && value == 'N') {
+                    $(ds.id).getCurrentRecord().set('compare_audit_n', 'Y');
+                }
+                if (name == 'compare_audit_n' && value == 'Y') {
+                    $(ds.id).getCurrentRecord().set('compare_audit_y', 'N');
+                }
+                if (name == 'compare_audit_n' && value == 'N') {
+                    $(ds.id).getCurrentRecord().set('compare_audit_y', 'Y');
+                }
+            }
+        };
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            debugger;
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check', 'T_FROM');
+            var this_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd', 'F_THIS');
+
+            var tenant_base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_BASE');
+            var tenant_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_FINANCE_REPORT');
+            if (ds.id == tenant_base_ds_id || ds.id == tenant_finance_ds_id) {
+                qpara['check_category'] = 'TENANT';
+            }
+
+            var gu_base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_BASI_GU');
+            var gu_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_FINANCE_REPORT_GU');
+            var gu_refinance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_REFINANCE_GU');
+            var gu_other_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_OTHER_GU');
+            if (ds.id == gu_base_ds_id || ds.id == gu_finance_ds_id || ds.id == gu_refinance_ds_id || ds.id == gu_other_ds_id) {
+                qpara['check_category'] = 'GUARANTOR';
+            }
+
+            //标的情况
+            var lease_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_DESC_LEASE');
+            if (ds.id == lease_ds_id) {
+                qpara['check_category'] = 'SUBJECT';
+            }
+
+            //抵质押品情况
+            var pledge_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_PLEDGE');
+            if (ds.id == pledge_hd_ds_id) {
+                qpara['check_category'] = 'PLEDGE';
+            }
+
+        };
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            //debugger;
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+            //风险预警
+            var risk_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'F_THIS_CHECK');
+            //项目批复
+            var reply_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'F_REPLY_SITUATION');
+
+            //客户基本情况
+            var tenant_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC');
+            //客户主体信用情况
+            var tenant_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT');
+            //客户财务
+            var tenant_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE');
+            //客户回款
+            var tenant_cash_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_RECEIVED');
+            //担保人
+            var gurantor_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC_GU');
+            var gurantor_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT_GU');
+            var gurantor_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE_GU');
+            if (ds.id == risk_ds_id) {
+                qpara['check_type'] = 'RISK';
+                qpara['check_id'] = check_id;
+            }
+            if (ds.id == reply_ds_id) {
+                qpara['check_type'] = 'REPLY';
+                qpara['check_id'] = check_id;
+            }
+            if (ds.id == tenant_basic_ds_id) {
+                qpara['check_type'] = 'TENANT_BASIC';
+                qpara['check_id'] = check_id;
+            }
+            if (ds.id == tenant_credit_ds_id) {
+                qpara['check_type'] = 'TENANT_CREDIT';
+                qpara['check_id'] = check_id;
+            }
+            if (ds.id == tenant_finance_ds_id) {
+                qpara['check_type'] = 'TENANT_FINANCE';
+                qpara['check_id'] = check_id;
+            }
+            if (ds.id == tenant_cash_ds_id) {
+                qpara['check_type'] = 'TENANT_RECEIVED';
+                qpara['check_id'] = check_id;
+            }
+            if (ds.id == gurantor_basic_ds_id) {
+                qpara['check_type'] = 'GUARANTOR_BASIC';
+                qpara['check_id'] = check_id;
+            }
+            if (ds.id == gurantor_credit_ds_id) {
+                qpara['check_type'] = 'GUARANTOR_CREDIT';
+                qpara['check_id'] = check_id;
+            }
+            if (ds.id == gurantor_finance_ds_id) {
+                qpara['check_type'] = 'GUARANTOR_FINANCE';
+                qpara['check_id'] = check_id;
+            }
+            //标的
+            var subject_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_LEASE');
+            if (ds.id == subject_ds_id) {
+                qpara['check_type'] = 'SUBJECT';
+                qpara['check_id'] = check_id;
+            }
+            //抵质押品情况
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_PLEDGE');
+            if (ds.id == pledge_ds_id) {
+                qpara['check_type'] = 'PLEDGE';
+                qpara['check_id'] = check_id;
+            }
+
+        };
+
+        function print(){
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+            var record = $(ds_id).getCurrentRecord();
+            var template_code = 'RENT_CHECK';
+            if (record.get('contract_id') && record.get('contract_id') != null && record.get('contract_id') != '') {
+                Leaf.Masker.mask(Ext.getBody(), '正在生成投后检查报告打印...');
+                Leaf.request({
+                    url: "${/request/@context_path}/prj/virprj/create/content",
+                    para: {
+                        project_id: record.get('contract_id'),
+                        check_id: record.get('check_id'),
+                        template_code: template_code,
+                        instance_id: record.get('process_instance_id')
+                    },
+                    success: function (res) {
+                        debugger;
+                        console.log(res);
+                        var source_pk_value1 = res.result.record[0].source_pk_value1;
+                        if (source_pk_value1 == 'undefined' || source_pk_value1 == '' || source_pk_value1 == null) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            Leaf.showInfoMessage('未找到投后检查报告模板!');
+                            return;
+                        } else {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            var down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + res.result.record[0].attachment_id;
+                            location.href = down_url;
+                        }
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+        }
+
+        //投后检查报告打印
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            //debugger;
+            if('${/parameter/@function_usage}' == 'QUERY'){
+                print();
+            }else{
+                window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {print()});
+            }
+        }
+
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            //debugger;
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+            var last_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check', 'F_LAST_CHECK');
+            if (ds.id === base_ds_id) {
+                var record = $(base_ds_id).getCurrentRecord();
+                var last_check_id = record.get('last_check_id');
+                if (last_check_id == undefined || last_check_id == null || last_check_id == '') {
+                    record.getField('last_focus_matter').setReadOnly(true);
+                    record.getField('last_correct_situation').setReadOnly(true);
+                }
+            }
+        };
+
+        var docList = new Array();
+
+        function f() {
+            for (let i = 0, len = docList.length; i < len; i++) {
+                if (document.getElementById(docList[i]) != null) {
+                    var base_span = document.getElementById(docList[i]).lastChild;
+                    document.getElementById(docList[i]).innerHTML = '<div class="cell-editor-div"></div><span style="color: red">*</span>' + base_span.outerHTML;
+                }
+            }
+        }
+        setInterval(f, 1);
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+            var tenant_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC');
+            var tenant_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT');
+            var tenant_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE');
+            var gurantor_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC_GU');
+            var gurantor_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT_GU');
+            var gurantor_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE_GU');
+            var lease_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_LEASE');
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_PLEDGE');
+
+            if ((ds.id === tenant_basic_ds_id || ds.id === tenant_credit_ds_id || ds.id === tenant_finance_ds_id
+                /*|| ds.id === gurantor_basic_ds_id || ds.id === gurantor_credit_ds_id || ds.id === gurantor_finance_ds_id*/
+                || ds.id === lease_ds_id || ds.id === pledge_ds_id)
+                && record !='' && record !=null && record != undefined) {
+                var requiredFlag = record.get('required_flag');
+                if (requiredFlag != undefined && requiredFlag != null && requiredFlag != '' && requiredFlag == 'Y') {
+                    var doc = ds.bindname + "_layout_grid_id_items_" + record.id;
+                    docList.add(doc);
+                }
+            }
+        };
+
+        //保存前调用 2023-07-03舍弃
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before2_submit'] = function (ds, record) {
+            var check_flag = true;
+            var lnRecords, description = '', required_flag = 'N';
+            var tenant_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC');
+            var tenant_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT');
+            var tenant_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE');
+            var gurantor_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC_GU');
+            var gurantor_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT_GU');
+            var gurantor_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE_GU');
+            var lease_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_LEASE');
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_PLEDGE');
+
+            lnRecords = $(tenant_basic_ds_id).getAll();
+            for (var i = 0; i < lnRecords.length; i++) {
+                description = lnRecords[i].get('description');
+                required_flag = lnRecords[i].get('required_flag');
+                if (required_flag == 'Y' && (description == '' || description == null)) {
+                    $L.showInfoMessage("提示","融资申请人情况-客户基本情况说明不能为空！");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+            lnRecords = $(tenant_credit_ds_id).getAll();
+            for (var i = 0; i < lnRecords.length; i++) {
+                description = lnRecords[i].get('description');
+                required_flag = lnRecords[i].get('required_flag');
+                if (required_flag == 'Y' && (description == '' || description == null)) {
+                    $L.showInfoMessage("提示","融资申请人情况-主体信用资质状况说明不能为空！");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+            lnRecords = $(tenant_finance_ds_id).getAll();
+            for (var i = 0; i < lnRecords.length; i++) {
+                description = lnRecords[i].get('description');
+                required_flag = lnRecords[i].get('required_flag');
+                if (required_flag == 'Y' && (description == '' || description == null)) {
+                    $L.showInfoMessage("提示","融资申请人情况-财务状况说明不能为空！");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+            /*lnRecords = $(gurantor_basic_ds_id).getAll();
+            for (var i = 0; i < lnRecords.length; i++) {
+                description = lnRecords[i].get('description');
+                required_flag = lnRecords[i].get('required_flag');
+                if (required_flag == 'Y' && (description == '' || description == null)) {
+                    $L.showInfoMessage("提示","担保人情况-客户基本情况说明不能为空！");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+            lnRecords = $(gurantor_credit_ds_id).getAll();
+            for (var i = 0; i < lnRecords.length; i++) {
+                description = lnRecords[i].get('description');
+                required_flag = lnRecords[i].get('required_flag');
+                if (required_flag == 'Y' && (description == '' || description == null)) {
+                    $L.showInfoMessage("提示","担保人情况-主体信用资质状况说明不能为空！");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+            lnRecords = $(gurantor_finance_ds_id).getAll();
+            for (var i = 0; i < lnRecords.length; i++) {
+                description = lnRecords[i].get('description');
+                required_flag = lnRecords[i].get('required_flag');
+                if (required_flag == 'Y' && (description == '' || description == null)) {
+                    $L.showInfoMessage("提示","担保人情况-财务状况说明不能为空！");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }*/
+            lnRecords = $(lease_ds_id).getAll();
+            for (var i = 0; i < lnRecords.length; i++) {
+                description = lnRecords[i].get('description');
+                required_flag = lnRecords[i].get('required_flag');
+                if (required_flag == 'Y' && (description == '' || description == null)) {
+                    $L.showInfoMessage("提示","标的情况说明不能为空！");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+            lnRecords = $(pledge_ds_id).getAll();
+            for (var i = 0; i < lnRecords.length; i++) {
+                description = lnRecords[i].get('description');
+                required_flag = lnRecords[i].get('required_flag');
+                if (required_flag == 'Y' && (description == '' || description == null)) {
+                    $L.showInfoMessage("提示","抵质押品情况说明不能为空！");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+
+            /*var check_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check', 'F_THIS');
+            var conclusion_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check', 'F_MUNU10_FORM');
+            var check_record = $(check_ds_id).getCurrentRecord();
+            var conclusion_record = $(conclusion_ds_id).getCurrentRecord();
+            conclusion_record.set('product_conclusion',check_record.get('five_classification_result'))*/
+
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            return check_flag;
+        }
+
+        function open_bp_modify_win11(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '客户详细信息';
+            param['function_usage'] = 'QUERY';
+            if (param['bp_class'] == 'ORG') {
+                param['function_code'] = 'BP100F1';
+            } else {
+                param['function_code'] = 'BP100F2';
+            }
+            param['winid'] = 'bp_master_modify_winid11';
+            hls_doc_get_layout_code(param, 'bp100_bp_master_modify_id11', ds_id, 'BP100');
+        }
+
+        function open_paid_rental_win11(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '应收账款';
+            param['function_usage'] = 'QUERY';
+            param['function_code'] = 'PAYIED_RENTAL_CHART';
+            param['winid'] = 'paid_rental_winid11';
+            param['hide_query_flag'] = 'Y';
+            hls_doc_get_layout_code(param, 'paid_rental_id11', ds_id, 'PAYIED_RENTAL_CHART');
+        }
+
+        //超链接
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            debugger
+            var link_function;
+            if (name == 'attachment_detail' && record.get('risk_attachment_id')) {
+                link_function = 'upload_file';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('risk_attachment_id') + '\',\'' + record.ds.id + '\');">附件</a>';
+            }
+            if (name == 'file_name' && value) {
+                debugger;
+                var str = value.split(',');
+                var url = '';
+                for (var i = 0; i < str.length; i++) {
+                    var temp = record.get('attachment_id').split(',');
+                    url = url + '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + temp[i] + '">' + str[i] + ' ; </a>';
+                }
+                return url;
+            }
+            if (name == 'bp_detali') {
+                return '<a href="javascript:open_bp_modify_win11(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '客户详细信息' + '</a>';
+            }
+            if (name == 'paid_detail') {
+                return '<a href="javascript:open_paid_rental_win11(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '应收账款明细' + '</a>';
+            }
+            return value;
+        };
+
+
+        //新增时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+
+            //风险情况
+            var risk_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'F_THIS_CHECK');
+            //项目批复
+            var reply_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'F_REPLY_SITUATION');
+            if (risk_ds_id == ds.id) {
+                record.set('hd_id', $(basic_ds_id).getCurrentRecord().get("risk_hd_id"));
+                record.set('check_type', 'RISK');
+            }
+            if (reply_ds_id == ds.id) {
+                record.set('hd_id', $(basic_ds_id).getCurrentRecord().get("risk_hd_id"));
+                record.set('check_type', 'REPLY');
+            }
+            //融资申请人
+            var tenant_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd', 'F_BASE');
+            var tenant_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC');
+            var tenant_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT');
+            var tenant_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE');
+            var tenant_received_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_RECEIVED');
+            if (tenant_basic_ds_id == ds.id) {
+                record.set('hd_id', $(tenant_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'TENANT_BASIC');
+            }
+            if (tenant_credit_ds_id == ds.id) {
+                record.set('hd_id', $(tenant_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'TENANT_CREDIT');
+            }
+            if (tenant_finance_ds_id == ds.id) {
+                record.set('hd_id', $(tenant_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'TENANT_FINANCE');
+            }
+            if (tenant_received_ds_id == ds.id) {
+                record.set('hd_id', $(tenant_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'TENANT_RECEIVED');
+            }
+
+            //担保人
+            var gurantor_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd', 'F_BASI_GU');
+            var gurantor_basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_BASIC_GU');
+            var gurantor_credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_CREDIT_GU');
+            var gurantor_finance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_FINANCE_GU');
+            if (gurantor_basic_ds_id == ds.id) {
+                record.set('hd_id', $(gurantor_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'GUARANTOR_BASIC');
+            }
+            if (gurantor_credit_ds_id == ds.id) {
+                record.set('hd_id', $(gurantor_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'GUARANTOR_CREDIT');
+            }
+            if (gurantor_finance_ds_id == ds.id) {
+                record.set('hd_id', $(gurantor_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'GUARANTOR_FINANCE');
+            }
+
+            //标的情况
+            var lease_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_DESC_LEASE');
+            var subject_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_LEASE');
+            if (subject_ds_id == ds.id) {
+                record.set('hd_id', $(lease_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'SUBJECT');
+            }
+
+            //抵质押品情况
+            var pledge_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_hd','F_PLEDGE');
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check_items_ln', 'G_PLEDGE');
+            if (pledge_ds_id == ds.id) {
+                record.set('hd_id', $(pledge_hd_ds_id).getCurrentRecord().get("hd_id"));
+                record.set('check_type', 'PLEDGE');
+            }
+
+
+
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'plm_risk_attachment');
+            if (ds.id == ds_id) {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+                var base_record = $(ds_id).getCurrentRecord();
+                var check_id = base_record.get('check_id');
+                record.set('risk_warning_id', check_id);
+            }
+        };
+
+        window['upload_file'] = function (record_id, risk_attachment_id, ds_id, table) {
+            debugger
+            var record = $(ds_id).findById(record_id);
+            var tableName;
+            tableName = 'prj_check';
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+            var base_record = $(ds_id).getCurrentRecord();
+            var check_id = base_record.get('check_id');
+            if (check_id == null) {
+                $L.showInfoMessage("提示", "请先保存再上传附件!");
+                return;
+            }
+            if (risk_attachment_id == null) {
+                $L.showInfoMessage("提示", "请先保存附件信息!");
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY' || '${/parameter/@end_flag}' == 'Y') {
+                url = '${/request/@context_path}/modules/HLS/HLS200/downloadFileCopy.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'risk100_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': risk_attachment_id,
+                    'table_name': tableName,
+                    winid: 'risk100_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                debugger;
+                var document_list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'plm_risk_attachment');
+                $(document_list_ds_id).query();
+            });
+        };
+
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                debugger;
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+                var record = $(ds_id).getCurrentRecord();
+                var data = {};
+                data.check_id = record.data.check_id;
+                data.check_number = record.data.check_number;
+                if (record.get("approve_suggest") == 'NEW' || record.get("approve_suggest") == 'REJECTED' || record.get("approve_suggest") == 'APPROVED_RETURN') {
+                    Leaf.request({
+                        type: 'POST',
+                        url: "${/request/@context_path}/prj/check/submit",
+                        contentType: "application/json; charset=utf-8",
+                        para: data,
+                        success: function (res) {
+                            Leaf.showMessage('提示', '提交成功', function () {
+                                $('${/parameter/@winid}').close();
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            });
+                        },
+                        error: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        //sync: true,
+                        scope: this
+                    });
+                } else {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示', '该单据不可提交，请检查单据状态！');
+                }
+            })
+        };
+
+        ///工作流页面执行前校验
+        function beforeSubmit(countiune) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+            if($(ds_id).validate()) {
+                $(ds_id).submit();
+                countiune();
+                return true;
+            }else{
+                return false;
+            }
+        }
+
+        Leaf.onReady(function() {
+            var input = document.createElement('input');
+            document.body.appendChild(input);
+            Ext.fly(input).moveTo(-10000, -10000);
+            input.focus();
+            setTimeout(function() {
+                Ext.fly(input).remove();
+            }, 1000);
+
+            if(wfl_flag=='Y'){
+                $('${/parameter/@layout_code}_submit_approval').hide();
+            }
+        });
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

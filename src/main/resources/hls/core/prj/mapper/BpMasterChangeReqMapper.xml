@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.BpMasterChangeReqMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.BpMasterChangeReq">
+        <result column="CHANGE_REQ_ID" property="changeReqId" jdbcType="DECIMAL"/>
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL"/>
+        <result column="STATUS" property="status" jdbcType="VARCHAR"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="CHANGE_REQ_DATE" property="changeReqDate" jdbcType="DATE"/>
+        <result column="DOCUMENT_TYPE" property="documentType" jdbcType="VARCHAR"/>
+        <result column="DOCUMENT_CATEGORY" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="PROCESS_INSTANCE_ID" property="processInstanceId" jdbcType="DECIMAL"/>
+        <result column="DOCUMENT_VERSION" property="documentVersion" jdbcType="DECIMAL"/>
+        <result column="CHANGE_REQ_USER_ID" property="changeReqUserId" jdbcType="DECIMAL"/>
+        <result column="status_n" property="statusN" jdbcType="VARCHAR"/>
+        <result column="version_num" property="versionNum" jdbcType="DECIMAL"/>
+        <result column="change_new_status_num" property="changeNewStatusNum" jdbcType="DECIMAL"/>
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="owner_user_id_n" property="ownerUserIdN" jdbcType="VARCHAR"/>
+        <result column="change_req_date_n" property="changeReqDateN" jdbcType="VARCHAR"/>
+        <result column="change_req_user_id_n" property="changeReqUserIdN" jdbcType="VARCHAR"/>
+        <result column="document_version_n" property="documentVersionN" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryChangeInfo" resultMap="BaseResultMap">
+        SELECT hbm.*,
+        (SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v. CODE = 'HLS_WFL_STATUS'
+        AND v.code_value = nvl(hbm.status, 'NEW')) status_n,
+        mas.bp_code,
+        mas.bp_name,
+        su.description owner_user_id_n,
+        to_char(hbm.change_req_date, 'YYYY-MM-DD') change_req_date_n,
+        (select sys.description
+        from sys_user sys
+        where sys.user_id = hbm.change_req_user_id) change_req_user_id_n,
+        'V' || to_char(hbm.document_version, 'FM999.0') document_version_n
+        FROM hls_bp_master_change_req hbm, hls_bp_master mas, sys_user su
+        <where>
+            hbm.bp_id = mas.bp_id
+            and mas.created_by = su.user_id
+            and hbm.bp_id = #{bpId}
+        </where>
+        order by hbm.document_version desc
+    </select>
+
+    <select id="queryVersionNum" resultMap="BaseResultMap" parameterType="com.hand.hls.prj.dto.BpMasterChangeReq">
+        SELECT count(1)+1 version_num
+        FROM hls_bp_master_change_req hbm
+        <where>
+            <if test="bpId!=null">
+                and hbm.bp_id = #{bpId}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryChangeNewStatusNum" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.prj.dto.BpMasterChangeReq">
+        SELECT count(1) change_new_status_num
+        FROM hls_bp_master_change_req hbm
+        <where>
+            hbm.status in ('NEW', 'APPROVING','REJECTED')
+            <if test="bpId!=null">
+                and hbm.bp_id = #{bpId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

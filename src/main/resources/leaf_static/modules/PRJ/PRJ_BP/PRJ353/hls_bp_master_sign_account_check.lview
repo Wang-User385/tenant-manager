@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="bp100_bp_master_modify_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="prj351_create_attach_link" url="${/request/@context_path}/elec-verify/create/attachment"/>
+        <a:link id="prj353_verify_link" url="${/request/@context_path}/elec-verify/verify"/>
+
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name === 'bp_code' && value) {
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+
+            if (name === 'attach_link') {
+                return '<a href="javascript:open_attach(\'' + record.get('bp_attachment_id') + '\')">' + '审核材料' + '</a>';
+            }
+            return value;
+        };
+
+        function open_bp_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '客户信息查看';
+            if(param['bp_type']==='MANUFACTURER'){
+                param['function_code'] = 'BP100F4'
+            }else{
+                if (param['bp_class'] === 'ORG') {
+                    if(param['bp_type']==='VENDER' || param['bp_type']==='DEALER'){
+                        param['function_code'] = 'PRJ320_LS_F1';
+                    }else{
+                        param['function_code'] = 'BP100F1';}
+                } else {
+                    param['function_code'] = 'BP100F2';
+                }
+            }
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'bp_master_modify_winid';
+
+            hls_doc_get_layout_code(param, 'bp100_bp_master_modify_id', ds_id, 'BP100');
+        }
+
+        function open_attach(bp_attachment_id) {
+            if(bp_attachment_id){
+                var url = '${/request/@context_path}/downloadFile.lview';
+                var win = new Leaf.Window({
+                    id: 'prj351_open_attachment_winid',
+                    url: url,
+                    params: {
+                        header_id: bp_attachment_id,
+                        table_name: 'HLS_BP_ATTACHMENT',
+                        function_usage: 'QUERY',
+                        winid: 'prj351_open_attachment_winid',
+                    },
+                    title: '文件下载',
+                    width: 800,
+                    height: 475
+                });
+            }else{
+                Leaf.showMessage('错误', '查询附件记录失败，请联系系统管理员！');
+            }
+        }
+
+        //复核
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_sign_verify');
+            var records = $(ds_id).getSelected();
+            if(records.length === 0){
+                Leaf.showMessage('错误', '请至少勾选一条记录！');
+                return;
+            }
+            for(var i = 0;i < records.length;i++){
+                if(records[i].get('verify_id')===''||records[i].get('verify_id')===null||records[i].get('verify_id')===undefined){
+                    Leaf.showMessage('错误', '开户信息不完整！');
+                    return;
+                }else if(records[i].get('verify_result')==='SUCCESS'){
+                    Leaf.showMessage('错误', '请勿重复开户！');
+                    return;
+                }else if(records[i].get('sign_check_status')!=='U'){
+                    Leaf.showMessage('错误', '该经销商尚未提交复核！');
+                    return;
+                }else{
+                    if(!(records[i].get('receive_phone_number')&&records[i].get('person_name')&&records[i].get('phone_number')&&records[i].get('id_number'))){
+                        Leaf.showMessage('错误', '开户信息不完整！');
+                        return;
+                    }
+                }
+            }
+            Leaf.Masker.mask(Ext.getBody(), '执行中。。');
+            for(var j = 0;j < records.length;j++){
+                var para = records[j].data;
+                para.userId = '${/session/@user_id}';
+                if(records[j].get('verify_id')!==''&&records[j].get('verify_id')!==null&&records[j].get('verify_id')!==undefined){
+                    Leaf.request({
+                        url: $('prj353_verify_link').getUrl(),
+                        scope: this,
+                        para: para,
+                        sync: true,
+                        success: function (res) {
+                            if (!res.success) {
+                                Leaf.showMessage('错误', records[i].get('legal_name') + '开户失败，错误信息：' + res.message);
+                            }
+                        }
+                    });
+                }
+            }
+            Leaf.Masker.unmask(Ext.getBody());
+            $(ds_id).query();
+            Leaf.SideBar.show({
+                msg: '操作成功',
+                duration: 2000
+            });
+        };
+
+        //退回
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_sign_verify');
+            var records = $(ds_id).getSelected();
+            if(records.length === 0){
+                Leaf.showMessage('错误', '请至少勾选一条记录！');
+                return;
+            }
+            Leaf.Masker.mask(Ext.getBody(), '执行中。。');
+            for(var i = 0;i < records.length;i++){
+                if(records[i].get('sign_check_status')!=='U'){
+                    Leaf.showMessage('错误', '仅可对复核中的商业伙伴操作退回！');
+                    Leaf.Masker.unmask(Ext.getBody());
+                    return;
+                }else{
+                    records[i].set('sign_check_status','F');
+                    records[i].set('sign_check_status_n','退回');
+                }
+            }
+            $(ds_id).submit();
+            Leaf.Masker.unmask(Ext.getBody());
+            Leaf.SideBar.show({
+                msg: '操作成功',
+                duration: 2000
+            });
+        };
+
+
+        // 默认查询复核中的单据
+        Leaf.onReady(function(){
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_sign_verify');
+            var record = $('PRJ353_F_QUERY__ds').getAt(0);
+            record.set('sign_check_status', 'U');
+            record.set('sign_check_status_n','复核中');
+            $(ds_id).query();
+        });
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

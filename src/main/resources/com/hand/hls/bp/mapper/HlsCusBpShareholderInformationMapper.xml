@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.HlsCusBpShareholderInformationMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.HlsCusBpShareholderInformation">
+        <result column="shareholder_information_id" property="shareholderInformationId" jdbcType="DECIMAL" />
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL" />
+        <result column="shareholder_type" property="shareholderType" jdbcType="VARCHAR" />
+        <result column="shareholder_name" property="shareholderName" jdbcType="VARCHAR" />
+        <result column="shareholder_id_type" property="shareholderIdType" jdbcType="VARCHAR" />
+        <result column="shareholder_id_card_no" property="shareholderIdCardNo" jdbcType="VARCHAR" />
+        <result column="HOLDING_RATIO" property="holdingRatio" jdbcType="DECIMAL" />
+        <result column="Investment" property="investment" jdbcType="DECIMAL" />
+        <result column="Equity_rate" property="equityRate" jdbcType="DECIMAL" />
+        <result column="shareholder_type_n" property="shareholderTypeN" />
+        <result column="shareholder_id_type_n" property="shareholderIdTypeN" />
+        <result column="CERTIFICATE_DUE_DATE" property="certificateDueDate" jdbcType="DATE"/>
+        <result column="REAL_AMOUNT" property="realAmount" jdbcType="DECIMAL"/>
+    </resultMap>
+    <select id="queryAll" parameterType="com.hand.hls.bp.dto.HlsCusBpShareholderInformation" resultMap="BaseResultMap">
+        SELECT
+        hbsi.shareholder_information_id,
+        hbsi.bp_id,
+        hbsi.shareholder_type,
+        hbsi.HOLDING_RATIO,
+        hbsi.CERTIFICATE_DUE_DATE,
+        hbsi.REAL_AMOUNT,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND.SHAREHOLDER_TYPE'
+        and sc.code_value = hbsi.shareholder_type) shareholder_type_n,
+        hbsi.shareholder_name,
+        hbsi.shareholder_id_type,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND.SHAREHOLDER_CERT_TYPE'
+        and sc.code_value = hbsi.shareholder_id_type) shareholder_id_type_n,
+        hbsi.shareholder_id_card_no,
+        hbsi.Investment,
+        hbsi.Equity_rate
+        FROM
+        hls_bp_shareholder_info hbsi
+        <where>
+            <if test="bpId != null">
+                hbsi.bp_id = #{bpId}
+            </if>
+            <if test="shareholderInformationId!=null">
+                hbsi.shareholder_information_id = #{shareholderInformationId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hxh
+    $Date: 2020年4月17日
+    $Revision: 1.0
+    $Purpose: 尽调报告维护（项目报告维护）
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:p="uncertain.proc" xmlns:c="leaf.application.action"
+          xmlns:s="leaf.plugin.script" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.prj.service.HlsCusPrjProjectService.selectProjectTenantSecLoop"
+                       rootPath="prj_project_tenant_rec_path"/>
+    </a:init-procedure>
+    <a:view>
+        <style>
+            html, body {
+                background: #fff;
+            }
+
+            .item-tab-table {
+                -webkit-box-shadow: none !important;
+                -moz-box-shadow: none !important;
+                -o-box-shadow: none !important;
+                -ms-box-shadow: none !important;
+                box-shadow: none !important;
+            }
+
+            /*滚动条样式*/
+            .item-tab .tab::-webkit-scrollbar { /*滚动条整体样式*/
+                width: 8px; /*高宽分别对应横竖滚动条的尺寸*/
+                height: 8px;
+            }
+
+            .item-tab .tab::-webkit-scrollbar-thumb { /*滚动条里面小方块*/
+                border-radius: 5px;
+                -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                background-color: rgb(204, 204, 204);
+            }
+
+            .item-tab .tab::-webkit-scrollbar-track { /*滚动条里面轨道*/
+                -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                border-radius: 0;
+                background-color: white;
+            }
+        </style>
+        <script><![CDATA[
+
+        var bp_id = '${/parameter/@tenant_id}';
+        var tenant_obj = {};
+
+        function onQuery_prj_create_tenant_ds() {
+            var project_id = '${/parameter/@project_id}';
+            var tenant_id = '${/parameter/@tenant_id}';
+            if (project_id == 0) {
+                $('prj_create_tenant_ds').setQueryUrl('${/request/@context_path}/hls/bp/query/master/detail/prj');
+                $('prj_create_tenant_ds').setQueryParameter('bp_id', '${/parameter/@tenant_id}');
+                $('prj_create_tenant_ds').setQueryParameter('bp_type', 'TENANT');
+                $('prj_create_tenant_ds').setQueryParameter('project_id', '${/parameter/@project_id}');
+            } else {
+                $('prj_create_tenant_ds').setQueryParameter('project_id', '${/parameter/@project_id}');
+                $('prj_create_tenant_ds').setQueryParameter('bp_categroy', 'PRJ_PROJECT');
+                $('prj_create_tenant_ds').setQueryParameter('bp_type', 'TENANT');
+                $('prj_create_tenant_ds').setQueryParameter('bp_id', '${/parameter/@tenant_id}');
+            }
+
+
+        }
+
+        function onUpdate_prj_create_tenant_ds(ds, record, name, value, oldValue) {
+            if (name == 'bp_id_n') {
+                var bp_record = record.data;
+                parent.tenant_id_change(bp_record);
+            }
+            if (name == 'bp_id') {
+                bp_id = value;
+            }
+        }
+
+        function onLoad_prj_create_tenant_ds(){
+            var bp_id = $('prj_create_tenant_ds').getCurrentRecord().get('bp_id');
+            //信用评级
+            $('credit_info_ds').setQueryParameter('bp_id', bp_id);
+            $('credit_info_ds').query();
+        }
+
+
+        function render_sys_resource_ds_grid(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'access_component') {
+                    return '<a href="javascript:winOpen_access_component(\'' + record.get('header_id') + '\',\'' + record.get('fiscal_year') + '\');">报表分期明细</a>';
+                } else if (name == 'access_component_detail') {
+                    return '<a href="javascript:winOpen_access_detail_component(\'' + (record.get('result_id') || '') + '\',\'' + record.get('excel_id') + '\');">报表明细</a>';
+                } else if (name == 'indicator_anaysis') {
+                    return '<a href="javascript:winOpen_indicator_anaysis(\'' + record.get('header_id') + '\',\'' + record.get('report_year_one') + '\',\'' + record.get('report_year_two') + '\',\'' + record.get('report_year_three') + '\',\'' + record.get('report_year_four') + '\');">指标分析</a>';
+
+                }
+
+                return '';
+            }
+            return '';
+        }
+
+
+        <!--打开窗口：报表分期明细-->
+        function winOpen_access_component(header_id, fiscal_year) {
+            parent.parent_winOpen_access_component(header_id, fiscal_year);
+        }
+
+        <!--打开窗口：报表明细-->
+        function winOpen_access_detail_component(result_id, excel_id) {
+            parent.parent_winOpen_access_detail_component(result_id, excel_id);
+        }
+
+        <!--打开窗口：指标明细-->
+        function winOpen_indicator_anaysis(header_id,report_year_one , report_year_two , report_year_three , report_year_four) {
+            // debugger;
+            parent.parent_winOpen_indicator_anaysis(header_id,report_year_one , report_year_two , report_year_three , report_year_four);
+
+        }
+
+        function hls_bp_master_financial_info_ds_query(ds, para) {
+            para['bp_id'] = bp_id || '-1';
+        }
+
+        function internal_rating_detail(value,record,name){
+            var rating_link_function = 'internal_rating_detail_upload';
+            return '<a href="javascript:window[\'' + rating_link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">附件</a>';
+        }
+
+        function internal_rating_detail_upload(record_id,ds_id) {
+        }
+
+        ]]>
+        </script>
+        <a:dataSets>
+            <a:dataSet id="combined_amount_detail_ds">
+                <a:datas>
+                    <a:record/>
+                </a:datas>
+            </a:dataSet>
+            <!--信用评级-->
+            <a:dataSet id="credit_info_ds" autoPageSize="true" autoCreate="true"
+                       queryurl="${/request/@context_path}/ct/prj/project/bp/credit/query">
+                <a:datas>
+                    <a:record/>
+                </a:datas>
+            </a:dataSet>
+            <!--承租人信息-->
+            <a:dataSet id="prj_create_tenant_ds" autoPageSize="true" autoCreate="true" autoQuery="true"
+                       queryurl="${/request/@context_path}/hls/bp/query/master/detail/prj">
+                <a:fields>
+                    <a:field name="bp_id"/>
+                    <a:field name="bp_id_n" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/hls/bp/query/master/detail/prj?bp_type=TENANT&amp;project_id=${/parameter/@project_id}&amp;user_id=${/session/@user_id}~hls.layout.dto.LovHlsBpMasterDto"
+                             lovWidth="550"
+                             title="HLS.BP_TITLE" prompt="商业伙伴">
+                        <a:mapping>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="bp_name" to="bp_id_n"/>
+                            <a:map from="bp_code" to="bp_code"/>
+                            <a:map from="bp_type" to="bp_type"/>
+                            <a:map from="bp_type_n" to="bp_type_n"/>
+                            <a:map from="bp_eng_name" to="bp_eng_name"/>
+                            <a:map from="extra_nam" to="extra_nam"/>
+                            <a:map from="bp_class" to="bp_class"/>
+                            <a:map from="bp_class_n" to="bp_class_n"/>
+                            <a:map from="registered_capital" to="registered_capital"/>
+                            <a:map from="paid_up_capital" to="paid_up_capital"/>
+                            <a:map from="register_capital_cur_n" to="register_capital_cur_n"/>
+                            <a:map from="founded_date" to="founded_date"/>
+                            <a:map from="registration_num_type_n" to="registration_num_type_n"/>
+                            <a:map from="register_cert_num" to="register_cert_num"/>
+                            <a:map from="operating_period_end" to="operating_period_end"/>
+                            <a:map from="organization_type_n" to="organization_type_n"/>
+                            <a:map from="legal_person" to="legal_person"/>
+                            <a:map from="actual_controller" to="actual_controller"/>
+                            <a:map from="ref_v01_n" to="ref_v01_n"/>
+                            <a:map from="loan_card_num" to="loan_card_num"/>
+                            <a:map from="economic_indu_classify_n" to="economic_indu_classify_n"/>
+                            <a:map from="exclusive_trade_n" to="exclusive_trade_n"/>
+                            <a:map from="group_customers_n" to="group_customers_n"/>
+                            <a:map from="group_membership" to="group_membership"/>
+                            <a:map from="economic_zone_n" to="economic_zone_n"/>
+                            <a:map from="enterprise_scale_n" to="enterprise_scale_n"/>
+                            <a:map from="customer_number" to="customer_number"/>
+                            <a:map from="head_office_bp_type_n" to="head_office_bp_type_n"/>
+                            <a:map from="business_area" to="business_area"/>
+                            <a:map from="overseas_customer_name" to="overseas_customer_name"/>
+                            <a:map from="enterprise_affiliation_n" to="enterprise_affiliation_n"/>
+                            <a:map from="credit_customer_n" to="credit_customer_n"/>
+                            <a:map from="swift" to="swift"/>
+                            <a:map from="bp_financial_type_n" to="bp_financial_type_n"/>
+                            <a:map from="name" to="name"/>
+                            <a:map from="enabled_flag" to="enabled_flag"/>
+                            <a:map from="business_scope" to="business_scope"/>
+                            <a:map from="insider_trading_c_n" to="insider_trading_c_n"/>
+                            <a:map from="related_transaction_c_n" to="related_transaction_c_n"/>
+                            <a:map from="related_transaction_is_c_n" to="related_transaction_is_c_n"/>
+                            <a:map from="related_transaction_cd_n" to="related_transaction_cd_n"/>
+                            <a:map from="insider_trading_b_n" to="insider_trading_b_n"/>
+                            <a:map from="related_transaction_b_n" to="related_transaction_b_n"/>
+                            <a:map from="related_transaction_is_b_n" to="related_transaction_is_b_n"/>
+                            <a:map from="related_transaction_bd_n" to="related_transaction_bd_n"/>
+                            <a:map from="platform_risk" to="platform_risk"/>
+                            <a:map from="platform_time" to="platform_time"/>
+                            <a:map from="head_office_name_list" to="head_office_name_list"/>
+                            <a:map from="strategic_bp_type_n" to="strategic_bp_type_n"/>
+                            <a:map from="listed_company_n" to="listed_company_n"/>
+                            <a:map from="listing_code" to="listing_code"/>
+                            <a:map from="id_type_n" to="id_type_n"/>
+                            <a:map from="id_card_no" to="id_card_no"/>
+                            <a:map from="id_expiration_date" to="id_expiration_date"/>
+                            <a:map from="actual_person" to="actual_person"/>
+                            <a:map from="actual_class_n" to="actual_class_n"/>
+                            <a:map from="actual_type_n" to="actual_type_n"/>
+                            <a:map from="actual_number" to="actual_number"/>
+                            <a:map from="actual_expiration_date" to="actual_expiration_date"/>
+                            <a:map from="actual_currency_n" to="actual_currency_n"/>
+                            <a:map from="enterprise_status" to="enterprise_status"/>
+                            <a:map from="group_companies" to="group_companies"/>
+                            <a:map from="company_level" to="company_level"/>
+                            <a:map from="phone" to="phone"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bp_type"/>
+                    <a:field name="enabled_flag" readOnly="true"/>
+                    <a:field name="bp_type_n"/>
+                    <a:field name="bp_code"/>
+                    <a:field name="bp_eng_name"/>
+                    <a:field name="extra_nam"/>
+                    <a:field name="bp_class"/>
+                    <a:field name="bp_class_n"/>
+                    <a:field name="registered_capital"/>
+                    <a:field name="founded_date" datatype="date"/>
+                    <a:field name="operating_period_end" datatype="date"/>
+                    <a:field name="id_expiration_date" datatype="date"/>
+                    <a:field name="actual_expiration_date" datatype="date"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="onQuery_prj_create_tenant_ds"/>
+                    <a:event name="update" handler="onUpdate_prj_create_tenant_ds"/>
+                    <a:event name="load" handler="onLoad_prj_create_tenant_ds"/>
+                </a:events>
+            </a:dataSet>
+            <!--财务信息-->
+            <a:dataSet id="tenant_financial_info_ds" autoPageSize="true" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/hls/bp/financial/header/query">
+                <a:fields>
+                    <a:field name="check_status" checkedValue="Y" defaultValue="N" uncheckedValue="N" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="hls_bp_master_financial_info_ds_query"/>
+                </a:events>
+            </a:dataSet>
+
+        </a:dataSets>
+        <a:screenBody style="background-color:#fff">
+            <a:tabPanel marginWidth="200" marginHeight="20" id="tenant_info">
+                <a:tabs>
+                    <a:tab prompt="承租人信息" width="110" id="tenant_id_tab">
+                        <a:tabPanel marginWidth="220" marginHeight="100" id="tenant_info_detail">
+                            <a:tabs>
+                                <a:tab prompt="客户信息" width="110" id="client_info_tab">
+                                    <a:form column="1" labelWidth="100" prompt="基本信息" title="基本信息">
+                                        <a:box column="3" labelWidth="120">
+                                            <a:lov name="bp_id_n" width="365" prompt="客户名称" required="true"
+                                                   bindTarget="prj_create_tenant_ds"/>
+                                            <a:comboBox name="bp_type_n" bindTarget="prj_create_tenant_ds"
+                                                        readOnly="true"
+                                                        prompt="客户角色" width="120"/>
+                                            <a:textField name="bp_code" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="客户编号" width="120"/>
+                                        </a:box>
+                                        <a:box column="4" labelWidth="120">
+                                            <a:textField name="register_capital_cur_n" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="注册资本币种" width="120"/>
+                                            <a:textField name="registered_capital" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="注册资本" width="120"/>
+                                            <a:textField name="actual_currency_n" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="实收资本币种" width="120"/>
+                                            <a:textField name="paid_up_capital" bindTarget="prj_create_tenant_ds"
+                                                        readOnly="true"
+                                                        prompt="实收注册资本" width="120"/>
+                                            <a:textField name="registration_num_type_n" bindTarget="prj_create_tenant_ds"
+                                                           readOnly="true"
+                                                           prompt="登记注册号类型" width="120"/>
+                                            <a:textField name="register_cert_num" bindTarget="prj_create_tenant_ds"
+                                                           readOnly="true"
+                                                           prompt="登记注册号码" width="120"/>
+                                            <a:datePicker name="operating_period_end" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true" renderer="Leaf.formatDate"
+                                                         prompt="统一信用代码到期日" width="120"/>
+                                            <a:textField name="organization_type_n" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="组织机构类别" width="120"/>
+                                            <a:textField name="economic_indu_classify_n"
+                                                         bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="行业分类" width="120"/>
+                                            <a:textField name="enterprise_status" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="企业状态" width="120"/>
+                                            <a:textField name="group_customers_n" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="是否集团内客户" width="120"/>
+                                            <a:textField name="enterprise_scale_n" bindTarget="prj_create_tenant_ds"
+                                                         readOnly="true"
+                                                         prompt="企业规模划分" width="120"/>
+                                            </a:box>
+                                            <a:box column="3" labelWidth="120">
+                                                <a:lov name="group_companies" width="365" prompt="所属集团" readOnly="true"
+                                                       bindTarget="prj_create_tenant_ds"/>
+                                                <a:textField name="company_level" bindTarget="prj_create_tenant_ds"
+                                                            readOnly="true"
+                                                            prompt="所属级别" width="120"/>
+                                                <a:textField name="bp_detail" bindTarget="prj_create_tenant_ds"
+                                                             readOnly="true" renderer="bp_detail"
+                                                             prompt="客户信息明细" width="120"/>
+                                            </a:box>
+                                            <a:box column="1" labelWidth="120">
+                                                <a:textArea name="business_scope" bindTarget="prj_create_tenant_ds"
+                                                             readOnly="true"
+                                                             prompt="经营范围" width="860" height="100"/>
+                                            </a:box>
+                                    </a:form>
+                                    <a:form column="4" labelWidth="120"  title="法定代表人">
+                                        <a:textField name="legal_person" bindTarget="prj_create_tenant_ds"
+                                                     readOnly="true"
+                                                     prompt="法定代表人" width="120"/>
+                                        <a:textField name="id_type_n"
+                                                     bindTarget="prj_create_tenant_ds"
+                                                     readOnly="true"
+                                                     prompt="证件类型（个人）" width="120"/>
+                                        <a:textField name="id_card_no" bindTarget="prj_create_tenant_ds"
+                                                     readOnly="true"
+                                                     prompt="证件号码" width="150"/>
+                                        <a:datePicker name="id_expiration_date" bindTarget="prj_create_tenant_ds"
+                                                      readOnly="true" renderer="Leaf.formatDate"
+                                                      prompt="证件有效期到" width="120"/>
+                                        <a:textField name="phone" bindTarget="prj_create_tenant_ds"
+                                                     readOnly="true"
+                                                     prompt="联系电话" width="150"/>
+                                    </a:form>
+                                    <a:form column="4" labelWidth="120"  title="实际控制人">
+                                        <a:textField name="actual_person" bindTarget="prj_create_tenant_ds"
+                                                     readOnly="true"
+                                                     prompt="实际控制人名称" width="120"/>
+                                        <a:textField name="actual_class_n"
+                                                     bindTarget="prj_create_tenant_ds"
+                                                     readOnly="true"
+                                                     prompt="实际控制人类型" width="120"/>
+                                        <a:textField name="actual_type_n" bindTarget="prj_create_tenant_ds"
+                                                     readOnly="true"
+                                                     prompt="证件类型" width="120"/>
+                                        <a:textField name="actual_number" bindTarget="prj_create_tenant_ds"
+                                                     readOnly="true"
+                                                     prompt="证件号码" width="150"/>
+                                        <a:datePicker name="actual_expiration_date" bindTarget="prj_create_tenant_ds"
+                                                      readOnly="true" renderer="Leaf.formatDate"
+                                                      prompt="证件有效期到" width="120"/>
+                                    </a:form>
+                                </a:tab>
+
+                                <a:tab prompt="企业财务信息" width="110" id="amount_info_tab">
+                                    <a:grid bindTarget="tenant_financial_info_ds" marginWidth="250"
+                                            height="440" navBar="true">
+                                        <a:columns>
+                                            <a:column width="150" name="export_date" prompt="导入日期" align="center"/>
+                                            <a:column width="150" name="fin_statement_templet_hd_id" prompt="财务报表模板id"
+                                                      align="center" hidden="true"/>
+                                            <a:column width="150" name="excel_name" prompt="财务报表模板名称" align="center"/>
+                                            <a:column width="120" name="access_component_detail"
+                                                      renderer="render_sys_resource_ds_grid" prompt="报表明细"
+                                                      align="center"/>
+                                            <a:column width="120" name="access_component"
+                                                      renderer="render_sys_resource_ds_grid" prompt="报表分期明细"
+                                                      align="center"/>
+                                            <a:column width="120" name="indicator_anaysis"
+                                                      renderer="render_sys_resource_ds_grid" prompt="指标分析"
+                                                      align="center"/>
+                                        </a:columns>
+                                    </a:grid>
+                                </a:tab>
+
+                                <a:tab prompt="企业信用信息" width="110" id="credit_info_tab">
+                                    <a:grid id="credit_info_tab_grid" bindTarget="credit_info_ds"
+                                            marginHeight="172"
+                                            marginWidth="40"
+                                            title="信用评级">
+                                        <a:columns>
+                                            <a:column name="bp_name_n" width="150" prompt="客户名称" align="left"/>
+                                            <a:column name="score_date" width="150" prompt="评级时间" align="left" renderer="Leaf.formatDate"/>
+                                            <a:column name="is_turn_up" width="150" prompt="是否上翻" align="left"/>
+                                            <a:column name="score_template_hd_id_n" width="150" prompt="评级模板"
+                                                      align="left"/>
+                                            <a:column name="result_id_n" width="150" prompt="财务报表名称"
+                                                      align="left"/>
+                                            <a:column name="fiscal_year_n" width="150" prompt="财务报表年"
+                                                      align="left"/>
+                                            <a:column name="grade_det" width="150" prompt="评级明细" renderer="internal_rating_detail"
+                                                      align="center"/>
+                                            <a:column name="score_value" width="150" prompt="评级总分" renderer="Leaf.formatMoney" align="left"/>
+                                            <a:column name="score_grade" width="150" prompt="评级结果"
+                                                      align="left"/>
+                                            <a:column name="final_score_grade_n" width="150" prompt="最终评级结果"
+                                                      align="left"/>
+                                            <a:column name="from_date" width="150" prompt="生效时间" renderer="Leaf.formatDate"
+                                                      align="left"/>
+                                            <a:column name="to_date" width="150" prompt="到期时间" renderer="Leaf.formatDate"
+                                                      align="left"/>
+                                            <a:column name="grade_status_n" width="150" prompt="评级状态" align="left"/>
+                                            <a:column name="description" width="150" prompt="备注" align="left"/>
+                                        </a:columns>
+                                    </a:grid>
+                                </a:tab>
+                            </a:tabs>
+                        </a:tabPanel>
+                    </a:tab>
+                    <a:placeHolder id="dynamicTreeNode_id"/>
+                </a:tabs>
+            </a:tabPanel>
+            <script><![CDATA[
+            function tabSetHeightCall(){
+                parent.$jq('#tenant_tab').height($('tenant_info').height+26);
+                parent.$jq('#tenant_tab').width($('tenant_info').width-4);
+            }
+            Leaf.onReady(function(){
+                tabSetHeightCall();
+            });
+            ]]></script>
+        </a:screenBody>
+    </a:view>
+    <a:view-config>
+        <c:create-config targetId="dynamicTreeNode_id">
+            <p:loop source="/model/prj_project_tenant_rec_path">
+                <p:switch test="@bp_seq">
+                    <p:case value="*">
+                        <c:process-config>
+
+                            <a:tab prompt="共同承租人${@bp_seq}" width="110" id="${@bp_seq}">
+                                <a:screen-include
+                                        screen="modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify_tenant_rec.lview?tenant_sec_id=${@tenant_sec_id}&amp;bp_seq=${@bp_seq}&amp;project_id=${/parameter/@project_id}&amp;marketing_report_id=${/parameter/@marketing_report_id}"/>
+                            </a:tab>
+                        </c:process-config>
+                    </p:case>
+                </p:switch>
+            </p:loop>
+
+        </c:create-config>
+    </a:view-config>
+</a:screen>

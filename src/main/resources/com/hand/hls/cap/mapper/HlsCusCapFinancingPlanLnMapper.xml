@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cap.mapper.HlsCusCapFinancingPlanLnMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cap.dto.HlsCusCapFinancingPlanLn">
+        <result column="FINANCE_PLAN_LINE_ID" property="financePlanLineId" jdbcType="DECIMAL"/>
+        <result column="PLAN_ID" property="planId" jdbcType="DECIMAL"/>
+        <result column="PLAN_TYPE" property="planType" jdbcType="VARCHAR"/>
+        <result column="ORGANIZATION_ID" property="organizationId" jdbcType="DECIMAL"/>
+        <result column="ORGANIZATION_ID_N" property="organizationIdN" jdbcType="DECIMAL"/>
+        <result column="CURRENCY" property="currency" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL"/>
+        <result column="FINANCE_AMOUNT" property="financeAmount" jdbcType="DECIMAL"/>
+        <result column="FINANCE_METHOD" property="financeMethod" jdbcType="VARCHAR"/>
+        <result column="FINANCE_METHOD_N" property="financeMethodN" jdbcType="VARCHAR"/>
+        <result column="LEASE_TERM" property="leaseTerm" jdbcType="VARCHAR"/>
+        <result column="RATE" property="rate" jdbcType="DECIMAL"/>
+        <result column="PLAN_WITHDRAW_DATE" property="planWithdrawDate" jdbcType="DATE"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="FINANCE_STATUS" property="financeStatus" jdbcType="VARCHAR"/>
+        <result column="FINANCE_STATUS_N" property="financeStatusN" jdbcType="VARCHAR"/>
+        <result column="contract_number" property="contractNumber"/>
+        <result column="contract_name" property="contractName"/>
+        <result column="business_type_desc" property="businessTypeDesc"/>
+        <result column="seller_or_tenant" property="sellerOrTenant"/>
+        <result column="buyer_or_tenant" property="buyerOrTenant"/>
+        <result column="currency_name" property="currencyName"/>
+        <result column="currency_n" property="currencyN"/>
+        <result column="unreceived_principal" property="unreceivedPrincipal"/>
+        <result column="unreceived_rental" property="unreceivedRental"/>
+        <result column="unreceived_interest" property="unreceivedInterest"/>
+        <result column="lease_start_date" property="leaseStartDate"/>
+        <result column="lease_end_date" property="leaseEndDate"/>
+        <result column="extra_nam" property="extraNam"/>
+        <result column="organization_name" property="organizationName"/>
+        <result column="document_category" property="documentCategory"/>
+        <result column="contract_amount" property="contractAmount"/>
+        <result column="cancel_reason" property="cancelReason"/>
+        <result column="write_off_amount" property="writeOffAmount"/>
+    </resultMap>
+    <select id="queryPlanFinLn" parameterType="com.hand.hls.cap.dto.HlsCusCapFinancingPlanLn" resultMap="BaseResultMap">
+        SELECT ln.finance_plan_line_id,
+        ln.plan_id,
+        ln.cancel_reason,
+        ln.plan_type,
+        ln.organization_id,
+        (SELECT bp_name FROM hls_bp_master WHERE bp_id = ln.organization_id) organization_id_n,
+        ln.currency,
+        (select v.MEANING
+        from sys_code_value_b_v v
+        where v.code = 'CHS.CURRENCY_TYPE' AND v.code_value = ln.currency) currency_n,
+        ln.contract_Id,
+        ln.finance_amount,
+        ln.finance_method,
+        (select v.MEANING
+        from sys_code_value_b_v v
+        where v.code = 'LON.CREDIT_CATEGORY' AND v.code_value = ln.finance_method) finance_method_n,
+        ln.lease_term,
+        ln.rate,
+        ln.plan_withdraw_date,
+        ln.description,
+        ln.finance_status,
+        (select v.MEANING
+        from sys_code_value_b_v v
+        where v.code = 'CAP.EXECUTE_STATUS' AND v.code_value = ln.finance_status) finance_status_n,
+        nvl(cw.due_amount,0)+nvl(cp.due_amount,0) write_off_amount,
+        nvl(ln.extra_nam,(SELECT extra_nam FROM hls_bp_master WHERE bp_id = ln.organization_id)) extra_nam,
+        nvl(ln.organization_name,(SELECT bp_name
+        FROM hls_bp_master
+        WHERE bp_id = ln.organization_id)
+        ) organization_name
+        FROM cap_financing_plan_ln ln
+        left join (
+        select
+        lcw.finance_plan_line_id,
+        SUM(lcw.due_amount) due_amount
+        from lon_contract_withdraw lcw
+        where lcw.data_class='NORMAL'
+        and lcw.withdraw_status in ('APPROVED','PENDING')
+        group by lcw.finance_plan_line_id
+        ) cw
+        on cw.finance_plan_line_id=ln.finance_plan_line_id
+        left join (
+        select
+        cap.finance_plan_line_id,
+        SUM(cap.issue_amount) due_amount
+        from ct_abs_product cap
+        where cap.data_class='NORMAL'
+        and cap.product_status in ('APPROVED','PENDING')
+        group by cap.finance_plan_line_id
+        ) cp
+        on cp.finance_plan_line_id=ln.finance_plan_line_id
+        WHERE 1 = 1
+        <if test="planId!=null">
+            and ln.plan_id = #{planId}
+        </if>
+        <if test="planType!=null">
+            and ln.plan_type=#{planType}
+        </if>
+    </select>
+    <select id="queryConFinLn" parameterType="com.hand.hls.cap.dto.HlsCusCapFinancingPlanLn" resultMap="BaseResultMap">
+        select * from    (SELECT c.contract_number,
+        c.contract_name,
+        (SELECT DESCRIPTION
+        FROM hls_business_type
+        WHERE business_type = c.business_type
+        AND document_category = c.document_category) business_type_desc,
+        (SELECT bp_name FROM hls_bp_master WHERE bp_id = c.tenant_id) seller_or_tenant,
+        (SELECT  wm_concat(h.bp_name)
+        FROM hls_bp_master h, prj_project_bp pb
+        WHERE h.bp_id = pb.bp_id
+        AND pb.bp_type = 'TENANT_SEC'
+        AND pb.bp_categroy = 'CON_CONTRACT'
+        AND pb.project_id = c.project_id) buyer_or_tenant_sec,
+        (SELECT currency_name
+        FROM fnd_currency fc
+        WHERE fc.currency_code = c.currency) currency_name,
+        c.lease_item_amount contract_amount,
+        (SELECT SUM(ccc.due_amount - nvl(ccc.received_amount, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = c.contract_id
+        AND ccc.cf_item = 1) unreceived_rental,
+        (SELECT SUM(ccc.principal - nvl(ccc.received_principal, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = c.contract_id
+        AND ccc.cf_item = 1) unreceived_principal,
+        (SELECT SUM(ccc.interest - nvl(ccc.received_interest, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = c.contract_id
+        AND ccc.cf_item = 1) unreceived_interest,
+        c.lease_start_date,
+        (SELECT MAX(due_date) FROM con_contract_cashflow WHERE contract_id = c.contract_id) lease_end_date,
+        ln.*
+        FROM con_contract c, cap_financing_plan_ln ln
+        WHERE c.contract_id = ln.contract_id and ln.document_category = 'CON_CONTRACT'
+        AND c.data_class = 'NORMAL'
+        union all
+        SELECT fc.contract_number,
+        fc.contract_name,
+        (SELECT DESCRIPTION
+        FROM hls_business_type
+        WHERE business_type = fc.business_type
+        AND document_category = fc.document_category) business_type_desc,
+        (SELECT  wm_concat(h.bp_name)
+        FROM hls_bp_master h, fct_project_bp fb
+        WHERE h.bp_id = fb.bp_id
+        AND fb.project_id = fc.project_id
+        AND bp_role_type = 'SELLER') seller_or_tenant,
+        (SELECT  wm_concat(h.bp_name)
+        FROM hls_bp_master h, fct_project_bp fb
+        WHERE h.bp_id = fb.bp_id
+        AND fb.project_id = fc.project_id
+        AND bp_role_type = 'BUYER') buyer_or_tenant_sec,
+        (SELECT currency_name
+        FROM fnd_currency ffc
+        WHERE ffc.currency_code = fc.currency) currency_name,
+        fc.finance_amount contract_amount,
+        (SELECT SUM(fqc.due_amount - nvl(fqc.write_off_amount, 0))
+        FROM fct_quotation_cashflow fqc
+        WHERE fqc.contract_id = fc.contract_id
+        AND fqc.cf_item IN (54, 55)) unreceived_rental,
+        (SELECT SUM(fqc.due_amount - nvl(fqc.write_off_amount, 0))
+        FROM fct_quotation_cashflow fqc
+        WHERE fqc.contract_id = fc.contract_id
+        AND fqc.cf_item = 54) unreceived_principal,
+        (SELECT SUM(fqc.due_amount - nvl(fqc.write_off_amount, 0))
+        FROM fct_quotation_cashflow fqc
+        WHERE fqc.contract_id = fc.contract_id
+        AND fqc.cf_item = 55) unreceived_interest,
+        fc.valid_from lease_start_date,
+        fc.rate_valid_to lease_end_date,
+        ln.*
+        FROM fct_contract fc, cap_financing_plan_ln ln
+        WHERE fc.contract_id = ln.contract_id and ln.document_category = 'FCT_CONTRACT'
+        AND fc.data_class = 'NORMAL') tab where 1=1
+        <if test="planId!=null">
+            and tab.plan_id = #{planId}
+        </if>
+        <if test="planType!=null">
+            and tab.plan_type=#{planType}
+        </if>
+    </select>
+
+    <select id="queryConLov" resultMap="BaseResultMap" parameterType="com.hand.hls.cap.dto.HlsCusCapFinancingPlanLn">
+        select tab.* from (
+        SELECT c.contract_number,
+        c.contract_name,
+        c.contract_id,
+        'CON_CONTRACT' document_category,
+        (SELECT DESCRIPTION
+        FROM hls_business_type
+        WHERE business_type = c.business_type
+        AND document_category = c.document_category) business_type_desc,
+        (SELECT bp_name FROM hls_bp_master WHERE bp_id = c.tenant_id) seller_or_tenant,
+        (SELECT  wm_concat(h.bp_name)
+        FROM hls_bp_master h, prj_project_bp pb
+        WHERE h.bp_id = pb.bp_id
+        AND pb.bp_type = 'TENANT_SEC'
+        AND pb.bp_categroy = 'CON_CONTRACT'
+        AND pb.project_id = c.project_id) buyer_or_tenant_sec,
+        (SELECT currency_name
+        FROM fnd_currency fc
+        WHERE fc.currency_code = c.currency) currency_name,
+        c.lease_item_amount contract_amount,
+        (SELECT SUM(ccc.due_amount - nvl(ccc.received_amount, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = c.contract_id
+        AND ccc.cf_item = 1) unreceived_rental,
+        (SELECT SUM(ccc.principal - nvl(ccc.received_principal, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = c.contract_id
+        AND ccc.cf_item = 1) unreceived_principal,
+        (SELECT SUM(ccc.interest - nvl(ccc.received_interest, 0))
+        FROM con_contract_cashflow ccc
+        WHERE ccc.contract_id = c.contract_id
+        AND ccc.cf_item = 1) unreceived_interest,
+        c.lease_start_date,
+        (SELECT MAX(due_date)
+        FROM con_contract_cashflow
+        WHERE contract_id = c.contract_id) lease_end_date
+        FROM con_contract c
+        WHERE c.data_class = 'NORMAL'
+        AND c.contract_status IN ('INCEPT')
+        UNION ALL
+        SELECT fc.contract_number,
+        fc.contract_name,
+        fc.contract_id,
+        'FCT_CONTRACT' document_category,
+        (SELECT DESCRIPTION
+        FROM hls_business_type
+        WHERE business_type = fc.business_type
+        AND document_category = fc.document_category) business_type_desc,
+        (SELECT  wm_concat(h.bp_name)
+        FROM hls_bp_master h, fct_project_bp fb
+        WHERE h.bp_id = fb.bp_id
+        AND fb.project_id = fc.project_id
+        AND bp_role_type = 'SELLER') seller_or_tenant,
+        (SELECT  wm_concat(h.bp_name)
+        FROM hls_bp_master h, fct_project_bp fb
+        WHERE h.bp_id = fb.bp_id
+        AND fb.project_id = fc.project_id
+        AND bp_role_type = 'BUYER') buyer_or_tenant_sec,
+        (SELECT currency_name
+        FROM fnd_currency fcy
+        WHERE fcy.currency_code = fc.currency) currency_name,
+        fc.finance_amount contract_amount,
+        (SELECT SUM(fqc.due_amount - nvl(fqc.write_off_amount, 0))
+        FROM fct_quotation_cashflow fqc
+        WHERE fqc.contract_id = fc.contract_id
+        AND fqc.cf_item IN (54, 55)) unreceived_rental,
+        (SELECT SUM(fqc.due_amount - nvl(fqc.write_off_amount, 0))
+        FROM fct_quotation_cashflow fqc
+        WHERE fqc.contract_id = fc.contract_id
+        AND fqc.cf_item = 54) unreceived_principal,
+        (SELECT SUM(fqc.due_amount - nvl(fqc.write_off_amount, 0))
+        FROM fct_quotation_cashflow fqc
+        WHERE fqc.contract_id = fc.contract_id
+        AND fqc.cf_item = 55) unreceived_interest,
+        fc.valid_from lease_start_date,
+        fc.rate_valid_to lease_end_date
+        FROM fct_contract fc
+        WHERE fc.data_class = 'NORMAL'
+        AND fc.contract_status IN ('INCEPT')) tab where 1=1
+        <if test="contractNumber!=null">
+            and tab.contract_number like concat(concat('%',#{contractNumber}),'%')
+        </if>
+        <if test="contractName!=null">
+            and tab.contract_name like concat(concat('%',#{contractName}),'%')
+        </if>
+    </select>
+
+    <update id="updateFinancePlanStatus">
+        UPDATE
+        CAP_FINANCING_PLAN_LN LN
+        SET
+        LN.FINANCE_STATUS=(
+        CASE
+        WHEN LN.FINANCE_STATUS='CANCEL'
+        OR  LN.FINANCE_STATUS='DELAY'
+        THEN LN.FINANCE_STATUS
+        WHEN  nvl(
+        (
+        SELECT
+        SUM(LCW.DUE_AMOUNT) DUE_AMOUNT
+        FROM
+        LON_CONTRACT_WITHDRAW LCW
+        WHERE
+        LCW.DATA_CLASS='NORMAL'
+        AND LCW.WITHDRAW_STATUS IN ('APPROVED',
+        'PENDING')
+        AND LCW.FINANCE_PLAN_LINE_ID=LN.FINANCE_PLAN_LINE_ID),0)+
+        nvl(
+        (
+        SELECT
+        SUM(CAP.ISSUE_AMOUNT) DUE_AMOUNT
+        FROM
+        CT_ABS_PRODUCT CAP
+        WHERE
+        CAP.DATA_CLASS='NORMAL'
+        AND CAP.PRODUCT_STATUS IN ('APPROVED',
+        'PENDING')
+        AND CAP.FINANCE_PLAN_LINE_ID=LN.FINANCE_PLAN_LINE_ID),0)=0 THEN 'UNEXECUTED'
+        WHEN LN.FINANCE_AMOUNT> nvl(
+        (
+        SELECT
+        SUM(LCW.DUE_AMOUNT) DUE_AMOUNT
+        FROM
+        LON_CONTRACT_WITHDRAW LCW
+        WHERE
+        LCW.DATA_CLASS='NORMAL'
+        AND LCW.WITHDRAW_STATUS IN ('APPROVED',
+        'PENDING')
+        AND LCW.FINANCE_PLAN_LINE_ID=LN.FINANCE_PLAN_LINE_ID),0)+
+        nvl(
+        (
+        SELECT
+        SUM(CAP.ISSUE_AMOUNT) DUE_AMOUNT
+        FROM
+        CT_ABS_PRODUCT CAP
+        WHERE
+        CAP.DATA_CLASS='NORMAL'
+        AND CAP.PRODUCT_STATUS IN ('APPROVED',
+        'PENDING')
+        AND CAP.FINANCE_PLAN_LINE_ID=LN.FINANCE_PLAN_LINE_ID),0)
+        THEN 'PARTIAL_EXECUTED'
+        ELSE 'EXECUTED'
+        END)
+        WHERE   1=1
+        <if test="financePlanLineId!=null">
+            AND  LN.FINANCE_PLAN_LINE_ID = #{financePlanLineId}
+        </if>
+        <if test="planId!=null">
+            AND  LN.PLAN_ID = #{planId}
+        </if>
+    </update>
+    <select id="getCountNo" resultType="int">
+        SELECT
+            SUM(RES)
+        FROM
+            (
+                SELECT COUNT(0) AS RES
+                FROM LON_CONTRACT_WITHDRAW
+                    <where>
+                        FINANCE_PLAN_LINE_ID=#{planLn.financePlanLineId,jdbcType=BIGINT}
+                    </where>
+                UNION
+                SELECT COUNT(0) AS RES
+                FROM CT_ABS_PRODUCT
+                    <where>
+                        FINANCE_PLAN_LINE_ID=#{planLn.financePlanLineId,jdbcType=BIGINT}
+                    </where>
+            ) TEMP
+
+    </select>
+</mapper>

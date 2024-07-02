@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        // 取出每条记录的data组成数组传到后台
+        function records_handle(record) {
+            var new_record = [];
+            record.forEach(function (e) {
+                new_record.push(e.data);
+            });
+            return new_record
+        }
+
+        var test_head_id=null;
+            function header_edit_save() {
+                var head_ds = $('header_edit_ds');
+                var head_record = head_ds.getCurrentRecord();
+
+                var line_ds = $('HlsCusTestTable_detail_ds');
+                var line_records = line_ds.getAll();
+
+                Leaf.Masker.mask(Ext.getBody(), '正在保存。。。');
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/test/head/table/save',
+                    para: {
+                        test_head_id:test_head_id,
+                        test_code:head_record.get('test_code'),
+                        test_name:head_record.get('test_name'),
+                        hlsCusTestTableList: records_handle(line_records)
+                    },
+                    success: function (res) {
+                        debugger;
+                        res = res.result.record[0];
+                        test_head_id=res.test_head_id;
+                        $('HlsCusTestTable_ds').query();
+                        $('${/parameter/@winid}').close();
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+
+
+
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="header_edit_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="test_code"/>
+                    <a:field name="test_name"/>
+                </a:fields>
+                <a:events>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="HlsCusTestTable_detail_ds" autoQuery="true"
+                       submitUrl="${/request/@context_path}/hls/test/table/submit"
+                       deleteUrl="${/request/@context_path}/hls/test/table/remove"  queryDataSet="HlsCusTestTable_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="TEST_ID"/>
+                    <a:field name="TEST_AMOUNT1"/>
+                    <a:field name="TEST_AMOUNT2"/>
+                    <a:field name="TEST_NUM"/>
+                    <a:field name="TEST_RATE"/>
+                    <a:field name="TEST_DATE"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="MARK"/>
+                    <a:field name="TEST_CLOB"/>
+
+
+                </a:fields>
+            </a:dataSet>
+
+
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="header_edit_save" text="HLS.SAVE"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:box column="3" labelWidth="110">
+                    <a:textField name="test_code" prompt="测试代码" bindTarget="header_edit_ds" width="185"/>
+                    <a:textField name="test_name" prompt="测试名字" bindTarget="header_edit_ds" width="185"/>
+                </a:box>
+            </a:form>
+
+            <a:form labelwidth="110" title="行信息" labelWidth="100">
+                <a:screenTopToolbar>
+                    <a:gridButton bind="HlsCusTestTable_detail_grid_id" type="add"/>
+                    <a:gridButton bind="HlsCusTestTable_detail_grid_id" type="delete"/>
+                </a:screenTopToolbar>
+                <a:grid id="HlsCusTestTable_detail_grid_id" bindTarget="HlsCusTestTable_detail_ds" marginHeight="140"
+                        marginWidth="50" navBar="true">
+                    <a:columns>
+
+                        <a:column name="test_amount1" align="right" autoAdjust="true" width="100"
+                                  prompt="金额1" editor="HlsCusTestTable_detail_grid_numberField"/>
+                        <a:column name="test_amount2" align="right" autoAdjust="true" width="100"
+                                  prompt="金额2" editor="HlsCusTestTable_detail_grid_numberField"/>
+                        <a:column name="test_num" align="right" autoAdjust="true" width="100"
+                                  prompt="数字" editor="HlsCusTestTable_detail_grid_numberField"/>
+
+                        <a:column name="test_rate" align="right" autoAdjust="true" width="100"
+                                  prompt="数字2" editor="HlsCusTestTable_detail_grid_numberField"/>
+                        <a:column name="test_date" align="right" autoAdjust="true" width="100" renderer="Leaf.formatDate"
+                                  prompt="时间" editor="HlsCusTestTable_detail_grid_datePicker"/>
+                        <a:column name="mark" align="right" autoAdjust="true" width="100"
+                                  prompt="备注" editor="HlsCusTestTable_detail_grid_textfield"/>
+                        <a:column name="test_clob" align="right" autoAdjust="true" width="100"
+                                  prompt="大字段" editor="HlsCusTestTable_detail_grid_textfield"/>
+
+                        <a:column name="enabled_flag" align="right" autoAdjust="true" width="100"
+                                  prompt="启用" editor="HlsCusTestTable_detail_grid_checkBox"/>
+
+
+                    </a:columns>
+                    <a:editors>
+                        <a:textField id="HlsCusTestTable_detail_grid_textfield"/>
+                        <a:numberField id="HlsCusTestTable_detail_grid_numberField"/>
+                        <a:datePicker id="HlsCusTestTable_detail_grid_datePicker"/>
+                        <a:checkBox id="HlsCusTestTable_detail_grid_checkBox"/>
+                    </a:editors>
+                </a:grid>
+            </a:form>
+
+        </a:screenBody>
+    </a:view>
+</a:screen>

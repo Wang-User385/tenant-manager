@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hap.mail.mapper.SysMessageEmailRuleMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hap.mail.dto.SysMessageEmailRule">
+        <result column="RULE_ID" property="ruleId" jdbcType="DECIMAL" />
+        <result column="RULE_CODE" property="ruleCode" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="TEMPLATE_CODE" property="templateCode" jdbcType="VARCHAR" />
+        <result column="TEMPLATE_CODE_N" property="templateCodeN" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <select id="query" resultMap="BaseResultMap">
+        select r.RULE_ID,
+               r.RULE_CODE,
+               r.DESCRIPTION,
+               r.TEMPLATE_CODE,
+               (select t.DESCRIPTION from SYS_MESSAGE_TEMPLATE t where t.TEMPLATE_CODE = r.TEMPLATE_CODE) as TEMPLATE_CODE_N
+        from SYS_MESSAGE_EMAIL_RULE r
+        <where>
+            <if test="ruleCode != null">
+                <bind name="ruleCode" value="'%'+ruleCode+'%'"/>
+                and r.RULE_CODE like #{ruleCode}
+            </if>
+            <if test="description != null">
+                <bind name="description" value="'%'+description+'%'"/>
+                and r.DESCRIPTION like #{description}
+            </if>
+            <if test="templateCode != null">
+                <bind name="templateCode" value="'%'+templateCode+'%'"/>
+                and r.TEMPLATE_CODE like #{templateCode}
+            </if>
+        </where>
+        order by r.RULE_ID desc
+    </select>
+    
+    <select id="queryForSendEmailByRuleCode" parameterType="string" resultMap="BaseResultMap">
+        select r.RULE_ID,
+               r.RULE_CODE,
+               r.DESCRIPTION,
+               r.TEMPLATE_CODE
+        from SYS_MESSAGE_EMAIL_RULE r
+        where r.RULE_CODE = #{ruleCode}
+    </select>
+</mapper>

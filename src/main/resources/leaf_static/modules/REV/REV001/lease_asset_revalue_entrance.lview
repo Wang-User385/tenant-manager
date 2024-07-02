@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="lease_asset_detail_winid"
+                url="${/request/@context_path}/modules/REV/REV001/lease_asset_revalue_entrance_detail.lview"/>
+        <script><![CDATA[
+
+        // 创建
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+            var param = {};
+            param['url_title'] = '详细信息';
+            param['function_code'] = 'REV001F1';
+            param['winid'] = 'lease_asset1_detail_winid';
+            param['ds_id'] = ds_id;
+            param['function_usage'] = 'CREATE';
+            var link_id = 'lease_asset_detail_winid';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'REV001');
+        };
+
+
+        // 超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            debugger;
+            var link_function = 'lease001_detail_open';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'asset_number') {
+                var param = $(record.ds.id).findById(record.id).data;
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id +  '\',\'' + record +  '\');">' + value + '</a>';
+            }
+        };
+
+        function lease001_detail_open(record_id, ds_id , record) {
+            debugger;
+            var param = $(ds_id).findById(record_id).data;
+            var contract_status = param.asset_status;
+            console.log(contract_status)
+            param['url_title'] = '租赁物详细信息';
+            param['function_code'] = 'REV001F1';
+            param['winid'] = 'lease_asset1_detail_winid';
+            param['ds_id'] = ds_id;
+            if(contract_status == 'APPROVING' || contract_status == 'APPROVED'){
+                //param['maintain_type'] = 'READONLY';
+                param['function_usage'] = 'QUERY';
+            }else{
+                param['function_usage'] = 'UPDATE';
+            }
+
+
+            var link_id = 'lease_asset_detail_winid';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'REV001');
+        }
+
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function() {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+            var records = $(ds_id).getSelected();
+            if(records.length == 0){
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('提示','请选择一条记录！');
+                return;
+            }
+            var param = [];
+            for (var i = 0; i < records.length; i++) {
+                param.push(records[i].data);
+            }
+
+            Leaf.request({
+                url: '${/request/@context_path}/hls/pam/lease/rental/invalid',
+                para:  param,
+                success: function (datas) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.SideBar.show({
+                        msg: '操作成功',
+                        duration: 2000
+                    });
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_item');
+                    $(ds_id).query();
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                }
+            });
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

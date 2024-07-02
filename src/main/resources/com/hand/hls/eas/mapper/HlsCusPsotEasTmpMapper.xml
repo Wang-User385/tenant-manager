@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.eas.mapper.HlsCusPsotEasTmpMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.eas.dto.HlsCusPsotEasTmp">
+        <result column="TMP_ID" property="tmpId" jdbcType="DECIMAL" />
+        <result column="SESSION_ID" property="sessionId" jdbcType="DECIMAL" />
+        <result column="SOURCE_ID" property="sourceId" jdbcType="DECIMAL" />
+        <result column="SOURCE_TABLE" property="sourceTable" jdbcType="VARCHAR" />
+        <result column="voucher_id" property="voucherId" jdbcType="VARCHAR" />
+        <result column="com_org_num" property="comOrgNum" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="selectCredentialsTmpData" parameterType="com.hand.hls.eas.dto.HlsCusPsotEasTmp" resultMap="BaseResultMap">
+        select t.tmp_id,t.session_id,t.source_id,t.source_table from GLD_PSOT_EAS_TMP t where t.session_id=#{sessionId}
+    </select>
+
+    <select id="deleteCurrentSessionIdTmpData" parameterType="com.hand.hls.eas.dto.HlsCusPsotEasTmp" resultMap="BaseResultMap">
+       delete from GLD_PSOT_EAS_TMP t where t.session_id=#{sessionId}
+    </select>
+
+
+    <select id="selectCredentialsLogData" parameterType="com.hand.hls.eas.dto.HlsCusPsotEasTmp" resultMap="BaseResultMap">
+select t2.source_id,
+       t2.source_table,
+       gh.voucher_id,
+       (select fc.ws_com_code
+          from fnd_company fc
+         where fc.company_id = gh.company_id) com_org_num
+  from ws_document_record_list t2, gld_je_head gh
+ where t2.source_id = gh.je_head_id
+   and t2.outbound_id = #{outboundId}
+    </select>
+
+</mapper>

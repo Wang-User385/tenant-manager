@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProductRepaymentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProductRepayment">
+        <result column="REPAYMENT_ID" property="repaymentId" jdbcType="DECIMAL" />
+        <result column="PRODUCT_ID" property="productId" jdbcType="DECIMAL" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="CF_ITEM" property="cfItem" jdbcType="DECIMAL" />
+        <result column="CF_TYPE" property="cfType" jdbcType="DECIMAL" />
+        <result column="CF_DIRECTION" property="cfDirection" jdbcType="VARCHAR" />
+        <result column="CF_STATUS" property="cfStatus" jdbcType="VARCHAR" />
+        <result column="PLANNED_DUE_DATE" property="plannedDueDate" jdbcType="VARCHAR" />
+        <result column="PLANNED_DUE_AMOUNT" property="plannedDueAmount" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_AMOUNT" property="writeOffAmount" jdbcType="DECIMAL" />
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_FLAG" property="writeOffFlag" jdbcType="VARCHAR" />
+        <result column="INTEREST_PERIOD_DAYS" property="interestPeriodDays" jdbcType="DECIMAL" />
+        <result column="INTEREST_ACCRUAL_BALANCE" property="interestAccrualBalance" jdbcType="DECIMAL" />
+        <result column="CONFIRM_FLAG" property="confirmFlag" jdbcType="VARCHAR" />
+        <result column="PLANNED_CALC_DATE" property="plannedCalcDate" jdbcType="VARCHAR" />
+        <result column="RECEIVED_BP_NAME" property="receivedBpName" jdbcType="VARCHAR" />
+        <result column="RECEIVED_BANK_ACCOUNT_NAME" property="receivedBankAccountName" jdbcType="VARCHAR" />
+        <result column="RECEIVED_BANK_ACCOUNT_NUM" property="receivedBankAccountNum" jdbcType="VARCHAR" />
+        <result column="EXCHANGE_RATE" property="exchangeRate" jdbcType="DECIMAL" />
+        <result column="CNY_DUE_AMOUNT" property="cnyDueAmount" jdbcType="DECIMAL" />
+        <result column="IS_SYSTEM_FLAG" property="isSystemFlag" jdbcType="VARCHAR" />
+        <result column="cf_item_desc" property="cfItemDesc" jdbcType="VARCHAR" />
+        <result column="cny_planned_due_amount" property="cnyPlannedDueAmount" jdbcType="DECIMAL"/>
+
+        <result column="product_number" property="productNumber" jdbcType="VARCHAR" />
+        <result column="product_short_name" property="productShortName" jdbcType="VARCHAR" />
+        <result column="product_name" property="productName" jdbcType="VARCHAR" />
+        <result column="business_type" property="businessType" jdbcType="VARCHAR" />
+        <result column="release_amount_sum" property="releaseAmountSum" jdbcType="DECIMAL"/>
+    </resultMap>
+
+
+    <select id="selectRepaymentPlanData" resultMap="BaseResultMap"
+                  parameterType="com.hand.hls.abs.dto.HlsCusAbsProductRepayment">
+        select capr.*,
+        (
+         SELECT
+             hci.description
+         FROM
+             hls_cashflow_item hci
+         WHERE
+             hci.cf_type = 70
+         AND hci.cf_item = capr.cf_item) cf_item_desc,
+        ROUND((nvl(capr.exchange_rate,1)*capr.planned_due_amount),2) cny_planned_due_amount,
+            cap.product_number,
+            cap.product_short_name,
+            cap.product_name,
+            cap.business_type,
+            nvl(rpm.release_amount,0) release_amount_sum
+        from
+            ct_abs_product_repayment capr
+       JOIN
+            ct_abs_product cap
+        ON
+            cap.product_id=capr.product_id
+      LEFT JOIN
+            (
+                SELECT
+                    acpr.source_doc_Id,
+                    SUM(acpr.release_amount) release_amount
+                FROM
+                    ct_abs_product_release acpr
+                WHERE
+                    acpr.source_doc_category='CT_ABS_PRODUCT_REPAYMENT'
+                GROUP BY
+                    acpr.source_doc_Id ) rpm
+        ON
+            rpm.source_doc_Id=capr.repayment_id
+        <where>
+            capr.product_id = #{productId}
+            <if test="cfItem!=null">
+                and capr.cf_item = #{cfItem}
+            </if>
+            <if test="repaymentId!=null">
+                and capr.repayment_id = #{repaymentId}
+            </if>
+            <if test="confirmFlag !=null">
+                and capr.confirm_flag = #{confirmFlag}
+            </if>
+            <if test="isSystemFlag!=null">
+                and capr.is_system_flag = #{isSystemFlag}
+            </if>
+            order by capr.cf_item ,capr.planned_due_date
+        </where>
+   </select>
+
+        <select id="selectRepaymentPlanOrderByRepaymentDate" resultMap="BaseResultMap"
+                parameterType="com.hand.hls.abs.dto.HlsCusAbsProductRepayment">
+        select capr.*,
+        (
+         SELECT
+             hci.description
+         FROM
+             hls_cashflow_item hci
+         WHERE
+             hci.cf_type = 70
+         AND hci.cf_item = capr.cf_item) cf_item_desc,
+        ROUND((nvl(capr.exchange_rate,1)*capr.planned_due_amount),2) cny_planned_due_amount
+        from
+            ct_abs_product_repayment capr
+        <where>
+            capr.product_id = #{productId}
+            <if test="cfItem!=null">
+                and capr.cf_item = #{cfItem}
+            </if>
+            <if test="confirmFlag !=null">
+                and capr.confirm_flag = #{confirmFlag}
+            </if>
+            <if test="isSystemFlag!=null">
+                and capr.is_system_flag = #{isSystemFlag}
+            </if>
+            <if test="startDay!=null">
+                and capr.planned_calc_date &gt; #{startDay}
+            </if>
+            <if test="endDay!=null">
+                and capr.planned_calc_date &lt; #{endDay}
+            </if>
+            order by capr.planned_due_date
+        </where>
+    </select>
+
+
+      <select id="selectInterestSum" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductRepayment" resultType="java.lang.Double">
+        select nvl(sum(t.PLANNED_DUE_AMOUNT),0) as sumAmount from ct_abs_product_repayment t
+        where t.cf_item=302
+        and t.IS_SYSTEM_FLAG='N'
+        and t.product_id=#{productId}
+        and t.planned_due_date between #{startDay} and #{endDay}
+    </select>
+
+
+      <select id="selectRepaymentPlanAmountSum" resultType="java.lang.Double">
+        select
+              nvl(sum(cbpr.planned_due_amount),0)
+         from
+              ct_abs_product_repayment cbpr
+         where
+              cbpr.product_id=#{productId}
+          <if test="cfItem!=null">
+                and cbpr.cf_item = #{cfItem}
+          </if>
+    </select>
+
+    <select id="selectNotFullRepaymentCount" resultType="int">
+         select
+              count(1)
+         from
+              ct_abs_product_repayment cbpr
+         where
+              cbpr.product_id=#{productId}
+           and
+              nvl(cbpr.write_off_flag,'NOT')!='FULL'
+    </select>
+</mapper>

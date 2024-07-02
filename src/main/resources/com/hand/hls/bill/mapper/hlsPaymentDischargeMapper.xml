@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bill.mapper.hlsPaymentDischargeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bill.dto.hlsPaymentDischarge">
+        <result column="payment_discharge_id" property="paymentDischargeId" jdbcType="DECIMAL" />
+        <result column="payment_discharge_radio" property="paymentDischargeRadio" jdbcType="DECIMAL" />
+        <result column="payment_discharge_date" property="paymentDischargeDate" jdbcType="DATE" />
+        <result column="payment_discharge_amount" property="paymentDischargeAmount" jdbcType="DECIMAL" />
+        <result column="payment_discharge_rate" property="paymentDischargeRate" jdbcType="DECIMAL" />
+        <result column="cash_discharge_amount" property="cashDischargeAmount" jdbcType="DECIMAL" />
+        <result column="deduct_margin_yes_no" property="deductMarginYesNo" jdbcType="VARCHAR" />
+        <result column="release_margin_amount" property="releaseMarginAmount" jdbcType="DECIMAL" />
+        <result column="payment_amount" property="paymentAmount" jdbcType="DECIMAL" />
+        <result column="status" property="status" jdbcType="VARCHAR" />
+        <result column="status_n" property="statusN" jdbcType="VARCHAR" />
+        <result column="deduct_margin_yes_no_n" property="deductMarginYesNoN" jdbcType="VARCHAR" />
+
+        <result column="CURRENY" property="curreny" jdbcType="VARCHAR" />
+
+        <result column="bill_id" property="billId" jdbcType="DECIMAL" />
+        <result column="daily_rate" property="dailyRate" jdbcType="DECIMAL" />
+
+    </resultMap>
+
+
+    <select id="queryHlsPaymentDischarge" resultMap="BaseResultMap">
+        SELECT
+        hls.bill_id,
+        hls.CREATED_BY,
+        hls.CREATION_DATE,
+        hls.LAST_UPDATED_BY,
+        hls.LAST_UPDATE_DATE,
+        hls.LAST_UPDATE_LOGIN,
+        hls.OBJECT_VERSION_NUMBER,
+        hls.PROGRAM_ID,
+        hls.REQUEST_ID,
+        hls.cash_discharge_amount,
+        hls.deduct_margin_yes_no,
+        hls.payment_amount,
+        hls.payment_discharge_amount,
+
+        hls.payment_discharge_id,
+        hls.payment_discharge_radio,
+        hls.payment_discharge_rate,
+        hls.release_margin_amount,
+        hls.status,
+        to_char( hls.payment_discharge_date,'YYYY-MM-DD') payment_discharge_date,
+        ( SELECT t.CURRENY FROM hls_bill_request t WHERE t.bill_id = hls.bill_id ) CURRENY,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'STATUS' AND sc.CODE_VALUE = hls.STATUS ) status_n,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'SYS.YES_NO' AND sc.CODE_VALUE = hls.deduct_margin_yes_no ) deduct_margin_yes_no_n
+        FROM
+        hls_payment_discharge hls
+        <where>
+            1=1
+            <if test="billId!=null">
+                and hls.bill_id = #{billId}
+            </if>
+
+        </where>
+
+    </select>
+
+    <select id="lonCreditBpLovQuery" resultMap="BaseResultMap" parameterType="com.hand.hls.bill.dto.hlsPaymentDischarge">
+        select
+        fer.daily_rate daily_rate
+        from
+        fnd_exchange_rate fer
+        <where>
+            1=1
+            <if test="paymentDischargeDate!=null">
+                and to_char(fer.exchange_date, 'YYYY-MM-DD') = to_char(#{paymentDischargeDate}, 'YYYY-MM-DD')
+            </if>
+            <if test="curreny != null">
+                and fer.foreign_currency like concat(concat('%',#{curreny}),'%')
+            </if>
+
+        </where>
+    </select>
+</mapper>

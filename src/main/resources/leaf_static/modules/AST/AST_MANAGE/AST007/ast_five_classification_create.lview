@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="ast_five_classification_contract_query_id"
+                url="${/request/@context_path}/modules/AST/AST_MANAGE/AST007/ast_five_classification_contract_query.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_G_CONTRACT_USER_BUTTON1_layout_dynamic_tab_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'plm_five_classification');
+            var result_records =$(ds_id).getCurrentRecord();
+
+
+            var param = {};
+            param['url_title'] = '五级分类合同查询';
+            param['function_code'] = 'AST007F2';
+            param['five_classification_id']=result_records.get('five_classification_id');
+            param['ds_id'] =ds_id;
+
+            param['winid'] = 'ast_five_classification_contract_query_winid';
+            hls_doc_get_layout_code(param, 'ast_five_classification_contract_query_id', ds_id, 'AST007F2');
+        };
+
+
+        //保存前调用 (调用编码规则 生成五级分类编号)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'plm_five_classification');
+            var hdRecord = $(hd_ds_id).getCurrentRecord();
+            var documentCategory = 'FIVE_CLASSIFICATION';
+            var documentType = 'FIVE_CLASSIFICATION';
+            var businessType = 'FIVE_CLASSIFICATION';
+            var companyId = '${/session/@companyId}';
+            var userId = '${/session/@userId}';
+            var unitId = '${/session/@unitId}';
+            hdRecord.set('company_id', companyId);
+            hdRecord.set('user_id', userId);
+            hdRecord.set('unit_id', unitId);
+            if (!hdRecord.get('five_classification_number')) {
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory + "&documentType=" + documentType + "&businessType=" + businessType,
+                    success: function (res) {
+                        hdRecord.set('five_classification_number', res.result.record[0]);
+                        check_flag = true;
+                    },
+                    error: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            };
+            return check_flag;
+        };
+
+
+
+
+        //提交审批
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            debugger;
+            var plm_con_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'plm_five_classify_con');
+            var plm_con_records = $(plm_con_ds_id).getAll();
+            if(plm_con_records.length==0 ) {
+              Leaf.showMessage('提示', '请新增合同信息！');
+              return;
+            }
+            $L.Masker.mask(document.body, "提交中..");
+            // 先执行保存操作,保存成功后提交数据
+            window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'plm_five_classification');
+                var plmRecord = $(ds_id).getAt(0);
+                Leaf.request({
+                    url: "${/request/@context_path}/plm/five/classification/submit/wfl",
+                    para: {five_classification_id: plmRecord.get('five_classification_id')},
+                    success: function (res) {
+                        $L.Masker.unmask(document.body);
+                        $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                            $('${/parameter/@winid}').close();
+                        });
+                    },
+                    error: function () {
+                        $L.Masker.unmask(document.body);
+                    },
+                    scope: this
+                });
+            });
+        };
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+
+            var link_function = 'upload_file';
+            if (name == 'upload' && record.get('plm_attachment_id')){
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('plm_attachment_id') + '\');">附件</a>';
+            }
+            return value;
+        };
+
+
+        window['upload_file'] = function(record_id,plm_attachment_id){
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'plm_attachment');
+
+            if(plm_attachment_id == null){
+                $L.showInfoMessage("提示","请先保存附件信息!");
+                return;
+            }
+
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'ast007f1_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': plm_attachment_id,
+                    'table_name': 'PLM_ATTACHMENT',
+                    winid: 'ast007f1_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                $(ds_id).query();
+            });
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

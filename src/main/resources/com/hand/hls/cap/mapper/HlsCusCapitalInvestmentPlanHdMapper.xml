@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cap.mapper.HlsCusCapitalInvestmentPlanHdMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cap.dto.HlsCusCapitalInvestmentPlanHd">
+        <result column="plan_head_id" property="planHeadId" jdbcType="DECIMAL"/>
+        <result column="company_id" property="companyId" jdbcType="DECIMAL"/>
+        <result column="plan_name" property="planName" jdbcType="VARCHAR"/>
+        <result column="plan_number" property="planNumber" jdbcType="VARCHAR"/>
+        <result column="business_type" property="businessType" jdbcType="VARCHAR"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="document_type" property="documentType" jdbcType="VARCHAR"/>
+        <result column="valid_from" property="validFrom" jdbcType="DATE"/>
+        <result column="valid_to" property="validTo" jdbcType="DATE"/>
+        <result column="plan_cycle" property="planCycle" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="DECIMAL"/>
+        <result column="unit_id" property="unitId" jdbcType="DECIMAL"/>
+        <result column="apply_investment_amount_sum" property="applyInvestmentAmountSum" jdbcType="DECIMAL"/>
+        <result column="note_investment_amount_sum" property="noteInvestmentAmountSum" jdbcType="DECIMAL"/>
+        <result column="cash_investment_amount_sum" property="cashInvestmentAmountSum" jdbcType="DECIMAL"/>
+        <result column="check_investment_amount_sum" property="checkInvestmentAmountSum" jdbcType="DECIMAL"/>
+        <result column="tele_investment_amount_sum" property="teleInvestmentAmountSum" jdbcType="DECIMAL"/>
+        <result column="plan_status" property="planStatus" jdbcType="VARCHAR"/>
+        <result column="invested_amount" property="investedAmount" jdbcType="DECIMAL"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="user_name" property="userName"/>
+        <result column="unit_name" property="unitName"/>
+        <result column="creation_date" property="creationDate"/>
+
+        <result column="plan_info" property="planInfo" jdbcType="VARCHAR"/>
+        <result column="date_from" property="dateFrom" jdbcType="DATE"/>
+        <result column="date_to" property="dateTo" jdbcType="DATE"/>
+        <result column="approve_status" property="approveStatus"/>
+        <result column="approve_date" property="approveDate" jdbcType="DATE"/>
+        <result column="data_class" property="dataClass" jdbcType
+                ="VARCHAR"/>
+        <result column="apply_investment_amount_pct" property="applyInvestmentAmountPct"/>
+        <result column="process_instance_id" property="processInstanceId" jdbcType="DECIMAL"/>
+        <result column="change_req_id" property="changeReqId"/>
+        <result column="ref_document_id" property="refDocumentId"/>
+        <result column="change_description" property="changeDescription"/>
+        <result column="change_req_date" property="changeReqDate"/>
+        <result column="change_status" property="changeStatus"/>
+        <result column="plan_head_id_new" property="planHeadIdNew"/>
+        <result column="change_req_user_name" property="changeReqUserName"/>
+        <result column="plan_head_id_history" property="planHeadIdHistory"/>
+
+        <result column="plan_status_n" property="planStatusN"/>
+        <result column="approve_status_n" property="approveStatusN"/>
+
+    </resultMap>
+
+    <select id="queryDetails" resultMap="BaseResultMap" parameterType="java.util.Map">
+        select hd.*,
+        (select sys.description
+        from sys_user sys
+        where sys.user_id = hd.user_id) as user_name,
+        (select fou.unit_name
+        from fnd_org_unit fou
+        where fou.unit_id = hd.unit_id) as unit_name,
+        (select v.meaning
+        from sys_code_value_b_v v
+        where v.code = 'CAP.PLAN_STATUS'
+        and v.code_value = hd.plan_status) plan_status_n,
+        (select v.meaning
+        from sys_code_value_b_v v
+        where v.code = 'CAP.APPROVE_STATUS'
+        and v.code_value = hd.approve_status) approve_status_n
+        from cap_capital_invest_plan_hd hd
+        <where>
+            1=1
+            <if test="planHeadId!=null">
+                and hd.plan_head_id = #{planHeadId}
+            </if>
+            <if test="dateFrom!=null">
+                and hd.creation_date &gt;= #{dateFrom}
+            </if>
+            <if test="dateTo!=null">
+                and hd.creation_date &lt;= #{dateTo}
+            </if>
+            <if test="applyInvAmountSumForm!=null">
+                and hd.apply_investment_amount_sum &gt;= #{applyInvAmountSumForm}
+            </if>
+            <if test="applyInvAmountSumTo!=null">
+                and hd.apply_investment_amount_sum &lt;= #{applyInvAmountSumTo}
+            </if>
+            <if test="planName!=null">
+                and hd.plan_name like concat(concat('%',#{planName}),'%')
+            </if>
+        </where>
+    </select>
+
+
+
+</mapper>

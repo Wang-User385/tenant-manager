@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProductSubscribeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProductSubscribe">
+        <result column="subscribe_id" property="subscribeId" jdbcType="DECIMAL" />
+        <result column="product_id" property="productId" jdbcType="DECIMAL" />
+        <result column="subscribe_level" property="subscribeLevel" jdbcType="VARCHAR" />
+        <result column="subscribe_main" property="subscribeMain" jdbcType="DECIMAL" />
+        <result column="subscribe_date" property="subscribeDate" jdbcType="DATE" />
+        <result column="subscribe_account_id" property="subscribeAccountId" jdbcType="DECIMAL" />
+        <result column="subscribe_amount" property="subscribeAmount" jdbcType="DECIMAL" />
+        <result column="interest_rate" property="interestRate" jdbcType="DECIMAL" />
+        <result column="payment_target" property="paymentTarget" jdbcType="DECIMAL" />
+        <result column="structure_id" property="structureId" jdbcType="DECIMAL" />
+        <result column="rele_credit_flag" property="releCreditFlag" jdbcType="VARCHAR" />
+        <result column="subscribe_type" property="subscribeType" jdbcType="VARCHAR" />
+        <result column="credit_line_id" property="creditLineId" jdbcType="DECIMAL" />
+        <result column="rele_com_flag" property="releComFlag" jdbcType="VARCHAR" />
+        <result column="subscribe_status" property="subscribeStatus" jdbcType="VARCHAR" />
+        <result column="credit_contract_id" property="creditContractId" jdbcType="VARCHAR" />
+
+        <result column="company_name" property="companyName" jdbcType="VARCHAR" />
+        <result column="subscribe_account_name" property="subscribeAccountName" jdbcType="VARCHAR" />
+        <result column="subscribe_account_num" property="subscribeAccountNum" jdbcType="VARCHAR" />
+        <result column="subscribe_branch_name" property="subscribeBranchName" jdbcType="VARCHAR" />
+        <result column="payment_target_name" property="paymentTargetName" jdbcType="VARCHAR" />
+        <result column="target_account_name" property="targetAccountName" jdbcType="VARCHAR" />
+        <result column="target_account_num" property="targetAccountNum" jdbcType="VARCHAR" />
+        <result column="target_branch_name" property="targetBranchName" jdbcType="VARCHAR" />
+        <result column="valid_from" property="validFrom" jdbcType="DATE" />
+        <result column="valid_to" property="validTo" jdbcType="DATE" />
+        <result column="document_type" property="documentType" jdbcType="VARCHAR" />
+        <result column="credit_category" property="creditCategory" jdbcType="VARCHAR" />
+        <result column="credit_line_amt" property="creditLineAmt" jdbcType="DECIMAL" />
+        <result column="actual_credit_amt" property="actualCreditAmt" jdbcType="DECIMAL" />
+        <result column="project_grade" property="projectGrade" jdbcType="VARCHAR" />
+        <result column="predict_rate" property="predictRate" jdbcType="DECIMAL" />
+        <result column="credit_con_number" property="creditConNumber" jdbcType="VARCHAR" />
+        <result column="al_release_amount" property="alReleaseAmount" jdbcType="DECIMAL" />
+        <result column="subscribe_main_name" property="subscribeMainName" jdbcType="VARCHAR" />
+        <result column="sub_percent" property="subPercent" jdbcType="VARCHAR" />
+        <result column="issue_amount" property="issueAmount" jdbcType="DECIMAL" />
+        <result column="SUBSCRIBE_TYPE_N" property="subscribeTypeN" jdbcType="VARCHAR" />
+        <result column="SUBSCRIBE_LEVEL_N" property="subscribeLevelN" jdbcType="VARCHAR" />
+        <result column="SUBSCRIBE_ACCOUNT_NAME_N" property="subscribeAccountNameN" jdbcType="VARCHAR" />
+        <result column="TARGET_ACCOUNT_NAME_N" property="targetAccountNameN" jdbcType="VARCHAR" />
+        <result column="RELE_COM_FLAG_N" property="releComFlagN" jdbcType="VARCHAR" />
+        <result column="RELE_CREDIT_FLAG_N" property="releCreditFlagN" jdbcType="VARCHAR" />
+        <result column="CREDIT_CON_NUMBER_N" property="creditConNumberN" jdbcType="VARCHAR" />
+        <result column="CREDIT_TYPE" property="creditType" jdbcType="VARCHAR" />
+        <result column="CREDIT_TYPE_N" property="creditTypeN" jdbcType="VARCHAR" />
+        <result column="enabled_credit_amt" property="enabledCreditAmt" jdbcType="DECIMAL" />
+        <result column="used_credit_amt" property="usedCreditAmt" jdbcType="DECIMAL" />
+    </resultMap>
+
+    <select id="queryProductSubscribe" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductSubscribe" resultMap="BaseResultMap">
+        SELECT
+            caps.*,
+            ( SELECT scv.MEANING FROM sys_code_b sc, sys_code_value_b scv WHERE sc.CODE_ID = scv.CODE_ID AND sc.CODE = 'FINANCING_LOAN' AND scv.value = caps.CREDIT_TYPE ) AS CREDIT_TYPE_N,
+            cap.issue_amount,
+            nvl( round( caps.subscribe_amount / cap.issue_amount , 4 ), 0 ) AS sub_percent,
+            apst.project_grade,
+            apst.predict_rate,
+            lcc.credit_con_number,
+            hcl.valid_from,
+            hcl.valid_to,
+            hcl.document_type,
+            lccl.credit_category,
+            hcl.actual_available_amt actual_credit_amt,
+            (select s.MEANING
+            from sys_code_value_b_v s
+            where s.CODE_VALUE = caps.SUBSCRIBE_TYPE
+            and s.code = 'ABS.INVESTOR_SUBSCRIPTION_TYPE') as SUBSCRIBE_TYPE_N,
+
+            caps.SUBSCRIBE_LEVEL as SUBSCRIBE_LEVEL_N,
+            caps.SUBSCRIBE_ACCOUNT_NAME as SUBSCRIBE_ACCOUNT_NAME_N,
+            caba.bank_account_name AS TARGET_ACCOUNT_NAME_N,
+
+            (select s.MEANING
+            from sys_code_value_b_v s
+            where s.CODE_VALUE = CAPS.RELE_COM_FLAG
+            and s.code = 'SYS.YES_NO') as RELE_COM_FLAG_N,
+            (select s.MEANING
+            from sys_code_value_b_v s
+            where s.CODE_VALUE = CAPS.RELE_CREDIT_FLAG
+            and s.code = 'SYS.YES_NO') as RELE_CREDIT_FLAG_N,
+
+            lcc.credit_con_number AS  CREDIT_CON_NUMBER_N
+
+        FROM
+            ct_abs_product_subscribe caps
+         join
+            ct_abs_product cap
+          on
+            cap.product_id=caps.product_id
+        left join
+            ct_abs_product_structure apst
+          on
+             apst.structure_id=caps.structure_id
+        left join
+            lon_credit_line_calc hcl
+          on
+             hcl.credit_line_id=caps.credit_line_id
+        left join
+             lon_credit_contract_line lccl
+           on
+              lccl.credit_line_id=hcl.credit_line_id
+        left join
+            lon_credit_contract lcc
+          on
+            lcc.credit_contract_id=caps.credit_contract_id
+        left join
+            ct_abs_bank_account caba
+          on
+              caba.abs_bank_account_id=caps.payment_target
+        where
+             1=1
+        <if test="productId != null">
+          and  caps.product_id = #{productId}
+        </if>
+    </select>
+
+
+     <select id="selectProductSubscribeCreditLov" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductSubscribe" resultMap="BaseResultMap">
+        SELECT
+            caps.*,
+            apst.project_grade,
+            apst.predict_rate,
+            cpe.al_release_amount,
+             CASE
+                WHEN (nvl(round(caps.subscribe_amount/cap.issue_amount*100,2),0)&lt;1
+                    AND nvl( round(caps.subscribe_amount/cap.issue_amount*100,2),0)>0)
+                THEN nvl( round(caps.subscribe_amount/cap.issue_amount*100,2),0) || '%'
+                ELSE nvl( round(caps.subscribe_amount/cap.issue_amount*100,2),0)  || '%'
+            END sub_percent
+        FROM
+            ct_abs_product_subscribe caps
+        JOIN
+            ct_abs_product cap
+          ON
+            cap.product_id=caps.product_id
+        LEFT JOIN
+            ct_abs_product_structure apst
+          ON
+             apst.structure_id=caps.structure_id
+        LEFT JOIN
+            (
+                SELECT
+                    r.subscribe_id,
+                    SUM(r.release_amount) al_release_amount
+                FROM
+                    ct_abs_product_release r
+                WHERE
+                    r.release_status='CONFIRM'
+                GROUP BY
+                    r.subscribe_id ) cpe ON cpe.subscribe_id=caps.subscribe_id
+        WHERE
+             1=1
+        <if test="productId != null">
+          and  caps.product_id = #{productId}
+        </if>
+         AND caps.rele_credit_flag='Y'
+         AND caps.subscribe_status='CONFIRM'
+         AND caps.subscribe_amount &gt; nvl(cpe.al_release_amount,0)
+    </select>
+
+    <select id="selectSubscribeAmountSum" resultType="decimal">
+       SELECT
+           nvl(SUM(caps.subscribe_amount),0)
+        FROM
+            ct_abs_product_subscribe caps
+        <where>
+              caps.product_id = #{productId}
+              and caps.STRUCTURE_ID =#{structureId,jdbcType=BIGINT}
+        </where>
+    </select>
+
+
+    <select id="selectSubscribeNotReleaseCount" resultType="int">
+        SELECT
+            COUNT(1)
+        FROM
+            ct_abs_product_subscribe caps
+        LEFT JOIN
+            (
+                SELECT
+                    pr.subscribe_id,
+                    SUM(pr.release_amount) al_release_amount
+                FROM
+                    ct_abs_product_release pr
+                WHERE
+                    pr.release_status='CONFIRM'
+                GROUP BY
+                    pr.subscribe_id) cbpr
+        ON
+            cbpr.subscribe_id=caps.subscribe_id
+        WHERE
+             caps.rele_credit_flag='Y'
+         AND caps.subscribe_status='CONFIRM'
+         AND nvl(caps.subscribe_amount,0)-nvl(cbpr.al_release_amount,0)>0
+         AND caps.product_id = #{productId}
+    </select>
+</mapper>

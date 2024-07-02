@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProductCashDetailMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProductCashDetail">
+        <result column="CASH_DETAIL_ID" property="cashDetailId" jdbcType="DECIMAL" />
+        <result column="PRODUCT_ID" property="productId" jdbcType="DECIMAL" />
+        <result column="COLLECTION_ID" property="collectionId" jdbcType="DECIMAL" />
+        <result column="STRUCTURE_ID" property="structureId" jdbcType="DECIMAL" />
+        <result column="PLAN_CASH_PRINCIPAL" property="planCashPrincipal" jdbcType="DECIMAL" />
+        <result column="PLAN_CASH_INTEREST" property="planCashInterest" jdbcType="DECIMAL" />
+        <result column="CASH_PRINCIPAL" property="cashPrincipal" jdbcType="DECIMAL" />
+        <result column="CASH_INTEREST" property="cashInterest" jdbcType="DECIMAL" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+
+        <result column="PROJECT_STRUCTURE" property="projectStructure" jdbcType="VARCHAR" />
+        <result column="PROJECT_STRUCTURE_DESC" property="projectStructureDesc" jdbcType="VARCHAR" />
+        <result column="PROJECT_GRADE" property="projectGrade" jdbcType="VARCHAR" />
+        <result column="CASH_AMOUNT_SUM" property="cashAmountSum" jdbcType="DECIMAL" />
+        <result column="remaining_principal" property="remainingPrincipal" jdbcType="DECIMAL"/>
+        <result column="CASH_DATE" property="cashDate" jdbcType="DATE" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL"/>
+        <result column="product_number" property="productNumber" jdbcType="VARCHAR" />
+        <result column="product_name" property="productName" jdbcType="VARCHAR" />
+        <result column="product_short_name" property="productShortName" jdbcType="VARCHAR" />
+        <result column="business_type" property="businessType" jdbcType="VARCHAR" />
+        <result column="cf_item_n" property="cfItemN" jdbcType="VARCHAR" />
+        <result column="plan_cash_amount" property="planCashAmount" jdbcType="DECIMAL"/>
+        <result column="ACTUAL_CASH_DATE" property="actualCashDate" jdbcType="DATE"/>
+        <result column="cash_amount_sum" property="cashAmountSum" jdbcType="DECIMAL"/>
+        <result column="cash_interest_sum" property="cashInterestSum" jdbcType="DECIMAL"/>
+        <result column="cash_principal_sum" property="cashPrincipalSum" jdbcType="DECIMAL"/>
+        <result column="remittance_status" property="remittanceStatus" jdbcType="VARCHAR" />
+        <result column="remittance_status_n" property="remittanceStatusN" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <select id="selectProductCashDetailData" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductCashDetail" resultMap="BaseResultMap">
+        SELECT
+            cap.product_number,
+            CAP.product_name,
+            CAP.product_short_name,
+            CAP.business_type,
+            case when PCD.PLAN_CASH_PRINCIPAL &gt; 0 and PCD.PLAN_CASH_INTEREST &gt; 0 then '本息'
+            when PCD.PLAN_CASH_PRINCIPAL &gt; 0 and PCD.PLAN_CASH_INTEREST &lt;= 0 then '本金'
+            when PCD.PLAN_CASH_PRINCIPAL &lt;= 0 and PCD.PLAN_CASH_INTEREST &gt; 0 then '利息' end as cf_item_n,
+            nvl( PCD.PLAN_CASH_PRINCIPAL, 0 ) + nvl( PCD.PLAN_CASH_INTEREST, 0 ) AS PLAN_CASH_AMOUNT,
+            pcfd.cash_amount_sum,
+            pcfd.cash_interest_sum,
+            pcfd.cash_principal_sum,
+            case when PCD.remittance_status = 'CONFIRM' then '已确认' else '未确认' end as remittance_status_n,
+            PCD.remittance_status,
+            PCD.CASH_DETAIL_ID,
+            PCD.PRODUCT_ID,
+            PCD.COLLECTION_ID,
+            PCD.STRUCTURE_ID,
+            PCD.TIMES,
+            PCD.CASH_DATE,
+            PCD.PLAN_CASH_PRINCIPAL,
+            PCD.PLAN_CASH_INTEREST,
+            PCD.CASH_PRINCIPAL,
+            PCD.CASH_INTEREST,
+            PCD.DESCRIPTION,
+            PCD.ACTUAL_CASH_DATE,
+            APS.PROJECT_STRUCTURE,
+            (
+                SELECT
+                SC.MEANING
+                FROM
+                <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail" /> SC
+                WHERE
+                SC.CODE_VALUE =  APS.PROJECT_STRUCTURE
+                AND SC.CODE = 'ABS.PRORITY_LEVEL'
+            )  PROJECT_STRUCTURE_DESC,
+            APS.PROJECT_GRADE,
+            nvl(PCD.CASH_PRINCIPAL,0)+nvl(PCD.CASH_INTEREST,0) CASH_AMOUNT_SUM
+        FROM
+            CT_ABS_PRODUCT_CASH_DETAIL PCD
+        LEFT JOIN
+            CT_ABS_PRODUCT_STRUCTURE APS
+        ON
+            PCD.STRUCTURE_ID=APS.STRUCTURE_ID
+        LEFT JOIN ct_abs_product cap ON cap.PRODUCT_ID = PCD.PRODUCT_ID
+        LEFT JOIN (
+        SELECT
+        pcfd.cash_detail_id,
+        sum( nvl( pcfd.cash_amount_sum, 0 ) ) AS cash_amount_sum,
+        sum( nvl( pcfd.cash_principal, 0 ) ) AS cash_principal_sum,
+        sum( nvl( pcfd.cash_interest, 0 ) ) AS cash_interest_sum
+        FROM
+        ct_abs_product_cash_fb_detail pcfd
+        GROUP BY
+        pcfd.cash_detail_id
+        ) as pcfd on pcfd.cash_detail_id = pcd.cash_detail_id
+        WHERE
+            1=1
+         <if test="collectionId != null">
+            and PCD.COLLECTION_ID =#{collectionId}
+        </if>
+        <if test="productId != null">
+            and PCD.product_id = #{productId}
+        </if>
+        <if test="cashDetailId != null">
+            and PCD.cash_detail_id = #{cashDetailId}
+        </if>
+        ORDER BY  PCD.TIMES
+    </select>
+
+    <delete id="deleteCashDetailByProduct">
+        DELETE FROM
+               CT_ABS_PRODUCT_CASH_DETAIL CD
+           WHERE
+               CD.PRODUCT_ID = #{productId}
+            AND (SELECT
+                    PC.DATA_CLASS
+               FROM
+                   CT_ABS_PRODUCT_COLLECTION PC
+               WHERE
+                   CD.COLLECTION_ID=PC.COLLECTION_ID) = #{dataClass}
+            AND (
+                SELECT
+                    PC.CONFIRM_FLAG
+                FROM
+                    CT_ABS_PRODUCT_COLLECTION PC
+                WHERE
+                    CD.COLLECTION_ID=PC.COLLECTION_ID)='N'
+    </delete>
+
+
+    <select id="selectCashPrincipalSum" resultType="java.math.BigDecimal">
+        SELECT
+           nvl(SUM(CD.PLAN_CASH_PRINCIPAL),0)
+        FROM
+           CT_ABS_PRODUCT_CASH_DETAIL CD
+        JOIN
+           CT_ABS_PRODUCT_COLLECTION PC
+         ON
+           CD.COLLECTION_ID=PC.COLLECTION_ID
+        WHERE
+           CD.PRODUCT_ID = #{productId}
+        AND  PC.DATA_CLASS ='NORMAL'
+        <if test="times != null">
+            and PC.TIMES &lt; #{times}
+        </if>
+    </select>
+    <select id="queryRemainingPrincipalSum" resultType="java.math.BigDecimal">
+
+ select sum(nvl(t.plan_CASH_PRINCIPAL,0))remaining_principal  from  CT_ABS_PRODUCT_CASH_DETAIL t where t.COLLECTION_ID=#{collectionId} and t.PRODUCT_ID =#{productId}
+   </select>
+
+    <delete id="deleteCashDetailByCollection" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductCollection">
+        DELETE FROM
+               CT_ABS_PRODUCT_CASH_DETAIL
+           WHERE
+               PRODUCT_ID = #{productId}
+            AND (SELECT
+                    PC.DATA_CLASS
+               FROM
+                   CT_ABS_PRODUCT_COLLECTION PC
+               WHERE
+                   CT_ABS_PRODUCT_CASH_DETAIL.COLLECTION_ID=PC.COLLECTION_ID) = #{dataClass}
+            AND (
+                SELECT
+                    PC.CONFIRM_FLAG
+                FROM
+                    CT_ABS_PRODUCT_COLLECTION PC
+                WHERE
+                    CT_ABS_PRODUCT_CASH_DETAIL.COLLECTION_ID=PC.COLLECTION_ID)='N'
+    </delete>
+
+</mapper>

@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.CshPaymentAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.CshPaymentAttachment">
+        <result column="CSH_ATTCAHMENT_ID" property="cshAttcahmentId" jdbcType="DECIMAL" />
+        <result column="PAYMENT_REQ_ID" property="paymentReqId" jdbcType="DECIMAL" />
+        <result column="PROJECT_ATTACHMENT_CATEGORY" property="projectAttachmentCategory" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_NAME" property="documentName" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="file_name" property="fileName" jdbcType="VARCHAR" />
+		<result column="bp_type" property="bpType" jdbcType="VARCHAR" />
+		<result column="yes_no" property="yesNo" jdbcType="VARCHAR" />
+		<result column="value_code" property="valueCode" jdbcType="VARCHAR" />
+		<result column="value_name" property="valueName" jdbcType="VARCHAR" />
+        <result column="upload_person" property="uploadPerson" jdbcType="VARCHAR" />
+        <result column="upload_date" property="uploadDate" jdbcType="VARCHAR" />
+		<result column="file_path" property="filePath" jdbcType="VARCHAR" />
+		<result column="attachment_id" property="attachmentId" jdbcType="VARCHAR" />
+		<result column="file_size" property="fileSize" jdbcType="DECIMAL" />
+	</resultMap>
+    <select id="selectPaymentAttachmentInfo" resultMap="BaseResultMap">
+    SELECT
+	ppa.CSH_ATTCAHMENT_ID,
+	ppa.PAYMENT_REQ_ID,
+	ppa.project_attachment_category,
+	ppa.document_name,
+	ppa.description,
+	(
+	SELECT
+		wm_concat( fa.file_name )
+	FROM
+		fnd_atm_attachment fa,
+		fnd_atm_attachment_multi fam
+	WHERE
+		fa.attachment_id = fam.attachment_id
+	AND fam.table_name = 'csh_payment_attachment'
+		AND ppa.csh_attcahment_id = fam.table_pk_value
+	) file_name,
+	 (
+	SELECT
+		max( fat.last_update_date )
+	FROM
+		fnd_atm_attachment fat,
+		fnd_atm_attachment_multi faam
+	WHERE
+		fat.attachment_id = faam.attachment_id
+		AND faam.table_name = 'csh_payment_attachment'
+		AND faam.table_pk_value = ppa.csh_attcahment_id
+	) upload_date,
+	(
+	SELECT
+		max( su.description )
+	FROM
+		sys_user su,
+		fnd_atm_attachment fat,
+		fnd_atm_attachment_multi faam
+	WHERE
+		fat.attachment_id = faam.attachment_id
+		AND faam.table_name = 'csh_payment_attachment'
+		AND faam.table_pk_value = ppa.csh_attcahment_id
+		AND su.user_id = fat.last_updated_by
+	) upload_person,
+
+		(select max(faa.attachment_id)
+		from fnd_atm_attachment       faa,
+		fnd_atm_attachment_multi faam
+		where faam.table_name = 'csh_payment_attachment'
+		and faam.table_pk_value = ppa.csh_attcahment_id
+		and faa.source_pk_value = faam.record_id) attachment_id
+FROM
+	csh_payment_attachment ppa
+WHERE
+	ppa.project_attachment_category = 'CON_PAYMENT'
+        and ppa.payment_req_id= #{paymentReqId}
+    </select>
+
+	<select id="selectPaymentAttachmentInfo1" resultMap="BaseResultMap">
+    SELECT
+	ppa.CSH_ATTCAHMENT_ID,
+	ppa.PAYMENT_REQ_ID,
+	ppa.project_attachment_category,
+	ppa.document_name,
+	ppa.description,
+	(
+	SELECT
+		wm_concat( fa.file_name )
+	FROM
+		fnd_atm_attachment fa,
+		fnd_atm_attachment_multi fam
+	WHERE
+		fa.attachment_id = fam.attachment_id
+	AND fam.table_name = 'csh_payment_attachment'
+		AND ppa.csh_attcahment_id = fam.table_pk_value
+	) file_name,
+	(
+	SELECT
+		wm_concat( fa.attachment_id )
+	FROM
+		fnd_atm_attachment fa,
+		fnd_atm_attachment_multi fam
+	WHERE
+		fa.attachment_id = fam.attachment_id
+	AND fam.table_name = 'csh_payment_attachment'
+		AND ppa.csh_attcahment_id = fam.table_pk_value
+	) attachment_id,
+	 (
+	SELECT
+		max( fat.last_update_date )
+	FROM
+		fnd_atm_attachment fat,
+		fnd_atm_attachment_multi faam
+	WHERE
+		fat.attachment_id = faam.attachment_id
+		AND faam.table_name = 'csh_payment_attachment'
+		AND faam.table_pk_value = ppa.csh_attcahment_id
+	) upload_date,
+	(
+	SELECT
+		max( su.description )
+	FROM
+		sys_user su,
+		fnd_atm_attachment fat,
+		fnd_atm_attachment_multi faam
+	WHERE
+		fat.attachment_id = faam.attachment_id
+		AND faam.table_name = 'csh_payment_attachment'
+		AND faam.table_pk_value = ppa.csh_attcahment_id
+		AND su.user_id = fat.last_updated_by
+	) upload_person
+FROM
+	csh_payment_attachment ppa
+WHERE
+	ppa.project_attachment_category = 'CON_PAYMENT'
+        and ppa.payment_req_id= #{paymentReqId}
+    </select>
+
+	<select id="queryCshPaymentHdFirst" resultMap="BaseResultMap"  parameterType="com.hand.hls.csh.dto.CshPaymentAttachment">
+
+SELECT
+	(
+	CASE
+			WHEN (
+			SELECT
+				count(*)
+			FROM
+				prj_project_bp p, hls_bp_master m
+			WHERE
+        p.PROJECT_ID =h1.source_doc_id
+        and p.bp_id=m.bp_id
+        and p.bp_type='WARRANTOR'
+        and m.bp_class='NP') = 0 THEN
+        'ORG' ELSE 'NP'
+      END
+      ) BP_TYPE,
+      (
+	CASE
+			WHEN (
+			SELECT
+				count(*)
+			FROM
+				csh_payment_req_hd p
+			WHERE
+				p.SOURCE_DOC_ID IN ( SELECT pp.project_id FROM prj_project pp WHERE pp.ref_project_id = h1.ref_project_id )) = 1 THEN
+				'Y' ELSE 'N'
+			END
+			) yes_no
+
+    FROM
+      (
+      SELECT
+        hd.source_doc_id,
+        ( SELECT pp.ref_project_id FROM prj_project pp WHERE pp.project_id = hd.source_doc_id ) ref_project_id,
+        (
+        SELECT
+          pp.project_id
+        FROM
+          prj_project pp
+        WHERE
+        pp.project_id = ( SELECT pp.ref_project_id FROM prj_project pp WHERE pp.project_id = hd.source_doc_id )) project_id,
+        hd.PAYMENT_REQ_ID
+      FROM
+        csh_payment_req_hd hd
+      ) h1
+  WHERE
+  h1.payment_req_id = ${paymentReqId}
+
+	</select>
+	<select id="queryPayFileFirstNp" parameterType="com.hand.hls.csh.dto.CshPaymentAttachment" resultMap="BaseResultMap">
+SELECT
+ s.code_value value_code,
+ s.MEANING value_name
+FROM
+ sys_code_value_b_v s
+WHERE
+ s.CODE = 'PAY_FILE_FIRST_NP'
+ORDER BY
+ s.ORDER_SEQ
+	</select>
+
+	<select id="queryGuarantorBusinessLicense" parameterType="com.hand.hls.csh.dto.CshPaymentAttachment" resultMap="BaseResultMap">
+SELECT
+ s.code_value value_code,
+ s.MEANING value_name
+FROM
+ sys_code_value_b_v s
+WHERE
+ s.CODE = 'PAY_FILE_FIRST_ORG'
+ORDER BY
+ s.ORDER_SEQ
+	</select>
+
+    <select id="queryOther" parameterType="com.hand.hls.csh.dto.CshPaymentAttachment" resultMap="BaseResultMap">
+SELECT
+ s.code_value value_code,
+ s.MEANING value_name
+FROM
+ sys_code_value_b_v s
+WHERE
+ s.CODE = 'PAY_FILE_OTHER'
+ORDER BY
+ s.ORDER_SEQ
+	</select>
+
+	<select id="queryPaymentAttaMutliInfo" resultMap="BaseResultMap">
+		SELECT ppa.CSH_ATTCAHMENT_ID,
+			   ppa.PAYMENT_REQ_ID,
+			   ppa.project_attachment_category,
+			   ppa.document_name,
+			   ppa.description,
+			   fa.file_name,
+			   fa.last_update_date upload_date,
+			   fa.file_path,
+			   fa.attachment_id
+		FROM csh_payment_attachment   ppa,
+			 fnd_atm_attachment       fa,
+			 fnd_atm_attachment_multi fam
+		WHERE ppa.project_attachment_category = 'CON_PAYMENT'
+		  and fa.attachment_id = fam.attachment_id
+		  AND fam.table_name = 'csh_payment_attachment'
+		  AND fam.table_pk_value = ppa.csh_attcahment_id
+		  and ppa.payment_req_id= #{paymentReqId}
+	</select>
+
+	<select id="selectRetailPaymentAttachmentInfo" resultMap="BaseResultMap">
+    SELECT
+			ppa.CSH_ATTCAHMENT_ID,
+			ppa.PAYMENT_REQ_ID,
+			ppa.project_attachment_category,
+			ppa.document_name,
+			ppa.description,
+			(
+			SELECT
+				wm_concat( fa.file_name )
+			FROM
+				fnd_atm_attachment fa,
+				fnd_atm_attachment_multi fam
+			WHERE
+				fa.attachment_id = fam.attachment_id
+			AND fam.table_name = 'csh_payment_attachment'
+				AND ppa.csh_attcahment_id = fam.table_pk_value
+			) file_name,
+			(
+			SELECT
+				max( fat.last_update_date )
+			FROM
+				fnd_atm_attachment fat,
+				fnd_atm_attachment_multi faam
+			WHERE
+				fat.attachment_id = faam.attachment_id
+				AND faam.table_name = 'csh_payment_attachment'
+				AND faam.table_pk_value = ppa.csh_attcahment_id
+			) upload_date,
+			(
+			SELECT
+				max( su.description )
+			FROM
+				sys_user su,
+				fnd_atm_attachment fat,
+				fnd_atm_attachment_multi faam
+			WHERE
+				fat.attachment_id = faam.attachment_id
+				AND faam.table_name = 'csh_payment_attachment'
+				AND faam.table_pk_value = ppa.csh_attcahment_id
+				AND su.user_id = fat.last_updated_by
+			) upload_person,
+
+			(select max(faa.attachment_id)
+			from fnd_atm_attachment       faa,
+			fnd_atm_attachment_multi faam
+			where faam.table_name = 'csh_payment_attachment'
+			and faam.table_pk_value = ppa.csh_attcahment_id
+			and faa.source_pk_value = faam.record_id
+			) attachment_id
+		FROM
+			csh_payment_attachment ppa
+		WHERE
+			ppa.project_attachment_category = 'RETAIL_PAYMENT'
+		and ppa.payment_req_id= #{paymentReqId}
+    </select>
+
+    <select id="queryPaymentAttachmentMulti" resultMap="BaseResultMap">
+		SELECT ppa.CSH_ATTCAHMENT_ID,
+		ppa.PAYMENT_REQ_ID,
+		ppa.project_attachment_category,
+		ppa.document_name,
+		ppa.description,
+		fa.file_name,
+		fa.last_update_date upload_date,
+		fa.file_path,
+		fa.attachment_id,
+		nvl(fa.file_size,0) file_size
+		FROM csh_payment_attachment   ppa,
+		fnd_atm_attachment       fa,
+		fnd_atm_attachment_multi fam
+		<where>
+			fa.attachment_id = fam.attachment_id
+			AND fam.table_name = 'csh_payment_attachment'
+			AND fam.table_pk_value = ppa.csh_attcahment_id
+			AND ppa.payment_req_id= #{paymentReqId}
+			<if test="projectAttachmentCategory">
+				and ppa.project_attachment_category = #{projectAttachmentCategory}
+			</if>
+		</where>
+	</select>
+</mapper>

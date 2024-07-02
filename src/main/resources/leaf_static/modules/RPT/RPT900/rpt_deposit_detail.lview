@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2020年5月8日
+    $Revision: 3.0
+    $Purpose: 保证金管理
+    $Modify : 保证金管理 重做 数据来源取 存续期
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+
+    <a:view>
+        <a:link id="deposit_duration_window_id"
+                url="${/request/@context_path}/modules/HLS/HLS300/hls_duration_modify.lview"/>
+
+
+        <script type="text/javascript"><![CDATA[
+
+        function csh303_deposit_query() {
+            $('csh_deposit_result_ds').query();
+        }
+
+        function csh303_deposit_reset() {
+            $('csh_deposit_query_ds').reset();
+
+        }
+
+
+        function deposit_renderer(value, record, name) {
+            if (name = 'source_id') {
+                var hd_id = record.get('hd_id');
+                var link_function = 'open_deposit_detail_win';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\',\'' + hd_id + '\');">详细</a>';
+            }
+        }
+
+        function open_deposit_detail_win(record_id, ds_id, hd_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '保证金退还抵扣方案';
+            param['function_code'] = 'HLS300F5';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['query_only'] = 'Y';
+            param['winid'] = 'deposit_detail_winid';
+            param['hd_id'] = hd_id;
+            hls_doc_get_layout_code(param, 'deposit_duration_window_id', ds_id);
+
+        }
+
+        function csh303_deposit_exit(){
+            $('${/parameter/@winid}').close();
+        }
+
+        ]]></script>
+
+        <a:dataSets>
+            <a:dataSet id="contract_status_ds" lookupCode="CON.CONTRACT_STATUS"/>
+            <a:dataSet id="csh_deposit_query_ds">
+                <a:fields>
+                    <a:field name="contract_id" defaultValue="${/parameter/@contract_id}"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="csh_deposit_result_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/duration/deposit/management/query"
+                       queryDataSet="csh_deposit_query_ds"
+                       selectable="true">
+                <a:fields>
+                    <a:field name="refund_date" datatype="date"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="csh303_deposit_exit" text="HLS.EXIT"/>
+                <a:gridButton click="csh303_deposit_query" text="HLS.QUERY"/>
+                <a:gridButton click="csh303_deposit_reset" text="HLS.RESET"/>
+            </a:screenTopToolbar>
+
+            <a:tabPanel marginWidth="20" marginHeight="25">
+                <a:tabs>
+                    <a:tab prompt="合同保证金" width="130" selected="true">
+                        <a:form column="3" labelWidth="180">
+                            <a:textField name="duration_number" bindTarget="csh_deposit_query_ds"
+                                         prompt="存续期审批方案编号" width="160"/>
+                            <a:textField name="contract_number" bindTarget="csh_deposit_query_ds"
+                                         prompt="支付表编号" width="160"/>
+                            <a:textField name="bp_name" bindTarget="csh_deposit_query_ds"
+                                         prompt="客户名称" width="160"/>
+                        </a:form>
+                        <a:grid id="csh_deposit_grid_id"
+                                bindTarget="csh_deposit_result_ds" marginHeight="200" marginWidth="80"
+                                navBar="true">
+                            <a:toolBar>
+                                <a:button type="excel"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="duration_number" prompt="存续期审批方案编号" width="120"/>
+                                <a:column name="contract_number" prompt="支付表编号" width="120"/>
+                                <a:column name="bp_name" prompt="客户名称" width="200"/>
+                                <a:column name="source_id" prompt="保证金方案详情" width="110" align="center"
+                                          renderer="deposit_renderer"/>
+                                <a:column name="deposit_residual_amount" prompt="保证金余额（含利息）" renderer="Leaf.formatMoney"
+                                          align="right" width="130"/>
+                                <a:column name="deposit_deduction_amount" prompt="本次方案冲抵金额" renderer="Leaf.formatMoney"
+                                          align="right" width="130"/>
+                                <a:column name="deposit_refund_amount" prompt="本次方案退还金额" renderer="Leaf.formatMoney"
+                                          align="right" width="130"/>
+                                <a:column name="refund_date" prompt="退款日期" align="center" renderer="Leaf.formatDate"
+                                          width="80"/>
+                                <a:column name="bank_account_name" prompt="对方账户名称" width="130"/>
+                                <a:column name="outstanding_deposit" prompt="执行后保证金余额（含利息）" renderer="Leaf.formatMoney"
+                                          align="right" width="200"/>
+                                <a:column name="execute_status_n" prompt="执行结果" width="80"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

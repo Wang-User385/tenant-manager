@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="role_tree_define" url="${/request/@context_path}/modules/FND/FND_MODEL/FND117/hls_rule_engine_route.lview"/>
+        <script><![CDATA[
+        function gld_rule_engine_query() {
+            $('gld_rule_engine_ds').query();
+        }
+
+        function gld_rule_engine_add() {
+            $('gld_rule_engine_ds').create();
+        }
+
+        function gld_rule_engine_reset() {
+            $('gld_rule_engine_query_ds').remove();
+        }
+
+        function gld_rule_engine_save() {
+            var ds = $('gld_rule_engine_ds');
+            if (ds.validate()) {
+                ds.setSubmitUrl('${/request/@context_path}/gld/je/rule/engine/submit');
+                ds.submit();
+            }
+        }
+
+        function onSubmitSuccess_gld_rule_engine_ds(ds) {
+            gld_rule_engine_query();
+        }
+
+        function gld_rule_engine_tree_render(value, record, name) {
+            if (!record.isNew) {
+                return '<a href="javascript:open_gld_rule_engine_tree(\'' + record.get('rule_engine_id') + '\',\'' + record.get('data_source_id') + '\',\''+record.get('je_trx')+'\')">规则树明细</a>';
+            } else
+                return "";
+        }
+
+        function open_gld_rule_engine_tree(ruleEngineId, dataSourceId,jeTrx) {
+            new Leaf.Window({
+                id: 'rule_tree_define',
+                url: "${/request/@context_path}/modules/GLD/GLD_SETUP/GLD103/gld_rule_engine_route.lview",
+                params:{
+                    ruleEngineId:ruleEngineId,
+                    dataSourceId:dataSourceId,
+                    jeTrx:jeTrx
+                },
+                title: '规则树明细',
+                fullScreen:true
+            }).on('close',function () {
+                //子页面中$被jQuery占用
+                if(!!$L.getCmp) $ = $L.getCmp;
+            });
+            // new Leaf.Window({
+            //     id: 'gld_rule_engine_tree_winid',
+            //     url: $L.getCmp('role_tree_define').getUrl()+"?ruleEngineId="+ruleEngineId+"&dataSourceId="+dataSourceId+"&jeTrx="+jeTrx,
+            //     title: '规则树明细',
+            //     fullScreen:true
+            // });
+        }
+
+        function template_define_render(value, record, name) {
+            if (!record.isNew) {
+                return '<a href="javascript:open_template_define(\''+record.get('je_trx')+'\')">模板定义</a>';
+            } else
+                return "";
+        }
+
+        function open_template_define(jeTrx) {
+            new Leaf.Window({
+                id: 'gld_rg_template_define_winid',
+                url: "${/request/@context_path}/modules/GLD/GLD_SETUP/GLD103/gld_je_template.lview",
+                params: {
+                    jeTrx: jeTrx,
+                    winid: 'gld_rg_template_define_winid'
+                },
+                title: '凭证模板定义',
+                side:'right',
+                height: 400,
+                width: 1000
+            });
+        }
+
+        //导出确认
+        function gld_rule_engine_export_confirm(){
+            if($('gld_rule_engine_ds').getSelected().length==0){
+                Leaf.showErrorMessage( '提示', '请选择记录！',null, 200, 100 );
+                return ;
+            }
+            Leaf.showConfirm('提示', '确定导出？', gld_rule_engine_export, null, 200, 100 );
+
+        }
+
+        function gld_rule_engine_export() {
+            var ds = $('gld_rule_engine_ds');
+            var records = ds.getSelected();
+            var export_list;
+            for (var i = 0; i < records.length; i++) {
+                if(export_list){
+                    export_list = export_list + "," + records[i].data.je_trx;
+                }else{
+                    export_list = records[i].data.je_trx;
+                }
+            }
+            location.href = "${/request/@context_path}/gld/je/rule/engine/export?idlist=" + export_list;
+        }
+
+        function gld_rule_engine_import() {
+            jQuery("#file").click();
+        }
+
+        function hls_upload_file(){
+            var file = jQuery("#file")[0].files[0];
+            if(file == undefined){
+                return ;
+            }
+            var formData = new FormData();
+            formData.append("file",file);
+            formData.append("_csrf","${/session/@_csrf.token}");
+            Leaf.Masker.mask(Ext.getBody(), '上传中。。');
+            jQuery.ajax({
+                url:'${/request/@context_path}/gld/je/rule/engine/import',
+                type:'post',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success:function(res){
+                Leaf.Masker.unmask(Ext.getBody());
+                    if (res.success) {
+                        Leaf.showMessage("提示", res.message || "导入成功", null);
+                    } else{
+                        Leaf.showErrorMessage("提示", res.message || res.error.message || "导入失败", null);
+                    }
+                }
+            })
+            document.getElementById('file').value = null;
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="gld_rule_engine_datasource_ds"
+                       queryUrl="${/request/@context_path}/hls/db/combox?usageType=JE_TRX&amp;enabledFlag=Y"
+                       pageSize="10000" autoQuery="true"/>
+            <!--<a:dataSet id="gld_rule_engine_je_trx_ds"
+                       queryUrl="${/request/@context_path}/gld/je/trx/query?enabledFlag=Y" pageSize="10000"
+                       autoQuery="true"/>-->
+            <a:dataSet id="gld_rule_engine_query_ds">
+            </a:dataSet>
+            <a:dataSet id="gld_rule_engine_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/gld/je/rule/engine/query"
+                       deleteUrl="${/request/@context_path}/gld/je/rule/engine/remove"
+                       submitUrl="${/request/@context_path}/gld/je/rule/engine/submit"
+                       queryDataSet="gld_rule_engine_query_ds" selectable="true">
+                <a:fields>
+                    <!--<a:field name="je_trx_description" options="gld_rule_engine_je_trx_ds" displayField="description"
+                             valueField="je_trx" returnField="je_trx"/>-->
+                    <a:field name="je_trx_description" title="凭证事务选择" autoComplete="true" fetchRemote="false"
+                             lovWidth="500" lovHeight="450" lovGridHeight="300"
+                             lovService="/gld/je/rule/engine/queryJeTrxLov~com.hand.hls.gld.dto.JeRuleEngineJeTrxLov">
+                        <a:mapping>
+                            <a:map from="je_trx" to="je_trx"/>
+                            <a:map from="je_trx_description" to="je_trx_description"/>
+                        </a:mapping>
+                    </a:field>
+                    <!--<a:field name="ds_description" options="gld_rule_engine_datasource_ds" displayField="description"
+                             valueField="data_source_id" returnField="data_source_id"/>-->
+                    <a:field name="ds_description" title="数据源选择" autoComplete="true" fetchRemote="false"
+                             lovWidth="500" lovHeight="450" lovGridHeight="300"
+                             lovService="/gld/je/rule/engine/queryJeTrxDSLov~com.hand.hls.gld.dto.JeRuleEngineDataSourceLov">
+                        <a:mapping>
+                            <a:map from="data_source_id" to="data_source_id"/>
+                            <a:map from="data_source_code" to="data_source_code"/>
+                            <a:map from="ds_description" to="ds_description"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_id"/>
+                    <a:field name="rule_engine_id"/>
+                    <a:field name="data_source_id"/>
+                </a:fields>
+                <!--<a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_gld_rule_engine_ds"/>
+                </a:events>-->
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="gld_rule_engine_query" text="HAP.QUERY"/>
+                <a:gridButton click="gld_rule_engine_reset" text="HAP.RESET"/>
+                <a:gridButton click="gld_rule_engine_add" text="HAP.NEW"/>
+                <a:gridButton click="gld_rule_engine_save" text="HAP.SAVE"/>
+                <a:gridButton bind="gld_rule_engine_ds_grid" type="delete"/>
+                <a:gridButton click="gld_rule_engine_export_confirm" text="HLS.EXPORT"/>
+                <a:gridButton click="gld_rule_engine_import" text="HLS.IMPORT"/>
+            </a:screenTopToolbar>
+            <a:form column="2" labelwidth="150" title="查询条件" width="1313">
+                //添加凭证事务查询
+                <a:textField name="je_trx_description" bindTarget="gld_rule_engine_query_ds" prompt="凭证事务" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="gld_rule_engine_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="ds_description" bindTarget="gld_rule_engine_query_ds" prompt="数据源" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="gld_rule_engine_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="gld_rule_engine_ds_grid" bindTarget="gld_rule_engine_ds" marginHeight="111" marginWidth="30"
+                    navBar="true">
+                <a:columns>
+                    <a:column name="je_trx_description" width="200" prompt="凭证事务" editor="gld_rule_engine_ds_grid_lv"/>
+                    <a:column name="je_trx" width="200" hidden="true"/>
+                    <a:column name="ds_description" width="200" prompt="数据源" editor="gld_rule_engine_ds_grid_lv"/>
+                    <a:column name="data_source_id" width="200" hidden="true"/>
+                    <a:column width="200" prompt="模板定义" renderer="template_define_render" align="center"/>
+                    <a:column width="476" name="rule_engine_code" prompt="通用规则引擎代码" align="center"/>
+                    <a:column width="200" prompt="规则树" align="center"
+                              renderer="gld_rule_engine_tree_render"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="gld_rule_engine_ds_grid_lv"/>
+                    <a:textField id="gld_rule_engine_ds_grid_tf"/>
+                    <!--<a:comboBox id="gld_rule_engine_ds_grid_cb" editable="false"/>-->
+                </a:editors>
+            </a:grid>
+            <input type="file" name="file" id="file" value="" onChange="hls_upload_file()" style="display:none"/>
+        </a:screenBody>
+    </a:view>
+</a:screen>

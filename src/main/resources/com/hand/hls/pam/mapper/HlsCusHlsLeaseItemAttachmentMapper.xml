@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.pam.mapper.HlsCusHlsLeaseItemAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.pam.dto.HlsCusHlsLeaseItemAttachment">
+        <result column="LEASE_ITEM_ATTACHMENT_ID" property="leaseItemAttachmentId" jdbcType="DECIMAL" />
+        <result column="LEASE_ITEM_ID" property="leaseItemId" jdbcType="DECIMAL" />
+        <result column="ATTACHMENT_CATEGORY" property="attachmentCategory" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_NAME" property="documentName" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_ID" property="documentId" jdbcType="DECIMAL" />
+        <result column="SOURCE_TYPE" property="sourceType" jdbcType="VARCHAR" />
+        <result column="SOURCE_TYPE_N" property="sourceTypeN" jdbcType="VARCHAR" />
+        <result column="COPIES" property="copies" jdbcType="DECIMAL" />
+        <result column="attachment_id" property="attachmentId" jdbcType="VARCHAR" />
+        <result column="file_name" property="fileName" jdbcType="VARCHAR" />
+        <result column="upload_date" property="uploadDate" jdbcType="DATE" />
+        <result column="upload_person" property="uploadPerson" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="selectAttachment" parameterType="com.hand.hls.pam.dto.HlsCusLeaseItem" resultMap="BaseResultMap">
+        select hlia.*
+        from  hls_lease_item_attachment hlia
+        <where>
+            1=1
+            <if test="leaseItemId != null">
+                and hlia.lease_item_id = #{lease_item_id}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="queryLeaseAttachment" resultMap="BaseResultMap">
+        SELECT hlia.document_name,
+               hlia.description,
+               hlia.copies,
+               hlia.source_type,
+               (select scv.MEANING
+                  from sys_code_b sc, sys_code_value_b scv
+                 where sc.CODE_ID = scv.CODE_ID
+                   and sc.CODE = 'LEASE_SOURCE_TYPE'
+                   and scv.value = hlia.source_type) source_type_n,
+               hlia.lease_item_attachment_id,
+               hlia.lease_item_id,
+               (select  wm_concat(fa.attachment_id)
+                  from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+                 where fa.attachment_id = fam.attachment_id
+                   and fam.table_name = 'HLS_LEASE_ITEM_ATTACHMENT'
+                   and hlia.lease_item_attachment_id = fam.table_pk_value) attachment_id,
+               (select  wm_concat(fa.file_name)
+                  from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+                 where fa.attachment_id = fam.attachment_id
+                   and fam.table_name = 'HLS_LEASE_ITEM_ATTACHMENT'
+                   and hlia.lease_item_attachment_id = fam.table_pk_value) file_name,
+               (select  max(fa.creation_date)
+                  from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+                 where fa.attachment_id = fam.attachment_id
+                   and fam.table_name = 'HLS_LEASE_ITEM_ATTACHMENT'
+                   and hlia.lease_item_attachment_id = fam.table_pk_value) upload_date,
+               (select max(su.description)
+                  from fnd_atm_attachment       fa,
+                       fnd_atm_attachment_multi fam,
+                       sys_user                 su
+                 where fa.attachment_id = fam.attachment_id
+                   and fam.table_name = 'HLS_LEASE_ITEM_ATTACHMENT'
+                   and hlia.lease_item_attachment_id = fam.table_pk_value
+                   and su.user_id = fa.created_by) upload_person
+          FROM HLS_LEASE_ITEM_ATTACHMENT hlia
+          where hlia.lease_item_id = #{leaseItemId}
+
+    </select>
+
+</mapper>

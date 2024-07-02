@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.ConfirmBatchMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.ConfirmBatch">
+        <result column="BATCH_ID" property="batchId" jdbcType="DECIMAL" />
+        <result column="BATCH_CODE" property="batchCode" jdbcType="VARCHAR" />
+        <result column="REFRESH_STATUS" property="refreshStatus" jdbcType="VARCHAR" />
+        <result column="REFRESH_DATE" property="refreshDate" jdbcType="DATE" />
+        <result column="refresh_date_from" property="refreshDateFrom" jdbcType="VARCHAR" />
+        <result column="refresh_date_to" property="refreshDateTo" jdbcType="VARCHAR" />
+        <result column="creation_date" property="creationDate" jdbcType="DATE" />
+        <result column="count_By_Day" property="countByDay" jdbcType="DECIMAL" />
+        <result column="refresh_status_n" property="refreshStatusN" jdbcType="VARCHAR" />
+        <result column="factory_id_n" property="factoryIdN" jdbcType="VARCHAR" />
+        <result column="manufacturer_id_n" property="manufacturerIdN" jdbcType="VARCHAR" />
+        <result column="bp_id_vender_n" property="bpIdVenderN" jdbcType="VARCHAR" />
+        <result column="CREATED_BY_N" property="createdByN" jdbcType="VARCHAR" />
+        <result column="creat_date" property="creatDate" jdbcType="VARCHAR" />
+        <result column="user_name" property="userName" jdbcType="VARCHAR" />
+        <result column="manufacturer_name" property="manufacturerName" jdbcType="VARCHAR" />
+        <result column="factory_name" property="factoryName" jdbcType="VARCHAR" />
+    </resultMap>
+    <delete id="batchDel">
+        delete con_confirm_batch where batch_id in (${batchIds})
+    </delete>
+
+    <select id="queryMaxCountByDay" resultMap="BaseResultMap">
+        SELECT
+            t.*
+        FROM
+            (
+                SELECT
+                    TO_NUMBER( SUBSTR( ccb.BATCH_CODE, - 4 ) ) AS count_By_Day
+                FROM
+                    con_confirm_batch ccb
+                WHERE
+                    trunc( ccb.creation_date ) = trunc( SYSDATE )
+                    and ccb.BATCH_CODE NOT LIKE 'QRH-J-%'
+                ORDER BY
+                    ccb.BATCH_CODE DESC
+            ) t
+        WHERE
+            ROWNUM = 1
+    </select>
+
+    <select id="queryDealerMaxCountByDay" resultMap="BaseResultMap">
+        SELECT
+            t.*
+        FROM
+            (
+                SELECT
+                    TO_NUMBER( SUBSTR( ccb.BATCH_CODE, - 4 ) ) AS count_By_Day
+                FROM
+                    con_confirm_batch ccb
+                WHERE
+                    trunc( ccb.creation_date ) = trunc( SYSDATE )
+                  and ccb.BATCH_CODE LIKE 'QRH-J-%'
+                ORDER BY
+                    ccb.BATCH_CODE DESC
+            ) t
+        WHERE
+            ROWNUM = 1
+    </select>
+
+    <select id="queryForCont311Lview" resultMap="BaseResultMap">
+      select ccb.batch_id,
+       ccb.batch_code,
+       ccb.refresh_status,
+       (select v.MEANING
+          from SYS_CODE_VALUE_B_V v
+         where v.code = 'CONFIRM_REFRESH_STATUS'
+           and v.CODE_VALUE = ccb.refresh_status) as refresh_status_n,
+       ccb.refresh_date,
+       ccb.created_by,
+        (select su.description from sys_user su where su.user_id=ccb.created_by) CREATED_BY_N,
+       ccb.creation_date,
+        (SELECT cc.manufacturer_id
+        FROM CON_BUSINESS_CONFIRM cbc, CON_CONTRACT cc
+        WHERE ccb.BATCH_ID = cbc.BATCH_ID
+        AND cbc.CONTRACT_ID = cc.CONTRACT_ID
+        AND ROWNUM = 1) AS manufacturer_id,
+        (SELECT hm.bp_name
+        FROM CON_BUSINESS_CONFIRM cbc, CON_CONTRACT cc, hls_bp_master hm
+        WHERE ccb.BATCH_ID = cbc.BATCH_ID
+        AND cbc.CONTRACT_ID = cc.CONTRACT_ID
+        AND hm.bp_id = cc.manufacturer_id
+        AND ROWNUM = 1) AS manufacturer_id_n,
+        f.factory_id,
+        f.factory_id_n
+  from con_confirm_batch ccb
+        LEFT JOIN (SELECT t.BATCH_ID,
+        wm_concat(t.factory_id) AS factory_id,
+        wm_concat(t.BP_NAME) AS factory_id_n
+        FROM (SELECT DISTINCT ccb.BATCH_ID,
+        cc.factory_id,
+        (SELECT hm.bp_name
+        FROM hls_bp_master hm
+        WHERE hm.bp_id = cc.factory_id) AS BP_NAME
+        FROM CON_CONFIRM_BATCH ccb
+        LEFT JOIN CON_BUSINESS_CONFIRM cbc
+        ON ccb.BATCH_ID = cbc.BATCH_ID
+        LEFT JOIN CON_CONTRACT cc
+        ON cbc.CONTRACT_ID = cc.CONTRACT_ID) t
+        GROUP BY t.BATCH_ID) f
+        ON ccb.BATCH_ID = f.BATCH_ID
+      <where>
+          ccb.BATCH_CODE  NOT LIKE 'QRH-J-%'
+          <if test="createdBy!=null">
+              and (exists(
+              select 1
+              from fnd_org_unit fu,  sys_user_allocation su,fnd_employee_assigns fa
+              where su.user_id=#{createdBy}
+              and su.EMPLOYEE_ASSIGN_ID=fa.EMPLOYEE_ASSIGN_ID
+              and fa.unit_id =fu.unit_id
+              and fu.unit_code != 'BUSINESS_DEPT_MANUFACTURER')
+              OR
+              exists(
+              select 1 from fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4
+              where a3.employee_id=a2.employee_id
+              and a4.position_id=a3.position_id
+              and employee_code=#{request.employeeCode}
+              AND A4.position_id IN(select b.position_id
+              from sys_user_allocation a,fnd_employee_assigns b
+              where a.employee_assign_id=b.employee_assign_id
+              AND (a.user_id =ccb.created_by
+                or a.user_id=(SELECT m.created_by
+                FROM CON_BUSINESS_CONFIRM cbc, CON_CONTRACT cc,hls_bp_master m
+                WHERE ccb.BATCH_ID = cbc.BATCH_ID
+                AND cbc.CONTRACT_ID = cc.CONTRACT_ID
+                and m.bp_id=cc.tenant_id
+                AND ROWNUM = 1))
+              ))
+              )
+          </if>
+          <if test="batchCode!=null">
+              and    ccb.batch_code  LIKE CONCAT('%',CONCAT(#{batchCode,jdbcType=VARCHAR},'%'))
+          </if>
+          <if test="refreshStatus!=null">
+              and    ccb.refresh_status = #{refreshStatus}
+          </if>
+          <if test="creatTimeFrom!=null">
+              and    trunc(ccb.creation_date) >= to_date(#{creatTimeFrom},'yyyy-mm-dd')
+          </if>
+          <if test="creatTimeTo!=null">
+              and     to_date(#{creatTimeTo},'yyyy-mm-dd') >=trunc(ccb.creation_date)
+          </if>
+          <if test="refreshDateFrom!=null">
+              and  trunc(ccb.refresh_date) &gt;= to_date(#{refreshDateFrom},'yyyy-mm-dd')
+          </if>
+          <if test="refreshDateTo!=null">
+              and trunc(ccb.refresh_date) &lt;= to_date(#{refreshDateTo},'yyyy-mm-dd')
+          </if>
+          <if test="manufacturerId!=null">
+              and    (SELECT cc.manufacturer_id
+              FROM CON_BUSINESS_CONFIRM cbc, CON_CONTRACT cc
+              WHERE ccb.BATCH_ID = cbc.BATCH_ID
+              AND cbc.CONTRACT_ID = cc.CONTRACT_ID
+              AND ROWNUM = 1) = #{manufacturerId}
+          </if>
+          <if test="factoryId!=null">
+              and    f.factory_id like CONCAT('%',CONCAT(#{factoryId},'%'))
+          </if>
+  </where>
+
+    </select>
+
+
+    <select id="queryForConfirmDetailLview" resultMap="BaseResultMap">
+        select cbt.batch_id,
+       cbt.batch_code,
+       cbt.refresh_status,
+       cbt.refresh_date,
+       cbt.factory_id,
+       cbt.manufacturer_id,
+       cbt.object_version_number,
+       cbt.request_id,
+       cbt.program_id,
+       cbt.created_by,
+       to_char(cbt.creation_date,'yyyy-mm-dd') as  creat_date,
+       (select su.description from sys_user su where su.user_id=cbt.created_by) as user_name,
+       (
+           SELECT
+               hm.bp_name
+           FROM
+               CON_BUSINESS_CONFIRM cbc,
+               CON_CONTRACT cc,
+               hls_bp_master hm
+           WHERE
+               cbt.BATCH_ID = cbc.BATCH_ID
+             AND cbc.CONTRACT_ID = cc.CONTRACT_ID
+             AND hm.bp_id = cc.MANUFACTURER_ID
+             AND ROWNUM = 1
+       ) AS manufacturer_name,
+       (select hm.bp_name from hls_bp_master hm where hm.bp_id =cbt.factory_id) as factory_name
+        from con_confirm_batch cbt
+        where cbt.batch_id =#{batchId}
+    </select>
+
+    <select id="queryDealerBusinessConfirm" resultMap="BaseResultMap">
+        select a.* from (select ccb.batch_id,
+        ccb.batch_code,
+        ccb.refresh_status,
+        (select v.MEANING
+        from SYS_CODE_VALUE_B_V v
+        where v.code = 'CONFIRM_REFRESH_STATUS'
+        and v.CODE_VALUE = ccb.refresh_status) as refresh_status_n,
+        ccb.refresh_date,
+        ccb.created_by,
+        (select su.description from sys_user su where su.user_id=ccb.created_by) CREATED_BY_N,
+        ccb.creation_date,
+        (
+        SELECT
+        hm.bp_name
+        FROM
+        CON_BUSINESS_CONFIRM cbc,
+        CON_CONTRACT cc,
+        hls_bp_master hm
+        WHERE
+        ccb.BATCH_ID = cbc.BATCH_ID
+        AND cbc.CONTRACT_ID = cc.CONTRACT_ID
+        AND hm.bp_id = cc.manufacturer_id
+        AND ROWNUM = 1
+        ) AS manufacturer_id_n,
+        f.FACTORY_ID,
+        f.FACTORY_ID_N,
+        (
+        SELECT
+        hm.bp_name
+        FROM
+        CON_BUSINESS_CONFIRM cbc,
+        CON_CONTRACT cc,
+        hls_bp_master hm
+        WHERE
+        ccb.BATCH_ID = cbc.BATCH_ID
+        AND cbc.CONTRACT_ID = cc.CONTRACT_ID
+        AND hm.bp_id = cc.bp_id_vender
+        AND ROWNUM = 1
+        ) AS bp_id_vender_n,
+        (SELECT m.created_by
+        FROM CON_BUSINESS_CONFIRM cbc, CON_CONTRACT cc,hls_bp_master m
+        WHERE ccb.BATCH_ID = cbc.BATCH_ID
+        AND cbc.CONTRACT_ID = cc.CONTRACT_ID
+        and m.bp_id=cc.tenant_id
+        AND ROWNUM = 1) tenant_created_by
+        from con_confirm_batch ccb
+        LEFT JOIN (
+        SELECT
+        t.BATCH_ID,
+        wm_concat ( t.factory_id ) AS factory_id,
+        wm_concat ( t.BP_NAME ) AS factory_id_n
+        FROM
+        (
+        SELECT DISTINCT
+        ccb.BATCH_ID,
+        cc.factory_id,
+        ( SELECT hm.bp_name FROM hls_bp_master hm WHERE hm.bp_id = cc.factory_id ) AS BP_NAME
+        FROM
+        CON_CONFIRM_BATCH ccb
+        LEFT JOIN CON_BUSINESS_CONFIRM cbc ON ccb.BATCH_ID = cbc.BATCH_ID
+        LEFT JOIN CON_CONTRACT cc ON cbc.CONTRACT_ID = cc.CONTRACT_ID
+        ) t
+        GROUP BY
+        t.BATCH_ID
+        ) f ON ccb.BATCH_ID = f.BATCH_ID) a
+        <where>
+            a.BATCH_CODE LIKE 'QRH-J-%'
+            <if test="createdBy!=null">
+                and (exists(
+                select 1
+                from fnd_org_unit fu,  sys_user_allocation su,fnd_employee_assigns fa
+                where su.user_id=#{createdBy}
+                and su.EMPLOYEE_ASSIGN_ID=fa.EMPLOYEE_ASSIGN_ID
+                and fa.unit_id =fu.unit_id
+                and fu.unit_code != 'BUSINESS_DEPT_MANUFACTURER')
+                OR
+                exists(
+                select 1 from fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4
+                where a3.employee_id=a2.employee_id
+                and a4.position_id=a3.position_id
+                and employee_code=#{request.employeeCode}
+                AND A4.position_id IN(select b.position_id
+                from sys_user_allocation aua,fnd_employee_assigns b
+                where aua.employee_assign_id=b.employee_assign_id
+                AND (aua.user_id =a.created_by or aua.user_id=a.tenant_created_by)
+                ))
+                )
+            </if>
+            <if test="batchCode!=null">
+                and    a.batch_code  LIKE CONCAT('%',CONCAT(#{batchCode,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="refreshStatus!=null">
+                and    a.refresh_status = #{refreshStatus}
+            </if>
+            <if test="creatTimeFrom!=null">
+                and    trunc(a.creation_date) >= to_date(#{creatTimeFrom},'yyyy-mm-dd')
+            </if>
+            <if test="creatTimeTo!=null">
+                and     to_date(#{creatTimeTo},'yyyy-mm-dd') >=trunc(a.creation_date)
+            </if>
+            <if test="manufacturerId!=null">
+                and (SELECT cc.manufacturer_id FROM CON_BUSINESS_CONFIRM cbc,CON_CONTRACT cc WHERE a.BATCH_ID = cbc.BATCH_ID AND cbc.CONTRACT_ID = cc.CONTRACT_ID AND ROWNUM = 1) = #{manufacturerId}
+            </if>
+            <if test="factoryId!=null">
+                and INSTR( TO_CHAR( a.FACTORY_ID ), #{factoryId} ) > 0
+            </if>
+            <if test="dealerId!=null">
+                and a.bp_id_vender_n  LIKE CONCAT('%',CONCAT(#{dealerId},'%'))
+            </if>
+        </where>
+    </select>
+</mapper>

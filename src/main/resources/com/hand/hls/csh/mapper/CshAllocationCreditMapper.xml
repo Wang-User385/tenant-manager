@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.CshAllocationCreditMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.CshAllocationCredit">
+        <id column="credit_id" property="creditId" jdbcType="DECIMAL"/>
+        <result column="allocation_id" property="allocationId" jdbcType="DECIMAL"/>
+        <result column="cashflow_id" property="cashflowId" jdbcType="DECIMAL"/>
+        <result column="due_amount" property="dueAmount" jdbcType="DECIMAL"/>
+        <result column="principal" property="principal" jdbcType="DECIMAL"/>
+        <result column="interest" property="interest" jdbcType="DECIMAL"/>
+        <result column="arrive_modality" property="arriveModality" jdbcType="VARCHAR" />
+
+        <result column="arrive_modality_desc" property="arriveModalityDesc" jdbcType="VARCHAR" />
+
+
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="times" property="times"/>
+        <result column="bp_name" property="bp_name"/>
+        <result column="due_date" property="due_date"/>
+        <result column="due_amount" property="due_amount"/>
+        <result column="cf_item_n" property="cf_item_n"/>
+        <result column="surplus_amount" property="surplus_amount"/>
+        <result column="write_off_due_amount" property="write_off_due_amount"/>
+        <result column="write_off_principal" property="write_off_principal"/>
+        <result column="write_off_interest" property="write_off_interest"/>
+
+        <result column="contract_id" property="contractId"/>
+        <result column="contract_name" property="contractName"/>
+        <result column="approval_number" property="approvalNumber"/>
+        <result column="prj_con_number" property="prjConNumber"/>
+        <result column="due_date" property="dueDate"/>
+        <result column="cf_item" property="cfItem"/>
+        <result column="cf_type" property="cfType"/>
+        <result column="cf_status" property="cfStatus"/>
+        <result column="cf_direction" property="cfDirection"/>
+        <result column="calc_date" property="calcDate"/>
+        <result column="fine_days" property="fineDays"/>
+        <result column="write_off_flag" property="writeOffFlag"/>
+        <result column="write_off_flag_desc" property="writeOffFlagDesc"/>
+        <result column="surplus_principal" property="surplusPrincipal"/>
+        <result column="surplus_interest" property="surplusInterest"/>
+        <result column="bp_id" property="bpId"/>
+        <result column="deal_date" property="dealDate"/>
+        <result column="legal_contract_number" property="legalContractNumber"/>
+    </resultMap>
+
+    <select id="creditQuery" parameterType="com.hand.hls.csh.dto.CshAllocationCredit" resultMap="BaseResultMap">
+
+        SELECT t1.*
+        FROM (SELECT
+        cac.credit_id,
+        cac.allocation_id,
+        cac.due_amount as write_off_due_amount,
+        cac.principal as write_off_principal,
+        cac.interest as write_off_interest,
+
+        cac.ARRIVE_MODALITY,
+        (select scvb.MEANING from SYS_CODE_B scb , SYS_CODE_VALUE_B scvb
+        where scb.CODE = 'CSH001_ARRIVE_MODALITY' and scb.CODE_ID = scvb.CODE_ID
+        and scvb.VALUE = cac.ARRIVE_MODALITY) as arrive_modality_desc,
+
+        t.contract_id,
+        t.cashflow_id,
+        (SELECT c.contract_number
+        FROM con_contract c
+        WHERE c.contract_id = t.contract_id) contract_number,
+        (SELECT c.legal_contract_number
+        FROM con_contract c
+        WHERE c.contract_id = t.contract_id) legal_contract_number,
+        (SELECT c.contract_name
+        FROM con_contract c
+        WHERE c.contract_id = t.contract_id) contract_name,
+        (SELECT p.contract_number
+        FROM prj_project p, con_contract c
+        WHERE p.project_id = c.project_id
+        AND c.contract_id = t.contract_id) prj_con_number,
+        t.times,
+        t.due_date,
+        t.due_amount,
+        t.cf_item,
+        t.cf_type,
+        t.cf_status,
+        t.cf_direction,
+        t.calc_date,
+        t.fine_days,
+        t.write_off_flag,
+        (SELECT scvb.meaning
+        FROM sys_code_b scb, sys_code_value_b scvb
+        WHERE scb.code_id = scvb.code_id
+        AND scb.code = 'FCT.WRITE_OFF_FLAG'
+        AND scvb.value = t.WRITE_OFF_FLAG) AS write_off_flag_desc,
+        (SELECT i.description
+        FROM hls_cashflow_item i
+        WHERE i.cf_item = t.cf_item
+        AND i.cf_type = t.cf_type) cf_item_n,
+        (t.due_amount - nvl(t.received_amount, 0)) AS surplus_amount,
+        (t.principal - nvl(t.received_principal, 0)) AS surplus_principal,
+        (t.interest - nvl(t.received_interest, 0)) AS surplus_interest,
+        (SELECT c.tenant_id
+        FROM con_contract c
+        WHERE c.contract_id = t.contract_id) bp_id,
+        (SELECT bp.bp_name
+        FROM con_contract c, hls_bp_master bp
+        WHERE c.contract_id = t.contract_id
+        AND c.tenant_id = bp.bp_id) bp_name,
+        (SELECT q.quotation_id
+        FROM prj_quotation q
+        WHERE q.source_document_category = 'CON_CONTRACT'
+        AND t.contract_id = q.source_document_id) quotation_id,
+        cwo.deal_date,
+        cwo.last_update_date
+        FROM con_contract_cashflow t
+        left join csh_write_off cwo on cwo.cashflow_id = t.cashflow_id, con_contract c,csh_allocation_credit cac
+        WHERE c.contract_id = t.contract_id
+        and cac.cashflow_id= t.cashflow_id
+        AND c.data_class = 'NORMAL') t1
+        left join
+        (select cashflow_id, max(last_update_date) as max_date
+        from csh_write_off
+        group by cashflow_id) c1
+        on t1.cashflow_id = c1.cashflow_id
+        <where>
+            1=1
+            and (c1.max_date = t1.last_update_date
+            or c1.max_date is null)
+            <if test="allocationId!=null">
+                and t1.allocation_id = #{allocationId}
+            </if>
+        </where>
+        order by t1.credit_id
+    </select>
+</mapper>

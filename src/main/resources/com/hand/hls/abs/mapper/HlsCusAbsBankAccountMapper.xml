@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsBankAccountMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsBankAccount">
+        <result column="ABS_BANK_ACCOUNT_ID" property="absBankAccountId" jdbcType="DECIMAL" />
+        <result column="SOURCE_KEY" property="sourceKey" jdbcType="DECIMAL" />
+        <result column="SOURCE_TYPE" property="sourceType" jdbcType="VARCHAR" />
+        <result column="ACCOUNT_SOURCE_TYPE" property="accountSourceType" jdbcType="VARCHAR" />
+        <result column="ABS_COMPANY_ID" property="absCompanyId" jdbcType="DECIMAL" />
+        <result column="ABS_COMPANY_NAME" property="absCompanyName" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_TYPE" property="bankAccountType" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_ID" property="bankAccountId" jdbcType="DECIMAL" />
+        <result column="BANK_ACCOUNT_ID_N" property="bankAccountIdN" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_NUM" property="bankAccountNum" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_NAME" property="bankAccountName" jdbcType="VARCHAR" />
+        <result column="BANK_BRANCH_NAME" property="bankBranchName" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_TYPE_DESC" property="bankAccountTypeDesc" jdbcType="VARCHAR" />
+        <result column="ACCOUNT_SOURCE_TYPE_N" property="accountSourceTypeN" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_TYPE_N" property="bankAccountTypeN" jdbcType="VARCHAR" />
+        <result column="project_id" property="projectId" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <select id="selectAbsBankAccountData" parameterType="com.hand.hls.abs.dto.HlsCusAbsBankAccount" resultMap="BaseResultMap">
+        SELECT
+            CABA.SOURCE_KEY  as project_id,
+            CABA.ABS_BANK_ACCOUNT_ID,
+            CABA.SOURCE_KEY,
+            CABA.SOURCE_TYPE,
+            CABA.ACCOUNT_SOURCE_TYPE,
+            CABA.ABS_COMPANY_ID,
+            CABA.ABS_COMPANY_NAME,
+            CABA.BANK_ACCOUNT_TYPE,
+            CABA.BANK_ACCOUNT_ID,
+            CABA.BANK_ACCOUNT_NUM,
+            CABA.BANK_ACCOUNT_NAME,
+            CABA.BANK_BRANCH_NAME,
+            CABA.DESCRIPTION,
+            (select c.REF_V05 from csh_bank_account c where c.BANK_ACCOUNT_ID = CABA.BANK_ACCOUNT_ID) as BANK_ACCOUNT_ID_N,
+           (
+            SELECT
+               SC.MEANING
+            FROM
+               <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail" /> SC
+             WHERE
+               SC.CODE_VALUE = CABA.BANK_ACCOUNT_TYPE
+              AND SC.CODE = 'ABS.ACCOUNT_TYPE'
+            ) BANK_ACCOUNT_TYPE_DESC,
+        ( SELECT meaning value_name FROM sys_code_value_b_v v WHERE v.CODE = 'LON_CON_ACCOUNT_SOURCE' AND v.code_value =
+        CABA.ACCOUNT_SOURCE_TYPE) ACCOUNT_SOURCE_TYPE_N,
+        ( SELECT meaning value_name FROM sys_code_value_b_v v WHERE v.CODE = 'ABS.ACCOUNT_TYPE' AND v.code_value =
+        CABA.BANK_ACCOUNT_TYPE) BANK_ACCOUNT_TYPE_N
+
+        FROM
+            CT_ABS_BANK_ACCOUNT CABA
+        WHERE
+            1=1
+        <if test="sourceKey != null">
+            AND CABA.SOURCE_KEY = #{sourceKey}
+        </if>
+         <if test="sourceType != null">
+            AND CABA.SOURCE_TYPE = #{sourceType}
+        </if>
+         <if test="accountSourceType != null">
+            AND CABA.ACCOUNT_SOURCE_TYPE = #{accountSourceType}
+        </if>
+          <if test="bankAccountType != null">
+            AND CABA.BANK_ACCOUNT_TYPE = #{bankAccountType}
+        </if>
+        <if test="bankAccountNum != null">
+            AND CABA.BANK_ACCOUNT_NUM LIKE CONCAT('%',CONCAT(#{bankAccountNum},'%'))
+        </if>
+        <if test="bankAccountName != null">
+            AND  CABA.BANK_ACCOUNT_NAME LIKE CONCAT('%',CONCAT(#{bankAccountName},'%'))
+        </if>
+        <if test="bankBranchName != null">
+            AND  CABA.BANK_BRANCH_NAME LIKE CONCAT('%',CONCAT(#{bankBranchName},'%'))
+        </if>
+    </select>
+
+    <select id="selectDistinctAbsCompany" parameterType="com.hand.hls.abs.dto.HlsCusAbsBankAccount" resultMap="BaseResultMap">
+    SELECT
+        DISTINCT
+            CABA.ABS_COMPANY_ID,
+            CABA.ABS_COMPANY_NAME
+    FROM
+        CT_ABS_BANK_ACCOUNT CABA
+    WHERE
+            1=1
+        <if test="sourceKey != null">
+            AND CABA.SOURCE_KEY = #{sourceKey}
+        </if>
+         <if test="sourceType != null">
+            AND CABA.SOURCE_TYPE = #{sourceType}
+        </if>queryOranization
+         <if test="accountSourceType != null">
+            AND CABA.ACCOUNT_SOURCE_TYPE = #{accountSourceType}
+        </if>
+    </select>
+
+    <select id="selectOtherDataQuoteCount" resultType="int">
+        SELECT
+             COUNT(1)
+        FROM
+            CT_ABS_PRODUCT_RECEIPT CAPR
+        WHERE
+            CAPR.ABS_BANK_ACCOUNT_ID=#{absBankAccountId}
+    </select>
+</mapper>

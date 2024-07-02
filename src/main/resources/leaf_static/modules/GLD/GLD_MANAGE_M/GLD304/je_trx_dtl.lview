@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="gld203_certificate_create_submit" url="${/request/@context_path}/gld/je/trx/dtl/createLine"/>
+        <a:link id="gld_je_line_info_link" url="${/request/@context_path}/modules/GLD/GLD_MANAGE_M/GLD304/je_trx_line_detail.lview"/>
+        <script><![CDATA[
+
+        function open_gld_je_line_win(record_id, ds_id, je_head_id) {
+            // debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = {};
+            param['url_title'] = '凭证明细';
+            param['function_code'] = 'GLD304F1';
+            param['function_usage'] = 'MODIFY';
+            param['je_head_id'] = je_head_id;
+            param['winid'] = 'gld304_certificate_win_id';
+            hls_doc_get_layout_code(param, 'gld_je_line_info_link', ds_id, 'GLD304');
+        }
+
+        //凭证生成
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_G_LIST_INFO_CREATE_layout_dynamic_tab_click'] = function (ds, record, config_records, bp_seq) {
+            Leaf.Masker.mask(Ext.getBody(), '凭证生成中...');
+            var arr = $("${/parameter/@layout_code}_G_LIST_INFO_gld_je_trx_dtl_ds").getSelected();
+            if (arr.length == 0) {
+                $L.showInfoMessage("提示", "请选择要生成凭证的数据!");
+                Leaf.Masker.unmask(Ext.getBody());
+            } else {
+                var ids = [];
+                for (var i = 0; i < arr.length; i++) {
+                    ids.push(arr[i].get("je_trx_dtl_id"));
+                }
+                Leaf.request({
+                    url: $('gld203_certificate_create_submit').getUrl() + "?ids=" + ids,
+                    scope: this,
+                    success: function (res) {
+                        if (res.success) {
+                            Leaf.showMessage('提示', '凭证生成成功!');
+                        } else {
+                            Leaf.showMessage('提示', '凭证生成失败!');
+                        }
+                        Leaf.Masker.unmask(Ext.getBody());
+                        $("${/parameter/@layout_code}_G_LIST_INFO_gld_je_trx_dtl_ds").query();
+                    },
+                    failure: function () {
+                        Leaf.showMessage('提示', '凭证生成失败!');
+                        Leaf.Masker.unmask(Ext.getBody());
+                        $("${/parameter/@layout_code}_G_LIST_INFO_gld_je_trx_dtl_ds").query();
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                        $("${/parameter/@layout_code}_G_LIST_INFO_gld_je_trx_dtl_ds").query();
+                    }
+                });
+            }
+        };
+
+        //凭证初审
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_G_DISPLAY_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function (ds, record, config_records, bp_seq) {
+            //debugger;
+            var head_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'gld_je_head');
+            var records = $(head_ds_id).getSelected();
+            var data = [];
+            var jeStatus = 'TRIAL';
+            for (var i = 0; i < records.length; i++) {
+                var je_status = records[i].get('je_status');
+                if (je_status != 'NEW') {
+                    Leaf.showMessage('提示', '存在不是新建的凭证!');
+                    Leaf.Masker.unmask(Ext.getBody());
+                    return false;
+                }
+            }
+            if (records.length != 0) {
+                new Leaf.showConfirm('${l:HLS.PROMPT}', '确认进行初审?', function okFun() {
+                    Leaf.Masker.mask(Ext.getBody());
+                    for (var i = 0; i < records.length; i++) {
+                        data.push(records[i].data);
+                    }
+                    Leaf.request({
+                        url: "${/request/@context_path}/gld/je/head/submit?jeStatus=" + jeStatus,
+                        para: data,
+                        type: "POST",
+                        success: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            Leaf.SideBar.show({
+                                msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                duration: 2000
+                            });
+                            $(head_ds_id).query();
+                        },
+                        error: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            $(head_ds_id).query();
+                        },
+                        failure: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            $(head_ds_id).query();
+                        },
+                        scope: this
+                    });
+                }, function cancel() {
+                    Leaf.Masker.unmask(Ext.getBody());
+                }, 200, 100);
+            } else {
+                Leaf.showMessage('提示', '请至少选择一条凭证记录!');
+                return false;
+            }
+
+        };
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'details') {
+                return '<a href="javascript:open_gld_je_line_win(\'' + record.id + '\',\'' + record.ds.id + '\',\'' + record.data.je_head_id + '\')">明细</a>';
+            }
+            return value;
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

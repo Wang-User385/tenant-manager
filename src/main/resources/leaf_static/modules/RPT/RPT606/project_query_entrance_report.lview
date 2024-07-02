@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: congweijing
+    Date: 2021/10/21 9:51
+    Revision: 1.0
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="prj316_project_modify_id"
+                url="${/request/@context_path}/modules/RPT/RPT710/prj_project_detail_query.lview"/>
+        <script><![CDATA[
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'project_number' && value) {
+                return '<a href="javascript:open_project_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+            return value;
+        };
+
+        //项目维护
+        function open_project_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data, function_code = 'PRJ316F2Q';
+            param['url_title'] = '项目明细';
+            param['winid'] = 'project_modify_winid';
+            param['function_code'] = function_code;
+            var project_status = record.get('project_status');
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+
+            hls_doc_get_layout_code(param, 'prj316_project_modify_id', ds_id, function_code);
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

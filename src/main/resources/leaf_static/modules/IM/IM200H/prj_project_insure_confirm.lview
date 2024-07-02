@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        //实体保单确认
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            debugger;
+            var record = $(ds_id).getSelected()[0];
+            var policy_status = record.get('policy_status');
+            var confirm_person ='${/session/@user_id}';
+            var confirm_note=record.get('confirm_note');
+            if(Ext.isEmpty(policy_status) && policy_status != 'HANDOVING'){
+                Leaf.showMessage('提示','只有交接中状态的单据可以进行交接！');
+                return;
+            }else{
+                new Leaf.showConfirm('${l:HLS.PROMPT}', '确认交接保单?', function okFun() {
+                    record.set('policy_status','HANDOVERED');
+                    record.set('confirm_person',confirm_person);
+                    record.set('confirm_note',confirm_note);
+                    $(ds_id).submit();
+                    $(ds_id).query();
+                }, function cancel() {
+                    Leaf.Masker.unmask(Ext.getBody());
+                }, 200, 100);
+            }
+            
+
+        }
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if(name === 'attactment'&& record.get('insure_id')){
+                link_function = 'attactment';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '附件下载'  +'</a>';
+            }else if(name === 'attachment_a'&& record.get('beneficiary_id')){
+                link_function = 'attachment_a';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '附件下载' +'</a>';
+            }else if(name === 'attachment_b'&& record.get('settlement_id')){
+                link_function = 'attachment_b';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '附件下载'  +'</a>';
+            }
+        }
+
+        window['attactment'] = function (record_id, ds_id) {
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            var project_record = $(prj_ds_id).getCurrentRecord();
+            var insure_id = project_record.get('insure_id');
+            if (insure_id == undefined || insure_id == 0) {
+                $L.showInfoMessage("提示", "请先保存当前页面信息，再上传附件!");
+                return;
+            }
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            url = '${/request/@context_path}/downloadFile.lview';
+
+            // if('${/parameter/@file_flag}' == 'Y'){
+            //     url = '${/request/@context_path}/downloadFile.lview';
+            //     function_usage = 'QUERY';
+            // }
+            var table_name;
+            table_name = 'PRJ_PROJECT_INSURE';
+            var win = new Leaf.Window({
+                id: 'im200_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': insure_id,
+                    'table_name': table_name,
+                    winid: 'im200_open_attachment_winid',
+                    function_usage: 'QUERY'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                // $(prj_ds_id).query();
+            });
+        };
+
+        window['attachment_a'] = function (record_id, ds_id) {
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_insure_beneficiary');
+            var project_record = $(prj_ds_id).getCurrentRecord();
+            var beneficiary_id = project_record.get('beneficiary_id');
+            if (beneficiary_id == undefined || beneficiary_id == 0) {
+                $L.showInfoMessage("提示", "请先保存当前页面信息，再上传附件!");
+                return;
+            }
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            url = '${/request/@context_path}/downloadFile.lview';
+            // if('${/parameter/@file_flag}' == 'Y'){
+            //     url = '${/request/@context_path}/downloadFile.lview';
+            //     function_usage = 'QUERY';
+            // }
+            var table_name;
+            table_name = 'PRJ_INSURE_BENEFICIARY';
+            var win = new Leaf.Window({
+                id: 'im200_open_attachment_a_winid',
+                url: url,
+                params: {
+                    'header_id': beneficiary_id,
+                    'table_name': table_name,
+                    winid: 'im200_open_attachment_a_winid',
+                    function_usage: 'QUERY'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                // $(prj_ds_id).query();
+            });
+        };
+
+        window['attachment_b'] = function (record_id, ds_id) {
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            var project_record = $(prj_ds_id).getCurrentRecord();
+            var settlement_id = project_record.get('settlement_id');
+            if (settlement_id == undefined || settlement_id == 0) {
+                $L.showInfoMessage("提示", "请先保存当前页面信息，再上传附件!");
+                return;
+            }
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            url = '${/request/@context_path}/downloadFile.lview';
+
+            // if('${/parameter/@file_flag}' == 'Y'){
+            //     url = '${/request/@context_path}/downloadFile.lview';
+            //     function_usage = 'QUERY';
+            // }
+            var table_name;
+            table_name = 'PRJ_INSURE_SETTLEMENT_LIST';
+            var win = new Leaf.Window({
+                id: 'im200_open_attachment_b_winid',
+                url: url,
+                params: {
+                    'header_id': settlement_id,
+                    'table_name': table_name,
+                    winid: 'im200_open_attachment_b_winid',
+                    function_usage: 'QUERY'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                // $(prj_ds_id).query();
+            });
+        };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

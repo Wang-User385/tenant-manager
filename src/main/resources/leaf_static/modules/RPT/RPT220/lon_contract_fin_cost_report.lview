@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true"
+          trace="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.sys.service.SysDefaultValueService.querySysDefaultValue"
+                       rootPath="default_value"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fin003_tikuan_lon_detail_id"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_withdraw_detail.lview"/>
+        <script><![CDATA[
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            var link_function = '';
+            if (name == 'withdraw_number') {
+                link_function = 'withdrawDetailFunction';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.ds.id + '\',\'' + record.id  + '\');">' + value + '</a>';
+            }
+        };
+
+
+        function withdrawDetailFunction(ds_id,record_id) {
+            var record = $(ds_id).findById(record_id);
+            var editFlag = 'Y';
+            var changeFlag='N';
+            var param = {};
+            param['contract_id'] = record.get('contract_id');
+            param['withdraw_id'] = record.get('withdraw_id');
+            param['withdraw_status'] = record.get('withdraw_status');
+            param['function_code'] = 'FIN003S3';
+            param['function_usage'] = 'QUERY';
+            param['editFlag'] = editFlag;
+            param['changeFlag'] = changeFlag;
+            param['url_title'] = '融资提款详细信息';
+            hls_doc_get_layout_code(param, 'fin003_tikuan_lon_detail_id', ds_id, 'FIN003S1');
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

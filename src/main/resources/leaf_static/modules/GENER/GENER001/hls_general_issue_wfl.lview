@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+
+
+
+        <script><![CDATA[
+
+        function assign_delegate_user_confirm() {
+            var pid = '${/parameter/@id}';
+            var taskId = '${/parameter/@taskId}';
+            var action = '${/parameter/@action}';
+            var comment = '${/parameter/@comment}';
+            var allocationId = $('assign_delegate_user_ds').getSelected()[0].get('allocation_id');
+            $('assign_delegate_user_info_ds').create({"assign": allocationId, "action": action, taskId: taskId, comment: comment});
+            $('assign_delegate_user_info_ds').setSubmitUrl('${/request/@context_path}/wfl/leaf/runtime/execute/' + pid + '?assign=' + allocationId);
+            $('assign_delegate_user_info_ds').submit();
+        }
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {
+            var head_record = ds.getCurrentRecord();
+
+            head_record.set('status','NEW');
+            head_record.set('status_n','新建');
+
+
+            head_record.set('apply_date',new Date());
+            head_record.set('created_by','${/session/@user_id}');
+            head_record.set('created_by_n','${/session/@employeeName}');
+        };
+
+        function fin002_open_attach(general_id, status) {
+            var  url;
+            if(status=='APPROVED' || status =='APPROVING'){
+                url = '${/request/@context_path}/downloadFile.lview';
+
+            }else{
+                url = '${/request/@context_path}/uploadFile.lview';
+
+            }
+            win = new Leaf.Window({
+                id: 'fin002_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: general_id,
+                    table_name: table_name,
+                    winid: 'fin002_open_attachment_winid'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+
+        }
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'uploan') {
+                if (record.get('general_id')) {
+                    var table_name = 'hls_general_issue';
+                    return '<a href="javascript:fin002_open_attach(\'' + record.get('general_id') + '\',\'' + record.get('status') + '\')">附件</a>';
+                }
+            }
+
+            return value;
+        };
+
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_general_issue');
+            var  record= $(ds_id).getCurrentRecord();
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            if(record.get('final_approve_flag')=='N'){
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/general/issue/update",
+                    para: {
+                        general_id: '${/parameter/@general_id}',
+                        next_approve_person:record.get('next_approve_person')
+                    },
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        $('${/parameter/@winId}').close();
+                        $("${/parameter/@pWinId}").close();
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

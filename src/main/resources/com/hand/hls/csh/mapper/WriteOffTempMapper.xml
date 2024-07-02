@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.WriteOffTempMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.WriteOffTemp">
+        <result column="TEMP_ID" property="tempId" jdbcType="DECIMAL" />
+        <result column="UUID_STR" property="uuidStr" jdbcType="VARCHAR" />
+        <result column="WRITE_OFF_TYPE" property="writeOffType" jdbcType="VARCHAR" />
+        <result column="TRANSACTION_CATEGORY" property="transactionCategory" jdbcType="VARCHAR" />
+        <result column="TRANSACTION_TYPE" property="transactionType" jdbcType="VARCHAR" />
+        <result column="WRITE_OFF_DATE" property="writeOffDate" jdbcType="DATE" />
+        <result column="WRITE_OFF_DUE_AMOUNT" property="writeOffDueAmount" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_PRINCIPAL" property="writeOffPrincipal" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_INTEREST" property="writeOffInterest" jdbcType="DECIMAL" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL" />
+        <result column="DEPOSIT_DEDUCTION" property="depositDeduction" jdbcType="VARCHAR" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="CF_TYPE" property="cfType" jdbcType="DECIMAL" />
+        <result column="CF_ITEM" property="cfItem" jdbcType="DECIMAL" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL" />
+        <result column="PROPOSED_LAUNCH_DATE" property="proposedLaunchDate" jdbcType="DATE" />
+        <result column="PP_CONTRACT_NUMBER" property="ppContractNumber" jdbcType="VARCHAR" />
+        <result column="PP_CONTRACT_NAME" property="ppContractName" jdbcType="VARCHAR" />
+        <result column="SUM_TOUFANG_AMOUNT" property="sumToufangAmount" jdbcType="DECIMAL" />
+        <result column="LOAN_TOTAL_AMOUNT" property="loanTotalAmount" jdbcType="DECIMAL" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+        <result column="PROJECT_NAME" property="projectName" jdbcType="VARCHAR" />
+        <result column="FINANCE_AMOUNT" property="financeAmount" jdbcType="DECIMAL" />
+        <result column="UNIT_NAME" property="unitName" jdbcType="VARCHAR" />
+        <result column="UNIT_ID" property="unitId" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR" />
+        <result column="CONTRACT_BALANCE" property="contractBalance" jdbcType="DECIMAL" />
+        <result column="CURRENCY" property="currency" jdbcType="VARCHAR" />
+        <result column="CURRENCY_ID" property="currencyId" jdbcType="VARCHAR" />
+        <result column="CONTRACT_CURRENCY_ID" property="contractCurrencyId" jdbcType="VARCHAR" />
+        <result column="CONTRACT_CURRENCY" property="contractCurrency" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+
+        <result column="BP_BANK_ACCOUNT_NUM" property="bpBankAccountNum" jdbcType="VARCHAR" />
+        <result column="BP_BANK_ACCOUNT_NAME" property="bpBankAccountName" jdbcType="VARCHAR" />
+        <result column="BP_BANK_BRANCH_NAME" property="bpBankBranchName" jdbcType="VARCHAR" />
+        <!--<result column="funding_plan_id" property="currencyId" jdbcType="DECIMAL" />
+        <result column="funding_plan_number" property="currencyId" jdbcType="DECIMAL" />
+        <result column="payment_number" property="currencyId" jdbcType="DECIMAL" />
+        <result column="funding_plan_id_n" property="currencyId" jdbcType="DECIMAL" />-->
+    </resultMap>
+
+    <select id="selectDepositDeductionInfo" parameterType="com.hand.hls.csh.dto.WriteOffTemp" resultMap="BaseResultMap">
+        SELECT * from(
+        /*SELECT
+        t.contract_id,
+        t.cashflow_id,
+        t.times,
+        t.cf_type,
+        t.cf_item,
+        t.due_date WRITE_OFF_DATE,
+        t.due_amount WRITE_OFF_DUE_AMOUNT,t.principal WRITE_OFF_PRINCIPAL,
+        t.interest WRITE_OFF_INTEREST,
+        c.deposit_deduction
+        FROM
+        con_contract_cashflow t,
+        con_contract c
+        WHERE
+        c.contract_id = t.contract_id
+        AND c.data_class = 'NORMAL'
+        AND t.times = 0
+        AND c.contract_status in ('INCEPT')
+        AND t.CF_DIRECTION = 'INFLOW'
+        AND t.cf_status = 'RELEASE'
+        AND nvl(t.WRITE_OFF_FLAG, 'NOT') IN ('PARTIAL', 'NOT')
+        AND nvl(t.RECEIVED_AMOUNT, 0) &lt; t.DUE_AMOUNT
+        and t.cf_item = 51
+        UNION ALL*/
+        SELECT
+        t.contract_id,
+        t.cashflow_id,
+        t.times,
+        t.cf_type,
+        t.cf_item,
+        t.due_date WRITE_OFF_DATE,
+        t.due_amount-nvl(t.received_amount,0) WRITE_OFF_DUE_AMOUNT,
+        t.principal-nvl(t.received_principal,0) WRITE_OFF_PRINCIPAL,
+        t.interest-nvl(t.received_interest,0) WRITE_OFF_INTEREST,
+        c.deposit_deduction
+        FROM
+        con_contract_cashflow t,
+        con_contract c
+        WHERE
+        c.contract_id = t.contract_id
+        AND c.data_class = 'NORMAL'
+        AND t.times != 0
+        AND c.contract_status in ('INCEPT','ET')
+        AND t.CF_DIRECTION = 'INFLOW'
+        AND t.cf_status = 'RELEASE'
+        AND nvl(t.WRITE_OFF_FLAG, 'NOT') IN ('PARTIAL', 'NOT')
+        AND nvl(t.RECEIVED_AMOUNT, 0) &lt; t.DUE_AMOUNT
+        and exists(select 1 from prj_quotation_cashflow wc
+        where wc.quotation_id = t.quotation_id
+        and wc.cf_item = t.cf_item
+        and wc.times = t.times
+        and nvl(wc.deposit_deduction,0) = t.due_amount - nvl(t.RECEIVED_AMOUNT, 0)
+        and c.lease_times = wc.times)
+        and t.due_date = trunc(sysdate)
+        ) tt
+        order by tt.contract_id,tt.times
+    </select>
+    <select id="selectDepositInfo" parameterType="com.hand.hls.csh.dto.WriteOffTemp" resultMap="BaseResultMap">
+        SELECT
+        t.contract_id,
+        t.cashflow_id,
+        t.times,
+        t.cf_type,
+        t.cf_item,
+        t.due_date WRITE_OFF_DATE,
+        t.due_amount-nvl(t.received_amount,0) WRITE_OFF_DUE_AMOUNT,
+        t.principal-nvl(t.received_principal,0) WRITE_OFF_PRINCIPAL,
+        t.interest-nvl(t.received_interest,0) WRITE_OFF_INTEREST,
+        c.deposit_deduction,
+        c.CONTRACT_NUMBER
+        FROM
+        con_contract_cashflow t,
+        con_contract c
+        <where>
+        c.contract_id = t.contract_id
+        AND c.data_class = 'NORMAL'
+        AND c.contract_status in ('INCEPT','ET')
+        AND t.cf_status = 'RELEASE'
+        AND nvl(t.WRITE_OFF_FLAG, 'NOT') IN ('PARTIAL', 'NOT')
+        AND nvl(t.RECEIVED_AMOUNT, 0) &lt; t.DUE_AMOUNT
+        <choose>
+            <when test="cfItem != null">
+                and t.cf_item = #{cfItem}
+            </when>
+            <otherwise>
+                and exists(select 1 from con_contract_cashflow cw
+                where cw.contract_id = c.contract_id
+                and cw.cf_item = 1
+                and cw.times = t.times-1
+                AND nvl(cw.WRITE_OFF_FLAG, 'NOT') = 'FULL')
+                and t.cf_item = 52
+                and t.cf_direction = 'OUTFLOW'
+            </otherwise>
+        </choose>
+        <if test="times !=null">
+            and t.times = #{times}
+        </if>
+            <if test="contractId!=null">
+                and t.contract_id = #{contractId}
+            </if>
+
+        </where>
+        order by c.contract_id,t.times
+    </select>
+
+    <select id="selectDepositRefundInfo" parameterType="com.hand.hls.csh.dto.WriteOffTemp" resultMap="BaseResultMap">
+        Select cc.contract_id/* funding_plan_id*/,
+        cc.contract_number/* funding_plan_number*/,
+        /*cc.contract_number payment_number,
+        cc.contract_number funding_plan_id_n,*/
+        cc.company_id,
+        cc.deposit_deduction,
+        to_date(to_char(pq.LEASE_START_DATE, 'yyyy-MM-dd'), 'yyyy-mm-dd') proposed_launch_date,
+        pp.contract_number PP_CONTRACT_NUMBER,
+        pp.contract_name PP_contract_name,
+        /*(Select Sum(ccc.RECEIVED_AMOUNT)
+        From con_contract_cashflow ccc
+        Where ccc.contract_id In
+        (Select ct.CONTRACT_ID
+        From con_contract ct
+        Where ct.PROJECT_ID = pp.project_id)
+        And ccc.CF_ITEM = 0)*/nvl(t.received_amount,0) SUM_TOUFANG_AMOUNT,
+        /*pq.LEASE_ITEM_AMOUNT*/t.due_amount-nvl(t.received_amount,0) LOAN_TOTAL_AMOUNT,
+        pp.project_id project_id,
+        (Select p1.PROJECT_NAME
+        From prj_project p1
+        Where p1.PROJECT_ID = pp.REF_PROJECT_ID) PROJECT_NAME,
+        /*(Select pq1.lease_item_amount
+        From prj_quotation pq1
+        Where pq1.SOURCE_DOCUMENT_ID = pp.PROJECT_ID
+        And pq1.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+        And pq1.DATA_CLASS = 'VIRTUAL_CON')*/t.due_amount-nvl(t.received_amount,0) FINANCE_AMOUNT,
+        (Select fou.unit_name
+        From fnd_org_unit fou
+        Where fou.unit_id = cc.unit_id) As unit_name,
+        cc.unit_id,
+        cc.tenant_id bp_id,
+       (SELECT
+  TT.BANK_ACCOUNT_NUM bp_bank_account_num
+FROM
+	HLS_BP_MASTER_BANK_ACCOUNT  TT
+	WHERE  TT.BP_ID=cc.tenant_id
+	and rownum = 1) bp_bank_account_num,
+       (SELECT
+  TT.BANK_ACCOUNT_NAME bp_bank_account_name
+FROM
+	HLS_BP_MASTER_BANK_ACCOUNT  TT
+	WHERE  TT.BP_ID=cc.tenant_id
+	and rownum = 1) bp_bank_account_name,
+       (SELECT
+	TT.BANK_FULL_NAME bp_bank_branch_name
+FROM
+	HLS_BP_MASTER_BANK_ACCOUNT  TT
+	WHERE  TT.BP_ID=cc.tenant_id
+	and rownum = 1) bp_bank_branch_name,
+        (Select bp.BP_NAME
+        From hls_bp_master bp
+        Where bp.BP_ID = cc.tenant_id) BP_NAME,
+        /*((Select pq1.lease_item_amount
+        From prj_quotation pq1
+        Where pq1.SOURCE_DOCUMENT_ID = pp.PROJECT_ID
+        And pq1.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+        And pq1.DATA_CLASS = 'VIRTUAL_CON') -
+        (Select Sum(ccc.RECEIVED_AMOUNT)
+        From con_contract_cashflow ccc
+        Where ccc.contract_id In
+        (Select ct.CONTRACT_ID
+        From con_contract ct
+        Where ct.PROJECT_ID = pp.project_id)
+        And ccc.CF_ITEM = 0))*/t.due_amount-nvl(t.received_amount,0) CONTRACT_BALANCE,
+        pq.CURRENCY currency,
+        (Select fc.currency_name
+        From fnd_currency fc
+        Where fc.currency_code = pq.CURRENCY) currency_id,
+        (Select pq1.CURRENCY
+        From prj_quotation pq1
+        Where pq1.SOURCE_DOCUMENT_ID = pp.PROJECT_ID
+        And pq1.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+        And pq1.DATA_CLASS = 'VIRTUAL_CON') CONTRACT_CURRENCY_ID,
+        cc.contract_id,
+        (Select fc.currency_name
+        From fnd_currency fc
+        Where fc.currency_code =
+        (Select pq1.CURRENCY
+        From prj_quotation pq1
+        Where pq1.SOURCE_DOCUMENT_ID = pp.PROJECT_ID
+        And pq1.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+        And pq1.DATA_CLASS = 'VIRTUAL_CON')) CONTRACT_currency,
+        t.CASHFLOW_ID
+        From con_contract cc, prj_project pp, prj_quotation pq,con_contract_cashflow t
+        where pp.project_id = cc.project_id
+        And pp.PROJECT_STATUS = 'APPROVED'
+        And cc.QUOTATION_ID = pq.QUOTATION_ID
+
+        /*And Not Exists (Select 1
+        From csh_payment_req_hd hd
+        Where hd.SOURCE_CONTRACT_ID = cc.CONTRACT_ID
+        And hd.payment_req_status != 'ABANDON')*/
+
+        and not exists(select 1 from csh_payment_req_ln lnd
+   where lnd.source_doc_id = cc.contract_id
+   and lnd.source_doc_line_id = t.cashflow_id)
+
+        and cc.contract_id = t.contract_id
+        AND cc.data_class = 'NORMAL'
+        AND t.times != 0
+        AND cc.contract_status in ('INCEPT','ET')
+--         AND t.CF_DIRECTION = 'INFLOW'
+        AND t.cf_status = 'RELEASE'
+        AND nvl(t.WRITE_OFF_FLAG, 'NOT') IN ('PARTIAL', 'NOT')
+        and not exists(select 1 from con_contract_cashflow cw where
+        cw.contract_id = cc.contract_id
+        and cw.cf_item = 1
+        and nvl(cw.WRITE_OFF_FLAG, 'NOT') IN ('PARTIAL', 'NOT')
+        )
+--         and t.due_date = trunc(sysdate)
+        and t.cf_item = 52
+    </select>
+
+    <resultMap id="queryRentClaimMap" type="map">
+        <result column="transaction_num" property="transaction_num"/>
+        <result column="transaction_date" property="transaction_date"/>
+        <result column="transaction_amount" property="transaction_amount"/>
+        <result column="bank_account_num" property="bank_account_num"/>
+        <result column="ref_v01" property="ref_v01"/>
+        <result column="contract_number" property="contract_number"/>
+        <result column="bp_id_tenant_n" property="bp_id_tenant_n"/>
+        <result column="write_off_type_n" property="write_off_type_n"/>
+        <result column="write_off_date" property="write_off_date"/>
+        <result column="cf_item_n" property="cf_item_n"/>
+        <result column="write_off_due_amount" property="write_off_due_amount"/>
+        <result column="times" property="times"/>
+        <result column="bp_name" property="bp_name"/>
+        <result column="bp_bank_account_name"   property="bp_bank_account_name"/>
+        <result column="arrive_modality_desc" property="arrive_modality_desc"/>
+        <result column="lease_channel_n" property="lease_channel_n"/>
+        <result column="due_date" property="due_date"/>
+        <result column="due_amount" property="due_amount"/>
+    </resultMap>
+
+
+    <select id="queryRentClaim" resultMap="queryRentClaimMap">
+        SELECT
+            t.*
+        FROM
+            (
+                SELECT
+                    ( SELECT ct.TRANSACTION_NUM FROM CSH_TRANSACTION ct WHERE ct.TRANSACTION_ID = t.CSH_TRANSACTION_ID ) TRANSACTION_NUM,
+                    ( SELECT TO_CHAR ( ct.TRANSACTION_DATE, 'YYYY-MM-DD' ) FROM CSH_TRANSACTION ct WHERE ct.TRANSACTION_ID = t.CSH_TRANSACTION_ID ) TRANSACTION_DATE,
+                    ( SELECT ct.TRANSACTION_AMOUNT FROM CSH_TRANSACTION ct WHERE ct.TRANSACTION_ID = t.CSH_TRANSACTION_ID ) TRANSACTION_AMOUNT,
+        (select ccc.due_date from CON_CONTRACT_CASHFLOW ccc where t.CASHFLOW_ID=ccc.CASHFLOW_ID) due_date,
+
+        (select ccc.due_amount from CON_CONTRACT_CASHFLOW ccc where t.CASHFLOW_ID=ccc.CASHFLOW_ID) due_amount,
+                    (
+                        SELECT
+                            cba.BANK_ACCOUNT_NUM
+                        FROM
+                            CSH_TRANSACTION ct,
+                            CSH_BANK_ACCOUNT cba
+                        WHERE
+                            ct.TRANSACTION_ID = t.CSH_TRANSACTION_ID
+                          AND ct.BANK_ACCOUNT_ID = cba.BANK_ACCOUNT_ID
+                    ) BANK_ACCOUNT_NUM,
+                    ( SELECT cc.VIRTUAL_ACCOUNT_NUM FROM con_contract cc WHERE cc.contract_id = t.contract_id ) REF_V01,
+                    ( SELECT cc.contract_number FROM con_contract cc WHERE cc.contract_id = t.contract_id ) contract_number,
+                    (
+                        SELECT
+                            hbm.bp_name
+                        FROM
+                            con_contract cc,
+                            hls_bp_master hbm
+                        WHERE
+                            cc.contract_id = t.contract_id
+                          AND cc.tenant_id = hbm.bp_id
+                    ) BP_ID_TENANT_N,
+                    t.WRITE_OFF_TYPE,
+                    (
+                        SELECT
+                            scvb.meaning
+                        FROM
+                            SYS_CODE_B scb,
+                            SYS_CODE_VALUE_B scvb
+                        WHERE
+                            scb.CODE = 'CSH301_WRITE_OFF_TYPE'
+                          AND scb.code_id = scvb.code_id
+                          AND scvb.
+                                  VALUE
+                            = t.WRITE_OFF_TYPE
+                    ) AS WRITE_OFF_TYPE_N,
+                    t.WRITE_OFF_DATE,
+                    t.WRITE_OFF_DUE_AMOUNT,
+                    t.TIMES,
+                    t.CF_ITEM,
+                    ( SELECT hci.DESCRIPTION FROM HLS_CASHFLOW_ITEM hci WHERE hci.CF_ITEM = t.CF_ITEM ) AS CF_ITEM_N,
+                    (  SELECT
+                           hbm.bp_name
+                       FROM
+                           CSH_TRANSACTION ct,
+                           hls_bp_master hbm
+                       WHERE
+                           ct.TRANSACTION_ID = t.CSH_TRANSACTION_ID
+                         AND ct.bp_id = hbm.bp_id ) BP_NAME,
+                    t.ARRIVE_MODALITY,
+                    (
+                        SELECT
+                            scvb.MEANING
+                        FROM
+                            SYS_CODE_B scb,
+                            SYS_CODE_VALUE_B scvb
+                        WHERE
+                            scb.CODE = 'CSH001_ARRIVE_MODALITY'
+                          AND scb.CODE_ID = scvb.CODE_ID
+                          AND scvb.
+                                  VALUE
+                            = t.ARRIVE_MODALITY
+                    ) ARRIVE_MODALITY_DESC,
+                    ( SELECT ct.BP_BANK_ACCOUNT_NAME FROM CSH_TRANSACTION ct WHERE ct.TRANSACTION_ID = t.CSH_TRANSACTION_ID ) BP_BANK_ACCOUNT_NAME
+                FROM
+                    CSH_WRITE_OFF t
+            ) t
+        <where>
+            t.TRANSACTION_NUM is not null and t.contract_number like '%PRJ%' and t.WRITE_OFF_TYPE in ('ADVANCE_RECEIPT_CREDIT','RECEIPT_ADVANCE_RECEIPT','RECEIPT_CREDIT','RECEIPT_DEPOSIT')
+            <if test="transactionNum !=null and transactionNum!= ''">
+                AND t.TRANSACTION_NUM like concat(concat('%',#{transactionNum}),'%')
+            </if>
+            <if test="transactionAmountFrom !=null and transactionAmountFrom !=''">
+                AND t.TRANSACTION_AMOUNT >= #{transactionAmountFrom}
+            </if>
+            <if test="transactionAmountTo !=null and transactionAmountTo !=''">
+                AND t.TRANSACTION_AMOUNT &lt;= #{transactionAmountTo}
+            </if>
+            <if test="bankAccountNum !=null and bankAccountNum !=''">
+                AND t.BANK_ACCOUNT_NUM like concat(concat('%',#{bankAccountNum}),'%')
+            </if>
+            <if test="refV01 !=null and refV01 !=''">
+                AND t.REF_V01 like concat(concat('%',#{refV01}),'%')
+            </if>
+            <if test="contractNumber !=null and contractNumber !=''">
+                AND t.CONTRACT_NUMBER like concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="bpIdTenantN !=null and bpIdTenantN !=''">
+                AND t.BP_ID_TENANT_N like concat(concat('%',#{bpIdTenantN}),'%')
+            </if>
+            <if test="writeOffType !=null and writeOffType !=''">
+                AND t.WRITE_OFF_TYPE = #{writeOffType}
+            </if>
+            <if test="cfItem !=null and cfItem !=''">
+                AND t.CF_ITEM = #{cfItem}
+            </if>
+            <if test="bpName !=null and bpName !=''">
+                AND t.BP_NAME like concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="bpBankAccountName !=null and bpBankAccountName !=''">
+                AND t.BP_BANK_ACCOUNT_NAME like concat(concat('%',#{bpBankAccountName}),'%')
+            </if>
+            <if test="arriveModality !=null and arriveModality !=''">
+                AND t.ARRIVE_MODALITY = #{arriveModality}
+            </if>
+        </where>
+    </select>
+
+</mapper>

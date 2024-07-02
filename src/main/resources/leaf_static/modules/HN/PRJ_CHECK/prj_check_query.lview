@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaorong
+    $Date: 2019-4-16 上午11:48:56
+    $Revision: 2.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="prj_check_entrance_id"
+                url="${/request/@context_path}/modules/HN/PRJ_CHECK/prj_check_entrance.lview"/>
+        <a:link id="prj_check_detail_id"
+                url="${/request/@context_path}/modules/HN/PRJ_CHECK/prj_check_detail.lview"/>
+        <script><![CDATA[
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+        };
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+            switch (ds.id) {
+                case get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check'):
+                    //管理页面查询自己的单据
+                    if ('${/parameter/@function_code}' == 'PRJ_CHECK') {
+                        qpara['created_by'] = '${/session/@user_id}';
+                    }
+                    break;
+            }
+        };
+
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+            var param = {};
+            param['url_title'] = '定期检查创建入口';
+            param['function_code'] = 'PRJ_CHECK_ENTRANCE';
+            param['function_usage'] = 'CREATE';
+            param['screen_width'] = '600';
+            param['side'] = 'right';
+
+            param['winid'] = 'prj_check_entrance_create_winid';
+            hls_doc_get_layout_code(param, 'prj_check_entrance_id', ds_id, 'PRJ_CHECK_ENTRANCE');
+
+        };
+
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+            var record = $(ds_id).getSelected()
+            if (record.length == 1) {
+                var data = {};
+                data.check_id = record[0].data.check_id;
+                data.check_number = record[0].data.check_number;
+                var record = record[0];
+                if (record.get("approve_suggest") == 'NEW' || record.get("approve_suggest") == 'REJECTED' || record.get("approve_suggest") == 'APPROVED_RETURN') {
+                    Leaf.request({
+                        type: 'POST',
+                        url: "${/request/@context_path}/prj/check/submit",
+                        contentType: "application/json; charset=utf-8",
+                        para: data,
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.showMessage('提示', '提交成功');
+                            $(ds_id).query();
+                        },
+                        error: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        //sync: true,
+                        scope: this
+                    });
+                } else {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示', '该单据不可提交，请检查单据状态！');
+                }
+
+            } else {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('提示', '请选择一条数据进行审批！');
+            }
+        };
+
+        //生成权限字符串
+        window['${/parameter/@layout_code}_set_authority_rule_string'] = function () {
+            Leaf.request({
+                url: "${/request/@context_path}/prj/check/generateAuthorityString",
+                success: function (res) {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_check');
+                    $(ds_id).getCurrentRecord().set('authority_rule_string', res.result.record[0]);
+                },
+                sync: true,
+                scope: this
+            });
+        };
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'check_detail') {
+                return '<a href="javascript:open_marketing_report_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '租后检查详情' + '</a>';
+            }
+            return value;
+        };
+
+        function open_marketing_report_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            // debugger
+            var param = record.data;
+            //param['prj_lease_id']=record.data.prj_lease_id
+            param['url_title'] = '租后检查明细页面';
+            param['function_code'] = 'PRJ_CHECK_DETAIL';
+            //param['function_usage'] = 'CREATE';
+            if ('${/parameter/@function_code}' == 'PRJ_CHECK_F1') {
+                param['function_usage'] = 'QUERY';
+            } else if (record.get('approve_suggest') == 'NEW' || record.get('approve_suggest') == 'REJECTED') {
+                param['function_usage'] = 'MODIFY';
+            } else {
+                param['function_usage'] = 'QUERY';
+            }
+            param['winid'] = 'prj_check_detail_winid';
+            hls_doc_get_layout_code(param, 'prj_check_detail_id', ds_id, 'PRJ_CHECK');
+
+        }
+
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            debugger;
+            if (res.result.record.PRJ_CHECK_G_RESULT_prj_check.record) {
+                if (res.result.record.PRJ_CHECK_G_RESULT_prj_check.record.map) {
+                    res.result.record.PRJ_CHECK_G_RESULT_prj_check.record.map(item => {
+                        Leaf.request({
+                            type: 'POST',
+                            url: "${/request/@context_path}/prj/check/plan/update",
+                            contentType: "application/json; charset=utf-8",
+                            para: item,
+                            success: function (res) {
+                            },
+                            error: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            failure: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            //sync: true,
+                            scope: this
+                        });
+                    })
+                }
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            body {
+                height: 400px;
+                width: 1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="fp600_fp_week_wfl"
+                url="${/request/@context_path}/modules/FP/FP600/fund_filling_req_detail.lview"/>
+        <script><![CDATA[
+        var businessKey = '${/parameter/@businessKey}';
+
+        var param = parent.currentTaskInfo.execution_variables;
+
+        if (!businessKey) {
+            businessKey = parent.currentTaskInfo.process_instance.business_key;
+        }
+
+        var fillingId = param.filter(function (o) {
+            return o.name == "fillingId";
+        })[0].value;
+        var fillType = param.filter(function (o) {
+            return o.name == "fillType";
+        })[0].value;
+        var fillYear = param.filter(function (o) {
+            return o.name == "fillYear";
+        })[0].value;
+        var fillQuarter = param.filter(function (o) {
+            return o.name == "fillQuarter";
+        })[0].value;
+        var fillMon = param.filter(function (o) {
+            return o.name == "fillMon";
+        })[0].value;
+        var fillWeek = param.filter(function (o) {
+            return o.name == "fillWeek";
+        })[0].value;
+
+        var function_code;
+        var link_url;
+        link_url = 'fp600_fp_week_wfl';
+        function_code = 'FP600D';
+
+        var pageChooser = new PageChooser({
+            url: $(link_url).getUrl(),
+            function_code: function_code,
+            context_path: '${/request/@context_path}',
+            opt: {
+                filling_id: fillingId,
+                maintain_type: 'READONLY',
+                function_usage: 'QUERY',
+                function_code: function_code,
+                fill_year:fillYear,
+                fill_quarter:fillQuarter,
+                fill_mon:fillMon,
+                fill_week:fillWeek,
+                fill_type:fillType,
+                supplement_flag: 'Y',
+                wfl_flag: "${/parameter/@wflRuleControlFlag}"
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+        ]]></script>
+    </a:view>
+</a:screen>
+

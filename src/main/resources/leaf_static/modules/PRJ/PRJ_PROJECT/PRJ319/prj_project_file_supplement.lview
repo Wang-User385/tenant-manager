@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="prj319_project_modify_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ319/prj_project_modify.lview"/>
+        <script><![CDATA[
+
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'project_number' && value) {
+                return '<a href="javascript:open_project_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+
+            if (name == 'confirmation_letter') {
+                return '<a href="javascript:prj318_open_attach(\'' + record.get('project_attachment_id') + '\')">' + '业务确认函' + '</a>';
+            }
+
+            return value;
+        };
+
+        function prj318_open_attach(project_attachment_id) {
+
+            var ds_id = "${/parameter/@layout_code}_G_PROJECT_RESULT_prj_project_ds";
+            var record = $(ds_id).getCurrentRecord();
+
+            if(project_attachment_id == 'undefined' || project_attachment_id == ''){
+                Leaf.showMessage('${HLS.PROMPT}', '未找到业务确认函相关附件！');
+                return;
+            }
+
+            var url;
+            var function_usage;
+            if(record.get('confirm_status') == 'CONFIRMED'){
+                url = '${/request/@context_path}/downloadFile.lview';
+                function_usage = 'QUERY';
+
+            }else{
+                url = '${/request/@context_path}/uploadFile.lview';
+                function_usage = 'MODIFY';
+            }
+
+            var win = new Leaf.Window({
+                id: 'prj318_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': project_attachment_id,
+                    'table_name': 'prj_project_attachment',
+                    winid: 'prj318_open_attachment_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                $(ds_id).query();
+            });
+        }
+
+
+        function open_project_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '项目明细';
+            param['function_code'] = 'PRJ319F1';
+            param['winid'] = 'project_modify_winid';
+            param['function_usage'] = 'QUERY';
+            hls_doc_get_layout_code(param, 'prj319_project_modify_id', ds_id, 'PRJ319F1');
+        }
+
+
+
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+            var ds_id = '${/parameter/@layout_code}_G_PROJECT_RESULT_prj_project_ds';
+            var prj_project_result_ds = $(ds_id);
+            var records = prj_project_result_ds.getSelected();
+
+            if (records.length == 0) {
+                Leaf.showMessage('${HLS.PROMPT}', '至少选择一条数据！');
+                return;
+            }
+
+            var saveData = [];
+            for (var i = 0; i < records.length; i++) {
+                var confirm_status = records[i].get('confirm_status');
+                if (confirm_status == 'CONFIRM') {
+                    Leaf.showMessage('${HLS.PROMPT}', '编号为'+records[i].get('project_number')+'的单据已经确认，请勿重复确认！');
+                    return;
+                }
+                saveData.push(records[i].get('project_id'));
+            }
+            Leaf.Masker.mask(Ext.getBody(), '执行中。。')
+            Leaf.request({
+                url: '${/request/@context_path}/manufacturer/batch/confirm',
+                para: {
+                    projectIdList: saveData.join(','),
+                },
+                success: function () {
+                    $(ds_id).query();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+
+
+        };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

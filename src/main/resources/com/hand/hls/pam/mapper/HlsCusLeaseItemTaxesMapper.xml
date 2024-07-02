@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.pam.mapper.HlsCusLeaseItemTaxesMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.pam.dto.HlsCusLeaseItemTaxes" >
+
+        <result column="lease_taxes_id" property="leaseTaxesId" jdbcType="DECIMAL" />
+        <result column="lease_item_id" property="leaseItemId" jdbcType="DECIMAL" />
+        <result column="if_payed_related_tax" property="ifPayedRelatedTax" jdbcType="VARCHAR" />
+        <result column="tax_name" property="taxName" jdbcType="VARCHAR" />
+        <result column="tax_name_n" property="taxNameN" jdbcType="VARCHAR" />
+        <result column="tax_rate" property="taxRate" jdbcType="DECIMAL" />
+        <result column="invoice_amount" property="invoiceAmount" jdbcType="DECIMAL" />
+        <result column="vat_deduction_voucher" property="vatDeductionVoucher" jdbcType="VARCHAR" />
+        <result column="vat_deduction_voucher_n" property="vatDeductionVoucherN" jdbcType="VARCHAR" />
+        <result column="voucher_deduction_price" property="voucherDeductionPrice" jdbcType="VARCHAR" />
+        <result column="voucher_deduction_price_n" property="voucherDeductionPriceN" jdbcType="VARCHAR" />
+        <result column="voucher_code" property="voucherCode" jdbcType="VARCHAR" />
+        <result column="document_number" property="documentNumber" jdbcType="VARCHAR" />
+        <result column="if_included_in_principal" property="ifIncludedInPrincipal" jdbcType="VARCHAR" />
+        <result column="if_included_in_principal_n" property="ifIncludedInPrincipalN" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="if_payed_related_tax_n" property="ifPayedRelatedTaxN" jdbcType="VARCHAR" />
+
+    </resultMap>
+    <select id="selectByLeaseForeignKey" parameterType="com.hand.hls.pam.dto.HlsCusLeaseItemTaxes" resultMap="BaseResultMap">
+        SELECT
+
+            (select scv.MEANING
+                from sys_code_b sc, sys_code_value_b scv
+                where sc.CODE_ID = scv.CODE_ID
+                and sc.CODE = 'SYS.YES_NO'
+                and scv.value = hlit.if_payed_related_tax) if_payed_related_tax_n,
+            (select scv.MEANING
+                from sys_code_b sc, sys_code_value_b scv
+                where sc.CODE_ID = scv.CODE_ID
+                and sc.CODE = 'SYS.YES_NO'
+                and scv.value = hlit.if_included_in_principal) if_included_in_principal_n,
+            (select scv.MEANING
+                from sys_code_b sc,sys_code_value_b scv
+                where sc.CODE_ID = scv.CODE_ID
+                and sc.CODE = 'TAX_NAME'
+                and scv.value = hlit.tax_name) tax_name_n,
+            (select scv.MEANING
+                from sys_code_b sc, sys_code_value_b scv
+                where sc.CODE_ID = scv.CODE_ID
+                and sc.CODE = 'VAT_DEDUCTION_VOUCHER'
+                and scv.value = hlit.vat_deduction_voucher) vat_deduction_voucher_n,
+
+            (select scv.MEANING
+                from sys_code_b sc, sys_code_value_b scv
+                where sc.CODE_ID = scv.CODE_ID
+                and sc.CODE = 'VOUCHER_DEDUCTION_PRICE'
+                and scv.value = hlit.voucher_deduction_price) voucher_deduction_price_n,
+
+                hlit.*
+        FROM hls_lease_item_taxes  hlit
+
+        <where>
+            1 = 1
+            <if test="leaseItemId!=null">
+                and hlit.lease_item_id = #{leaseItemId}
+            </if>
+
+        </where>
+    </select>
+
+
+
+</mapper>

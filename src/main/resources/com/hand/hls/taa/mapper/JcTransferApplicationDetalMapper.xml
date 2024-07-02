@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.taa.mapper.JcTransferApplicationDetalMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.taa.dto.JcTransferApplicationDetal">
+        <result column="TRANSFER_APPLICATION_DETAL_ID" property="transferApplicationDetalId" jdbcType="DECIMAL" />
+        <result column="TRANSFER_APPLICATION_ID" property="transferApplicationId" jdbcType="DECIMAL" />
+        <result column="TRANSFER_ACCOUNTS" property="transferAccounts" jdbcType="DECIMAL" />
+        <result column="CURRENCY" property="currency" jdbcType="VARCHAR" />
+        <result column="USAGE_DEC" property="usageDec" jdbcType="VARCHAR" />
+        <result column="PAY_COMPANY_ID" property="payCompanyId" jdbcType="DECIMAL" />
+        <result column="PAY_COMPANY_FULL_NAME" property="payCompanyFullName" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_ID" property="bankAccountId" jdbcType="DECIMAL" />
+        <result column="PAY_BANK_ACCOUNT_NAME" property="payBankAccountName" jdbcType="VARCHAR" />
+        <result column="PAY_BANK_ACCOUNT_NUM" property="payBankAccountNum" jdbcType="VARCHAR" />
+        <result column="COLLECTION_COMPANY_ID" property="collectionCompanyId" jdbcType="DECIMAL" />
+        <result column="COLLECTION_BANK_ACCOUNT_ID" property="collectionBankAccountId" jdbcType="DECIMAL" />
+        <result column="COLLECTION_BANK_ACCOUNT_NAME" property="collectionBankAccountName" jdbcType="VARCHAR" />
+        <result column="COLLECTION_BANK_ACCOUNT_NUM" property="collectionBankAccountNum" jdbcType="VARCHAR" />
+        <result column="TRANSFER_WAY" property="transferWay" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="PAY_BANK_BRANCH_NAME" property="payBankBranchName" jdbcType="VARCHAR" />
+        <result column="COLLECTION_BANK_BRANCH_NAME" property="collectionBankBranchName" jdbcType="VARCHAR" />
+
+        <result column="PAY_COMPANY_ID_N" property="payCompanyIdN" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_ID_N" property="bankAccountIdN" jdbcType="VARCHAR" />
+        <result column="COLLECTION_COMPANY_ID_N" property="collectionCompanyIdN" jdbcType="VARCHAR" />
+        <result column="COLLECTION_BANK_ACCOUNT_ID_N" property="collectionBankAccountIdN" jdbcType="VARCHAR" />
+        <result column="TRANSFER_WAY_N" property="transferWayN" jdbcType="VARCHAR" />
+        <result column="CURRENCY_N" property="currencyN" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="queryJcTransferApplicationDetal" parameterType="com.hand.hls.taa.dto.JcTransferApplicationDetal"
+            resultMap="BaseResultMap">
+
+        select
+        jtad.TRANSFER_APPLICATION_DETAL_ID,
+        jtad.TRANSFER_APPLICATION_ID,
+        jtad.TRANSFER_ACCOUNTS,
+        jtad.CURRENCY,
+        (
+        SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'CHS.CURRENCY_TYPE' AND v.code_value = jtad.CURRENCY ) AS CURRENCY_N,
+        jtad.USAGE_DEC,
+        jtad.DESCRIPTION,
+        jtad.PAY_COMPANY_ID,
+        (select
+        fc.COMPANY_FULL_NAME
+        from fnd_company fc
+        where fc.COMPANY_ID = jtad.PAY_COMPANY_ID
+        and fc.ENABLED_FLAG = 'Y') PAY_COMPANY_ID_N,
+
+        jtad.BANK_ACCOUNT_ID,
+        (select cba.BANK_ACCOUNT_NAME from csh_bank_account cba where jtad.BANK_ACCOUNT_ID = cba.BANK_ACCOUNT_ID and cba.ENABLED_FLAG = 'Y')BANK_ACCOUNT_ID_N,
+
+        (select cba.BANK_BRANCH_NAME  from csh_bank_account cba where jtad.BANK_ACCOUNT_ID = cba.BANK_ACCOUNT_ID and cba.ENABLED_FLAG = 'Y')PAY_BANK_ACCOUNT_NAME,
+
+        (select cba.BANK_ACCOUNT_NUM  from csh_bank_account cba where jtad.BANK_ACCOUNT_ID = cba.BANK_ACCOUNT_ID and cba.ENABLED_FLAG = 'Y')PAY_BANK_ACCOUNT_NUM,
+
+
+
+        jtad.COLLECTION_COMPANY_ID,
+        (select
+        fc.COMPANY_FULL_NAME
+        from fnd_company fc
+        where fc.COMPANY_ID = jtad.COLLECTION_COMPANY_ID
+        and fc.ENABLED_FLAG = 'Y') COLLECTION_COMPANY_ID_N,
+
+        jtad.COLLECTION_BANK_ACCOUNT_ID,
+        (select cba.BANK_ACCOUNT_NAME from csh_bank_account cba where jtad.COLLECTION_BANK_ACCOUNT_ID = cba.BANK_ACCOUNT_ID and cba.ENABLED_FLAG = 'Y')COLLECTION_BANK_ACCOUNT_ID_N,
+
+        (select cba.BANK_BRANCH_NAME  from csh_bank_account cba where jtad.COLLECTION_BANK_ACCOUNT_ID = cba.BANK_ACCOUNT_ID and cba.ENABLED_FLAG = 'Y')COLLECTION_BANK_ACCOUNT_NAME,
+
+        (select cba.BANK_ACCOUNT_NUM  from csh_bank_account cba where jtad.COLLECTION_BANK_ACCOUNT_ID = cba.BANK_ACCOUNT_ID and cba.ENABLED_FLAG = 'Y')COLLECTION_BANK_ACCOUNT_NUM,
+        jtad.TRANSFER_WAY,
+        (
+        SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'TAA.TRANSFER_WAY' AND v.code_value = jtad.TRANSFER_WAY ) AS TRANSFER_WAY_N
+
+        from jc_transfer_application_detal jtad
+        <where>
+            jtad.TRANSFER_APPLICATION_ID = #{transferApplicationId}
+        </where>
+    </select>
+
+</mapper>

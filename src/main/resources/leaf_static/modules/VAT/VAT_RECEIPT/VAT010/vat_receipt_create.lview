@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function vat_waiting_receipt_query() {
+            $('vat_lb_waiting_receipt_ds').query();
+            $('vat_deposit_waiting_receipt_ds').query();
+        }
+
+        function vat_waiting_receipt_reset() {
+            $('vat_lb_waiting_receipt_query_ds').reset();
+            $('vat_deposit_waiting_receipt_query_ds').reset();
+            $('vat_lb_waiting_receipt_ds').query();
+            $('vat_deposit_waiting_receipt_ds').query();
+        }
+
+        function vat_waiting_receipt_back() {
+            $('${/parameter/@winid}').close();
+        }
+
+        function onSubmitSuccess_vat_waiting_receipt_ds(ds) {
+            vat_waiting_receipt_query();
+        }
+
+        function vat_lb_waiting_receipt_add() {
+            debugger;
+            var receiptLength = $('vat_lb_waiting_receipt_ds').getSelected().length;
+            var record = $('vat_lb_waiting_receipt_ds').getSelected();
+            if (receiptLength == 0) {
+                Leaf.showMessage("提示", "请至少选择一条记录", null);
+                return;
+            }
+            for (var i = 0; i < receiptLength; i++) {
+                if ($('vat_lb_waiting_receipt_ds').getSelected()[i].data.received_amount == 0) {
+                    Leaf.showMessage("提示", "存在已收金额为0的数据，请重新选择", null);
+                    return;
+                }
+                if ($('vat_lb_waiting_receipt_ds').getSelected()[i].data.amount == 0) {
+                    Leaf.showMessage("提示", "不可以创建金额为0的收据，请重新选择", null);
+                    return;
+                }
+            }
+
+            $('vat_lb_waiting_receipt_ds').submitSelected();
+        }
+
+        function vat_deposit_waiting_receipt_add() {
+            var depositLength = $('vat_deposit_waiting_receipt_ds').getSelected().length;
+            if (depositLength == 0) {
+                Leaf.showMessage("提示", "请至少选择一条记录", null);
+                return;
+            }
+            for (var i = 0; i < depositLength; i++) {
+                if ($('vat_deposit_waiting_receipt_ds').getSelected()[i].data.received_amount == 0) {
+                    Leaf.showMessage("提示", "存在已收金额为0的数据，请重新选择", null);
+                    return;
+                }
+            }
+            $('vat_deposit_waiting_receipt_ds').submitSelected();
+        }
+
+        function check_amount_limit(record, name, value) {
+            if ((record.get('received_amount') - record.get('receive_amount')) < value) {
+                return "开收据金额超过限制!"
+            }
+            return true;
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <!--回租本金-->
+            <a:dataSet id="vat_lb_waiting_receipt_query_ds">
+                <a:fields>
+                    <a:field name="cf_item" defaultValue="1"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="vat_lb_waiting_receipt_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/acr/receipt/queryWaitingReceiptList"
+                       submitUrl="${/request/@context_path}/acr/receipt/hd/create?receiptType=LEASEBACK_PRINCIPAL"
+                       queryDataSet="vat_lb_waiting_receipt_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="due_date" datatype="date"/>
+                    <a:field name="amount" validator="check_amount_limit" required="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_vat_waiting_receipt_ds"/>
+                </a:events>
+            </a:dataSet>
+
+            <!--保证金-->
+            <a:dataSet id="vat_deposit_waiting_receipt_query_ds">
+                <a:fields>
+                    <a:field name="cf_item" defaultValue="5"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="vat_deposit_waiting_receipt_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/acr/receipt/queryWaitingReceiptList"
+                       submitUrl="${/request/@context_path}/acr/receipt/hd/create?receiptType=DEPOSIT"
+                       queryDataSet="vat_deposit_waiting_receipt_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="due_date" datatype="date"/>
+                    <a:field name="amount" validator="check_amount_limit" required="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_vat_waiting_receipt_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:tabPanel marginWidth="10" marginHeight="0">
+                <a:tabs>
+                    <a:tab prompt="回租本金" width="130" selected="true">
+                        <a:screenTopToolbar>
+                            <a:gridButton click="vat_waiting_receipt_back" text="HAP.BACK"/>
+                            <a:gridButton click="vat_waiting_receipt_query" text="HAP.QUERY"/>
+                            <a:gridButton click="vat_waiting_receipt_reset" text="HAP.RESET"/>
+                            <a:gridButton click="vat_lb_waiting_receipt_add" text="创建"/>
+                        </a:screenTopToolbar>
+                        <a:form title="查询条件" style="width:100%">
+                            <a:box column="4" labelWidth="120">
+                                <a:textField name="contract_number" bindTarget="vat_lb_waiting_receipt_query_ds"
+                                             prompt="合同编号"
+                                             width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:textField>
+                                <a:textField name="contract_name" bindTarget="vat_lb_waiting_receipt_query_ds"
+                                             prompt="合同名称"
+                                             width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:textField>
+                                <a:textField name="times_from" bindTarget="vat_lb_waiting_receipt_query_ds"
+                                             prompt="期数从"
+                                             width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:textField>
+                                <a:textField name="times_to" bindTarget="vat_lb_waiting_receipt_query_ds"
+                                             prompt="期数到"
+                                             width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:textField>
+                            </a:box>
+
+                            <a:box column="4" labelWidth="120">
+                                <a:datePicker name="due_date_from" bindTarget="vat_lb_waiting_receipt_query_ds"
+                                              prompt="应收日期从"
+                                              width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:datePicker>
+                                <a:datePicker name="due_date_to" bindTarget="vat_lb_waiting_receipt_query_ds"
+                                              prompt="应收日期到"
+                                              width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:datePicker>
+                                <a:textField name="bp_name" bindTarget="vat_lb_waiting_receipt_query_ds"
+                                             prompt="承租人名称"
+                                             width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:textField>
+                            </a:box>
+                        </a:form>
+                        <a:grid id="vat_lb_waiting_receipt_ds_grid" bindTarget="vat_lb_waiting_receipt_ds"
+                                marginHeight="370"
+                                marginWidth="40"
+                                navBar="true">
+                            <a:columns>
+                                <a:column name="contract_number" width="140" prompt="合同编号" align="left"/>
+                                <a:column name="contract_name" width="250" prompt="合同名称" align="left"/>
+                                <a:column name="bp_name" width="160" prompt="承租人名称" align="left"/>
+                                <a:column name="times" width="50" prompt="期数" align="right"/>
+                                <a:column name="cf_item_n" width="120" prompt="现金流项目" align="left"/>
+                                <a:column name="due_date" width="140" prompt="应收日期" align="left"
+                                          renderer="Leaf.formatDate"/>
+                                <a:column name="currency_desc" width="100" prompt="币种" align="left"/>
+                                <a:column name="due_amount" width="130" prompt="应收金额" align="right"
+                                          renderer="Leaf.formatMoney"/>
+                                <a:column name="received_amount" width="130" prompt="已收金额" renderer="Leaf.formatMoney"
+                                          align="right"/>
+                                <a:column name="receive_amount" width="130" prompt="已开收据金额" renderer="Leaf.formatMoney"
+                                          align="right"/>
+                                <a:column name="amount" width="130" prompt="本次开收据金额" renderer="Leaf.formatMoney"
+                                          align="right"
+                                          editor="vat_lb_waiting_receipt_ds_grid_nf"/>
+                                <a:column name="write_off_flag_desc" width="120" prompt="核销状态" align="left"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="vat_lb_waiting_receipt_ds_grid_nf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+
+                    <a:tab prompt="保证金" width="130">
+                        <a:screenTopToolbar>
+                            <a:gridButton click="vat_waiting_receipt_back" text="HAP.BACK"/>
+                            <a:gridButton click="vat_waiting_receipt_query" text="HAP.QUERY"/>
+                            <a:gridButton click="vat_waiting_receipt_reset" text="HAP.RESET"/>
+                            <a:gridButton click="vat_deposit_waiting_receipt_add" text="创建"/>
+                        </a:screenTopToolbar>
+                        <a:form title="查询条件" style="width:100%">
+                            <a:box column="4" labelWidth="120">
+                                <a:textField name="contract_number" bindTarget="vat_deposit_waiting_receipt_query_ds"
+                                             prompt="合同编号"
+                                             width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:textField>
+                                <a:textField name="contract_name" bindTarget="vat_deposit_waiting_receipt_query_ds"
+                                             prompt="合同名称"
+                                             width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:textField>
+                                <a:textField name="bp_name" bindTarget="vat_deposit_waiting_receipt_query_ds"
+                                             prompt="承租人名称"
+                                             width="165">
+                                    <a:events>
+                                        <a:event name="enterdown" handler="vat_waiting_receipt_query"/>
+                                    </a:events>
+                                </a:textField>
+                            </a:box>
+                        </a:form>
+                        <a:grid id="vat_deposit_waiting_receipt_ds_grid" bindTarget="vat_deposit_waiting_receipt_ds"
+                                marginHeight="172"
+                                marginWidth="40"
+                                navBar="true">
+                            <a:columns>
+                                <a:column name="contract_number" width="150" prompt="合同编号" align="left"/>
+                                <a:column name="contract_name" width="250" prompt="合同名称" align="left"/>
+                                <a:column name="bp_name" width="160" prompt="承租人名称" align="left"/>
+                                <a:column name="currency_desc" width="120" prompt="币种" align="left"/>
+                                <a:column name="due_amount" width="150" prompt="应收金额" renderer="Leaf.formatMoney"
+                                          align="right"/>
+                                <a:column name="received_amount" width="150" prompt="已收金额" renderer="Leaf.formatMoney"
+                                          align="right"/>
+                                <a:column name="receive_amount" width="150" prompt="已开收据金额" renderer="Leaf.formatMoney"
+                                          align="right"/>
+                                <a:column name="amount" width="150" prompt="本次开收据金额" renderer="Leaf.formatMoney"
+                                          align="right"
+                                          editor="vat_deposit_waiting_receipt_ds_grid_nf"/>
+                                <a:column name="write_off_flag_desc" width="120" prompt="核销状态" align="left"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:numberField id="vat_deposit_waiting_receipt_ds_grid_nf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+
+        </a:screenBody>
+    </a:view>
+</a:screen>

@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.archive.mapper.HlsCusArchiveAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.archive.dto.HlsCusArchiveAttachment">
+        <result column="archive_attachment_id" property="archiveAttachmentId" jdbcType="DECIMAL" />
+        <result column="archive_id" property="archiveId" jdbcType="DECIMAL" />
+        <result column="project_id" property="projectId" jdbcType="DECIMAL" />
+        <result column="document_name" property="documentName" jdbcType="VARCHAR" />
+        <result column="source_id" property="sourceId" jdbcType="DECIMAL" />
+        <result column="source_type" property="sourceType" jdbcType="VARCHAR" />
+        <result column="page_number" property="pageNumber" jdbcType="DECIMAL" />
+        <result column="quantity" property="quantity" jdbcType="DECIMAL" />
+        <result column="file_date" property="fileDate" jdbcType="DATE" />
+        <result column="archive_type" property="archiveType" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="file_name" property="fileName" jdbcType="VARCHAR" />
+        <result column="archive_type_n" property="archiveTypeN" jdbcType="VARCHAR" />
+        <result column="uuid" property="uuid" jdbcType="VARCHAR" />
+        <result column="archivist_id_n" property="archivistIdN" jdbcType="VARCHAR" />
+        <result column="project_number" property="projectNumber" jdbcType="VARCHAR" />
+        <result column="archive_number" property="archiveNumber" jdbcType="VARCHAR" />
+        <result column="archive_name" property="archiveName" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="queryAttachmentByProject" resultMap="BaseResultMap">
+        -- 客户信息管理
+        SELECT
+            hba.bp_attachment_id as source_id,
+            'HLS_BP_ATTACHMENT' as source_type,
+            hba.document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    hba.bp_attachment_id = fam.table_pk_value
+                  AND fam.table_name = 'HLS_BP_ATTACHMENT'
+                  AND fa.attachment_id = fam.attachment_id
+            ) AS file_name
+        FROM
+            hls_bp_attachment hba ,
+            prj_project_bp ppb
+        WHERE
+            1 = 1
+          AND ppb.bp_id = hba.bp_id
+          AND ppb.bp_type = 'TENANT'
+          AND ppb.project_id = #{projectId}
+        union all
+        -- 客户财报信息管理
+        select v.* from (SELECT
+            h.header_id as source_id,
+            'HLS_BP_FINANCIAL_HEADER' as source_type,
+            hr.fin_statement_name as document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    h.header_id = fam.table_pk_value
+                  AND fam.table_name = 'HLS_BP_FINANCIAL_HEADER'
+                  AND fa.attachment_id = fam.attachment_id
+            ) AS file_name
+        FROM
+            hls_bp_financial_header h,
+            hls_web_excel_calc_result hr,
+            hls_web_excel hwe ,
+            prj_project_bp ppb
+        WHERE
+            h.header_id = hr.source_document_id
+          AND hr.source_document_category = 'FINANCIAL_REPORT'
+          AND hwe.excel_id = hr.excel_id
+          AND ppb.bp_id = h.bp_id
+          AND ppb.bp_type = 'TENANT'
+          AND ppb.project_id = #{projectId}
+          and  rownum=1
+          order by h.export_date desc ) v
+        union all
+        -- 租赁物管理
+        SELECT
+            hlia.lease_item_attachment_id AS source_id,
+            'HLS_LEASE_ITEM_ATTACHMENT' AS source_type,
+            hlia.document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name = 'HLS_LEASE_ITEM_ATTACHMENT'
+                  AND hlia.lease_item_attachment_id = fam.table_pk_value
+            ) AS file_name
+        FROM
+            HLS_LEASE_ITEM_ATTACHMENT hlia,
+            prj_project_lease_item ppli,
+            hls_lease_item hli
+        WHERE
+            hlia.lease_item_id = hli.lease_item_id
+          AND ppli.lease_item_id = hli.lease_item_id
+          AND ppli.project_id = #{projectId}
+          AND hli.LEASE_ITEM_TYPE = 'LEASE'
+          AND hli.enabled_flag = 'Y'
+        union all
+        -- 抵质押物管理
+        SELECT
+            hlia.lease_item_attachment_id AS source_id,
+            'HLS_LEASE_ITEM_ATTACHMENT' AS source_type,
+            hlia.document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name = 'HLS_LEASE_ITEM_ATTACHMENT'
+                  AND hlia.lease_item_attachment_id = fam.table_pk_value
+            ) AS file_name
+        FROM
+            HLS_LEASE_ITEM_ATTACHMENT hlia,
+            prj_project_chance_mp ppcm,
+            hls_lease_item hli
+        WHERE
+            hlia.lease_item_id = hli.lease_item_id
+          AND ppcm.lease_item_id = hli.lease_item_id
+          AND ppcm.project_id = #{projectId}
+          AND hli.LEASE_ITEM_TYPE IN ( 'MORTGAGE', 'PLEDGE' )
+          AND hli.enabled_flag = 'Y'
+        union all
+        -- 资产价值重估
+        SELECT
+            lal.asset_ln_id AS source_id,
+            'lease_asset_ln' AS source_type,
+            '资产价值重估文件' AS document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name = 'lease_asset_ln'
+                  AND lal.asset_ln_id = fam.table_pk_value
+            ) AS FILE_NAME
+        FROM
+            lease_asset_ln lal,
+            lease_asset_hd lah
+        WHERE
+            lal.ASSET_HD_ID = lah.ASSET_HD_ID
+          AND lah.MODIFY_DATE = (select max(h.MODIFY_DATE)
+                                 FROM
+                                     lease_asset_ln l,
+                                     lease_asset_hd h
+                                 WHERE
+                                     l.ASSET_HD_ID = h.ASSET_HD_ID and l.LEASE_ITEM_ID = lal.lease_item_id )
+          AND lal.LEASE_ITEM_ID in (
+            select ppcm.lease_item_id from prj_project_chance_mp ppcm where ppcm.project_id = #{projectId}
+            union
+            select ppli.lease_item_id from prj_project_lease_item ppli where ppli.project_id = #{projectId}
+        )
+        -- 保险文件管理
+        union all
+        SELECT
+            t1.insure_id AS source_id,
+            'PRJ_PROJECT_INSURE' AS source_type,
+            '保险管理文件' AS document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    t1.insure_id = fam.table_pk_value
+                  AND fam.table_name = 'PRJ_PROJECT_INSURE'
+                  AND fa.attachment_id = fam.attachment_id
+            ) AS file_name
+        FROM
+            PRJ_PROJECT_INSURE t1
+        where t1.project_id IN( SELECT PP.PROJECT_ID FROM PRJ_PROJECT PP WHERE PP.REF_PROJECT_ID = #{projectId})
+        -- 项目方案管理
+        union all
+        SELECT
+            hra.marketing_attachment_id as source_id,
+            'HLS_MARKETING_REPORT_DOCX' as source_type,
+            hra.document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name IN ( 'hls_report_attachment', 'HLS_MARKETING_REPORT_DOCX' )
+                  AND hra.marketing_attachment_id = fam.table_pk_value
+            ) AS file_name
+        FROM
+            HLS_REPORT_ATTACHMENT hra,
+            prj_project pp
+        WHERE
+                hra.attachment_category IN ( 'MARKETING_REPORT_ATT', 'HLS_MARKETING_REPORT_DOCX' )
+          and pp.marketing_report_id = hra.marketing_report_id
+          and pp.project_id = #{projectId}
+        -- 立项
+        union all
+        SELECT
+            hra.chance_attachment_id as source_id,
+            case when hra.attachment_category = 'HLS_CREDIT_CHANCE_DOCX' then 'HLS_CREDIT_CHANCE_DOCX' else 'HLS_CREDIT_LINE_CHANCE' end as source_type,
+            hra.document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name IN ( 'hls_credit_line_chance', 'HLS_CREDIT_CHANCE_DOCX' )
+                  AND hra.CHANCE_ATTACHMENT_ID = fam.table_pk_value
+            ) file_name
+        FROM
+            hls_credit_line_attach hra,
+            prj_project pp
+        WHERE
+            hra.attachment_category IN ( 'CHANCE_ATT', 'HLS_CREDIT_CHANCE_DOCX' )
+          AND hra.chance_id = pp.chance_id
+          AND pp.project_id = #{projectId}
+        -- 尽调报告撰写
+        union all
+        SELECT
+            ppa.project_attachment_id as source_id,
+            case when ppa.project_attachment_category = 'PRJ_SEND_REVIEW_REPORT' then 'PRJ_PROJECT_ATTACHMENT' else ppa.project_attachment_category end as source_type,
+            ppa.document_name,
+            (
+                SELECT
+                    wm_concat( fat.file_name )
+                FROM
+                    fnd_atm_attachment fat,
+                    fnd_atm_attachment_multi faam
+                WHERE
+                    fat.attachment_id = faam.attachment_id
+                  AND faam.table_name IN ( 'HLS_PRJ_PROJECT_DOCX1', 'HLS_PRJ_PROJECT_DOCX2', 'HLS_PRJ_PROJECT_DOCX3', 'PRJ_PROJECT_ATTACHMENT' )
+                  AND faam.table_pk_value = ppa.project_attachment_id
+            ) AS file_name
+        FROM
+            prj_project_attachment ppa
+        WHERE
+                ppa.project_attachment_category IN ( 'HLS_PRJ_PROJECT_DOCX1', 'HLS_PRJ_PROJECT_DOCX2', 'HLS_PRJ_PROJECT_DOCX3', 'PRJ_SEND_REVIEW_REPORT' )
+          AND ppa.project_id = #{projectId}
+        -- 关税附件，租后检查
+        union all
+        SELECT
+            ca.attachment_id as source_id,
+            'jczl_common_attachment' as source_type,
+            ca.document_name,
+            (
+                SELECT
+                    wm_concat( faa.file_name ) AS modelName
+                FROM
+                    fnd_atm_attachment faa,
+                    fnd_atm_attachment_multi faam
+                WHERE
+                    faam.record_id = faa.source_pk_value
+                  AND faam.table_pk_value = ca.attachment_id
+                  AND faam.table_name = 'jczl_common_attachment'
+            ) AS file_name
+        FROM
+            jczl_common_attachment ca ,
+            con_contract_tariff_info ccti,
+            con_contract cc ,
+            prj_project pp
+        WHERE
+            ca.source_category in ('con_contract_tariff_info','prj_check')
+          AND ca.source_id = ccti.tariff_id
+          and cc.contract_id = ccti.contract_id
+          and cc.project_id = pp.project_id
+          AND pp.ref_project_id = #{projectId}
+        union all
+        -- 合同签约文件
+        SELECT
+            fpa.project_attachment_id as source_id,
+            'FCT_PROJECT_ATTACHMENT' as source_type,
+            fpa.document_name,
+            (
+                SELECT
+                    wm_concat( fat.file_name )
+                FROM
+                    fnd_atm_attachment fat,
+                    fnd_atm_attachment_multi faam
+                WHERE
+                    fat.attachment_id = faam.attachment_id
+                  AND faam.table_name = 'FCT_PROJECT_ATTACHMENT'
+                  AND faam.table_pk_value = fpa.project_attachment_id
+            ) AS file_name
+        FROM
+            fct_project_attachment fpa
+        WHERE
+            1 = 1
+          AND fpa.project_id in (select pp.project_id from prj_project pp where pp.ref_project_id = #{projectId})
+        union all
+        -- 付款申请
+        SELECT
+        ppa.csh_attcahment_id as source_id,
+        'csh_payment_attachment' as source_type,
+        ppa.document_name,
+        (
+        SELECT
+            wm_concat( fa.file_name )
+        FROM
+            fnd_atm_attachment fa,
+            fnd_atm_attachment_multi fam
+        WHERE
+            fa.attachment_id = fam.attachment_id
+          AND fam.table_name = 'csh_payment_attachment'
+          AND ppa.csh_attcahment_id = fam.table_pk_value
+            ) AS file_name
+        FROM
+            csh_payment_attachment ppa
+        WHERE
+            ppa.project_attachment_category = 'CON_PAYMENT'
+          AND ppa.payment_req_id in (select ch.payment_req_id from csh_payment_req_hd ch,prj_project pp where pp.project_id = ch.source_doc_id and pp.ref_project_id = #{projectId})
+        union all
+        -- 存续期审批/业务变更执行
+        SELECT
+            hda.duration_attachment_id as source_id,
+            'HLS_DURATION_ATTACHMENT' as source_type,
+            hda.document_name,
+            (
+                SELECT
+                    wm_concat( fat.file_name )
+                FROM
+                    fnd_atm_attachment fat,
+                    fnd_atm_attachment_multi faam
+                WHERE
+                    fat.attachment_id = faam.attachment_id
+                  AND faam.table_name = 'HLS_DURATION_ATTACHMENT'
+                  AND faam.table_pk_value = hda.duration_attachment_id
+            ) file_name
+        FROM
+            hls_duration_attachment hda
+        WHERE
+            hda.attachment_category in ('BUSINESS_CHANGE','FINANCIAL_TERMS')
+          AND hda.hd_id in (SELECT
+                                t.hd_id
+                            FROM
+                                hls_duration_hd t,
+                                prj_project pp
+                            WHERE
+                                pp.project_id = t.project_id
+                              AND pp.ref_project_id = #{projectId})
+        union all
+        -- 租赁物巡查附件
+        SELECT
+            pli.lease_info_id AS source_id,
+            'prj_lease_inspect' AS source_type,
+            '租赁物巡查文件' AS document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name = 'prj_lease_inspect'
+                  AND pli.lease_info_id = fam.table_pk_value
+            ) AS file_name
+        FROM
+            prj_lease_info pli
+        WHERE
+            1 = 1
+          AND pli.prj_lease_id IN ( SELECT p.prj_lease_id FROM prj_lease_inspect p, prj_project pp WHERE p.project_id = pp.project_id AND pp.ref_project_id = #{projectId} )
+        union all
+        -- 承租人风险预警
+        SELECT
+            hra.risk_attachment_id as source_id,
+            'plm_risk_warning' as source_type,
+            hra.document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name IN ( 'plm_risk_warning' )
+                  AND hra.risk_attachment_id = fam.table_pk_value
+            ) AS file_name
+        FROM
+            plm_risk_attachment hra
+        WHERE
+            hra.attachment_category IN ( 'RISK_ATT' )
+          AND hra.risk_warning_id in (SELECT
+                                          p.risk_warning_id
+                                      FROM
+                                          plm_risk_warning p,
+                                          prj_project_bp ppb
+                                      WHERE
+                                          p.bp_id = ppb.bp_id
+                                        AND ppb.bp_type = 'TENANT'
+                                        AND ppb.project_id = #{projectId})
+        union all
+        -- 资产处置附件
+        SELECT
+            hlia.ASSETS_DISPOSAL_ATTCH_ID AS source_id,
+            'assets_disposal_attch' AS source_type,
+            nvl( hlia.document_name, '资产处理文件' ) AS document_name,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name = 'assets_disposal_attch'
+                  AND hlia.ASSETS_DISPOSAL_ATTCH_ID = fam.table_pk_value
+            ) AS FILE_NAME
+        FROM
+            assets_disposal_attch hlia
+        WHERE
+                hlia.ASSETS_DISPOSAL_ID IN (
+                SELECT
+                    ad.ASSETS_DISPOSAL_ID
+                FROM
+                    assets_disposal ad,
+                    prj_project p
+                WHERE
+                    ad.PROJECT_ID = p.PROJECT_ID
+                  AND p.DATA_CLASS = 'VIRTUAL_CON'
+                  AND P.ref_project_id = #{projectId}
+            )
+        union all
+        -- 诉讼管理文件
+        SELECT
+            lmt.LITIGATION_MANAGEMENT_ID AS source_id,
+            'litigation_management' AS source_type,
+            '诉讼管理文件' AS document_name ,
+            (
+                SELECT
+                    wm_concat( fat.file_name )
+                FROM
+                    fnd_atm_attachment fat,
+                    fnd_atm_attachment_multi faam
+                WHERE
+                    fat.attachment_id = faam.attachment_id
+                  AND faam.table_name = 'litigation_management'
+                  AND faam.table_pk_value = lmt.LITIGATION_MANAGEMENT_ID
+            ) file_name
+        FROM
+            litigation_management lmt,
+            prj_project pp
+        WHERE
+            lmt.PROJECT_ID = pp.PROJECT_ID
+          AND pp.ref_project_id = #{projectId}
+
+    </select>
+    <select id="queryAttachmentInfo" resultMap="BaseResultMap" parameterType="com.hand.hls.archive.dto.HlsCusArchiveAttachment">
+        SELECT
+            aa.archive_attachment_id,
+            aa.document_name,
+            nvl(aa.source_id,aa.archive_attachment_id) as source_id,
+            aa.project_id,
+            (select project_number from prj_project pp where pp.project_id = aa.project_id) as project_number,
+            (select s.description from jc_archive ja,sys_user s  where ja.archivist_id = s.user_id and ja.uuid = aa.uuid and ja.project_id = aa.project_id and ja.archive_type = aa.archive_type) as archivist_id_n,
+            (select ja.archive_number from jc_archive ja where ja.uuid = aa.uuid and ja.project_id = aa.project_id and ja.archive_type = aa.archive_type) as archive_number,
+            (select ja.archive_name from jc_archive ja where ja.uuid = aa.uuid and ja.project_id = aa.project_id and ja.archive_type = aa.archive_type) as archive_name,
+            aa.uuid,
+            nvl(aa.source_type,'JC_ARCHIVE_ATTACHMENT') as source_type,
+            (
+                SELECT
+                    wm_concat( fa.file_name )
+                FROM
+                    fnd_atm_attachment fa,
+                    fnd_atm_attachment_multi fam
+                WHERE
+                    fa.attachment_id = fam.attachment_id
+                  AND fam.table_name = aa.source_type
+                  AND nvl(aa.source_id,aa.archive_attachment_id) = fam.table_pk_value
+            ) AS file_name,
+            aa.page_number,
+            aa.quantity,
+            aa.file_date,
+            aa.archive_type,
+            (select sc.meaning
+             from sys_code_value_b_v sc
+             where sc.code = 'JC_FILE_TYPE' and aa.archive_type = sc.code_value) archive_type_n,
+            aa.description
+        FROM
+            jc_archive_attachment aa
+        <where>
+            1=1
+            and aa.project_id = #{projectId}
+            <if test="archiveType!=null">
+                and aa.archive_type = #{archiveType}
+            </if>
+            <if test="uuid!=null">
+                and aa.uuid = #{uuid}
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

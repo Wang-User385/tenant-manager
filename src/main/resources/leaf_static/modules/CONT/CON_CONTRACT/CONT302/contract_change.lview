@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="${/parameter/@layout_code}_change_pre_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_pre_change.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_reschedule_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_change_req_reschedule.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_extension_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_change_extension.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_penalty_exempt_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_change_req_penalty_exempt.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_lease_item_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_change_lease_item.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_tenant_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_change_tenant.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_prepayment_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_change_prepayment.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_delay_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_change_delay.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_repo_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT302/con_contract_change_repo.lview"/>
+        <script><![CDATA[
+        debugger;
+        var list = parent.currentTaskInfo.execution_variables;
+        var param;
+        var contract;
+        var nodeId = parent.currentTaskInfo.task_definition_key;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].name === 'contractChangeReq') {
+                param = JSON.parse(list[i].value);
+            } else if (list[i].name === 'contract') {
+                contract = JSON.parse(list[i].value);
+            }
+        }
+        window['${/parameter/@layout_code}_change_type'] = {
+            /*PRE: {
+                function_code: 'CONT302F1',
+                url_title: '合同变更-租前变更'
+            },*/
+            LEASE_ITEM: {
+                function_code: 'CONT302F3',
+                url_title: '合同变更-租赁物变更'
+            },
+            TENANT: {
+                function_code: 'CONT302F4',
+                url_title: '合同变更-承租人变更'
+            },
+            RESCHEDULE: {
+                function_code: 'CONT302F5',
+                url_title: '合同变更-支付期平移'
+            },
+            EXTENSION: {
+                function_code: 'CONT302F6',
+                url_title: '合同变更-缩期展期'
+            },
+            PREPAYMENT: {
+                function_code: 'CONT302F7',
+                url_title: '合同变更-提前结清'
+            },
+            /*PENALTY_EXEMPT: {
+                function_code: 'CONT302F8',
+                url_title: '合同变更-罚息变更'
+            },*/
+            REPO: {
+                function_code: 'CONT302F9',
+                url_title: '合同变更-回购'
+            },
+            DELAY: {
+                function_code: 'CONT302F10',
+                url_title: '合同变更-付息延期'
+            }
+        };
+
+        $jq.extend(param, window['${/parameter/@layout_code}_change_type'][param.changeType]);
+        winId = 'con_contract_' + param.changeType.toLowerCase() + '_window_id';
+        var link_id = '${/parameter/@layout_code}_change_' + param.changeType.toLowerCase() + '_link_id';
+        /*if (param.changeType.toUpperCase() === 'TENANT') {
+            var bp_class = contract.bpClass.toLowerCase();
+            param['function_code'] = param.function_code + bp_class.toUpperCase();
+            link_id = '${/parameter/@layout_code}_change_' + param.changeType.toLowerCase() + '_' + bp_class + '_link_id';
+        }*/
+
+        var maintain_type = 'READONLY';
+        var function_usage = 'QUERY';
+        var wflurl=$(link_id).getUrl();
+        //退回经办人节点可以编辑
+        if(parent.currentTaskInfo.task_definition_key == "sid-rHAU6o6D-6QbN-4laU-89LQ-cSSMgkK3aMmb"  ){
+            maintain_type = 'UPDATE';
+            function_usage = 'MODIFY';
+        }
+
+        var pageChooser = new PageChooser({
+            url: wflurl,
+            function_code: param.function_code,
+            context_path: '${/request/@context_path}',
+            opt: {
+                function_code: param.function_code,
+                change_req_id: param.changeReqId,
+                quotation_id: param.quotationId,
+                contract_id: param.contractId,
+                document_category: 'CONTRACT_CHANGE',
+                maintain_type: maintain_type,
+                function_usage: function_usage
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+    
+    

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fnd.mapper.HlsCusDocumentListMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.HlsCusDocumentList">
+        <id column="document_id" property="documentId" jdbcType="BIGINT"/>
+        <result column="document_type" property="documentType" jdbcType="VARCHAR"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="system_flag" property="systemFlag" jdbcType="VARCHAR"/>
+        <result column="document_list_name" property="documentListName" jdbcType="VARCHAR"/>
+        <result column="serial_number" property="serialNumber" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <select id="selectList" parameterType="com.hand.hls.fnd.dto.HlsCusDocumentList" resultMap="BaseResultMap">
+        select
+        sdl.document_id as document_id,
+        sdl.document_type as document_type,
+        sdl.document_category as document_category,
+        sdl.enabled_flag as enabled_flag,
+        sdl.system_flag as system_flag,
+        sdl.document_list_name as document_list_name,
+        sdl.serial_number as serial_number
+        from sys_document_list sdl
+        <where>
+            <if test="documentListName != null">
+                AND sdl.document_list_name like concat(concat('%',#{documentListName}),'%')
+            </if>
+        </where>
+        order by sdl.document_category, sdl.document_type ,sdl.serial_number
+    </select>
+
+    <select id="BpMasterListInit" parameterType="com.hand.hls.fnd.dto.HlsCusDocumentList" resultMap="BaseResultMap">
+        select
+        sdl.document_list_name as document_list_name
+        from sys_document_list sdl
+        WHERE
+        sdl.enabled_flag = 'Y'
+        <if test="documentType != null">
+            AND sdl.document_type = #{documentType}
+        </if>
+        <if test="documentCategory != null">
+            AND sdl.document_category = #{documentCategory}
+        </if>
+        order by sdl.serial_number
+    </select>
+
+    <select id="prjProjectListInit" parameterType="com.hand.hls.fnd.dto.HlsCusDocumentList" resultMap="BaseResultMap">
+        select
+        sdl.document_id ,
+        sdl.document_type ,
+        sdl.document_category ,
+        sdl.enabled_flag ,
+        sdl.system_flag ,
+        sdl.document_list_name ,
+        sdl.necessary_upload_flag,
+        sdl.serial_number as serial_number
+        from sys_document_list sdl
+        <where>
+            <if test="documentType != null">
+                AND sdl.document_type = #{documentType}
+            </if>
+            <if test="documentCategory != null">
+                AND sdl.document_category = #{documentCategory}
+            </if>
+        </where>
+        order by sdl.serial_number
+    </select>
+
+
+    <select id="queryDocumentListInit" resultMap="BaseResultMap">
+        SELECT
+	*
+FROM
+	SYS_DOCUMENT_LIST sdl
+WHERE
+	(SDL.DOCUMENT_TYPE ='NORMAL' or SDL.DOCUMENT_TYPE='OPEN_FCT')
+   AND SDL.DOCUMENT_CATEGORY='FCT_PROJECT'
+    </select>
+
+    <select id="selectByCategoryAndType" resultMap="BaseResultMap" parameterType="com.hand.hls.fnd.dto.HlsCusDocumentList">
+        SELECT *
+        FROM
+            SYS_DOCUMENT_LIST ld
+        WHERE
+            document_category = #{documentCategory}
+          AND document_type = #{documentType}
+          AND enabled_flag = #{enabledFlag}
+    </select>
+</mapper>

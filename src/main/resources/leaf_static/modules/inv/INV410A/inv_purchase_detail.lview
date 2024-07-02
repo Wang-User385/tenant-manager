@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="inv200c_add_id" url="${/request/@context_path}/modules/inv/INV200C/inv_purchase_redemption.lview"/>
+        <a:link id="upload_attachment_link" url="${/request/@context_path}/modules/inv/INV410A/inv_attachment_record.lview"/>
+        <script><![CDATA[
+        // 新增赎回
+        window['${/parameter/@layout_code}_create_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'inv_finance_purchase');
+            var param = {};
+            var finance_purchase_id = '${/parameter/@finance_purchase_id}';
+            param['url_title'] = '新增赎回';
+            param['function_code'] = 'INV200C1';
+            param['unit_id'] = '${/session/@unitId}';
+            param['win_id'] = 'inv200c_create_winid';
+            param['ds_id'] = ds_id;
+            param['finance_purchase_id']= finance_purchase_id;
+            hls_doc_get_layout_code(param, "inv200c_add_id", ds_id, 'INV200DETAIL');
+
+        };
+        //查询时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            var finance_purchase_id = '${/parameter/@finance_purchase_id}';
+            var inv_purchase_attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'inv_finance_attachment');
+            if(ds.id == inv_purchase_attachment_ds_id){
+                ds.setQueryParameter('purchase_id',finance_purchase_id);
+            }
+
+        };
+        //附件补录
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'inv_finance_purchase');
+            var financePurchaseId = $(ds_id).getCurrentRecord().get('finance_purchase_id');
+            var inv_purchase_attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'inv_finance_attachment');
+            if(financePurchaseId == null){
+                $L.showInfoMessage("提示","申购id为空，请您联系管理员处理!");
+                return;
+            }
+            var url = '${/request/@context_path}/uploadFile.lview';
+
+            var win = new Leaf.Window({
+                id: 'inv200_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': financePurchaseId,
+                    'table_name': 'INV_PURCHASE_ATT',
+                    winid: 'inv200_open_attachment_winid'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                $(inv_purchase_attachment_ds_id).query();
+            });
+        }
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            if (name == 'download') {
+                return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + record.get('attachment_id') + '">下载</a>';
+            }
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>

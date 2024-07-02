@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.HlsCusProjectChangeMeetingJudgeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.HlsCusProjectChangeMeetingJudge">
+        <result column="project_meeting_judge_id" property="projectMeetingJudgeId" jdbcType="DECIMAL" />
+        <result column="project_meeting_id" property="projectMeetingId" jdbcType="DECIMAL" />
+        <result column="change_req_id" property="changeReqId" jdbcType="DECIMAL" />
+        <result column="judge_user_allocation_id" property="judgeUserAllocationId" jdbcType="DECIMAL" />
+        <result column="Judge_approve_result" property="judgeApproveResult" jdbcType="VARCHAR" />
+        <result column="Judge_approve_comments" property="judgeApproveComments" jdbcType="VARCHAR" />
+        <result column="judge_user_id" property="judgeUserId" jdbcType="DECIMAL" />
+        <result column="director_flag" property="directorFlag" jdbcType="VARCHAR" />
+        <result column="absence_flag" property="absenceFlag" jdbcType="VARCHAR" />
+        <result column="process_instance_id" property="processInstanceId" jdbcType="VARCHAR" />
+        <result column="approved_time" property="approvedTime" jdbcType="DATE" />
+
+        <result column="department_name" property="departmentName" jdbcType="VARCHAR" />
+        <result column="department_position" property="departmentPosition" jdbcType="VARCHAR" />
+        <result column="JUDGE_USER_ALLOCATION_ID_N" property="judgeUserAllocationIdN" jdbcType="VARCHAR" />
+        <result column="JUDGE_APPROVE_RESULT_N" property="judgeApproveResultN" jdbcType="VARCHAR" />
+
+        <result column="judgeCount" property="judgeCount" jdbcType="DECIMAL"/>
+        <result column="approvedCount" property="approvedCount" jdbcType="DECIMAL"/>
+        <result column="rejectedCount" property="rejectedCount" jdbcType="DECIMAL"/>
+        <result column="savedCount" property="savedCount" jdbcType="DECIMAL"/>
+        <result column="approved" property="approved" jdbcType="VARCHAR"/>
+        <result column="rejected" property="rejected" jdbcType="VARCHAR"/>
+        <result column="user_name" property="userName" jdbcType="VARCHAR"/>
+        <result column="userDescription" property="userDescription" jdbcType="VARCHAR"/>
+        <result column="approveTime" property="approveTime" jdbcType="TIMESTAMP"/>
+        <result column="unit_name" property="unit_name"/>
+        <result column="position_name" property="position_name" jdbcType="VARCHAR"/>
+        <result column="company_short_name" property="company_short_name"/>
+        <result column="employee_code" property="employee_code"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="anonymous_flag" property="anonymousFlag" jdbcType="VARCHAR"/>
+
+    </resultMap>
+    <select id="queryPrjProjectMeetingJudgeByProjectMeetingId"
+            parameterType="com.hand.hls.prj.dto.HlsCusProjectChangeMeetingJudge" resultMap="BaseResultMap">
+        select * from prj_project_change_meeting_judge ppmj
+        WHERE 1=1
+        <if test="projectMeetingId != null">
+            and ppmj.project_meeting_id = #{projectMeetingId}
+        </if>
+    </select>
+
+    <!--根据评委id查询评委-->
+    <select id="queryJudgeByJudgeId" parameterType="com.hand.hls.prj.dto.HlsCusProjectChangeMeetingJudge"
+            resultMap="BaseResultMap">
+        select * from prj_project_change_meeting_judge ppmj
+        WHERE  ppmj.project_meeting_judge_id = #{projectMeetingJudgeId}
+    </select>
+
+    <!--根据会议id删除当前会议下的所有评委-->
+    <delete id="deleteByMeetId" parameterType="java.lang.Long">
+        DELETE FROM prj_project_change_meeting_judge
+        WHERE project_meeting_id=#{projectMeetingId}
+    </delete>
+
+    <!--查询所有的评委-->
+    <select id="queryAllJudge" resultMap="BaseResultMap">
+        SELECT
+            sua.allocation_id AS judge_user_allocation_id,
+            sua.user_id AS judge_user_id,
+            fn.unit_name AS unit_name,
+            fop.position_name AS position_name,
+            fc.company_short_name AS company_short_name,
+            fee.employee_code AS employee_code,
+            fee.name,
+            fe.employee_assign_id AS employee_assign_id,
+            pmj.director_flag AS director_flag,
+            pmj.enabled_flag AS enabled_flag
+        FROM
+            prj_project_change_meeting_judge pmj,
+            fnd_employee_assigns fe,
+            sys_user_allocation sua,
+            fnd_org_unit fn,
+            FND_ORG_POSITION fop,
+            fnd_company fc,
+            fnd_employee fee
+        WHERE
+            sua.employee_assign_id = fe.employee_assign_id
+          AND fn.unit_id = fe.unit_id
+          AND fop.position_id = fe.position_id
+          AND fc.company_id = fe.company_id
+          AND fe.employee_id = fee.employee_id
+          AND pmj.judge_user_allocation_id = sua.allocation_id
+          AND pmj.company_id = fc.company_id
+          AND fc.company_id = #{companyId}
+    </select>
+
+    <select id="queryApprovedResult" resultType="com.hand.hls.prj.dto.HlsCusProjectChangeMeetingJudge">
+        SELECT
+            v1.change_req_id AS changeReqId,
+            v1.judgeCount,
+            v2.approvedCount,
+            v3.rejectedCount,
+            v4.savedCount,
+            concat(
+                    ROUND (
+                                (
+                                    v2.approvedCount / v1.judgeCount
+                                    ) * 100,
+                                0
+                        ),
+                    '%'
+                ) approved,
+            concat(
+                    ROUND (
+                                (
+                                    v3.rejectedCount / v1.judgeCount
+                                    ) * 100,
+                                0
+                        ),
+                    '%'
+                ) rejected
+        FROM
+            (
+                SELECT
+                    ppmj.change_req_id,
+                    count(1) judgeCount
+                FROM
+                    prj_project_change_meeting_judge ppmj
+                WHERE
+                    ppmj.absence_flag != 'Y'
+                  AND ppmj.change_req_id = #{changeReqId}
+                  AND ppmj.project_meeting_id = (
+                    SELECT
+                        max(ppmj.project_meeting_id)
+                    FROM
+                        prj_project_change_meeting_judge ppmj
+                    WHERE
+                        ppmj.change_req_id = #{changeReqId}
+                )
+                GROUP BY
+                    ppmj.project_meeting_id,
+                    ppmj.change_req_id
+                ORDER BY
+                    ppmj.project_meeting_id DESC
+            ) v1,
+            (
+                SELECT
+                    count(1) approvedCount
+                FROM
+                    prj_project_change_meeting_judge ppmj
+                WHERE
+                    ppmj.Judge_approve_result = 'APPROVED'
+                  AND ppmj.project_meeting_id = (
+                    SELECT
+                        max(ppmj.project_meeting_id)
+                    FROM
+                        prj_project_change_meeting_judge ppmj
+                    WHERE
+                        ppmj.change_req_id = #{changeReqId}
+                )
+                  AND ppmj.absence_flag != 'Y'
+            ) v2,
+            (
+                SELECT
+                    count(1) rejectedCount
+                FROM
+                    prj_project_change_meeting_judge ppmj
+                WHERE
+                    ppmj.judge_approve_result = 'REJECTED'
+                  AND ppmj.project_meeting_id = (
+                    SELECT
+                        max(ppmj.project_meeting_id)
+                    FROM
+                        prj_project_change_meeting_judge ppmj
+                    WHERE
+                        ppmj.change_req_id = #{changeReqId}
+                )
+                  AND ppmj.absence_flag != 'Y'
+            ) v3,
+            (
+                SELECT
+                    count(1) savedCount
+                FROM
+                    prj_project_change_meeting_judge ppmj
+                WHERE
+                    ppmj.Judge_approve_result = 'SAVE'
+                  AND ppmj.project_meeting_id = (
+                    SELECT
+                        max(ppmj.project_meeting_id)
+                    FROM
+                        prj_project_change_meeting_judge ppmj
+                    WHERE
+                        ppmj.change_req_id = #{changeReqId}
+                )
+                  AND ppmj.absence_flag != 'Y'
+            ) v4
+        WHERE
+            v1.change_req_id = #{changeReqId}
+    </select>
+
+    <select id="queryDetail" resultMap="BaseResultMap">
+        SELECT
+            ppmj.project_meeting_judge_id,
+            ( SELECT su.USER_NAME FROM sys_user su WHERE su.user_id = ppmj.judge_user_id ) user_name,
+            ( SELECT su.DESCRIPTION FROM sys_user su WHERE su.user_id = ppmj.judge_user_id ) userDescription,
+            CASE ppmj.Judge_approve_result
+                WHEN 'APPROVED' THEN '同意'
+                WHEN 'REJECTED' THEN '拒绝'
+                ELSE '保留'
+                END Judge_approve_result,
+            ppmj.approved_time,
+            ppmj.Judge_approve_comments
+        FROM
+            prj_project_change_meeting_judge ppmj
+        WHERE
+                ppmj.project_meeting_id = (
+                SELECT
+                    max(ppmj1.project_meeting_id)
+                FROM
+                    prj_project_meeting_Judge ppmj1
+                WHERE
+                    ppmj1.change_req_id = #{changeReqId}
+
+            )
+          and IFNULL(ppmj.absence_flag,'N') != 'Y'
+    </select>
+
+    <select id="queryUser" resultMap="BaseResultMap">
+        SELECT
+            v1.project_meeting_Judge_id,
+            v.*, v1.director_flag,
+            v1.absence_flag,
+            v1.anonymous_flag AS anonymousFlag
+        FROM
+            (
+                SELECT
+                    DISTINCT ppmj.project_meeting_Judge_id,
+                             ppmj.judge_user_allocation_id,
+                             ppmj.director_flag,
+                             ppmj.absence_flag,
+                             ppmeet.anonymous_flag
+                FROM
+                    prj_project_change_meeting_judge ppmj
+                        LEFT JOIN prj_project_meeting ppmeet ON ppmeet.change_req_id = ppmj.change_req_id
+                WHERE
+                        ppmj.project_meeting_id = (
+                        SELECT
+                            max(ppmj1.project_meeting_id)
+                        FROM
+                            prj_project_meeting_Judge ppmj1
+                        WHERE
+                            ppmj1.change_req_id = #{changeReqId}
+
+                    )
+            ) v1
+                LEFT JOIN (
+                SELECT
+                    fe.employee_assign_id,
+                    sua.allocation_id as judge_user_allocation_id,
+                    (
+                        SELECT
+                            max(sua.user_id)
+                        FROM
+                            sys_user_allocation sua
+                        WHERE
+                            sua.employee_assign_id = fe.employee_assign_id
+                        /*LIMIT 1*/
+                    ) judge_user_id,
+                    (
+                        SELECT
+                            unit_name
+                        FROM
+                            fnd_org_unit fn
+                        WHERE
+                            fn.unit_id = fe.unit_id
+                    ) AS unit_name,
+                    (
+                        SELECT
+                            position_name
+                        FROM
+                            FND_ORG_POSITION fop
+                        WHERE
+                            fop.position_id = fe.position_id
+                    ) AS position_name,
+                    (
+                        SELECT
+                            company_short_name
+                        FROM
+                            fnd_company fc
+                        WHERE
+                            fc.company_id = fe.company_id
+                    ) AS company_short_name,
+                    (
+                        SELECT
+                            employee_code
+                        FROM
+                            fnd_employee fee
+                        WHERE
+                            fe.employee_id = fee.employee_id
+                    ) AS employee_code,
+                    (
+                        SELECT
+                            NAME
+                        FROM
+                            fnd_employee fee
+                        WHERE
+                            fe.employee_id = fee.employee_id
+                    ) AS NAME
+                FROM
+                    fnd_employee_assigns fe,
+                    sys_user_allocation sua
+                where fe.employee_assign_id = sua.employee_assign_id
+            ) v ON v1.judge_user_allocation_id = v.judge_user_allocation_id
+    </select>
+
+    <update id="updateMeetingResult" parameterType="com.hand.hls.prj.dto.HlsCusProjectChangeMeetingJudge">
+        UPDATE prj_project_change_meeting_judge pmj
+        SET
+        pmj.Judge_approve_result = #{judgeApproveResult},
+        pmj.Judge_approve_comments = #{judgeApproveComments},
+        pmj.LAST_UPDATE_DATE = now(),
+        pmj.APPROVED_TIME = now()
+       <where>
+         pmj.change_req_id = #{changeReqId}
+        and pmj.judge_user_allocation_id = #{judgeUserAllocationId}
+       </where>
+    </update>
+
+    <select id="queryMeetingJudgeByProcessInstanceId" resultType="java.lang.String" parameterType="java.lang.Long">
+        select ppmj.judge_user_allocation_id
+        from sys_user su,prj_project_change_meeting_judge ppmj
+        where ppmj.judge_user_id = su.user_id
+          and ppmj.process_instance_id = #{processInstaceId}
+          and ppmj.director_flag = 'Y'
+    </select>
+
+    <select id="queryAllMeetingJudgeByProcessInstanceId" resultType="java.lang.String" parameterType="java.lang.Long">
+        select ppmj.judge_user_allocation_id
+        from sys_user su,prj_project_change_meeting_judge ppmj
+        where ppmj.judge_user_id = su.user_id
+          and ppmj.process_instance_id = #{processInstaceId}
+    </select>
+
+
+    <select id="queryMeetingJudgeList" parameterType="com.hand.hls.prj.dto.HlsCusProjectChangeMeetingJudge"
+            resultMap="BaseResultMap">
+        select ppmj.project_meeting_id,
+        ppmj.change_req_id,
+        ppmj.judge_user_allocation_id,
+        res.`NAME` judge_user_allocation_id_n,
+        ppmj.judge_approve_result,
+        (select scvb.MEANING
+        from sys_code_value_b scvb, sys_code_b scb
+        where scvb.CODE_ID = scb.CODE_ID
+        and scvb.VALUE = ppmj.judge_approve_result
+        and scb.CODE = 'PRJ.DIRECTOR_APPROVAL_RESULT'
+        ) as JUDGE_APPROVE_RESULT_N,
+        ppmj.judge_approve_comments,
+        ppmj.judge_user_id,
+        ppmj.director_flag,
+        ppmj.absence_flag,
+        ppmj.process_instance_id,
+        ppmj.approved_time,
+        res.unit_name department_name,
+        res.position_name department_position,
+        ppmj.project_meeting_judge_id
+        from prj_project_change_meeting_judge ppmj,
+        (SELECT fee.employee_code,
+        fee. NAME,
+        fn.unit_id,
+        fn.unit_name,
+        fop.position_id,
+        fop.position_name,
+        fc.company_short_name,
+        sua.allocation_id,
+        sua.user_id,
+        fc.company_id
+        FROM fnd_employee_assigns fea
+        LEFT JOIN fnd_employee fee ON fea.employee_id = fee.employee_id
+        LEFT JOIN fnd_org_unit fn ON fn.unit_id = fea.unit_id
+        LEFT JOIN fnd_org_position fop ON fop.position_id = fea.position_id
+        LEFT JOIN fnd_company fc ON fc.company_id = fea.company_id
+        LEFT JOIN sys_user_allocation sua ON sua.employee_assign_id = fea.employee_assign_id
+        ) res
+        <where>
+            res.allocation_id = ppmj.judge_user_allocation_id
+            <if test="projectMeetingId != null">
+                and ppmj.project_meeting_id = #{projectMeetingId}
+            </if>
+            <if test="projectMeetingJudgeId != null">
+                and ppmj.project_meeting_judge_id = #{projectMeetingJudgeId}
+            </if>
+            <if test="changeReqId != null">
+                and ppmj.change_req_id = #{changeReqId}
+            </if>
+            <if test="judgeUserId != null">
+                and ppmj.judge_user_id = #{judgeUserId}
+            </if>
+            <if test="processInstanceId != null">
+                and ppmj.process_instance_id = #{processInstanceId}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryMeetingJudgeSubmit" parameterType="com.hand.hls.prj.dto.HlsCusProjectChangeMeetingJudge"
+            resultMap="BaseResultMap">
+        select ppmj.*,(select scvb.MEANING
+        from sys_code_value_b scvb, sys_code_b scb
+        where scvb.CODE_ID = scb.CODE_ID
+        and scvb.VALUE = ppmj.judge_approve_result
+        and scb.CODE = 'PRJ.DIRECTOR_APPROVAL_RESULT'
+        ) as JUDGE_APPROVE_RESULT_N
+        from prj_project_change_meeting_judge ppmj
+        <where>
+            ppmj.project_meeting_id = #{projectMeetingId}
+            <if test="projectMeetingJudgeId != null">
+                and ppmj.project_meeting_judge_id = #{projectMeetingJudgeId}
+            </if>
+            <if test="changeReqId != null">
+                and ppmj.change_req_id = #{changeReqId}
+            </if>
+            <if test="judgeUserId != null">
+                and ppmj.judge_user_id = #{judgeUserId}
+            </if>
+            <if test="processInstanceId != null">
+                and ppmj.process_instance_id = #{processInstanceId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

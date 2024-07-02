@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        function fnd_risk_ratio_set_query() {
+            $('fnd_risk_ratio_set_ds').query();
+        }
+
+        function fnd_risk_ratio_set_reset() {
+            $('fnd_risk_ratio_set_query_ds').reset();
+            fnd_risk_ratio_set_query();
+        }
+
+        function fnd_risk_ratio_set_save() {
+            var ds = $('fnd_risk_ratio_set_ds');
+            if (ds.validate()) {
+                ds.submit();
+            }
+        }
+
+        function fnd_risk_ratio_set_ds_submitsuccess(){
+            fnd_risk_ratio_set_query();
+        }
+
+        function render_risk_ratio_set_rend(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'detail' && !!record.get('risk_ratio_set_code') ) {
+                    return (
+                        '<a href="#"' +
+                        ' onclick="javascript:winOpen_fnd_risk_ratio_set_detail(' +
+                        '\'' + record.get('risk_ratio_set_code') + '\');">明细</a>'
+                    );
+                }
+            }
+            if (name == "valid_from") {
+                if (!!value) {
+                    var date = new Date(value);
+                    if (date.toString() === "Invalid Date") {
+                        console.error("日期格式错误");
+                    } else {
+                        return $L.formatDate(date);
+                    }
+                }
+                return "";
+            }
+            if (name == "valid_to") {
+                if (!!value) {
+                    var date = new Date(value);
+                    if (date.toString() === "Invalid Date") {
+                        console.error("日期格式错误");
+                    } else {
+                        return $L.formatDate(date);
+                    }
+                }
+                return "";
+            }
+            return '';
+        }
+
+        function winOpen_fnd_risk_ratio_set_detail(risk_ratio_set_code) {
+            new Leaf.Window({
+                id: "fnd_risk_ratio_set_detail_win",
+                url: "${/request/@context_path}/modules/FND/FND_SET/FND130/fnd_risk_ratio.lview",
+                title: '风险准备金率集明细',
+                params: {
+                    risk_ratio_set_code: risk_ratio_set_code,
+                    winId: 'fnd_risk_ratio_set_detail_win'
+                },
+                fullScreen: false,
+                draggable: true,
+                closeable: true,
+                width: 850,
+                height: 450,
+                side: 'right'
+            });
+        }
+
+        <!--组件change事件-->
+        function risk_ratio_set_grid_change(editor, newVal, oldVal) {
+            if (editor.binder.name == "valid_from" && editor.record.isNew) {
+                var record = editor.record;
+                var valid_from = $L.formatDate(record.get("valid_from") || '');
+                record.set("risk_ratio_set_code", 'RISK'+ valid_from);
+            }
+        }
+
+        <!--editorFunction-->
+        function fnd_risk_ratio_set_grid_ef(record, name) {
+            if (record.isNew) {
+                if (name == "description") {
+                    return "fnd_risk_ratio_set_grid_tf";
+                }
+                if (name == "valid_from" || name == "valid_to") {
+                    return "fnd_risk_ratio_set_grid_dp";
+                }
+            }
+        }
+
+        function fnd_risk_ratio_set_copy() {
+            //debugger;
+            Leaf.Masker.mask(Ext.getBody(), '复制中...');
+            var ds = $('fnd_risk_ratio_set_ds');
+            //校验最新的
+            var records = ds.getSelected();
+            if (records.length == 0) {
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '未选择一条数据！');
+                return;
+            }
+            if (records.length > 1) {
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '请选择一条记录！');
+                return;
+            }
+            if (records[0].get('valid_to') != null) {
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '请选择最新的一条记录（有效期至需为空）！');
+                return;
+            }
+
+            var current_date = Leaf.formatDate(new Date());
+
+            if (Leaf.formatDate(records[0].get('valid_from')) == current_date) {
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('提示', '风险准备金率集代码重复，同一天内不能进行多次复制操作！');
+                return;
+            }
+
+            var recordData = [];
+            recordData.push(records[0].data);
+
+            Leaf.request({
+                url: "${/request/@context_path}/fnd/riskRatioSet/copy",
+                para: recordData,
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                    fnd_risk_ratio_set_query();
+                },
+                failure: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+
+        }
+
+        function assignValue(record, data) {
+            for (var i in data) {
+                if (data[i] != null) {
+                    record[i] = data[i];
+                }
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fnd_risk_ratio_set_query_ds">
+                <a:fields>
+                    <a:field name="risk_ratio_set_code"/>
+                    <a:field name="description"/>
+                    <a:field name="valid_from"/>
+                    <a:field name="valid_to"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd_risk_ratio_set_ds" autoQuery="true" selectable="true"
+                       queryDataSet="fnd_risk_ratio_set_query_ds" queryMethod="POST"
+                       queryUrl="${/request/@context_path}/fnd/risk/ratio/set/query"
+                       submitUrl="${/request/@context_path}/fnd/risk/ratio/set/submit"
+                       deleteUrl="${/request/@context_path}/fnd/risk/ratio/set/delete">
+                <a:fields>
+                    <a:field name="risk_ratio_set_code"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="valid_from" required="true" dataType="date"/>
+                    <a:field name="valid_to" dataType="date"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="fnd_risk_ratio_set_ds_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton bind="fnd_risk_ratio_set_grid_id" type="add"/>
+                <a:gridButton bind="fnd_risk_ratio_set_grid_id" type="delete"/>
+                <a:gridButton click="fnd_risk_ratio_set_save" text="HAP.SAVE"/>
+                <a:gridButton click="fnd_risk_ratio_set_query" text="HAP.QUERY"/>
+                <a:gridButton click="fnd_risk_ratio_set_reset" text="HAP.RESET"/>
+                <a:gridButton click="fnd_risk_ratio_set_copy" text="复制"/>
+            </a:screenTopToolbar>
+            <a:form column="4" title="查询条件" labelwidth="100">
+                <a:textField name="risk_ratio_set_code" bindTarget="fnd_risk_ratio_set_query_ds" prompt="风险准备金率集代码" width="180">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd_risk_ratio_set_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="description" bindTarget="fnd_risk_ratio_set_query_ds" prompt="描述" width="180">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd_risk_ratio_set_query"/>
+                    </a:events>
+                </a:textField>
+                <a:datePicker name="valid_from" bindTarget="fnd_risk_ratio_set_query_ds" prompt="有效期从" width="180">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd_risk_ratio_set_query"/>
+                    </a:events>
+                </a:datePicker>
+                <a:datePicker name="valid_to" bindTarget="fnd_risk_ratio_set_query_ds" prompt="有效期至" width="180">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd_risk_ratio_set_query"/>
+                    </a:events>
+                </a:datePicker>
+            </a:form>
+            <a:grid id="fnd_risk_ratio_set_grid_id" bindTarget="fnd_risk_ratio_set_ds" marginHeight="140" marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="risk_ratio_set_code" align="center" prompt="风险准备金率集代码" width="220"/>
+                    <a:column name="description" align="center" prompt="描述" editorFunction="fnd_risk_ratio_set_grid_ef" width="220"/>
+                    <a:column name="valid_from" align="center" renderer="render_risk_ratio_set_rend" prompt="有效期从" editorFunction="fnd_risk_ratio_set_grid_ef" width="140"/>
+                    <a:column name="valid_to" align="center" renderer="render_risk_ratio_set_rend" prompt="有效期至" editorFunction="fnd_risk_ratio_set_grid_ef" width="140"/>
+                    <a:column name="detail" align="center" renderer="render_risk_ratio_set_rend" prompt="风险准备金率明细" width="140"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd_risk_ratio_set_grid_tf"/>
+                    <a:numberField id="fnd_risk_ratio_set_grid_numberField"/>
+                    <a:datePicker id="fnd_risk_ratio_set_grid_dp">
+                        <a:events>
+                            <a:event name="change" handler="risk_ratio_set_grid_change"/>
+                        </a:events>
+                    </a:datePicker>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

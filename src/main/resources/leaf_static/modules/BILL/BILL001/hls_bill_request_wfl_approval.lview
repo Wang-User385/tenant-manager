@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            body {
+                height: 400px;
+                width: 1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="hls_bill_request_wfl_link"
+                url="${/request/@context_path}/modules/BILL/BILL001/hls_bill_request_wfl.lview"/>
+        <script><![CDATA[
+
+
+        var businessKey = '${/parameter/@businessKey}';
+        var param = parent.currentTaskInfo.execution_variables;
+
+        // console.log(param);
+
+        var bill = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "billId";
+        });
+        var billId = bill[0].value;
+      var  function_code;
+      var  function_usage;
+      debugger;
+        var first_task_id = 'sid-L3KurShJ-2lkC-4YCW-82jh-lnEHgnXeWa5F';
+        var current_activity_id = parent.currentTaskInfo.task_definition_key;
+var  second_task_id='sid-429v3jEA-l1lW-44dN-8bHx-IuUXDeN0c5vs';
+        if(current_activity_id == first_task_id){
+            function_code= 'BILL001F4';
+            function_usage='MODIFY'
+        }else if(current_activity_id == second_task_id){
+            function_code= 'BILL001F5';
+            function_usage='MODIFY'
+        }
+        else{
+            function_code= 'BILL001F2';
+            function_usage='QUERY'
+        }
+
+        var pageChooser = new PageChooser({
+            url: $('hls_bill_request_wfl_link').getUrl(),
+            function_code: function_code,
+            context_path: '${/request/@context_path}',
+            opt: {
+                businessKey : businessKey,
+                bill_id: billId,
+                maintain_type: 'READONLY',
+                function_code: function_code,
+                function_usage: function_usage
+
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

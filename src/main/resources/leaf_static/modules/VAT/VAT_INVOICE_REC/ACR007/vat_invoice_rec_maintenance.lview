@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="con_contract_detail_frame_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_frame_detail.lview"/>
+
+
+
+        <script><![CDATA[
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'open_contract_detail_win';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if ((name == 'contract_number' || name == 'legal_contract_number') && value) {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+
+        function open_contract_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '合同明细维护';
+            param['function_code'] = 'CONT301F1';
+            param['winid'] = 'con_contract_detail_winid';
+            //param['layout_debugger_flag'] = 'Y';
+            // debugger;
+            if (param['purchase_frame'] == 'Y') {
+                if (('${/parameter/@function_code}' == 'CONT301F15') || (param['contract_status'] !== 'NEW' && param['contract_status'] !== 'APPROVED_RETURN' && param['contract_status'] !== 'REJECTED')) {
+                    param['maintain_type'] = 'READONLY';
+                    param['function_usage'] = 'QUERY';
+                    param['function_code'] = 'CONT301F1K';
+
+
+                } else {
+                    param['maintain_type'] = 'MODIFY';
+                    param['function_usage'] = 'MODIFY';
+                    param['function_code'] = 'CONT301F1K';
+                }
+                hls_doc_get_layout_code(param, 'con_contract_detail_frame_id', ds_id, 'ACR007');
+
+            } else {
+                // debugger;
+                if (('${/parameter/@function_code}' == 'CONT301F15') || (param['contract_status'] !== 'NEW' && param['contract_status'] !== 'APPROVED_RETURN' && param['contract_status'] !== 'REJECTED')) {
+
+                    param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc', 'quotation_calc'];
+
+
+                    param['maintain_type'] = 'READONLY';
+                    param['function_usage'] = 'QUERY';
+                    param['function_code'] = 'CONT301F1';
+                } else {
+                    param['maintain_type'] = 'MODIFY';
+                    param['function_usage'] = 'MODIFY';
+                    param['function_code'] = 'CONT301F1';
+                }
+                hls_doc_get_layout_code(param, 'con_contract_detail_id', ds_id, 'ACR007');
+
+            }
+        }
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            Leaf.Masker.mask(Ext.getBody(), '保存中');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_bank_account');
+
+            if ($(ds_id).getSelected().length == 0) {
+                Leaf.showMessage("提示", "请至少选择一条记录进行保存!");
+                Leaf.Masker.unmask(Ext.getBody());
+                return;
+            }
+
+
+            var array = $(ds_id).getSelected().map((v)=>v.data);
+
+            Leaf.request({
+                url: "${/request/@context_path}/acr/invoice/bill/save",
+                para: array,
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    $(ds_id).query();
+
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+
+
+        }
+
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

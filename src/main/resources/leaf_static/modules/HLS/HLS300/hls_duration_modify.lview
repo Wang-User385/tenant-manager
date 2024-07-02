@@ -1,0 +1,2428 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2020年5月27日
+            $Revision: 1.0
+            $Purpose: 存续期审批维护
+            -->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.sys.service.SysDefaultValueService.querySysDefaultValue"
+                       rootPath="default_value"/>
+    </a:init-procedure>
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+
+        <a:link id="${/parameter/@layout_code}_common_window_id"
+                url="${/request/@context_path}/modules/HLS/HLS300/hls_duration_common.lview"/>
+        <a:link id="${/parameter/@layout_code}_common_release_repurchase_window_id"
+                url="${/request/@context_path}/modules/HLS/HLS300/hls_duration_common_release_repurchase.lview"/>
+        <a:link id="${/parameter/@layout_code}_project_credit_notice_link"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316T1/prj_project_credit_transition.lview"/>
+        <a:link id="${/parameter/@layout_code}_con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="${/parameter/@layout_code}_sw001_pledge_lease_id"
+                url="${/request/@context_path}/modules/SW/SW001/hls_pledge_lease_detail.lview"/>
+        <a:link id="${/parameter/@layout_code}_lease_info_detaill_id"
+                url="${/request/@context_path}/modules/LEASE/LEASE001/lease_item_modify_detail.lview"/>
+        <script><![CDATA[
+
+        var duration_type = '${/parameter/@duration_type}';
+
+        var deposit_change_flag = 'N';
+        var release_change_flag = 'N';
+        var repurchase_change_flag = 'N';
+        var warrant_change_flag = 'N';
+        var contract_id = '${/parameter/@contract_id}' || -1;
+        var project_id = '${/parameter/@project_id}';
+
+        var hd_id = '${/parameter/@hd_id}';
+
+        function atmTypeRef(name) {
+            return /\.(jpg|png|gif|bmp|jpeg)$/i.test(name)
+        }
+
+        function checkPdf(name) {
+            return /\.(pdf)$/i.test(name)
+        }
+
+        function checkDox(name) {
+            return /\.(doc|docx)$/i.test(name)
+        }
+
+        //在线编辑
+        function editDocFile(source_pk_value) {
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                window.open("${/request/@context_path}/sys/office/view?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
+            } else {
+                window.open("${/request/@context_path}/sys/office/review?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
+            }
+        }
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+        };
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            /*var duration_att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment');
+            if (ds.id === duration_att_ds_id) {
+                if ('${/parameter/@wfl_flag}' == 'Y') {
+                    if (record) {
+                        record.getField('document_name').setReadOnly(false);
+                        record.getField('document_name').setRequired(false);
+                        record.getField('description').setReadOnly(false);
+                    }
+                }
+            }*/
+        };
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'F_DEPOSIT_INFO');
+
+            if (ds.id === duration_hd_ds_id) {
+
+                //新增时初始化
+                if (!record.get('apply_unit_id_n')) {
+                    record.set('apply_unit_id_n', '${/session/@unitName}');
+                    record.set('apply_unit_id', '${/session/@unitId}');
+                }
+                if (!record.get('apply_person_n')) {
+                    record.set('apply_person_n', '${/session/@employeeName}');
+                    record.set('apply_person', '${/session/@userId}');
+                }
+                if (!record.get('apply_date')) {
+                    record.set('apply_date', Leaf.dateFormat.format(new Date('${/model/default_value/record/@now_date}'), 'isoDate'));
+                }
+                if (!record.get('project_id')) {
+                    record.set('project_id', '${/parameter/@project_id}');
+                }
+                if (!record.get('contract_number')) {
+                    record.set('contract_number', '${/parameter/@contract_number}');
+                }
+                if (!record.get('project_number')) {
+                    record.set('project_number', '${/parameter/@project_number}');
+                }
+                if (!record.get('project_name')) {
+                    record.set('project_name', '${/parameter/@project_name}');
+                }
+                if (!record.get('prj_bp_name')) {
+                    record.set('prj_bp_name', '${/parameter/@prj_bp_name}');
+                }
+                if (!record.get('prj_bp_name')) {
+                    record.set('prj_bp_name', '${/parameter/@prj_bp_name}');
+                }
+                if (!record.get('prj_con_status_n')) {
+                    record.set('prj_con_status_n', '${/parameter/@prj_con_status_n}');
+                }
+                if (!record.get('prj_unit_name')) {
+                    record.set('prj_unit_name', '${/parameter/@prj_unit_name}');
+                }
+                if (!record.get('prj_employee_name')) {
+                    record.set('prj_employee_name', '${/parameter/@prj_employee_name}');
+                }
+                if (!record.get('prj_finance_amount')) {
+                    record.set('prj_finance_amount', '${/parameter/@prj_finance_amount}');
+                }
+                if (!record.get('prj_outstanding_principal')) {
+                    record.set('prj_outstanding_principal', '${/parameter/@prj_outstanding_principal}');
+                }
+                if (!record.get('prj_overdue_max_days')) {
+                    record.set('prj_overdue_max_days', '${/parameter/@prj_overdue_max_days}');
+                }
+
+                if (!record.get('five_classification_result_n')) {
+                    record.set('five_classification_result_n', '${/parameter/@five_classification_result_n}');
+                }
+
+                if (!record.get('overdue_status_n')) {
+                    record.set('overdue_status_n', '${/parameter/@overdue_status_n}');
+                }
+
+                if (!record.get('host_project_manager_n')) {
+                    record.set('host_project_manager_n', '${/parameter/@host_project_manager_n}');
+                }
+
+                if (!record.get('host_unit_name')) {
+                    record.set('host_unit_name', '${/parameter/@host_unit_name}');
+                }
+
+
+                if (!record.get('deposit_change_flag')) {
+                    record.set('deposit_change_flag', 'N');
+                } else {
+                    deposit_change_flag = record.get('deposit_change_flag');
+                }
+                if (!record.get('release_change_flag')) {
+                    record.set('release_change_flag', 'N');
+                } else {
+                    release_change_flag = record.get('release_change_flag');
+                }
+                if (!record.get('repurchase_change_flag')) {
+                    record.set('repurchase_change_flag', 'N');
+                } else {
+                    repurchase_change_flag = record.get('repurchase_change_flag');
+                }
+                if (!record.get('warrant_change_flag')) {
+                    record.set('warrant_change_flag', 'N');
+                } else {
+                    warrant_change_flag = record.get('warrant_change_flag');
+                }
+
+
+                //新建的单据 通过 Leaf.onReady 渲染
+                //保存的单据 通过 from load 事件 渲染
+                if ('${/parameter/@hd_id}') {
+                    Leaf.onReady(function () {
+                        if (duration_type == 'TERMINATE') {
+                            if (deposit_change_flag == 'N') {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(0);
+                            } else {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(0);
+                            }
+                            if (release_change_flag == 'N') {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(1);
+                            } else {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(1);
+                            }
+                            if (repurchase_change_flag == 'N') {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(2);
+                            } else {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(2);
+                            }
+                            if (warrant_change_flag == 'N') {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(3);
+                            } else {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(3);
+                            }
+                        } else if (duration_type == 'PREPAYMENT') {
+                            if (deposit_change_flag == 'N') {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(1);
+                            } else {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(1);
+                            }
+                            if (release_change_flag == 'N') {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(2);
+                            } else {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(2);
+                            }
+                            if (repurchase_change_flag == 'N') {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(3);
+                            } else {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(3);
+                            }
+                            if (warrant_change_flag == 'N') {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(4);
+                            } else {
+                                $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(4);
+                            }
+                        }
+                        /*var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+                        var record = $(duration_hd_ds_id).getCurrentRecord();
+                        var duration_status = record.get('duration_status');
+                        if ('${/parameter/@wfl_flag}' != 'Y' && duration_status != 'NEW' && duration_status != 'REJECTED' && '${/parameter/@execute_flag}' != 'Y') {
+                            var duration_att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment');
+                            if (duration_att_ds_id) {
+                                jQuery(document).ready(function () {
+                                    var table_id = document.getElementById('${/parameter/@layout_code}_G_ATTACHMENT_INFO_hls_duration_attachment_layout_grid_id_wrap');
+                                    table_id.getElementsByClassName('grid-btn grid-save grid-btn-hap-toolbar')[0].hidden = true;
+                                    table_id.getElementsByClassName('grid-btn grid-add grid-btn-hap-toolbar')[0].hidden = true;
+                                    table_id.getElementsByClassName('grid-btn grid-delete grid-btn-hap-toolbar')[0].hidden = true;
+                                });
+                            }
+                        }*/
+                    });
+                }
+            }
+            if (ds.id === deposit_ds_id) {
+                record.set('project_id', project_id);
+                if ('${/parameter/@function_usage}' !== 'QUERY') {
+                    if (record.get('is_refund_flag') === 'Y') {
+                        record.getField('refund_date').setReadOnly(false);
+                        record.getField('bp_bank_account_id').setReadOnly(false);
+                        record.getField('bp_bank_account_id_n').setReadOnly(false);
+                        record.getField('refund_date').setRequired(true);
+                        record.getField('bp_bank_account_id').setRequired(true);
+                        record.getField('bp_bank_account_id_n').setRequired(true);
+                    } else if (record.get('is_refund_flag') === 'N') {
+                        record.getField('refund_date').setRequired(false);
+                        record.getField('bp_bank_account_id').setRequired(false);
+                        record.getField('bp_bank_account_id_n').setRequired(false);
+                        record.getField('refund_date').setReadOnly(true);
+                        record.getField('bp_bank_account_id').setReadOnly(true);
+                        record.getField('bp_bank_account_id_n').setReadOnly(true);
+                    }
+
+
+                    if (record.get('is_deduction_flag') === 'Y') {
+
+                        record.getField('bank_account_id').setReadOnly(false);
+                        record.getField('bank_account_id_n').setReadOnly(false);
+                        record.getField('bank_account_id').setRequired(true);
+                        record.getField('bank_account_id_n').setRequired(true);
+                    } else if (record.get('is_deduction_flag') === 'N') {
+                        record.getField('bank_account_id').setRequired(false);
+                        record.getField('bank_account_id_n').setRequired(false);
+                        record.getField('bank_account_id').setReadOnly(true);
+                        record.getField('bank_account_id_n').setReadOnly(true);
+                    }
+                }
+            }
+        };
+
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            var hd_record = $(duration_hd_ds_id).getCurrentRecord();
+            var check_flag = true;
+            var document_category = 'DURATION';
+            var document_type = 'DURATION';
+            var business_type = 'DURATION';
+            var duration_number = hd_record.get('duration_number');
+
+
+            //项目变更审批事项工作联系单 必选选择合同
+            if (duration_type == 'PROJECT') {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln');
+                var records = $(ds_id).getAll();
+                if (records.length == 0) {
+                    Leaf.showMessage('提示', '必须选择一条合同记录！');
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+
+            //保证金冲抵、退还方案 由于gird数据是 通过支付表编号选择查询出来的，所以需要 将record 设置为NEW 才能插入到hls_duration_ln
+            //modify by Eugnen Song 改为后台校验
+
+            //-------------------------------------------------------------------------------
+
+            //解押 && 回购
+            var lease_item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST');
+            //数据保存
+            if (lease_item_ds_id) {
+                var records = $(lease_item_ds_id).getAll();
+                records.forEach(function (record) {
+                    if (!record.get('ln_id')) {
+                        //将record 设置为NEW 才能插入到hls_duration_ln
+                        record.isNew = true;
+                        record.set('source_type', duration_type);
+                    }
+                    //解押后抵质押金额<=抵质押金额
+                    if (duration_type == 'RELEASE') {
+                        var release_amount = record.get('release_amount') || 0;
+                        var mortgage_pledge_amount = record.get('mortgage_pledge_amount') || 0;
+                        if (minus(release_amount, mortgage_pledge_amount) > 0) {
+                            Leaf.showMessage('提示！', '解押后抵质押金额:' + release_amount + '大于抵质押金额:' + mortgage_pledge_amount);
+                            check_flag = false;
+                        }
+                    } else if (duration_type == 'REPURCHASE') {
+                        //回购后账面净值 <=账面净值(当前)
+                        var release_amount = record.get('release_amount') || 0;
+                        var net_asset_value_now = record.get('net_asset_value_now') || 0;
+                        if (minus(release_amount, net_asset_value_now) > 0) {
+                            Leaf.showMessage('提示！', '回购后账面净值:' + release_amount + '大于账面净值(当前):' + net_asset_value_now);
+                            check_flag = false;
+                        }
+                    }
+                });
+            }
+
+            //保存前调用获取存续期编码
+            if (duration_number == null) {
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type,
+                    success: function (res) {
+                        $(duration_hd_ds_id).getCurrentRecord().set('duration_number', res.result.record[0]);
+                        $(duration_hd_ds_id).getCurrentRecord().set('duration_type', duration_type);
+                        $(duration_hd_ds_id).getCurrentRecord().set('duration_status', 'NEW');
+                        $(duration_hd_ds_id).getCurrentRecord().set('execute_status', 'NEW');
+                        $(duration_hd_ds_id).getCurrentRecord().set('execute_flag', 'N');
+
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = true;
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    },
+                    sync: true,
+                    scope: this
+                });
+                return check_flag;
+            } else {
+                return check_flag;
+            }
+        };
+
+        //移除前事件(grid,attach,gridbox,table)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_brfore_remove'] = function (ds, record, bp_seq) {
+
+            var duration_att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment');
+            if (ds.id === duration_att_ds_id) {
+                for (var i = 0; i < record.length; i++) {
+                    var upload_person_id = record[i].get('upload_person_id');
+                    if (upload_person_id && upload_person_id != '${/session/@userId}') {
+                        //window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        $L.showMessage('提示', '只有上传人自己才能删除自己上传的附件资料！');
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment');
+
+            //保证金退还和抵扣
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+
+            var et_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_ET_INFO');
+            var prepayment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PREPAYMENT_INFO');
+
+            if (attachment_ds_id == ds.id) {
+                ds.setQueryParameter('attachment_category', duration_type);
+            }
+
+            if (deposit_ds_id == ds.id) {
+                ds.setQueryParameter('risk_cf_item', '52');
+                ds.setQueryParameter('hd_id', hd_id)
+                if (duration_type == 'DEPOSIT') {
+                    ds.setQueryParameter('contract_id', contract_id)
+                }
+                //正常结清 保证金维度中 支付表变为了合同
+                if (duration_type == 'TERMINATE') {
+                    ds.setQueryParameter('project_id', project_id)
+                }
+            }
+
+            if (interest_ds_id == ds.id) {
+                ds.setQueryParameter('cf_item', '502');
+                ds.setQueryParameter('hd_id', hd_id)
+                if (duration_type == 'DEPOSIT') {
+                    ds.setQueryParameter('contract_id', contract_id)
+                }
+                //正常结清 保证金维度中 支付表变为了合同
+                if (duration_type == 'TERMINATE') {
+                    ds.setQueryParameter('project_id', project_id)
+                }
+            }
+
+            if (credit_ds_id == ds.id) {
+                ds.setQueryParameter('source_type', 'CREDIT');
+                ds.setQueryParameter('hd_id', hd_id)
+                if (duration_type == 'DEPOSIT') {
+                    ds.setQueryParameter('contract_id', contract_id)
+                }
+                //正常结清 保证金维度中 支付表变为了合同
+                if (duration_type == 'TERMINATE') {
+                    ds.setQueryParameter('project_id', project_id)
+                }
+            }
+
+
+            if (et_ds_id == ds.id) {
+                ds.setQueryParameter('source_type', 'ET');
+            }
+            if (prepayment_ds_id == ds.id) {
+                ds.setQueryParameter('source_type', 'PREPAYMENT');
+            }
+
+            //项目变更审批通知单
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PROJECT_INFO');
+            var contract_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CONTRACT_INFO');
+
+            if (project_ds_id == ds.id) {
+                ds.setQueryParameter('source_type', 'PROJECT');
+            }
+
+            if (contract_ds_id == ds.id) {
+                ds.setQueryParameter('source_type', 'CONTRACT');
+            }
+
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+        };
+
+
+        //indexchange事件(grid,attach,gridbox,table)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_indexchange'] = function (ds, record, bp_seq) {
+            //解押 && 回购
+            var lease_item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM');
+            if (lease_item_ds_id == ds.id) {
+                var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST');
+                $(list_ds_id).setQueryParameter('lease_item_id', record.get('lease_item_id'));
+                $(list_ds_id).query();
+            }
+
+            //正常结清&&提前结清&&提前还款
+            var lease_item_ds_1_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_1');
+            if (lease_item_ds_1_id == ds.id) {
+                var list_1_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_1');
+                $(list_1_ds_id).setQueryParameter('lease_item_id', record.get('lease_item_id'));
+                $(list_1_ds_id).query();
+            }
+
+            var lease_item_ds_2_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_2');
+            if (lease_item_ds_2_id == ds.id) {
+                var list_2_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_2');
+                $(list_2_ds_id).setQueryParameter('lease_item_id', record.get('lease_item_id'));
+                $(list_2_ds_id).query();
+            }
+
+            //项目变更审批事项
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PROJECT_INFO');
+            if (project_ds_id == ds.id && duration_type == 'PROJECT') {
+                var contract_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CONTRACT_INFO');
+                $(contract_ds_id).setQueryParameter('source_id', record.get('project_id'));
+                $(contract_ds_id).query();
+            }
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'download') {
+                return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + record.get('attachment_id') + '">下载</a>';
+            }
+            if (name === 'upload') {
+                return '<a href="javascript:window[\'' + 'upload_file' + '\'](\'' + record.id + '\',\'' + record.get('duration_attachment_id') + '\');">上传</a>';
+            }
+            if (name === 'cashflow_detail') {
+                if (record.get('contract_id')) {
+                    return '<a href="javascript:window[\'' + 'cashflow_detail' + '\'](\'' + record.id + '\',\'' + record.get('contract_id') + '\');">详细</a>';
+                }
+            }
+            if (name === 'approval_notice') {
+                if (record.get('ref_project_id')) {
+                    return '<a href="javascript:window[\'' + 'approval_notice' + '\'](\'' + record.id + '\',\'' + record.get('ref_project_id') + '\');">详细</a>';
+                }
+            }
+            // if (name == 'contract_number') {
+            //     link_function = 'open_contract_detail_win';
+            //
+            //     return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">合同明细</a>';
+            // }
+            if (name == 'notice_detail') {
+                return '<a href="javascript:open_notice_detail_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '批复信息' + '</a>';
+            }
+
+            if (name == 'file_name' && value) {
+
+                if (record.get('attachment_id_n') != null) {
+                    var html = '';
+                    var fileNameList = value.split(',');
+                    var attachmentIdList = record.get('attachment_id_n').split(',');
+                    var sourcePkList = record.get('source_pk_value').split(',');
+                    for (var i = 0; i < fileNameList.length; i++) {
+                        if (html != '') {
+                            html += ',';
+                        }
+                        if (atmTypeRef(fileNameList[i])) {
+                            html += '<span><a target="_self" alt="' + fileNameList[i] + '" imageIndex="img_' + attachmentIdList[i] + '" ref="img_' + attachmentIdList[i] + '" href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkPdf(fileNameList[i])) {
+                            var url = encodeURIComponent('${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i]);
+                            html += '<span><a target="_blank" href="${/request/@context_path}/resources/hls/pdf/web/viewer.html?file=' + url + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkDox(fileNameList[i])) {
+                            html += '<a href=javascript:editDocFile(\'' + sourcePkList[i] + '\')>' + fileNameList[i] + '</a>';
+                        } else {
+                            html += '<span><a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        }
+
+                    }
+                    return html;
+                }
+            }
+
+            if (name == 'lease_item_code') {
+                //解押
+                if (duration_type == 'RELEASE') {
+                    return '<a href="javascript:window[\'' + 'sw001_detail_open' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+                } else if (duration_type == 'REPURCHASE') {
+                    //回购
+                    return '<a href="javascript:window[\'' + 'lease001_detail_open' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+                } else {
+                    //正常结清&&提前结清&&提前还款
+                    var lease_item_1_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_1');
+                    var lease_item_2_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_2');
+                    if (record.ds.id == lease_item_1_ds_id) {
+                        return '<a href="javascript:window[\'' + 'sw001_detail_open' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+                    }
+                    if (record.ds.id == lease_item_2_ds_id) {
+                        return '<a href="javascript:window[\'' + 'lease001_detail_open' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+                    }
+                }
+            }
+
+            //颜色标记
+            if (name == 'lease_full_name') {
+                if (record.get('release_flag') == 'Y') {
+                    return '<div style="color: red">' + value + '</div>';
+                } else {
+                    return value;
+                }
+            }
+            if (name == 'warrant_name') {
+                if (record.get('warrant_flag') == 'Y') {
+                    return '<div style="color: red">' + value + '</div>';
+                } else {
+                    return value;
+                }
+            }
+
+            if (name == 'source_id') {
+                //提前结清 - 保证金方案
+                return '<a href="javascript:window[\'' + 'deposit_detail' + '\'](\'' + record.id + '\',\'' + record.get('project_id') + '\',\'' + record.ds.id + '\');">详细</a>';
+
+            }
+
+            if (name == 'ln_id') {
+                //提前结清 - 测算 && 提前还款-测算
+                if (record.get('ln_id')) {
+                    return '<a href="javascript:window[\'' + 'duration_calc_detail' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">测算</a>';
+                }
+            }
+
+            if (name === 'prj_con_name') {
+                var link_function = 'open_contract_detail_win';
+                if (record.get('project_id')) {
+                    return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">合同明细</a>';
+                }
+            }
+
+            //权证相关 附件
+            if (name == 'warrant_download') {
+                return '<a href="javascript:open_attach(\'' + record.get('warrant_id') + '\')">附件上传</a>';
+            }
+
+            if (name == 'warrant_file_name' && value) {
+                var str = value.split(',');
+                var url = '';
+                for (var i = 0; i < str.length; i++) {
+                    var temp = record.get('attachment_id').split(',');
+                    url = url + '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + temp[i] + '">' + str[i] + ' ; </a>';
+                }
+                return url;
+            }
+
+            if (name == 'duration_performance') {
+                return '<a href="javascript:window[\'' + 'duration_performance' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">存续期履约情况</a>';
+            }
+        };
+
+
+        function open_notice_detail_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var project_id = record.data.ref_project_id;
+            new Leaf.Window({
+                id: 'fnd_org_unit_define',
+                url: "${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_maintain_meeting_query.lview",
+                params: {
+                    project_id: project_id,
+                    function_usage: 'QUERY',
+                    winId: "fnd_org_unit_define"
+                },
+                title: '项目批复落实情况',
+                fullScreen: true,
+                draggable: true,
+                closeable: true
+            });
+        }
+
+        window['duration_performance'] = function (record_id, ds_id) {
+            //debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln');
+            var record = $(ds_id).findById(record_id);
+            var param = {};
+            param['url_title'] = '存续期履约情况';
+            param['function_code'] = 'HLS300CASH';
+            param['function_usage'] = 'MODIFY';
+            param['contract_id'] = record.get('contract_id');
+            param['winid'] = '${/parameter/@layout_code}_common_winid';
+            /*param['screen_width'] = '1600';
+            param['screen_height'] = '700';*/
+            param['duration_type'] = duration_type;
+            param['hd_id'] = hd_id;
+
+            // param['screen_width'] = '1400';
+            // param['screen_height'] = '700';
+            //if (record.get('duration_type') == 'RELEASE' || record.get('duration_type') == 'REPURCHASE' || record.get('duration_type') == 'ET' || record.get('duration_type') == 'PREPAYMENT' || record.get('duration_type') == 'TERMINATE') {
+            param['function_code'] = 'HLS300CASHF1';
+            param['project_id'] = record.get('project_id');
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_release_repurchase_window_id', null, '${/parameter/@function_code}');
+            /*} else {
+                hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_window_id', null, '${/parameter/@function_code}');
+            }*/
+        }
+
+        //打开附件窗口
+        function open_attach(id) {
+            if (typeof (id) === 'undefined' || 'undefined' === id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            var url = '${/request/@context_path}/downloadFile.lview';
+            var win = new Leaf.Window({
+                id: 'warrant_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: id,
+                    table_name: 'HLS_LEASE_ITEM_WARRANT',
+                    winid: 'warrant_open_attachment_winid',
+                    function_usage: 'QUERY'
+                },
+                title: '附件',
+                width: 900,
+                height: 475
+            });
+        }
+
+        function open_contract_detail_win(record_id, ds_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id).data;
+            var param = {};
+            param['url_title'] = '合同明细查看';
+            param['winid'] = 'con_contract_detail_winid';
+            param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc'];
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['function_code'] = 'CONT301F1';
+            param['project_id'] = record.project_id;
+            param['report_flag'] = 'Y';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_con_contract_detail_id', ds_id, 'CONT301');
+        }
+
+        window['sw001_detail_open'] = function (record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '抵质押物详细';
+            param['function_code'] = 'SW001F1';
+            param['function_usage'] = 'QUERY';
+            param['winid'] = '${/parameter/@layout_code}_hls_lease_item_winid';
+            param['ds_id'] = ds_id;
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_sw001_pledge_lease_id', ds_id, '${/parameter/@function_code}');
+
+        }
+
+        window['lease001_detail_open'] = function (record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '租赁物详细信息';
+            param['function_code'] = 'LEASE001F1';
+            param['function_usage'] = 'QUERY';
+            param['winid'] = '${/parameter/@layout_code}_lease_item_detail_winid';
+            param['ds_id'] = ds_id;
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_lease_info_detaill_id', ds_id, '${/parameter/@function_code}');
+        }
+
+
+        window['upload_file'] = function (record_id, duration_attachment_id) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var hd_record = $(ds_id).getCurrentRecord();
+            var hd_id = hd_record.get('hd_id');
+
+            if (hd_id == undefined || hd_id == 0) {
+                $L.showInfoMessage("提示", "请先保存项目信息再上传附件!");
+                return;
+            }
+            if (duration_attachment_id == 'undefined') {
+                $L.showInfoMessage("提示", "请先保存附件信息!");
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: '${/parameter/@layout_code}_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': duration_attachment_id,
+                    'table_name': 'HLS_DURATION_ATTACHMENT',
+                    winid: '${/parameter/@layout_code}_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 900,
+                height: 475
+            });
+            win.on('close', function () {
+                var document_list_ds_id = "${/parameter/@layout_code}_G_ATTACHMENT_INFO_hls_duration_attachment_ds";
+                $(document_list_ds_id).query();
+            });
+        }
+
+        window['cashflow_detail'] = function (record_id, contract_id) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln');
+            var param = {};
+            param['url_title'] = '存续期履约情况';
+            param['function_code'] = 'HLS300CASH';
+            param['function_usage'] = 'MODIFY';
+            param['duration_type'] = duration_type;
+            param['contract_id'] = contract_id;
+            param['winid'] = '${/parameter/@layout_code}_common_winid';
+            /*param['screen_width'] = '1600';
+            param['screen_height'] = '700';*/
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_window_id', null, '${/parameter/@function_code}');
+        }
+
+        window['approval_notice'] = function (record_id, project_id) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln');
+            var param = {};
+            param['url_title'] = '项目审批通知书';
+            param['function_code'] = 'PRJ316T1';
+            param['function_usage'] = 'MODIFY';
+            param['duration_type'] = duration_type;
+            param['winid'] = '${/parameter/@layout_code}_project_credit_notice_winid';
+            param['project_id'] = project_id;
+            /*param['screen_width'] = '600';
+            param['side'] = 'right';*/
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_project_credit_notice_link', null, '${/parameter/@function_code}');
+        }
+
+        window['deposit_detail'] = function (record_id, project_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '保证金方案详情';
+            param['function_code'] = 'HLS300F10';
+            param['function_usage'] = 'MODIFY';
+            param['hd_id'] = hd_id;
+            param['duration_type'] = duration_type;
+            param['project_id'] = project_id;
+            param['winid'] = '${/parameter/@layout_code}_deposit_detail_winid';
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                param['function_usage'] = 'QUERY';
+            }
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_window_id', ds_id, '${/parameter/@function_code}');
+        }
+
+        window['duration_calc_detail'] = function (record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            if (duration_type == 'ET') {
+                param['url_title'] = '提前结清测算';
+                param['function_code'] = 'HLS300F11';
+            } else if (duration_type == 'PREPAYMENT') {
+                param['url_title'] = '提前还款测算';
+                param['function_code'] = 'HLS300F13';
+            }
+            param['function_usage'] = 'MODIFY';
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                param['function_usage'] = 'QUERY';
+            }
+            param['duration_type'] = duration_type;
+            var et_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_compare', 'F_ET_INFO');
+            var prepayment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_compare', 'F_PREPAYMENT_INFO');
+            param[et_ds_id.replace('_ds', '')] = undefined;
+            param[prepayment_ds_id.replace('_ds', '')] = undefined;
+            param['winid'] = '${/parameter/@layout_code}_duration_calc_detail_winid';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_window_id', ds_id, '${/parameter/@function_code}');
+        }
+
+
+        //提交按钮
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            //提交前先保存
+            window['${/parameter/@layout_code}_custom_save_layout_dynamic_click'](submit_function);
+        }
+
+
+        function submit_function() {
+
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            var duration_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'F_DEPOSIT_INFO');
+
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PROJECT_INFO');
+            var contract_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CONTRACT_INFO');
+
+            var depost_grid_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'G_DEPOSIT_GIRD');
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+
+            var et_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_ET_INFO');
+            var prepayment_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PREPAYMENT_INFO');
+
+            var lease_item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM');
+            var lease_item_list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST');
+            var lease_item_1_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_1');
+            var lease_item_2_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_2');
+            var item_list_1_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_1');
+            var item_list_2_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_2');
+            var warrant_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_WARRANT_INFO');
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment', 'G_ATTACHMENT_INFO');
+            var lease_item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM');
+
+            //debugger;
+
+            if (duration_type == 'TERMINATE' || duration_type == 'PREPAYMENT') {
+                if (release_change_flag == 'Y') {
+                    var lease_item_records = $(lease_item_1_ds_id).getAll();
+                    var pledge_check = 'Y';
+                    lease_item_records.forEach(function (record) {
+                        if (record.get('release_amt') > record.get('pledge_amount')) {
+                            pledge_check = 'N';
+                        }
+                    });
+
+                    if (pledge_check == 'N') {
+                        Leaf.showMessage('提示', '抵质押物中，本次解押金额不能大于本合同抵押金额！');
+                        $(duration_hd_ds_id).query();
+                        return false;
+                    }
+                }
+            } else if (duration_type == 'RELEASE') {
+                var lease_item_records = $(lease_item_ds_id).getAll();
+                var pledge_check = 'Y';
+                lease_item_records.forEach(function (record) {
+                    if (record.get('release_amt') > record.get('pledge_amount')) {
+                        pledge_check = 'N';
+                    }
+                });
+
+                if (pledge_check == 'N') {
+                    Leaf.showMessage('提示', '抵质押物中，本次解押金额不能大于本合同抵押金额！');
+                    $(duration_hd_ds_id).query();
+                    return false;
+                }
+            }
+
+            var record = $(duration_hd_ds_id).getCurrentRecord();
+            var saveData = [];
+            saveData.push(record.data);
+
+
+            saveData[0][duration_hd_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][duration_deposit_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][project_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][contract_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][depost_grid_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][deposit_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][interest_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][credit_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][et_info_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][prepayment_info_ds_id.replace('_ds', '')] = undefined;
+
+            saveData[0][lease_item_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][lease_item_list_ds_id.replace('_ds', '')] = undefined;
+
+            saveData[0][lease_item_1_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][lease_item_2_ds_id.replace('_ds', '')] = undefined;
+
+
+            saveData[0][item_list_1_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][item_list_2_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][warrant_ds_id.replace('_ds', '')] = undefined;
+            saveData[0][attachment_ds_id.replace('_ds', '')] = undefined;
+
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: "${/request/@context_path}/hls/duration/hd/submit",
+                para: saveData,
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                        $('${/parameter/@winid}').close();
+                    });
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage("提示", "提交失败!", null);
+                },
+                scope: this
+            });
+
+        }
+
+
+        function assignValue(record, data) {
+            for (var i in data) {
+                if (data[i] != null) {
+                    record[i] = data[i];
+                }
+            }
+        }
+
+
+        //保存按钮
+        window['${/parameter/@layout_code}_custom_save_layout_dynamic_click'] = function (nextStep) {
+            //debugger;
+
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+
+            var duration_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'F_DEPOSIT_INFO');
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+
+
+            var et_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_ET_INFO');
+            var prepayment_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PREPAYMENT_INFO');
+            var et_compare_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_compare', 'F_ET_INFO');
+            var prepayment_compare_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_compare', 'F_PREPAYMENT_INFO');
+
+
+            var lease_item_1_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_1');
+            var lease_item_2_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_2');
+            var depost_grid_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'G_DEPOSIT_GIRD');
+
+
+            var item_list_1_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_1');
+            var item_list_2_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_2');
+            var warrant_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_WARRANT_INFO');
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment', 'G_ATTACHMENT_INFO');
+
+            var lease_item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM');
+
+
+            var f_change_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var f_change_info_record = null;
+            if (f_change_info_ds_id) {
+                f_change_info_record = $(f_change_info_ds_id).getCurrentRecord();
+            }
+            var validate_check = true;
+
+
+            if (duration_type == 'TERMINATE') {
+                //正常结清
+                var deposit_change_flag = 'N'; //保证金冲抵、退还
+                var release_change_flag = 'N'; //解押
+                var repurchase_change_flag = 'N'; //回购
+                var warrant_change_flag = 'N'; //权证出库
+
+                if (f_change_info_record != null) {
+                    if (f_change_info_record.get('deposit_change_flag') == 'Y') {
+                        deposit_change_flag = 'Y';
+                    }
+                    if (f_change_info_record.get('release_change_flag') == 'Y') {
+                        release_change_flag = 'Y';
+                    }
+                    if (f_change_info_record.get('repurchase_change_flag') == 'Y') {
+                        repurchase_change_flag = 'Y';
+                    }
+                    if (f_change_info_record.get('warrant_change_flag') == 'Y') {
+                        warrant_change_flag = 'Y';
+                    }
+                }
+
+                //必填校验
+                if (duration_hd_ds_id) {
+                    if (!$(duration_hd_ds_id).validateSelf()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (duration_deposit_ds_id) {
+                    if (deposit_change_flag == 'Y') {
+                        if (!$(duration_deposit_ds_id).validate()) {
+                            validate_check = false;
+                        }
+                    }
+                }
+
+                if (deposit_ds_id) {
+                    if (deposit_change_flag == 'Y') {
+                        if (!$(deposit_ds_id).validate()) {
+                            validate_check = false;
+                        }
+                    }
+                }
+
+                if (interest_ds_id) {
+                    if (deposit_change_flag == 'Y') {
+                        if (!$(interest_ds_id).validate()) {
+                            validate_check = false;
+                        }
+                    }
+                }
+
+                if (credit_ds_id) {
+                    if (deposit_change_flag == 'Y') {
+                        if (!$(credit_ds_id).validate()) {
+                            validate_check = false;
+                        }
+                    }
+                }
+
+                if (depost_grid_ds_id) {
+                    if (!$(depost_grid_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (item_list_1_ds_id) {
+                    if (release_change_flag == 'Y') {
+                        if (!$(item_list_1_ds_id).validate()) {
+                            validate_check = false;
+                        }
+                    }
+                }
+
+                if (item_list_2_ds_id) {
+                    if (repurchase_change_flag == 'Y') {
+                        if (!$(item_list_2_ds_id).validate()) {
+                            validate_check = false;
+                        }
+                    }
+                }
+
+                if (warrant_ds_id) {
+                    if (warrant_change_flag == 'Y') {
+                        if (!$(warrant_ds_id).validate()) {
+                            validate_check = false;
+                        }
+                    }
+                }
+                if (attachment_ds_id) {
+                    if (!$(attachment_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+            } else {
+                //必填校验
+                if (duration_hd_ds_id) {
+                    if (!$(duration_hd_ds_id).validateSelf()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (duration_deposit_ds_id) {
+                    if (!$(duration_deposit_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (deposit_ds_id) {
+                    if (!$(deposit_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (interest_ds_id) {
+                    if (!$(interest_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (credit_ds_id) {
+                    if (!$(credit_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (depost_grid_ds_id) {
+                    if (!$(depost_grid_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (item_list_1_ds_id) {
+                    if (!$(item_list_1_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (item_list_2_ds_id) {
+                    if (!$(item_list_2_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+
+                if (warrant_ds_id) {
+                    if (!$(warrant_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+                if (attachment_ds_id) {
+                    if (!$(attachment_ds_id).validate()) {
+                        validate_check = false;
+                    }
+                }
+            }
+
+
+            if (validate_check) {
+                //基本信息
+
+                $(duration_hd_ds_id).getCurrentRecord().set('duration_type', duration_type);
+                var saveData = $(duration_hd_ds_id).getCurrentRecord().data;
+
+                //debugger;
+                //保证金冲抵、退还方案
+                saveData['hls_duration_deposit_list'] = [];
+                if (duration_deposit_ds_id) {
+                    var duration_deposit_record = $(duration_deposit_ds_id).getCurrentRecord();
+                    duration_deposit_record.set('duration_type', duration_type);
+                    //duration_deposit_record.set('project_id', $(duration_hd_ds_id).getCurrentRecord().get('project_id'));
+                    saveData['hls_duration_deposit_list'].push(duration_deposit_record.data);
+                }
+
+                //保证金退还 && 保证金利息 && 债权
+                saveData['hls_duration_ln_list'] = [];
+
+                if (deposit_ds_id) {
+                    var deposit_records = $(deposit_ds_id).getAll();
+                    deposit_records.forEach(function (record) {
+                        record.set('source_type', 'DEPOSIT');
+                        saveData['hls_duration_ln_list'].push(record.data);
+                    });
+                }
+
+                if (interest_ds_id) {
+                    var interest_records = $(interest_ds_id).getAll();
+                    interest_records.forEach(function (record) {
+                        record.set('source_type', 'INTEREST');
+                        saveData['hls_duration_ln_list'].push(record.data);
+                    });
+                }
+
+                if (credit_ds_id) {
+                    var credit_records = $(credit_ds_id).getAll();
+                    credit_records.forEach(function (record) {
+                        record.set('source_type', 'CREDIT');
+                        saveData['hls_duration_ln_list'].push(record.data);
+                    });
+                }
+
+
+                saveData['hls_duration_attachment_list'] = [];
+                if (attachment_ds_id) {
+                    var attachment_records = $(attachment_ds_id).getAll();
+                    attachment_records.forEach(function (record) {
+                        saveData['hls_duration_attachment_list'].push(record.data);
+                    });
+                }
+
+                if (duration_type == 'TERMINATE' || duration_type == 'PREPAYMENT') {
+                    //保证金
+                    if (duration_type == 'PREPAYMENT') {
+                        var depost_grid_records = $(depost_grid_ds_id).getAll();
+                        depost_grid_records.forEach(function (record) {
+                            record.set('source_type', 'DEPOSIT');
+                            saveData['hls_duration_deposit_list'].push(record.data);
+                        });
+                    }
+
+                    //解押 回购
+                    var item_list_1_records = $(item_list_1_ds_id).getAll();
+                    var item_list_2_records = $(item_list_2_ds_id).getAll();
+
+                    item_list_1_records.forEach(function (record) {
+                        record.set('source_type', 'RELEASE');
+                        saveData['hls_duration_ln_list'].push(record.data);
+                    });
+                    item_list_2_records.forEach(function (record) {
+                        record.set('source_type', 'REPURCHASE');
+                        saveData['hls_duration_ln_list'].push(record.data);
+                    });
+                    //权证
+                    var warrant_records = $(warrant_ds_id).getAll();
+                    warrant_records.forEach(function (record) {
+                        record.set('source_type', 'WARRANT');
+                        saveData['hls_duration_ln_list'].push(record.data);
+                    });
+
+                }
+                if (duration_type == 'ET') {
+                    var et_info_records = $(et_info_ds_id).getAll();
+                    et_info_records.forEach(function (record) {
+                        record.set('source_type', 'ET');
+                        saveData['hls_duration_ln_list'].push(record.data);
+                    });
+                }
+                if (duration_type == 'PREPAYMENT') {
+                    var prepayment_info_records = $(prepayment_info_ds_id).getAll();
+                    prepayment_info_records.forEach(function (record) {
+                        record.set('source_type', 'PREPAYMENT');
+                        saveData['hls_duration_ln_list'].push(record.data);
+                    });
+                }
+
+
+                //把其他属性去掉，避免栈溢出
+                saveData[duration_hd_ds_id.replace('_ds', '')] = undefined;
+
+                saveData[duration_deposit_ds_id.replace('_ds', '')] = undefined;
+                saveData[deposit_ds_id.replace('_ds', '')] = undefined;
+                saveData[interest_ds_id.replace('_ds', '')] = undefined;
+                saveData[credit_ds_id.replace('_ds', '')] = undefined;
+                saveData[et_info_ds_id.replace('_ds', '')] = undefined;
+                saveData[prepayment_info_ds_id.replace('_ds', '')] = undefined;
+                saveData[lease_item_1_ds_id.replace('_ds', '')] = undefined;
+                saveData[lease_item_2_ds_id.replace('_ds', '')] = undefined;
+                saveData[depost_grid_ds_id.replace('_ds', '')] = undefined;
+                saveData[item_list_1_ds_id.replace('_ds', '')] = undefined;
+                saveData[item_list_2_ds_id.replace('_ds', '')] = undefined;
+                saveData[warrant_ds_id.replace('_ds', '')] = undefined;
+                saveData[attachment_ds_id.replace('_ds', '')] = undefined;
+
+                if (duration_type == 'ET' || duration_type == 'PREPAYMENT' || duration_type == 'TERMINATE') {
+
+                    if (saveData['hls_duration_deposit_list'][0]) {
+                        saveData['hls_duration_deposit_list'][0][depost_grid_ds_id.replace('_ds', '')] = undefined;
+                    }
+                    for (var i = 0; i < saveData['hls_duration_ln_list'].length; i++) {
+                        if (saveData['hls_duration_ln_list'][i]) {
+                            saveData['hls_duration_ln_list'][i][et_compare_info_ds_id.replace('_ds', '')] = undefined;
+                            saveData['hls_duration_ln_list'][i][prepayment_compare_info_ds_id.replace('_ds', '')] = undefined;
+                        }
+                    }
+                    if (duration_type == 'TERMINATE') {
+                        for (var i = 0; i < saveData['hls_duration_deposit_list'].length; i++) {
+                            if (saveData['hls_duration_deposit_list'][i]) {
+                                saveData['hls_duration_deposit_list'][i][deposit_ds_id.replace('_ds', '')] = undefined;
+                                saveData['hls_duration_deposit_list'][i][interest_ds_id.replace('_ds', '')] = undefined;
+                                saveData['hls_duration_deposit_list'][i][credit_ds_id.replace('_ds', '')] = undefined;
+                                saveData['hls_duration_deposit_list'][i][credit_ds_id.replace('_ds', '')] = undefined;
+                            }
+                        }
+                    }
+
+                } else {
+                    for (var i = 0; i < saveData['hls_duration_deposit_list'].length; i++) {
+                        if (saveData['hls_duration_deposit_list'][i]) {
+                            saveData['hls_duration_deposit_list'][i][deposit_ds_id.replace('_ds', '')] = undefined;
+                            saveData['hls_duration_deposit_list'][i][interest_ds_id.replace('_ds', '')] = undefined;
+                            saveData['hls_duration_deposit_list'][i][credit_ds_id.replace('_ds', '')] = undefined;
+                        }
+                    }
+                }
+
+
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/duration/hd/save',
+                    para: saveData,
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        hd_id = res.result.record[0].hd_id;
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        if (typeof (nextStep) == 'function') {
+                            nextStep();
+                        } else {
+                            all_query(hd_id);
+                        }
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+        };
+
+        function all_query(hd_id) {
+            //保存后 form 框需要 刷新将 后台保存的值 返回到前台
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            var duration_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'F_DEPOSIT_INFO');
+
+            if (duration_hd_ds_id) {
+                $(duration_hd_ds_id).setQueryParameter('hd_id', hd_id);
+                $(duration_hd_ds_id).query();
+            }
+
+            if (duration_deposit_ds_id) {
+                $(duration_deposit_ds_id).setQueryParameter('hd_id', hd_id);
+                $(duration_deposit_ds_id).query();
+            }
+        }
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var record = $(ds_id).getAt(0);
+            var param = {};
+            param['url_title'] = '合同明细维护';
+            param['function_code'] = 'CONT301F1WFL2';
+            param['winid'] = '${/parameter/@layout_code}_con_contract_detail_winid';
+            param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc'];
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['hd_id'] = hd_id;
+            param['duration_type'] = duration_type;
+            param['project_id'] = record.get('project_id');
+            param['report_flag'] = 'Y';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_con_contract_detail_id', null, '${/parameter/@function_code}');
+        };
+
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var record = $(ds_id).getAt(0);
+            var param = {};
+            param['url_title'] = '存续期履约情况';
+            param['function_code'] = 'HLS300CASH';
+            param['function_usage'] = 'MODIFY';
+            param['contract_id'] = record.get('contract_id');
+            param['winid'] = '${/parameter/@layout_code}_common_winid';
+            /*param['screen_width'] = '1600';
+            param['screen_height'] = '700';*/
+            param['duration_type'] = duration_type;
+            param['hd_id'] = hd_id;
+
+            // param['screen_width'] = '1400';
+            // param['screen_height'] = '700';
+            if (record.get('duration_type') == 'RELEASE' || record.get('duration_type') == 'REPURCHASE' || record.get('duration_type') == 'ET' || record.get('duration_type') == 'PREPAYMENT' || record.get('duration_type') == 'TERMINATE') {
+                param['function_code'] = 'HLS300CASHF1';
+                param['project_id'] = record.get('project_id');
+                hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_release_repurchase_window_id', null, '${/parameter/@function_code}');
+            } else {
+                hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_window_id', null, '${/parameter/@function_code}');
+            }
+
+        };
+
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            if (hd_id == undefined || hd_id == 0) {
+                $L.showInfoMessage("提示", "请先保存!");
+                return;
+            }
+            var param = {};
+            param['url_title'] = '项目审批通知书';
+            param['function_code'] = 'PRJ316T1';
+            param['function_usage'] = 'MODIFY';
+            param['winid'] = '${/parameter/@layout_code}_project_credit_notice_winid';
+            param['project_id'] = '${/parameter/@ref_project_id}';
+            param['hd_id'] = hd_id;
+            param['duration_type'] = duration_type;
+            /*param['screen_width'] = '600';
+            param['side'] = 'right';*/
+            if (param['project_id'] == '') {
+                param['project_id'] = $(ds_id).getCurrentRecord().get('ref_project_id');
+            }
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_project_credit_notice_link', ds_id, '${/parameter/@function_code}');
+
+        };
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            var duration_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'F_DEPOSIT_INFO');
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+            var lease_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST');
+            var lease_2_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_2');
+            var lease_1_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_1');
+            var et_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_ET_INFO');
+
+            //保证金退还和抵扣 支付表选择后 保证金需要重新查询
+            if (duration_hd_ds_id == ds.id) {
+                if (duration_type == 'DEPOSIT') {
+                    if (name == 'contract_id') {
+                        if ($(deposit_ds_id)) {
+                            contract_id = value;
+                            $(deposit_ds_id).setQueryParameter('contract_id', value);
+                            $(deposit_ds_id).query();
+                        }
+                        if ($(interest_ds_id)) {
+                            contract_id = value;
+                            $(interest_ds_id).setQueryParameter('contract_id', value);
+                            $(interest_ds_id).query();
+                        }
+                        //保证金冲抵、退还方案 需要根据选择的支付表自动带出 币种
+                        if ($(duration_deposit_ds_id)) {
+                            contract_id = value;
+                            $(duration_deposit_ds_id).getCurrentRecord().set('contract_id', value);
+                            $(duration_deposit_ds_id).getCurrentRecord().set('deposit_residual_amount', '');
+                            $(duration_deposit_ds_id).getCurrentRecord().set('deposit_deduction_amount', 0);
+                            $(duration_deposit_ds_id).getCurrentRecord().set('deposit_refund_amount', 0);
+                            $(duration_deposit_ds_id).getCurrentRecord().set('outstanding_deposit', '');
+                        }
+                    }
+                    if (name == 'currency_code') {
+                        $(duration_deposit_ds_id).getCurrentRecord().set('currency_code', value);
+                    }
+                    if (name == 'currency_code_n') {
+                        $(duration_deposit_ds_id).getCurrentRecord().set('currency_code_n', value);
+                    }
+
+                } else if (duration_type == 'TERMINATE') {
+                    //正常结清&&提前结清&&提前还款 根据变更信息 显示隐藏
+                    if (name == 'deposit_change_flag') {
+                        if (value == 'N') {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(0);
+                        } else {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(0);
+                        }
+                    }
+                    if (name == 'release_change_flag') {
+                        if (value == 'N') {
+                            release_change_flag = 'N';
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(1);
+                        } else {
+                            release_change_flag = 'Y';
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(1);
+                        }
+                    }
+                    if (name == 'repurchase_change_flag') {
+                        if (value == 'N') {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(2);
+                        } else {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(2);
+                        }
+                    }
+                    if (name == 'warrant_change_flag') {
+                        if (value == 'N') {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(3);
+                        } else {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(3);
+                        }
+                    }
+                } else if (duration_type == 'PREPAYMENT') {
+                    if (name == 'deposit_change_flag') {
+                        if (value == 'N') {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(1);
+                        } else {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(1);
+                        }
+                    }
+                    if (name == 'release_change_flag') {
+                        if (value == 'N') {
+                            release_change_flag = 'N';
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(2);
+                        } else {
+                            release_change_flag = 'Y';
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(2);
+                        }
+                    }
+                    if (name == 'repurchase_change_flag') {
+                        if (value == 'N') {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(3);
+                        } else {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(3);
+                        }
+                    }
+                    if (name == 'warrant_change_flag') {
+                        if (value == 'N') {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(4);
+                        } else {
+                            $('${/parameter/@layout_code}_TAB_GROUP_10').setEnabled(4);
+                        }
+                    }
+                } else if (duration_type == 'PROJECT') {
+                    if (name == 'project_id') {
+
+                    }
+
+                }
+            }
+            if (duration_deposit_ds_id == ds.id) {
+                //针对于保证金冲抵、退还方案 是否需要退还 影响 下方gird 只读还是必填
+                if (name == 'is_refund_flag') {
+                    /*
+                                        window['${/parameter/@layout_code}_grid_refund_update'](value);
+                    */
+                    if (value == 'Y') {
+                        record.getField('refund_date').setReadOnly(false);
+                        record.getField('bp_bank_account_id').setReadOnly(false);
+                        record.getField('bp_bank_account_id_n').setReadOnly(false);
+                        record.getField('refund_date').setRequired(true);
+                        record.getField('bp_bank_account_id').setRequired(true);
+                        record.getField('bp_bank_account_id_n').setRequired(true);
+                    } else if (value == 'N') {
+                        record.getField('refund_date').setRequired(false);
+                        record.getField('bp_bank_account_id').setRequired(false);
+                        record.getField('bp_bank_account_id_n').setRequired(false);
+                        record.getField('refund_date').setReadOnly(true);
+                        record.getField('bp_bank_account_id').setReadOnly(true);
+                        record.getField('bp_bank_account_id_n').setReadOnly(true);
+                    }
+                }
+                if (name == 'is_deduction_flag') {
+                    if (value == 'Y') {
+
+                        record.getField('bank_account_id').setReadOnly(false);
+                        record.getField('bank_account_id_n').setReadOnly(false);
+                        record.getField('bank_account_id').setRequired(true);
+                        record.getField('bank_account_id_n').setRequired(true);
+                    } else if (value == 'N') {
+                        record.getField('bank_account_id').setRequired(false);
+                        record.getField('bank_account_id_n').setRequired(false);
+                        record.getField('bank_account_id').setReadOnly(true);
+                        record.getField('bank_account_id_n').setReadOnly(true);
+                    }
+                }
+            }
+            //保证金退还和抵扣 本次冲抵金额不能大于剩余金额
+            if (credit_ds_id == ds.id) {
+
+                var deduction_amount = record.get('deduction_amount') || 0;
+                var residual_amount = record.get('residual_amount') || 0;
+                var residual_interest = record.get('residual_interest') || 0;
+
+                if (name == 'deduction_amount') {
+                    if (minus(value, residual_amount) > 0) {
+                        Leaf.showMessage('提示！', '本次抵扣金额:' + value + '大于剩余金额:' + record.get('residual_amount'));
+                        return;
+                    } else if (minus(value, residual_amount) <= 0 && minus(value, residual_interest) <= 0 && (record.get('cf_item') == 1 || record.get('cf_item') == 10)) {
+                        record.set('deduction_principal', 0);
+                        record.set('deduction_interest', value || 0);
+                    } else if (minus(value, residual_amount) <= 0 && minus(value, residual_interest) >= 0 && (record.get('cf_item') == 1 || record.get('cf_item') == 10)) {
+                        record.set('deduction_principal', minus(value, residual_interest));
+                        record.set('deduction_interest', residual_interest);
+                    }
+                } else if (name == 'deduction_principal' && (record.get('cf_item') == 1 || record.get('cf_item') == 10)) {
+                    record.set('deduction_interest', minus(deduction_amount, value));
+
+                } else if (name == 'deduction_interest' && (record.get('cf_item') == 1 || record.get('cf_item') == 10)) {
+                    record.set('deduction_principal', minus(deduction_amount, value));
+                }
+
+                if (name == 'cf_item') {
+                    if (value != 1 && value != 10) {
+                        record.getField('deduction_principal').setReadOnly(true);
+                        record.getField('deduction_interest').setReadOnly(true);
+                        record.getField('deduction_principal').setRequired(false);
+                        record.getField('deduction_interest').setRequired(false);
+                    } else {
+                        record.getField('deduction_principal').setReadOnly(false);
+                        record.getField('deduction_interest').setReadOnly(false);
+                        record.getField('deduction_principal').setRequired(true);
+                        record.getField('deduction_interest').setRequired(true);
+                    }
+                }
+            }
+
+            if (lease_ds_id == ds.id) {
+                var currentRecord = $(lease_ds_id).getCurrentRecord();
+                if (currentRecord != null) {
+                    var quantity = currentRecord.get('quantity');
+                    var mortgage_pledge_amount = currentRecord.get('mortgage_pledge_amount');
+
+                    if (name == 'release_quantity') {
+                        var release_quantity = currentRecord.get('release_quantity');
+                        var residual_quantity = minus(quantity, release_quantity);
+                        currentRecord.set('residual_quantity', residual_quantity);
+                        var release_amount = mul(div(mortgage_pledge_amount, quantity), residual_quantity);
+                        currentRecord.set('release_amount', Leaf.formatMoney(release_amount));
+                    }
+
+                }
+
+
+            }
+
+            if (lease_2_ds_id == ds.id) {
+                var currentRecord = $(lease_2_ds_id).getCurrentRecord();
+                if (currentRecord != null) {
+                    var quantity = currentRecord.get('quantity');
+                    var net_asset_value_now = currentRecord.get('net_asset_value_now');
+
+                    if (name == 'release_quantity') {
+                        var release_quantity = currentRecord.get('release_quantity');
+                        var residual_quantity = minus(quantity, release_quantity);
+                        currentRecord.set('residual_quantity', residual_quantity);
+                        var release_amount = mul(div(net_asset_value_now, quantity), residual_quantity);
+                        currentRecord.set('release_amount', Leaf.formatMoney(release_amount));
+                    }
+
+                }
+
+
+            }
+
+            if (lease_1_ds_id == ds.id) {
+                var currentRecord = $(lease_1_ds_id).getCurrentRecord();
+                if (currentRecord != null) {
+                    var quantity = currentRecord.get('quantity');
+                    var mortgage_pledge_amount = currentRecord.get('mortgage_pledge_amount');
+
+                    if (name == 'release_quantity') {
+                        var release_quantity = currentRecord.get('release_quantity');
+                        var residual_quantity = minus(quantity, release_quantity);
+                        currentRecord.set('residual_quantity', residual_quantity);
+                        var release_amount = mul(div(mortgage_pledge_amount, quantity), residual_quantity);
+                        currentRecord.set('release_amount', Leaf.formatMoney(release_amount));
+                    }
+
+                }
+            }
+
+            if (et_ds_id == ds.id) {
+                debugger;
+                //提前结清 对支付表列上的结清费用 减免费用 实际结清费用 进行汇总病校验
+                var et_amount = 0;
+                var amount = 0;
+                var et_exempt_amount = 0;
+                var rental_residual_amount = 0;
+                var et_pre_amount = 0;
+                var etRecords = $(et_ds_id).getAll();
+                var hdRecord = $(duration_hd_ds_id).getCurrentRecord();
+                if (name == 'et_amount') {
+                    if (record.get('et_amount') - record.get('et_exempt_amount') < record.get('rental_residual_amount')) {
+                        Leaf.showMessage('提示', '实际结清金额不能小于未偿还租赁本金');
+                        return;
+                    } else {
+                        //结清金额合计
+                        // et_amount +=  etRecords[nn].get('et_amount');
+                        // //实际结清金额合计
+                        // et_pre_amount += etRecords[nn].get('et_amount') - etRecords[nn].get('et_exempt_amount');
+                        // //减免金额合计
+                        // et_exempt_amount += etRecords[nn].get('et_exempt_amount');
+                        record.set('et_pre_amount', record.get('et_amount') - record.get('et_exempt_amount'));
+                    }
+
+                }
+                if (name == 'et_exempt_amount') {
+                    if (record.get('et_amount') - record.get('et_exempt_amount') < record.get('rental_residual_amount')) {
+                        Leaf.showMessage('提示', '实际结清金额不能小于未偿还租赁本金');
+                        return;
+                    } else {
+                        // et_exempt_amount += etRecords[m].get('et_exempt_amount');
+                        // et_amount +=  etRecords[m].get('et_amount');
+                        // et_pre_amount += etRecords[m].get('et_amount') - etRecords[m].get('et_exempt_amount');
+                        record.set('et_pre_amount', record.get('et_amount') - record.get('et_exempt_amount'));
+                    }
+
+                }
+                if (et_amount != 0) {
+                    hdRecord.set('et_amount', et_amount);
+                    hdRecord.set('deduction_amount', et_exempt_amount);
+                    hdRecord.set('actual_et_amount', et_pre_amount);
+                }
+
+            }
+
+        };
+
+        window['${/parameter/@layout_code}_grid_refund_update'] = function (value) {
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var deposit_records = $(deposit_ds_id).getAll();
+            var interest_records = $(interest_ds_id).getAll();
+            if (value == 'Y') {
+                deposit_records.forEach(function (record) {
+                    record.getField('refund_amount').setReadOnly(false);
+                    record.getField('refund_amount').setRequired(true);
+                });
+                interest_records.forEach(function (record) {
+                    record.getField('refund_amount').setReadOnly(false);
+                    record.getField('refund_amount').setRequired(true);
+                });
+            } else {
+                deposit_records.forEach(function (record) {
+                    record.getField('refund_amount').setReadOnly(true);
+                    record.getField('refund_amount').setRequired(false);
+                    record.set('refund_amount', '');
+                });
+                interest_records.forEach(function (record) {
+                    record.getField('refund_amount').setReadOnly(true);
+                    record.getField('refund_amount').setRequired(false);
+                    record.set('refund_amount', NaN);
+                });
+            }
+        };
+
+        window['${/parameter/@layout_code}_grid_deduction_update'] = function (value) {
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var deposit_records = $(deposit_ds_id).getAll();
+            var interest_records = $(interest_ds_id).getAll();
+            if (value == 'Y') {
+                deposit_records.forEach(function (record) {
+                    record.getField('deduction_amount').setReadOnly(false);
+                    record.getField('deduction_amount').setRequired(true);
+                });
+                interest_records.forEach(function (record) {
+                    record.getField('deduction_amount').setReadOnly(false);
+                    record.getField('deduction_amount').setRequired(true);
+                });
+            } else {
+                deposit_records.forEach(function (record) {
+                    record.getField('deduction_amount').setReadOnly(true);
+                    record.getField('deduction_amount').setRequired(false);
+                    record.set('deduction_amount', '');
+                });
+                interest_records.forEach(function (record) {
+                    record.getField('deduction_amount').setReadOnly(true);
+                    record.getField('deduction_amount').setRequired(false);
+                    record.set('deduction_amount', '');
+                });
+            }
+        };
+
+        //grid的渲染，设置编辑模式
+        //点击下方刷新按钮时，可以保持只读、必填等状态
+        window['${/parameter/@layout_code}_renderer_model'] = function (temp_value, record, name, editor_record) {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit');
+            if (ds_id && (duration_type == 'DEPOSIT' || duration_type == 'TERMINATE')) {
+                var deposit_record = $(ds_id).getCurrentRecord();
+                var is_refund_flag = deposit_record.get('is_refund_flag');
+                var is_deduction_flag = deposit_record.get('is_deduction_flag');
+                //保证金抵扣、退还
+                if (name == 'refund_amount') {
+                    if (is_refund_flag == 'Y' && '${/parameter/@function_usage}' != 'QUERY') {
+                        record.getField('refund_amount').setReadOnly(false);
+                        record.getField('refund_amount').setRequired(true);
+
+                    } else {
+                        record.getField('refund_amount').setReadOnly(true);
+                        record.getField('refund_amount').setRequired(false);
+                    }
+                }
+                if (name == 'deduction_amount' && '${/parameter/@function_usage}' != 'QUERY') {
+                    if (is_deduction_flag == 'Y') {
+                        record.getField('deduction_amount').setReadOnly(false);
+                        record.getField('deduction_amount').setRequired(true);
+
+                    } else {
+                        record.getField('deduction_amount').setReadOnly(true);
+                        record.getField('deduction_amount').setRequired(false);
+                    }
+                }
+            }
+        };
+
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var record = $(ds_id).getAt(0);
+            hd_id = record.get('hd_id');
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            if (duration_hd_ds_id) {
+                $(duration_hd_ds_id).setQueryParameter('hd_id', hd_id);
+                $(duration_hd_ds_id).query();
+            }
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PROJECT_INFO');
+            if (project_ds_id) {
+                $(project_ds_id).query();
+            }
+        };
+
+
+        //解押 抵质押明细 标记为申请解押 && 回购 租赁物明细 标记为申请回购
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST');
+            var records = $(list_ds_id).getSelected()
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '至少选择一条数据！')
+                return;
+            } else {
+                records.forEach(function (record) {
+                    record.set('release_flag', 'Y');
+                    record.set('release_flag_n', '是');
+                    record.set('release_quantity', record.get('quantity'));
+                    record.set('residual_quantity', 0);
+                    record.set('release_amount', 0);
+                });
+            }
+        }
+
+
+        //正常结清&&提前结清&&提前还款 解押 抵质押明细 标记为申请解押
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_1_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_1');
+            var records = $(list_ds_id).getSelected()
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '至少选择一条数据！')
+                return;
+            } else {
+                records.forEach(function (record) {
+                    record.set('release_flag', 'Y');
+                    record.set('release_flag_n', '是');
+                    record.set('release_quantity', record.get('quantity'));
+                    record.set('residual_quantity', 0);
+                    record.set('release_amount', 0);
+                });
+            }
+        }
+
+        //正常结清&&提前结清&&提前还款  回购 租赁物明细 标记为申请回购
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_2_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_2');
+            var records = $(list_ds_id).getSelected()
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '至少选择一条数据！')
+                return;
+            } else {
+                records.forEach(function (record) {
+                    record.set('release_flag', 'Y');
+                    record.set('release_flag_n', '是');
+                    record.set('release_quantity', record.get('quantity'));
+                    record.set('residual_quantity', 0);
+                    record.set('release_amount', 0);
+                });
+            }
+        }
+
+        //解押 抵质押明细 取消标记 && 回购 租赁物明细 取消标记
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_USER_BUTTON2_layout_dynamic_tab_click'] = function () {
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST');
+            var records = $(list_ds_id).getSelected()
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '至少选择一条数据！');
+                return;
+            } else {
+                if (duration_type == 'RELEASE') {
+                    records.forEach(function (record) {
+                        record.set('release_flag', 'N');
+                        record.set('release_flag_n', '否');
+                        record.set('release_quantity', 0);
+                        record.set('residual_quantity', record.get('quantity'));
+                        record.set('release_amount', record.get('mortgage_pledge_amount'));
+                    });
+                } else if (duration_type == 'REPURCHASE') {
+                    records.forEach(function (record) {
+                        record.set('release_flag', 'N');
+                        record.set('release_flag_n', '否');
+                        record.set('release_quantity', 0);
+                        record.set('residual_quantity', record.get('quantity'));
+                        record.set('release_amount', record.get('net_asset_value_now'));
+                    });
+                }
+            }
+        }
+
+        //正常结清&&提前结清&&提前还款 解押 抵质押明细 取消标记
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_1_USER_BUTTON2_layout_dynamic_tab_click'] = function () {
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_1');
+            var records = $(list_ds_id).getSelected()
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '至少选择一条数据！');
+                return;
+            } else {
+                records.forEach(function (record) {
+                    record.set('release_flag', 'N');
+                    record.set('release_flag_n', '否');
+                    record.set('release_quantity', 0);
+                    record.set('residual_quantity', record.get('quantity'));
+                    record.set('release_amount', record.get('mortgage_pledge_amount'));
+                });
+            }
+        }
+
+        //正常结清&&提前结清&&提前还款 回购 租赁物明细 取消标记
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_2_USER_BUTTON2_layout_dynamic_tab_click'] = function () {
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_2');
+            var records = $(list_ds_id).getSelected()
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '至少选择一条数据！');
+                return;
+            } else {
+                records.forEach(function (record) {
+                    record.set('release_flag', 'N');
+                    record.set('release_flag_n', '否');
+                    record.set('release_quantity', 0);
+                    record.set('residual_quantity', record.get('quantity'));
+                    record.set('release_amount', record.get('net_asset_value_now'));
+                });
+            }
+        }
+
+
+        //解押 抵质押明细 保存 && 回购 租赁物明细 保存
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_USER_BUTTON3_layout_dynamic_tab_click'] = function () {
+
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            var lease_item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM');
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST');
+
+            var check_flag = true;
+            var hd_record = $(duration_hd_ds_id).getCurrentRecord();
+            var hd_id = hd_record.get('hd_id');
+            if (!hd_id) {
+                Leaf.showMessage('提示！', '请先点击上方保存按钮！');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                check_flag = false;
+                return check_flag;
+
+            }
+
+            var lease_item_record = $(lease_item_ds_id).getCurrentRecord();
+            var records = $(list_ds_id).getAll();
+            //保存前校验
+            if (duration_type == 'RELEASE') {
+                records.forEach(function (record) {
+                    var release_amount = record.get('release_amount') || 0;
+                    var mortgage_pledge_amount = record.get('mortgage_pledge_amount') || 0;
+                    var quantity = record.get('quantity');
+                    var release_quantity = record.get('release_quantity');
+
+                    if (minus(release_amount, mortgage_pledge_amount) > 0) {
+                        Leaf.showMessage('提示！', '解押后抵质押金额:' + release_amount + '大于抵质押金额:' + mortgage_pledge_amount);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    }
+                    if (release_quantity > quantity) {
+                        Leaf.showMessage('提示！', '申请解押数量应小于或等于抵质押物总数量！');
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    }
+                });
+            } else if (duration_type == 'REPURCHASE') {
+                records.forEach(function (record) {
+                    var release_amount = record.get('release_amount') || 0;
+                    var net_asset_value_now = record.get('net_asset_value_now') || 0;
+
+                    if (minus(release_amount, net_asset_value_now) > 0) {
+                        Leaf.showMessage('提示！', '回购后账面净值:' + release_amount + '大于账面净值(当前):' + net_asset_value_now);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    }
+                });
+            }
+
+            for (var i = 0; i < records.length; i++) {
+                var quantity = records[i].get('quantity');
+                var release_quantity = records[i].get('release_quantity');
+                if (release_quantity > quantity) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示', '申请回购数量不能大于租赁物数量！');
+                    return false;
+                }
+            }
+
+            if (check_flag) {
+                //第一步删除数据
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/duration/ln/delete",
+                    para: {
+                        hd_id: hd_id,
+                        lease_item_id: lease_item_record.get('lease_item_id'),
+                        source_type: duration_type
+                    },
+                    success: function (res) {
+                        var saveData = [];
+                        for (var i = 0; i < records.length; i++) {
+                            records[i].set('__status', 'insert');
+                            records[i].set('hd_id', hd_id);
+                            records[i].set('source_type', duration_type);
+                            saveData.push(records[i].data);
+                        }
+                        //第二步 保存数据
+                        Leaf.request({
+                            url: '${/request/@context_path}/hls/duration/ln/submit',
+                            para: saveData,
+                            success: function (res) {
+                                Leaf.SideBar.show({
+                                    msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                    duration: 2000
+                                });
+                                //第三步 查询抵质押信息 grid && 查询租赁物信息
+                                $(lease_item_ds_id).query();
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            failure: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            error: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            scope: this
+                        });
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+        };
+
+
+        //正常结清&&提前结清&&提前还款 解押 抵质押明细 保存
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_1_USER_BUTTON3_layout_dynamic_tab_click'] = function () {
+
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            var lease_item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_1');
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_1');
+
+            var check_flag = true;
+            var hd_record = $(duration_hd_ds_id).getCurrentRecord();
+            var hd_id = hd_record.get('hd_id');
+            if (!hd_id) {
+                Leaf.showMessage('提示！', '请先点击上方保存按钮！');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                check_flag = false;
+                return check_flag;
+
+            }
+
+            var lease_item_record = $(lease_item_ds_id).getCurrentRecord();
+            var records = $(list_ds_id).getAll();
+
+            //保存前校验
+            records.forEach(function (record) {
+                var release_amount = record.get('release_amount') || 0;
+                var mortgage_pledge_amount = record.get('mortgage_pledge_amount') || 0;
+                if (record.get('release_flag') == 'Y') {
+                    if (minus(release_amount, mortgage_pledge_amount) > 0) {
+                        Leaf.showMessage('提示！', '解押后抵质押金额:' + release_amount + '大于抵质押金额:' + mortgage_pledge_amount);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    }
+                }
+            });
+
+            if (check_flag) {
+                //第一步删除数据
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/duration/ln/delete",
+                    para: {
+                        hd_id: hd_id,
+                        lease_item_id: lease_item_record.get('lease_item_id'),
+                        source_type: 'RELEASE'
+                    },
+                    success: function (res) {
+                        var saveData = [];
+                        for (var i = 0; i < records.length; i++) {
+                            records[i].set('__status', 'insert');
+                            records[i].set('hd_id', hd_id);
+                            records[i].set('source_type', 'RELEASE');
+                            saveData.push(records[i].data);
+                        }
+                        //第二步 保存数据
+                        Leaf.request({
+                            url: '${/request/@context_path}/hls/duration/ln/submit',
+                            para: saveData,
+                            success: function (res) {
+                                Leaf.SideBar.show({
+                                    msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                    duration: 2000
+                                });
+                                //第三步 查询抵质押信息 grid && 查询租赁物信息
+                                $(lease_item_ds_id).query();
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            failure: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            error: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            scope: this
+                        });
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+        };
+
+
+        //正常结清&&提前结清&&提前还款 回购 租赁物明细 保存
+        window['${/parameter/@layout_code}_G_LEASE_ITEM_LIST_2_USER_BUTTON3_layout_dynamic_tab_click'] = function () {
+
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            var lease_item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_2');
+            var list_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_LIST_2');
+
+            var check_flag = true;
+            var hd_record = $(duration_hd_ds_id).getCurrentRecord();
+            var hd_id = hd_record.get('hd_id');
+            if (!hd_id) {
+                Leaf.showMessage('提示！', '请先点击上方保存按钮！');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                check_flag = false;
+                return check_flag;
+
+            }
+
+            var lease_item_record = $(lease_item_ds_id).getCurrentRecord();
+            var records = $(list_ds_id).getAll();
+            //保存前校验
+            records.forEach(function (record) {
+                var release_amount = record.get('release_amount') || 0;
+                var net_asset_value_now = record.get('net_asset_value_now') || 0;
+
+                if (minus(release_amount, net_asset_value_now) > 0) {
+                    Leaf.showMessage('提示！', '回购后账面净值:' + release_amount + '大于账面净值(当前):' + net_asset_value_now);
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    check_flag = false;
+                }
+            });
+
+            if (check_flag) {
+                //第一步删除数据
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/duration/ln/delete",
+                    para: {
+                        hd_id: hd_id,
+                        lease_item_id: lease_item_record.get('lease_item_id'),
+                        source_type: 'REPURCHASE'
+                    },
+                    success: function (res) {
+                        var saveData = [];
+                        for (var i = 0; i < records.length; i++) {
+                            records[i].set('__status', 'insert');
+                            records[i].set('hd_id', hd_id);
+                            records[i].set('source_type', 'REPURCHASE');
+                            saveData.push(records[i].data);
+                        }
+                        //第二步 保存数据
+                        Leaf.request({
+                            url: '${/request/@context_path}/hls/duration/ln/submit',
+                            para: saveData,
+                            success: function (res) {
+                                Leaf.SideBar.show({
+                                    msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                    duration: 2000
+                                });
+                                //第三步 查询抵质押信息 grid && 查询租赁物信息
+                                $(lease_item_ds_id).query();
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            failure: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            error: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            scope: this
+                        });
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+        };
+
+        function warrant_flag_change(warrant_flag, warrant_flag_n) {
+            var check_flag = true;
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            var hd_record = $(duration_hd_ds_id).getCurrentRecord();
+            var hd_id = hd_record.get('hd_id');
+            if (!hd_id) {
+                Leaf.showMessage('提示！', '请先点击上方保存按钮！');
+                check_flag = false;
+            }
+            if (check_flag) {
+                var warrant_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_WARRANT_INFO');
+                var records = $(warrant_ds_id).getSelected();
+                if (records.length == 0) {
+                    Leaf.showMessage('提示！', '至少选择一条数据！');
+                    return;
+                } else {
+                    var warrantIdArr = [];
+                    for (var i = 0; i < records.length; i++) {
+                        records[i].isNew = true;
+                        records[i].set('warrant_flag', warrant_flag);
+                        records[i].set('warrant_flag_n', warrant_flag_n);
+                        records[i].set('hd_id', hd_id);
+                        records[i].set('source_type', 'WARRANT');
+                        warrantIdArr.push(records[i].get('warrant_id'));
+                    }
+                    //第一步删除选择的数据
+                    Leaf.request({
+                        url: "${/request/@context_path}/hls/duration/ln/delete",
+                        para: {
+                            hd_id: hd_id,
+                            warrant_id_arr: warrantIdArr,
+                            source_type: 'WARRANT'
+                        },
+                        success: function (res) {
+                            //第二步 重新插入选择数据
+                            $(warrant_ds_id).submit();
+                        },
+                        sync: true,
+                        scope: this
+                    });
+                }
+            }
+        }
+
+        //解押 权证信息 标记为申请出库
+        window['${/parameter/@layout_code}_G_WARRANT_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            warrant_flag_change('Y', '是');
+        }
+
+        //解押 权证信息 标记为申请出库
+        window['${/parameter/@layout_code}_G_WARRANT_INFO_USER_BUTTON2_layout_dynamic_tab_click'] = function () {
+            warrant_flag_change('N', '否');
+        }
+
+
+        //项目变更审批事项工作联系单 删除
+        window['${/parameter/@layout_code}_G_PROJECT_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PROJECT_INFO');
+            var contract_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CONTRACT_INFO');
+            var records = $(project_ds_id).getSelected()
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '至少选择一条数据！')
+                return;
+            } else {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                var saveData = [];
+                for (var i = 0; i < records.length; i++) {
+                    records[i].set('hd_id', hd_id);
+                    saveData.push(records[i].data);
+                }
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/duration/ln/project/delete",
+                    para: saveData,
+                    success: function (res) {
+                        $(project_ds_id).setQueryParameter('hd_id', hd_id);
+                        $(project_ds_id).query();
+
+                        $(contract_ds_id).setQueryParameter('hd_id', hd_id);
+                        $(contract_ds_id).query();
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+
+
+        }
+
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+
+
+            var et_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_ET_INFO');
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'G_DEPOSIT_GIRD');
+            var prepayment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PREPAYMENT_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PROJECT_INFO');
+            var contract_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CONTRACT_INFO');
+            var hd_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+
+
+            if (ds.id == et_ds_id) {
+                record.set('project_id', '${/parameter/@project_id}');
+                record.set('et_date', $(hd_ds).getCurrentRecord().get('et_date'));
+            }
+            if (ds.id == deposit_ds_id) {
+                record.set('project_id', '${/parameter/@project_id}');
+            }
+            if (ds.id == prepayment_ds_id) {
+                record.set('project_id', '${/parameter/@project_id}');
+            }
+            if (ds.id == credit_ds_id) {
+                record.set('project_id', '${/parameter/@project_id}');
+            }
+            if (ds.id == project_ds_id) {
+                if ('${/parameter/@create_flag}' == 'Y') {
+                    record.set('ref_project_id', '${/parameter/@ref_project_id}');
+                } else {
+                    record.set('ref_project_id', '${/parameter/@project_id}');
+                }
+
+            }
+            if (ds.id == contract_ds_id && duration_type == 'PROJECT') {
+                //上下级联管理
+                var project_record = $(project_ds_id).getCurrentRecord();
+                var source_id = project_record.get('source_id');
+                record.set('project_id', source_id);
+                record.set('source_id', source_id);
+            }
+
+            /* var duration_att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment');
+             if (ds.id === duration_att_ds_id) {
+                 if ('${/parameter/@wfl_flag}' == 'Y') {
+                     record.getField('document_name').setReadOnly(false);
+                     record.getField('document_name').setRequired(true);
+                     record.getField('description').setReadOnly(false);
+                 }
+             }*/
+        };
+
+        $L.onReady(function () {
+            //解押&&回购 信息
+            var item_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM');
+            if (item_ds_id) {
+                $(item_ds_id).setQueryParameter('project_id', '${/parameter/@project_id}');
+                $(item_ds_id).setQueryParameter('hd_id', '${/parameter/@hd_id}');
+                $(item_ds_id).query();
+            }
+
+            //解押&&回购 权证
+            var warrant_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_WARRANT_INFO');
+            if (warrant_ds_id) {
+                $(warrant_ds_id).setQueryParameter('project_id', '${/parameter/@project_id}');
+                $(warrant_ds_id).setQueryParameter('hd_id', '${/parameter/@hd_id}');
+                $(warrant_ds_id).query();
+            }
+
+            //正常结清&&提前结清&&提前还款 信息
+            var item_1_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_1');
+            if (item_1_ds_id) {
+                $(item_1_ds_id).setQueryParameter('project_id', '${/parameter/@project_id}');
+                $(item_1_ds_id).setQueryParameter('hd_id', '${/parameter/@hd_id}');
+                $(item_1_ds_id).query();
+            }
+
+            var item_2_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_LEASE_ITEM_2');
+            if (item_2_ds_id) {
+                $(item_2_ds_id).setQueryParameter('project_id', '${/parameter/@project_id}');
+                $(item_2_ds_id).setQueryParameter('hd_id', '${/parameter/@hd_id}');
+                $(item_2_ds_id).query();
+            }
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            if (duration_hd_ds_id) {
+                if (duration_type == 'TERMINATE') {
+                    if (deposit_change_flag == 'N') {
+                        $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(0);
+                    }
+                    if (release_change_flag == 'N') {
+                        $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(1);
+                    }
+                    if (repurchase_change_flag == 'N') {
+                        $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(2);
+                    }
+                    if (warrant_change_flag == 'N') {
+                        $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(3);
+                    }
+                } else if (duration_type == 'PREPAYMENT') {
+
+                    if (deposit_change_flag == 'N') {
+                        $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(1);
+                    }
+                    if (release_change_flag == 'N') {
+                        $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(2);
+                    }
+                    if (repurchase_change_flag == 'N') {
+                        $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(3);
+                    }
+                    if (warrant_change_flag == 'N') {
+                        $('${/parameter/@layout_code}_TAB_GROUP_10').setDisabled(4);
+                    }
+                }
+            }
+        });
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+
+

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Marshal.Yuan
+    $Date: 2018-10-23
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+            $L.onReady(function(){
+
+                // 隐藏审批历史导出按钮
+                jQuery("#process_instance_history_grid_tb .grid-excel").hide();
+
+                var processInstanceId = parseInt('${/parameter/@id}');
+                $('current_process_instance_detail_ds').setQueryUrl('${/request/@context_path}/wfl/leaf/instance/'+processInstanceId);
+                $('current_process_instance_detail_ds').query();
+            });
+
+            <!--render函数-->
+            function formateDate(value, record, name){
+                if(value!=""&&value!=undefined){
+                    var date =new Date(parseInt(value));
+                    var yy=date.getFullYear();
+                    var mm="0"+(date.getMonth()+1);
+                    var dd ="0"+(date.getDate());
+                    var hh="0"+(date.getHours());
+                    var min="0"+(date.getMinutes());
+                    var ss ="0"+(date.getSeconds());
+                    mm=mm.substring(mm.length-2,mm.length);
+                    dd=dd.substring(dd.length-2,dd.length);
+                    hh = hh.substring(hh.length-2, hh.length);
+                    min = min.substring(mm.length-2, mm.length);
+                    ss = ss.substring(ss.length-2, ss.length);
+                    var dateStr=yy + '-' + mm + '-' + dd+' '+hh+':'+mm+':'+ss;
+                    return dateStr;
+                }
+                else{
+                    return "";
+                }
+            }
+
+            function actionRender(value,record,name){
+                if(value!=null&&value!=""){
+                    var apprvText=null;
+                    if (value == 'APPROVED'){
+                        apprvText = "<span class='action_ok'>同意</span>";
+                    } else if (value == 'REJECTED'){
+                        apprvText = "<span class='action_dangerous'>拒绝</span>";
+                    }else if(value == 'ADD_SIGN'){
+                        apprvText = "<span class='action_dangerous'>加签</span>";
+                    }else if(value == 'DELEGATE'){
+                        apprvText = "<span class='action_dangerous'>转交</span>";
+                    }else if(value == 'AUTO_DELEGATE'){
+                        apprvText = "<span class='action_dangerous'>自动转交</span>";
+                    } else if(value == 'JUMP'){
+                        apprvText = "<span class='action_dangerous'>跳转</span>";
+                    } else if(value == 'RECALL'){
+                        apprvText = "<span class='action_dangerous'>撤回</span>";
+                    }else if(value == 'SAVE'){
+                        apprvText = "<span class='action_dangerous'>保留</span>";
+                    }else if(value == 'CHANGE'){
+                        apprvText = "<span class='action_dangerous'>变更</span>";
+                    }else if(value == "CARBON_COPY"){
+                        apprvText = "<span class='action_dangerous'>抄送</span>";
+                    }else if(value == 'APPROVED_M'){
+                        apprvText = "<span class='action_dangerous'>同意</span>";
+                    }else if(value == 'APPROVED_QUA'){
+                        apprvText = "<span class='action_dangerous'>有条件同意</span>";
+                    }else if(value == 'REJECTED_M'){
+                        apprvText = "<span class='action_dangerous'>不同意</span>";
+                    }else if(value == 'SUSPEND_M'){
+                        apprvText = "<span class='action_dangerous'>再议</span>";
+                    }else if(value == 'SUSPEND'){
+                        apprvText = "<span class='action_dangerous'>再议</span>";
+                    }else if (value == 'APPROVED_RETURN') {
+                        apprvText = "<span class='action_dangerous'>项目退回</span>";
+                    } else if (value == 'APPROVED_LAST') {
+                        apprvText = "<span class='action_dangerous'>回到退回节点</span>";
+                    } else{
+                        apprvText = value || ''
+                    }
+                    return apprvText;
+                }
+                return "";
+            }
+
+            <!--events-->
+            function load_history_ds(ds){
+                var approveHistory = ds.data[0].data.historic_task_list;
+                approveHistory.forEach(function(item){
+                    $('process_instance_approve_history_ds').create({"assignee":item.assignee,"assignee_name":item.assignee_name,"end_time":item.end_time,"execution_id":item.execution_id,"id":item.id,"name":item.name,"process_definition_id":item.process_definition_id,"start_time":item.start_time,"tenant_id":item.tenant_id,"action":item.action,"comment":item.comment});
+                });
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="current_process_instance_detail_ds">
+                <a:events>
+                    <a:event name="load" handler="load_history_ds"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="process_instance_approve_history_ds">
+                <a:fields>
+                    <a:field name="comment" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form labelwidth="110" title="审批历史" labelWidth="100">
+                <a:grid id="process_instance_history_grid" autoFocus="true" bindTarget="process_instance_approve_history_ds" width="1306" height="350"
+                        navBar="false">
+                    <a:columns>
+                        <a:column name="name" width="210" prompt="审批环节" align="center"/>
+                        <a:column name="assignee_name" width="210" prompt="处理人" align="center"/>
+                        <a:column name="start_time" width="210" prompt="创建时间" align="center"/>
+                        <a:column name="end_time" width="210" prompt="审批时间" align="center"/>
+                        <a:column name="action" width="110" prompt="操作" align="center" renderer="actionRender"/>
+                        <a:column name="comment" editor="process_instance_history_grid_textArea" width="340" prompt="审批意见" align="center"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:textArea id="process_instance_history_grid_textArea"/>
+                    </a:editors>
+                </a:grid>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

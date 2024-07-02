@@ -1,0 +1,74 @@
+<configuration scan="true" scanPeriod="3 seconds">
+
+    <springProperty scope="context" name="elk-host" source="elk.host" defaultValue="192.168.16.115"/>
+    <springProperty scope="context" name="elk-port" source="elk.port" defaultValue="5000"/>
+
+    <appender name="PLATFORM-FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{accountId}] [%X{requestId}] %logger - %msg%n</pattern>
+        </encoder>
+        <file>D:\leaf\logs\leaf.log</file>
+    </appender>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{userId}] [%X{requestId}] %logger[%line] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <springProfile name="ci">
+        <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{accountId}] [%X{requestId}] %logger - %msg%n</pattern>
+            </encoder>
+            <destination>${elk-host}:${elk-port}</destination>
+        </appender>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <springProfile name="ci">
+            <appender-ref ref="stash"/>
+        </springProfile>
+    </root>
+    <logger name="com.hand" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="com.hand.hls.db.utils.SqlSessionFactoryBean" level="ERROR" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="leaf.database" level="TRACE" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="**.mapper" level="TRACE" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.activiti.engine" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.activiti.spring.SpringTransactionInterceptor" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.apache.ibatis.transaction.managed.ManagedTransaction" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.quartz.core.QuartzSchedulerThread" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.springframework.scheduling.quartz.LocalDataSourceJobStore" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.springframework.context.support" level="ERROR" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.springframework" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.springframework.web.servlet.mvc.method.annotation" level="ERROR" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+    <logger name="org.quartz.impl.jdbcjobstore.StdRowLockSemaphore" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+</configuration>

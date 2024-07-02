@@ -1,0 +1,793 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:p="uncertain.proc" xmlns:c="leaf.application.action"
+          xmlns:s="leaf.plugin.script" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="PRJ316WFL_QUOTATION_SELECT"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316S2/prj_project_quotation_select.lview"/>
+        <a:link id="prj316wfl_project_query_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify.lview"/>
+        <a:link id="prj_chance_detail_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_wfl_detail_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANGE/PRJ110F1/prj_change_req_wfl.lview"/>
+        <a:link id="prj316wfl_project_change_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANGE/PRJ100/prj_project_change_modify.lview"/>
+        <a:link id="prj316wfl_chance_detail_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail.lview"/>
+        <a:link id="lease_info_detaill_id"
+                url="${/request/@context_path}/modules/LEASE/LEASE001/lease_item_modify_detail.lview"/>
+
+        <a:link id="prj_wfl_upload_detail_id" url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify_attachment_pop.lview"/>
+
+        <script src="${/request/@context_path}/resources/hls/imgPreview/viewer.js"/>
+        <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
+        <link href="${/request/@context_path}/resources/hls/imgPreview/viewer.css" rel="stylesheet" type="text/css"/>
+        <script><![CDATA[
+        var bp_hide_flag = 'N' ;
+        var file_hide_flag = 'N';
+        var comments_hide_flag = 'N';
+        var comments_readOnly_flag = 'N';
+
+        var taskDefinitionKey = parent.currentTaskInfo.task_definition_key;
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var quote_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            var quotation_record = $(quote_ds_id).getCurrentRecord();
+            var quotation_id = quotation_record.get('quotation_id');
+            var price_list = quotation_record.get('price_list');
+            var url = '${/request/@context_path}/modules/HLS/HLS200/hls_marketing_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=Y';
+            var win = new Leaf.Window({
+                id: 'hls900_open_price_winid',
+                url: url,
+                title: 'excel查看',
+                fullScreen: true,
+                document_history_flag: true
+            });
+        };
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getCurrentRecord();
+            var project_id = record.get('project_id');
+            var param = {};
+            param['url_title'] = '附件';
+            param['function_code'] = 'PRJ316WFP1';
+            param['project_id'] = project_id;
+            var fileFlag = '${/parameter/@file_flag}';
+            if(fileFlag !=='Y'){
+                param['maintain_type'] = 'READONLY';
+                param['function_usage'] = 'QUERY';
+            }
+            //hls_doc_get_layout_code(param, 'prj_wfl_upload_detail_id', null, 'PRJ316F2WL2', null, null, null);
+            hls_doc_get_layout_code(param, 'prj_wfl_upload_detail_id', ds_id, 'PRJ316F2WL2');
+        };
+
+
+        $L.ComboBox.prototype.collapse = function () {
+            Ext.get(document.documentElement).un("mousedown", this.triggerBlur, this);
+            if (this.popup) {
+                this.popup.moveTo(-1000, -1000);
+                this.popup.removeClass('animated zoomInDownPopup');
+                this.popup.addClass('animated zoomOut');
+            }
+            this.fireEvent("collapse", this);
+        }
+
+        //提交前调用,校验上传附件
+        function beforeSubmit(countiune) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getCurrentRecord();
+            var project_id = record.get('project_id');
+
+            var printData = [];
+            var str = {project_id:project_id};
+            printData.push(str);
+
+            if (! (taskDefinitionKey == 'sid-XSY3JbLh-POdO-462U-8sR4-Z4uW3WtyGyMK' || taskDefinitionKey == 'sid-lwqVNxnc-sSEv-491d-8BZa-6tzdhUWoPzX8')) {
+                countiune();
+            }else{
+                Leaf.request({
+                    url: '${/request/@context_path}/prj/project/checkWflAtt',
+                    para: printData,
+                    success: function (datas) {
+                        if (datas.success) {
+                            if(taskDefinitionKey == 'sid-XSY3JbLh-POdO-462U-8sR4-Z4uW3WtyGyMK'){
+                                var count=0;
+                                for(var i = 0;i < datas.result.record.length;i++){
+                                    if(datas.result.record[i].document_name == '法律审查意见'){
+                                        count+=1;
+                                    }
+                                }
+                                if(count==0) {
+                                    Leaf.showMessage('提示', '请上传法律审查意见！');
+                                    return;
+                                }
+                                countiune();
+                            }else if(taskDefinitionKey == 'sid-lwqVNxnc-sSEv-491d-8BZa-6tzdhUWoPzX8'){
+                                var count=0;
+                                for(var i = 0;i < datas.result.record.length;i++){
+                                    if(datas.result.record[i].document_name== '风险评估报告'){
+                                        count+=1;
+                                    }
+                                }
+                                if(count==0) {
+                                    Leaf.showMessage('提示', '请上传风险审查意见！');
+                                    return;
+                                }
+                                countiune();
+                            }else{
+                                countiune();
+                            }
+                        }
+                        return;
+                    }
+                });
+            }
+        }
+
+        //保存前调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            // 法务主协办校验
+            var legalFlag = '${/parameter/@legal_flag}';
+            if(legalFlag === 'Y'){
+                var prjEmp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC_INFO');
+                var empRecord = $(prjEmp).getCurrentRecord();
+                var legalHost = empRecord.get('legal_host');
+                if(legalHost){
+                    var hostRatio = empRecord.get('legal_host_ratio');
+                    var assistantFirst = empRecord.get('legal_assistant_first');
+                    var assistantFirstRatio = empRecord.get('legal_assistant_first_ratio');
+                    var assistantSecond = empRecord.get('legal_assistant_second');
+                    var assistantSecondRatio = empRecord.get('legal_assistant_second_ratio');
+                    // 风险协办1校验
+                    if(assistantFirst){
+                        if(assistantFirst === legalHost || assistantFirst===assistantSecond){
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "法务主协办人员信息维护重复!", null);
+                            return false;
+                        }
+
+                        if(!assistantFirstRatio){
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "请维护法务协办1绩效比例!", null);
+                            return false;
+                        }
+                    }else{
+                        if(assistantFirstRatio){
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "请维护法务协办1人员信息!", null);
+                            return false;
+                        }
+                    }
+                    if (!assistantFirstRatio) {
+                        assistantFirstRatio = 0;
+                    }
+
+                    // 风险协办2校验
+                    if(assistantSecond){
+                        if(assistantSecond === legalHost || assistantSecond===assistantFirst){
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "法务主协办人员信息维护重复!", null);
+                            return false;
+                        }
+
+                        if(!assistantSecondRatio){
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "请维护法务协办2绩效比例!", null);
+                            return false;
+                        }
+                    }else{
+                        if(assistantSecondRatio){
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "请维护法务协办2人员信息!", null);
+                            return false;
+                        }
+                    }
+                    if (!assistantSecondRatio) {
+                        assistantSecondRatio = 0;
+                    }
+
+                    var sumEmpRatio = hostRatio + assistantFirstRatio + assistantSecondRatio;
+                    if (parseFloat(sumEmpRatio).toFixed(2) !== parseFloat(1).toFixed(2)) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        $L.showInfoMessage("提示", "法务主协办绩效比例之和不为1!", null);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            switch (ds.id) {
+                // case '${/parameter/@layout_code}_F_BASIC_INFO_prj_project_id_ds':
+                case '${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds':
+                    var report_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(report_ds_id).getCurrentRecord();
+                    var project_id = prj_record.get('project_id');
+                    if (project_id) {
+                        qpara['document_id'] = project_id;
+                        qpara['source_document_id'] = project_id;
+                    }
+                    qpara['source_document_category'] = 'PRJ_PROJECT';
+                    qpara['data_class'] = 'PRJ_PROJECT_INVEST';
+                    break;
+                case '${/parameter/@layout_code}_F_CREDIT_PROGRAM_hls_credit_plan_ds':
+                    var report_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(report_ds_id).getCurrentRecord();
+                    var project_id = prj_record.get('project_id');
+                    if (project_id) {
+                        qpara['document_id'] = project_id;
+                        qpara['source_document_id'] = project_id;
+                    }
+                    qpara['source_document_category'] = 'PRJ_PROJECT';
+                    qpara['data_class'] = 'PRJ_PROJECT_INVEST';
+                    break;
+                case '${/parameter/@layout_code}_F_AUDIT_QUOTATION_prj_quotation_ds':
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(ds_id).getCurrentRecord();
+                    var project_id = prj_record.get('project_id');
+                    if (project_id) {
+                        qpara['document_id'] = project_id;
+                        qpara['source_document_id'] = project_id;
+                    }
+                    qpara['source_document_category'] = 'PRJ_PROJECT_AUDIT';
+                    qpara['data_class'] = 'PRJ_PROJECT_INVEST';
+                    break;
+                case '${/parameter/@layout_code}_F_MANAGE_QUOTATION_prj_quotation_ds':
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(ds_id).getCurrentRecord();
+                    var project_id = prj_record.get('project_id');
+                    if (project_id) {
+                        qpara['document_id'] = project_id;
+                        qpara['source_document_id'] = project_id;
+                    }
+                    qpara['source_document_category'] = 'PRJ_PROJECT_MANAGE';
+                    qpara['data_class'] = 'PRJ_PROJECT_INVEST';
+                    break;
+                case '${/parameter/@layout_code}_F_AUDIT_INFO_prj_project_approval_ds':
+                    qpara['approval_type'] = 'AUDIT';
+                    break;
+                case '${/parameter/@layout_code}_F_AUDIT_DISCUSS_prj_project_approval_ds':
+                    qpara['approval_type'] = 'AUDIT';
+                    break;
+                case '${/parameter/@layout_code}_F_AUDIT_ADJUST_prj_project_approval_ds':
+                    qpara['approval_type'] = 'AUDIT';
+                    break;
+                case '${/parameter/@layout_code}_F_AUDIT_RESULT_prj_project_approval_ds':
+                    qpara['approval_type'] = 'AUDIT';
+                    break;
+                case '${/parameter/@layout_code}_F_MANAGE_INFO_prj_project_approval_ds':
+                    qpara['approval_type'] = 'MANAGE';
+                    break;
+                case '${/parameter/@layout_code}_F_MANAGE_DISCUSS_prj_project_approval_ds':
+                    qpara['approval_type'] = 'MANAGE';
+                    break;
+                case '${/parameter/@layout_code}_F_MANAGE_ADJUST_prj_project_approval_ds':
+                    qpara['approval_type'] = 'MANAGE';
+                    break;
+                case '${/parameter/@layout_code}_F_MANAGE_RESULT_prj_project_approval_ds':
+                    qpara['approval_type'] = 'MANAGE';
+                    break;
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var prj_record = $(prj_ds_id).getCurrentRecord();
+            var chance_id = prj_record.get('chance_id');
+            var project_id = prj_record.get('project_id');
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_G_LEASE_ITEM_EQUIPMENT_prj_project_lease_item_ds':
+                    qpara['project_id'] = prj_record.get('project_id');
+                    break;
+                case '${/parameter/@layout_code}_G_SEND_REVIEW_REPORT_prj_project_attachment_ds':
+                    qpara['project_id'] = project_id;
+                    qpara['project_attachment_category'] = 'PRJ_SALES';
+                    break;
+                /*case '${/parameter/@layout_code}_G_BP_ATTACHMEMT_prj_project_attachment_ds':
+                    var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(prj_ds_id).getCurrentRecord();
+                    var project_id = prj_record.get('project_id');
+                    qpara['project_id'] = project_id;
+                    qpara['project_attachment_category'] = 'PRJ_BP';
+                    break;*/
+                case '${/parameter/@layout_code}_G_LEASE_ATTACHMENT_prj_project_attachment_ds':
+                    qpara['project_id'] = project_id;
+                    qpara['project_attachment_category'] = 'PRJ_LEASE';
+                    break;
+                case '${/parameter/@layout_code}_G_BP_CZ_ATTACHMEMT_prj_project_attachment_ds':
+                    qpara['project_id'] = project_id;
+                    qpara['project_attachment_category'] = 'PRJ_BP_CZ';
+                    break;
+                case '${/parameter/@layout_code}_G_BP_DB_ATTACHMEMT_prj_project_attachment_ds':
+                    qpara['project_id'] = project_id;
+                    qpara['project_attachment_category'] = 'PRJ_BP_DB';
+                    break;
+                case '${/parameter/@layout_code}_G_WFL_HIS_prj_project_ds':
+                    ds.setQueryParameter('businessKey', chance_id);
+                    ds.setQueryParameter('workFlowType', 'FCT_PROJECTCREATE_WFL');
+                    break;
+                case '${/parameter/@layout_code}_G_WFL_HIS_2_prj_project_ds':
+                    ds.setQueryParameter('businessKey', project_id);
+                    ds.setQueryParameter('workFlowType', 'PROJECT_REVIEW_WFL');
+                    break;
+            }
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'upload_file';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '-&#45;&#45;' + name] = record;
+            var project_attachment_id = record.get('project_attachment_id');
+            if (name == 'download') {
+                return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + record.get('attachment_id') + '">下载</a>';
+            }
+            if (name == 'upload') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('project_attachment_id') + '\');">附件</a>';
+            }
+            if (name == 'lease_item_code') {
+                if (record.get('lease_item_type') == 'LEASE') {
+                    link_function = 'lease_item_detail';
+                } else if (record.get('lease_item_type') == 'MORTGAGE' || record.get('lease_item_type') == 'PLEDGE') {
+                    link_function = 'pledge_detail';
+                }else{
+                    link_function = 'lease_item_detail';
+                }
+                var detail = '';
+                if (value) {
+                    detail = value;
+                }
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + detail + '</a>';
+            }
+            if (name == 'quotation_cal') {
+                if ('${/parameter/@function_usage}' == 'QUERY') {
+                    link_function = 'quotation_ready_detail';
+                    return '<a style="display: inline-block;background: #5a7fff;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;left: 30px;" href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '报价详情' + '</a>';
+                } else {
+                    link_function = 'quotation_cal_detail';
+                    return '<a style="display: inline-block;background: #5A7FFF;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;left: 30px;" href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '报价引用' + '</a>';
+                }
+
+            }
+            if (name == 'quotation_detail') {
+                if ('${/parameter/@function_usage}' == 'QUERY') {
+                    if (('${/parameter/@project_status}' == 'NOTICE_APPROVED' || '${/parameter/@project_status}' == 'NOTICE_VETO' || '${/parameter/@project_status}' == 'NOTICE_HOLD') && '${/parameter/@business_type}' != 'GENERAL_CREDIT_APPROVAL' && '${/parameter/@business_type}' != 'VENDOR_CREDIT_APPROVAL' && '${/parameter/@business_type}' != 'UNION_CREDIT_APPROVAL') {
+                        link_function = 'price_approval_table';
+                        return '<a style="display: inline-block;background: #5A7FFF;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;margin-left: -102px;" href="javascript:window[\'' + link_function + '\'](\'' + record.get('source_document_id') + '\',\'' + record.get('quotation_id') + '\');">' + '价格审批意见' + '</a>';
+                    } else {
+                        return '<a style="display: inline-block;background: #fff;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;margin-left: -102px;"></a>';
+                    }
+                } else {
+                    link_function = 'quotation_detail';
+                    return '<a style="display: inline-block;background: #5A7FFF;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;margin-left: -102px;" href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '新建报价' + '</a>';
+                }
+            }
+            if (name == 'attachment_data_t' && project_attachment_id) {
+                link_function = 'prj_attachement_upload';
+                var file_number = record.get('file_number');
+                if ('${/parameter/@function_usage}' == 'QUERY'){
+                    return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('project_attachment_id') + '\',\'' + record.ds.id + '\');">' + '附件查看(' + file_number + ')' + '</a>';
+                }else{
+                    return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('project_attachment_id') + '\',\'' + record.ds.id + '\');">' + '附件上传(' + file_number + ')' + '</a>';
+                }
+            }
+            if (name == 'lease_item_details') {
+                link_function = 'lease_item_details';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '租赁物明细' + '</a>';
+            }
+            if (name == 'pledge_pledge_details') {
+                link_function = 'pledge_pledge_details';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '抵质押物明细' + '</a>';
+            }
+
+            if (name == 'file_name' && value) {
+                var str = value.split(',');
+                var url = '';
+                for (var i = 0; i < str.length; i++) {
+                    var temp = record.get('attachment_id').split(',');
+                    url = url + '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + temp[i] + '">' + str[i] + ' ; </a>';
+                }
+                return url;
+            }
+            if (name == 'bp_detali') {
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '客户详细信息' + '</a>';
+            }
+            if (name == 'finnance_info') {
+                return '<a href="javascript:open_finance_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '财务报表' + '</a>';
+            }
+        };
+
+
+        function price_approval_table(project_id, quotation_id) {
+            var down_url;
+            var templateCode = '';
+            templateCode = 'PRICE_APPROVAL_TABLE';
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: "${/request/@context_path}/project/approval/notice/create?projectId=" + project_id
+                    + '&templateCode=' + templateCode + '&quotationId=' + quotation_id,
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    var attachment_id = res.result.record[0].attachment_id;
+                    down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
+                    location.href = down_url;
+                    Leaf.SideBar.show({
+                        msg: '生成成功',
+                        duration: 2000
+                    });
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        }
+
+        function atmTypeRef(name) {
+            return /\.(jpg|png|gif|bmp|jpeg)$/i.test(name)
+        }
+
+        function checkPdf(name) {
+            return /\.(pdf)$/i.test(name)
+        }
+
+        window['quotation_cal_detail'] = function (record_id, ds_id) {
+            var quotation_record = $(ds_id).findById(record_id);
+            var quotation_id = quotation_record.get('quotation_id');
+
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var prj_record = $(prj_ds_id).getCurrentRecord();
+            var project_id = prj_record.get('project_id');
+            var project_name = prj_record.get('project_name');
+            if (project_id == 0 || quotation_id == undefined) {
+                Leaf.showMessage('提示', '请先保存再引用报价');
+            } else {
+                var param = quotation_record.data;
+                param['url_title'] = '报价方案选择';
+                param['function_code'] = 'PRJ316S2';
+                param['function_usage'] = 'CREATE';
+                //param['parent_ds_id'] = ds_id;
+                //param['screen_width'] = '900';
+                //param['side']='right';
+                param['project_id'] = project_id;
+                param['project_name'] = project_name;
+                param['parent_ds_id'] = prj_ds_id;
+                var button_hide_flag = 'N';
+                if ('${/parameter/@function_usage}' == 'QUERY') {
+                    button_hide_flag = 'Y';
+                }
+                param['button_hide_flag'] = button_hide_flag;
+                var link_id = 'PRJ316S2_QUOTATION_SELECT';
+                hls_doc_get_layout_code(param, link_id, null, '${/parameter/@layout_code}');
+            }
+
+        };
+
+
+        window['prj_attachement_upload'] = function (record_id, project_attachment_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var project_id = record.get('project_id');
+            if (typeof (project_attachment_id) === 'undefined' || 'undefined' === project_attachment_id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            var url;
+            var table_name;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+                if (record.get('project_attachment_category') === 'HLS_PRJ_PROJECT_DOCX1') {//合同文本附件暂定不可删除
+                    table_name = 'HLS_PRJ_PROJECT_DOCX1';
+                } else if (record.get('project_attachment_category') === 'HLS_PRJ_PROJECT_DOCX2') {//合同文本附件暂定不可删除
+                    table_name = 'HLS_PRJ_PROJECT_DOCX2';
+                } else if (record.get('project_attachment_category') === 'HLS_PRJ_PROJECT_DOCX3') {//合同文本附件暂定不可删除
+                    table_name = 'HLS_PRJ_PROJECT_DOCX3';
+                } else {
+                    table_name = 'PRJ_PROJECT_ATTACHMENT';
+                }
+            } else {
+                if (record.get('project_attachment_category') === 'HLS_PRJ_PROJECT_DOCX1') {//合同文本附件暂定不可删除
+                    url = '${/request/@context_path}/uploadFile.lview';
+                    table_name = 'HLS_PRJ_PROJECT_DOCX1';
+                } else if (record.get('project_attachment_category') === 'HLS_PRJ_PROJECT_DOCX2') {//合同文本附件暂定不可删除
+                    url = '${/request/@context_path}/uploadFile.lview';
+                    table_name = 'HLS_PRJ_PROJECT_DOCX2';
+                } else if (record.get('project_attachment_category') === 'HLS_PRJ_PROJECT_DOCX3') {//合同文本附件暂定不可删除
+                    url = '${/request/@context_path}/uploadFile.lview';
+                    table_name = 'HLS_PRJ_PROJECT_DOCX3';
+                } else {
+                    url = '${/request/@context_path}/uploadFile.lview';
+                    table_name = 'PRJ_PROJECT_ATTACHMENT';
+                }
+            }
+
+            var document_list_ds_id;
+            if (ds_id == '${/parameter/@layout_code}_G_SEND_REVIEW_REPORT_prj_project_attachment_ds'
+                //|| ds_id == '${/parameter/@layout_code}_G_BP_ATTACHMEMT_prj_project_attachment_ds'
+                || ds_id == '${/parameter/@layout_code}_G_LEASE_ATTACHMEMT_prj_project_attachment_ds'
+                || ds_id == '${/parameter/@layout_code}_G_BP_CZ_ATTACHMEMT_prj_project_attachment_ds'
+                || ds_id == '${/parameter/@layout_code}_G_BP_DB_ATTACHMEMT_prj_project_attachment_ds'
+                || ds_id == '${/parameter/@layout_code}_G_LEASE_ATTACHMENT_prj_project_attachment_ds') {
+                document_list_ds_id = ds_id;
+            }
+            var win = new Leaf.Window({
+                id: 'prj316_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: project_attachment_id,
+                    table_name: table_name,
+                    winid: 'prj316_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '附件',
+                width: 800,
+                height: 575
+            });
+            win.on('close', function () {
+                var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                $(prj_ds_id).query;
+                $(document_list_ds_id).query();
+            });
+        };
+
+        window['lease_item_detail'] = function (record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '租赁物详细信息';
+            param['function_code'] = 'LEASE001F1';
+            param['winid'] = 'lease_item_detail_winid';
+            param['ds_id'] = ds_id;
+            param['function_usage'] = 'QUERY';
+            var link_id = 'lease_info_detaill_id';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'LEASE001');
+        };
+
+        window['pledge_detail'] = function (record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            var status = param.lease_item_id;
+            var type = 'MODIFY';
+            param['url_title'] = '抵质押物详细';
+            param['function_code'] = 'SW001F1';
+            param['function_usage'] = type;
+            param['winid'] = 'hls_lease_item_winid';
+            param['ds_id'] = ds_id;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                param['function_usage'] = 'QUERY';
+            }
+            var link_id = 'SW001_PLEDGE_LEASE';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'SW001');
+        };
+
+        window['lease_item_details'] = function (record_id, ds_id) {
+            var lease_record = $(ds_id).findById(record_id).data;
+
+            var result_id = lease_record.result_id;
+            var excel_id = lease_record.excel_id;
+            if (result_id == null || result_id == '' || result_id == undefined) {
+                $L.showInfoMessage("提示", "请先导入租赁物物明细数据!");
+                return;
+            }
+            if (excel_id == null || excel_id == '' || excel_id == undefined) {
+                $L.showInfoMessage("提示", "模板有误!");
+                return;
+            }
+
+            new Leaf.Window({
+                id: 'lease_excel_detail_win_id',
+                params: {
+                    result_id: lease_record.result_id,
+                    excel_id: lease_record.excel_id,
+                    source_document_category: 'HLS_LEASE_ITEM_RENTAL',
+                    source_document_id: lease_record.lease_item_id,
+                    winid: 'lease_excel_detail_win_id',
+                    readOnly: 'Y'
+                },
+                url: '${/request/@context_path}/modules/HLS/HLS600/hls_web_excel_calc_iframe.lview',
+                title: '租赁物明细',
+                fullScreen: true
+            });
+        };
+
+        window['pledge_pledge_details'] = function (record_id, ds_id) {
+            var lease_record = $(ds_id).findById(record_id).data;
+
+            var result_id = lease_record.result_id;
+            var excel_id = lease_record.excel_id;
+            if (result_id == null || result_id == '' || result_id == undefined) {
+                $L.showInfoMessage("提示", "请先导入抵质押物明细数据!");
+                return;
+            }
+            if (excel_id == null || excel_id == '' || excel_id == undefined) {
+                $L.showInfoMessage("提示", "模板有误!");
+                return;
+            }
+
+
+            var win = new Leaf.Window({
+                id: 'bp100_excel_detail_win_id',
+                params: {
+                    result_id: result_id,
+                    excel_id: excel_id,
+                    source_document_category: 'MORTGAGE_PLEDGE_REPORT',
+                    winid: 'bp100_excel_detail_win_id',
+                    readOnly: 'Y'
+                },
+                url: '${/request/@context_path}/modules/HLS/HLS600/hls_web_excel_calc_iframe.lview',
+                title: '抵质押物报表明细',
+                fullScreen: true
+            });
+        };
+
+        window['upload_file'] = function (record_id, project_attachment_id) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var project_record = $(ds_id).getCurrentRecord();
+            var project_id = project_record.get('project_id');
+            if (project_id == undefined || project_id == 0) {
+                $L.showInfoMessage("提示", "请先保存项目信息再上传附件!");
+                return;
+            }
+            if (project_attachment_id == 'undefined') {
+                $L.showInfoMessage("提示", "请先保存附件信息!");
+                return;
+            }
+
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'prj316_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': project_attachment_id,
+                    'table_name': 'PRJ_PROJECT_ATTACHMENT',
+                    winid: 'prj316_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var document_list_ds_id = "${/parameter/@layout_code}_G_BASIC_DATA_prj_project_attachment_ds";
+                $(document_list_ds_id).query();
+            });
+        }
+
+
+        //业务资料附件下载
+        window['${/parameter/@layout_code}_G_SEND_REVIEW_REPORT_USER_BUTTON5_layout_dynamic_tab_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_SEND_REVIEW_REPORT');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage("提示", "请选择需要导出的附件!", null);
+                return;
+            }
+            var exportList = [];
+
+            for (var i = 0; i < records.length; i++) {
+                if(records[i].get('attachment_id') != null){
+                    for(var item of records[i].get('attachment_id').split(",")) {
+                        exportList.push(item);
+                    }
+                }
+            }
+            if(exportList.length == 0){
+                Leaf.showMessage("提示", "无附件可导出!", null);
+                return;
+            }
+            for (var i = 0; i < exportList.length; i++) {
+                var a = document.createElement('a');
+                a.href = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + exportList[i];
+                a.download = 'filename';
+                a.click();
+            }
+        };
+        //承租人(评估主体)基础资料下载
+        window['${/parameter/@layout_code}_G_BP_CZ_ATTACHMEMT_USER_BUTTON5_layout_dynamic_tab_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_BP_CZ_ATTACHMEMT');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage("提示", "请选择需要导出的附件!", null);
+                return;
+            }
+            var exportList = [];
+
+            for (var i = 0; i < records.length; i++) {
+                if(records[i].get('attachment_id') != null){
+                    for(var item of records[i].get('attachment_id').split(",")) {
+                        exportList.push(item);
+                    }
+                }
+            }
+            if(exportList.length == 0){
+                Leaf.showMessage("提示", "无附件可导出!", null);
+                return;
+            }
+            for (var i = 0; i < exportList.length; i++) {
+                var a = document.createElement('a');
+                a.href = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + exportList[i];
+                a.download = 'filename';
+                a.click();
+            }
+        };
+        //担保人(评估主体)基础资料下载
+        window['${/parameter/@layout_code}_G_BP_DB_ATTACHMEMT_USER_BUTTON5_layout_dynamic_tab_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_BP_DB_ATTACHMEMT');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage("提示", "请选择需要导出的附件!", null);
+                return;
+            }
+            var exportList = [];
+
+            for (var i = 0; i < records.length; i++) {
+                if(records[i].get('attachment_id') != null){
+                    for(var item of records[i].get('attachment_id').split(",")) {
+                        exportList.push(item);
+                    }
+                }
+            }
+            if(exportList.length == 0){
+                Leaf.showMessage("提示", "无附件可导出!", null);
+                return;
+            }
+            for (var i = 0; i < exportList.length; i++) {
+                var a = document.createElement('a');
+                a.href = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + exportList[i];
+                a.download = 'filename';
+                a.click();
+            }
+        };
+        //租赁物资料下载
+        window['${/parameter/@layout_code}_G_LEASE_ATTACHMENT_USER_BUTTON5_layout_dynamic_tab_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_LEASE_ATTACHMENT');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage("提示", "请选择需要导出的附件!", null);
+                return;
+            }
+            var exportList = [];
+
+            for (var i = 0; i < records.length; i++) {
+                if(records[i].get('attachment_id') != null){
+                    for(var item of records[i].get('attachment_id').split(",")) {
+                        exportList.push(item);
+                    }
+                }
+            }
+            if(exportList.length == 0){
+                Leaf.showMessage("提示", "无附件可导出!", null);
+                return;
+            }
+            for (var i = 0; i < exportList.length; i++) {
+                var a = document.createElement('a');
+                a.href = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + exportList[i];
+                a.download = 'filename';
+                a.click();
+            }
+        };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+        <a:screenBody>
+            <!--<a:screenTopToolbar>
+                <a:gridButton id="hls_project_prj_quotation_id" style="display:none;" click="hls_quotation_id_detail"
+                              text="报价详情"/>
+                <a:gridButton id="hls_project_detail_id" style="display:none;" click="hls_project_detail"
+                              text="尽调页面详情"/>
+                <a:gridButton id="hls_project_detail_page_id" style="display:none;" click="prj_report_detail"
+                              text="尽调报告"/>
+                <a:gridButton id="hls_project_report_id" style="display:none;" click="prj_risk_report_detail"
+                              text="风险审查报告"/>
+                <a:gridButton id="hls_project_reply_id" style="display:none;" click="prj_reply_detail" text="项目批复书"/>
+            </a:screenTopToolbar>-->
+        </a:screenBody>
+    </a:view>
+</a:screen>

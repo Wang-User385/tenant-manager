@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangdan
+    $Date: 2022年12月
+    $Revision: 1.0
+    $Purpose: 保证金抵扣申请明细 工作流审批页面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <a:link id="csh_deduct_req_readonly_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH308/csh_deposit_deduction_readonly.lview"/>
+        <a:link id="csh_deduct_req_modify_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH308/csh_deposit_deduction.lview"/>
+        <style>
+            html,body {
+                background: white;
+            }
+        </style>
+        <script><![CDATA[
+        Leaf.onReady(function () {
+            var businessKey = "${/parameter/@businessKey}";
+
+            var param = parent.currentTaskInfo.execution_variables;
+            var contractId = param.filter(function (o) {
+                return o.name == "contractId";
+            })[0].value;
+
+            var url = $('csh_deduct_req_readonly_link').getUrl() + "?hide_flag=true&req_hd_id=" + businessKey;
+            //退回经办人节点可以编辑
+            if(parent.currentTaskInfo.task_definition_key == "sid-rHAU6o6D-6QbN-4laU-89LQ-cSSMgkK3aMmb"){
+                url = $('csh_deduct_req_modify_link').getUrl() + "?req_hd_id=" + businessKey+"&contract_id="+ contractId+""+"&write_off_type=DEPOSIT_CREDIT";
+            }
+
+            jQuery("#wflIframe").attr('src', url);
+        });
+        ]]></script>
+        <a:dataSets>
+
+        </a:dataSets>
+        <iframe id="wflIframe" style="display:block;border:none;width:100%;height:500px;"/>
+        <a:screenBody>
+        </a:screenBody>
+    </a:view>
+</a:screen>

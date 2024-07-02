@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.avs.mapper.LitigationManagementMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.avs.dto.LitigationManagement">
+        <result column="LITIGATION_MANAGEMENT_ID" property="litigationManagementId" jdbcType="DECIMAL" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="TENANT_ID" property="tenantId" jdbcType="DECIMAL" />
+        <result column="HOST_PROJECT_MANAGER" property="hostProjectManager" jdbcType="DECIMAL" />
+        <result column="CONTRACT_AMOUNT" property="contractAmount" jdbcType="DECIMAL" />
+        <result column="LITIGATION_AMOUNT" property="litigationAmount" jdbcType="DECIMAL" />
+        <result column="HANDLE_WAY" property="handleWay" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="LITIGATION_RELEVANT_AMOUNT" property="litigationRelevantAmount" jdbcType="DECIMAL" />
+        <result column="HANDLE_DATE" property="handleDate" jdbcType="DATE" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="PROCESS_INSTANCE_ID" property="processInstanceId" jdbcType="DECIMAL" />
+        <result column="HANDLE_WAY_N" property="handleWayN" jdbcType="VARCHAR" />
+        <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR" />
+        <result column="host_project_manager_n" property="hostProjectManagerN" jdbcType="VARCHAR" />
+        <result column="CONTRACT_NUMBER_N" property="contractNumberN" jdbcType="VARCHAR" />
+        <result column="STATUS_N" property="statusN" jdbcType="VARCHAR" />
+        <result column="BP_ID_N" property="bpIdN" jdbcType="VARCHAR" />
+        <result column="file_name" property="fileName" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryLitigationManagement" parameterType="com.hand.hls.avs.dto.LitigationManagement"
+            resultMap="BaseResultMap">
+        select
+        lmt.LITIGATION_MANAGEMENT_ID,
+        lmt.PROJECT_ID,
+        lmt.CONTRACT_NUMBER,
+        lmt.CONTRACT_NUMBER as CONTRACT_NUMBER_N,
+        lmt.TENANT_ID,
+        (
+            SELECT
+            b.bp_name
+            FROM
+            hls_bp_master b
+            WHERE
+            b.bp_id = lmt.tenant_id
+            ) tenant_id_n,
+        lmt.HOST_PROJECT_MANAGER,
+        (
+            SELECT
+            s.description
+            FROM
+            sys_user s
+            WHERE
+            s.user_id = lmt.host_project_manager
+            ) host_project_manager_n,
+        lmt.CONTRACT_AMOUNT,
+        lmt.LITIGATION_AMOUNT,
+        lmt.HANDLE_WAY,
+        (
+        SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'AVS.HANDLE_WAY'
+        AND lmt.HANDLE_WAY = v.CODE_VALUE )HANDLE_WAY_N,
+
+        lmt.DESCRIPTION,
+        lmt.LITIGATION_RELEVANT_AMOUNT,
+        lmt.HANDLE_DATE,
+        lmt.STATUS,
+        lmt.BP_ID,
+        (
+        select
+        hbm.bp_name
+        from hls_bp_master hbm
+        where hbm.BP_ID = lmt.BP_ID
+        )BP_ID_N,
+        (
+        SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'HLS.WFL_FUNDING_STATUS'
+        AND lmt.STATUS = v.CODE_VALUE )STATUS_N,
+        (select  wm_concat(fa.file_name)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name = 'litigation_management'
+        and lmt.LITIGATION_MANAGEMENT_ID = fam.table_pk_value) FILE_NAME
+
+        from litigation_management lmt ,prj_project pp
+        <where>
+            lmt.PROJECT_ID = pp.PROJECT_ID
+            <if test="createdBy != null">
+                and (pp.created_by = #{createdBy}
+                or EXISTS (SELECT
+                1
+                FROM
+                sys_user U
+                LEFT JOIN SYS_USER_ALLOCATION UR ON UR.USER_ID = U.USER_ID
+                LEFT JOIN SYS_ROLE_B R ON R.ROLE_ID = UR.ROLE_ID
+                WHERE
+                R.ROLE_CODE = 'ADMIN' and U.USER_ID = #{createdBy}))
+            </if>
+            <if test="contractNumber!=null">
+              and  lmt.CONTRACT_NUMBER = #{contractNumber}
+            </if>
+            <if test="hostProjectManager!=null">
+               and lmt.HOST_PROJECT_MANAGER = #{hostProjectManager}
+            </if>
+            <if test="bpId!=null">
+                and lmt.BP_ID = #{bpId}
+            </if>
+            <if test="litigationManagementId!=null">
+                and lmt.LITIGATION_MANAGEMENT_ID = #{litigationManagementId}
+            </if>
+            <if test="handleDateFrom!=null">
+                <if test="handleDateTo!=null">
+                    and lmt.HANDLE_DATE between #{handleDateFrom} and #{handleDateTo}
+                </if>
+            </if>
+            ORDER BY lmt.LITIGATION_MANAGEMENT_ID desc
+        </where>
+    </select>
+
+
+
+    <select id="getAllocationIds" resultType="java.lang.String">
+       SELECT
+	    a.allocation_id
+    FROM
+        sys_user_allocation a,
+        fnd_employee_assigns e,
+        fnd_org_position p
+    WHERE
+        a.EMPLOYEE_ASSIGN_ID = e.EMPLOYEE_ASSIGN_ID
+        AND e.POSITION_ID = p.POSITION_ID
+        AND p.POSITION_CODE = 'A0340'
+    </select>
+</mapper>

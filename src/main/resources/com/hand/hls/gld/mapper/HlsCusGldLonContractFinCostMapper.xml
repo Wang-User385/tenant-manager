@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.gld.mapper.HlsCusGldLonContractFinCostMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.gld.dto.HlsCusGldLonContractFinCost">
+        <result column="FINANCE_COST_ID" property="financeCostId" jdbcType="DECIMAL" />
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="REPAYMENT_ID" property="repaymentId" jdbcType="DECIMAL" />
+        <result column="WITHDRAW_ID" property="withdrawId" jdbcType="DECIMAL" />
+        <result column="GLD_CASHFLOW_ID" property="gldCashflowId" jdbcType="DECIMAL" />
+        <result column="PERIOD_NAME" property="periodName" jdbcType="VARCHAR" />
+        <result column="START_DATE" property="startDate" jdbcType="DATE" />
+        <result column="END_DATE" property="endDate" jdbcType="DATE" />
+        <result column="DAYS" property="days" jdbcType="DECIMAL" />
+        <result column="FINANCE_COST" property="financeCost" jdbcType="DECIMAL" />
+        <result column="SOURCE_TYPE" property="sourceType" jdbcType="VARCHAR" />
+        <result column="SOURCE_ID" property="sourceId" jdbcType="DECIMAL" />
+        <result column="POST_FLAG" property="postFlag" jdbcType="VARCHAR" />
+        <result column="contract_number" property="contractNumber"  />
+        <result column="contract_name" property="contractName"  />
+        <result column="withdraw_number" property="withdrawNumber"  />
+        <result column="times" property="times"  />
+        <result column="withdraw_due_amount" property="withdrawDueAmount"  />
+        <result column="repayment_due_amount" property="repaymentDueAmount"  />
+        <result column="repayment_date_from" property="repaymentDateFrom"  />
+        <result column="repayment_date_to" property="repaymentDateTo"  />
+        <result column="loan_rate" property="loanRate" />
+        <result column="FINANCE_COST_SUM" property="financeCostSum" />
+        <result column="cf_item" property="cfItem" jdbcType="DECIMAL" />
+        <result column="FINANCE_INCOME_INCLUD" property="financeIncomeInclud" jdbcType="DECIMAL" />
+        <result column="FINANCE_INCOME_VAT" property="financeIncomeVat" jdbcType="DECIMAL" />
+        <result column="PRODUCT_ID" property="productId"/>
+        <result column="ABS_FEE_ID" property="absFeeId"/>
+        <result column="cf_item_n" property="cfItemN"/>
+        <result column="post_flag_n" property="postFlagN"/>
+        <result column="currency_n" property="currencyN"/>
+        <result column="currency" property="currency"/>
+        <result column="bp_name" property="bpName"/>
+        <result column="withdraw_currency_code" property="withdrawCurrencyCode"/>
+        <!--关联查询字段 -->
+        <result column="credit_bp_name" property="creditBpName"/>
+        <result column="company_full_name" property="companyFullName"/>
+        <result column="due_amount" property="dueAmount"/>
+        <result column="due_date" property="dueDate"/>
+
+    </resultMap>
+
+    <select id="countDrawQuery" parameterType="com.hand.hls.gld.dto.HlsCusGldLonContractFinCost" resultMap="BaseResultMap">
+     SELECT
+            tab.*, (
+        SELECT
+        max(lcr_temp.due_date)
+        FROM
+        lon_contract_repayment lcr_temp
+        WHERE
+        lcr_temp.times &lt; tab.times
+        AND lcr_temp.contract_id = tab.CONTRACT_ID
+        AND lcr_temp.withdraw_id = tab.WITHDRAW_ID
+        and lcr_temp.cf_item=302
+        ) AS repayment_date_from -- 获取上一期利息的due_date
+        FROM
+            (
+                SELECT
+                    glcfc.COMPANY_ID,
+                    glcfc.CONTRACT_ID,
+                    glcfc.DAYS,
+                    glcfc.END_DATE,
+                    glcfc.FINANCE_COST,
+                    glcfc.FINANCE_COST_ID,
+                    glcfc.GLD_CASHFLOW_ID,
+                    glcfc.PERIOD_NAME,
+                    glcfc.POST_FLAG,
+                    glcfc.REPAYMENT_ID,
+                    glcfc.SOURCE_ID,
+                    glcfc.SOURCE_TYPE,
+                    glcfc.START_DATE,
+                    glcfc.WITHDRAW_ID,
+                    lc.contract_number,
+                    lc.contract_name,
+                    lcw.withdraw_number,
+                    lcr.times,
+                    lcr.due_date AS repayment_date_to,
+                    lcw.due_amount AS withdraw_due_amount,
+                    lcq.loan_rate,
+                    lcr.due_amount AS repayment_due_amount
+                FROM
+                    gld_lon_contract_fin_cost glcfc,
+                    lon_contract lc,
+                    lon_contract_quotation lcq,
+                    lon_contract_withdraw lcw,
+                    lon_contract_repayment lcr
+                    <if test="confirmFlag==true">
+                        ,gld_period_status gps
+                    </if>
+
+                WHERE
+                    glcfc.CONTRACT_ID = lc.contract_id
+                AND lcq.contract_id = glcfc.CONTRACT_ID
+                AND lcw.withdraw_id = glcfc.WITHDRAW_ID
+                AND lcr.repayment_id = glcfc.REPAYMENT_ID
+                AND glcfc.COMPANY_ID = #{companyId}
+                AND glcfc.FINANCE_COST != 0
+                <if test="confirmFlag==true">
+                    AND gps.PERIOD_NAME = glcfc.PERIOD_NAME
+                    AND gps.STATUS = 'OPEN'
+                </if>
+            ) tab
+        <where>
+            <if test="financeCostId!=null">
+                tab.FINANCE_COST_ID = #{financeCostId}
+            </if>
+            <if test="contractNumberFrom!=null">
+                AND tab.contract_number &gt;= #{contractNumberFrom}
+            </if>
+            <if test="contractNumberTo!=null">
+                AND tab.contract_number &lt;= #{contractNumberTo}
+            </if>
+            <if test="postFlag!=null">
+                AND tab.POST_FLAG = #{postFlag}
+            </if>
+            <if test="periodNameFrom!=null">
+                AND tab.PERIOD_NAME &gt;= #{periodNameFrom}
+            </if>
+            <if test="periodNameTo!=null">
+                AND tab.PERIOD_NAME &lt;= #{periodNameTo}
+            </if>
+        </where>
+        ORDER BY tab.CONTRACT_ID,tab.START_DATE
+    </select>
+    <select id="querySumCost" parameterType="com.hand.hls.gld.dto.HlsCusGldLonContractFinCost" resultMap="BaseResultMap">
+        SELECT
+            SUM(tab.FINANCE_COST) AS FINANCE_COST_SUM
+        FROM
+        (
+        SELECT
+        glcfc.COMPANY_ID,
+        glcfc.CONTRACT_ID,
+        glcfc.DAYS,
+        glcfc.END_DATE,
+        glcfc.FINANCE_COST,
+        glcfc.FINANCE_COST_ID,
+        glcfc.GLD_CASHFLOW_ID,
+        glcfc.PERIOD_NAME,
+        glcfc.POST_FLAG,
+        glcfc.REPAYMENT_ID,
+        glcfc.SOURCE_ID,
+        glcfc.SOURCE_TYPE,
+        glcfc.START_DATE,
+        glcfc.WITHDRAW_ID,
+        lc.contract_number,
+        lc.contract_name,
+        lcw.withdraw_number,
+        lcr.times,
+        lcr.due_date AS repayment_date_to,
+        lcw.due_amount AS withdraw_due_amount,
+        lcq.loan_rate,
+        lcr.due_amount AS repayment_due_amount
+        FROM
+        gld_lon_contract_fin_cost glcfc,
+        lon_contract lc,
+        lon_contract_quotation lcq,
+        lon_contract_withdraw lcw,
+        lon_contract_repayment lcr
+        WHERE
+        glcfc.CONTRACT_ID = lc.contract_id
+        AND lcq.contract_id = glcfc.CONTRACT_ID
+        AND lcw.withdraw_id = glcfc.WITHDRAW_ID
+        AND lcr.repayment_id = glcfc.REPAYMENT_ID
+        ) tab
+        <where>
+            <if test="financeCostId!=null">
+                tab.FINANCE_COST_ID = #{financeCostId}
+            </if>
+            <if test="contractNumberFrom!=null">
+                AND tab.contract_number &gt;= #{contractNumberFrom}
+            </if>
+            <if test="contractNumberTo!=null">
+                AND tab.contract_number &lt;= #{contractNumberTo}
+            </if>
+            <if test="postFlag!=null">
+                AND tab.POST_FLAG = #{postFlag}
+            </if>
+            <if test="periodNameFrom!=null">
+                AND tab.PERIOD_NAME &gt;= #{periodNameFrom}
+            </if>
+            <if test="periodNameTo!=null">
+                AND tab.PERIOD_NAME &lt;= #{periodNameTo}
+            </if>
+            <if test="companyId!=null">
+              and  tab.COMPANY_ID = #{companyId}
+            </if>
+
+        </where>
+    </select>
+
+
+    <select id="selectWithdrawLastTimeId" resultType="java.lang.Long">
+        SELECT
+                cf.finance_cost_id
+            FROM
+                (
+                    SELECT
+                        cfc.finance_cost_id
+                    FROM
+                        gld_lon_contract_fin_cost cfc
+                    WHERE
+                        cfc.withdraw_id=#{withdrawId}
+                    ORDER BY
+                        cfc.period_name DESC) cf
+            WHERE
+               rownum=1
+    </select>
+
+    <select id="selectFincomeInCludSumExcept" resultType="java.lang.Double">
+    SELECT
+        nvl(sum(finance_income_includ),0)
+    FROM
+        gld_lon_contract_fin_cost glcfc
+    WHERE
+        glcfc.withdraw_id=#{withdrawId}
+    AND glcfc.finance_cost_id!=#{financeCostId}
+    </select>
+
+
+    <update id="updateFinCostIncome">
+     UPDATE
+            gld_lon_contract_fin_cost cfc
+        SET
+            cfc.finance_income_includ=#{financeIncomeInclud},
+
+            cfc.finance_cost= ROUND(#{financeIncomeInclud}/
+            (
+                SELECT
+                    nvl(lcq.tax_rate,0)+1
+                FROM
+                    lon_contract_quotation lcq
+                WHERE
+                    lcq.withdraw_id=cfc.withdraw_id),2),
+
+            cfc.finance_income_vat=#{financeIncomeInclud}-ROUND(#{financeIncomeInclud}/
+            (
+                SELECT
+                    nvl(lcq.tax_rate,0)+1
+                FROM
+                    lon_contract_quotation lcq
+                WHERE
+                    lcq.withdraw_id=cfc.withdraw_id),2)
+        WHERE
+            cfc.finance_cost_id=#{financeCostId}
+    </update>
+
+    <select id="queryLonContractFinCostJc" resultMap="BaseResultMap" parameterType="com.hand.hls.gld.dto.HlsCusGldLonContractFinCost">
+        select * from (select
+            fc.period_name,
+            lc.contract_name,
+            lcw.withdraw_number,
+            fc.cf_item,
+            (select i.description
+                from hls_cashflow_item i
+                where i.cf_item = fc.cf_item
+                and i.cf_type = 70) cf_item_n,
+            fc.finance_cost,
+            fc.start_date,
+            fc.end_date,
+            (select fc.currency_name from fnd_currency fc where fc.currency_code = lc.currency) currency_n,
+            fc.post_flag ,
+            (select tt.meaning
+                from sys_code_value_b_v tt
+                where tt.code = 'cld.post_flag'
+                and tt.code_value = nvl(fc.post_flag,'n')) post_flag_n
+        from
+            gld_lon_contract_fin_cost fc,
+            lon_contract_withdraw lcw,
+            lon_contract lc
+        where
+            lcw.withdraw_id = fc.withdraw_id
+            and lc.contract_id = lcw.contract_id) tab
+        <where>
+            1=1
+            <if test="withdrawNumber!=null">
+                and  tab.withdraw_number like concat('%', concat(#{withdrawNumber,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="postFlag!=null">
+                and  tab.post_flag = #{postFlag}
+            </if>
+            <if test="periodName!=null">
+                and  tab.period_name = #{periodName}
+            </if>
+        </where>
+    </select>
+    <select id="queryLonContractFinCostForHistoryJc" resultMap="BaseResultMap" parameterType="com.hand.hls.gld.dto.HlsCusGldLonContractFinCost">
+        select * from gld_lon_contract_fin_cost fc
+        where fc.withdraw_id = #{withdrawId}
+        and fc.contract_id = #{contractId}
+        and fc.period_name = #{periodName}
+        and fc.cf_item is null
+    </select>
+
+    <select id="monthFinCostQuery" parameterType="com.hand.hls.gld.dto.HlsCusGldLonContractFinCost"
+            resultMap="BaseResultMap">
+        SELECT
+        *
+        FROM
+        (
+        SELECT
+        ( SELECT hbm.bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = lc.credit_bp_id ) credit_bp_name,
+        lc.contract_number,
+        lc.contract_name,
+        lcw.withdraw_number,
+        ( SELECT fc.company_full_name FROM fnd_company fc WHERE fc.company_id = lc.lon_company_id ) company_full_name,
+        lcw.due_amount,
+        lcw.due_date,
+        cfc.start_date,
+        cfc.end_date,
+        cfc.finance_cost,
+        cfc.cf_item,
+        cfc.finance_cost_id,
+        ( SELECT i.description FROM hls_cashflow_item i WHERE i.cf_item = cfc.cf_item ) cf_item_n,
+        ifnull ( cfc.pre_post_flag, 'N' ) pre_post_flag,
+        ifnull ( cfc.post_flag, 'N' ) post_flag,
+        cfc.period_name,
+        lc.currency,
+        ( SELECT fc.currency_name FROM fnd_currency fc WHERE fc.currency_code = lc.currency ) currency_n,
+        lc.contract_finance_type
+        FROM
+        gld_lon_contract_fin_cost cfc,
+        lon_contract lc,
+        lon_contract_withdraw lcw
+        WHERE
+        cfc.contract_id = lc.contract_id
+        AND cfc.withdraw_id = lcw.withdraw_id
+        order by cfc.period_name asc) t1
+        <where>
+           1=1
+            <if test="creditBpName!=null">
+                <bind name="creditBpName" value="'%'+creditBpName+'%'"/>
+                and t1.credit_bp_name like concat(concat('%',#{creditBpName}),'%')
+            </if>
+            <if test="companyFullName!=null">
+                <bind name="companyFullName" value="'%'+companyFullName+'%'"/>
+                and t1.company_full_name like concat(concat('%',#{companyFullName}),'%')
+            </if>
+            <if test="contractNumber!=null">
+                <bind name="contractNumber" value="'%'+contractNumber+'%'"/>
+                and t1.contract_number like concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="withdrawNumber!=null">
+                <bind name="withdrawNumber" value="'%'+withdrawNumber+'%'"/>
+                and t1.withdraw_number like concat(concat('%',#{withdrawNumber}),'%')
+            </if>
+            <if test="postFlag !=null">
+                and t1.post_flag = #{postFlag}
+            </if>
+            <if test="periodName !=null">
+                and (t1.period_name = #{periodName} or (t1.period_name &lt; #{periodName} and t1.post_flag = 'N'))
+            </if>
+            <if test="startDate !=null">
+                and t1.start_date &gt;= #{startDate}
+            </if>
+            <if test="endDate !=null">
+                and t1.end_date &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+    <select id="selectCostAccrual" resultType="com.hand.hls.gld.dto.HlsCusGldLonContractFinCost" resultMap="BaseResultMap">
+        select glcf.finance_cost_id,
+               (SELECT hbm.bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = lc.credit_bp_id) bp_name,
+               glcf.company_id,
+               lc.contract_number,
+               lcw.withdraw_number,
+               lcw.due_amount,
+               lcw.withdraw_currency_code,
+               (select fc.currency_name
+                from fnd_currency fc
+                where fc.currency_code = lcw.withdraw_currency_code) currency,
+               lcw.due_date,
+               glcf.start_date,
+               glcf.end_date,
+               glcf.finance_cost,
+               glcf.post_flag,
+               glcf.period_name,
+               lc.contract_id,
+               lcw.withdraw_id
+        from gld_lon_contract_fin_cost glcf
+        left join lon_contract lc on lc.contract_id = glcf.contract_id
+        left join lon_contract_withdraw lcw on lcw.withdraw_id = glcf.withdraw_id
+        <where>
+            1 = 1
+            <if test="periodName != null">
+                and (glcf.period_name = #{periodName} or (glcf.period_name &lt; #{periodName} and glcf.post_flag = 'N'))
+            </if>
+            <if test="postFlag != null">
+                and glcf.post_flag = #{postFlag}
+            </if>
+            <if test="bpName != null">
+                and (SELECT hbm.bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = lc.credit_bp_id) like concat('%', concat(#{bpName}, '%'))
+            </if>
+            <if test="contractNumber != null">
+                and lc.contract_number like concat('%', concat(#{contractNumber} ,'%'))
+            </if>
+            <if test="withdrawNumber != null">
+                and lcw.withdraw_number like concat('%', concat(#{withdrawNumber}, '%'))
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fct.mapper.HlsChanceBusinessAccessCompareMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsChanceBusinessAccessCompare">
+        <result column="CHANCE_COMPARE_ID" property="chanceCompareId" jdbcType="DECIMAL" />
+        <result column="DOCUMENT_ID" property="documentId" jdbcType="DECIMAL" />
+        <result column="BUSINESS_ACCESS" property="businessAccess" jdbcType="VARCHAR" />
+        <result column="PROJECT_ACCESS_ITEMS" property="projectAccessItems" jdbcType="VARCHAR" />
+        <result column="ITEMS_DETAIL" property="itemsDetail" jdbcType="VARCHAR" />
+        <result column="CHECK_RESULT" property="checkResult" jdbcType="VARCHAR" />
+        <result column="CHECK_RESULT_N" property="checkResultN" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="selectSeqId"  resultType="java.lang.Long">
+        select CHANCE_ACCESS_COMPARE_s.nextval as CHANCE_COMPARE_ID from dual
+    </select>
+
+    <insert id="addChanceCompare" parameterType="com.hand.hls.fct.dto.HlsChanceBusinessAccessCompare" useGeneratedKeys="true" keyProperty="chanceCompareId">
+        <selectKey resultType="Long"  keyProperty="chanceCompareId" order="BEFORE">
+            select CHANCE_ACCESS_COMPARE_s.nextval as chanceCompareId from dual
+        </selectKey>
+        INSERT INTO CHANCE_BUSINESS_ACCESS_COMPARE (
+        CHANCE_COMPARE_ID,
+        DOCUMENT_ID,
+        BUSINESS_ACCESS,
+        PROJECT_ACCESS_ITEMS,
+        items_detail,
+        check_result,
+        CREATED_BY,
+        CREATION_DATE,
+        LAST_UPDATED_BY,
+        LAST_UPDATE_DATE
+        )
+        VALUES
+        (
+        #{chanceCompareId},
+        #{documentId,jdbcType=DECIMAL},
+        #{businessAccess,jdbcType=VARCHAR},
+        #{projectAccessItems,jdbcType=VARCHAR},
+        #{itemsDetail,jdbcType=VARCHAR},
+        #{checkResult,jdbcType=VARCHAR},
+        #{createdBy},
+        #{creationDate},
+        #{lastUpdatedBy},
+        #{lastUpdateDate}
+        )
+    </insert>
+
+    <select id="queryChanceCompare"  resultMap="BaseResultMap" parameterType="com.hand.hls.fct.dto.HlsChanceBusinessAccessCompare">
+        select cc.CHANCE_COMPARE_ID,
+        DOCUMENT_ID,
+        BUSINESS_ACCESS,
+        PROJECT_ACCESS_ITEMS,
+        ITEMS_DETAIL,
+        CHECK_RESULT,
+        (select scvb.meaning
+        from sys_code_value_b scvb, sys_code_b scb
+        where scb.code = 'CHANCE.CHECK_RESULT'
+        and scb.code_id = scvb.code_id
+        and scvb.enabled_flag = 'Y'
+        and scvb.value=cc.CHECK_RESULT )  CHECK_RESULT_n
+        from  CHANCE_BUSINESS_ACCESS_COMPARE cc
+        <where>
+            cc.DOCUMENT_ID=#{documentId}
+        </where>
+    </select>
+</mapper>

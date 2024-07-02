@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProFeeInfoMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProFeeInfo">
+        <result column="FEE_INFO_ID" property="feeInfoId" jdbcType="DECIMAL" />
+        <result column="SOURCE_KEY" property="sourceKey" jdbcType="DECIMAL" />
+        <result column="SOURCE_TYPE" property="sourceType" jdbcType="VARCHAR" />
+        <result column="ORGANIZATION_ID" property="organizationId" jdbcType="DECIMAL" />
+        <result column="FEE_NAME" property="feeName" jdbcType="VARCHAR" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="PLAN_PAY_DATE" property="planPayDate" jdbcType="DATE" />
+        <result column="CURRENCY_CODE" property="currencyCode" jdbcType="VARCHAR" />
+        <result column="FEE_AMOUNT" property="feeAmount" jdbcType="DECIMAL" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="FEE_RATE" property="feeRate" jdbcType="DECIMAL" />
+        <result column="CALCULATE_FLAG" property="calculateFlag" jdbcType="VARCHAR" />
+        <result column="SHARE_TYPE" property="shareType" jdbcType="VARCHAR" />
+        <result column="REF_FEE_INFO_ID" property="refFeeInfoId" jdbcType="VARCHAR" />
+        <result column="WRITE_OFF_AMOUNT" property="writeOffAmount" jdbcType="DECIMAL" />
+        <result column="CNY_WRITE_OFF_AMOUNT" property="cnyWriteOffAmount" jdbcType="DECIMAL" />
+        <result column="EXCHANGE_RATE" property="exchangeRate" jdbcType="DECIMAL" />
+        <result column="CF_ITEM" property="cfItem" jdbcType="DECIMAL" />
+        <result column="CF_TYPE" property="cfType" jdbcType="DECIMAL" />
+        <result column="ADD_TAX_RATE" property="addTaxRate" jdbcType="DECIMAL" />
+        <result column="SOURCE_INFO_ID" property="sourceInfoId" jdbcType="DECIMAL" />
+
+        <result column="ORGANIZATION_NAME" property="organizationName" jdbcType="VARCHAR" />
+        <result column="CNY_FEE_AMOUNT" property="cnyFeeAmount" jdbcType="DECIMAL" />
+
+        <result column="ORGANIZATION_ID_N" property="organizationIdN" jdbcType="VARCHAR" />
+        <result column="FEE_NAME_N" property="feeNameN" jdbcType="VARCHAR" />
+        <result column="CALCULATE_FLAG_N" property="calculateFlagN" jdbcType="VARCHAR" />
+        <result column="CURRENCY_CODE_N" property="currencyCodeN" jdbcType="VARCHAR" />
+        <result column="SHARE_TYPE_N" property="shareTypeN" jdbcType="VARCHAR" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+        <result column="ADD_TAX_RATE_N" property="addTaxRateN" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <select id="selectProjectFeeInfo" parameterType="com.hand.hls.abs.dto.HlsCusAbsProFeeInfo" resultMap="BaseResultMap">
+        SELECT
+            CAPFI.*,
+            ROUND(CAPFI.FEE_AMOUNT*EXCHANGE_RATE,2) CNY_FEE_AMOUNT,
+            nvl(PJ.ORGANIZATION_NAME,PD.ORGANIZATION_NAME) ORGANIZATION_NAME,
+            nvl(PJ.ORGANIZATION_NAME, PD.ORGANIZATION_NAME) ORGANIZATION_ID_N,
+            (select s.MEANING
+                from sys_code_value_b_v s
+                where s.CODE_VALUE = CAPFI.FEE_NAME
+                and s.code = 'BI.COST_NAME') as FEE_NAME_N,
+            (select s.MEANING
+                from sys_code_value_b_v s
+                where s.CODE_VALUE = CAPFI.CALCULATE_FLAG
+                and s.code = 'SYS.YES_NO') as CALCULATE_FLAG_N,
+            (select s.MEANING
+                from sys_code_value_b_v s
+                where s.CODE_VALUE = CAPFI.CURRENCY_CODE
+                and s.code = 'CHS.CURRENCY_TYPE') as CURRENCY_CODE_N,
+            (select s.MEANING
+                from sys_code_value_b_v s
+                where s.CODE_VALUE = CAPFI.SHARE_TYPE
+                and s.code = 'BI.COST_SHARING_TYPE') as SHARE_TYPE_N,
+            (select s.MEANING
+            from sys_code_value_b_v s
+            where s.CODE_VALUE = CAPFI.ADD_TAX_RATE
+            and s.code = 'ABS.ADD_TAX_RATE') as ADD_TAX_RATE_N
+        FROM
+            CT_ABS_PRO_FEE_INFO CAPFI
+        LEFT JOIN
+            CT_ABS_PROJECT_ORGANIZATION PJ
+          ON
+            CAPFI.ORGANIZATION_ID=PJ.ORGANIZATION_ID
+        --  AND CAPFI.SOURCE_TYPE='ABS_PROJECT'
+        LEFT JOIN
+            CT_ABS_PRODUCT_ORGANIZATION PD
+          ON
+            CAPFI.ORGANIZATION_ID=PD.ORGANIZATION_ID
+         -- AND CAPFI.SOURCE_TYPE='ABS_PRODUCT'
+        WHERE 1=1
+        <if test="sourceKey != null">
+            AND CAPFI.SOURCE_KEY = #{sourceKey}
+        </if>
+         <if test="sourceType != null">
+            AND CAPFI.SOURCE_TYPE = #{sourceType}
+        </if>
+        <if test="calculateFlag != null">
+            AND CAPFI.CALCULATE_FLAG = #{calculateFlag}
+        </if>
+        ORDER BY CAPFI.ORGANIZATION_ID,CAPFI.FEE_NAME,CAPFI.EXCHANGE_RATE
+    </select>
+
+    <update id="updateFeeOrganizationId">
+        UPDATE
+            CT_ABS_PRO_FEE_INFO CAPFI
+          SET
+             CAPFI.ORGANIZATION_ID=#{targetOrganizationId}
+          WHERE
+             CAPFI.SOURCE_TYPE='ABS_PRODUCT'
+           AND CAPFI.SOURCE_KEY=#{productId}
+           AND CAPFI.ORGANIZATION_ID=#{sourceOrganizationId}
+    </update>
+
+
+    <update id="updateProductFeeAmount">
+    UPDATE
+        CT_ABS_PRO_FEE_INFO PFI
+    SET
+        PFI.FEE_AMOUNT=(
+            CASE PFI.FEE_NAME
+                WHEN 'SERVICE_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.SERVICE_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'HOSTING_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.HOSTING_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'MANAGEMENT_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.MANAGEMENT_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'UNDERWRITING_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.UNDERWRITING_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'RATING_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.RATING_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'EVALUATION_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.EVALUATION_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'LISTING_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.LISTING_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'LAWYER_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.LAWYER_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'ACCOUNTANT_FEE'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.ACCOUNTANT_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'OTHER'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.OTHER_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+                WHEN 'VAT'
+                THEN
+                    (
+                        SELECT
+                            SUM(PC.TAX_FEE)
+                        FROM
+                            CT_ABS_PRODUCT_COLLECTION PC
+                        WHERE
+                            PC.PRODUCT_ID=PFI.SOURCE_KEY
+                        AND PC.DATA_CLASS='NORMAL')
+            END ),
+        PFI.CURRENCY_CODE=
+                (
+                    SELECT
+                        CAP.PRODUCT_CURRENCY_CODE
+                    FROM
+                        CT_ABS_PRODUCT CAP
+                    WHERE
+                        CAP.PRODUCT_ID=#{productId}),
+          PFI.EXCHANGE_RATE=
+                CASE
+                    WHEN (
+                            SELECT
+                                CAP.PRODUCT_CURRENCY_CODE
+                            FROM
+                                CT_ABS_PRODUCT CAP
+                            WHERE
+                                CAP.PRODUCT_ID=1)='CNY'
+                    THEN 1
+                    ELSE NULL
+                END
+    WHERE
+        PFI.SOURCE_KEY=#{productId}
+    AND PFI.SOURCE_TYPE='ABS_PRODUCT'
+    AND PFI.CALCULATE_FLAG='Y'
+    </update>
+</mapper>

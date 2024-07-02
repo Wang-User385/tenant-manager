@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_asset_class_line');
+            var records = $(ds_id).getSelected();
+
+            if (records.length == 0) {
+                Leaf.showMessage('${HLS.PROMPT}', '至少选择一条数据！');
+                return;
+            }
+            var saveData = [];
+            for (var i = 0; i < records.length; i++) {
+                saveData.push(records[i].data);
+            }
+
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: '${/request/@context_path}/hls/asset/class/line/create',
+                contentType : 'application/json;charset=utf-8',
+                para: {
+                    classHeadId:'${/parameter/@class_head_id}',
+                    contractList:saveData
+                },
+                success: function (data) {
+                    $(ds_id).query();
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+            });
+        }
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            var auth_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_asset_class_line');
+            if (ds.id == auth_ds_id) {
+                $(auth_ds_id).setQueryParameter('bp_id', '${/parameter/@bp_id}');
+                $(auth_ds_id).setQueryParameter('class_head_id', '${/parameter/@class_head_id}');
+            }
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

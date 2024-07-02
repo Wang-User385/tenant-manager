@@ -1,0 +1,914 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: 胡辉勇
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+        <a:link id="hls_product_definition_submit_link" url="${/request/@context_path}/hls/product/definition/submit"/>
+        <a:link id="hls_product_definition_change_link" url="${/request/@context_path}/hls/product/definition/change"/>
+        <a:link id="hls_reply_product_param_query_link" url="${/request/@context_path}/hls/reply/product/para/query"/>
+        <a:link id="fnd216_product_definition_assign_id"
+                url="${/request/@context_path}/modules/FND/FND216/hls_product_definition_submit_link.lview"/>
+        <a:link id="fnd216_dealer_assign_link" url="${/request/@context_path}/modules/FND/FND216/hls_product_definition_assign_dealer.lview"/>
+        <script><![CDATA[
+        function fnd216_hls_product_definition_query() {
+            $('fnd216_hls_product_definition_ds').query();
+        }
+
+        function fnd216_hls_product_definition_reset() {
+            $('fnd216_hls_product_definition_query_ds').reset();
+            fnd216_hls_product_definition_query();
+        }
+
+        function fnd216_hls_product_definition_add(ds, record, index) {
+
+         }
+
+        function fnd216_hls_product_definition_submitsuccess(ds) {
+            fnd216_hls_product_definition_query();
+        }
+
+        function fnd216_hls_product_definition_beforesubmit(ds) {
+            var records = ds.getAll();
+            for (var i = 0;i < records.length;i++) {
+                if (records[i].dirty &&
+                    records[i].get('int_rate_calc_flag')  && records[i].get('repay_flag') &&
+                    records[i].get('int_rate_calc_flag') === 'Y' && records[i].get('repay_flag') === 'Y') {
+                    let msg = '倒推租金模式不支持返利';
+                    if(records[i].get('definition_name')){
+                        msg = msg + '<br> 产品名称:' + records[i].get('definition_name')  ;
+                    }
+                    Leaf.showErrorMessage('保存失败', msg);
+                    return false;
+                }
+            }
+        }
+
+        /*function beforeClick_reply_product_code_lov(lov) {
+         var companyCode = $('fnd216_hls_product_definition_ds').getCurrentRecord().data.company_rule;
+         lov.controller="/leaf/fnd/org/unit/queryForLovByCompanyCode?companyCode="+companyCode;
+         }*/
+        function fnd216_hls_product_definition_submit() {
+            Leaf.Masker.mask(Ext.getBody(), '提交中。。。');
+            var product_definition_ds = $('fnd216_hls_product_definition_ds');
+            var product_definition_para_ds = $('fnd216_hls_product_definition_para_ds');
+            if (product_definition_ds.isModified() || product_definition_para_ds.isModified()) {
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('${HLS.PROMPT}', '${l:EXIT_BEFORE_SAVE}');
+                return;
+            }
+
+            /*var product_definition_records = product_definition_ds.getSelected();
+             if (product_definition_records.length != 1) {
+             Leaf.Masker.unmask(Ext.getBody());
+             Leaf.showMessage('${HLS.PROMPT}', '请选择一个产品进行提交！');
+             return;
+             }
+             var definition_id = product_definition_records[0].data.definition_id;*/
+            var product_definition_record = $('fnd216_hls_product_definition_ds').getCurrentRecord();
+            var definition_id = product_definition_record.get('definition_id');
+            debugger
+            var product_status = product_definition_record.get('product_status');
+
+
+            if(product_status === 'APPROVING'|| product_status ==='APPROVED'){
+                Leaf.Masker.unmask(Ext.getBody());
+                Leaf.showMessage('${HLS.PROMPT}', '当前单据状态不可提交，请核对数据！');
+                return;
+            }
+
+            // var param = {};
+            // param['url_title'] = '指派复核人';
+            // param['function_code'] = 'PRJ306T1';
+            // param['winid'] = 'fnd216_assign_id';
+            // param['screen_width'] = 410;
+            // param['screen_height'] = 600;
+            // param['definition_id'] = definition_id;
+            // param['user_id'] = '${/session/@user_id}';
+            // hls_doc_get_layout_code(param, 'fnd216_product_definition_assign_id','fnd216_hls_product_definition_ds');
+            Leaf.request({
+                url: $('hls_product_definition_submit_link').getUrl(),
+                para: {
+                    definition_id: definition_id
+
+                },
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.showSuccessMessage('${HLS.SUBMIT_SUCCESS}', '提交成功', function () {
+                        fnd216_hls_product_definition_query();
+                    });
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+        function fnd216_hls_product_definition_grid_editFun(record, name) {
+            var product_status = record.get('product_status');
+            if (product_status == 'APPROVING' || product_status == 'APPROVED') {
+                return '';
+            }
+            if (name == 'definition_name' || name == 'description') {
+                return 'fnd216_hls_product_definition_grid_textField';
+            } else if (name == 'reply_product_code') {
+                return 'fnd216_hls_product_definition_grid_lov_reply_product_code';
+            } else if (name == 'project_number') {
+                return 'fnd216_hls_product_definition_grid_lov_reply_product_code';
+            } else if (name == 'price_list_display') {
+                return 'fnd216_hls_product_definition_grid_lov_price_list_display';
+            } else if (name == 'pay_type_n' || name == 'annual_pay_times_n' || name == 'exempt_penalty_int_n' || name == 'residual_price_type_n'||
+                name == 'step_quotation_flag_n'|| name == 'residual_value_received_n'|| name == 'repay_mode_n' || name == 'payment_bp_type_n'|| name == 'repay_bp_type_n'|| name == 'simple_compound_type_n'
+                || name == 'int_rate_calc_flag_n' || name == 'lease_charge_discount_rule_n' || name == 'rental_discount_times_n' || name=='margin_deduction_method_n') {
+                return 'fnd216_hls_product_definition_grid_comboBox';
+            } else if (name == 'repay_flag' || name == 'service_fee_repay_flag' || name=='enabled_flag') {
+                return 'fnd216_hls_product_definition_grid_checkBox';
+            } else {
+                return '';
+            }
+
+        }
+
+        function fnd216_hls_product_definition_para_grid_editFun(record, name) {
+            var product_definition_record = $('fnd216_hls_product_definition_ds').getCurrentRecord();
+            var product_status = product_definition_record.get('product_status');
+            if (product_status == 'APPROVING' || product_status == 'APPROVED') {
+                return '';
+            }
+
+            if (name == 'product_para_display') {
+                return 'fnd216_hls_product_definition_para_grid_comboBox';
+            } else if (name == 'description' || name == 'annual_pay_times_n') {
+                return 'fnd216_hls_product_definition_para_grid_textField';
+            } else if (name == 'default_value' || name == 'value_from' || name == 'value_to') {
+                return 'fnd216_hls_product_definition_para_grid_numberField';
+            } else if (name == 'system_control_flag' || name == 'enabled_flag') {
+                return 'fnd216_hls_product_definition_para_grid_checkBox';
+            } else {
+                return '';
+            }
+        }
+
+        function fnd216_hls_product_definition_para_beforecreate(ds, record, index) {
+            var product_definition_record = $('fnd216_hls_product_definition_ds').getCurrentRecord();
+            var product_status = product_definition_record.get('product_status');
+            if (product_status == 'APPROVING' || product_status == 'APPROVED') {
+                Leaf.SideBar.show({
+                    msg: '不允许新增参数！',
+                    duration: 2000
+                });
+                return false;
+            }
+            return true;
+        }
+
+        //2023-02-28参数grid新增保存按钮逻辑
+        function fnd216_hls_product_definition_para_beforesubmit(ds) {
+            var product_definition_record = $('fnd216_hls_product_definition_ds').getCurrentRecord();
+            var definition_id = product_definition_record.get('definition_id');
+            var product_status = product_definition_record.get('product_status');
+            if (product_status === 'APPROVING' || product_status === 'APPROVED') {
+                Leaf.SideBar.show({
+                    msg: '不允许修改参数！',
+                    duration: 2000
+                });
+                return false;
+            }
+            if (definition_id === null || definition_id === undefined){
+                Leaf.SideBar.show({
+                    msg: '保存 产品参数 前请先保存 产品信息 ！',
+                    duration: 2000
+                });
+                return false;
+            }else {
+                var datas = ds.getAll();
+                for (var i = 0; i < datas.length; i++) {
+                    datas[i].set('definition_id',definition_id);
+                }
+
+            }
+            return true;
+        }
+
+        function fnd216_hls_product_definition_para_submitsuccess(ds) {
+            $('fnd216_hls_product_definition_para_ds').query();
+        }
+
+        function fnd216_hls_product_definition_para_beforeremove(ds, record, index) {
+            var product_definition_record = $('fnd216_hls_product_definition_ds').getCurrentRecord();
+            var product_status = product_definition_record.get('product_status');
+            if (product_status == 'APPROVING' || product_status == 'APPROVED') {
+                Leaf.SideBar.show({
+                    msg: '不允许删除参数！',
+                    duration: 2000
+                });
+                return false;
+            }
+            return true;
+        }
+
+        $L.DataSet.prototype.onDataSetIndexChange = function (ds, record) {
+//            if (record.isNew != true) {
+            this.qpara = {};
+            Ext.apply(this.qpara, record.data);
+//            }
+            if (!this.indexchangedisquery) {
+                //未设置indexchangedisquery=true时 每次indexchange都要重新查询
+                this.query(1, {record: record});
+            } else if (!record.get(this.bindname) && record.isNew != true) {
+                //设置indexchangedisquery=true时，根据“数据不存在 且 数据未被更改”来判断是否重新查询
+                this.query(1, {record: record});
+            }
+        }
+
+        function beforeClick_lov_price_list_display(lov) {
+//            lov.controller = "/hls/calcConfig/queryUnSheets?enabledFlag=Y";
+            lov.para = {
+                'enabledFlag': 'Y'
+            }
+        }
+
+        function beforeClick_lov_reply_product_code(lov) {
+            lov.para = {
+                'latestFlag': 'Y'
+            }
+        }
+
+        function commit_lov_reply_product_code(lov, dsRecord, lovRecord){
+            var param = lovRecord.data;
+            var irr_flag=true;
+            var down_payment_ratio_flag=true;
+            var deposit_ratio=true;
+            var residual=true;
+            var lease_term=true;
+            ds = $('fnd216_hls_product_definition_para_ds');
+            var datas = ds.getAll();
+            if(datas != null && datas.length > 0) {
+                for (var j = 0; j < datas.length; j++) {
+                    if (datas[j].get('product_para') === 'IRR') {
+                        datas[j].set('default_value',param.irr);
+                        datas[j].set('value_from',param.irr);
+                        datas[j].set('value_to',param.irr);
+                        irr_flag = false;
+                    }
+                    if (datas[j].get('product_para') === 'DOWN_PAYMENT_RATIO') {
+                        datas[j].set('default_value',param.down_payment_ratio);
+                        datas[j].set('value_from',param.down_payment_ratio);
+                        datas[j].set('value_to',param.down_payment_ratio);
+                        down_payment_ratio_flag = false;
+                    }
+                    if (datas[j].get('product_para') === 'DEPOSIT_RATIO') {
+                        datas[j].set('default_value',param.deposit_ratio);
+                        datas[j].set('value_from',param.deposit_ratio);
+                        datas[j].set('value_to',param.deposit_ratio);
+                        deposit_ratio = false;
+                    }
+                    if (datas[j].get('product_para') === 'RESIDUAL_VALUE') {
+                        datas[j].set('default_value',param.residual);
+                        datas[j].set('value_from',param.residual);
+                        datas[j].set('value_to',param.residual);
+                        residual = false;
+                    }
+                    if (datas[j].get('product_para') === 'LEASE_TERM') {
+                        datas[j].set('default_value',mul(param.lease_term,12));
+                        datas[j].set('value_from',mul(param.lease_term,12));
+                        datas[j].set('value_to',mul(param.lease_term,12));
+                        lease_term = false;
+                    }
+                }
+            }
+            debugger
+            if(param.price_list != undefined && param.price_list != null){
+                dsRecord.set('price_list', param.price_list);
+                dsRecord.set('price_list_display', param.price_list_n);
+            }
+            if(param.pay_type != undefined && param.pay_type != null){
+                dsRecord.set('pay_type', param.pay_type);
+                dsRecord.set('pay_type_n', param.pay_type_n);
+            }
+            if(param.annual_pay_timess != undefined && param.annual_pay_timess != null){
+                dsRecord.set('annual_pay_times', param.annual_pay_timess);
+                dsRecord.set('annual_pay_times_n', param.annual_pay_times_n);
+            }
+            if(param.residual_price_type != undefined && param.residual_price_type != null){
+                dsRecord.set('residual_price_type', param.residual_price_type);
+                dsRecord.set('residual_price_type_n', param.residual_price_type_n);
+            }
+            if(param.exempt_penalty_int != undefined && param.exempt_penalty_int != null){
+                dsRecord.set('exempt_penalty_int', param.exempt_penalty_int);
+                dsRecord.set('exempt_penalty_int_n', param.exempt_penalty_int_n);
+            }
+            debugger
+            if(param.irr != undefined && param.irr != null && irr_flag){
+                ds.create();
+                var record = ds.getCurrentRecord();
+               record.set('product_para', 'IRR');
+               record.set('product_para_display', 'IRR');
+               record.set('default_value',param.irr);
+               record.set('value_from',param.irr);
+               record.set('value_to',param.irr);
+               record.set('system_control_flag', 'Y');
+               record.set('enabled_flag', 'Y');
+            }
+            if(param.down_payment_ratio != undefined && param.down_payment_ratio != null && down_payment_ratio_flag){
+                ds.create();
+                var record = ds.getCurrentRecord();
+                record.set('product_para', 'DOWN_PAYMENT_RATIO');
+                record.set('product_para_display', '首付款比例');
+                record.set('default_value',param.down_payment_ratio);
+                record.set('value_from',param.down_payment_ratio);
+                record.set('value_to',param.down_payment_ratio);
+                record.set('system_control_flag', 'Y');
+                record.set('enabled_flag', 'Y');
+            }
+            if(param.deposit_ratio != undefined && param.deposit_ratio != null && deposit_ratio){
+                ds.create();
+                var record = ds.getCurrentRecord();
+                record.set('product_para', 'DEPOSIT_RATIO');
+                record.set('product_para_display', '保证金比例');
+                record.set('default_value',param.deposit_ratio);
+                record.set('value_from',param.deposit_ratio);
+                record.set('value_to',param.deposit_ratio);
+                record.set('system_control_flag', 'Y');
+                record.set('enabled_flag', 'Y');
+            }
+            if(param.residual != undefined && param.residual != null && residual){
+                ds.create();
+                var record = ds.getCurrentRecord();
+                record.set('product_para', 'RESIDUAL_VALUE');
+                record.set('product_para_display', '名义货价');
+                record.set('default_value',param.residual);
+                record.set('value_from',param.residual);
+                record.set('value_to',param.residual);
+                record.set('system_control_flag', 'Y');
+                record.set('enabled_flag', 'Y');
+            }
+            if(param.lease_term != undefined && param.lease_term != null && lease_term){
+                ds.create();
+                var record = ds.getCurrentRecord();
+                record.set('product_para', 'LEASE_TERM');
+                record.set('product_para_display', '期限(月)');
+                record.set('default_value',mul(param.lease_term,12));
+                record.set('value_from',mul(param.lease_term,12));
+                record.set('value_to',mul(param.lease_term,12));
+                debugger
+                record.set('system_control_flag', 'Y');
+                record.set('enabled_flag', 'Y');
+            }
+
+
+
+            // $('fnd216_hls_product_definition_para_ds').query();
+            // Leaf.request({
+            //     url: $('hls_reply_product_param_query_link').getUrl()+'?pagesize=0',
+            //     para: {
+            //         reply_product_id: param.project_id
+            //     },
+            //     success: function (e) {
+            //         var maps = e.result.record,
+            //             ds = $('fnd216_hls_product_definition_para_ds'),
+            //             datas = ds.getAll();
+            //         if(maps != null && maps.length > 0){
+            //             for(var i = 0; i < maps.length; i++){
+            //                 var map = maps[i],insert_flag = true;
+            //                 if(datas != null && datas.length > 0){
+            //                     for(var j = 0; j < datas.length; j++){
+            //                         if(datas[j].get('product_para') === map.reply_product_para){
+            //                             insert_flag = false;
+            //                             break;
+            //                         }
+            //                     }
+            //                 }
+            //                 if(insert_flag){
+            //                     ds.create();
+            //                     var record = ds.getCurrentRecord();
+            //                     record.set('product_para', map.reply_product_para);
+            //                     record.set('product_para_display', map.reply_product_para_n);
+            //                     record.set('default_value', map.default_value);
+            //                     record.set('value_from', map.vaule_from);
+            //                     record.set('value_to', map.vaule_to);
+            //                     record.set('system_control_flag', 'Y');
+            //                     record.set('enabled_flag', 'Y');
+            //                 }
+            //             }
+            //         }
+            //     },
+            //     scope: this
+            // });
+        }
+
+
+
+
+
+
+        function fnd216_hls_product_definition_change() {
+            Leaf.showConfirm('提示', '确认变更吗？', function () {
+                Leaf.Masker.mask(Ext.getBody(), '提交中。。。');
+                var product_definition_ds = $('fnd216_hls_product_definition_ds');
+                var product_definition_record = $('fnd216_hls_product_definition_ds').getCurrentRecord();
+                var definition_id = product_definition_record.get('definition_id');
+                var enabled_flag = product_definition_record.get('enabled_flag');
+
+                if (enabled_flag != 'Y') {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.showMessage('${HLS.PROMPT}', '请选择启用产品！');
+                    return;
+                }
+                Leaf.request({
+                    url: $('hls_product_definition_change_link').getUrl(),
+                    para: {
+                        definition_id: definition_id
+                    },
+                    success: function (res) {
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        Leaf.Masker.unmask(Ext.getBody());
+                        fnd216_hls_product_definition_query();
+                    },
+                    failure: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            });
+        }
+
+        function fnd216_hls_product_definition_ds_change(ds, record, name, value, oldValue){
+            if ((name === 'repay_flag'||name === 'service_fee_repay_flag')) {
+                if(record.get("repay_flag") === 'Y'){
+                    record.getField('repay_mode_n').setRequired(true);
+                    record.getField('repay_mode_n').setReadOnly(false);
+                }else{
+                    record.getField('repay_mode_n').setRequired(false);
+                    record.getField('repay_mode_n').setReadOnly(false);
+                }
+                if(record.get("service_fee_repay_flag") === 'Y'){
+                    record.getField('lease_charge_discount_rule_n').setRequired(true);
+                    record.getField('lease_charge_discount_rule_n').setReadOnly(false);
+                }else{
+                    record.getField('lease_charge_discount_rule_n').setRequired(false);
+                    record.getField('lease_charge_discount_rule_n').setReadOnly(false);
+                }
+                if(record.get("repay_flag") === 'Y' || record.get("service_fee_repay_flag") === 'Y'){
+                    record.getField('rental_discount_times_n').setRequired(true);
+                    record.getField('repay_bp_type_n').setRequired(true);
+                    record.getField('repay_bp_type_n').setReadOnly(false);
+                }else{
+                    record.getField('rental_discount_times_n').setRequired(false);
+                    record.getField('repay_bp_type_n').setRequired(false);
+                    record.getField('repay_bp_type_n').setReadOnly(false);
+                }
+            }
+        }
+
+        function fnd216_hls_product_definition_load(ds, e) {
+            var datas = ds.getAll();
+            for (var i = 0; i < datas.length; i++) {
+                if(datas[i].get("repay_flag") === 'Y'){
+                    datas[i].getField('repay_mode_n').setRequired(true);
+                    datas[i].getField('repay_mode_n').setReadOnly(false);
+                }else{
+                    datas[i].getField('repay_mode_n').setRequired(false);
+                    datas[i].getField('repay_mode_n').setReadOnly(false);
+                }
+                if(datas[i].get("service_fee_repay_flag") === 'Y'){
+                    datas[i].getField('lease_charge_discount_rule_n').setRequired(true);
+                    datas[i].getField('lease_charge_discount_rule_n').setReadOnly(false);
+                }else{
+                    datas[i].getField('lease_charge_discount_rule_n').setRequired(false);
+                    datas[i].getField('lease_charge_discount_rule_n').setReadOnly(false);
+                }
+                if(datas[i].get("repay_flag") === 'Y' || datas[i].get("service_fee_repay_flag") === 'Y'){
+                    datas[i].getField('rental_discount_times_n').setRequired(true);
+                    datas[i].getField('repay_bp_type_n').setRequired(true);
+                    datas[i].getField('repay_bp_type_n').setReadOnly(false);
+                }else{
+                    datas[i].getField('rental_discount_times_n').setRequired(false);
+                    datas[i].getField('repay_bp_type_n').setRequired(false);
+                    datas[i].getField('repay_bp_type_n').setReadOnly(false);
+                }
+            }
+        }
+
+        function fnd216_hls_product_definition_clear() {
+            $('fnd216_hls_product_definition_grid').clear();
+        }
+
+        function dealer_assign_renderer(value, record, name){
+            var function_usage;
+            if(record.isNew==true){
+                return "";
+            }else{
+                if(record.get('product_status') == 'APPROVED'||record.get('product_status') == 'APPROVING'){
+                    function_usage = 'QUERY';
+                }else{
+                    function_usage = 'MODIFY';
+                }
+                return '<a href="javascript:winOpen_dealer_assign_renderer(\'' + function_usage + '\',\'' + record.get('definition_id') + '\',\'' + record.get('definition_name') + '\',\'' + record.get('bp_id') + '\',\'' + record.get('bp_name') + '\');">分配经销商</a>';
+            }
+        }
+
+        function winOpen_dealer_assign_renderer(function_usage,definition_id,definition_name,bp_id,bp_name){
+            var win = new Leaf.Window({
+                id: 'fnd216_dealer_assign_winid',
+                url: $('fnd216_dealer_assign_link').getUrl() + '?function_code=FND216F1&&function_usage=' + function_usage,
+                params: {
+                    definitionId: definition_id,
+                    definitionName: definition_name,
+                    manufacturerId: bp_id,
+                    manufacturerName: bp_name,
+                    winId:'fnd216_dealer_assign_winid'
+                },
+                title: '分配经销商',
+                width: 1000,
+                height: 675
+            });
+            win.on('close', function () {
+                $('fnd216_hls_product_definition_ds').query();
+            });
+        }
+
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="enabled_flag_ds" loadData="true" lookupCode="SYS.YES_NO"/>
+            <a:dataSet id="product_status_ds" loadData="true" lookupCode="FND.PRODUCT_STATUS"/>
+            <a:dataSet id="pay_type_ds" loadData="true" lookupCode="HLS500_PAY_TYPE"/>
+            <a:dataSet id="annual_pay_times_ds" loadData="true" lookupCode="HLS500_ANNUAL_PAY_TIMES"/>
+            <a:dataSet id="exempt_penalty_int_ds" loadData="true" lookupCode="EXEMPT_PENALTY_INT"/>
+            <a:dataSet id="product_para_ds" loadData="true" lookupCode="HLS500_PRODUCT_PARA"/>
+            <a:dataSet id="residual_price_type_ds" loadData="true" lookupCode="RESIDUAL_PRICE_TYPE"/>
+            <a:dataSet id="residual_value_received_ds" loadData="true" lookupCode="RESIDUAL_VALUE_RECEIVED"/>
+            <a:dataSet id="repay_mode_ds" loadData="true" lookupCode="REPAY_MODE"/>
+            <a:dataSet id="simple_compound_type_ds" loadData="true" lookupCode="SIMPLE_COMPOUND_TYPE"/>
+            <a:dataSet id="payment_bp_type_ds" loadData="true" lookupCode="PAYMENT_BP_TYPE"/>
+            <a:dataSet id="repay_bp_type_ds" loadData="true" lookupCode="REPAY_BP_TYPE"/>
+            <a:dataSet id="yes_no_ds" loadData="true" lookupCode="SYS.YES_NO"/>
+            <a:dataSet id="margin_deduction_method_ds" loadData="true" lookupCode="MARGIN_DEDUCTION_METHOD"/>
+            <a:dataSet id="charge_discount_rule_ds" loadData="true" lookupCode="CHARGE_DISCOUNT_RULE"/>
+            <a:dataSet id="discount_times_ds" loadData="true" lookupCode="DISCOUNT_TIMES"/>
+            <a:dataSet id="manufacturer_name_query_ds">
+                <a:fields>
+                    <a:field name="bp_category" defaultValue="MANUFACTURER"/>
+                    <a:field name="bp_category2" defaultValue="PARTNER"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="manufacturer_name_ds" autoQuery="true" queryDataSet="manufacturer_name_query_ds"
+                       queryUrl="${/request/@context_path}/hls/bp/home/query" loadData="true">
+                <a:fields>
+                    <a:field name="bp_name"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd216_hls_product_definition_query_ds">
+                <a:fields>
+                    <a:field name="product_status_n" options="product_status_ds" prompt="状态"
+                             displayField="code_value_name" returnField="product_status" valueField="code_value"/>
+                    <!--<a:field name="enabled_flag" checkedValue="Y" uncheckedValue="N" defaultValue="Y"/>-->
+                    <a:field name="enabled_flag_n" options="enabled_flag_ds" prompt="启用标志"
+                             displayField="code_value_name" returnField="enabled_flag" valueField="code_value"/>
+                    <!--<a:field name="bp_name" options="manufacturer_name_ds" prompt="厂商/合作方"
+                             displayField="bp_name" returnField="bp_name" valueField="bp_name"/>-->
+                    <a:field name="bp_name" autoComplete="true" lovGridHeight="360" lovHeight="510"
+                             lovLabelWidth="100" lovService="/hls/bp/master/manufacturer/query~com.hand.hls.prj.dto.BpManufacturerInfoLov"
+                             lovWidth="600"
+                             title="厂商/合作方">
+                        <a:mapping>
+                            <a:map from="bp_name" to="bp_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd216_hls_product_definition_ds" autoQuery="true"
+                       queryDataSet="fnd216_hls_product_definition_query_ds"
+                       queryUrl="${/request/@context_path}/hls/product/definition/query"
+                       submitUrl="${/request/@context_path}/hls/product/definition/save"
+                       deleteUrl="${/request/@context_path}/hls/product/definition/remove" selectable="true" selectionModel="single">
+                <a:fields>
+                    <a:field name="definition_id"/>
+                    <a:field name="definition_code"/>
+                    <a:field name="definition_name" required="true"/>
+                    <a:field name="description"/>
+                    <a:field name="credit_project_id"/>
+<!--                    <a:field name="reply_product_code" required="true" autoComplete="true" lovGridHeight="300"-->
+<!--                             lovHeight="450"-->
+<!--                             lovLabelWidth="100"-->
+<!--                             lovService="/hls/manufacturer/reply/product/query1~com.hand.hls.prj.dto.LovHlsReplyProduct"-->
+<!--                             lovWidth="600"-->
+<!--                             title="批复产品" fetchRemote="false" prompt="批复产品">-->
+<!--                        <a:mapping>-->
+<!--                            <a:map from="reply_product_id" to="reply_product_id"/>-->
+<!--                            <a:map from="reply_product_code" to="reply_product_code"/>-->
+<!--                            <a:map from="difinition_name" to="reply_product_name"/>-->
+<!--                            <a:map from="bp_name" to="bp_name"/>-->
+<!--                        </a:mapping>-->
+<!--                    </a:field>-->
+                    <a:field name="project_number" required="true" autoComplete="true" lovGridHeight="300"
+                             lovHeight="450"
+                             lovLabelWidth="100"
+                             lovService="/hls/manufacturer/reply/product/query2~com.hand.hls.prj.dto.LovHlsReplyProduct"
+                             lovWidth="600"
+                             title="批复项目" fetchRemote="false" prompt="批复项目">
+                        <a:mapping>
+                            <a:map from="project_id" to="reply_product_id"/>
+                            <a:map from="project_number" to="project_number"/>
+                            <a:map from="project_name" to="project_name"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="price_list_display" required="true" autoComplete="true" lovGridHeight="300"
+                             lovHeight="450"
+                             lovLabelWidth="100"
+                             lovService="/hls/calcConfig/queryUnSheets~com.hand.hls.calc.dto.LovHlsCalcConfig"
+                             lovWidth="600"
+                             title="还款方式" fetchRemote="false" prompt="还款方式">
+                        <a:mapping>
+                            <a:map from="price_list" to="price_list"/>
+                            <a:map from="description" to="price_list_display"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="pay_type_n" options="pay_type_ds" required="true" prompt="先付/后付"
+                             displayField="code_value_name" returnField="pay_type" valueField="code_value"/>
+                    <a:field name="annual_pay_times_n" options="annual_pay_times_ds" required="true" prompt="支付频率"
+                             displayField="code_value_name" returnField="annual_pay_times" valueField="code_value"/>
+                    <a:field name="exempt_penalty_int_n" options="exempt_penalty_int_ds" required="true"
+                             prompt="逾期宽限类型"
+                             displayField="code_value_name" returnField="exempt_penalty_int" valueField="code_value"/>
+                    <a:field name="enabled_flag" required="true" checkedValue="Y" uncheckedValue="N" defaultValue="N"/>
+                    <a:field name="product_status_n" options="product_status_ds" prompt="产品状态"
+                             displayField="code_value_name" returnField="product_status" valueField="code_value"/>
+                    <a:field name="repay_flag" required="true" checkedValue="Y" uncheckedValue="N" defaultValue="N"
+                             prompt="租金是否返利"/>
+                    <a:field name="service_fee_repay_flag" required="true" checkedValue="Y" uncheckedValue="N" defaultValue="N"
+                             prompt="服务费是否返利"/>
+                    <a:field name="residual_price_type_n" options="residual_price_type_ds" required="true" prompt="名义货价类型"
+                             displayField="code_value_name" returnField="residual_price_type" valueField="code_value"/>
+                    <a:field name="step_quotation_flag_n" options="enabled_flag_ds" required="true" prompt="是否阶梯式报价"
+                             displayField="code_value_name" returnField="step_quotation_flag" valueField="code_value"/>
+                    <a:field name="residual_value_received_n" options="residual_value_received_ds" required="true" prompt="名义货价收取方式"
+                             displayField="code_value_name" returnField="residual_value_received" valueField="code_value"/>
+                    <a:field name="repay_mode_n" options="repay_mode_ds" readOnly="true" prompt="租金返利/贴息模式"
+                             displayField="code_value_name" returnField="repay_mode" valueField="code_value"/>
+                    <a:field name="repay_bp_type_n" options="repay_bp_type_ds" readOnly="true" prompt="租金/服务费返利贴息对象类型"
+                             displayField="code_value_name" returnField="repay_bp_type" valueField="code_value"/>
+                    <a:field name="payment_bp_type_n" options="payment_bp_type_ds" required="true" prompt="投放对象类型"
+                             displayField="code_value_name" returnField="payment_bp_type" valueField="code_value"/>
+                    <a:field name="simple_compound_type_n" options="simple_compound_type_ds" required="true" prompt="单利/复利"
+                             displayField="code_value_name" returnField="simple_compound_type" valueField="code_value"/>
+                    <a:field name="margin_deduction_method_n" options="margin_deduction_method_ds" required="true" prompt="保证金抵扣方式"
+                             displayField="code_value_name" returnField="margin_deduction_method" valueField="code_value"/>
+                    <a:field name="int_rate_calc_flag_n" options="yes_no_ds" required="true" prompt="是否倒推租金"
+                             displayField="code_value_name" returnField="int_rate_calc_flag" valueField="code_value"/>
+                    <a:field name="lease_charge_discount_rule_n" options="charge_discount_rule_ds" required="true" prompt="服务费贴息规则"
+                             displayField="code_value_name" returnField="lease_charge_discount_rule" valueField="code_value"/>
+                    <a:field name="rental_discount_times_n" options="discount_times_ds"  prompt="租金/服务费返利贴息支付期数"
+                             displayField="code_value_name" returnField="rental_discount_times" valueField="code_value"/>
+                    <a:field name="enabled_flag" required="true" checkedValue="Y" uncheckedValue="N" defaultValue="N"
+                             prompt="启用标志"/>
+                </a:fields>
+                <a:events>
+                    <!--<a:event name="add" handler="fnd216_hls_product_definition_add"/>-->
+                    <a:event name="submitsuccess" handler="fnd216_hls_product_definition_submitsuccess"/>
+                    <a:event name="beforesubmit" handler="fnd216_hls_product_definition_beforesubmit"/>
+                    <a:event name="update" handler="fnd216_hls_product_definition_ds_change"/>
+                    <a:event name="load" handler="fnd216_hls_product_definition_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="fnd216_hls_product_definition_para_ds" bindName="hls_product_definition_para_list"
+                       bindTarget="fnd216_hls_product_definition_ds" autoCount="true" autoPageSize="true"
+                       autoQuery="true" selectable="true"
+                       fetchAll="true" pageSize="999"
+                       queryUrl="${/request/@context_path}/hls/product/definition/para/query"
+                       submitUrl="${/request/@context_path}/hls/product/definition/para/submit"
+                       deleteUrl="${/request/@context_path}/hls/product/definition/para/remove">
+                <a:fields>
+                    <a:field name="product_para_display" options="product_para_ds" required="true" prompt="参数名"
+                             displayField="code_value_name" returnField="product_para" valueField="code_value"/>
+                    <a:field name="system_control_flag" required="true" checkedValue="Y" uncheckedValue="N"
+                             defaultValue="Y" prompt="系统控制标志"/>
+                    <a:field name="default_value" required="true" prompt="缺省值"/>
+                    <a:field name="value_from" required="true" prompt="范围从"/>
+                    <a:field name="value_to" required="true" prompt="范围到"/>
+                    <a:field name="enabled_flag" required="true" checkedValue="Y" uncheckedValue="N" defaultValue="Y"
+                             prompt="启用标志"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="beforecreate" handler="fnd216_hls_product_definition_para_beforecreate"/>
+                    <a:event name="beforesubmit" handler="fnd216_hls_product_definition_para_beforesubmit"/>
+                    <a:event name="submitsuccess" handler="fnd216_hls_product_definition_para_submitsuccess"/>
+                    <a:event name="beforeremove" handler="fnd216_hls_product_definition_para_beforeremove"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="fnd216_hls_product_definition_query" text="HAP.QUERY"/>
+                <a:gridButton click="fnd216_hls_product_definition_reset" text="HAP.RESET"/>
+                <a:gridButton bind="fnd216_hls_product_definition_grid" type="add" text="新增产品"/>
+                <!--<a:gridButton bind="fnd216_hls_product_definition_para_grid" type="add" text="新增参数"/>-->
+                <!--<a:gridButton bind="fnd216_hls_product_definition_para_grid" type="delete" text="删除参数"/>-->
+                <a:gridButton bind="fnd216_hls_product_definition_grid" type="save"/>
+                <a:gridButton click="fnd216_hls_product_definition_submit" text="提交复核"/>
+                <!--<a:gridButton bind="fnd216_hls_product_definition_grid" type="refresh"/>-->
+                <a:gridButton click="fnd216_hls_product_definition_change" text="变更产品"/>
+            </a:screenTopToolbar>
+            <a:form column="5" labelWidth="80" title="HAP_QUERY_TITLE">
+                <a:textField name="definition_code" bindTarget="fnd216_hls_product_definition_query_ds" prompt="产品编号"
+                             typeCase="upper"
+                             width="180">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd216_hls_product_definition_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="definition_name" bindTarget="fnd216_hls_product_definition_query_ds" prompt="产品名称"
+                             width="170">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd216_hls_product_definition_query"/>
+                    </a:events>
+                </a:textField>
+                <a:comboBox name="product_status_n" bindTarget="fnd216_hls_product_definition_query_ds" prompt="产品状态"
+                            width="170">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd216_hls_product_definition_query"/>
+                    </a:events>
+                </a:comboBox>
+                <a:lov name="bp_name" bindTarget="fnd216_hls_product_definition_query_ds"  prompt="厂商/合作方"
+                       width="170">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd216_hls_product_definition_query"/>
+                    </a:events>
+                </a:lov>
+                <!--<a:checkBox name="enabled_flag" bindTarget="fnd216_hls_product_definition_query_ds" prompt="启用标志"
+                            width="200">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd216_hls_product_definition_query"/>
+                    </a:events>
+                </a:checkBox>-->
+                <a:comboBox name="enabled_flag_n" bindTarget="fnd216_hls_product_definition_query_ds" prompt="启用标志"
+                            width="170">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd216_hls_product_definition_query"/>
+                    </a:events>
+                </a:comboBox>
+            </a:form>
+            <a:grid id="fnd216_hls_product_definition_grid" bindTarget="fnd216_hls_product_definition_ds"
+                    height="400" canWheel="false"
+                    marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="definition_code" align="center" autoAdjust="true" width="60"
+                              prompt="产品编号"/>
+                    <a:column name="definition_name" align="center" autoAdjust="true" width="270"
+                              prompt="产品名称" editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+<!--                    <a:column name="reply_product_code" align="center" autoAdjust="true" width="150"-->
+<!--                              prompt="批复产品编号"-->
+<!--                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>-->
+<!--                    <a:column name="reply_product_name" align="center" autoAdjust="true" width="250"-->
+<!--                              prompt="批复产品名称"/>-->
+<!--                    <a:column name="bp_name" align="center" autoAdjust="true" width="150"-->
+<!--                              prompt="厂商/合作方"/>-->
+                    <a:column name="project_number" align="center" autoAdjust="true" width="150"
+                              prompt="批复编号"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="project_name" align="center" autoAdjust="true" width="250"
+                              prompt="项目名称"/>
+                    <a:column name="bp_name" align="center" autoAdjust="true" width="150"
+                              prompt="合作方"/>
+                    <a:column name="dealer_link" align="center" autoAdjust="true" width="150"
+                              prompt="分配经销商" renderer="dealer_assign_renderer"/>
+                    <a:column name="price_list_display" align="center" autoAdjust="true" width="130"
+                              prompt="还款方式"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="simple_compound_type_n" align="center" autoAdjust="true" width="130"
+                              prompt="单利/复利"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="margin_deduction_method_n" align="center" autoAdjust="true" width="130"
+                              prompt="保证金抵扣方式"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="pay_type_n" align="center" autoAdjust="true" width="60"
+                              prompt="先付/后付"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="annual_pay_times_n" align="center" autoAdjust="true" width="60"
+                              prompt="支付频率"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="repay_flag" align="center" autoAdjust="true" width="60"
+                              prompt="租金是否返利"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="service_fee_repay_flag" align="center" autoAdjust="true" width="60"
+                              prompt="服务费是否返利"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="exempt_penalty_int_n" align="center" autoAdjust="true" width="80"
+                              prompt="逾期宽限类型"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="residual_price_type_n" align="center" autoAdjust="true" width="120"
+                              prompt="名义货价类型"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="step_quotation_flag_n" align="center"  width="120"
+                              prompt="是否阶梯式报价"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="residual_value_received_n" align="center"  width="120"
+                              prompt="名义货价收取方式"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="repay_mode_n" align="center"  width="120"
+                              prompt="租金返利/贴息模式"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="lease_charge_discount_rule_n" align="center"  width="120"
+                              prompt="服务费返利/贴息规则"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="repay_bp_type_n" align="center"  width="120"
+                              prompt="租金/服务费返利贴息对象类型"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="payment_bp_type_n" align="center"  width="120"
+                              prompt="投放对象类型"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="description" align="center" autoAdjust="true" width="200"
+                              prompt="产品说明"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="product_status_n" align="center" autoAdjust="true" width="60"
+                              prompt="产品状态"/>
+                    <a:column name="int_rate_calc_flag_n" align="center"  width="120"
+                              prompt="是否倒推租金"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <a:column name="rental_discount_times_n" align="center"  width="120"
+                              prompt="租金/服务费返利贴息支付期数"
+                              editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                    <!--<a:column name="creation_date" align="center" autoAdjust="true" width="150"
+                              prompt="创建时间"/>
+                    <a:column name="last_update_date" align="center" autoAdjust="true" width="150"
+                              prompt="最后更新时间"/>-->
+                    <a:column name="enabled_flag" align="center" autoAdjust="true" width="60"
+                              prompt="启用标志"   editorFunction="fnd216_hls_product_definition_grid_editFun"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd216_hls_product_definition_grid_textField_upper" typeCase="upper"/>
+                    <a:textField id="fnd216_hls_product_definition_grid_textField"/>
+                    <a:numberField id="fnd216_hls_product_definition_grid_numberField"/>
+                    <a:checkBox id="fnd216_hls_product_definition_grid_checkBox"/>
+                    <a:comboBox id="fnd216_hls_product_definition_grid_comboBox"/>
+                    <a:lov id="fnd216_hls_product_definition_grid_lov"/>
+                    <a:lov id="fnd216_hls_product_definition_grid_lov_reply_product_code">
+                        <a:events>
+                            <a:event name="beforetriggerclick" handler="beforeClick_lov_reply_product_code"/>
+                            <a:event name="commit" handler="commit_lov_reply_product_code"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov id="fnd216_hls_product_definition_grid_lov_price_list_display">
+                        <a:events>
+                            <a:event name="beforetriggerclick" handler="beforeClick_lov_price_list_display"/>
+                        </a:events>
+                    </a:lov>
+                </a:editors>
+            </a:grid>
+            <a:grid id="fnd216_hls_product_definition_para_grid" bindTarget="fnd216_hls_product_definition_para_ds"
+                    height="400"
+                    marginWidth="50" navBar="true">
+                <a:toolBar>
+                    <a:button type="save"/>
+                    <a:button type="add"/>
+                    <a:button type="delete"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="product_para_display" align="center" autoAdjust="true" width="120"
+                              prompt="参数名"
+                              editorFunction="fnd216_hls_product_definition_para_grid_editFun"/>
+                    <a:column name="description" align="center" autoAdjust="true" width="200"
+                              prompt="参数说明"
+                              editorFunction="fnd216_hls_product_definition_para_grid_editFun"/>
+                    <a:column name="default_value" align="right" autoAdjust="true" width="120"
+                              prompt="缺省值"
+                              editorFunction="fnd216_hls_product_definition_para_grid_editFun"/>
+                    <a:column name="value_from" align="right" autoAdjust="true" width="120"
+                              prompt="范围从"
+                              editorFunction="fnd216_hls_product_definition_para_grid_editFun"/>
+                    <a:column name="value_to" align="right" autoAdjust="true" width="120"
+                              prompt="范围到"
+                              editorFunction="fnd216_hls_product_definition_para_grid_editFun"/>
+                    <a:column name="system_control_flag" align="center" autoAdjust="true" width="80"
+                              prompt="系统控制标志"
+                              editorFunction="fnd216_hls_product_definition_para_grid_editFun"/>
+                    <!--<a:column name="creation_date" align="center" autoAdjust="true" width="200"
+                              prompt="创建时间"/>
+                    <a:column name="last_update_date" align="center" autoAdjust="true" width="200"
+                              prompt="最后更新时间"/>-->
+                    <a:column name="enabled_flag" align="center" autoAdjust="true" width="80"
+                              prompt="启用标志"
+                              editorFunction="fnd216_hls_product_definition_para_grid_editFun"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="fnd216_hls_product_definition_para_grid_textField"/>
+                    <a:numberField id="fnd216_hls_product_definition_para_grid_numberField" decimalPrecision="6"/>
+                    <a:checkBox id="fnd216_hls_product_definition_para_grid_checkBox"/>
+                    <a:comboBox id="fnd216_hls_product_definition_para_grid_comboBox"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

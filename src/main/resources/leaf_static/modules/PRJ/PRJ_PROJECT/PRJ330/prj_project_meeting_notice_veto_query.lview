@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:p="uncertain.proc" xmlns:c="leaf.application.action"
+          xmlns:s="leaf.plugin.script" customizationEnabled="true" trace="true">
+    <a:view>
+
+        <a:link id="approve_notice_make_link"
+                url="${/request/@context_path}/hls/prj/create/notice"/>
+
+        <style>
+            html, body {
+                background: #fff;
+            }
+
+            .item-tab-table {
+                -webkit-box-shadow: none !important;
+                -moz-box-shadow: none !important;
+                -o-box-shadow: none !important;
+                -ms-box-shadow: none !important;
+                box-shadow: none !important;
+            }
+
+            /*滚动条样式*/
+            .item-tab .tab::-webkit-scrollbar { /*滚动条整体样式*/
+                width: 8px; /*高宽分别对应横竖滚动条的尺寸*/
+                height: 8px;
+            }
+
+            .item-tab .tab::-webkit-scrollbar-thumb { /*滚动条里面小方块*/
+                border-radius: 5px;
+                -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                background-color: rgb(204, 204, 204);
+            }
+
+            .item-tab .tab::-webkit-scrollbar-track { /*滚动条里面轨道*/
+                -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                border-radius: 0;
+                background-color: white;
+            }
+        </style>
+        <script><![CDATA[
+
+        function onSubmitSuccess_veto_notice_ds(ds) {
+            vat_veto_notice_query();
+        }
+
+        function vat_veto_notice_query() {
+            $('prj_meeting_veto_notice_ds').query();
+        }
+
+        function approve_notice_make_online(){
+            //debugger;
+            //approve_notice_make();
+            var notice_record = $('prj_meeting_approve_notice_ds').getCurrentRecord();
+
+
+            var down_url;
+            var templateCode = '';
+            var project_id = notice_record.get('project_id');
+            var prj_notice_id = notice_record.get('prj_notice_id') || '';
+            templateCode= 'NOTICE_OF_REJECT';
+
+            Leaf.request({
+                url: "${/request/@context_path}/project/approval/notice/create?projectId=" + project_id
+                    + '&templateCode=' + templateCode + '&prjNoticeId=' + prj_notice_id,
+                success: function (res) {
+                    var attachment_id = res.result.record[0].record_id;
+                    editDocFile(attachment_id);
+                },
+                error: function () {
+                },
+                scope: this
+            });
+
+        }
+
+        //在线编辑
+        function editDocFile(source_pk_value) {
+            window.open("${/request/@context_path}/sys/office/view?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
+        }
+
+
+
+        ]]>
+        </script>
+
+        <a:dataSets>
+
+            <!--            projectId均取上个页面传的参数 project_id='${/parameter/@project_id}';     -->
+            <!--            项目审批意见书-->
+            <a:dataSet id="prj_meeting_approve_notice_ds" autoPageSize="true"  autoCreate="true" selectable="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/prj/veto/notice?projectId=${/parameter/@project_id}&amp;approveResult=${/parameter/@approve_result}" >
+                <a:datas>
+                    <a:record name="unit_name"  />
+                    <a:record name="unit_id"  />
+                    <a:record name="meeting_notice"  />
+                </a:datas>
+            </a:dataSet>
+
+            <!--            否决或暂缓意见-->
+            <a:dataSet id="prj_meeting_veto_notice_ds" autoPageSize="true"  autoCreate="true" selectable="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/prj/approve/noticeveto?projectId=${/parameter/@project_id}"
+                       submitUrl="${/request/@context_path}/prj/project/notice/veto/submit"
+                       deleteUrl="${/request/@context_path}/prj/project/notice/veto/remove">
+
+                <a:fields>
+                    <a:field name="project_id" defaultValue='${/parameter/@project_id}'/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_veto_notice_ds"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj_meeting_approve_notice_result_ds" autoPageSize="true"  autoCreate="true" selectable="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/prj/veto/noticeresult?projectId=${/parameter/@project_id}" >
+
+            </a:dataSet>
+
+        </a:dataSets>
+
+        <a:screenBody style="background-color:#fff">
+
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton text="授信审批通知书在线预览"  click="approve_notice_make_online"/>
+            </a:screenTopToolbar>
+
+            <a:form title="项目审批意见书" column="1"  width="1300" labelwidth="110"  >
+                <a:box column="2" labelWidth="100">
+                    <a:textField name="unit_name" prompt="部门名称" width="160" readOnly="true" bindTarget="prj_meeting_approve_notice_ds"/>
+                    <a:hBox labelWidth="120" style="margin-left:355px;">
+                        <a:textField name="project_notice_number"  prompt="审批通知书编号"  width="160" readOnly="true" bindTarget="prj_meeting_approve_notice_ds"/>
+                    </a:hBox>
+<!--                    <a:textField name="project_notice_number" prompt="审批通知书编号" width="160" readOnly="true" bindTarget="prj_meeting_approve_notice_ds"/>-->
+                </a:box>
+                <a:box column="1" labelWidth="100">
+                    <a:textArea name="meeting_notice" readOnly="true" prompt="审批意见"  width="800" height="80"  bindTarget="prj_meeting_approve_notice_ds"/>
+                </a:box>
+            </a:form>
+
+            <a:form title="否决或暂缓意见"  width="1300"  navBar="true" >
+
+                <a:grid id="veto_notice_id"  marginHeight="200" marginWidth="120" bindTarget="prj_meeting_veto_notice_ds" >
+                    <a:columns>
+                        <a:column name="row_seq" prompt="序号" width="100" align="center"/>
+                        <a:column name="veto_advice" prompt="否决或暂缓意见" width="1000"/>
+                    </a:columns>
+                </a:grid>
+            </a:form>
+
+
+            <a:form title="审批通知书结果" column="1"  width="1300" labelwidth="110"  >
+
+                <a:box column="1" labelWidth="120">
+                    <a:textArea name="meeting_notice_result" readOnly="true" prompt="审批通知书结果" width="600" bindTarget="prj_meeting_approve_notice_ds"/>
+                </a:box>
+
+            </a:form>
+
+        </a:screenBody>
+    </a:view>
+
+</a:screen>

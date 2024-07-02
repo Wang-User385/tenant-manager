@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.ContentNumberHeadMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.ContentNumberHead">
+        <result column="HEAD_ID" property="headId" jdbcType="DECIMAL" />
+        <result column="REQ_NUMBER" property="reqNumber" jdbcType="VARCHAR" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="HEAD_DESC" property="headDesc" jdbcType="VARCHAR" />
+        <result column="REQ_DATE" property="reqDate" jdbcType="DATE" />
+        <result column="REQ_USER" property="reqUser" jdbcType="DECIMAL" />
+        <result column="USED_FLAG" property="usedFlag" jdbcType="VARCHAR" />
+        <result column="BUSINESS_TYPE" property="businessType" jdbcType="VARCHAR" />
+        <result column="BUSINESS_TYPE_N" property="businessTypeN" jdbcType="VARCHAR" />
+        <result column="apply_business_type" property="applyBusinessType" jdbcType="VARCHAR" />
+        <result column="apply_business_type_n" property="applyBusinessTypeN" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <resultMap id="headMap" type="map">
+        <result column="head_id" property="head_id"/>
+        <result column="req_number" property="req_number"/>
+        <result column="project_id" property="project_id"/>
+        <result column="status" property="status"/>
+        <result column="head_desc" property="head_desc"/>
+        <result column="req_date" property="req_date"/>
+        <result column="req_user" property="req_user"/>
+        <result column="project_number" property="project_number"/>
+        <result column="user_name" property="user_name"/>
+        <result column="status_desc" property="status_desc"/>
+        <result column="project_id_n" property="project_id_n"/>
+        <result column="project_name" property="project_name"/>
+        <result column="project_status_desc" property="project_status_desc"/>
+        <result column="business_type" property="business_type"/>
+        <result column="business_type_n" property="business_type_n"/>
+        <result column="apply_business_type" property="apply_business_type"/>
+        <result column="apply_business_type_n" property="apply_business_type_n"/>
+    </resultMap>
+
+    <select id="selectHeadList" resultMap="headMap">
+        select
+      c.head_id,
+      c.req_number,
+      c.project_id,
+      c.status,
+      c.head_desc,
+      c.req_date,
+      c.req_user,
+      pp.project_number,
+      pp.project_name,
+        (SELECT sv.description
+        FROM hls_document_status sv
+        WHERE sv.document_category = 'PRJ_PROJECT'
+        and sv.status_code = pp.project_status ) AS project_status_desc,
+      pp.project_number project_id_n,
+      su.description user_name,
+
+        s.MEANING status_desc,
+      c.business_type,
+      c.apply_business_type,
+      (select
+        s.MEANING
+        from sys_code_value_b_v s where s.code = 'APPLY_LEASING_PRODUCTS'
+        and s.code_value = c.apply_business_type)apply_business_type_n
+
+    from con_content_number_head c left join prj_project pp on c.project_id = pp.project_id
+         left join sys_user su on su.user_id = c.req_user
+         left join sys_code_value_b_v s on s.CODE = 'HLS.WORK_FLOW_STATUS' and s.code_value = c.status
+
+        <where>
+
+            <if test="headId != null">
+                and c.head_id = #{headId}
+            </if>
+            <if test="reqNumber != null">
+                and c.req_number LIKE concat('%', concat(#{reqNumber}, '%'))
+            </if>
+            <if test="projectNumber != null">
+                and pp.project_number LIKE concat('%', concat(#{projectNumber}, '%'))
+            </if>
+            <if test="status != null">
+                and c.status = #{status}
+            </if>
+            <if test="headDesc != null">
+                and c.head_desc LIKE concat('%', concat(#{headDesc}, '%'))
+            </if>
+            <if test="reqDateFrom != null">
+                and c.req_date &gt;= to_char(#{reqDateFrom},'yyyymmdd')
+            </if>
+            <if test="reqDateTo != null">
+                and c.req_date &lt;= to_char(#{reqDateTo},'yyyymmdd')
+            </if>
+            <if test="userName != null">
+                and su.description LIKE concat('%', concat(#{userName}, '%'))
+            </if>
+
+        </where>
+        order by c.creation_date desc
+    </select>
+
+</mapper>

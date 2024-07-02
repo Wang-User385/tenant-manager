@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GDH</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta name="_csrf" content="${_csrf.token}"/>
+    <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+    <link href="${base.contextPath}/lib/assets/pages/img/favicon.ico?v=${Session.sysFaviconVersion!}" rel="shortcut icon"/>
+    <!--[if IE 8]>
+    <script src="${base.contextPath}/lib/polyfill/respond.min.js"></script>
+    <script src="${base.contextPath}/lib/polyfill/es5-shim.min.js"></script>
+    <![endif]-->
+    <script src="${base.contextPath}/lib/kendoui/js/jquery.min.js"></script>
+    <script src="${base.contextPath}/lib/kendoui/js/kendo.all.js"></script>
+    <link href="${base.contextPath}/lib/bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+    <link href="${base.contextPath}/lib/font-awesome-4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/>
+
+    <link href="${base.contextPath}/lib/kendoui/styles/kendo.common-${base.getTheme().getName()}.min.css?v=20170911" rel="stylesheet" type="text/css"/>
+    <link href="${base.contextPath}/lib/kendoui/styles/kendo.${base.getTheme().getName()}.min.css?v=20170911" rel="stylesheet" type="text/css"/>
+
+
+
+    <link href="${base.contextPath}/lib/kendoui/styles/kendo.hap.css?v=20170911" rel="stylesheet" type="text/css"/>
+    <script src="${base.contextPath}/lib/kendoui/js/cultures/kendo.culture.${base.locale.toString()?replace('_','-')}.js?v=20170911"></script>
+    <script src="${base.contextPath}/lib/kendoui/js/messages/kendo.messages.${base.locale.toString()?replace('_','-')}.js?v=20170911"></script>
+    <script src="${base.contextPath}/lib/kendoui/js/kendo.hap.js?v=20170911"></script>
+    <script src="${base.contextPath}/common/prompts"></script>
+    <script src="${base.contextPath}/lib/assets/global/plugins/jquery.blockui.min.js"></script>
+
+    <script>
+        _basePath = '${base.contextPath}', _locale = '${base.locale}';
+        kendo.culture("${base.locale.toString()?replace('_','-')}");
+        _currentFunctionCode = '${RequestParameters.functionCode!}';
+        window.accessConfig = ${accessService.accessData()};
+
+        (function (f, define) {
+            define('kendo.checkbox', ['kendo.core'], f);
+        }(function () {
+            var __meta__ = {
+                id: 'checkbox',
+                name: 'Checkbox',
+                category: 'web',
+                description: 'The Checkbox widget displays styled checkbox.',
+                depends: ['core']
+            };
+            (function ($, undefined) {
+                var kendo = window.kendo, ui = kendo.ui, Widget = ui.Widget, support = kendo.support, keys = kendo.keys, SPAN = '<span />', ns = '.kendoCheckBox', CLICK = 'click' + ns, CHANGE = 'change', CHECKED = 'fa fa-check', READONLY = 'readonly', STATEDISABLED = 'k-state-disabled', DEFAULT = 'k-state-default', MOUSEDOWN = 'mousedown' + ns, KEYDOWN = 'keydown' + ns, extend = $.extend, proxy = $.proxy;
+                var Checkbox = Widget.extend({
+                    init: function (element, options) {
+                        if (Hap && Hap.checkAccess && !Hap.checkAccess(element.id)) {
+                            $(element).remove();
+                            return;
+                        }
+                        var that = this, disabled, text;
+                        Widget.fn.init.call(that, element, options);
+                        element = that.element;
+                        options = that.options;
+                        that._reset();
+                        that._wrapper();
+                        that._accessors();
+                        disabled = element.is('[disabled]');
+                        if (options.enable !== undefined) {
+                            options.enabled = options.enable;
+                        }
+                        if (options.enabled == false || disabled) {
+                            that.enable(false);
+                        } else {
+                            that.readonly(element.is('[readonly]'));
+                        }
+                        that._accessor(options[element[0].checked ? 'checkedValue' : 'uncheckedValue']);
+                        kendo.notify(that);
+                    },
+                    events: [CHANGE],
+                    options: {
+                        name: 'Checkbox',
+                        readonly: false,
+                        valuePrimitive: true,
+                        value: null,
+                        checkedValue: 'Y',
+                        uncheckedValue: 'N',
+                        animation: {},
+                        label: null
+                    },
+                    setOptions: function (options) {
+                        Widget.fn.setOptions.call(this, options);
+                        this._accessors();
+                    },
+                    _wrapper: function () {
+                        var that = this, options = that.options, element = that.element, wrapper = element.parent(), label = $('<label></label>');
+                        if (!wrapper.is('span.k-checkbox')) {
+                            wrapper = element.hide().wrap(SPAN).parent();
+                            wrapper[0].style.cssText = element[0].style.cssText;
+                            wrapper[0].tabIndex = 0;
+                        }
+                        if (options.label) {
+                            wrapper.after(label);
+                            label.css({
+                                'vertical-align': 'middle',
+                                'margin': element.css('margin'),
+                                'margin-left': '5px'
+                            });
+                            wrapper.css('vertical-align', 'middle');
+                            label.text(options.label);
+                            if (element.attr('id')) {
+                                label.attr('for', element.attr('id'));
+                            } else {
+                                label.remove();
+                                wrapper.css('vertical-align', '');
+                            }
+                        }
+                        that.wrapper = wrapper.addClass('k-checkbox').addClass(element[0].className).css('display', '');
+                    },
+                    _editable: function (options) {
+                        var that = this, readonly = options.readonly, disable = options.disable, wrapper = that.wrapper.off(ns);
+                        if (!readonly && !disable) {
+                            wrapper.addClass(DEFAULT).removeClass(STATEDISABLED).on(CLICK, proxy(that._click, that)).on(KEYDOWN, proxy(that._keydown, that));
+                        } else {
+                            wrapper.addClass(STATEDISABLED);
+                        }
+                    },
+                    readonly: function (readonly) {
+                        this._editable({
+                            readonly: readonly === undefined ? true : readonly,
+                            disable: false
+                        });
+                    },
+                    enable: function (enable) {
+                        this._editable({
+                            readonly: false,
+                            disable: !(enable = enable === undefined ? true : enable)
+                        });
+                    },
+                    destroy: function () {
+                        var that = this;
+                        Widget.fn.destroy.call(that);
+                        that.element.off(ns);
+                        that.wrapper.off(ns);
+                        if (that._form) {
+                            that._form.off('reset', that._resetHandler);
+                        }
+                    },
+                    check: function (value) {
+                        var that = this, options = that.options;
+                        if (value === undefined) {
+                            value = that._accessor();
+                            return value === undefined || value === null ? '' : value;
+                        }
+                        if (value === options.value) {
+                            return;
+                        }
+                        var _oldValue = that._oldValue;
+                        that._accessor(value);
+                        if (value != _oldValue) {
+                            that.trigger(CHANGE, { values: value });
+                        }
+                    },
+                    value: function (value) {
+                        return this.check(value);
+                    },
+                    _accessors: function () {
+                        var that = this;
+                        var element = that.element;
+                        var options = that.options;
+                        var checkedValue = element.attr(kendo.attr('checked-value'));
+                        var uncheckedValue = element.attr(kendo.attr('unchecked-value'));
+                        if (!options.checkedValue && checkedValue) {
+                            options.checkedValue = checkedValue;
+                        }
+                        if (!options.uncheckedValue && uncheckedValue) {
+                            options.uncheckedValue = uncheckedValue;
+                        }
+                    },
+                    _accessor: function (value) {
+                        var that = this, element = that.element[0];
+                        if (value === undefined) {
+                            return element.value;
+                        } else {
+                            if (value === null) {
+                                value = '';
+                            }
+                            that._oldValue = element.value = value;
+                            if (value == that.options.checkedValue) {
+                                that.wrapper.addClass(CHECKED);
+                            } else {
+                                that.wrapper.removeClass(CHECKED);
+                            }
+                        }
+                    },
+                    _click: function () {
+                        var that = this, options = that.options, checkedValue = options.checkedValue, uncheckedValue = options.uncheckedValue;
+                        that.value(that.element.val() == checkedValue ? uncheckedValue : checkedValue);
+                    },
+                    _keydown: function (e) {
+                        if (e.keyCode === keys.SPACEBAR) {
+                            this._click();
+                        }
+                    },
+                    _reset: function () {
+                        var that = this, element = that.element, formId = element.attr('form'), form = formId ? $('#' + formId) : element.closest('form');
+                        if (form[0]) {
+                            that._resetHandler = function () {
+                                that.value(element[0].defaultValue);
+                            };
+                            that._form = form.on('reset', that._resetHandler);
+                        }
+                    }
+                });
+                ui.plugin(Checkbox);
+            }(window.kendo.jQuery));
+            return window.kendo;
+        }, typeof define == 'function' && define.amd ? define : function (a1, a2, a3) {
+            (a3 || a2)();
+        }));
+
+        (function (f, define) {
+            define('kendo.radio', ['kendo.core'], f);
+        }(function () {
+            var __meta__ = {
+                id: 'radio',
+                name: 'Radio',
+                category: 'web',
+                description: 'The Radio widget.',
+                depends: ['core']
+            };
+            (function ($, undefined) {
+                var kendo = window.kendo, ui = kendo.ui, Widget = ui.Widget, support = kendo.support, keys = kendo.keys, ns = '.kendoRadio', CLICK = 'click' + ns, CHANGE = 'change', CHECKED = 'checked', STATEDISABLED = 'k-state-disabled', extend = $.extend, proxy = $.proxy;
+                var Radio = Widget.extend({
+                    init: function (element, options) {
+                        if (Hap && Hap.checkAccess && !Hap.checkAccess(element.id)) {
+                            $(element).remove();
+                            element.id && $('label[for=' + element.id + ']').remove();
+                            return;
+                        }
+                        var that = this, disabled, text;
+                        Widget.fn.init.call(that, element, options);
+                        element = that.element;
+                        options = that.options;
+                        that._renderItem();
+                        disabled = element.is('[disabled]');
+                        if (options.enable !== undefined) {
+                            options.enabled = options.enable;
+                        }
+                        if (options.enabled == false || disabled) {
+                            that.enable(false);
+                        } else {
+                            that.readonly(element.is('[readonly]'));
+                        }
+                        kendo.notify(that);
+                    },
+                    events: [CHANGE],
+                    options: {
+                        name: 'Radio',
+                        layout: '',
+                        enable: false,
+                        items: [],
+                        cols: ''
+                    },
+                    setOptions: function (options) {
+                        Widget.fn.setOptions.call(this, options);
+                    },
+                    _renderItem: function () {
+                        var that = this, parent = that.element, items = that.options.items, length = items.length, css = $(parent).attr('style'), cols = that.options.cols, divClass;
+                        $('<input style="display:none">').attr('data-bind', parent.attr('data-bind')).appendTo(parent);
+                        if (cols && parseInt(cols) <= 12) {
+                            var num = parseInt(12 / parseInt(cols));
+                            divClass = 'col-sm-' + num;
+                        } else {
+                            divClass = 'radio-inline';
+                        }
+                        for (var i = 0; i < length; i++) {
+                            if (that.options.layout == 'vertical') {
+                                $('<div><span class=\'radiobox\'><input  style=\'display:none;\' value=' + items[i].value + ' ' + 'id=' + items[i].value + '></span><label style="margin-left:5px;" for=' + items[i].value + '>' + items[i].label + '</label></div>').appendTo(parent);
+                            } else {
+                                $('<div class=' + divClass + ' style="padding:0"><span class=\'radiobox\'><input  style=\'display:none;\' value=' + items[i].value + ' ' + 'id=' + items[i].value + '></span><label style="margin-left:5px;" for=' + items[i].value + '>' + items[i].label + '</label></div>').appendTo(parent);
+                            }
+                        }
+                    },
+                    _editable: function (options) {
+                        var that = this, readonly = options.readonly, disable = options.disable, span = that.element.find('span').off(ns), label = that.element.find('label').off(ns);
+                        that.element.off(CLICK);
+                        if (!readonly && !disable) {
+                            that.element.on(CLICK, proxy(that._click, that));
+                            span.removeClass(STATEDISABLED);
+                        } else {
+                            span.addClass(STATEDISABLED);
+                        }
+                    },
+                    readonly: function (readonly) {
+                        this._editable({
+                            readonly: readonly === undefined ? true : readonly,
+                            disable: false
+                        });
+                    },
+                    enable: function (enable) {
+                        this._editable({
+                            readonly: false,
+                            disable: !(enable = enable === undefined ? true : enable)
+                        });
+                    },
+                    check: function (value, e) {
+                        var that = this, options = that.options, element = $(e).children();
+                        if (value === undefined) {
+                            value = that._accessor();
+                            return value === undefined || value === null ? '' : value;
+                        }
+                        var _oldValue = that._oldValue;
+                        that._accessor(value, e);
+                        if (value != _oldValue) {
+                            that.trigger(CHANGE, { values: value });
+                        }
+                    },
+                    value: function (value, e) {
+                        return this.check(value, e);
+                    },
+                    _accessor: function (value, e) {
+                        var that = this, element = that.element[0], input = that.element.children('input');
+                        if (value === undefined) {
+                            return $(input).val();
+                        } else {
+                            that.element.find('span').removeClass(CHECKED);
+                            that._oldValue = value;
+                            $(input).val(value);
+                            if (value === null) {
+                                value = '';
+                            } else if (e === undefined) {
+                                var child = that.element.find('span').children('input'), length = child.length;
+                                for (var i = 0; i < length; i++) {
+                                    var val = $(child[i]).val();
+                                    if (val == value) {
+                                        $(child[i]).parents('span').addClass(CHECKED);
+                                        break;
+                                    }
+                                }
+                            } else if (e.tagName == 'INPUT') {
+                                $(e).parents('span').addClass(CHECKED);
+                            } else {
+                                $(e).addClass(CHECKED);
+                            }
+                        }
+                    },
+                    _click: function (e) {
+                        var that = this, options = that.options;
+                        if (e.target.tagName == 'INPUT') {
+                            that.value($(e.target).val(), e.target);
+                        } else if (e.target.tagName == 'SPAN') {
+                            that.value($(e.target).children().val(), e.target);
+                        } else {
+                            return;
+                        }
+                    }
+                });
+                ui.plugin(Radio);
+            }(window.kendo.jQuery));
+            return window.kendo;
+        }, typeof define == 'function' && define.amd ? define : function (a1, a2, a3) {
+            (a3 || a2)();
+        }));
+    </script>
+</head>
+<#macro lov lovid>${lovProvider.getLov(base.contextPath,base.locale,lovid)}</#macro>
+
+<body>
+<script src="${base.contextPath}/common/code?captchaPolicy=SYS.CAPTCHA_POLICY&passwordComplexity=SYS.PASSWORD_COMPLEXITY"
+        type="text/javascript"></script>
+
+<style type="text/css">
+    .file {
+        position: relative;
+        display: inline-block;
+        background: #FFF;
+        border: 1px solid #eaf4fc;
+        border-radius: 4px;
+        padding: 4px 12px;
+        overflow: hidden;
+        color: #004974;
+        text-decoration: none;
+        text-indent: 0;
+        font-size:10px;
+
+    }
+    .file input {
+        position: absolute;
+        right: 0;
+        top: 0;
+        opacity: 0;
+
+    }
+    .file:hover {
+        background: #faf9f9;
+        border-color: #FFF;
+        color: #54565B;
+        text-decoration: none;
+    }
+
+
+</style>
+<script type="text/javascript">
+
+    var datas=[];
+
+    var viewModel = kendo.observable({
+        model: {
+            captcha:''
+        },
+        source: captchaPolicy,
+        passwordComplexityData:passwordComplexity,
+        saveForm:function(e)
+        {
+            debugger
+            //定义一个枚举用来循环存放
+            var radioValue=viewModel.model.captcha;
+            var roleMerge = $("#checkbox").val();
+            var firstLoginRestPW = $("#resetPW").val();
+            var enums=['block_minutes','block_times','sys_title','captcha','default_password','password_min_length','password_complexity','password_invalid_time','prohibit_repeat_login','user_role_merge','default_target_url','first_login_reset_password'];
+            viewModel.model.set("captcha",radioValue);
+            viewModel.model.set("user_role_merge",roleMerge);
+            viewModel.model.set("first_login_reset_password",firstLoginRestPW);
+            viewModel.model.set("prohibit_repeat_login",$("#loginRepeat").val());
+            var data=[];
+            for(var i= 0;i<enums.length;i++){
+                var  temp = enums[i].toUpperCase();
+                //处理新增的，还没有存入数据库的配置项
+                var matchCount = 0;
+                for(var j=0;j<datas.length;j++)
+                {
+                    if(enums[i] ==datas[j].configCode)
+                    {
+                        matchCount++;
+                        data.push({
+                            _token:datas[j]._token,
+                            configId: datas[j].configId,
+                            configCode: temp,
+                            configValue: viewModel.model.get(enums[i]),
+                            __status:'update'
+                        })
+                    }
+                }
+
+                if (matchCount === 0){
+                    if (enums[i] === 'block_minutes'){
+                        data.push({
+                            configCode: 'BLOCK_MINUTES',
+                            configValue: viewModel.model.get('block_minutes'),
+                            __status:'insert'
+                        });
+                    }
+                    if (enums[i] === 'block_times'){
+                        data.push({
+                            configCode: 'BLOCK_TIMES',
+                            configValue: viewModel.model.get('block_times'),
+                            __status:'insert'
+                        });
+                    }
+
+                }
+            }
+
+            Hap.request({
+                url: '${base.contextPath}/sys/config/submit',
+                type: "POST",
+                data       : kendo.stringify(data)
+            })
+        },
+        reloadClass:function(e){
+            Hap.request({
+                url: '${base.contextPath}/mybatis/refresh',
+                type: "POST",
+                success:function(res){
+                    if(res.success){
+                        kendo.ui.showInfoDialog({
+                            title:$l('hap.prompt'),
+                            message:'操作成功'
+                        })
+                    }
+                }
+            })
+        }
+    });
+
+    function showCaptchaPolicy(){
+        var html = '';
+        for(var i=0;i<viewModel.source.length;i++)
+        {
+            html+='<input name="captcha" type="radio"  id="'+viewModel.source[i].value+'" value="'+viewModel.source[i].value+'"/>';
+            html+='<span class="info" style="margin-left:10px;font-weight:bold;">'+viewModel.source[i].meaning+'</span>';
+            html+='<div style="color: #5a5a5a;margin:10px 20px;">'+viewModel.source[i].description+'</div>';
+        }
+
+
+        //$("#grid").data('kendoGrid')
+        kendo.bind($("#radio"), viewModel);
+        $("#captcha").html(html);
+    }
+    function showUploadSucessFavicon(){
+        $("#sys-favicon-img").attr("src","${base.contextPath}/resources/upload/favicon.png?"+Math.random());
+    }
+    function uploadSuccess(message){
+        $("#sys-logo-img").attr("src","${base.contextPath}/resources/upload/logo.png?"+Math.random());
+        showUploadMessage(message);
+    }
+    function showUploadMessage(message){
+        kendo.ui.showInfoDialog({
+            title:$l('hap.prompt'),
+            message:message
+        })
+    }
+
+
+    function passwordlength(){
+        var input = event.srcElement;
+        if(input.value < 6){
+            input.value = 6;
+        }else if(input.value>16){
+            input.value = 16;
+        }
+    }
+
+    function leafInitScript() {
+        var scriptWin = $("#scriptWin").kendoWindow({
+            actions: ["Close"],
+            width: 1000,
+            height: 500,
+            title: 'Leaf初始化脚本执行',
+            visible: false,
+            iframe: true,
+            modal: true,
+            content: 'sys_leaf_script.html'
+        }).data("kendoWindow");
+        scriptWin.center().open();
+    }
+
+
+</script>
+<div class="panel" id="scriptWin" style="margin:0px;border: 0px;padding: 0px"></div>
+
+<div class="page-content">
+    <div class="form-horizontal" role="form" autocomplete="off">
+        <div class="panel-body">
+            <div class="row">
+                <div class="form-group ">
+                    <label class="col-sm-3 control-label"><@spring.message "sys.config.system_title"/></label>
+                    <div class="col-sm-4">
+                        <input class=" k-textbox" id="sys_title" data-bind="value:model.sys_title" style="width: 100%"/>
+                        <script>kendo.bind($('#sys_title'), viewModel);</script>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="form-horizontal">
+        <div class="panel-heading">
+            <span class="panel-title"> <@spring.message "sys.config.style"/></span>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.systemlogo"/></label>
+                    <div class="col-md-4">
+                        <img id="sys-logo-img" name="logo" width="100" class="pull-left" src="${base.contextPath}/resources/upload/logo.png?v=${Session.sysLogoVersion!}" style="border:1px solid #ccc;"/>
+                        <form id="upload-logo-form" action="${base.contextPath}/sys/config/logo/upload?${_csrf.parameterName}=${_csrf.token}"  target="_uploadTarget" enctype="multipart/form-data" method="POST" class="pull-left" style="padding-left:20px;">
+                            <a href="javascript:void(0);" class="file btn">
+                                <@spring.message "sys.config.select_file"/>
+                                <input type="file" name="sys-logo-img-uploader" onChange="preview(this,'sys-logo-img');"/>
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <@spring.message "sys.config.upload_file"/>
+                            </button>
+                            <small class="help-block"> <@spring.message "sys.config.systemlogo.desciption"/></small>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="margin-top:10px;">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.favicon"/></label>
+                    <div class="col-md-4">
+                        <img id="sys-favicon-img" name="favicon" class="pull-left"  src="${base.contextPath}/resources/upload/favicon.png?v=${Session.sysFaviconVersion!}" width="32" height="32" style="border:1px solid #ccc">
+                        <form id="upload-icon-form" action="${base.contextPath}/sys/config/favicon/upload?${_csrf.parameterName}=${_csrf.token}" target="_uploadTarget" enctype="multipart/form-data" method="POST" class="pull-left" style="padding-left:88px;">
+                            <a href="javascript:void(0);" class="file btn">
+                                <@spring.message "sys.config.select_file"/>
+                                <input type="file" accept="image/*"  name="favicon" id="favicon" onChange="preview(this,'sys-favicon-img');"/>
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <@spring.message "sys.config.upload_file"/>
+                            </button>
+                            <small class="help-block"><@spring.message "sys.config.favicon.desciption"/></small>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-horizontal">
+        <div class="panel-heading">
+            <span class="panel-title"> <@spring.message "sys.config.safety"/></span>
+        </div>
+        <div class="panel-body">
+
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.captcha"/></label>
+                    <div class="col-md-4">
+                        <div id="captcha" style="margin-top:5px;"
+                             data-bind="enabled: isEnabled,value:model.captcha"></div>
+                    </div>
+                    <script>
+                        var datas = [];
+                        for (var i = 0; i < viewModel.source.length; i++) {
+                            datas.push({
+                                label: viewModel.source[i].meaning,
+                                value: viewModel.source[i].value
+                            })
+                        }
+                        $("#captcha").kendoRadio({
+                            layout: 'vertical',//vertical
+                            readonly: false,
+                            items: datas
+                        });
+
+                        kendo.bind($('#captcha'), viewModel);
+
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-horizontal">
+        <div class="panel-heading">
+            <span class="panel-title"><@spring.message "sys.config.password_policy"/></span>
+        </div>
+        <div class="panel-body">
+
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.default_password"/></label>
+                    <div class="col-md-4">
+                        <input class=" k-textbox" id="default_password" data-bind="value:model.default_password" style="width: 50%"/>
+                        <script>kendo.bind($('#default_password'), viewModel);</script>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.password_min_length"/></label>
+                    <div class="col-md-4">
+                        <input type="number" onkeyup='this.value=this.value.replace(/\D/gi,"")' value="8" max="16" min="6" id="password_min_length" data-bind="value:model.password_min_length" style="width: 50%;" onchange="passwordlength();"/>
+                        <script>
+                            $("#password_min_length").kendoNumericTextBox({format: '0'});
+                            kendo.bind($('#password_min_length'), viewModel);</script>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.password_complexity"/></label>
+                    <div class="col-md-4">
+                        <select data-role="dropdownlist" id="password_complexity" data-value-primitive="true"
+                                style="width:50%;"
+                                data-text-field="meaning" data-value-field="value"
+                                data-bind="source: passwordComplexityData, value: model.password_complexity"></select>
+                        <script>kendo.bind($('#password_complexity'), viewModel);</script>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.password_invalid_time"/></label>
+                    <div class="col-md-4">
+                        <input id="password_invalid_time" onkeyup='this.value=this.value.replace(/\D/gi,"")' type="number" data-bind="value:model.password_invalid_time" style="width: 50%;"/>
+                        <script>
+                            kendo.bind($('#password_invalid_time'), viewModel);
+                            $("#password_invalid_time").kendoNumericTextBox({
+                                format: "0",
+                                min: 0
+                            });
+                        </script>
+                        <span class="help-block"><@spring.message "sys.config.password_invalid_describe"/></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="form-horizontal">
+        <div class="panel-heading">
+            <span class="panel-title">用户锁定规则</span>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label">密码验证错误几次锁定</label>
+                    <div class="col-md-4">
+                        <input id="block_times" onkeyup='this.value=this.value.replace(/\D/gi,"")' type="number" data-bind="value:model.block_times" style="width: 50%;"/>
+                        <script>
+                            kendo.bind($('#block_times'), viewModel);
+                            $("#block_times").kendoNumericTextBox({
+                                format: "0",
+                                min: 1
+                            });
+                        </script>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label">锁定时间（分钟）</label>
+                    <div class="col-md-4">
+                        <input id="block_minutes" onkeyup='this.value=this.value.replace(/\D/gi,"")' type="number" data-bind="value:model.block_minutes" style="width: 50%;"/>
+                        <script>
+                            kendo.bind($('#block_minutes'), viewModel);
+                            $("#block_minutes").kendoNumericTextBox({
+                                format: "0",
+                                min: 0
+                            });
+                        </script>
+                        <span class="help-block">单位：分钟，0表示不锁定</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-horizontal">
+        <div class="panel-heading">
+            <span class="panel-title"><@spring.message "sys.login.safety"/></span>
+        </div>
+        <div class="panel-body">
+
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.resetpassword"/></label>
+                    <div class="col-xs-1" id="resetPWDiv">
+                        <input id="resetPW" name="resetPW" style="margin-top:8px" type="checkbox"
+                               data-bind="enabled: isEnabled,value:model.first_login_reset_password"/>
+                    </div>
+                    <script>
+                        $("#resetPW").kendoCheckbox({
+                            checkedValue: 'Y',
+                            uncheckedValue: 'N'
+                        });
+                        kendo.bind($('#resetPWDiv'), viewModel);
+                    </script>
+                    <label class="col-xs-4 control-label" style="text-align:left;"><@spring.message
+                        "sys.config.resetpassword.describe"/></label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.prohibit_repeat_login"/></label>
+                    <div class="col-xs-1">
+                        <input id="loginRepeat" name="loginRepeat" style="margin-top:8px" type="checkbox"
+                               data-bind="enabled: isEnabled,value:model.prohibit_repeat_login"/>
+                    </div>
+                    <script>
+                        $("#loginRepeat").kendoCheckbox({
+                            checkedValue: 'Y',
+                            uncheckedValue: 'N'
+                        });
+                        kendo.bind($('#loginRepeat'), viewModel);
+                    </script>
+                    <label class="col-xs-4 control-label" style="text-align:left;"><@spring.message "sys.config.prohibit_repeat_login.describe"/></label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.rolemerge"/></label>
+                    <div class="col-xs-1" id="roleMerge">
+                        <input id="checkbox" name="checkbox" style="margin-top:8px" type="checkbox"
+                               data-bind="enabled: isEnabled,value:model.user_role_merge"/>
+                    </div>
+                    <script>
+                        $("#checkbox").kendoCheckbox({
+                            checkedValue: 'Y',
+                            uncheckedValue: 'N'
+                        });
+                        kendo.bind($('#checkbox'), viewModel);
+                    </script>
+                    <label class="col-xs-4 control-label" style="text-align:left;"><@spring.message
+                        "sys.config.user_role_merge.describe"/></label>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"><@spring.message "sys.config.default_target_url"/></label>
+                    <div class="col-md-4">
+                        <input class=" k-textbox" id="default_target_url" data-bind="value:model.default_target_url"
+                               style="width: 100%"/>
+                        <script>kendo.bind($('#default_target_url'), viewModel);</script>
+                        <span class="help-block"><@spring.message "sys.config.default_target_url.describe"/></span>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"></label>
+                    <div class="col-md-4">
+                        <span class="btn btn-primary" id="save"  style="width:100px" data-bind="click:saveForm" ><i class="fa fa-save" style="margin-right:3px;"></i><@spring.message "hap.save"/></span>
+                        <script>kendo.bind($('#save'), viewModel);</script>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="form-horizontal">
+        <div class="panel-heading">
+            <span class="panel-title">Mybatis重载</span>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"></label>
+                    <div class="col-md-4">
+                        <span class="btn btn-primary" id="reload"  style="width:150px" data-bind="click:reloadClass" ><i class="fa fa-save" style="margin-right:3px;"></i><@spring.message "Mybatis重载"/></span>
+                        <script>kendo.bind($('#reload'), viewModel);</script>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="form-horizontal">
+        <div class="panel-heading">
+            <span class="panel-title">初始化脚本</span>
+        </div>
+        <div class="panel-body">
+            <div class="row">
+                <div class="form-group">
+                    <label class="col-md-3 control-label"></label>
+                    <div class="col-md-4">
+                        <span class="btn btn-primary" id="leafScript" style="width:150px" onclick="leafInitScript()"><i
+                                class="fa fa-save" style="margin-right:3px;"></i><@spring.message "执行初始化脚本"/></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+</div>
+<iframe id="_uploadTarget" name="_uploadTarget" src="about:blank" style="position:absolute;left:-10000px;top:-10000px;width:1px;height:1px;display:none"></iframe>
+
+<script type="text/javascript">
+
+    $.ajax({
+        url: '${base.contextPath}/sys/config/query',
+        type: "POST",
+        dataType: "json",
+        contentType: "application/json",
+        success: function (args) {
+            datas = args.rows || [];
+            for (var k = 0; k < datas.length; k++) {
+                if (datas[k].configCode) {
+                    datas[k].configCode = datas[k].configCode.toLowerCase();
+                    if (datas[k].configCode == 'captcha') {
+                        viewModel.model.set("captcha", datas[k].configValue);
+                    }
+                    else
+                        viewModel.model.set(datas[k].configCode, datas[k].configValue)
+                }
+            }
+        }
+    });
+
+    var preview = function(file, container) {
+        var container = document.getElementById(container), path = '';
+        if (file && file.files.length >0) {
+            //setTimeout('$("#file").select();', 1);
+            if (window.navigator.userAgent.indexOf("MSIE") >= 1) {
+                file.select();
+                if (window.getSelection) {
+                    path = window.getSelection();
+                } else if (window.document.getSelection) {
+                    path = window.document.getSelection();
+                } else if (window.document.selection) {
+                    path = window.document.selection.createRange().text;
+                }
+            } else if (window.navigator.userAgent.indexOf("Firefox") >= 1) {
+                if (file.files) {
+                    path = window.URL.createObjectURL(file.files[0]);
+                } else {
+                    path = file.value;
+                }
+            } else if (window.navigator.userAgent.indexOf("Chrome") >= 1) {
+                path = window.webkitURL.createObjectURL(file.files[0]);
+            }
+            container.src = path;
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.BpMasterEmployeeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.BpMasterEmployee">
+        <result column="BP_EMPLOYEE_ID" property="bpEmployeeId" jdbcType="DECIMAL"/>
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL"/>
+        <result column="EMPLOYEE_ID" property="employeeId" jdbcType="DECIMAL"/>
+        <result column="UNIT_ID" property="unitId" jdbcType="DECIMAL"/>
+        <result column="PRIMARY_FLAG" property="primaryFlag" jdbcType="VARCHAR"/>
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="NOTE" property="note" jdbcType="VARCHAR"/>
+        <result column="employee_id_n" property="employeeIdN" jdbcType="VARCHAR"/>
+        <result column="unit_id_n" property="unitIdN" jdbcType="VARCHAR"/>
+        <result column="mobile" property="mobile" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryBpMasterEmployeeDetail" resultMap="BaseResultMap">
+        select
+          hbm.bp_employee_id,
+          hbm.bp_id,
+          hbm.employee_id,
+          (select fe.name
+          from fnd_employee fe
+          where fe.employee_id = hbm.employee_id) employee_id_n,
+          hbm.unit_id,
+          (select fo.unit_name
+          from fnd_org_unit fo
+          where fo.unit_id = hbm.unit_id) unit_id_n,
+          hbm.primary_flag,
+          hbm.enabled_flag,
+          hbm.note
+        from hls_bp_master_employee hbm
+        where hbm.bp_id = #{bpId}
+    </select>
+
+    <select id="queryBpMasterEmployeeByContract" resultMap="BaseResultMap">
+        select
+        hbm.bp_employee_id,
+        hbm.bp_id,
+        hbm.employee_id,
+        (select fe.name
+        from fnd_employee fe
+        where fe.employee_id = hbm.employee_id) employee_id_n,
+        hbm.unit_id,
+        (select fo.unit_name
+        from fnd_org_unit fo
+        where fo.unit_id = hbm.unit_id) unit_id_n,
+        hbm.primary_flag,
+        hbm.enabled_flag,
+        hbm.note
+        from hls_bp_master_employee hbm,CON_CONTRACT cc
+        where hbm.bp_id = cc.manufacturer_id AND cc.CONTRACT_ID=#{contractId}
+    </select>
+
+
+    <select id="queryManufacturerEmployeeBySlipId" resultMap="BaseResultMap">
+        select distinct hbme.employee_id
+  from con_contract            cc,
+       hls_bp_master           hbm,
+       hls_bp_master_employee  hbme,
+       csh_payment_req_slip    sli,
+       csh_payment_req_slip_ln cpr,
+       csh_payment_req_ln      cprl
+ where cc.manufacturer_id = hbm.bp_id
+   and hbm.bp_id = hbme.bp_id
+   and cc.contract_id = cprl.source_doc_id
+   and cprl.source_doc_category = 'CON_CONTRACT'
+   and cpr.slip_id = sli.slip_id
+   and cpr.document_id = cprl.payment_req_ln_id
+   and cpr.document_type = 'CSH_PAYMENT_REQ_LN'
+   and sli.slip_id = #{slipId}
+    </select>
+
+    <select id="queryBpMasterEmployeeBySQ" resultMap="BaseResultMap">
+        select hbm.bp_id,
+        hbme.employee_id,
+        (select fe.name
+        from fnd_employee fe
+        where fe.employee_id = hbme.employee_id) employee_id_n,
+        (select fe.mobile
+        from fnd_employee fe
+        where fe.employee_id = hbme.employee_id) mobile
+        from hls_bp_master_employee hbme, hls_bp_master hbm
+        where hbm.bp_id = hbme.bp_id
+        and hbm.extra_nam = 'SQ'
+    </select>
+
+    <select id="queryEmployeeIdByManufacturerId" resultType="long">
+        select hbme.employee_id
+        from hls_bp_master_employee hbme
+        where hbme.bp_id = #{manufacturerId}
+          and hbme.enabled_flag = 'Y'
+          and rownum = 1
+        order by hbme.creation_date asc
+    </select>
+
+    <select id="queryUnitCodeByEmployeeId" resultType="String">
+        SELECT distinct u.unit_code
+        FROM fnd_employee_assigns em
+                 LEFT JOIN FND_COMPANY c
+                           ON em.company_id = c.company_id
+                 LEFT JOIN fnd_employee e
+                           ON em.employee_id = e.employee_id
+                 LEFT JOIN fnd_org_unit u
+                           ON em.unit_id = u.unit_id
+        WHERE e.employee_id = #{employeeId}
+        and em.enabled_flag = 'Y'
+    </select>
+</mapper>

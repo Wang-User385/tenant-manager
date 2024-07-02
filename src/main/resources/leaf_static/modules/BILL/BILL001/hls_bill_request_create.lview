@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+
+        <a:link id="bill001f2_entrance_create_link_id"
+                url="${/request/@context_path}/modules/BILL/BILL001/hls_bill_request_create_detail.lview"/>
+
+        <script><![CDATA[
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bill_request');
+            if ($(ds_id).validate()) {
+                var record = $(ds_id).getCurrentRecord();
+                Leaf.showConfirm('${l:HLS.PROMPT}', '确定新建票据？', function() {
+                    var param = record.data;
+                    param['function_code'] = 'BILL001F2';
+                    param['function_usage'] = 'CREATE';
+                    param['url_title'] = '票据开具申请明细维护';
+                    param['default_value_dsid'] = ds_id;
+                    param['winid'] = 'BILL002F2_create_screen_id';
+                    param['pre_layout_code'] = '${/parameter/@layout_code}';
+                    param['parent_winid'] = '${/parameter/@winid}';
+                    hls_doc_get_layout_code(param, 'bill001f2_entrance_create_link_id', ds_id, 'BILL001F2', param['parent_winid'], 'Y');
+                });
+            }
+        };
+
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+
+
+            if (name == 'bill_type') {
+                if (value == 'BANK_ACCEPTANCE' || value == 'BUSINESS_ACCEPTANCE' ||value=='LETTER_GUARANTEE') {
+                    record.getField('credit_date').setRequired(false);
+                    record.getField('credit_date').setReadOnly(true);
+                    record.getField('acceptance_bill_term').setRequired(true);
+                    record.getField('acceptance_bill_term').setReadOnly(false);
+                    record.getField('bill_form').setReadOnly(false);
+                    record.getField('bill_form_n').setReadOnly(false);
+                    record.getField('bill_form').setRequired(true);
+                    record.getField('bill_form_n').setRequired(true);
+
+                } else  if(value == 'INTERNATIONAL_CREDIT' || value == 'DOMESTIC_CREDIT') {
+                    record.getField('credit_date').setRequired(true);
+                    record.getField('credit_date').setReadOnly(false);
+                    record.getField('acceptance_bill_term').setRequired(false);
+                    record.getField('acceptance_bill_term').setReadOnly(true);
+                    record.getField('bill_form').setReadOnly(true);
+                    record.getField('bill_form_n').setReadOnly(true);
+
+                    record.getField('bill_form').setRequired(false);
+                    record.getField('bill_form_n').setRequired(false);
+                }
+
+
+            }
+        }
+
+
+        $L.onReady(function () {
+            if ('CREATE' == '${/parameter/@function_usage}') {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bill_request');
+                var  record=$(ds_id).getCurrentRecord();
+                if (Ext.isEmpty(record.get('receive_bill_id')) || Ext.isEmpty(record.get('receive_bill_id_n'))) {
+                    record.set('receive_bill_id', ' ');
+                    record.set('receive_bill_id_n', ' ');
+
+                }
+            }
+        });
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

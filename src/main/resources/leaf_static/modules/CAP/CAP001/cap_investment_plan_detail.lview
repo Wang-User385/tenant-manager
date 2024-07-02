@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="cap_investment_plan_back_link_id"
+                url="${/request/@context_path}/modules/CAP/CAP001/cap_investment_plan_entrance.lview"/>
+        <script><![CDATA[
+        $L.onReady(function(){
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_capital_invest_plan_hd');
+            var planHeadId='${/parameter/@plan_head_id}';
+            if (ds_id && planHeadId) {
+                $(ds_id).setQueryParameter('plan_head_id', planHeadId);
+                $(ds_id).query();
+            }
+        });
+
+        //保存前调用 (调用编码规则 生成资金申请编号)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_capital_invest_plan_hd');
+            var hdRecord = $(hd_ds_id).getCurrentRecord();
+            var documentCategory = 'CAP_PLAN';
+            var documentType = 'CAP_PLAN';
+            var businessType = 'CAP_PLAN';
+            var companyId = '${/session/@companyId}';
+            var userId = '${/session/@userId}';
+            var unitId = '${/session/@unitId}';
+            hdRecord.set('company_id', companyId);
+            hdRecord.set('user_id', userId);
+            hdRecord.set('unit_id', unitId);
+            if (!hdRecord.get('plan_number')) {
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory + "&documentType=" + documentType + "&businessType=" + businessType,
+                    success: function (res) {
+                        hdRecord.set('plan_number', res.result.record[0]);
+                        check_flag = true;
+                    },
+                    error: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            };
+
+            var ln_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_capital_invest_plan_ln');
+            var records = $(ln_ds_id).getAll();
+            var total_apply_investment_amount = 0;
+            var total_invested_amount = 0;
+            for (var i = 0; i < records.length; i++) {
+                records[i].set('company_id',companyId);
+                total_apply_investment_amount += records[i].get('apply_investment_amount') || 0;
+                total_invested_amount += records[i].get('actual_investment_amount') || 0;
+            }
+
+            hdRecord.set('apply_investment_amount_sum', total_apply_investment_amount);
+            hdRecord.set('invested_amount', total_invested_amount);
+            return check_flag;
+        };
+
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+            var hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_capital_invest_plan_hd');
+            var ln_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_capital_invest_plan_ln');
+            var hdRecord = $(hd_ds_id).getCurrentRecord();
+            var planHeadId = hdRecord.get('plan_head_id');
+            $(hd_ds_id).setQueryParameter('plan_head_id', planHeadId);
+            $(ln_ds_id).setQueryParameter('plan_head_id', planHeadId);
+            $(hd_ds_id).query();
+            $(ln_ds_id).query();
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        };
+
+
+        //提交审批按钮
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_capital_invest_plan_hd');
+            var ln_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_capital_invest_plan_ln');
+            var record = $(ds_id).getCurrentRecord();
+            var plan_head_id = record.get('plan_head_id');
+            var approve_status = record.get('approve_status');
+            var plan_number = record.get('plan_number');
+            if ($(ds_id).isModified() && $(ln_ds_id)) {
+                Leaf.showMessage('${HLS.PROMPT}', '${l:EXIT_BEFORE_SAVE}');
+                return;
+            }
+            if (approve_status != 'NEW' && approve_status != 'REJECT' && approve_status != 'APPROVED_RETURN') {
+                Leaf.showMessage('${HLS.PROMPT}', '资金申请编号为:' + plan_number + '的计划已审批或者在审批中,不能重复审批');
+                return;
+            }
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                Leaf.request({
+                    url: '${/request/@context_path}/cap/investment/plan/wfl/submit',
+                    para: {
+                        plan_head_id: plan_head_id
+                    },
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showSuccessMessage('${HLS.SUBMIT_SUCCESS}', '提交成功', function () {
+                            if ('${/parameter/@winid}') {
+                                window.location.href = $('cap_investment_plan_back_link_id').getUrl()+ location.search;
+                            } else {
+                                location.href = '${/request/@context_path}/user_role_home_page.lview';
+                                parent.shMenu('show');
+                            }
+                        });
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }, function cancel() {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }, 200, 100 );
+        };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

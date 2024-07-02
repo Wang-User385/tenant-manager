@@ -1,0 +1,710 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: chenliangxian
+    $Date:2022年11月4日
+    $Revision: 1.0
+    $Purpose: 退款申请详情（二期功能，搬运越秀租赁的功能）
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application">
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+        <a:link id="csh_transaction_refund_save_link" url="${/request/@context_path}/csh/transaction/refund/with-lines/save"/>
+        <a:link id="csh_transaction_refund_submit_link" url="${/request/@context_path}/csh/transaction/refund/with-lines/submit"/>
+        <a:link id="transaction_query_link_detail"
+                        url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_query.lview"/>
+        <a:link id="transaction_modify_link_detail"
+                        url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_modify.lview"/>
+        <script><![CDATA[
+        var viewModel = {
+            model : {
+                win_id : '${/parameter/@win_id}',
+                refund_id : '${/parameter/@refund_id}' || -1,
+                bp_id : '${/parameter/@bp_id}' || -1,
+                bp_name : '${/parameter/@bp_name}' || '',
+                currency_code : '${/parameter/@currency_code}',
+                transaction_ids : '${/parameter/@transaction_ids}',
+                total_can_return_amount : '${/parameter/@total_can_return_amount}',
+                business_key : '${/parameter/@businessKey}',
+                read_only : !'${/parameter/@read_only}' ? 'Y' : '${/parameter/@read_only}',
+                transaction_type : '${/parameter/@transaction_type}',
+                source_type : '${/parameter/@source_type}'
+            },
+            methods : {
+                init : function(){
+                    // $jq('#refund_detail_grid_add button').css('width', '60px!important').css('background-color', '#FB8B00');
+                    document.getElementById('refund_detail_grid_add').className='item-btn item-btn-icon-text infor-btn';
+                    $jq('#refund_detail_grid_add button span').css('width','24px').css('background-image', 'url(${/request/@context_path}/images/gridadd.png)');
+
+                    var html = '';
+                    if(viewModel.model.read_only === 'Y'){
+                        $jq('table[text="保存"]').parent('.screenTopToolbar').remove();
+                        $jq('table[id="csh_transaction_refund_detail_form_button_save"]').parent('.screenTopToolbar').remove();
+                        $jq('table[text="新增"]').remove();
+                        $jq('table[text="删除"]').remove();
+                            html += '<th class="layout-th" style="null" width="100"><div style="text-align:right"><span class="prompt-required" title="">*</span>  </div></th>';
+                            html += '<td class="layout-td-cell" style="padding:3px;"><table class="item-btn infor-btn " text="退款申请书下载" auskin="" style=";width:200px;" cellspacing="0">'
+                            html += '         	<tbody>'
+                            html += '         		<tr>'
+                            html += '         			<td class="item-btn-ml"><i></i></td>'
+                            html += '         			<td class="item-btn-mc"><button tabindex="0" type="button" hidefocus="true" atype="btn" title="" style="height:16px;" class="click_download"><span class="item-icon" style=""></span><div class="item-icon-text" style="line-height:16px;height:16px;">退款申请书下载</div></button></td>'
+                            html += '         			<td class="item-btn-mr"><i></i></td>'
+                            html += '         		<a:button text="退款申请书下载" prompt=" " width="130"></a:button></tr>'
+                            html += '         	</tbody>'
+                            html += '         </table>'
+                            html += '         </td>';
+                    }else{
+                            html = '<th class="layout-th" style="null" width="100"><div style="text-align:right"><span class="prompt-required" title="">*</span>  </div></th>';
+                            html += '<td class="layout-td-cell" style="padding:3px;"><table class="item-btn infor-btn " text="退款申请书上传" auskin="" style=";width:200px;" cellspacing="0">'
+                            html += '         	<tbody>'
+                            html += '         		<tr>'
+                            html += '         			<td class="item-btn-ml"><i></i></td>'
+                            html += '         			<td class="item-btn-mc"><button tabindex="0" type="button" hidefocus="true" atype="btn" title="" style="height:16px;" class="click_uploadfile"><span class="item-icon" style=""></span><div class="item-icon-text" style="line-height:16px;height:16px;">退款申请书上传</div></button></td>'
+                            html += '         			<td class="item-btn-mr"><i></i></td>'
+                            html += '         		<a:button text="退款申请书上传" prompt=" "  width="130"></a:button></tr>'
+                            html += '         	</tbody>'
+                            html += '         </table>'
+                            html += '         </td>';
+                    };
+                    /*html += '<th class="layout-th" style="null" width="100"><div style="text-align:right"><span class="prompt-required" title="">*</span>  </div></th>';
+                    html += '<td class="layout-td-cell" style="padding:3px;"><table class="" text="退款申请书上传" auskin="" style=";width:200px;" cellspacing="0">'
+                    html += '         	<tbody>'
+                    html += '         		<tr>'
+                    html += '         			<td class=""><i></i></td>'
+                    html += '         			<td class=""></td>'
+                    html += '         			<td class=""><i></i></td>'
+                    html += '         		<a:button text="退款申请书上传" prompt=" "  width="130"></a:button></tr>'
+                    html += '         	</tbody>'
+                    html += '         </table>'
+                    html += '         </td>';*/
+                    $jq('#fileuplowd').find('tbody').find('tr').append(html);
+                    $jq('#fileuplowd').find('tbody').find('tr').on("click",'.click_uploadfile',function(){
+                        if (viewModel.model.refund_id && viewModel.model.refund_id != '' && viewModel.model.refund_id > 0) {
+                            win = new Leaf.Window({
+                                id: '${/parameter/@layout_code}_open_transaction_refund_winid',
+                                url: '${/request/@context_path}/uploadFile.lview',
+                                params: {
+                                    header_id: viewModel.model.refund_id,
+                                    table_name: 'csh_transaction_refund',
+                                    winid: '${/parameter/@layout_code}_open_attachment_winid'
+                                },
+                                title: '退款申请书上传',
+                                width: 800,
+                                height: 575
+                            });
+                        } else {
+                            $L.showInfoMessage("提示", "请先保存!", null);
+                        }
+                        return false;
+                    });
+                    $jq('#fileuplowd').find('tbody').find('tr').on("click",'.click_download',function(){
+                        var v_refund_id = viewModel.model.refund_id;
+                        if(!!viewModel.model.business_key){
+                            v_refund_id = viewModel.model.business_key;
+                        }
+                        if (v_refund_id && v_refund_id != '' && v_refund_id > 0) {
+                            win = new Leaf.Window({
+                                id: '${/parameter/@layout_code}_open_transaction_refund_winid',
+                                url: '${/request/@context_path}/downloadFile.lview',
+                                params: {
+                                    header_id: v_refund_id,
+                                    table_name: 'csh_transaction_refund',
+                                    winid: '${/parameter/@layout_code}_open_attachment_winid',
+                                    function_usage: 'QUERY'
+                                },
+                                title: '退款申请书下载',
+                                width: 800,
+                                height: 575
+                            });
+                        } else {
+                            $L.showInfoMessage("提示", "没有退款申请书!", null);
+                        }
+                        return false;
+                    });
+
+                },
+                save : function(){
+                    var result;
+                    var form_ds = $('csh_transaction_refund_detail_form_ds').getAt(0);
+                    var bp_id = form_ds.get('bp_id');
+                    var bp_bank_account_id = form_ds.get('bp_bank_account_id');
+                    var payment_method = form_ds.get('payment_method');
+
+                    if(!bp_id){
+                        Leaf.showMessage('提示！', '付款对象必填！');
+                        return false;
+                    }
+                    if(!bp_bank_account_id){
+                        Leaf.showMessage('提示！', '付款对象账户必选！');
+                        return false;
+                    }
+                    if(!payment_method){
+                        Leaf.showMessage('提示！', '付款方式必选！');
+                        return false;
+                    }
+                    var grid_ds = $('csh_transaction_refund_detail_grid_ds');
+                    if (grid_ds.validate()) {
+                        var datas = grid_ds.getAll();
+                        if(datas.length === 0){
+                            Leaf.showMessage('提示！', '至少维护一条退款记录！');
+                            return false;
+                        }
+                        var saveData = [];
+                        for (var i = 0; i < datas.length; i++) {
+                            if(datas[i].get('refund_amount') > datas[i].get('can_return_amount')){
+                                Leaf.showMessage('提示！', '现金事务编号为'+datas[i].get('transaction_num')+'付款金额大于可退款金额！');
+                                return false;
+                            }
+                        	saveData.push(datas[i].data);
+                        }
+                        Leaf.Masker.mask($(viewModel.model.win_id).wrap, '保存中。。');
+                        Leaf.request({
+                            url: $('csh_transaction_refund_save_link').getUrl(),
+                            sync: true,
+                            para: {
+                                transactionRefund : form_ds.data,
+                                transactionRefundLnList : saveData
+                            },
+                            success: function (res) {
+                                Leaf.SideBar.show({
+                                    msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                    duration: 2000
+                                });
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                                refund_id = res.result.record[0].refund_id;
+                                viewModel.model.refund_id = res.result.record[0].refund_id;
+                                form_ds.set('refund_id', viewModel.model.refund_id);
+                                form_ds.set('refund_number', res.result.record[0].refund_number);
+                                $('csh_transaction_refund_detail_form_ds').query();
+                                $('csh_transaction_refund_detail_grid_ds').query();
+                                result = true;
+                            },
+                            failure: function () {
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                                result = false;
+                            },
+                            error: function () {
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                                result = false;
+                            },
+                            scope: this
+                        });
+                        return result;
+                    }
+                },
+                submit : function(){
+                    if (viewModel.methods.save()){
+                        Leaf.Masker.mask($(viewModel.model.win_id).wrap, '提交中。。');
+                        Leaf.request({
+                            url: $('csh_transaction_refund_submit_link').getUrl()+'?refundId='+refund_id,
+                            success: function (res) {
+                                Leaf.SideBar.show({
+                                    msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                    duration: 2000
+                                });
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                                viewModel.methods.go_back();
+                            },
+                            failure: function () {
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                            },
+                            error: function () {
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                            },
+                            scope: this
+                        });
+                    }
+                },
+                go_back : function(){
+                    $(viewModel.model.win_id).close();
+                }
+            },
+            form : {
+                form_query_event : function(ds, para){
+                    if(!!viewModel.model.business_key){
+                        para['refund_id'] = viewModel.model.business_key;
+                    }else{
+                        para['refund_id'] = !viewModel.model.refund_id ? (!refund_id ? -1 : refund_id) : viewModel.model.refund_id;
+                    }
+                },
+                form_load_event : function(ds,e){
+                    var form_ds = $('csh_transaction_refund_detail_form_ds');
+                    if(!form_ds.getAt(0)){
+                        form_ds.create();
+                        form_ds.getAt(0).set('refund_date', new Date());
+                        form_ds.getAt(0).set('refund_amount', viewModel.model.total_can_return_amount);
+                        form_ds.getAt(0).set('bp_id', viewModel.model.bp_id);
+                        form_ds.getAt(0).set('bp_name', viewModel.model.bp_name);
+                        form_ds.getAt(0).set('currency_code', viewModel.model.currency_code);
+
+                    }
+                    if(viewModel.model.read_only === 'Y'){
+                        form_ds.getAt(0).getField('bp_name').setReadOnly(true);
+                        form_ds.getAt(0).getField('bp_bank_account_name').setReadOnly(true);
+                        form_ds.getAt(0).getField('payment_method_n').setReadOnly(true);
+                        form_ds.getAt(0).getField('description').setReadOnly(true);
+                    }
+                },
+                bp_bank_account_name_event : function (lov){
+                    lov.para = {
+                        'bpId': $('csh_transaction_refund_detail_form_ds').getAt(0).get("bp_id")
+                    };
+                },
+                bp_name_lov_event : function (lov){
+                    if(viewModel.model.source_type == 'CREATE'){
+                        if(viewModel.model.transaction_type == 'DEPOSIT' || viewModel.model.transaction_type == 'MANAGEMENT_FEE'){
+                            lov.controller = "/hls/bp/queryPaymentBpMasterLov";
+                            var ds = $('csh_transaction_refund_detail_form_ds');
+                            var record = ds.getCurrentRecord();
+                            var bp_name = record.getMeta().getField('bp_name');
+                            bp_name.setLovPara('transactionIds', viewModel.model.transaction_ids);
+                            bp_name.setLovPara('refundId', viewModel.model.refund_id);
+                        }else{
+                            lov.controller = "/hls/bp/queryBpMasterLov";
+                        }
+                    }else{
+                        var gridDs = $('csh_transaction_refund_detail_grid_ds');
+                        var records = gridDs.getAll();
+                        if(records.length > 0){
+                            var transaction_type = records[0].get('transaction_type');
+                            if(transaction_type == 'DEPOSIT' || transaction_type == 'MANAGEMENT_FEE'){
+                                lov.controller = "/hls/bp/queryPaymentBpMasterLov";
+                                var ds = $('csh_transaction_refund_detail_form_ds');
+                                var record = ds.getCurrentRecord();
+                                var bp_name = record.getMeta().getField('bp_name');
+                                bp_name.setLovPara('transactionIds', viewModel.model.transaction_ids);
+                                bp_name.setLovPara('refundId', viewModel.model.refund_id);
+                            }else{
+                                lov.controller = "/hls/bp/queryBpMasterLov";
+                            }
+                        }else{
+                            Leaf.showMessage('提示！', '请先维护退款明细！');
+                            return ;
+                        }
+                    }
+                },
+                bp_name_lov_commit_event : function(lov, record){
+                    record.set('bp_bank_account_id', null);
+                    record.set('bp_bank_account_num', null);
+                    record.set('bp_bank_account_name', null);
+                    record.set('bp_bank_name', null);
+                    record.set('bp_bank_branch_name', null);
+                },
+                onChange_approval_comment_ta : function (ta,value){
+                    var left_length = 200 - value.length;
+                    if(left_length >= 0){
+                        jQuery("#comment_wordLeft").removeClass("text_warning");
+                        jQuery("#comment_wordLeft").text("您还可以再输入" + left_length + "个字。");
+                    }else{
+                        jQuery("#comment_wordLeft").text("最多只能输入200个字");
+                        jQuery("#comment_wordLeft").addClass("text_warning");
+                    }
+                },
+                onKeyPress_approval_comment_ta : function (field,e){
+                    var ta = $("approval_comment_ta");
+                    var comment = field.el.dom.value || '';
+                    ta.fireEvent("change",ta,comment,'');
+                },
+                payment_method_n_handler_change_event : function (comboBox,  value, oldValue) {
+                    var ln_records = $('csh_transaction_refund_detail_grid_ds').getAll();
+                    for (var i = 0; i < ln_records.length; i++) {
+                        ln_records[i].set('payment_method_n', value);
+                    }
+                }
+            },
+            grid : {
+                grid_query_event : function(ds, para){
+                    if(!!viewModel.model.business_key){
+                        para['refund_id'] = viewModel.model.business_key;
+                    }else{
+                        para['refund_id'] = !viewModel.model.refund_id ? (!refund_id ? -1 : refund_id) : viewModel.model.refund_id;
+                    }
+                    if(!para['refund_id']){
+                        para['condition'] = viewModel.model.transaction_ids;
+                    }
+                },
+                grid_update_event : function(ds, record, name, value, oldvalue){
+                    if (name === 'refund_amount') {
+                        var total_amount = 0;
+                        var records = ds.getAll();
+                        for (var i = 0; i < records.length; i++) {
+                            total_amount = plus(total_amount, records[i].get('refund_amount'));
+                        }
+                        $('csh_transaction_refund_detail_form_ds').getAt(0).set('refund_amount', total_amount);
+                    }
+                },
+                grid_remove_event : function(ds){
+                    var total_amount = 0;
+                    var records = ds.getAll();
+                    for (var i = 0; i < records.length; i++) {
+                        total_amount = plus(total_amount, records[i].get('refund_amount'));
+                    }
+                    $('csh_transaction_refund_detail_form_ds').getAt(0).set('refund_amount', total_amount);
+
+
+                    var form_ds = $('csh_transaction_refund_detail_form_ds').getAt(0);
+                    var bp_id = form_ds.get('bp_id');
+                    var bp_bank_account_id = form_ds.get('bp_bank_account_id');
+
+                    if(!bp_id){
+                        Leaf.showMessage('提示！', '付款对象必填！');
+                        return ;
+                    }
+                    if(!bp_bank_account_id){
+                        Leaf.showMessage('提示！', '付款对象账户必选！');
+                        return ;
+                    }
+                    var grid_ds = $('csh_transaction_refund_detail_grid_ds');
+                    if (grid_ds.validate()) {
+                        var datas = grid_ds.getAll();
+                        if(datas.length === 0){
+                            Leaf.showMessage('提示！', '至少维护一条退款记录！');
+                            return ;
+                        }
+                        var saveData = [];
+                        for (var i = 0; i < datas.length; i++) {
+                            if(datas[i].get('refund_amount') > datas[i].get('can_return_amount')){
+                                Leaf.showMessage('提示！', '现金事务编号为'+datas[i].get('transaction_num')+'付款金额大于可退款金额！');
+                                return ;
+                            }
+                            saveData.push(datas[i].data);
+                        }
+                        Leaf.Masker.mask($(viewModel.model.win_id).wrap, '保存中。。');
+                        Leaf.request({
+                            url: $('csh_transaction_refund_save_link').getUrl(),
+                            sync: true,
+                            para: {
+                                transactionRefund : form_ds.data,
+                                transactionRefundLineList : saveData
+                            },
+                            success: function (res) {
+                                Leaf.SideBar.show({
+                                    msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                    duration: 2000
+                                });
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                                refund_id = res.result.record[0].refund_id;
+                                viewModel.model.refund_id = res.result.record[0].refund_id;
+                                form_ds.set('refund_id', viewModel.model.refund_id);
+                                form_ds.set('refund_number', res.result.record[0].refund_number);
+                                $('csh_transaction_refund_detail_form_ds').query();
+                                $('csh_transaction_refund_detail_grid_ds').query();
+                            },
+                            failure: function () {
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                            },
+                            error: function () {
+                                Leaf.Masker.unmask($(viewModel.model.win_id).wrap);
+                            },
+                            scope: this
+                        });
+                    }
+                },
+                grid_load_event : function(ds, response){
+                    if(ds.getAll().length === 0){
+                        var result_records = $('csh_transaction_refund_create_result_ds').getSelected();
+                        for(var i = 0; i < result_records.length; i++){
+                            $('csh_transaction_refund_detail_grid').showEditorByRecord($('csh_transaction_refund_detail_grid_ds').create());
+                            var ln_record = ds.getCurrentRecord();
+                            ln_record.set('transaction_id', result_records[i].get('transaction_id'));
+                            ln_record.set('transaction_num', result_records[i].get('transaction_num'));
+                            ln_record.set('transaction_date', result_records[i].get('transaction_date'));
+                            ln_record.set('transaction_amount', result_records[i].get('transaction_amount'));
+                            ln_record.set('transaction_type', result_records[i].get('transaction_type'));
+                            ln_record.set('transaction_type_desc', result_records[i].get('transaction_type_desc'));
+                            ln_record.set('currency_code', result_records[i].get('currency_code'));
+                            ln_record.set('currency_code_desc', result_records[i].get('currency_code_desc'));
+                            ln_record.set('bp_name_tenant', result_records[i].get('payment_bp_name'));
+                            ln_record.set('contract_id', result_records[i].get('contract_id'));
+                            ln_record.set('contract_number', result_records[i].get('contract_number'));
+                            ln_record.set('write_off_amount', result_records[i].get('write_off_amount'));
+                            ln_record.set('return_write_off_amount', result_records[i].get('return_write_off_amount'));
+                            ln_record.set('can_return_amount', result_records[i].get('can_return_amount'));
+                            ln_record.set('refund_amount', result_records[i].get('can_return_amount'));
+                            ln_record.set('refund_date', new Date());
+                            ln_record.set('posted_flag', result_records[i].get('posted_flag'));
+                        }
+                    }
+                    if(viewModel.model.read_only === 'Y'){
+                        var datas = ds.getAll();
+                        for(var i = 0; i < datas.length; i++){
+                            datas[i].getField('transaction_num').setReadOnly(true);
+                            datas[i].getField('refund_date').setReadOnly(true);
+                            datas[i].getField('refund_amount').setReadOnly(true);
+                        }
+                    }
+                    if(('ADVANCE_RECEIPT' === ds.getAt(0).get('transaction_type') || 'DEPOSIT' === ds.getAt(0).get('transaction_type') || 'MANAGEMENT_FEE' === ds.getAt(0).get('transaction_type') || 'PERFORMANCE_BOND' === ds.getAt(0).get('transaction_type'))&& viewModel.model.read_only !== 'Y') {
+                        $('csh_transaction_refund_detail_form_ds').getAt(0).getField('bp_name').setReadOnly(false);
+                        setTimeout(function() {
+                            $('csh_transaction_refund_detail_form_ds').getAt(0).getField('bp_name').setReadOnly(false);
+                        }, 1000);
+                    }
+                },
+                add : function(){
+                    $('csh_transaction_refund_detail_grid').showEditorByRecord($('csh_transaction_refund_detail_grid_ds').create());
+                    var grid_current_record = $('csh_transaction_refund_detail_grid_ds').getCurrentRecord();
+                    grid_current_record.set('refund_id', !viewModel.model.refund_id ? (!refund_id ? undefined : refund_id) : viewModel.model.refund_id);
+                },
+                transaction_num_editor : function(lov){
+                    var datas = $('csh_transaction_refund_detail_grid_ds').getAll();
+                    var not_in_transaction_ids = '';
+                    if(datas.length > 0){
+                        for(var i = 0; i < datas.length; i++){
+                            if(!!datas[i].get('transaction_id')){
+                                not_in_transaction_ids += datas[i].get('transaction_id') + ',';
+                            }
+                        }
+                        lov.para = {
+                            'notInTransactionIds' : not_in_transaction_ids,
+                            'transactionType' : 'ADVANCE_RECEIPT,DEPOSIT,MANAGEMENT_FEE,PERFORMANCE_BOND'
+                        };
+                        if('DEPOSIT' === datas[0].get('transaction_type')){
+                            lov.para = {
+                                'notInTransactionIds' : not_in_transaction_ids,
+                                'transactionType' : 'DEPOSIT',
+                                'paymentBpId' : $('csh_transaction_refund_detail_form_ds').getAt(0).get('bp_id') || viewModel.model.bp_id
+                            };
+                        }else if('MANAGEMENT_FEE' === datas[0].get('transaction_type')){
+                            lov.para = {
+                                'notInTransactionIds' : not_in_transaction_ids,
+                                'transactionType' : 'MANAGEMENT_FEE',
+                                'paymentBpId' : $('csh_transaction_refund_detail_form_ds').getAt(0).get('bp_id') || viewModel.model.bp_id
+                            };
+                        }else if('PERFORMANCE_BOND' === datas[0].get('transaction_type')){
+                            lov.para = {
+                                'notInTransactionIds' : not_in_transaction_ids,
+                                'transactionType' : 'PERFORMANCE_BOND',
+                                'paymentBpId' : $('csh_transaction_refund_detail_form_ds').getAt(0).get('bp_id') || viewModel.model.bp_id
+                            };
+                        }
+                    }else{
+                        lov.para = {
+                            'transactionType' : 'ADVANCE_RECEIPT,DEPOSIT,MANAGEMENT_FEE,PERFORMANCE_BOND'
+                        };
+                    }
+                },
+                transaction_num_submit_editor : function(lov, record){
+                    record.set('refund_date', new Date());
+                    record.set('refund_amount', record.get('can_return_amount'));
+                }
+            }
+        };
+
+        Leaf.onReady(function () {
+            viewModel.methods.init();
+        })
+        function receipt_add_update_renderer_detail(value, record, name) {
+            var transaction_id = record.get('transaction_id');
+            var posted_flag = record.get('posted_flag');
+            var transaction_type = record.get('transaction_type');
+            if (transaction_id) {
+                if (viewModel.model.read_only === 'Y') {
+                    return '<a href="javascript:receipt_add_query_window_detail(\'' + transaction_id + '\',\'' + transaction_type + '\')">' + "查看明细" + '</a>';
+                } else {
+                    return '<a href="javascript:receipt_add_update_window_detail(\'' + transaction_id + '\',\'' + transaction_type + '\')">' + "查看明细" + '</a>';
+                }
+            } else {
+                return '';
+            }
+        }
+        function receipt_add_update_window_detail(transaction_id,transaction_type) {
+            var win = new Leaf.Window({
+                id: 'transaction_modify_winId',
+                url: $('transaction_modify_link_detail').getUrl(),
+                params: {
+                    winId: 'transaction_modify_winId',
+                    transaction_id: transaction_id,
+                    transaction_type : transaction_type
+                },
+                title: '收款维护',
+                width: 800,
+                height: 450,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh_transaction_refund_create_query();
+            });
+        }
+
+        function receipt_add_query_window_detail(transaction_id,transaction_type ) {
+            var win = new Leaf.Window({
+                id: 'transaction_query_winId',
+                url: $('transaction_query_link_detail').getUrl(),
+                params: {
+                    winId: 'transaction_query_winId',
+                    transaction_id: transaction_id,
+                    transaction_type : transaction_type
+                },
+                title: '收款查询',
+                width: 800,
+                height: 450,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh_transaction_refund_create_query();
+            });
+        }
+        ]]></script>
+        <a:screenBody>
+            <a:dataSets>
+                <a:dataSet id="payment_method_combobox_ds" lookupCode="CSH.PAYMENT_METHOD"/>
+                <a:dataSet id="csh_transaction_refund_detail_form_ds" autoQuery="true" autoCreate="true"
+                           queryUrl="${/request/@context_path}/csh/transaction/refund/query">
+                    <a:fields>
+                        <a:field name="refund_number" readOnly="true"/>
+                        <a:field name="refund_date" datatype="date" readOnly="true" />
+                        <a:field name="refund_amount" readOnly="true"/>
+                        <a:field name="bp_name" readOnly="true" required="true" requiredMessage="付款对象必填" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                                 lovLabelWidth="90"
+                                 lovService="/hls/bp/queryPaymentBpMasterLov~hls.layout.dto.LovHlsBpMasterDto" lovWidth="550"
+                                 title="付款对象" prompt="付款对象">
+                            <a:mapping>
+                                <a:map from="bp_id" to="bp_id"/>
+                                <a:map from="bp_name" to="bp_name"/>
+                            </a:mapping>
+                        </a:field>
+                        <a:field name="bp_bank_account_name" required="true" requiredMessage="付款对象账户必填" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                                 lovLabelWidth="90"
+                                 lovService="/con/contract/bp/bank/lov~hls.layout.dto.LovBpBankAccountDto" lovWidth="550"
+                                 title="付款对象账户" prompt="付款对象账户">
+                            <a:mapping>
+                                <a:map from="bank_account_id" to="bp_bank_account_id"/>
+                                <a:map from="bank_account_num" to="bp_bank_account_num"/>
+                                <a:map from="bank_account_name" to="bp_bank_account_name"/>
+                                <a:map from="bank_full_name" to="bp_bank_name"/>
+                                <a:map from="bank_branch_name" to="bp_bank_branch_name"/>
+                            </a:mapping>
+                        </a:field>
+                        <a:field name="bp_bank_account_num" readOnly="true"/>
+                        <a:field name="bp_bank_name" readOnly="true"/>
+                        <a:field name="currency_code" defaultValue="${/parameter/@currency_code}"/>
+                        <a:field name="payment_method" required="true"/>
+                        <a:field name="payment_method_n" options="payment_method_combobox_ds"
+                                 displayField="code_value_name"
+                                 valueField="code_value"
+                                 returnField="payment_method"
+                                 required="true"/>
+                        <a:field name="description"/>
+                    </a:fields>
+                    <a:events>
+                        <a:event name="query" handler="viewModel.form.form_query_event"/>
+                        <a:event name="load" handler="viewModel.form.form_load_event"/>
+                    </a:events>
+                </a:dataSet>
+                <a:dataSet id="csh_transaction_refund_detail_grid_ds" fetchAll="true" pageSize="999" autoQuery="true"
+                           queryUrl="${/request/@context_path}/csh/transaction/refund/detail/query"
+                           deleteUrl="${/request/@context_path}/csh/transaction/refund/ln/remove"
+                           selectable="true">
+                    <a:fields>
+                        <a:field name="transaction_num" autoComplete="true" required="true" lovGridHeight="350"
+                                 lovHeight="550" lovLabelWidth="90" lovWidth="1000"
+                                 lovService="/csh/transaction/query/lov~hls.layout.dto.LovCshTransactionDto"
+                                 title="现金事务编号" prompt="现金事务编号">
+                            <a:mapping>
+                                <a:map from="transaction_num" to="transaction_num"/>
+                                <a:map from="transaction_type" to="transaction_type"/>
+                                <a:map from="transaction_type_desc" to="transaction_type_desc"/>
+                                <a:map from="transaction_date" to="transaction_date"/>
+                                <a:map from="transaction_amount" to="transaction_amount"/>
+                                <a:map from="write_off_amount" to="write_off_amount"/>
+                                <a:map from="transaction_id" to="transaction_id"/>
+                                <a:map from="contract_number" to="contract_number"/>
+                                <a:map from="bp_name_tenant" to="bp_payment_name"/>
+                                <a:map from="contract_id" to="contract_id"/>
+                                <a:map from="can_return_amount" to="can_return_amount"/>
+                                <a:map from="transaction_id" to="transaction_id"/>
+                            </a:mapping>
+                        </a:field>
+                        <a:field name="refund_date" datatype="date"/>
+                    </a:fields>
+                    <a:events>
+                        <a:event name="query" handler="viewModel.grid.grid_query_event"/>
+                        <a:event name="update" handler="viewModel.grid.grid_update_event"/>
+                        <a:event name="remove" handler="viewModel.grid.grid_remove_event"/>
+                        <a:event name="load" handler="viewModel.grid.grid_load_event"/>
+                    </a:events>
+                </a:dataSet>
+            </a:dataSets>
+            <a:screenTopToolbar>
+                <a:gridButton click="viewModel.methods.go_back" text="HLS.RETURN"/>
+                <a:gridButton id="csh_transaction_refund_detail_form_button_save" click="viewModel.methods.save" text="HLS.SAVE"/>
+                <a:gridButton click="viewModel.methods.submit" text="提交审批"/>
+            </a:screenTopToolbar>
+            <a:form labelWidth="100" marginWidth="20" height="130">
+                <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
+                    <a:textField name="refund_number" prompt="申请编号" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                    <a:datePicker name="refund_date" prompt="申请日期" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                    <a:numberField name="refund_amount" prompt="申请总金额" width="200" renderer="Leaf.formatMoney" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                </a:hBox>
+                <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
+                    <a:lov name="bp_name" id="bp_name" prompt="付款对象" width="200" bindTarget="csh_transaction_refund_detail_form_ds">
+                        <a:events>
+                            <a:event name="beforetriggerclick" handler="viewModel.form.bp_name_lov_event"/>
+                            <a:event name="commit" handler="viewModel.form.bp_name_lov_commit_event"/>
+                        </a:events>
+                    </a:lov>
+                    <a:lov name="bp_bank_account_name" id="bp_bank_account_name" prompt="付款对象账户" width="200" bindTarget="csh_transaction_refund_detail_form_ds">
+                        <a:events>
+                            <a:event name="beforetriggerclick" handler="viewModel.form.bp_bank_account_name_event"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="bp_bank_account_num" prompt="付款对象账号" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                </a:hBox>
+                <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40" id="fileuplowd">
+                    <a:textField name="bp_bank_name" prompt="付款账户银行" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                    <a:comboBox name="payment_method_n" prompt="付款方式" width="200"
+                                bindTarget="csh_transaction_refund_detail_form_ds">
+                        <a:events>
+                            <a:event name="change" handler="viewModel.form.payment_method_n_handler_change_event"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:hBox>
+                <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
+                    <a:textArea name="description" bindTarget="csh_transaction_refund_detail_form_ds" prompt="备注"
+                                width="997" id="approval_comment_ta" maxLength="2000">
+                        <a:events>
+                            <a:event name="change" handler="viewModel.form.onChange_approval_comment_ta"/>
+                            <a:event name="keypress" handler="viewModel.form.onKeyPress_approval_comment_ta"/>
+                        </a:events>
+                    </a:textArea>
+                </a:hBox>
+                <div id="comment_wordLeft" style="margin-left: 50px;"></div>
+            </a:form>
+            <a:grid bindTarget="csh_transaction_refund_detail_grid_ds" id="csh_transaction_refund_detail_grid" marginHeight="193" marginWidth="80" navBar="true">
+                <a:toolBar>
+                    <!--<a:button type="add" click="viewModel.grid.add"/>-->
+                    <a:button text="新增" id="refund_detail_grid_add" click="viewModel.grid.add"/>
+                    <a:button type="delete"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="transaction_num" prompt="现金事务编号" width="120" editor="transaction_num_editor"/>
+                    <a:column name="transaction_type_desc" prompt="现金事务类型" width="120"/>
+                    <a:column name="contract_number" prompt="合同编号" width="200"/>
+                    <a:column name="bp_payment_name" prompt="承租人(或预收款挂账对象)" width="230"/>
+                    <!--<a:column name="bp_name" prompt="付款对象" width="300"/>-->
+                    <!--<a:column name="bp_bank_account_name" prompt="付款账户" width="150"/>-->
+                    <!--<a:column name="bp_bank_account_num" prompt="付款账号" width="150"/>-->
+                    <!--<a:column name="bp_bank_name" prompt="付款账户银行" width="150"/>-->
+                    <a:column name="refund_date" align="center" width="100" renderer="Leaf.formatDate" prompt="付款日期" editor="csh_transaction_refund_date_editor"/>
+                    <a:column name="refund_amount" align="right" width="100" renderer="Leaf.formatMoney" prompt="付款金额" editor="csh_transaction_refund_amount_editor"/>
+                    <a:column name="currency_code_desc" prompt="币种"/>
+                    <a:column name="write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已核销金额"/>
+                    <a:column name="return_write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已退款金额"/>
+                    <a:column name="can_return_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="可退款金额"/>
+                    <a:column name="payment_method_n" width="120" prompt="付款方式"/>
+                    <a:column name="transaction_id" prompt="" width="120" renderer="receipt_add_update_renderer_detail" align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="transaction_num_editor">
+                        <a:events>
+                            <a:event name="beforetriggerclick" handler="viewModel.grid.transaction_num_editor"/>
+                            <a:event name="commit" handler="viewModel.grid.transaction_num_submit_editor"/>
+                        </a:events>
+                    </a:lov>
+                    <a:numberField id="csh_transaction_refund_amount_editor" />
+                    <a:datePicker id="csh_transaction_refund_date_editor" />
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

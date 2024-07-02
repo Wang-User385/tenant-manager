@@ -1,0 +1,970 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hls.layout.mapper.ServerLayoutMapper">
+    <resultMap id="layoutMainMap" type="map" >
+        <id column="tab_type" property="tab_type" jdbcType="CHAR" />
+        <result column="tab_code" property="tab_code" jdbcType="CHAR" />
+        <result column="tab_seq" property="tab_seq" jdbcType="VARCHAR" />
+        <result column="tab_group" property="tab_group" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectLayoutMain" resultMap="layoutMainMap">
+        SELECT
+        (case when #{continue_flag} = 'N' then '' else t1.tab_type end) tab_type,
+        t1.tab_code,
+        t1.tab_group,
+        t1.tab_seq
+        FROM
+        (<include refid="hls.core.sys.mapper.HlsDocLayoutTabGroupMapper.queryHlsDocLayoutTabGroupDetail"/>)
+        t1
+        WHERE
+        t1.layout_code = #{layout_code} AND
+        (
+        t1.tree_code   = #{tree_code} OR
+        #{tree_code} IS NULL
+        )
+        AND
+        (
+        (
+        t1.parent_tab_code IS NULL AND
+        #{tab_tab_code}   IS NULL
+        )
+        OR
+        (
+        #{tab_tab_code}  IS NOT NULL AND
+        t1.parent_tab_code = #{tab_tab_code}
+        )
+        )
+        AND
+        t1.enabled_flag = 'Y'
+        GROUP BY
+        t1.tab_type,
+        t1.tab_code,
+        t1.tab_group,
+        t1.tab_seq
+        ORDER BY
+        t1.tab_seq,
+        t1.tab_type
+    </select>
+
+    <resultMap id="layoutTabMap" type="map" >
+        <id column="layout_code" property="layout_code"/>
+        <result column="tab_code" property="tab_code" />
+        <result column="tab_seq" property="tab_seq"/>
+        <result column="tab_group" property="tab_group"/>
+        <result column="form_binder_tab_code" property="form_binder_tab_code"/>
+        <result column="tab_desc" property="tab_desc"/>
+        <result column="base_table" property="base_table"/>
+        <result column="query_source" property="query_source"/>
+        <result column="row_count" property="row_count"/>
+        <result column="column_count" property="column_count"/>
+        <result column="enabled_flag" property="enabled_flag"/>
+        <result column="created_by" property="created_by"/>
+        <result column="creation_date" property="creation_date"/>
+        <result column="last_update_date" property="last_update_date"/>
+        <result column="last_updated_by" property="last_updated_by"/>
+        <result column="configurable" property="configurable"/>
+        <result column="field_width" property="field_width"/>
+        <result column="label_width" property="label_width"/>
+        <result column="margin_top" property="margin_top"/>
+        <result column="box_width" property="box_width"/>
+        <result column="show_box" property="show_box"/>
+        <result column="parent_tab_code" property="parent_tab_code"/>
+        <result column="parent_table" property="parent_table"/>
+        <result column="base_table_pk" property="base_table_pk"/>
+        <result column="parent_table_tab_code" property="parent_table_tab_code"/>
+        <result column="parent_base_table_pk" property="parent_base_table_pk"/>
+        <result column="tab_type" property="tab_type"/>
+        <result column="parent_tab_code_flag" property="parent_tab_code_flag"/>
+        <result column="parent_table_flag" property="parent_table_flag"/>
+        <result column="ref_tab_code" property="ref_tab_code"/>
+        <result column="tab_ref_screen" property="tab_ref_screen"/>
+        <result column="margin_width" property="margin_width"/>
+        <result column="navbar" property="navbar"/>
+        <result column="width" property="width"/>
+        <result column="margin_height" property="margin_height"/>
+        <result column="height" property="height"/>
+        <result column="attachment_tab_group" property="attachment_tab_group"/>
+        <result column="query_only" property="query_only"/>
+        <result column="fetchall" property="fetchall"/>
+        <result column="query_tab_code" property="query_tab_code"/>
+        <result column="query_base_table" property="query_base_table"/>
+        <result column="check_before_delete_bm" property="check_before_delete_bm"/>
+        <result column="check_after_save_bm" property="check_after_save_bm"/>
+        <result column="switchcard_value" property="switchcard_value"/>
+        <result column="query_bp_category" property="query_bp_category"/>
+        <result column="query_bp_category_name" property="query_bp_category_name"/>
+        <result column="project_name" property="project_name"/>
+        <result column="repeat_bindname_object" property="repeat_bindname_object"/>
+        <result column="repeat_bp_seq" property="repeat_bp_seq"/>
+        <result column="repeat_object" property="repeat_object"/>
+        <result column="root_tree_code" property="root_tree_code"/>
+        <result column="flexible" property="flexible"/>
+        <result column="selected_flag" property="selected_flag"/>
+    </resultMap>
+
+    <select id="selectLayoutTab" resultMap="layoutTabMap">
+        SELECT
+        tmp.*,
+        ( SELECT bc.description FROM hls_bp_category bc WHERE bc.bp_category = tmp.query_bp_category ) query_bp_category_name,
+        ( CASE WHEN tmp.parent_tab_code_flag = 'Y' THEN tmp.tab_code ELSE tmp.parent_table_tab_code END ) form_binder_tab_code
+        FROM
+        (
+        SELECT
+        t1.LAYOUT_CODE AS layout_code,
+        t1.TAB_CODE AS tab_code,
+        t1.TAB_DESC AS tab_desc,
+        t1.TAB_SEQ AS tab_seq,
+        t1.TAB_GROUP AS tab_group,
+        lower( t1.BASE_TABLE ) AS base_table,
+        t1.QUERY_SOURCE AS query_source,
+        t1.ROW_COUNT AS row_count,
+        t1.COLUMN_COUNT AS column_count,
+        t1.ENABLED_FLAG AS enabled_flag,
+        t1.CREATED_BY AS created_by,
+        t1.CREATION_DATE AS creation_date,
+        t1.LAST_UPDATED_BY AS last_updated_by,
+        t1.LAST_UPDATE_DATE AS last_update_date,
+        t1.CONFIGURABLE AS configurable,
+        t1.FIELD_WIDTH AS field_width,
+        t1.LABEL_WIDTH AS label_width,
+        t1.MARGIN_TOP AS margin_top,
+        t1.BOX_WIDTH AS box_width,
+        t1.SHOW_BOX AS show_box,
+        t1.PARENT_TAB_CODE AS parent_tab_code,
+        t1.PARENT_TABLE AS parent_table,
+        t1.BASE_TABLE_PK AS base_table_pk,
+        t1.flexible,
+        nvl(
+        (
+        SELECT
+        d.TAB_CODE
+        FROM
+        hls_doc_layout_tab d
+        WHERE
+        d.LAYOUT_CODE = t1.LAYOUT_CODE
+        AND  UPPER(d.BASE_TABLE) = UPPER(nvl(t1.PARENT_TABLE, t1.BASE_TABLE ))
+        AND  d.TAB_SEQ = (
+        SELECT
+        min( ht.TAB_SEQ )
+        FROM
+        hls_doc_layout_tab ht
+        WHERE
+        ht.LAYOUT_CODE = d.LAYOUT_CODE
+        AND ht.BASE_TABLE = d.BASE_TABLE
+        AND ht.ENABLED_FLAG = 'Y'
+        )
+        AND d.ENABLED_FLAG = 'Y'
+        and rownum=1
+        ),
+        t1.TAB_CODE
+        ) AS parent_table_tab_code,
+        lower(
+        nvl(
+        (
+        SELECT
+        d.BASE_TABLE_PK
+        FROM
+        hls_doc_layout_tab d
+        WHERE
+        d.LAYOUT_CODE = t1.LAYOUT_CODE
+        AND d.BASE_TABLE = t1.PARENT_TABLE
+        AND d.ENABLED_FLAG = 'Y'
+        and rownum=1
+        ),
+        t1.BASE_TABLE_PK
+        )
+        ) AS parent_base_table_pk,
+        t1.TAB_TYPE AS tab_type,
+        (
+        CASE
+        WHEN ( t1.BASE_TABLE is null ) THEN
+        'N'
+        WHEN ( t1.RECREATE_DS_FLAG = 'Y' ) THEN
+        'Y' ELSE (
+        CASE
+        WHEN (
+        (
+        SELECT
+        1
+        FROM
+        DUAL
+        WHERE
+        EXISTS (
+        SELECT
+        1
+        FROM
+        hls_doc_layout_tab t
+        WHERE
+        (
+        ( t.LAYOUT_CODE = t1.LAYOUT_CODE )
+        AND ( t.BASE_TABLE = t1.BASE_TABLE )
+        AND ( t.TAB_SEQ &lt; t1.TAB_SEQ )
+        AND ( t.ENABLED_FLAG = 'Y' )
+        )
+        )
+        ) = 1
+        ) THEN
+        'N' ELSE 'Y'
+        END
+        )
+        END
+        ) AS parent_tab_code_flag,
+        ( CASE nvl(t1.PARENT_TABLE,'N') WHEN 'N' THEN 'N' ELSE 'Y' END ) AS parent_table_flag,
+        t1.REF_TAB_CODE AS ref_tab_code,
+        t1.TAB_REF_SCREEN AS tab_ref_screen,
+        ( CASE t1.SETUP_WIDTH WHEN 'MARGIN_WIDTH' THEN nvl( t1.MARGIN_WIDTH, 70 ) ELSE '' END ) AS margin_width,
+        ( CASE t1.SETUP_WIDTH WHEN 'ABSOLUTE_WIDTH' THEN nvl( t1.WIDTH, 300 ) ELSE '' END ) AS width,
+        ( CASE t1.SETUP_HEIGHT WHEN 'MARGIN_HEIGHT' THEN nvl( t1.MARGIN_HEIGHT, 70 ) ELSE '' END ) AS margin_height,
+        ( CASE t1.SETUP_HEIGHT WHEN 'ABSOLUTE_HEIGHT' THEN nvl( t1.HEIGHT, 200 ) ELSE '' END ) AS height,
+        t1.ATTACHMENT_TAB_GROUP AS attachment_tab_group,
+        nvl( t1.QUERY_ONLY, 'N' ) AS query_only,
+        ( CASE t1.FETCHALL WHEN 'Y' THEN 'true' ELSE 'false' END ) AS fetchall,
+        t1.QUERY_TAB_CODE AS query_tab_code,
+        (
+        SELECT
+        lt.BASE_TABLE
+        FROM
+        hls_doc_layout_tab lt
+        WHERE
+        ( ( lt.LAYOUT_CODE = t1.LAYOUT_CODE ) AND ( lt.TAB_CODE = t1.QUERY_TAB_CODE ) )
+        ) AS query_base_table,
+        t1.CHECK_BEFORE_DELETE_BM AS check_before_delete_bm,
+        t1.CHECK_AFTER_SAVE_BM AS check_after_save_bm,
+        t1.SWITCHCARD_VALUE AS switchcard_value,
+        (
+        CASE
+
+        WHEN ( t1.ROOT_TREE_CODE = 'TENANT' ) THEN
+        'TENANT'
+        WHEN ( ( t1.ROOT_TREE_CODE = 'GUARANTEE' ) AND ( ( t1.BASE_TABLE = 'PRJ_PROJECT_BP' ) OR ( t1.PARENT_TABLE = 'PRJ_PROJECT_BP' ) ) ) THEN
+        'GUARANTOR'
+        WHEN ( ( t1.ROOT_TREE_CODE = 'ACT_CTRLER' ) AND ( ( t1.BASE_TABLE = 'PRJ_PROJECT_BP' ) OR ( t1.PARENT_TABLE = 'PRJ_PROJECT_BP' ) ) ) THEN
+        'GUARANTOR'
+        END
+        ) AS query_bp_category,
+        t1.selected_flag
+        FROM
+        hls_doc_layout_tab t1
+        <where>
+            <if test="leaf_default_where_sql != null">
+                ${leaf_default_where_sql}
+            </if>
+            AND t1.layout_code = #{layout_code}
+            AND t1.enabled_flag = 'Y'
+            <if test="tab_code != null">
+                AND t1.tab_code = #{tab_code}
+            </if>
+            <if test="parent_table != null">
+                AND lower(t1.parent_table) = lower(#{parent_table})
+            </if>
+            <if test="parent_tab_code != null">
+                AND t1.parent_tab_code = #{parent_tab_code}
+            </if>
+            <if test="virtual_parent_flag != null">
+                AND t1.base_table is not null
+                and t1.parent_table is null
+            </if>
+        </where>
+        ORDER BY
+        t1.ENABLED_FLAG DESC,
+        t1.TAB_SEQ
+        ) tmp
+    </select>
+
+    <select id="selectLayoutTreeTab" resultMap="layoutTabMap">
+        SELECT
+        t1.layout_code,
+        t1.tab_code,
+        (case when t1.parent_tab_code_flag = 'Y' then t1.tab_code else t1.parent_table_tab_code end) form_binder_tab_code,
+        t1.tab_desc,
+        t1.tab_seq,
+        t1.tab_group,
+        lower(t1.base_table) base_table,
+        t1.query_source,
+        t1.row_count,
+        t1.column_count,
+        t1.enabled_flag,
+        t1.created_by,
+        t1.creation_date,
+        t1.last_updated_by,
+        t1.last_update_date,
+        t1.configurable,
+        t1.field_width,
+        t1.label_width,
+        t1.margin_top,
+        t1.box_width,
+        t1.show_box,
+        t1.parent_tab_code,
+        lower(t1.parent_table) parent_table,
+        t1.base_table_pk,
+        t1.parent_table_tab_code,
+        t1.parent_base_table_pk,
+        t1.tab_type,
+        t1.parent_tab_code_flag,
+        t1.parent_table_flag,
+        t1.tree_code,
+        t1.ref_tab_code,
+        t1.tab_ref_screen,
+        t1.margin_width,
+        t1.width,
+        t1.margin_height,
+        t1.height,
+        t1.repeat_object,
+        (case when t1.repeat_bindertarget_flag = 'Y' then #{bp_seq} else '' end) repeat_bp_seq,
+        t1.parent_loaded_object,
+        t1.attachment_tab_group,
+        t1.root_tree_code,
+        t1.repeat_bindname_object,
+        ( SELECT p.project_name FROM prj_project p WHERE p.project_id = #{document_id} ) project_name,
+        t1.query_bp_category,
+        ( SELECT bc.description FROM hls_bp_category bc WHERE bc.bp_category = t1.query_bp_category ) query_bp_category_name,
+        t1.query_only,
+        t1.navbar,
+        t1.fetchall,
+        t1.check_before_delete_bm,
+        t1.check_after_save_bm,
+        t1.switchcard_value,
+        t1.selected_flag
+        FROM
+        (<include refid="hls.core.sys.mapper.HlsPrjLayoutTabMapper.queryHlsPrjLayoutTabDetail"/>)
+        t1
+        <where>
+            <if test="leaf_default_where_sql != null">
+                ${leaf_default_where_sql}
+            </if>
+            and t1.layout_code= #{layout_code}
+            and t1.enabled_flag='Y'
+            <if test="tab_code != null">
+                AND t1.tab_code = #{tab_code}
+            </if>
+            <if test="parent_tab_code != null">
+                AND t1.parent_tab_code = #{parent_tab_code}
+            </if>
+            <if test="parent_table != null">
+                AND t1.parent_table = #{parent_table}
+            </if>
+            <if test="tree_code != null">
+                AND t1.tree_code=#{tree_code} or #{all_data_flag}='Y'
+            </if>
+            <if test="root_tree_code != null">
+                AND t1.root_tree_code=#{root_tree_code} or t1.parent_table= 'PRJ_PROJECT'
+            </if>
+            <if test="virtual_parent_flag != null">
+                AND t1.base_table is not null and t1.parent_table is null
+            </if>
+        </where>
+    </select>
+
+    <resultMap id="formConfigMap" type="map">
+        <result column="config_id" property="config_id"/>
+        <result column="layout_code" property="layout_code"/>
+        <result column="column_name" property="column_name"/>
+        <result column="data_type" property="data_type"/>
+        <result column="system_flag" property="system_flag"/>
+        <result column="enabled_flag" property="enabled_flag"/>
+        <result column="display_flag" property="display_flag"/>
+        <result column="display_order" property="display_order"/>
+        <result column="prompt" property="prompt"/>
+        <result column="required_input_mode" property="required_input_mode"/>
+        <result column="readonly_input_mode" property="readonly_input_mode"/>
+        <result column="validation_type" property="validation_type"/>
+        <result column="v_type" property="v_type"/>
+        <result column="validation_sql" property="validation_sql" javaType="java.lang.String"/>
+        <result column="preci" property="precision_num"/>
+        <result column="zero_fill" property="zero_fill"/>
+        <result column="allow_format" property="allow_format"/>
+        <result column="allow_decimal" property="allow_decimal"/>
+        <result column="percent" property="percent"/>
+        <result column="d_value" property="d_value"/>
+        <result column="t_code" property="t_code"/>
+        <result column="c_name" property="c_name"/>
+        <result column="upper_limit" property="upper_limit"/>
+        <result column="lower_limit" property="lower_limit"/>
+        <result column="width" property="width"/>
+        <result column="colspan" property="colspan"/>
+        <result column="rowspan" property="rowspan"/>
+        <result column="key_field_flag" property="key_field_flag"/>
+        <result column="alignment" property="alignment"/>
+        <result column="lov_return_vcode" property="lov_return_vcode"/>
+        <result column="tab_code" property="tab_code"/>
+        <result column="height" property="height"/>
+        <result column="field_javascript" property="field_javascript"/>
+        <result column="autocomplete" property="autocomplete"/>
+        <result column="fetchsingle" property="fetchsingle"/>
+        <result column="underline" property="underline"/>
+        <result column="field_group" property="field_group"/>
+        <result column="base_tab_code" property="base_tab_code"/>
+        <result column="ignore_required" property="ignore_required"/>
+    </resultMap>
+
+    <select id="selectLayoutFormConfigField" resultMap="formConfigMap">
+        SELECT
+        t1.config_id,
+        s.layout_code,
+        lower(nvl(s.column_name, 'DIV')) column_name,
+        t1.data_type,
+        t1.system_flag,
+        nvl( t1.enabled_flag, 'N' ) enabled_flag,
+        nvl( t1.display_flag, 'N' ) display_flag,
+        t1.display_order,
+        t1.prompt,
+        ( CASE WHEN t1.input_mode = 'REQUIRED' THEN 'TRUE' ELSE 'FALSE' END ) required_input_mode,
+        (
+        CASE
+        WHEN #{maintain_type} = 'READONLY' OR lt.query_only = 'Y' THEN
+        'TRUE'
+        ELSE
+        (
+        CASE
+        WHEN t1.input_mode = 'READONLY' THEN 'TRUE'
+        ELSE 'FALSE'
+        END
+        )
+        END
+        ) readonly_input_mode,
+        (
+        CASE
+        WHEN s.column_name IS NULL THEN
+        'DIV'
+        WHEN s.column_name IS NOT NULL AND t1.validation_type IN ( 'COMBOBOX', 'LOV', 'TREE', 'LOV_D' ) THEN
+        (
+        CASE
+        WHEN t1.lov_return_vcode IS NULL OR t1.lov_return_vcode = 'N' THEN
+        t1.validation_type
+        ELSE
+        concat( t1.validation_type, '_C' )
+        END
+        )
+        ELSE t1.validation_type
+        END
+        ) validation_type,
+        /*---------------------------------- start ------------------------------------*/
+        t1.validation_type v_type,
+        nvl(t1.clob_validation_sql, t1.validation_sql) validation_sql,
+        /*----------------------------------- end ------------------------------------*/
+
+        nvl(t1.precision_num, 2 ) preci,
+        nvl(t1.zero_fill, 'FALSE') zero_fill,
+        nvl(t1.allow_format, 'FALSE') allow_format,
+        nvl(t1.allow_decimal, 'FALSE') allow_decimal,
+        t1.percent,
+
+        t1.default_value d_value,
+        s.tab_code t_code,
+        t1.column_name c_name,
+
+        t1.upper_limit,
+        t1.lower_limit,
+        (
+        CASE
+        WHEN t1.width IS NULL THEN
+        nvl(lt.field_width, 150) ELSE t1.width
+        END
+        ) width,
+        nvl(s.colspan,1) colspan,
+        nvl(s.rowspan,1) rowspan,
+        t1.key_field_flag,
+        t1.alignment,
+        nvl(t1.lov_return_vcode, 'N') lov_return_vcode,
+        s.tab_code,
+        nvl(t1.height, 100) height,
+        t1.field_javascript,
+        ( CASE WHEN #{lov_search_rule} = 'AUTOCOMPLETE' THEN 'true' ELSE 'false' END ) autocomplete,
+        ( CASE WHEN #{lov_search_rule} = 'FETCHSINGLE' THEN 'true' ELSE 'false' END ) fetchsingle,
+        t1.underline,
+        t1.field_group,
+        t1.base_tab_code,
+        t1.ignore_required
+        FROM
+        hls_doc_layout_config t1 RIGHT JOIN hls_doc_layout_screen s
+        ON t1.layout_code = s.layout_code
+        AND t1.column_name = s.column_name
+        AND t1.tab_code = s.tab_code
+        AND t1.enabled_flag = 'Y',
+        hls_doc_layout_tab lt
+        <where>
+            <if test="leaf_default_where_sql != null">
+                ${leaf_default_where_sql}
+            </if>
+            AND s.tab_code = lt.tab_code
+            AND s.layout_code = lt.layout_code
+            <if test="tab_code != null">
+                AND s.tab_code=#{tab_code}
+            </if>
+            <if test="layout_code != null">
+                AND s.layout_code = #{layout_code}
+            </if>
+            <if test="form_tab_code != null">
+                AND s.form_tab_code = #{form_tab_code}
+            </if>
+            <if test="grid_tab_code != null">
+                AND s.grid_tab_code = #{grid_tab_code}
+            </if>
+            <if test="column_name != null">
+                AND s.column_name = upper(#{column_name})
+            </if>
+            order by s.order_seq asc
+        </where>
+    </select>
+
+    <resultMap id="layoutConfigRecResultMap" type="map">
+        <result column="config_id" property="config_id"/>
+        <result column="layout_code" property="layout_code"/>
+        <result column="tab_code" property="tab_code"/>
+        <result column="column_name" property="column_name"/>
+        <result column="data_type" property="data_type"/>
+        <result column="system_flag" property="system_flag"/>
+        <result column="key_field_flag" property="key_field_flag"/>
+        <result column="enabled_flag" property="enabled_flag"/>
+        <result column="display_flag" property="display_flag"/>
+        <result column="display_order" property="display_order"/>
+        <result column="prompt" property="prompt"/>
+        <result column="input_mode" property="input_mode"/>
+        <result column="validation_type" property="validation_type"/>
+        <result column="validation_sql" property="validation_sql"/>
+        <result column="lov_return_vcode" property="lov_return_vcode"/>
+        <result column="precision_num" property="precision_num"/>
+        <result column="zero_fill" property="zero_fill"/>
+        <result column="allow_format" property="allow_format"/>
+        <result column="allow_decimal" property="allow_decimal"/>
+        <result column="alignment" property="alignment"/>
+        <result column="width" property="width"/>
+        <result column="percent" property="percent"/>
+        <result column="default_value" property="default_value"/>
+        <result column="upper_limit" property="upper_limit"/>
+        <result column="lower_limit" property="lower_limit"/>
+        <result column="copy_from_parent_tab" property="copy_from_parent_tab"/>
+        <result column="height" property="height"/>
+        <result column="footerrenderer" property="footerrenderer"/>
+        <result column="lov_cascade_para1" property="lov_cascade_para1"/>
+        <result column="lov_cascade_para2" property="lov_cascade_para2"/>
+        <result column="lov_cascade_para3" property="lov_cascade_para3"/>
+        <result column="field_javascript" property="field_javascript"/>
+        <result column="created_by" property="created_by"/>
+        <result column="creation_date" property="creation_date"/>
+        <result column="last_updated_by" property="last_updated_by"/>
+        <result column="last_update_date" property="last_update_date"/>
+        <result column="clob_validation_sql" property="clob_validation_sql"/>
+        <result column="underline" property="underline"/>
+        <result column="field_group" property="field_group"/>
+        <result column="switchcard_tab_code" property="switchcard_tab_code"/>
+        <result column="grid_order_seq" property="grid_order_seq"/>
+        <result column="grid_order_type" property="grid_order_type"/>
+        <result column="base_tab_code" property="base_tab_code"/>
+        <result column="field_bak_flag" property="field_bak_flag"/>
+        <result column="ignore_required" property="ignore_required"/>
+        <result column="query_validation_sql" property="query_validation_sql"/>
+        <result column="match_any_flag" property="match_any_flag"/>
+        <result column="lov_height" property="lov_height"/>
+        <result column="lov_width" property="lov_width"/>
+        <result column="request_id" property="request_id"/>
+        <result column="program_id" property="program_id"/>
+        <result column="object_version_number" property="object_version_number"/>
+        <result column="last_update_login" property="last_update_login"/>
+        <result column="renderer_flag" property="renderer_flag"/>
+    </resultMap>
+
+    <select id="selectLayoutConfigRec" resultMap="layoutConfigRecResultMap">
+      select
+            *
+      from
+            hls_doc_layout_config t
+      where
+            t.layout_code = #{layout_code}
+        and t.tab_code = #{tab_code}
+        and t.column_name = #{column_name}
+    </select>
+
+    <select id="selectLayoutConfigValueName" resultType="org.springframework.util.LinkedCaseInsensitiveMap">
+        select * from (
+          ${v_sql}
+        ) t where t.value_code= #{default_value}
+    </select>
+
+    <resultMap id="configFieldMap" type="map">
+        <result column="config_id" property="config_id"/>
+        <result column="layout_code" property="layout_code"/>
+        <result column="column_name" property="column_name"/>
+        <result column="data_type" property="data_type"/>
+        <result column="system_flag" property="system_flag"/>
+        <result column="enabled_flag" property="enabled_flag"/>
+        <result column="display_flag" property="display_flag"/>
+        <result column="display_order" property="display_order"/>
+        <result column="prompt" property="prompt"/>
+        <result column="input_mode" property="input_mode"/>
+        <result column="required_input_mode" property="required_input_mode"/>
+        <result column="readonly_input_mode" property="readonly_input_mode"/>
+        <result column="validation_type" property="validation_type"/>
+        <result column="v_type" property="v_type"/>
+        <result column="validation_sql" property="validation_sql"/>
+        <result column="preci" property="precision_num"/>
+        <result column="zero_fill" property="zero_fill"/>
+        <result column="allow_format" property="allow_format"/>
+        <result column="allow_decimal" property="allow_decimal"/>
+        <result column="percent" property="percent"/>
+        <result column="d_value" property="d_value"/>
+        <result column="t_code" property="t_code"/>
+        <result column="c_name" property="c_name"/>
+        <result column="upper_limit" property="upper_limit"/>
+        <result column="lower_limit" property="lower_limit"/>
+        <result column="width" property="width"/>
+        <result column="colspan" property="colspan"/>
+        <result column="rowspan" property="rowspan"/>
+        <result column="key_field_flag" property="key_field_flag"/>
+        <result column="alignment" property="alignment"/>
+        <result column="lov_return_vcode" property="lov_return_vcode"/>
+        <result column="copy_from_parent_tab" property="copy_from_parent_tab"/>
+        <result column="tab_code" property="tab_code"/>
+        <result column="height" property="height"/>
+        <result column="field_javascript" property="field_javascript"/>
+        <result column="autocomplete" property="autocomplete"/>
+        <result column="fetchsingle" property="fetchsingle"/>
+        <result column="footerrenderer" property="footerrenderer"/>
+        <result column="sys_grid_show_title" property="sys_grid_show_title"/>
+        <result column="lov_cascade_para1" property="lov_cascade_para1"/>
+        <result column="lov_cascade_para2" property="lov_cascade_para2"/>
+        <result column="lov_cascade_para3" property="lov_cascade_para3"/>
+        <result column="underline" property="underline"/>
+        <result column="field_group" property="field_group"/>
+        <result column="query_only" property="query_only"/>
+        <result column="switchcard_tab_code" property="switchcard_tab_code"/>
+        <result column="base_tab_code" property="base_tab_code"/>
+        <result column="ignore_required" property="ignore_required"/>
+        <result column="field_bak_flag" property="field_bak_flag"/>
+    </resultMap>
+
+    <select id="selectLayoutConfigField" resultMap="configFieldMap">
+        SELECT
+        t1.config_id,
+        t1.layout_code,
+        t1.tab_code,
+        lower( t1.column_name ) column_name,
+        t1.data_type,
+        t1.system_flag,
+        nvl( t1.enabled_flag, 'N' ) enabled_flag,
+        nvl( t1.display_flag, 'N' ) display_flag,
+        t1.display_order,
+        t1.prompt,
+        t1.input_mode,
+        (case
+        when t1.input_mode = 'REQUIRED' or t1.input_mode = 'REQUIRED_ONLY_ADD' then
+        'TRUE'
+        else
+        'FALSE'
+        end
+        ) required_input_mode,
+        (
+        CASE
+        WHEN #{maintain_type} = 'READONLY' OR lt.query_only = 'Y' THEN
+        'TRUE'
+        ELSE
+        (case
+        when t1.input_mode = 'READONLY' then
+        'TRUE'
+        else
+        'FALSE'
+        end
+        )
+        END
+        ) readonly_input_mode,
+        (
+        CASE
+        WHEN t1.validation_type IN ( 'COMBOBOX', 'LOV', 'TREE', 'LOV_D' ) THEN
+        (
+        case
+        when t1.lov_return_vcode is null or t1.lov_return_vcode = 'N' then
+        t1.validation_type
+        else
+        concat(t1.validation_type, '_C')
+        end
+        )
+        ELSE
+        t1.validation_type
+        END
+        ) validation_type,
+        t1.validation_type v_type,
+        nvl(t1.clob_validation_sql, t1.validation_sql ) validation_sql,
+        nvl(t1.precision_num, 2) preci,
+        nvl(t1.zero_fill, 'FALSE') zero_fill,
+        nvl(t1.allow_format, 'FALSE') allow_format,
+        nvl(t1.allow_decimal, 'FALSE') allow_decimal,
+        t1.percent,
+        t1.default_value d_value,
+        t1.tab_code t_code,
+        t1.column_name c_name,
+        t1.upper_limit,
+        t1.lower_limit,
+        (
+        CASE
+        WHEN lt.tab_type = 'FIELDBOXCOLUMN' THEN
+        nvl(t1.width, lt.field_width)
+        ELSE
+        nvl(t1.width, 120)
+        END
+        ) width,
+        t1.key_field_flag,
+        nvl(t1.alignment, 'center') alignment,
+        nvl(t1.lov_return_vcode, 'N') lov_return_vcode,
+        t1.copy_from_parent_tab,
+        t1.height,
+        (
+        CASE
+        WHEN #{lov_search_rule} = 'AUTOCOMPLETE' THEN
+        'true'
+        ELSE
+        'false'
+        END
+        ) autocomplete,
+        (
+        CASE
+        WHEN #{lov_search_rule} = 'FETCHSINGLE' THEN
+        'true'
+        ELSE
+        'false'
+        END
+        ) fetchsingle,
+        (
+        CASE
+        WHEN t1.footerrenderer = 'Y' then
+        'sumFunction'
+        ELSE
+        ''
+        END
+        ) footerrenderer,
+        (
+        CASE
+        WHEN t1.validation_type IN ('TEXTFIELD', 'TEXTAREA') THEN
+        'true'
+        ELSE
+        'false'
+        END
+        ) sys_grid_show_title,
+        lower(t1.lov_cascade_para1) lov_cascade_para1,
+        lower(t1.lov_cascade_para2) lov_cascade_para2,
+        lower(t1.lov_cascade_para3) lov_cascade_para3,
+        t1.field_javascript,
+        t1.underline,
+        t1.field_group,
+        lt.query_only,
+        t1.switchcard_tab_code,
+        t1.base_tab_code,
+        t1.ignore_required,
+        nvl(t1.field_bak_flag, 'N') field_bak_flag
+        FROM
+        hls_doc_layout_config t1,
+        hls_doc_layout_tab lt
+        <where>
+            <if test="leaf_default_where_sql != null">
+                ${leaf_default_where_sql}
+            </if>
+            AND t1.layout_code = lt.layout_code
+            AND t1.tab_code = lt.tab_code
+            <if test="tab_code != null">
+                AND t1.tab_code=#{tab_code}
+            </if>
+            <if test="layout_code != null">
+                AND t1.layout_code = #{layout_code}
+            </if>
+            <if test="enabled_flag != null">
+                AND t1.enabled_flag = #{enabled_flag}
+            </if>
+            <if test="display_flag != null">
+                AND t1.display_flag = #{display_flag}
+            </if>
+            <if test="column_name != null">
+                AND t1.column_name = upper(#{column_name})
+            </if>
+            <if test="switchcard_tab_code != null">
+                AND t1.switchcard_tab_code = upper(#{switchcard_tab_code})
+            </if>
+        </where>
+        ORDER BY
+        t1.display_order
+    </select>
+
+    <resultMap id="buttonMap" type="map">
+        <result property="function_code" column="function_code"/>
+        <result property="layout_code" column="layout_code"/>
+        <result property="tab_code" column="tab_code"/>
+        <result property="button_code" column="button_code"/>
+        <result property="button_type" column="button_type"/>
+        <result property="icon" column="icon"/>
+        <result property="prompt" column="prompt"/>
+        <result property="save_data_first" column="save_data_first"/>
+        <result property="system_flag" column="system_flag"/>
+        <result property="display_flag" column="display_flag"/>
+        <result property="display_order" column="display_order"/>
+        <result property="javascript" column="javascript"/>
+        <result property="enabled_flag" column="enabled_flag"/>
+        <result property="query_display_flag" column="query_display_flag"/>
+        <result property="icon" column="icon"/>
+        <result property="action_after_button" column="action_after_button"/>
+    </resultMap>
+
+    <select id="selectLayoutButton" resultMap="buttonMap">
+        SELECT
+        *
+        FROM
+        hls_doc_layout_button t1
+        <where>
+            <if test="leaf_default_where_sql != null">
+                ${leaf_default_where_sql}
+            </if>
+            and t1.function_code=#{function_code}
+            and t1.enabled_flag='Y'
+            <if test="button_code != null">
+                t1.button_code = #{button_code}
+            </if>
+        </where>
+        order by t1.display_order
+    </select>
+
+
+
+    <select id="selectLayoutTabButton" resultMap="buttonMap">
+        SELECT
+        function_code,
+        layout_code,
+        tab_code,
+        button_code,
+        prompt,
+        save_data_first,
+        system_flag,
+        display_flag,
+        display_order,
+        javascript,
+        enabled_flag,
+        created_by,
+        creation_date,
+        last_updated_by,
+        last_update_date,
+        icon,
+        query_display_flag
+        FROM
+        hls_doc_layout_tab_button t1
+        <where>
+            <if test="leaf_default_where_sql != null">
+                ${leaf_default_where_sql}
+            </if>
+            and t1.function_code=#{function_code}
+            and t1.layout_code=#{layout_code}
+            and t1.tab_code=#{tab_code}
+            and t1.enabled_flag='Y'
+            and t1.display_flag='Y'
+        </where>
+        order by t1.display_order
+    </select>
+
+    <resultMap id="configLovMap" type="map">
+        <id property="lov_config_id" column="lov_config_id"/>
+        <result property="config_id" column="config_id"/>
+        <result property="lov_col_for_query" column="lov_col_for_query"/>
+        <result property="lov_col_for_display" column="lov_col_for_display"/>
+        <result property="lov_col_display_width" column="lov_col_display_width"/>
+        <result property="lov_data_type" column="lov_data_type"/>
+        <result property="lov_col_prompt" column="lov_col_prompt"/>
+        <result property="lov_col_sequence" column="lov_col_sequence"/>
+        <result property="lov_col_name" column="lov_col_name"/>
+    </resultMap>
+
+    <select id="selectLayoutConfigLov" resultMap="configLovMap">
+        SELECT
+        lov_config_id,
+        config_id,
+        lov_col_for_query,
+        lov_col_for_display,
+        lov_col_display_width,
+        lov_data_type,
+        lov_col_prompt,
+        lov_col_sequence,
+        lov_col_name
+        FROM
+        hls_doc_layout_config_lov t1
+        <where>
+            <if test="leaf_default_where_sql != null">
+                ${leaf_default_where_sql}
+            </if>
+            AND t1.config_id=#{config_id}
+        </where>
+        order by t1.lov_col_sequence
+    </select>
+
+    <resultMap id="switchCardValueMap" type="map">
+        <result column="switchcard_value" property="switchcard_value"/>
+    </resultMap>
+
+    <select id="selectLayoutSwitchCardValue" resultMap="switchCardValueMap">
+        SELECT
+        t.switchcard_value
+        FROM
+        hls_doc_layout_tab t
+        <where>
+            <if test="leaf_default_where_sql != null">
+                ${leaf_default_where_sql}
+            </if>
+            AND t.layout_code     = #{layout_code}
+            AND t.parent_tab_code = #{parent_tab_code}
+            AND t.enabled_flag    = 'Y'
+        </where>
+
+        GROUP BY
+        t.switchcard_value
+    </select>
+
+    <resultMap id="orderFieldMap" type="map">
+        <result column="column_name" property="column_name"/>
+        <result column="grid_order_seq" property="grid_order_seq"/>
+        <result column="grid_order_type" property="grid_order_type"/>
+        <result column="data_type" property="data_type"/>
+    </resultMap>
+
+    <select id="selectLayoutOrderField" resultMap="orderFieldMap">
+        SELECT
+        d.column_name,
+        d.grid_order_seq,
+        nvl(d.grid_order_type, 'ASCENDING') grid_order_type,
+        d.data_type
+        FROM
+        hls_doc_layout_config d
+        WHERE
+        d.layout_code     = #{layout_code} AND
+        d.tab_code        = #{tab_code} AND
+        d.grid_order_seq IS NOT NULL AND
+        d.enabled_flag    = 'Y'
+        ORDER BY
+        d.grid_order_seq
+
+    </select>
+
+    <resultMap id="distinctTabGroupMap" type="map">
+        <result column="layout_code" property="layout_code"/>
+        <result column="tree_code" property="tree_code"/>
+        <result column="tab_code" property="tab_code"/>
+    </resultMap>
+
+    <select id="selectDistinctTabGroup" resultMap="distinctTabGroupMap">
+        SELECT DISTINCT t.layout_code,t.tree_code,t.tab_code FROM
+        <include refid="hls.core.sys.mapper.HlsDocLayoutTabGroupMapper.queryHlsDocLayoutTabGroupDetail"/>
+        t
+        <where>
+            <if test="layoutCode != null">
+                layout_code = #{layoutCode}
+            </if>
+        </where>
+    </select>
+
+    <resultMap id="LovDConfigMap" type="map">
+        <result column="layout_code" property="layout_code"/>
+        <result column="config_id" property="config_id"/>
+    </resultMap>
+
+    <select id="selectDistinctLovDConfigId" resultMap="LovDConfigMap">
+        SELECT config_id,layout_code FROM hls_doc_layout_config WHERE validation_type = 'LOV_D'
+        <if test="layoutCode != null">
+            and layout_code = #{layoutCode}
+        </if>
+    </select>
+
+</mapper>

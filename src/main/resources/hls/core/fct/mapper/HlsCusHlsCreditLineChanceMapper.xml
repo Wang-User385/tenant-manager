@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="hls.core.fct.mapper.HlsCusHlsCreditLineChanceMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance"
+               extends="com.hand.hap.mapper.StdMapper.STD">
+        <result column="CHANCE_ID" property="chanceId" jdbcType="DECIMAL"/>
+        <result column="CREDIT_LINE_NUMBER" property="creditLineNumber" jdbcType="VARCHAR"/>
+        <result column="CREDIT_LINE_NAME" property="creditLineName" jdbcType="VARCHAR"/>
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL"/>
+        <result column="BP_ID_N" property="bpIdN" jdbcType="VARCHAR"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="DOCUMENT_TYPE" property="documentType" jdbcType="VARCHAR"/>
+        <result column="DOCUMENT_CATEGORY" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="PROPOSER_USER_ID" property="proposerUserId" jdbcType="DECIMAL"/>
+        <result column="PROPOSER_EMPLOYEE_ASSIGN_ID" property="proposerEmployeeAssignId" jdbcType="DECIMAL"/>
+        <result column="PROPOSER_EMPLOYEE_ID" property="proposerEmployeeId" jdbcType="DECIMAL"/>
+        <result column="BUSINESS_TYPE" property="businessType" jdbcType="VARCHAR"/>
+        <result column="SOURCE_DOCUMENT_CATEGORY" property="sourceDocumentCategory" jdbcType="VARCHAR"/>
+        <result column="SOURCE_DOCUMENT_ID" property="sourceDocumentId" jdbcType="DECIMAL"/>
+        <result column="CREDIT_LINE_STATUS" property="creditLineStatus" jdbcType="VARCHAR"/>
+        <result column="CURRENCY_CODE" property="currencyCode" jdbcType="VARCHAR"/>
+        <result column="CREDIT_LINE_AMT" property="creditLineAmt" jdbcType="DECIMAL"/>
+        <result column="CREDIT_EXPOSURE_AMT" property="creditExposureAmt" jdbcType="DECIMAL"/>
+        <result column="CREDIT_LINE_QTY" property="creditLineQty" jdbcType="DECIMAL"/>
+        <result column="CREDIT_EXPOSURE_QTY" property="creditExposureQty" jdbcType="DECIMAL"/>
+        <result column="VALID_FROM" property="validFrom" jdbcType="DATE"/>
+        <result column="VALID_TO" property="validTo" jdbcType="DATE"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="PRJ_INFO_DESC" property="prjInfoDesc" jdbcType="VARCHAR"/>
+        <result column="PROJECT_ASSISTANT" property="projectAssistant" jdbcType="DECIMAL"/>
+        <result column="OBJECT_VERSION_NUMBER" property="objectVersionNumber" jdbcType="DECIMAL"/>
+
+        <result column="COMPANY_NAME" property="companyName" jdbcType="VARCHAR"/>
+        <result column="credit_line_status_value" property="creditLineStatusValue" jdbcType="VARCHAR"/>
+        <result column="credit_line_chance_count" property="creditLineChanceCount" jdbcType="DECIMAL"/>
+        <result column="credit_line_count_percent" property="creditLineCountPercent" jdbcType="DECIMAL"/>
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR"/>
+        <result column="LIMIT_FROM" property="limitFrom" jdbcType="DECIMAL"/>
+        <result column="LIMIT_TO" property="limitTo" jdbcType="DECIMAL"/>
+        <result column="BEGIN_DATE" property="beginDate" jdbcType="DATE"/>
+        <result column="END_DATE" property="endDate" jdbcType="DATE"/>
+
+        <result column="PROJECT_ASSISTANT_ASSIGNS_ID" property="projectAssistantAssignsId" jdbcType="DECIMAL"/>
+        <result column="unit_id" property="unitId" jdbcType="DECIMAL"/>
+        <result column="touch_created_date" property="touchCreatedDate" jdbcType="VARCHAR"/>
+
+        <result column="CREDIT_LINE_STATUS_DESC" property="creditLineStatusDesc" jdbcType="VARCHAR"/>
+
+        <result column="PROJEC_ASSISTANT_NAME" property="projectAssistantName" jdbcType="VARCHAR"/>
+        <result column="PROJEC_ASSISTANT_N" property="projectAssistantN" jdbcType="VARCHAR"/>
+
+        <result column="CURRENCY_CODE_N" property="currencyCodeN" jdbcType="VARCHAR"/>
+        <result column="DOCUMENT_TYPE_N" property="documentTypeN" jdbcType="VARCHAR"/>
+
+
+    </resultMap>
+    <select id="selectModelByCondition" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance"
+            resultMap="BaseResultMap">
+        SELECT
+        CHANCE_ID,
+        CREDIT_LINE_NUMBER,
+        CREDIT_LINE_NAME,
+        DOCUMENT_TYPE,
+        CREDIT_LINE_AMT,
+        VALID_FROM,
+        VALID_TO,
+        DESCRIPTION,
+        PRJ_INFO_DESC,
+        BP_ID,
+        PROJECT_ASSISTANT,
+        (
+          select hbm.BP_NAME
+          from HLS_BP_MASTER hbm
+          where hbm.BP_ID = HCLC.BP_ID
+        ) BP_ID_N,
+        CREDIT_LINE_STATUS,
+        CURRENCY_CODE,
+        (
+        SELECT FE.NAME
+        FROM FND_EMPLOYEE FE
+        WHERE
+        FE.EMPLOYEE_ID=HCLC.PROPOSER_EMPLOYEE_ID
+        )AS projectManager,
+
+        (
+        SELECT FE.NAME
+        FROM FND_EMPLOYEE FE
+        WHERE
+        FE.EMPLOYEE_ID=HCLC.PROJECT_ASSISTANT
+        )AS projectAssistantName,
+        (
+        SELECT FE.NAME
+        FROM FND_EMPLOYEE FE
+        WHERE
+        FE.EMPLOYEE_ID=HCLC.PROJECT_ASSISTANT
+        )AS projectAssistantN,
+        (
+        SELECT HBM.BP_CODE
+        FROM HLS_BP_MASTER HBM
+        WHERE HBM.BP_ID=HCLC.BP_ID
+        )AS clientCode,
+        (
+        SELECT HBM.BP_NAME
+        FROM HLS_BP_MASTER HBM
+        WHERE HBM.BP_ID=HCLC.BP_ID
+        )AS clientName,
+        (
+        SELECT FOU.UNIT_NAME
+        FROM FND_ORG_UNIT FOU,
+        FND_EMPLOYEE_ASSIGNS FEA
+        WHERE FEA.EMPLOYEE_ASSIGN_ID=HCLC.PROPOSER_EMPLOYEE_ASSIGN_ID
+        AND FOU.UNIT_ID=FEA.UNIT_ID
+        )AS unitName,
+        (
+        SELECT distinct D.NAME
+        FROM FND_EMPLOYEE_ASSIGNS A,
+        FND_ORG_UNIT B,
+        FND_EMPLOYEE_ASSIGNS C,
+        FND_EMPLOYEE D
+        WHERE A.EMPLOYEE_ASSIGN_ID = HCLC.PROPOSER_EMPLOYEE_ASSIGN_ID
+        AND A.UNIT_ID = B.UNIT_ID
+        AND B.CHIEF_POSITION_ID = C.POSITION_ID
+        AND C.EMPLOYEE_ID = D.EMPLOYEE_ID
+        AND C.ENABLED_FLAG = 'Y'
+        )AS managerName,
+        (
+        SELECT FC.COMPANY_FULL_NAME
+        FROM FND_COMPANY FC
+        WHERE FC.COMPANY_ID=HCLC.COMPANY_ID
+        )AS companyName,
+        (
+        SELECT FC.CURRENCY_NAME
+        FROM FND_CURRENCY FC
+        WHERE FC.CURRENCY_CODE=HCLC.CURRENCY_CODE
+        )AS currencyName,
+        (
+        SELECT FC.CURRENCY_NAME
+        FROM FND_CURRENCY FC
+        WHERE FC.CURRENCY_CODE=HCLC.CURRENCY_CODE
+        )AS currencyCodeN,
+        (
+        SELECT HDT.DESCRIPTION
+        FROM HLS_DOCUMENT_TYPE HDT
+        WHERE HDT.DOCUMENT_TYPE=HCLC.DOCUMENT_TYPE
+        AND HDT.DOCUMENT_CATEGORY=HCLC.DOCUMENT_CATEGORY
+        AND HDT.BUSINESS_TYPE=HCLC.BUSINESS_TYPE
+        )AS documentDesc,
+        (
+        SELECT HDT.DESCRIPTION
+        FROM HLS_DOCUMENT_TYPE HDT
+        WHERE HDT.DOCUMENT_TYPE=HCLC.DOCUMENT_TYPE
+        AND HDT.DOCUMENT_CATEGORY=HCLC.DOCUMENT_CATEGORY
+        AND HDT.BUSINESS_TYPE=HCLC.BUSINESS_TYPE
+        )AS documentTypeN,
+        HCLC.company_id,
+        OBJECT_VERSION_NUMBER
+        FROM HLS_CREDIT_LINE_CHANCE HCLC
+        <where>
+            1=1
+            <if test="chanceId!=null">
+                and HCLC.CHANCE_ID = #{chanceId}
+            </if>
+            <if test="companyId!=null">
+                and HCLC.company_id =#{companyId}
+            </if>
+        </where>
+
+    </select>
+    <select id="selectCreditLineChanceByStatus" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance"
+            resultMap="BaseResultMap">
+        SELECT
+        CLC.CHANCE_ID,
+        CLC.BP_ID,
+        (
+        SELECT
+        HBM.BP_NAME
+        FROM
+        HLS_BP_MASTER HBM
+        WHERE
+        CLC.BP_ID = HBM.BP_ID
+        ) AS BP_NAME,
+        CLC.CREDIT_LINE_NUMBER,
+        CLC.CREDIT_LINE_NAME,
+        (
+        SELECT
+        FC.COMPANY_FULL_NAME
+        FROM
+        FND_COMPANY FC
+        WHERE
+        CLC.COMPANY_ID = FC.COMPANY_ID
+        ) AS COMPANY_NAME,
+        CLC.CREDIT_LINE_AMT,
+        CLC.CREDIT_EXPOSURE_AMT,
+        CLC.VALID_FROM,
+        CLC.VALID_TO,
+        CLC.CREDIT_LINE_STATUS,
+        (
+        SELECT
+        HDS.DESCRIPTION
+        FROM
+        HLS_DOCUMENT_STATUS HDS
+        WHERE
+        HDS.DOCUMENT_CATEGORY = 'FCT_PROJECT'
+        AND
+        HDS.STATUS_CODE = CLC.CREDIT_LINE_STATUS
+        ) AS CREDIT_LINE_STATUS_DESC,
+        CLC.CREATION_DATE  touch_created_date
+        FROM
+        HLS_CREDIT_LINE_CHANCE CLC
+        <where>
+            1=1
+            AND CLC.company_id = #{request.companyId}
+            AND CLC.DOCUMENT_CATEGORY='HLS_CREDIT_LINE'
+            <if test="creditLineStatus!=null">
+                and CLC.CREDIT_LINE_STATUS=#{creditLineStatus}
+            </if>
+            <if test="limitFrom!=null">
+                and CLC.CREDIT_LINE_AMT &gt;= #{limitFrom}
+            </if>
+            <if test="limitTo!=null">
+                and CLC.CREDIT_LINE_AMT &lt;= #{limitTo}
+            </if>
+            <if test="beginDate!=null">
+                and CLC.VALID_FROM &gt;= #{beginDate}
+            </if>
+            <if test="endDate!=null">
+                and CLC.VALID_TO &lt; (#{endDate} + 1)
+            </if>
+            <if test="bpName!=null">
+                and (
+                SELECT
+                HBM.BP_NAME
+                FROM
+                HLS_BP_MASTER HBM
+                WHERE
+                CLC.BP_ID = HBM.BP_ID
+                ) like concat(concat('%',#{bpName}),'%')
+            </if>
+        </where>
+        order by clc.creation_date desc
+    </select>
+
+</mapper>

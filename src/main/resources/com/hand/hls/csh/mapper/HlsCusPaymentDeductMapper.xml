@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.HlsCusPaymentDeductMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.HlsCusPaymentDeduct">
+        <result column="deduct_id" property="deductId" jdbcType="DECIMAL"/>
+        <result column="payment_req_id" property="paymentReqId" jdbcType="DECIMAL"/>
+        <result column="payment_req_ln_id" property="paymentReqLnId" jdbcType="DECIMAL"/>
+        <result column="deduct_amount" property="deductAmount" jdbcType="DECIMAL"/>
+        <result column="deduct_principal" property="deductPrincipal" jdbcType="DECIMAL"/>
+        <result column="deduct_interest" property="deductInterest" jdbcType="DECIMAL"/>
+        <result column="cashflow_id" property="cashflowId"/>
+        <result column="cf_item" property="cfItem"/>
+        <result column="cf_item_desc" property="cfItemDesc"/>
+        <result column="deductible_amount" property="deductibleAmount"/>
+        <result column="deductible_principal" property="deductiblePrincipal"/>
+        <result column="deductible_interest" property="deductibleInterest"/>
+    </resultMap>
+
+    <!-- 付款申请- 坐扣明细查询 -->
+    <select id="queryCanDeductDetailFromCashflow" parameterType="com.hand.hls.csh.dto.HlsCusPaymentDeduct"
+            resultMap="BaseResultMap">
+
+        SELECT (t1.due_amount_c - t1.deduct_amount_c) deductible_amount,
+        (t1.principal_c - t1.deduct_principal_c) deductible_principal,
+        (t1.interest_c - t1.deduct_interest_c) deductible_interest,
+        t1.deduct_amount,
+        t1.deduct_principal,
+        t1.deduct_id,
+        t1.deduct_interest,
+        t1.cashflow_id,
+        t1.cf_item,
+        t1.cf_item_desc,
+        t1.payment_req_id
+        FROM (SELECT (SELECT cc.due_amount
+        FROM con_contract_cashflow cc
+        WHERE cc.cashflow_id = d.cashflow_id) due_amount_c,
+
+        (SELECT SUM(cpd.deduct_amount)
+        FROM csh_payment_deduct cpd
+        WHERE cpd.cashflow_id = d.cashflow_id) deduct_amount_c,
+
+        (SELECT cc.principal
+        FROM con_contract_cashflow cc
+        WHERE cc.cashflow_id = d.cashflow_id) principal_c,
+
+        (SELECT SUM(cpd.deduct_principal)
+        FROM csh_payment_deduct cpd
+        WHERE cpd.cashflow_id = d.cashflow_id) deduct_principal_c,
+
+        (SELECT cc.interest
+        FROM con_contract_cashflow cc
+        WHERE cc.cashflow_id = d.cashflow_id) interest_c,
+
+        (SELECT SUM(cpd.deduct_interest)
+        FROM csh_payment_deduct cpd
+        WHERE cpd.cashflow_id = d.cashflow_id) deduct_interest_c,
+        d.deduct_amount,
+        d.deduct_principal,
+        d.deduct_interest,
+        d.deduct_id,
+        ccc.cashflow_id,
+        ccc.cf_item,
+        (select hci.description from hls_cashflow_item hci,hls_cashflow_type hct
+        where hct.cf_type = hci.cf_type
+        and hci.cf_item = ccc.cf_item
+        and hci.cf_type = ccc.cf_type) as cf_item_desc,
+        d.payment_req_id
+        FROM csh_payment_deduct d,con_contract_cashflow ccc
+        WHERE ccc.cashflow_id = d.cashflow_id) t1
+        <where>
+            t1.cf_item in (2,51)
+            <if test="paymentReqId != null">
+                AND t1.payment_req_id = #{paymentReqId}
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

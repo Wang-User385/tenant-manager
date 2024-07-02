@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.vat.mapper.HandoverApplicationMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.vat.dto.HandoverApplication">
+        <result column="INVOICE_HANDOVER_ID" property="invoiceHandoverId" jdbcType="DECIMAL" />
+        <result column="DOCUMENT_ID" property="documentId" jdbcType="DECIMAL" />
+        <result column="DOCUMENT_NUMBER" property="documentNumber" jdbcType="VARCHAR" />
+        <result column="HANDOVER_PERSON" property="handoverPerson" jdbcType="VARCHAR" />
+        <result column="HOST_PARTMENT" property="hostPartment" jdbcType="VARCHAR" />
+        <result column="HOST_MANAGER" property="hostManager" jdbcType="VARCHAR" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="INVOICE_DATE" property="invoiceDate" jdbcType="DATE" />
+        <result column="INVOICE_CODE" property="invoiceCode" jdbcType="VARCHAR" />
+        <result column="INVOICE_NUMBER" property="invoiceNumber" jdbcType="VARCHAR" />
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR" />
+        <result column="TOTAL_AMOUNT" property="totalAmount" jdbcType="DECIMAL" />
+        <result column="TAX_AMOUNT" property="taxAmount" jdbcType="DECIMAL" />
+        <result column="TAX_TYPE_RATE" property="taxTypeRate" jdbcType="DECIMAL" />
+        <result column="HANDOVER_STATUS" property="handoverStatus" jdbcType="VARCHAR" />
+        <result column="HANDOVER_DATE" property="handoverDate" jdbcType="DATE" />
+        <result column="REVIEW_PERSON" property="reviewPerson" jdbcType="VARCHAR" />
+        <result column="handover_status_n" property="handoverStatusN" jdbcType="VARCHAR" />
+        <result column="handover_person_n" property="handoverPersonN" jdbcType="VARCHAR" />
+
+    </resultMap>
+
+    <select id="queryInvoiceHandoverApplication" resultMap="BaseResultMap">
+  SELECT  tt.*,
+   (SELECT scv.MEANING
+                    FROM sys_code_b sc, sys_code_value_b scv
+                    WHERE sc.CODE_ID = scv.CODE_ID
+                    AND sc.CODE = 'INVOICE_HANDOVER_STATUS'
+                    AND scv.value =tt.handover_status
+                    ) AS handover_status_n,
+        (SELECT
+        e.NAME
+        FROM
+        sys_user s,
+        sys_user_allocation a,
+        fnd_employee e,
+        fnd_employee_assigns fa
+        WHERE
+        s.user_id = a.user_id
+        AND a.EMPLOYEE_ASSIGN_ID = fa.EMPLOYEE_ASSIGN_ID
+        AND fa.EMPLOYEE_ID = e.EMPLOYEE_ID
+
+        and a.USER_ID=tt.handover_person)
+        AS handover_person_n     FROM   invoice_handover_application     tt
+
+        <where>
+            ( tt.handover_person =#{handoverPerson}   or tt.created_by =#{handoverPerson})
+            <if test="documentNumber != null">
+                <bind name="documentNumber" value="'%'+documentNumber+'%'"/>
+                and tt.document_number like #{documentNumber}
+            </if>
+            <if test="invoiceDateFrom != null">
+                and to_char(tt.invoice_date,'yyyy-MM-dd') &gt;   #{invoiceDateFrom}
+            </if>
+            <if test="invoiceDateTo != null">
+                and to_char(tt.invoice_date,'yyyy-MM-dd') &lt;     #{invoiceDateTo}
+            </if>
+            <if test="bpName != null">
+                <bind name="bpName" value="'%'+bpName+'%'"/>
+                and tt.bp_name like #{bpName}
+            </if>
+            <if test="handoverStatus != null">
+                and tt.handover_status = #{handoverStatus}
+            </if>
+            <if test="contractNumber != null">
+                <bind name="contractNumber" value="'%'+contractNumber+'%'"/>
+                and tt.contract_number like #{contractNumber}
+            </if>
+            <if test="hostPartment">
+                <bind name="hostPartment" value="'%'+hostPartment+'%'"/>
+                and tt.host_partment = #{hostPartment}
+            </if>
+            <if test="billingMethod != null">
+                and tt.billing_method = #{billingMethod}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryInvoiceHandoverApplicationNew" resultMap="BaseResultMap">
+        SELECT  tt.*,
+        (SELECT scv.MEANING
+        FROM sys_code_b sc, sys_code_value_b scv
+        WHERE sc.CODE_ID = scv.CODE_ID
+        AND sc.CODE = 'INVOICE_HANDOVER_STATUS'
+        AND scv.value =tt.handover_status
+        ) AS handover_status_n,
+        (SELECT
+        e.NAME
+        FROM
+        sys_user s,
+        sys_user_allocation a,
+        fnd_employee e,
+        fnd_employee_assigns fa
+        WHERE
+        s.user_id = a.user_id
+        AND a.EMPLOYEE_ASSIGN_ID = fa.EMPLOYEE_ASSIGN_ID
+        AND fa.EMPLOYEE_ID = e.EMPLOYEE_ID
+
+        and a.USER_ID=tt.handover_person)
+        AS handover_person_n     FROM   invoice_handover_application     tt
+
+        <where>
+           1=1
+
+
+            <if test="invoiceHandoverId != null">
+                and tt.invoice_handover_id = #{invoiceHandoverId}
+            </if>
+
+        </where>
+    </select>
+
+
+
+
+    <update id="updateHandoverStatus">
+        update invoice_handover_application a  set a.handover_status = 'TRANSFERING' , a.handover_person = #{handoverPerson}
+        where a.invoice_handover_id=#{invoiceHandoverId}
+    </update>
+
+    <select id="queryInvoiceHandoverApplicationConfirm" resultMap="BaseResultMap">
+  SELECT  tt.*,
+   (SELECT scv.MEANING
+                    FROM sys_code_b sc, sys_code_value_b scv
+                    WHERE sc.CODE_ID = scv.CODE_ID
+                    AND sc.CODE = 'INVOICE_HANDOVER_STATUS'
+                    AND scv.value =tt.handover_status
+                    ) AS handover_status_n,
+        (SELECT
+        e.NAME
+        FROM
+        sys_user s,
+        sys_user_allocation a,
+        fnd_employee e,
+        fnd_employee_assigns fa
+        WHERE
+        s.user_id = a.user_id
+        AND a.EMPLOYEE_ASSIGN_ID = fa.EMPLOYEE_ASSIGN_ID
+        AND fa.EMPLOYEE_ID = e.EMPLOYEE_ID
+
+        and a.USER_ID=tt.handover_person)
+        AS handover_person_n      FROM   invoice_handover_application
+
+       tt
+        <where>
+            tt.handover_status in ('TRANSFERING','TRANSFER_END')
+            and  tt.handover_person =#{handoverPerson}
+            <if test="documentNumber != null">
+                <bind name="documentNumber" value="'%'+documentNumber+'%'"/>
+                and tt.document_number like #{documentNumber}
+            </if>
+            <if test="invoiceDateFrom != null">
+                and to_char(tt.invoice_date,'yyyy-MM-dd') &gt;   #{invoiceDateFrom}
+            </if>
+            <if test="invoiceDateTo != null">
+                and to_char(tt.invoice_date,'yyyy-MM-dd') &lt;     #{invoiceDateTo}
+            </if>
+            <if test="bpName != null">
+                <bind name="bpName" value="'%'+bpName+'%'"/>
+                and tt.bp_name like #{bpName}
+            </if>
+            <if test="handoverStatus != null">
+                and tt.handover_status = #{handoverStatus}
+            </if>
+            <if test="contractNumber != null">
+                <bind name="contractNumber" value="'%'+contractNumber+'%'"/>
+                and tt.contract_number like #{contractNumber}
+            </if>
+            <if test="hostPartment">
+                <bind name="hostPartment" value="'%'+hostPartment+'%'"/>
+                and tt.host_partment = #{hostPartment}
+            </if>
+            <if test="billingMethod != null">
+                and tt.billing_method = #{billingMethod}
+            </if>
+        </where>
+    </select>
+
+    <update id="updateHandoverStatusReview">
+        update invoice_handover_application a  set a.handover_status = 'TRANSFER_END' ,a.review_person = #{reviewPerson}
+        where a.invoice_handover_id=#{invoiceHandoverId}
+    </update>
+
+    <update id="updateHandoverRejectStatusReview">
+        update invoice_handover_application a  set a.handover_status = 'TRANSFER_BACK'
+        where a.invoice_handover_id=#{invoiceHandoverId}
+    </update>
+</mapper>

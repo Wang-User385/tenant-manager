@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        jQuery(document).ready(function() {
+            var table_id =  document.getElementById('vat_invoice_rec_ds_grid_wrap');
+            table_id.getElementsByClassName('grid-btn grid-excel grid-btn-hap-toolbar')[0].hidden = true;
+        });
+
+        function vat_invoice_rec_query() {
+            $('vat_invoice_rec_ds').query();
+        }
+
+        function vat_invoice_rec_reset() {
+            $('vat_invoice_rec_query_ds').reset();
+            $('vat_invoice_rec_ds').query();
+        }
+
+        function onSubmitSuccess_vat_invoice_rec_ds(ds) {
+            vat_invoice_rec_query();
+        }
+
+        function vat_invoice_rec_confirm() {
+            if ($('vat_invoice_rec_ds').getSelected().length == 0) {
+                Leaf.showMessage("提示", "请至少选择一条记录!");
+                return;
+            }
+            Leaf.showConfirm('提示', '是否进行发票确认？', confirm, null, 200, 100);
+        }
+
+        function confirm() {
+            debugger
+            // $('vat_invoice_rec_ds').submitSelected();
+            var param=$('vat_invoice_rec_ds').getSelected().map((v)=>v.data);
+            Leaf.request({
+                url: "${/request/@context_path}/acr/invoice/hd/confirm",
+                para: param,
+                success: function (res) {
+                    Leaf.showMessage('提示','确认成功')
+                    console.log(res);
+                    vat_invoice_rec_query()
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+        function rendererFunction_clear(value, record, name) {
+            if (!value) {
+                return "";
+            } else {
+                return '<a href="javascript:winOpen_vat_invoice_rec_detail(' + record.get('invoice_hd_id') + ');">' + value + '</a>';
+            }
+        }
+
+        function winOpen_vat_invoice_rec_detail(invoice_hd_id) {
+            new Leaf.Window({
+                id: "vat_invoice_rec_detail_id",
+                url: "${/request/@context_path}/modules/VAT/VAT_INVOICE_REC/ACR002/vat_invoice_rec_confirm_detail.lview",
+                title: '详情',
+                fullScreen: true,
+                params: {
+                    invoice_hd_id: invoice_hd_id,
+                    winId: "vat_invoice_rec_detail_id"
+                },
+                draggable: true,
+                closeable: true
+            });
+        }
+
+        function vat_invoice_rec_export(){
+            var records = $('vat_invoice_rec_ds').getSelected();
+            if(!records.length) {
+                Leaf.showMessage('提示','至少选择选择一条单据！');
+                return;
+            }
+            var invoiceHdIdStr = [];
+            var isExport = true;
+            for(var i=0;i<records.length;i++){
+                var confirm_status = records[i].get('confirm_status');
+                var invoice_hd_id = records[i].get('invoice_hd_id');
+                if(confirm_status != 'CONFIRM'){
+                    isExport = false;
+                }
+                invoiceHdIdStr.push(invoice_hd_id);
+            }
+            new Leaf.showConfirm('${l:HLS.PROMPT}', '确认导出?', function okFun() {
+                if(!isExport) {
+                    Leaf.showMessage('提示','只能导出已确认的发票!');
+                    return false;
+                }
+                location.href =  '${/request/@context_path}/vat/acr/invoice/excel/export?invoiceHdIdStr=' + invoiceHdIdStr.join('-');
+            })
+        }
+
+        function vat_invoice_rec_import(){
+            new Leaf.Window({
+                id:'vat_invoice_import_win_id',
+                params:{
+                    winid:'vat_invoice_import_win_id'
+                },
+                url:'${/request/@context_path}/modules/VAT/VAT_INVOICE_REC/ACR001/vat_invoice_rec_import.lview',
+                title:'销项发票导入',
+                fullScreen: false,
+                width:500,
+                height:300,
+                draggable: true
+            });
+        }
+
+        function acr_hd_upload(value, record, name){
+            var link_function = 'upload_file';
+            return '<a href="javascript:upload_file(\'' + record.get('invoice_hd_id') + '\');">' + '附件上传' + '</a>';
+        }
+        function upload_file(document_id){
+            var url = '${/request/@context_path}/uploadFile.lview';
+            var win = new Leaf.Window({
+                id: 'acr_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: document_id,
+                    table_name: 'ACR_INVOICE_HD',
+                    winid: 'acr_open_attachment_winid',
+                    function_usage: 'MODIFY'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="vat_invoice_kind_ds"
+                       queryUrl="${/request/@context_path}/acp/invoice/ln/selectInvoiceKind"
+                       autoQuery="true">
+            </a:dataSet>
+            <a:dataSet id="vat_billing_way_ds_1" lookupCode="VAT.BILLING_WAY" autoQuery="true"/>
+            <a:dataSet id="vat_cf_item_ds_1" lookupCode="JC.BILL_ITEM" autoQuery="true"/>
+            <a:dataSet id="vat_invoice_status_ds" lookupCode="VAT.INVOICE_STATUS" autoQuery="true"/>
+            <!--<a:dataSet id="vat_invoice_status_ds">
+                <a:datas>
+                    <a:record code_value="NEW" code_value_name="新建"/>
+                    <a:record code_value="CONFIRM" code_value_name="已确认"/>
+                    <a:record code_value="EXPORTED" code_value_name="已导出"/>
+                    <a:record code_value="IMPORTED" code_value_name="已开票"/>
+                </a:datas>
+            </a:dataSet>-->
+            <a:dataSet id="vat_invoice_rec_query_ds">
+                <a:fields>
+                    <a:field name="invoice_kind_n" options="vat_invoice_kind_ds" displayField="meaning"
+                             valueField="code"
+                             returnField="invoice_kind"/>
+                    <a:field name="billing_way_n" options="vat_billing_way_ds_1" displayField="code_value_name"
+                             valueField="code_value"
+                             returnField="billing_way"/>
+                    <a:field name="cf_item_n" options="vat_cf_item_ds_1" displayField="code_value_name"
+                             valueField="code_value"
+                             returnField="cf_item"/>
+                    <a:field name="invoice_status_n" options="vat_invoice_status_ds" displayField="code_value_name"
+                             valueField="code_value"
+                             returnField="invoice_status"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="vat_invoice_rec_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/acr/invoice/hd/query?forReverse=NEW"
+                       submitUrl="${/request/@context_path}/acr/invoice/hd/confirm"
+                       queryDataSet="vat_invoice_rec_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="invoice_date" datatype="date"/>
+                    <a:field name="due_date" datatype="date" />
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_vat_invoice_rec_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="vat_invoice_rec_query" text="HAP.QUERY"/>
+                <a:gridButton click="vat_invoice_rec_reset" text="HAP.RESET"/>
+                <a:gridButton click="vat_invoice_rec_confirm" text="HAP.CONFIRM"/>
+            </a:screenTopToolbar>
+            <a:form title="查询条件" style="width:100%">
+                <a:box column="4" labelWidth="150">
+                    <a:textField name="document_number" bindTarget="vat_invoice_rec_query_ds" prompt="单据编号">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:comboBox name="invoice_kind_n" bindTarget="vat_invoice_rec_query_ds" prompt="发票种类">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:comboBox name="billing_way_n" bindTarget="vat_invoice_rec_query_ds" prompt="开票方式">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:comboBox>
+
+                    <a:textField name="invoice_number" bindTarget="vat_invoice_rec_query_ds" prompt="发票号码">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:textField>
+                </a:box>
+
+                <a:box column="4" labelWidth="150">
+                    <a:datePicker name="invoice_date_from" bindTarget="vat_invoice_rec_query_ds" prompt="发票日期从">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:datePicker name="invoice_date_to" bindTarget="vat_invoice_rec_query_ds" prompt="发票日期到">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:datePicker>
+                    <a:comboBox name="invoice_status_n" bindTarget="vat_invoice_rec_query_ds" prompt="发票状态">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:textField name="bp_id_n" bindTarget="vat_invoice_rec_query_ds" prompt="客户名称">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:textField>
+                </a:box>
+
+                <a:box column="4" labelWidth="150">
+                    <a:textField name="bp_name" bindTarget="vat_invoice_rec_query_ds" prompt="发票抬头">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:numberField name="total_amount_from" bindTarget="vat_invoice_rec_query_ds" prompt="发票金额从">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:numberField>
+                    <a:numberField name="total_amount_to" bindTarget="vat_invoice_rec_query_ds" prompt="发票金额到">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:numberField>
+                    <a:textField name="created_by_n" bindTarget="vat_invoice_rec_query_ds" prompt="开票人">
+                        <a:events>
+                            <a:event name="enterdown" handler="vat_invoice_rec_query"/>
+                        </a:events>
+                    </a:textField>
+                </a:box>
+                <!--<a:box column="4" labelWidth="130">-->
+                <!--<a:textField name="contract_number" bindTarget="vat_invoice_rec_query_ds" prompt="合同号码">-->
+                <!--<a:events>-->
+                <!--<a:event name="enterdown" handler="vat_invoice_rec_query"/>-->
+                <!--</a:events>-->
+                <!--</a:textField>-->
+                <!--</a:box>-->
+            </a:form>
+            <a:grid id="vat_invoice_rec_ds_grid" bindTarget="vat_invoice_rec_ds" marginHeight="190" marginWidth="10"
+                    navBar="true">
+                <a:columns>
+                    <a:column name="document_number" width="130" prompt="单据编号" renderer="rendererFunction_clear"
+                              align="left"/>
+                    <a:column name="invoice_kind_n" width="90" prompt="发票种类" align="left"/>
+                    <a:column name="invoice_status_n" width="90" prompt="发票状态" align="left"/>
+                    <a:column name="confirm_status_n" width="90" prompt="确认状态" align="left"/>
+                    <a:column name="bp_id_n" width="120" prompt="客户名称" align="left"/>
+                    <a:column name="bp_name" width="120" prompt="发票抬头" align="left"/>
+                    <a:column name="due_amount" width="120" prompt="应开票金额(元)" align="right" renderer="Leaf.formatMoney" />
+                    <a:column name="billing_amount" width="120" prompt="剩余开票金额(元)" align="right" renderer="Leaf.formatMoney" />
+                    <a:column name="total_amount" width="120" prompt="本次发票金额(元)" align="right" renderer="Leaf.formatMoney"/>
+                    <a:column name="tax_amount" width="90" prompt="税额(元)" align="right" renderer="Leaf.formatMoney"/>
+                    <a:column name="net_amount" width="90" prompt="税后金额(元)" align="right" renderer="Leaf.formatMoney"/>
+                    <a:column name="billing_way_n" width="90" prompt="开票方式" align="left"/>
+                    <a:column name="invoice_code" width="120" prompt="发票代码" align="left"/>
+                    <a:column name="invoice_number" width="120" prompt="发票号码" align="left"/>
+                    <a:column name="bp_tax_registry_num" width="150" prompt="纳税人识别号" align="left"/>
+                    <a:column name="invoice_date" width="90" prompt="发票日期" align="right" renderer="Leaf.formatDate"/>
+                    <!--<a:column name="contract_number" width="90" prompt="合同号码"/>-->
+                    <a:column name="contract_name" width="90" prompt="合同名称"/>
+                    <a:column name="cf_item_n" width="90" prompt="开票项目" align="center"/>
+                    <a:column name="times" width="90" prompt="期数" align="center"/>
+                    <a:column name="due_date" width="90" prompt="计划收款日" align="right" renderer="Leaf.formatDate" />
+                    <a:column name="created_by_n" width="90" prompt="开票人" align="left"/>
+                    <a:column name="created_by_n" width="120" prompt="申请人"/>
+                    <a:column name="upload" width="90" prompt="附件" align="left" renderer="acr_hd_upload"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

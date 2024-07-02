@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wj
+    $Date: 2018-12-26
+    $Revision: 2.0
+    $Purpose: 评分指标定义-指标明细
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script src="${/request/@context_path}/common/code?leftCode=FND.SCORE_TEMPLATE_LEFT"
+                type="text/javascript"></script>
+        <script src="${/request/@context_path}/common/code?rightCode=FND.SCORE_TEMPLATE_RIGHT"
+                type="text/javascript"></script>
+        <script><![CDATA[
+        var resourceTypeECMap = {};
+        leftCode.forEach(function (i) {
+            resourceTypeECMap[i.value] = i.meaning;
+        });
+        rightCode.forEach(function (i) {
+            resourceTypeECMap[i.value] = i.meaning;
+        });
+
+        <!--将type中英文存入对应的ds-->
+
+
+
+
+        $L.onReady(function(){
+            $('score_target_custom_ds').query();
+           // alert("${/parameter/@score_target_name}")
+           // alert("${/parameter/@data_source_id}")
+            //SCORE_TARGET_ID
+           // alert("${/parameter/@source_target_id}")
+            $("score_target_custom_ds").create({
+                dataSourceId:"${/parameter/@dataSourceId}",
+
+            });
+        });
+
+        function score_target_define_new() {
+           // alert("${/parameter/@score_target_name}")
+
+            $("score_target_custom_ds").create({
+                score_target_id:"${/parameter/@score_target_id}",
+                score_target_name:"${/parameter/@score_target_name}"
+            });
+        }
+        
+        //查询方法
+        function number_line_query() {
+            $('score_target_custom_ds').query();
+        }
+        function score_target_reset() {
+            $('score_target_query_ds').reset();
+            $('score_target_custom_ds').query();
+        }
+
+
+       /* function changerValue(value, record,name) {
+            debugger;
+            console.log(record.id);
+            var newStr =record.get("execllent_value");
+
+            if(typeof newStr=== 'undefined' || 'undefined' === newStr){
+
+            }else{
+                if (newStr==0) {
+                    return 0+"%";
+                }
+                var str=Number(newStr*100).toFixed(4);
+                str+="%";
+                return str;
+            }
+
+        }*/
+        
+        
+        /*function saveChanger(record, name, value) {
+            var newStr =record.get("execllent_value");
+
+            if(typeof newStr=== 'undefined' || 'undefined' === newStr){
+
+            }else{
+                var str=newStr.replace("%","");
+                str= str/100;
+                return str.toFixed(4);
+            }
+
+        }*/
+
+
+        ]]></script>
+        <a:dataSets>
+
+            <a:dataSet id="score_template_type_name_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/fnd/hd/source/findList">
+                <a:fields>
+                    <a:field name="score_template_hd_id_n"/>
+                    <a:field name="score_template_hd_code"/>
+                    <a:field name="score_template_hd_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="score_target_query_ds">
+                <a:fields>
+                    <a:field name="score_target_id" defaultValue="${/parameter/@score_target_id}"/>
+
+                    <a:field name="score_template_hd_id"/>
+                    <a:field name="score_template_hd_name" options="score_template_type_name_ds" displayField="score_template_hd_name"
+                             valueField="score_template_hd_id" returnField="score_template_hd_id"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="score_target_custom_ds" autoPageSize="true" selectable="true"
+                       autoQuery="true" queryDataSet="score_target_query_ds"
+                       queryUrl ="${/request/@context_path}/qujian/data/source/findList"
+                       deleteUrl="${/request/@context_path}/qujian/data/source/remove"
+                       submitUrl="${/request/@context_path}/qujian/data/source/submit">
+                <a:fields>
+                    <a:field name="score_target_id" defaultValue="${/parameter/@score_target_id}"/>
+                    <a:field name="data_source_id" />
+                    <a:field name="execllent_value" />
+                    <a:field name="good_value"/>
+                    <a:field name="average_value" />
+                    <a:field name="score_template_hd_id" />
+                    <a:field name="score_template_hd_name" options="score_template_type_name_ds" displayField="score_template_hd_name"
+                             valueField="score_template_hd_id" returnField="score_template_hd_id"/>
+                    <a:field name="poor_value" />
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="score_target_define_new" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="score_target_define" text="HAP.SAVE" type="save"/>
+                <a:gridButton bind="score_target_define" text="HAP.DELETE" type="delete"/>
+                <a:gridButton click="number_line_query" text="HAP.QUERY"/>
+                <a:gridButton click="score_target_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+
+            <!--<a:form column="1" title="查询条件" labelwidth="100">
+                <a:textField name="line_number" bindTarget="score_target_query_ds" prompt="序号"
+                             width="220">
+                    <a:events>
+                        <a:event name="enterdown" handler="number_line_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>-->
+
+            <a:grid id="score_target_define"  bindTarget="score_target_custom_ds"
+                    marginHeight="400"  width="1000" navBar="true" >
+                <a:columns>
+                    <a:column width="130" name="score_target_name" editor="score_target_define_tf" prompt="指标名称"/>
+                    <a:column width="130" name="score_template_hd_name" editor="score_target_combo" prompt="评分模板" align="center"/>
+                    <a:column width="130" name="execllent_value" editor="score_target_define_tf" prompt="优秀值" align="center" />
+                    <a:column width="130" name="good_value" editor="score_target_define_tf" prompt="良好值" align="center" />
+                    <a:column width="130" name="average_value" editor="score_target_define_tf" prompt="平均值" align="center" />
+                    <a:column width="130" name="poor_value" editor="score_target_define_tf" prompt="较差值" align="center" />
+                </a:columns>
+                <a:editors>
+                    <a:textField id="score_target_define_tf"/>
+                    <a:checkBox id="score_target_define_check"/>
+                    <a:comboBox id="score_target_combo"/>
+                    <a:numberField id="score_target_define_nf" allowNegative="false" allowDecimals="false"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

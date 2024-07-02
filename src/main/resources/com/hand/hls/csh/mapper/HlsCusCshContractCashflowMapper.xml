@@ -1,0 +1,1025 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.HlsCusCshContractCashflowMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.HlsCusCshContractCashflow">
+        <result column="due_date" property="dueDate"/>
+        <result column="due_amount" property="dueAmount" jdbcType="DECIMAL"/>
+        <result column="overdue_amount" property="overdueAmount" jdbcType="DECIMAL"/>
+        <result column="received_amount" property="receivedAmount" jdbcType="DECIMAL"/>
+        <result column="contract_name" property="contractName" jdbcType="VARCHAR"/>
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="surplus_amount" property="surplusAmount"/>
+        <result column="write_off_flag_desc" property="writeOffFlagDesc" jdbcType="VARCHAR"/>
+        <result column="cf_item_desc" property="cfItemDesc" jdbcType="VARCHAR"/>
+        <result column="project_name" property="projectName" jdbcType="VARCHAR"/>
+        <result column="spv_company_n" property="spvCompanyN" jdbcType="VARCHAR"/>
+        <result column="receipt_flag" property="receiptFlag" jdbcType="VARCHAR"/>
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="currency_name" property="currencyName" jdbcType="VARCHAR"/>
+        <result column="approval_number" property="approvalNumber" jdbcType="VARCHAR"/>
+        <result column="back_bank_account_num" property="backBankAccountNum" jdbcType="VARCHAR"/>
+        <result column="back_bank_name" property="backBankName" jdbcType="VARCHAR"/>
+        <result column="the_principal" property="thePrincipal" jdbcType="DECIMAL"/>
+        <result column="the_interest" property="theInterest" jdbcType="DECIMAL"/>
+        <result column="the_consulting_service_fee" property="theConsultingServiceFee" jdbcType="DECIMAL"/>
+        <result column="recovery_rate" property="recoveryRate" jdbcType="DECIMAL"/>
+        <result column="the_margin" property="theMargin" jdbcType="DECIMAL"/>
+        <result column="times_total" property="timesTotal"/>
+        <result column="manager_name" property="managerName" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+        <result column="plan_date_n" property="planDateN" jdbcType="VARCHAR"/>
+        <result column="unit_id" property="unitId" jdbcType="VARCHAR"/>
+        <result column="the_residual_value" property="theResidualValue"/>
+        <result column="the_down_payment" property="theDownPayment"/>
+        <result column="the_pre_rent" property="thePreRent"/>
+        <result column="the_lease_charge" property="theLeaseCharge"/>
+        <result column="the_penalty_interest" property="thePenaltyInterest"/>
+        <result column="cf_item_desc" property="cfItemDesc"/>
+        <result column="tenant_name" property="tenantName"/>
+        <result column="contract_id" property="contractId"/>
+        <result column="uncollected_amount" property="uncollectedAmount"/>
+        <result column="exemption_amount" property="exemptionAmount"/>
+
+        <result column="unit_id" property="unitId" jdbcType="DECIMAL"/>
+        <result column="unit_code" property="unitCode" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectNotFullContractCashflowHome" parameterType="com.hand.hls.csh.dto.HlsCusCshContractCashflow"
+            resultMap="BaseResultMap">
+        SELECT
+        t.*,
+        CASE
+        WHEN t.write_off_flag='NOT'
+        THEN '未核销'
+        WHEN t.write_off_flag='PARTIAL'
+        THEN '部分核销'
+        WHEN t.write_off_flag='FULL'
+        THEN '完全核销'
+        END AS write_off_flag_desc
+        FROM
+        (
+        (
+        SELECT
+        cc.*,
+        c.project_id,
+        c.contract_number,
+        c.contract_name,
+        fp.approval_number,
+        fp.company_spv,
+        (select fc.company_full_name from fnd_company fc where fc.company_id = fp.company_id) spv_company_n,
+        c.document_category,
+        (
+        SELECT
+        hdc.description
+        FROM
+        HLS_DOCUMENT_CATEGORY hdc
+        WHERE
+        hdc.document_category = c.document_category) AS document_category_desc,
+        hbm.bp_name,
+        hbm.bp_code,
+        c.currency,
+        (
+        SELECT
+        currency_name
+        FROM
+        fnd_currency fc
+        WHERE
+        fc.currency_code = c.currency ) currency_name,
+        CASE
+        WHEN cc.received_amount=0
+        THEN 'NOT'
+        ELSE 'PARTIAL'
+        END write_off_flag,
+        c.company_id,
+        null back_bank_name,
+        null back_bank_account_num,
+        fe.name manager_name,
+        fou.unit_name
+        FROM
+        con_contract c
+        JOIN
+        hls_bp_master hbm
+        ON
+        hbm.bp_id=c.tenant_id
+        JOIN
+        prj_project fp
+        ON
+        fp.project_id = c.project_id
+        join fnd_employee fe
+        on fp.employee_id=fe.employee_id
+        join fnd_org_unit fou
+        on fou.unit_id=fp.unit_id
+        JOIN
+        (
+        SELECT
+        f.contract_id,
+        f.due_date,
+        (select f.times||'/'||max(ccc.times) from con_contract_cashflow ccc where
+        ccc.CONTRACT_ID=f.CONTRACT_ID) times_total,
+       f.due_date  AS due_date_desc,
+        SUM(f.due_amount) due_amount,
+        SUM(nvl(f.received_amount,0)) received_amount,
+        SUM(nvl(f.due_amount,0) - nvl(f.received_amount,0)) surplus_amount,
+        SUM(nvl(f.principal,0)) the_principal,
+        SUM(nvl(f.interest,0)) the_interest,
+        nvl(SUM(
+        CASE
+        WHEN f.cf_item=51
+        THEN f.due_amount
+        ELSE 0
+        END) ,0) the_margin,
+        nvl(SUM(
+        CASE
+        WHEN f.cf_item=4
+        THEN f.due_amount
+        ELSE 0
+        END) ,0) the_consulting_service_fee,
+        SUM(CASE WHEN f.CF_ITEM =3 THEN nvl(f.DUE_AMOUNT, 0) ELSE 0 END) the_lease_charge,
+        SUM(CASE WHEN f.CF_ITEM =8 THEN nvl(f.DUE_AMOUNT, 0) ELSE 0 END) the_residual_value,
+        SUM(CASE WHEN f.CF_ITEM =2 THEN nvl(f.DUE_AMOUNT, 0) ELSE 0 END) the_down_payment,
+        SUM(CASE WHEN f.cf_item =10 THEN nvl(f.DUE_AMOUNT, 0) ELSE 0 END) the_pre_rent,
+        SUM(CASE WHEN f.cf_item =9 THEN nvl(f.DUE_AMOUNT, 0) ELSE 0 END) the_penalty_interest
+        FROM
+        con_contract_cashflow f,
+        con_contract c
+        WHERE
+        c.contract_id=f.contract_id
+        AND f.cf_direction ='INFLOW'
+        AND nvl(f.write_off_flag,'NOT') !='FULL'
+        AND f.cf_status = 'RELEASE'
+        AND c.contract_status in('INCEPT','SIGN','LOAN')
+        GROUP BY
+        f.contract_id,
+        f.due_date,
+        f.times) cc
+        ON
+        cc.contract_id=c.contract_id
+        WHERE
+        c.write_off_able_flag='Y'
+        AND c.data_class = 'NORMAL')
+        ) t
+        <where>
+            1=1
+            AND t.company_id=#{request.companyId}
+            <if test="contractNameOrNumber != null">
+                and (t.contract_number LIKE concat('%',concat(#{contractNameOrNumber},'%') )
+                or t.contract_name LIKE concat('%',concat(#{contractNameOrNumber},'%') ))
+            </if>
+            <if test="bpNameOrCode != null">
+                and (t.bp_name LIKE concat('%',concat(#{bpNameOrCode},'%') )
+                or t.bp_code LIKE concat('%',concat(#{bpNameOrCode},'%') )
+                )
+            </if>
+            <if test="approvalNumber != null">
+                and t.approval_number LIKE concat('%',concat(#{approvalNumber},'%') )
+            </if>
+            <if test="dueDateFrom != null">
+                and t.due_date &gt;=#{dueDateFrom}
+            </if>
+
+            <if test="companyId != null">
+                and t.company_id = #{companyId}
+            </if>
+
+
+            <if test="dueDateTo != null">
+                and t.due_date &lt;= #{dueDateTo}
+            </if>
+            <if test="isHomePageReq != null">
+                and ((month(t.due_date) = month(sysdate) and year(t.due_date) = year(sysdate)) or (t.due_amount >
+                t.received_amount and t.due_date &lt; sysdate))
+            </if>
+            <if test="writeOffflagList != null and writeOffflagList.size()>0">
+                AND t.write_off_flag in
+                <foreach collection="writeOffflagList" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+        </where>
+        order by t.due_date
+    </select>
+
+    <select id="selectAllContractCashflowHome" parameterType="com.hand.hls.csh.dto.HlsCusCshContractCashflow"
+            resultMap="BaseResultMap">
+        SELECT t1.*
+        FROM (SELECT a.*, h.description cf_item_desc
+        FROM hls_cashflow_type h,
+        (SELECT hbm.bp_name,
+        fp.project_name,
+        c.contract_number,
+        T.*,
+        fou.unit_name,
+        fou.unit_id,
+        fp.spv_company,
+        (select s.MEANING value_name
+        from sys_code_value_b_v s
+        where s.code = 'SPV_COMPANY'
+        and s.code_value = fp.spv_company) spv_company_n
+        FROM con_contract c
+        JOIN hls_bp_master hbm
+        ON hbm.bp_id = c.tenant_id
+        JOIN prj_project fp
+        ON fp.project_id = c.project_id
+        JOIN fnd_employee fe
+        ON fp.employee_id = fe.employee_id
+        JOIN fnd_org_unit fou
+        ON fou.unit_id = fp.unit_id
+        JOIN (SELECT cc.contract_id,
+        cc.cf_item,
+        TRUNC(cc.due_date) due_date,
+        SUM(nvl(cc.due_amount, 0)) due_amount,
+        SUM(nvl(cc.received_amount, 0)) received_amount,
+        (SUM(nvl(cc.due_amount, 0)) -
+        SUM(nvl(cc.received_amount, 0))) surplus_amount
+        FROM con_contract c, con_contract_cashflow cc
+        WHERE c.contract_id = cc.contract_id
+        AND cc.cf_direction = 'INFLOW'
+        AND cc.cf_status = 'RELEASE'
+        AND c.contract_status in ('INCEPT', 'SIGN', 'LOAN')
+        GROUP BY cc.contract_id, cc.cf_item, cc.due_date
+        ORDER BY cc.contract_id, cc.cf_item) t
+        ON c.contract_id = t.contract_id) a
+        WHERE a.cf_item = h.cf_type) t1
+        <where>
+            1=1
+            <!--            AND t1.company_id=#{request.companyId}-->
+            <!--            <if test="contractNameOrNumber != null">-->
+            <!--                and (t1.contract_number LIKE concat('%',concat(#{contractNameOrNumber},'%') )-->
+            <!--                or t1.contract_name LIKE concat('%',concat(#{contractNameOrNumber},'%') ))-->
+            <!--            </if>-->
+            <!--            <if test="bpNameOrCode != null">-->
+            <!--                and (t1.bp_name LIKE concat('%',concat(#{bpNameOrCode},'%') )-->
+            <!--                or t1.bp_code LIKE concat('%',concat(#{bpNameOrCode},'%') )-->
+            <!--                )-->
+            <!--            </if>-->
+            <!--            <if test="approvalNumber != null">-->
+            <!--                and t1.approval_number LIKE concat('%',concat(#{approvalNumber},'%') )-->
+            <!--            </if>-->
+            <!--            <if test="dueDateFrom != null">-->
+            <!--                and to_char(t1.due_date,'yyyy-MM-dd') &gt;= to_char(#{dueDateFrom},'yyyy-MM-dd')-->
+            <!--            </if>-->
+
+            <!--            <if test="companyId != null">-->
+            <!--                and t1.company_id = #{companyId}-->
+            <!--            </if>-->
+            <if test="unitId != null">
+                and t1.unit_id = #{unitId}
+            </if>
+
+            <if test="dueDateTo != null">
+                and t1.due_date &lt;= #{dueDateTo}
+            </if>
+
+            <if test="dueDateFrom != null">
+                and t1.due_date &gt;= #{dueDateFrom}
+            </if>
+
+            <if test="bpName != null">
+                and t1.bp_name LIKE concat('%',concat(#{bpName},'%') )
+            </if>
+
+            <if test="projectName != null">
+                and t1.project_name LIKE concat('%',concat(#{projectName},'%') )
+            </if>
+
+            <if test="contractNumber != null">
+                and t1.contract_number LIKE concat('%',concat(#{contractNumber},'%') )
+            </if>
+
+            <if test="receiptFlag != null and receiptFlag!=''">
+                <if test="receiptFlag != &quot;N&quot;">
+                    and t1.surplus_amount != 0
+                </if>
+            </if>
+
+        </where>
+        order by t1.contract_number DESC
+    </select>
+
+    <select id="selectRecoveryRate" parameterType="com.hand.hls.csh.dto.HlsCusCshContractCashflow"
+            resultMap="BaseResultMap">
+        SELECT t1.*
+        FROM (SELECT t.*,
+        CASE
+        WHEN t.plan_date = 'IN' THEN
+        '计划内'
+        WHEN t.plan_date = 'OUT' THEN
+        '计划外'
+        END AS plan_date_n
+        FROM ((SELECT cc.*,
+        c.project_id,
+        c.contract_number,
+        hbm.bp_name,
+        hbm.bp_code,
+        c.currency,
+        fp.guarantor_sum,
+        (SELECT currency_name
+        FROM fnd_currency fc
+        WHERE fc.currency_code = c.currency) currency_name,
+        c.company_id,
+        fe.name manager_name,
+        fou.unit_name,
+        CASE
+        WHEN cc.due_date &gt;= #{dueDateFrom} AND
+      CC.DUE_DATE &lt;= #{dueDateTo} THEN
+        'IN'
+        ELSE
+        'OUT'
+        END plan_date
+        FROM con_contract c
+        JOIN hls_bp_master hbm
+        ON hbm.bp_id = c.tenant_id
+        JOIN prj_project fp
+        ON fp.project_id = c.project_id
+        join fnd_employee fe
+        on fp.employee_id = fe.employee_id
+        join fnd_org_unit fou
+        on fou.unit_id = fp.unit_id
+        JOIN (SELECT f.contract_id,
+        f.due_date,
+        f.due_date AS due_date_desc,
+        SUM(f.due_amount) due_amount,
+        SUM(nvl(f.received_amount, 0)) received_amount,
+        SUM(nvl(f.due_amount, 0) -
+        nvl(f.received_amount, 0)) surplus_amount
+        FROM con_contract_cashflow f, con_contract c
+        WHERE c.contract_id = f.contract_id
+        AND f.cf_direction = 'INFLOW'
+        AND f.cf_status = 'RELEASE'
+        AND c.contract_status in
+        ('INCEPT', 'SIGN', 'LOAN')
+        GROUP BY f.contract_id, f.due_date) cc
+        ON cc.contract_id = c.contract_id
+        WHERE c.write_off_able_flag = 'Y'
+        AND c.data_class = 'NORMAL')) t
+        order by t.contract_number, t.due_date desc) t1
+        <where>
+            1=1
+            <!--            AND t1.company_id=#{request.companyId}-->
+            <!--            <if test="contractNameOrNumber != null">-->
+            <!--                and (t1.contract_number LIKE concat('%',concat(#{contractNameOrNumber},'%') )-->
+            <!--                or t1.contract_name LIKE concat('%',concat(#{contractNameOrNumber},'%') ))-->
+            <!--            </if>-->
+            <!--            <if test="bpNameOrCode != null">-->
+            <!--                and (t1.bp_name LIKE concat('%',concat(#{bpNameOrCode},'%') )-->
+            <!--                or t1.bp_code LIKE concat('%',concat(#{bpNameOrCode},'%') )-->
+            <!--                )-->
+            <!--            </if>-->
+            <!--            <if test="approvalNumber != null">-->
+            <!--                and t1.approval_number LIKE concat('%',concat(#{approvalNumber},'%') )-->
+            <!--            </if>-->
+            <!--            <if test="dueDateFrom != null">-->
+            <!--                and to_char(t1.due_date,'yyyy-MM-dd') &gt;= to_char(#{dueDateFrom},'yyyy-MM-dd')-->
+            <!--            </if>-->
+
+            <!--            <if test="companyId != null">-->
+            <!--                and t1.company_id = #{companyId}-->
+            <!--            </if>-->
+
+            <!--            <if test="dueDateTo != null">-->
+            <!--                and to_char(t1.due_date,'yyyy-MM-dd') &lt;= to_char(#{dueDateTo},'yyyy-MM-dd')-->
+            <!--            </if>-->
+
+            <!--            <if test="dueDateFrom != null">-->
+            <!--                and to_char(t1.due_date,'yyyy-MM-dd') &gt;= to_char(#{dueDateFrom},'yyyy-MM-dd')-->
+            <!--            </if>-->
+
+            <if test="bpName != null">
+                and t1.bp_name LIKE concat('%',concat(#{bpName},'%') )
+            </if>
+
+            <if test="projectName != null">
+                and t1.project_name LIKE concat('%',concat(#{projectName},'%') )
+            </if>
+
+            <if test="contractNumber != null">
+                and t1.contract_number LIKE concat('%',concat(#{contractNumber},'%') )
+            </if>
+
+        </where>
+        order by t1.contract_number DESC
+    </select>
+
+    <select id="selectUnitRecoveryRate" parameterType="com.hand.hls.csh.dto.HlsCusCshContractCashflow"
+            resultMap="BaseResultMap">
+        SELECT t1.*, fou.unit_name
+        FROM fnd_org_unit fou
+        JOIN (SELECT p.unit_id,
+        ccc.currency,
+        sum(t.due_amount) due_amount,
+        sum(t.received_amount) received_amount,
+        sum(t.received_amount) / sum(t.due_amount) recovery_rate,
+        sum(t.due_amount) - sum(t.received_amount) surplus_amount
+        FROM con_contract ccc
+        JOIN prj_project p
+        ON p.project_id = ccc.project_id
+        JOIN (SELECT cc.contract_id,
+        sum(ff.due_amount) due_amount,
+        nvl((SELECT SUM(nvl(f.received_amount, 0)) received_amount
+        FROM con_contract_cashflow f
+        WHERE cc.contract_id = f.contract_id
+        AND f.due_date &gt;= #{dueDateFrom}
+        AND f.due_date &lt;=#{dueDateTo}
+        AND f.cf_direction = 'INFLOW'
+        AND f.cf_status = 'RELEASE'
+        GROUP BY f.contract_id),
+        0) received_amount
+        FROM con_contract_cashflow ff, con_contract cc
+        WHERE cc.contract_id = ff.contract_id
+        AND ff.cf_direction = 'INFLOW'
+        AND ff.cf_status = 'RELEASE'
+        AND cc.contract_status in ('INCEPT', 'SIGN', 'LOAN')
+        GROUP BY cc.contract_id) t
+        ON ccc.contract_id = t.contract_id
+        AND ccc.data_class = 'NORMAL'
+        GROUP BY p.unit_id, ccc.currency) t1
+        ON t1.unit_id = fou.unit_id
+        <where>
+            1=1
+            <!--            AND t1.company_id=#{request.companyId}-->
+            <!--            <if test="contractNameOrNumber != null">-->
+            <!--                and (t1.contract_number LIKE concat('%',concat(#{contractNameOrNumber},'%') )-->
+            <!--                or t1.contract_name LIKE concat('%',concat(#{contractNameOrNumber},'%') ))-->
+            <!--            </if>-->
+            <!--            <if test="bpNameOrCode != null">-->
+            <!--                and (t1.bp_name LIKE concat('%',concat(#{bpNameOrCode},'%') )-->
+            <!--                or t1.bp_code LIKE concat('%',concat(#{bpNameOrCode},'%') )-->
+            <!--                )-->
+            <!--            </if>-->
+            <!--            <if test="approvalNumber != null">-->
+            <!--                and t1.approval_number LIKE concat('%',concat(#{approvalNumber},'%') )-->
+            <!--            </if>-->
+            <!--            <if test="dueDateFrom != null">-->
+            <!--                and to_char(t1.due_date,'yyyy-MM-dd') &gt;= to_char(#{dueDateFrom},'yyyy-MM-dd')-->
+            <!--            </if>-->
+
+            <!--            <if test="companyId != null">-->
+            <!--                and t1.company_id = #{companyId}-->
+            <!--            </if>-->
+
+            <!--            <if test="dueDateTo != null">-->
+            <!--                and to_char(t1.due_date,'yyyy-MM-dd') &lt;= to_char(#{dueDateTo},'yyyy-MM-dd')-->
+            <!--            </if>-->
+
+            <!--            <if test="dueDateFrom != null">-->
+            <!--                and to_char(t1.due_date,'yyyy-MM-dd') &gt;= to_char(#{dueDateFrom},'yyyy-MM-dd')-->
+            <!--            </if>-->
+
+            <!--            <if test="bpName != null">-->
+            <!--                and t1.bp_name LIKE concat('%',concat(#{bpName},'%') )-->
+            <!--            </if>-->
+
+            <!--            <if test="projectName != null">-->
+            <!--                and t1.project_name LIKE concat('%',concat(#{projectName},'%') )-->
+            <!--            </if>-->
+
+            <!--            <if test="contractNumber != null">-->
+            <!--                and t1.contract_number LIKE concat('%',concat(#{contractNumber},'%') )-->
+            <!--            </if>-->
+
+        </where>
+    </select>
+
+    <select id="selectUnitLov" resultMap="BaseResultMap"
+            resultType="com.hand.hls.csh.dto.HlsCusCshContractCashflow">
+        SELECT fou.unit_id, fou.unit_code, fou.unit_name
+        FROM fnd_org_unit fou
+        <where>
+            fou.enabled_flag = 'Y'
+            <if test="unitCode != null">
+                and fou.unit_code LIKE concat('%',concat(#{unitCode},'%') )
+            </if>
+
+            <if test="unitName != null">
+                and fou.unit_name LIKE concat('%',concat(#{unitName},'%') )
+            </if>
+        </where>
+
+    </select>
+
+    <resultMap id="OverdueContarctCashFlowMap" type="map">
+        <result column="cashflow_id" property="cashflow_id"/>
+        <result column="contract_id" property="contract_id"/>
+        <result column="tenant_name" property="tenant_name"/>
+        <result column="contract_number" property="contract_number"/>
+        <result column="contract_name" property="contract_name"/>
+        <result column="lease_times" property="lease_times"/>
+        <result column="returned_times" property="returned_times"/>
+        <result column="quotation_id" property="quotation_id"/>
+        <result column="cf_item" property="cf_item"/>
+        <result column="cf_item_n" property="cf_item_n"/>
+        <result column="cf_type" property="cf_type"/>
+        <result column="cf_direction" property="cf_direction"/>
+        <result column="cf_status" property="cf_status"/>
+        <result column="cashflow_irr" property="cashflow_irr"/>
+        <result column="cashflow_irr_after_tax" property="cashflow_irr_after_tax"/>
+        <result column="cashflow_irr_without_fee" property="cashflow_irr_without_fee"/>
+        <result column="vat_total" property="vat_total"/>
+        <result column="times" property="times"/>
+        <result column="due_date" property="due_date"/>
+        <result column="calc_date" property="calc_date"/>
+        <result column="fin_income_date" property="fin_income_date"/>
+        <result column="due_amount" property="due_amount"/>
+        <result column="net_due_amount" property="net_due_amount"/>
+        <result column="vat_due_amount" property="vat_due_amount"/>
+        <result column="principal" property="principal"/>
+        <result column="interest" property="interest"/>
+        <result column="net_interest" property="net_interest"/>
+        <result column="vat_interest" property="vat_interest"/>
+        <result column="write_off_flag" property="write_off_flag"/>
+        <result column="received_amount" property="received_amount"/>
+        <result column="received_principal" property="received_principal"/>
+        <result column="received_interest" property="received_interest"/>
+        <result column="outstanding_principal" property="outstanding_principal"/>
+        <result column="last_received_date" property="last_received_date"/>
+        <result column="full_write_off_date" property="full_write_off_date"/>
+        <result column="penalty_process_status" property="penalty_process_status"/>
+        <result column="billing_status" property="billing_status"/>
+        <result column="billing_amount" property="billing_amount"/>
+        <result column="billing_principal" property="billing_principal"/>
+        <result column="billing_interest" property="billing_interest"/>
+        <result column="payment_bp_id" property="payment_bp_id"/>
+        <result column="overdue_status" property="overdue_status"/>
+        <result column="generated_source_doc_id" property="generated_source_doc_id"/>
+        <result column="generated_source" property="generated_source"/>
+        <result column="fine_days" property="fine_days"/>
+        <result column="fine_amount" property="fine_amount"/>
+        <result column="received_fine_amount" property="received_fine_amount"/>
+        <result column="fine_reduce_amount" property="fine_reduce_amount"/>
+        <result column="reduce_amount" property="reduce_amount"/>
+        <result column="fine_reduction_type" property="fine_reduction_type"/>
+        <result column="description" property="description"/>
+        <result column="fine_status" property="fine_status"/>
+        <result column="fine_reduce_req" property="fine_reduce_req"/>
+        <result column="billing_vat_rate" property="billing_vat_rate"/>
+        <result column="object_version_number" property="object_version_number"/>
+        <result column="request_id" property="request_id"/>
+        <result column="program_id" property="program_id"/>
+        <result column="day_end_date" property="day_end_date"/>
+        <result column="print_status" property="print_status"/>
+        <result column="print_status" property="print_status"/>
+        <result column="cashflow_name" property="cashflow_name"/>
+        <result column="interest_adjust_amount" property="interest_adjust_amount"/>
+        <result column="interest_amortization_method" property="interest_amortization_method"/>
+        <result column="lease_charge_amort_method" property="lease_charge_amort_method"/>
+        <result column="adv_service_amort_method" property="adv_service_amort_method"/>
+        <result column="uncollected_amount" property="uncollected_amount"/>
+        <result column="exemption_amount" property="exemption_amount"/>
+        <result column="exempted_amount" property="exempted_amount"/>
+        <result column="generated_source_doc_line_id" property="generated_source_doc_line_id"/>
+        <result column="write_off_flag" property="write_off_flag"/>
+        <result column="message" property="message"/>
+        <result property="overdue_amount" column="overdue_amount"/>
+        <result property="contract_id_list" column="contract_id_list"/>
+    </resultMap>
+
+    <select id="selectOverdueContarctCashFlow" parameterType="com.hand.hls.cont.dto.HlsCusConContractCashflow"
+            resultMap="OverdueContarctCashFlowMap">
+        select v.*,(v.due_amount-v.exemption_amount) exempted_amount ,(select nvl(sum(nvl(c.due_amount,0) - nvl(c.received_amount,0)),0)
+        from con_contract_cashflow c
+        where c.contract_id = v.contract_id
+        and c.cf_direction = 'INFLOW'
+        and c.cf_status = 'RELEASE'
+        and c.overdue_status = 'Y') overdue_amount from (select ccc.cashflow_id,
+        ccc.contract_id,
+        (select cc.contract_number
+        from con_contract cc
+        where cc.contract_id = ccc.contract_id) contract_number,
+        (select cc.contract_name
+        from con_contract cc
+        where cc.contract_id = ccc.contract_id) contract_name,
+        (select  wm_concat(hls.bp_name)
+        from hls_bp_master hls, con_contract cc
+        where cc.contract_id=ccc.contract_id
+        and hls.bp_id = cc.tenant_id) tenant_name,
+        ccc.times,
+        ccc.cf_item,
+        (select t.description from HLS_CASHFLOW_TYPE t where t.cf_type = ccc.cf_type) cf_item_n,
+        ccc.cf_type,
+        ccc.cf_direction,
+        ccc.cf_status,
+        --ccc.due_amount,
+        ccc.due_date,
+        ccc.due_amount,
+        ccc.received_amount,
+        (ccc.due_amount - ccc.received_amount) uncollected_amount,
+        (ccc.due_amount - ccc.received_amount) exemption_amount, --减免金额
+        ccc.principal,
+        ccc.interest,
+        ccc.generated_source_doc_line_id,
+        (select ccc2.write_off_flag from con_contract_cashflow ccc2 where ccc2.cashflow_id = ccc.generated_source_doc_line_id) write_off_flag,
+        (select ccc2.due_date || '日应收的' || hci.description from con_contract_cashflow ccc2,hls_cashflow_item hci
+          where ccc2.cashflow_id = ccc.generated_source_doc_line_id and ccc2.cf_item = hci.cf_item) message
+        from con_contract_cashflow ccc) v
+        <where>
+            v.cf_item = 9
+            and v.cf_direction = 'INFLOW'
+            and v.cf_status = 'RELEASE'
+            <if test="contractId != null">
+                and v.contract_id = #{contractId}
+            </if>
+            <if test="contractIdList != null ">
+            AND v.contract_id in
+            <foreach close=")" separator="," open="(" item="item1" collection="contractIdList">#{item1} </foreach>
+
+        </if>
+        </where>
+
+
+    </select>
+    <select id="selectOverdueContarctCashFlow1" parameterType="com.hand.hls.cont.dto.HlsCusConContract"
+            resultMap="BaseResultMap">
+        select v.*,(v.due_amount-v.exemption_amount) exempted_amount from (select ccc.cashflow_id,
+        ccc.contract_id,
+        (select cc.contract_number
+        from con_contract cc
+        where cc.contract_id = ccc.contract_id) contract_number,
+        (select cc.contract_name
+        from con_contract cc
+        where cc.contract_id = ccc.contract_id) contract_name,
+        ccc.times,
+        ccc.cf_item,
+        (select t.description from HLS_CASHFLOW_TYPE t where t.cf_type = ccc.cf_type) cf_item_n,
+        ccc.cf_type,
+        ccc.cf_direction,
+        ccc.cf_status,
+        --ccc.due_amount,
+        ccc.due_date,
+        ccc.due_amount,
+        ccc.received_amount,
+        (ccc.due_amount - ccc.received_amount) uncollected_amount,
+        (ccc.due_amount - ccc.received_amount) exemption_amount, --减免金额
+        ccc.principal,
+        ccc.interest,
+        ccc.generated_source_doc_line_id,
+        (select ccc2.write_off_flag from con_contract_cashflow ccc2 where ccc2.cashflow_id = ccc.generated_source_doc_line_id) write_off_flag,
+        (select ccc2.due_date || '日应收的' || hci.description from con_contract_cashflow ccc2,hls_cashflow_item hci
+        where ccc2.cashflow_id = ccc.generated_source_doc_line_id and ccc2.cf_item = hci.cf_item) message
+        from con_contract_cashflow ccc) v
+        <where>
+            v.cf_item = 9
+            and v.cf_direction = 'INFLOW'
+            and v.cf_status = 'RELEASE'
+            <if test="contractId != null">
+                and v.contract_id = #{contractId}
+            </if>
+        </where>
+
+
+    </select>
+
+    <resultMap id="OverdueContractMap" type="map">
+        <result column="contract_id" property="contract_id"/>
+        <result column="contract_number" property="contract_number"/>
+        <result column="contract_name" property="contract_name"/>
+        <result column="project_number" property="project_number"/>
+        <result column="project_name" property="project_name"/>
+        <result column="tenant_code" property="tenant_code"/>
+        <result column="tenant_name" property="tenant_name"/>
+        <result column="manufacturer_name" property="manufacturer_name"/>
+        <result column="manufacturer_name_n" property="manufacturer_name_n"/>
+        <result column="unit_id" property="unit_id"/>
+        <result column="unit_id_n" property="unit_id_n"/>
+        <result column="lease_times" property="lease_times"/>
+        <result column="returned_times" property="returned_times" jdbcType="VARCHAR" javaType="string"/>
+        <result column="overdue_times" property="overdue_times" jdbcType="VARCHAR" javaType="string"/>
+        <result column="overdue_days" property="overdue_days"/>
+        <result column="overdue_amount" property="overdue_amount"/>
+        <result column="overdue_penalty" property="overdue_penalty"/>
+        <result column="left_rent" property="left_rent"/>
+        <result column="deposit" property="deposit"/>
+        <result column="company_id" property="company_id"/>
+        <result column="business_type" property="business_type"/>
+        <result column="fine_count" property="fine_count"/>
+        <result column="fine_reduce_status" property="fine_reduce_status"/>
+        <result column="fine_reduce_status_n" property="fine_reduce_status_n"/>
+        <result column="left_amount" property="left_amount"/>
+        <result column="legal_contract_number" property="legal_contract_number"/>
+    </resultMap>
+
+    <select id="queryOverdueContractList" resultMap="OverdueContractMap"
+            parameterType="com.hand.hls.cont.dto.HlsCusConContract">
+        select v.* from (select c.contract_id,
+        c.contract_number,
+        c.legal_contract_number,
+        c.contract_name,
+        c.company_id,
+        c.business_type,
+        (select p.project_name
+        from prj_project p
+        where p.project_id =c.project_id) project_number,
+        (select p.project_name
+        from prj_project p
+        where p.project_id =c.project_id) project_name,
+        (select  wm_concat(hls.bp_code)
+        from hls_bp_master hls, prj_project_bp ppb
+        where ppb.project_id = c.project_id
+        and ppb.bp_type = 'TENANT'
+        and hls.bp_id = ppb.bp_id) tenant_code,
+        (select  wm_concat(hls.bp_name)
+        from hls_bp_master hls, prj_project_bp ppb
+        where ppb.project_id = c.project_id
+        and ppb.bp_type = 'TENANT'
+        and hls.bp_id = ppb.bp_id) tenant_name,
+        (select hbm.bp_name from hls_bp_master hbm,prj_project pp where pp.PROJECT_ID=c.PROJECT_ID and pp.MANUFACTURER_ID=hbm.BP_ID) manufacturer_name,
+        c.unit_id,
+        (select fou.unit_name from fnd_org_unit fou where fou.unit_id = c.unit_id) unit_id_n,
+        (select count(1)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and cf_item = 1) lease_times,
+        (select count(1)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and write_off_flag = 'FULL') returned_times,
+        (select count(1)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        and ccc.overdue_status = 'Y') overdue_times,
+        (select sum(to_date(sysdate) -
+        to_date(ccc.due_date))
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        and ccc.overdue_status = 'Y') overdue_days,
+        (select nvl(sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount,0)),0)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        and ccc.overdue_status = 'Y') overdue_amount,
+        (select nvl(sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount,0)),0)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        --and ccc.overdue_status = 'Y'
+        and ccc.cf_item = 9) overdue_penalty,
+        (select nvl(sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount,0)),0)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and cf_item = 1) left_rent,
+        (select nvl(sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount,0)),0)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and cf_item = 3) deposit,
+        (select count(1)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_item = 9
+        and cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and write_off_flag != 'FULL') fine_count,
+        c.fine_reduce_status,
+        (select scv.MEANING
+        from sys_code_b sc, sys_code_value_b scv
+        where sc.CODE_ID = scv.CODE_ID
+        and sc.CODE = 'CREDIT.APPROVE_STATUS'
+        and scv.value = c.fine_reduce_status) AS fine_reduce_status_n,
+        (select sum(ccc2.due_amount - ccc2.received_amount) from con_contract_cashflow ccc2 where ccc2.contract_id =
+        c.contract_id and ccc2.cf_item = 1 and ccc2.cf_direction = 'INFLOW' and ccc2.cf_status = 'RELEASE') left_amount,
+        C.HOST_PROJECT_MANAGER,
+        C.ASSIST_PROJECT_MANAGER
+
+        from con_contract c) v
+        <where>
+            1=1
+            and v.fine_count > 0
+            <if test="createdBy !=null">
+                and (
+                V.HOST_PROJECT_MANAGER = #{createdBy}
+                or V.ASSIST_PROJECT_MANAGER = #{createdBy}
+                or #{request.employeeCode} in('ADMIN')
+                OR
+                exists(
+                select 1 from fnd_org_unit a1,fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4
+                where a3.employee_id=a2.employee_id
+                and a3.unit_id=a1.unit_id
+                and a4.position_id=a3.position_id
+                and a4.chief_position_flag='Y'
+                and employee_code=#{request.employeeCode}
+                AND A1.UNIT_ID IN(select b.unit_id
+                from sys_user_allocation a,fnd_employee_assigns b
+                where a.user_id=V.HOST_PROJECT_MANAGER
+                AND a.employee_assign_id=b.employee_assign_id)))
+            </if>
+            <if test="contractNumber != null">
+                and v.contract_number LIKE concat('%',concat(#{contractNumber},'%'))
+            </if>
+            <if test="tenantName != null">
+                and v.tenant_name LIKE concat('%',concat(#{tenantName},'%'))
+            </if>
+            <if test="overdueTimes>0">
+                and v.overdue_times = #{overdueTimes}
+            </if>
+            <if test="contractId != null">
+                and v.contract_id = #{contractId}
+            </if>
+            <if test="legalContractNumber != null">
+                and v.legal_contract_number LIKE concat('%',concat(#{legalContractNumber},'%'))
+            </if>
+        </where>
+
+
+    </select>
+    <select id="queryOverdueContractList1" resultMap="OverdueContractMap"
+            parameterType="com.hand.hls.cont.dto.HlsCusConContract">
+        select v.* from (select c.contract_id,
+        c.contract_number,
+        c.contract_name,
+        c.company_id,
+        c.business_type,
+        (select p.project_name
+        from prj_project p
+        where p.project_id =c.project_id) project_number,
+        (select p.project_name
+        from prj_project p
+        where p.project_id =c.project_id) project_name,
+        (select  wm_concat(hls.bp_code)
+        from hls_bp_master hls, prj_project_bp ppb
+        where ppb.project_id = c.project_id
+        and ppb.bp_type = 'TENANT'
+        and hls.bp_id = ppb.bp_id) tenant_code,
+        (select  wm_concat(hls.bp_name)
+        from hls_bp_master hls, prj_project_bp ppb
+        where ppb.project_id = c.project_id
+        and ppb.bp_type = 'TENANT'
+        and hls.bp_id = ppb.bp_id) tenant_name,
+        (select hbm.bp_id from hls_bp_master hbm,prj_project pp where pp.PROJECT_ID=c.PROJECT_ID and pp.MANUFACTURER_ID=hbm.BP_ID) manufacturer_name_n,
+        (select hbm.bp_name from hls_bp_master hbm,prj_project pp where pp.PROJECT_ID=c.PROJECT_ID and pp.MANUFACTURER_ID=hbm.BP_ID) manufacturer_name,
+        c.unit_id,
+        (select fou.unit_name from fnd_org_unit fou where fou.unit_id = c.unit_id) unit_id_n,
+        (select count(1)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and cf_item = 1) lease_times,
+        (select count(1)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and write_off_flag = 'FULL') returned_times,
+        (select count(1)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        and ccc.overdue_status = 'Y') overdue_times,
+        (select sum(to_date(sysdate) -
+        to_date(ccc.due_date))
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        and ccc.overdue_status = 'Y') overdue_days,
+        (select nvl(sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount,0)),0)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        and ccc.overdue_status = 'Y') overdue_amount,
+        (select nvl(sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount,0)),0)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_direction = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        --and ccc.overdue_status = 'Y'
+        and ccc.cf_item = 9) overdue_penalty,
+        (select nvl(sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount,0)),0)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and cf_item = 1) left_rent,
+        (select nvl(sum(nvl(ccc.due_amount,0) - nvl(ccc.received_amount,0)),0)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and cf_item = 3) deposit,
+        (select count(1)
+        from con_contract_cashflow ccc
+        where ccc.contract_id = c.contract_id
+        and ccc.cf_item = 9
+        and cf_direction = 'INFLOW'
+        and cf_status = 'RELEASE'
+        and write_off_flag != 'FULL') fine_count,
+        c.fine_reduce_status,
+        (select scv.MEANING
+        from sys_code_b sc, sys_code_value_b scv
+        where sc.CODE_ID = scv.CODE_ID
+        and sc.CODE = 'CONT.RENT_PAYMENT_STATUS'and scv.VALUE != 'APPROVE_RETURN' and scv.VALUE != 'CANCEL'
+        and scv.value = decode(c.fine_reduce_status,null,'NEW',c.fine_reduce_status)) AS fine_reduce_status_n,
+        (select sum(ccc2.due_amount - ccc2.received_amount) from con_contract_cashflow ccc2 where ccc2.contract_id =
+        c.contract_id and ccc2.cf_item = 1 and ccc2.cf_direction = 'INFLOW' and ccc2.cf_status = 'RELEASE') left_amount
+
+        from con_contract c) v
+        <where>
+            1=1
+            and v.fine_count > 0
+            and v.contract_number like '%PRJ%'
+            <if test="contractNumber != null">
+                and v.contract_number LIKE concat('%',concat(#{contractNumber},'%'))
+            </if>
+            <if test="contractName != null">
+                and v.contract_name LIKE concat('%',concat(#{contractName},'%'))
+            </if>
+            <if test="tenantName != null">
+                and v.tenant_name LIKE concat('%',concat(#{tenantName},'%'))
+            </if>
+            <if test="overdueTimes>0">
+                and v.overdue_times = #{overdueTimes}
+            </if>
+            <if test="fineReduceStatus!= null">
+                and v.fine_reduce_status = #{fineReduceStatus}
+            </if>
+            <if test="manufacturerName!= null">
+                and v.manufacturer_name = #{manufacturerName}
+            </if>
+            <if test="contractId != null">
+                and v.contract_id = #{contractId}
+            </if>
+        </where>
+
+
+    </select>
+    <select id="queryContractCashflowJob"  resultMap="BaseResultMap">
+SELECT
+	(
+	CASE
+
+			WHEN pp.business_type IN ( 'T+N_LEASE_FACTORING', 'T+0_LEASE_FACTORING' ) THEN
+			(
+			SELECT
+				wm_concat( h.bp_name )
+			FROM
+				prj_project_bp pb,
+				hls_bp_master h
+			WHERE
+				h.bp_id = pb.bp_id
+				AND pb.bp_type = 'ACCOUNTS_RECEIVABLE'
+				AND pb.project_id = pp.project_id
+			)
+			WHEN pp.business_type IN ( 'LEASE_WITHOUT_RECOURSE_IN', 'OPERATING_LEASE_WITHOUT_RECOURSE_IN' ) THEN
+			(
+			SELECT
+				wm_concat( h.bp_name )
+			FROM
+				prj_project_bp pb,
+				hls_bp_master h
+			WHERE
+				h.bp_id = pb.bp_id
+				AND pb.bp_type = 'ASSET_TRANSFEROR'
+				AND pb.project_id = pp.project_id
+				) ELSE (
+			SELECT
+				wm_concat( h.bp_name )
+			FROM
+				prj_project_bp pb,
+				hls_bp_master h
+			WHERE
+				h.bp_id = pb.bp_id
+				AND pb.bp_type = 'TENANT'
+				AND pb.project_id = pp.project_id
+			)
+		END
+		) AS bp_name,
+		pp.CONTRACT_NUMBER,
+		ccc.WRITE_OFF_FLAG,
+		ccc.CF_ITEM,
+		ccc.CF_TYPE,
+		( SELECT i.description FROM hls_cashflow_item i WHERE i.cf_item = ccc.cf_item AND i.cf_type = ccc.cf_type ) cf_item_n,
+		ccc.TIMES,
+		        ( SELECT s.description FROM sys_user s WHERE s.user_id = pp.host_project_manager ) host_project_manager_n
+
+	FROM
+		con_contract pp,
+		con_contract_cashflow ccc
+	WHERE
+		ccc.contract_id = pp.contract_id
+and
+		ccc.contract_id = #{contractId}
+
+	AND ccc.cashflow_id = #{cashFlowId}
+	and ccc.CF_STATUS='RELEASE'
+	and ccc.cf_item in (1,3,4,8)
+	and ccc.WRITE_OFF_FLAG='FULL'
+
+	</select>
+</mapper>

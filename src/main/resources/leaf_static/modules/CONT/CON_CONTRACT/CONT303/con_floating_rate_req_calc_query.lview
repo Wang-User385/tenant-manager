@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2019年4月18日
+    $Revision: 1.0
+    $Purpose: 调息计算
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        var flt_req_id = '${/parameter/@flt_req_id}';
+
+        function detail_renderer(value, record, name) {
+            return '<a href="javascript:winOpen_detail(\'' + record.get('flt_req_ln_id') + '\');">明细</a>';
+        }
+
+        function winOpen_detail(flt_req_ln_id) {
+            var win = new Leaf.Window({
+                id: 'cont303_floating_detail_winid',
+                url: '${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT303/con_floating_rate_req_detail.lview',
+                params: {
+                    winid: 'cont303_floating_detail_winid',
+                    flt_req_ln_id: flt_req_ln_id
+                },
+                title: '调息明细',
+                width: 1150,
+                height: 600
+            });
+        }
+
+        function history_renderer(value, record, name) {
+            return '<a href="javascript:winOpen_history(\'' + record.get('quotation_id') + '\');">历史</a>';
+        }
+
+        function winOpen_history(quotation_id){
+            var win = new Leaf.Window({
+                id: 'cont303_floating_history_winid',
+                url: '${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT303/con_floating_rate_req_history.lview',
+                params: {
+                    winid: 'cont303_floating_history_winid',
+                    flt_req_id: flt_req_id,
+                    quotation_id:quotation_id
+                },
+                title: '调息历史',
+                width: 900,
+                height: 600
+            });
+        }
+
+
+
+        function cont303_floating_calc_query() {
+            $('con_floating_rate_req_calc_result_ds').query();
+        }
+
+        function cont303_floating_calc_reset() {
+            $('cont303_floating_calc_reset').reset();
+        }
+
+
+        function cont303_floating_calc_return() {
+            $('${/parameter/@winid}').close();
+        }
+
+        ]]></script>
+
+        <a:dataSets>
+            <a:dataSet id="con_floating_rate_req_calc_query_ds">
+                <a:fields>
+                    <a:field name="flt_req_id" defaultValue="${/parameter/@flt_req_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="con_floating_rate_req_calc_result_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/con/floating/ln/query"
+                       queryDataSet="con_floating_rate_req_calc_query_ds" selectable="true">
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="cont303_floating_calc_return" text="返回"/>
+                <a:gridButton click="cont303_floating_calc_query" text="HLS.QUERY"/>
+                <a:gridButton click="cont303_floating_calc_reset" text="HLS.RESET"/>
+            </a:screenTopToolbar>
+            <a:form labelWidth="100" marginWidth="50" column="3">
+                <a:textField name="contract_number"
+                             bindTarget="con_floating_rate_req_calc_query_ds"
+                             prompt="合同编号"/>
+                <a:textField name="bp_name"
+                             bindTarget="con_floating_rate_req_calc_query_ds"
+                             prompt="商业伙伴名称"/>
+            </a:form>
+
+            <a:grid id="con_floating_rate_req_calc_grid_ds"
+                    bindTarget="con_floating_rate_req_calc_result_ds" marginHeight="120" marginWidth="10"
+                    navBar="true">
+                <a:toolBar>
+                    <a:button type="excel"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="contract_number" prompt="合同编号" width="140"/>
+                    <a:column name="quotation_number" prompt="报价编号" width="155"/>
+                    <a:column name="bp_name" prompt="商业伙伴" width="200"/>
+                    <a:column name="base_rate_type" prompt="基准利率类型" width="100"/>
+                    <a:column name="old_base_rate" prompt="原基准利率" align="left" width="100"/>
+                    <a:column name="new_base_rate" prompt="新基准利率	" align="left" width="100"/>
+                    <a:column name="floating_range_method_n" prompt="调息范围" width="100"/>
+                    <a:column name="status_n" prompt="计算状态" width="100"/>
+                    <a:column name="interest_adj_amount" prompt="利息调整总额" renderer="amount_renderer" align="right"
+                              width="100"/>
+                    <a:column name="flt_req_ln_id" prompt="明细" align="center" renderer="detail_renderer"/>
+                    <a:column name="quotation_id" prompt="历史" align="center" renderer="history_renderer"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+
+    </a:view>
+</a:screen>
+    
+    

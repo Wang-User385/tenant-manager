@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.gld.mapper.PeriodMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.gld.dto.Period">
+        <result column="PERIOD_SET_ID" property="periodSetId" jdbcType="DECIMAL"/>
+        <result column="PERIOD_NAME" property="periodName" jdbcType="VARCHAR"/>
+        <result column="PERIOD_YEAR" property="periodYear" jdbcType="DECIMAL"/>
+        <result column="PERIOD_MONTH" property="periodMonth" jdbcType="DECIMAL"/>
+        <result column="START_DATE" property="startDate" jdbcType="DATE"/>
+        <result column="END_DATE" property="endDate" jdbcType="DATE"/>
+        <result column="ADJUSTMENT_FLAG" property="adjustmentFlag" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="getPeriodBetween" parameterType="java.util.Map" resultMap="BaseResultMap">
+        SELECT gp.*
+        FROM
+        gld_period gp
+        WHERE gp.PERIOD_SET_ID = #{periodSetId}
+        AND gp.START_DATE >= (SELECT gp1.START_DATE FROM gld_period gp1 WHERE gp1.PERIOD_SET_ID = #{periodSetId} AND gp1.PERIOD_YEAR = #{startYear} AND gp1.PERIOD_MONTH = #{startMonth})
+        AND gp.END_DATE &lt;= (SELECT gp2.END_DATE FROM gld_period gp2 WHERE gp2.PERIOD_SET_ID = #{periodSetId} AND gp2.PERIOD_YEAR = #{endYear} AND gp2.PERIOD_MONTH = #{endMonth})
+    </select>
+
+    <select id="periodQuery4Lov" parameterType="com.hand.hls.gld.dto.Period" resultMap="BaseResultMap">
+        SELECT
+        gp.*
+        FROM
+        gld_period gp,
+        gld_set_of_books gsof,
+        gld_financial_attribute gfa
+        WHERE
+        gfa.COMPANY_ID = #{companyId}
+        AND gfa.SET_OF_BOOKS_ID = gsof.SET_OF_BOOKS_ID
+        AND gsof.PERIOD_SET_ID = gp.PERIOD_SET_ID
+        AND gp.PERIOD_NAME IN (
+        SELECT
+        gps.PERIOD_NAME
+        FROM
+        gld_period_status gps
+        WHERE
+        gps. STATUS = 'OPEN'
+        AND gps.company_id = #{companyId}
+        )
+        <if test="periodName!=null">
+            AND gp.PERIOD_NAME = #{periodName}
+        </if>
+        ORDER BY PERIOD_NAME desc
+    </select>
+
+    <select id="periodNameLov" parameterType="com.hand.hls.gld.dto.Period" resultMap="BaseResultMap">
+        select t1.* from (
+        SELECT t.period_name
+        FROM gld_period t,gld_period_set s
+        where s.period_set_id = t.period_set_id
+          and s.enabled_flag = 'Y' and t.period_name>'2022'
+        GROUP BY t.period_name)t1
+        <where>
+            1=1
+            <if test="periodName!=null">
+                <bind name="periodName" value="'%'+periodName+'%'"/>
+                and t1.period_name like #{periodName}
+            </if>
+        </where>
+        ORDER BY t1.period_name
+    </select>
+
+
+
+</mapper>

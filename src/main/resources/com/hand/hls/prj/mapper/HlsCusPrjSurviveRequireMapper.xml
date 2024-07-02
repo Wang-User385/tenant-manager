@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.HlsCusPrjSurviveRequireMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.HlsCusPrjSurviveRequire">
+        <result column="PRJ_SURVIVE_ID" property="prjSurviveId" jdbcType="DECIMAL" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+        <result column="MANAGE_REQUIREMENTS" property="manageRequirements" jdbcType="VARCHAR" />
+        <result column="his_manage_requirements" property="hisManageRequirements"/>
+    </resultMap>
+
+    <delete id="deleteSurviveRequireByProjectId">
+        delete from PRJ_PROJECT_SURVIVE_REQUIRE p where p.project_id = #{projectId}
+    </delete>
+
+    <select id="selectChangeAddInfo" parameterType="com.hand.hls.prj.dto.HlsCusPrjSurviveRequire" resultMap="BaseResultMap">
+        select *
+          from PRJ_PROJECT_SURVIVE_REQUIRE p
+         where p.project_id = #{projectId}
+           and not exists (select *
+                  from PRJ_PROJECT_SURVIVE_REQUIRE his
+                 where his.prj_survive_id = p.ref_prj_survive_id)
+    </select>
+
+    <select id="selectChangeRemoveInfo" parameterType="com.hand.hls.prj.dto.HlsCusPrjSurviveRequire" resultMap="BaseResultMap">
+        select *
+          from PRJ_PROJECT_SURVIVE_REQUIRE p
+         where p.project_id = #{hisProjectId}
+           and not exists (select *
+                  from PRJ_PROJECT_SURVIVE_REQUIRE his
+                 where his.ref_prj_survive_id = p.prj_survive_id)
+    </select>
+
+    <select id="selectNotChangeInfo" parameterType="com.hand.hls.prj.dto.HlsCusPrjSurviveRequire" resultMap="BaseResultMap">
+        select p.MANAGE_REQUIREMENTS, his.MANAGE_REQUIREMENTS his_manage_requirements
+          from PRJ_PROJECT_SURVIVE_REQUIRE p,PRJ_PROJECT_SURVIVE_REQUIRE his
+         where p.project_id = #{projectId}
+           and his.prj_survive_id = p.ref_prj_survive_id
+           and his.MANAGE_REQUIREMENTS = p.MANAGE_REQUIREMENTS
+    </select>
+
+    <select id="selectChangeDiffInfo" parameterType="com.hand.hls.prj.dto.HlsCusPrjSurviveRequire" resultMap="BaseResultMap">
+        select p.MANAGE_REQUIREMENTS, his.MANAGE_REQUIREMENTS his_manage_requirements
+          from PRJ_PROJECT_SURVIVE_REQUIRE p,PRJ_PROJECT_SURVIVE_REQUIRE his
+         where p.project_id = #{projectId}
+           and his.prj_survive_id = p.ref_prj_survive_id
+           and his.MANAGE_REQUIREMENTS != p.MANAGE_REQUIREMENTS
+    </select>
+
+</mapper>

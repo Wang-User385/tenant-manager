@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fp.mapper.FundFillingReqDetailMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fp.dto.FundFillingReqDetail">
+        <result column="FILLING_DETAIL_ID" property="fillingDetailId" jdbcType="DECIMAL"/>
+        <result column="FILLING_LN_ID" property="fillingLnId" jdbcType="DECIMAL"/>
+        <result column="FILLING_ID" property="fillingId" jdbcType="DECIMAL"/>
+        <result column="ITEM" property="item" jdbcType="VARCHAR"/>
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL"/>
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL"/>
+        <result column="DUE_DATE" property="dueDate" jdbcType="DATE"/>
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL"/>
+        <result column="BANK_ID" property="bankId" jdbcType="DECIMAL"/>
+        <result column="fund_type" property="fundType"/>
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL"/>
+        <result column="PROJECT_NAME" property="projectName" jdbcType="VARCHAR"/>
+        <result column="PROJECT_ID_N" property="projectIdN" jdbcType="VARCHAR"/>
+        <result column="payment_method" property="paymentMethod" jdbcType="VARCHAR"/>
+        <result column="payment_method_n" property="paymentMethodN" jdbcType="VARCHAR"/>
+        <result column="project_number" property="projectNumber" jdbcType="VARCHAR"/>
+        <result column="project_name" property="projectName" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL"/>
+        <result column="CONTRACT_NAME" property="contractName" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="bank_account_id" property="bankAccountId" jdbcType="DECIMAL"/>
+        <result column="bank_account_id_n" property="bankAccountIdN" jdbcType="VARCHAR"/>
+        <result column="bank_account_num" property="bankAccountNum" jdbcType="VARCHAR"/>
+        <result column="bank_account_name" property="bankAccountName" jdbcType="VARCHAR"/>
+        <result column="bank_type_new_n" property="bankTypeNewN" jdbcType="VARCHAR"/>
+        <result column="bank_type_new" property="bankTypeNew"/>
+        <result column="fill_item" property="fillItem" jdbcType="VARCHAR"/>
+        <result column="fill_year" property="fillYear" jdbcType="VARCHAR"/>
+        <result column="FUND_TYPE" property="fundType"/>
+        <result column="host_unit_id" property="hostUnitId"/>
+        <result column="unit_id" property="unitId"/>
+        <result column="unit_code" property="unitCode"/>
+        <result column="ITEM_CODE" property="itemCode"/>
+        <result column="fill_type" property="fillType"/>
+        <result column="fill_quarter" property="fillQuarter"/>
+        <result column="bank_id_n" property="bankIdN"/>
+        <result column="company_full_name" property="companyFullName"/>
+        <result column="fill_week" property="fillWeek"/>
+        <result column="fill_mon" property="fillMon"/>
+        <result column="filed_seq" property="filedSeq"/>
+        <result column="company_id" property="companyId"/>
+        <result column="end_amount" property="endAmount"/>
+        <result column="filling_ln_id_nor" property="fillingLnIdNor"/>
+    </resultMap>
+    <select id="deleteFillingDetail" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+         DELETE
+            FROM
+            jc_fund_filling_req_detail
+            WHERE
+            filling_id = #{fillingId}
+    </select>
+
+    <select id="queryAllReaDetail" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+            select t.*,(
+                SELECT
+                    b.filling_ln_id
+                FROM
+                    jc_fund_filling_ln b
+                WHERE
+                    b.filling_id = #{refFillingId}
+                AND b.FILL_ITEM_CODE = t.ITEM_CODE
+                AND substring_index(b.unit_code, '1', 1) = (
+                    SELECT
+                        u.unit_code
+                    FROM
+                        jc_fund_filling tt,
+                        fnd_org_unit u
+                    WHERE
+                        tt.filling_id = #{fillingId}
+                    AND tt.unit_id = u.unit_id
+                )
+            )filling_ln_id_nor
+            FROM
+            jc_fund_filling_req_detail t
+            WHERE
+            t.filling_id = #{fillingId}
+            and t.item_code in ('PRINCIPAL','INTEREST','LEGAL_FEE','DEPOSIT','LOAN_DELIVERY')
+    </select>
+
+    <select id="queryAllNew" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        select t.*,
+        t.project_name,
+        t.project_number,
+        t.project_number as project_id_n,
+        t.bank_id,
+        (SELECT a.bank_branch_name
+        FROM csh_bank_account a
+        WHERE a.bank_account_id = t.bank_id) bank_id_n,
+        (SELECT a.bank_account_num
+        FROM csh_bank_account a
+        WHERE a.bank_account_id = t.bank_id) bank_account_num,
+        (SELECT a.bank_account_name
+        FROM csh_bank_account a
+        WHERE a.bank_account_id = t.bank_id) bank_account_name,
+        (SELECT a.bank_type_new
+        FROM csh_bank_account a
+        WHERE a.bank_account_id = t.bank_id) bank_type_new,
+        (SELECT f.company_full_name
+        FROM csh_bank_account a,fnd_company f
+        WHERE a.bank_account_id = t.bank_id and a.company_id = f.company_id) company_full_name,
+        (SELECT (SELECT scv.meaning
+        FROM
+        sys_code_b scb,
+        sys_code_value_b scv
+        WHERE
+        scb.CODE = 'BANK_TYPE_NEW'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = a.bank_type_new)
+        FROM csh_bank_account a
+        WHERE a.bank_account_id = t.bank_id) bank_type_new_n,
+        (SELECT scv.meaning
+        FROM
+        sys_code_b scb,
+        sys_code_value_b scv
+        WHERE
+        scb.CODE = 'CSH.PAYMENT_METHOD'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = t.payment_method)payment_method_n
+        from jc_fund_filling_req_detail t
+        <where>
+            t.FILLING_LN_ID = #{fillingLnId}
+            and t.item_code = #{fillItemCode}
+            <if test="fundType != null">
+                and t.fund_type = #{fundType}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryAll" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        select t.*,
+          (select p.project_name from prj_project p where p.project_id = t.project_id)project_name,
+          (select p.project_number from prj_project p where p.project_id = t.project_id)project_id_n,
+          t.bank_id,
+           (SELECT a.bank_branch_name
+              FROM csh_bank_account a
+             WHERE a.bank_account_id = t.bank_id) bank_account_id_n,
+           (SELECT a.bank_account_num
+              FROM csh_bank_account a
+             WHERE a.bank_account_id = t.bank_id) bank_account_num,
+           (SELECT a.bank_account_name
+              FROM csh_bank_account a
+             WHERE a.bank_account_id = t.bank_id) bank_account_name,
+           (SELECT a.bank_type_new
+              FROM csh_bank_account a
+             WHERE a.bank_account_id = t.bank_id) bank_type_new_n
+        from jc_fund_filling_req_detail t
+        where t.FILLING_LN_ID = #{fillingLnId}
+        and  t.item = #{fillItem}
+    </select>
+    <select id="queryAllByLnId" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        select t.*
+        from jc_fund_filling_req_detail t
+        <where>
+            1=1
+            <if test="fillingLnId != null">
+                and t.filling_ln_id = #{fillingLnId}
+            </if>
+        </where>
+
+    </select>
+
+
+    <select id="queryDetail" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        SELECT p.PROJECT_ID,
+               p.project_number AS PROJECT_ID_N,
+               p.project_number,
+               p.project_name,
+               t.CONTRACT_ID,
+               t.CONTRACT_NAME,
+               t.CONTRACT_NUMBER,
+               c.DUE_DATE,
+               	(
+                    CASE #{itemCode}
+                    WHEN 'PRINCIPAL' THEN
+                        c.PRINCIPAL
+                    WHEN 'INTEREST' THEN
+                        c.INTEREST
+                    WHEN 'LEGAL_FEE' THEN
+                        c.DUE_AMOUNT
+                    ELSE
+                        c.DUE_AMOUNT
+                    END
+                ) DUE_AMOUNT,
+               p.bank_account_id,
+               (SELECT a.bank_branch_name
+                  FROM csh_bank_account a
+                 WHERE a.bank_account_id = p.bank_account_id) bank_id_n,
+               (SELECT a.bank_account_num
+                  FROM csh_bank_account a
+                 WHERE a.bank_account_id = p.bank_account_id) bank_account_num,
+               (SELECT a.bank_account_name
+                  FROM csh_bank_account a
+                 WHERE a.bank_account_id = p.bank_account_id) bank_account_name,
+               (SELECT a.bank_type_new
+                  FROM csh_bank_account a
+                 WHERE a.bank_account_id = p.bank_account_id) bank_type_new_n
+          FROM con_contract t, con_contract_cashflow c, prj_project p
+         WHERE t.DATA_CLASS = 'NORMAL'
+           and t.contract_status in ('INCEPT','ET','TERMINATE')
+           AND c.cf_item = (case #{itemCode} when 'PRINCIPAL' then 1 when 'INTEREST' then 1 when 'LEGAL_FEE' then 3 else 51 end)
+           AND t.CONTRACT_ID = c.CONTRACT_ID
+           AND t.project_id = p.PROJECT_ID
+           AND c.cf_status = 'RELEASE'
+           AND c.due_date BETWEEN to_date(CONCAT(#{fundType}, '-01'), 'YYYY-MM-DD') AND
+                 last_day(to_date(CONCAT(#{fundType}, '-31'),'yyyy-mm'))
+          and p.host_unit_id = #{hostUnitId}
+    </select>
+
+    <select id="queryDetailWeek" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        SELECT p.PROJECT_ID,
+               p.project_number AS PROJECT_ID_N,
+               p.project_number,
+               p.project_name,
+               t.CONTRACT_ID,
+               t.CONTRACT_NAME,
+               t.CONTRACT_NUMBER,
+               c.DUE_DATE,
+               	(
+                    CASE #{itemCode}
+                    WHEN 'PRINCIPAL' THEN
+                        c.PRINCIPAL
+                    WHEN 'INTEREST' THEN
+                        c.INTEREST
+                    WHEN 'LEGAL_FEE' THEN
+                        c.DUE_AMOUNT
+                    ELSE
+                        c.DUE_AMOUNT
+                    END
+                ) DUE_AMOUNT,
+               p.bank_account_id,
+               (SELECT a.bank_branch_name
+                  FROM csh_bank_account a
+                 WHERE a.bank_account_id = p.bank_account_id) bank_id_n,
+               (SELECT a.bank_account_num
+                  FROM csh_bank_account a
+                 WHERE a.bank_account_id = p.bank_account_id) bank_account_num,
+               (SELECT a.bank_account_name
+                  FROM csh_bank_account a
+                 WHERE a.bank_account_id = p.bank_account_id) bank_account_name,
+               (SELECT a.bank_type_new
+                  FROM csh_bank_account a
+                 WHERE a.bank_account_id = p.bank_account_id) bank_type_new_n
+          FROM con_contract t, con_contract_cashflow c, prj_project p
+         WHERE t.DATA_CLASS = 'NORMAL'
+           and t.contract_status in ('INCEPT','ET','TERMINATE')
+           AND c.cf_item = (case #{itemCode} when 'PRINCIPAL' then 1 when 'INTEREST' then 1 when 'LEGAL_FEE' then 3 else 51 end)
+           AND t.CONTRACT_ID = c.CONTRACT_ID
+           AND t.project_id = p.PROJECT_ID
+           AND c.cf_status = 'RELEASE'
+           AND c.due_date = to_date(#{fundType},'YYYY-MM-DD')
+          and p.host_unit_id = #{hostUnitId}
+    </select>
+    <select id="queryDetailSxKyh" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        select sum(t.due_amount)due_amount from jc_fund_filling_req_detail t
+        <where>
+            t.filling_id = #{fillingId}
+            and t.fund_type = #{fundType}
+            and t.item_code in('PRINCIPAL','INTEREST','LEGAL_FEE','DEPOSIT')
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            csh_bank_account cb
+            WHERE
+            cb.ENABLED_FLAG = 'Y'
+            AND cb.bank_account_id = t.bank_id
+            AND cb.BANK_TYPE_NEW = 'USED_ACCOUNT'
+            AND cb.company_id = 248
+            )
+        </where>
+    </select>
+    <select id="queryDetailSxBlh" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        select sum(t.due_amount)due_amount from jc_fund_filling_req_detail t
+        <where>
+            t.filling_id = #{fillingId}
+            and t.fund_type = #{fundType}
+            and t.item_code in('PRINCIPAL','INTEREST','LEGAL_FEE','DEPOSIT')
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            csh_bank_account cb
+            WHERE
+            cb.enabled_flag = 'Y'
+            AND cb.bank_account_id = t.bank_id
+            AND cb.bank_type_new = 'FACTORING_ACCOUNT'
+            AND cb.company_id = 248
+            )
+        </where>
+    </select>
+    <select id="queryDetailTjKyh" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        select sum(t.due_amount)due_amount from jc_fund_filling_req_detail t
+        <where>
+            t.filling_id = #{fillingId}
+            and t.fund_type = #{fundType}
+            and t.item_code in('PRINCIPAL','INTEREST','LEGAL_FEE','DEPOSIT')
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            csh_bank_account cb
+            WHERE
+            cb.ENABLED_FLAG = 'Y'
+            AND cb.bank_account_id = t.bank_id
+            AND cb.BANK_TYPE_NEW = 'USED_ACCOUNT'
+            AND cb.company_id = 313
+            )
+        </where>
+    </select>
+    <select id="queryDetailTjBlh" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        select sum(t.due_amount)due_amount from jc_fund_filling_req_detail t
+        <where>
+            t.filling_id = #{fillingId}
+            and t.fund_type = #{fundType}
+            and t.item_code in('PRINCIPAL','INTEREST','LEGAL_FEE','DEPOSIT')
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            csh_bank_account cb
+            WHERE
+            cb.ENABLED_FLAG = 'Y'
+            AND cb.bank_account_id = t.bank_id
+            AND cb.BANK_TYPE_NEW = 'FACTORING_ACCOUNT'
+            AND cb.company_id = 313
+            )
+        </where>
+    </select>
+    <select id="queryDetailTotalSec" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail" resultMap="BaseResultMap">
+        select sum(t.due_amount)due_amount from jc_fund_filling_req_detail t
+        <where>
+            1=1
+            and t.filling_ln_id = #{fillingLnId}
+            and t.fund_type = #{fundType}
+            and t.item_code = #{itemCode}
+        </where>
+    </select>
+    <select id="queryDetailTotalInflow" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail"
+            resultMap="BaseResultMap">
+        select sum(t.due_amount)due_amount from jc_fund_filling_req_detail t
+        <where>
+            1=1
+            and t.filling_id = #{fillingId}
+            and t.fund_type = #{fundType}
+            and t.item_code in('PRINCIPAL','INTEREST','LEGAL_FEE','DEPOSIT')
+        </where>
+    </select>
+    <select id="queryDetailTotalOutflow" parameterType="com.hand.hls.fp.dto.FundFillingReqDetail"
+            resultMap="BaseResultMap">
+        select sum(t.due_amount)due_amount from jc_fund_filling_req_detail t
+        <where>
+            1=1
+            and t.filling_id = #{fillingId}
+            and t.fund_type = #{fundType}
+            and t.item_code in('LOAN_DELIVERY')
+        </where>
+    </select>
+</mapper>

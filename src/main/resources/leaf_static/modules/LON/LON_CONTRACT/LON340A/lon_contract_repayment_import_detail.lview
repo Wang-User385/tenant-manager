@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure outputPath="/parameter">
+        <a:model-query model="$com.hand.hls.fnd.service.IHlsFndAttributeSequenceService.selectHeaderId"
+                       rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator=","
+                        status_field="/parameter/@ImportSuccess" template_code="LON_CONTRACT_REPAYMENT_TEMPLATE"
+                        user_id="${/session/@user_id}"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+
+        function returnBack() {
+
+            parent._input_window.close();
+            // top.refreshFrame()
+            $('lon_contract_repayment_import_win_id').close();
+        }
+
+        function saveBtn() {
+            var head_id = '${/model/header/record/@header_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+            var contract_id = '${/parameter/@contract_id}';
+
+            Leaf.request({
+                type: 'POST',
+                url: "${/request/@context_path}/hls/cus/lon/contract/repayment/import?headerId=" + head_id +"&withdrawId=" + withdraw_id + '&contractId=' + contract_id,
+                async: true, //设为同步
+                contentType: "application/json; charset=utf-8",
+                success: function (res) {
+                    Leaf.showMessage('提示', res.message);
+                    returnBack();
+                }
+            });
+        }
+
+        function disableBtn() {
+            $('saveBtn_id').disable();
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="temp_interface_ds" autoQuery="true"
+                       queryDataSet="temp_interface_query_ds"
+                       queryUrl="${/request/@context_path}/fnd/interface/lines/query?headerId=${/model/header/record/@header_id}&amp;readLine=0">
+                <a:events>
+                    <a:event name="submitsuccess" handler="disableBtn"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form id="success_form" height="400" title="融资提款本息还款计划导入" marginWidth="100">
+                <a:grid id="temp_interface_grid_id" bindTarget="temp_interface_ds" marginHeight="150" navBar="true"
+                        marginWidth="150">
+                    <a:columns>
+                        <a:column name="attributes_1" width="80"  prompt="期数" align="center"/>
+                        <a:column name="attributes_2" width="80"  prompt="现金流项目" align="center"/>
+                        <a:column name="attributes_3" width="100" prompt="还款日期" align="center"/>
+                        <a:column name="attributes_4" width="120" prompt="还款金额（元）" align="center" renderer="Leaf.formatMoney"/>
+                        <a:column name="attributes_5" width="130" prompt="当期剩余本金" align="center" renderer="Leaf.formatMoney"/>
+                    </a:columns>
+                </a:grid>
+                <a:screenTopToolbar>
+                    <a:gridButton id="saveBtn_id" click="saveBtn" text="DETERMINING_IMPORT"/>
+                    <a:gridButton click="returnBack" text="HAP_BACK"/>
+                </a:screenTopToolbar>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

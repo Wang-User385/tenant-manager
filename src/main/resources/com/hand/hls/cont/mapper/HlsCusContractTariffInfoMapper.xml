@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.HlsCusContractTariffInfoMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.HlsCusContractTariffInfo">
+        <result column="tariff_id" property="tariffId" jdbcType="DECIMAL" />
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL" />
+        <result column="customs_declaration_method" property="customsDeclarationMethod" jdbcType="VARCHAR" />
+        <result column="times" property="times" jdbcType="DECIMAL" />
+        <result column="expense_item" property="expenseItem" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="customs_declaration_method_n" property="customsDeclarationMethodN" jdbcType="VARCHAR" />
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR" />
+
+    </resultMap>
+
+    <select id="queryContractTariffInfo" resultMap="BaseResultMap">
+        SELECT
+            ccti.tariff_id,
+            ccti.contract_id,
+            ccti.customs_declaration_method,
+            ( SELECT meaning FROM sys_code_value_b_v WHERE CODE = 'CUSTOMS_DECLARATION_METHOD' AND code_value = ccti.customs_declaration_method ) customs_declaration_method_n,
+            ccti.times,
+            ccti.expense_item,
+            cc.contract_number,
+            bp.bp_name
+        FROM
+            con_contract_tariff_info ccti
+            LEFT JOIN con_contract cc ON cc.contract_id = ccti.contract_id
+            LEFT JOIN prj_project pp ON cc.project_id = pp.project_id
+            LEFT JOIN (
+            SELECT
+            ppb.project_id,
+            wm_concat( hls.bp_name ) AS bp_name
+            FROM
+            prj_project_bp ppb,
+            hls_bp_master hls
+            WHERE
+            ppb.bp_id = hls.bp_id
+            AND ppb.BP_TYPE IN ( 'TENANT', 'TENANT_SEC', 'ASSET_TRANSFEROR', 'ACCOUNTS_RECEIVABLE' )
+            GROUP BY
+            ppb.PROJECT_ID
+            ) bp ON pp.PROJECT_ID = bp.project_id
+        <where>
+            1=1
+            <if test="tariffId!=null">
+                and ccti.tariff_id = #{tariffId}
+            </if>
+            <if test="contractId!=null">
+                and ccti.contract_id = #{contractId}
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.gld.mapper.SetOfBooksMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.gld.dto.SetOfBooks">
+        <result column="SET_OF_BOOKS_ID" property="setOfBooksId" jdbcType="DECIMAL" />
+        <result column="SET_OF_BOOKS_CODE" property="setOfBooksCode" jdbcType="VARCHAR" />
+        <result column="SET_OF_BOOKS_NAME" property="setOfBooksName" jdbcType="VARCHAR" />
+        <result column="PERIOD_SET_ID" property="periodSetId" jdbcType="DECIMAL" />
+        <result column="ACCOUNT_SET_ID" property="accountSetId" jdbcType="DECIMAL" />
+        <result column="FUNCTIONAL_CURRENCY" property="functionalCurrency" jdbcType="VARCHAR" />
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR" />
+        <result column="PERIOD_SET_NAME" property="periodSetName" />
+        <result column="ACCOUNT_SET_NAME" property="accountSetName" />
+        <result column="FUNCTIONAL_CURRENCY_CN" property="functionalCurrencyCn" jdbcType="VARCHAR" />
+        <result column="account_set_id_n" property="accountSetIdN" jdbcType="VARCHAR" />
+        <result column="functional_currency_n" property="functionalCurrencyN" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="baseSelect" parameterType="com.hand.hls.gld.dto.SetOfBooks" resultMap="BaseResultMap">
+        SELECT gsof.*,
+        (SELECT gps.PERIOD_SET_NAME FROM GLD_PERIOD_SET gps WHERE gps.PERIOD_SET_ID = gsof.PERIOD_SET_ID) AS periodSetName,
+        (SELECT gas.ACCOUNT_SET_NAME FROM gld_account_set gas WHERE gas.ACCOUNT_SET_ID = gsof.ACCOUNT_SET_ID) AS accountSetName,
+        (
+        SELECT
+        fc.currency_name
+        FROM
+        fnd_currency fc
+        WHERE
+        fc.currency_code = gsof.functional_currency
+        ) functional_currency_cn
+        FROM
+        gld_set_of_books gsof
+        <where>
+            <if test="setOfBooksId!=null">
+                gsof.SET_OF_BOOKS_ID = #{setOfBooksId}
+            </if>
+            <if test="setOfBooksCode!=null">
+                AND gsof.SET_OF_BOOKS_CODE = #{setOfBooksCode}
+            </if>
+            <if test="setOfBooksName!=null">
+                AND gsof.SET_OF_BOOKS_NAME = #{setOfBooksName}
+            </if>
+            <if test="periodSetId!=null">
+                AND gsof.PERIOD_SET_ID = #{periodSetId}
+            </if>
+            <if test="accountSetId!=null">
+                AND gsof.ACCOUNT_SET_ID = #{accountSetId}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectLovForCompany" parameterType="com.hand.hls.gld.dto.SetOfBooks" resultMap="BaseResultMap">
+        select v.*
+        from (select t.set_of_books_id,
+           t.set_of_books_code,
+           t.set_of_books_name,
+           t.period_set_id,
+           t.account_set_id,
+           t.functional_currency,
+           t.enabled_flag,
+           (select gac.account_set_name
+              from gld_account_set gac
+             where gac.account_set_id = t.account_set_id) account_set_id_n,
+           (select s.MEANING value_name
+              from sys_code_value_b_v s
+             where s.code = 'CHS.CURRENCY_TYPE'
+               and s.code_value = t.functional_currency) functional_currency_n
+      from gld_set_of_books t) v
+        <where>
+            1=1
+            <if test="setOfBooksId!=null">
+                v.set_of_books_id = #{setOfBooksId}
+            </if>
+            <if test="setOfBooksCode!=null">
+                AND v.SET_OF_BOOKS_CODE = #{setOfBooksCode}
+            </if>
+            <if test="setOfBooksName!=null">
+                AND v.SET_OF_BOOKS_NAME = #{setOfBooksName}
+            </if>
+            <if test="periodSetId!=null">
+                AND v.PERIOD_SET_ID = #{periodSetId}
+            </if>
+            <if test="accountSetId!=null">
+                AND v.ACCOUNT_SET_ID = #{accountSetId}
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

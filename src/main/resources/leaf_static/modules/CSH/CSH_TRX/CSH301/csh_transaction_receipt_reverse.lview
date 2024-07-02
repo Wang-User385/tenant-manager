@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2019年2月21日
+    $Revision: 1.0  
+    $Purpose: 收款反冲
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.sys.service.SysDefaultValueService.querySysDefaultValue"
+                       rootPath="default_value"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="csh_transaction_receipt_reverse_link" url="${/request/@context_path}/csh/transaction/reverse"/>
+        <script><![CDATA[
+        function csh301_receipt_reverse_return() {
+            csh301_transaction_query();
+            $('${/parameter/@winId}').close();
+        }
+
+        function csh301_receipt_reverse_detail() {
+            if ($('csh_transaction_reverse_ds').validate()) {
+
+                var records = $('csh_transaction_receipt_maintain_result_ds').getSelected();
+                var head_record = $('csh_transaction_reverse_ds').getAt(0);
+                var saveData = [];
+                for (var i = 0; i < records.length; i++) {
+                    records[i].set('_status', 'update');
+                    records[i].set('reversed_date', head_record.get('reversed_date'));
+/*
+                    records[i].set('bank_slip_num', head_record.get('bank_slip_num'));
+*/
+                    records[i].set('reversed_description', head_record.get('reversed_description'));
+                    saveData.push(records[i].data);
+                }
+                var winId = '${/parameter/@winId}';
+                Leaf.Masker.mask($(winId).wrap, '反冲中。。');
+                Leaf.request({
+                    url: $('csh_transaction_receipt_reverse_link').getUrl(),
+                    para: saveData,
+                    success: function (res) {
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        $('csh_transaction_receipt_maintain_query_ds').query();
+                        Leaf.Masker.unmask($(winId).wrap);
+                        csh301_receipt_reverse_return();
+                    },
+                    failure: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    scope: this
+                });
+            }
+        }
+
+
+
+
+        Leaf.onReady(function () {
+            var head_record = $('csh_transaction_reverse_ds').getAt(0);
+            head_record.set('reversed_date',Leaf.dateFormat.format(new Date('${/model/default_value/record/@now_date}'),'isoDate'));
+            if (Ext.isEmpty(head_record.get('description'))) {
+                head_record.set('description', '${l:HLS.REVERSE}');
+            }
+        });
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="csh_transaction_reverse_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="transaction_id"/>
+                    <a:field name="reversed_date" prompt="反冲日期" required="true"/>
+<!--
+                    <a:field name="bank_slip_num" prompt="银行流水号"/>
+-->
+                    <a:field name="reversed_description" prompt="描述"/>
+                </a:fields>
+
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                  <a:gridButton click="csh301_receipt_reverse_detail" text="HLS.REVERSE"/>
+                  <a:gridButton click="csh301_receipt_reverse_return" text="HLS.RETURN"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:box column="2" labelWidth="100">
+                    <a:datePicker name="reversed_date" bindTarget="csh_transaction_reverse_ds"/>
+<!--
+                    <a:textField name="bank_slip_num" bindTarget="csh_transaction_reverse_ds"/>
+-->
+                </a:box>
+                <a:box column="2" labelWidth="100">
+                    <a:textField name="reversed_description" bindTarget="csh_transaction_reverse_ds" width="370"/>
+                </a:box>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+    -->
+</a:screen>

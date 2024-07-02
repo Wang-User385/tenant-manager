@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.ProjectApprovalConditionMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.ProjectApprovalCondition">
+        <result column="APPROVAL_RECORD_ID" property="approvalRecordId" jdbcType="DECIMAL"/>
+        <result column="APPROVAL_ID" property="approvalId" jdbcType="DECIMAL"/>
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL"/>
+        <result column="CONDITION_TYPE" property="conditionType" jdbcType="VARCHAR"/>
+        <result column="APPROVAL_SEQ" property="approvalSeq" jdbcType="VARCHAR"/>
+        <result column="CONDITION_CONTENT" property="conditionContent" jdbcType="VARCHAR"/>
+        <result column="approval_type" property="approvalType" jdbcType="VARCHAR"/>
+        <result column="condition_type_n" property="conditionTypeN" jdbcType="VARCHAR"/>
+    </resultMap>
+    <select id="queryAll" parameterType="com.hand.hls.prj.dto.ProjectApprovalCondition" resultMap="BaseResultMap">
+        select t.*,(select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'APPROVAL_TYPE'
+        and sc.code_value = t.condition_type)condition_type_n from prj_approval_condition t, prj_project_approval a
+        <where>
+            1=1
+            and t.approval_id = a.approval_id
+            and a.data_class = 'NORMAL'
+--             and t.APPROVAL_ID = nvl(
+--             (
+--             SELECT
+--             aa.approval_id
+--             FROM
+--             prj_project_approval aa
+--             WHERE
+--             aa.data_class = 'NORMAL'
+--             AND aa.project_id = t.project_id
+--             ) ,- 99
+--             )
+            <if test="projectId != null">
+                and t.project_id = #{projectId}
+            </if>
+            <if test="approvalId != null">
+                and t.APPROVAL_ID = #{approvalId}
+            </if>
+            <if test="approvalType != null">
+                and t.approval_type = #{approvalType}
+            </if>
+        </where>
+    </select>
+    <select id="queryAll2" parameterType="com.hand.hls.prj.dto.ProjectApprovalCondition" resultMap="BaseResultMap">
+        select t.*,(select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'APPROVAL_TYPE'
+        and sc.code_value = t.condition_type)condition_type_n from prj_approval_condition t, prj_project_approval a
+        <where>
+            1=1
+            and t.approval_id = a.approval_id
+            and a.data_class = 'CHANGE'
+            --             and t.APPROVAL_ID = nvl(
+            --             (
+            --             SELECT
+            --             aa.approval_id
+            --             FROM
+            --             prj_project_approval aa
+            --             WHERE
+            --             aa.data_class = 'NORMAL'
+            --             AND aa.project_id = t.project_id
+            --             ) ,- 99
+            --             )
+            <if test="projectId != null">
+                and t.project_id = #{projectId}
+            </if>
+            <if test="approvalId != null">
+                and t.APPROVAL_ID = #{approvalId}
+            </if>
+            <if test="approvalType != null">
+                and t.approval_type = #{approvalType}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="queryBefore" parameterType="com.hand.hls.prj.dto.ProjectApprovalCondition" resultMap="BaseResultMap">
+        select t.*,(select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'APPROVAL_TYPE'
+        and sc.code_value = t.condition_type)condition_type_n from prj_approval_condition t, prj_project_approval a
+        <where>
+            1=1
+            and t.approval_id = a.approval_id
+            and a.data_class = 'NORMAL'
+            and t.APPROVAL_TYPE = 'BEFORE'
+            <if test="approvalId != null">
+                and t.approval_id = #{approvalId}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryAfter" parameterType="com.hand.hls.prj.dto.ProjectApprovalCondition" resultMap="BaseResultMap">
+        select t.APPROVAL_RECORD_ID,
+        t.PROJECT_ID,t.APPROVAL_ID,t.APPROVAL_SEQ,t.CONDITION_CONTENT
+        from prj_approval_condition t, prj_project_approval a
+        <where>
+            1=1
+            and t.approval_id = a.approval_id
+            and a.data_class = 'NORMAL'
+            and t.APPROVAL_TYPE = 'AFTER'
+            <if test="approvalId != null">
+                and t.approval_id = #{approvalId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

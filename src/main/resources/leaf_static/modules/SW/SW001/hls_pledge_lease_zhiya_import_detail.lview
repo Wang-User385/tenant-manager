@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure outputPath="/parameter">
+        <a:model-query model="$com.hand.hls.fnd.service.IHlsFndAttributeSequenceService.selectHeaderId"
+                       rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator=","
+                        status_field="/parameter/@ImportSuccess" template_code="CSH_TRANSACTION_RECEIPT"
+                        user_id="${/session/@user_id}"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+
+
+
+        function returnBack() {
+              // top.refreshFrame();
+
+            parent._input_window.close();
+            $('item_receipt_import_win_id').close();
+           // $('${/parameter/@parent_winid}').close();
+
+
+        }
+
+        function saveBtn() {
+            var head_id = '${/model/header/record/@header_id}';
+            var leaseItemId ='${/parameter/@lease_item_id}';
+            var patternDet ='${/parameter/@patternDet}';
+            console.log(leaseItemId)
+            Leaf.request({
+                type: 'POST',
+                url: "${/request/@context_path}/hls/pledge/dongcan/list/import?headerId=" + head_id+"&leaseItemId="+leaseItemId+"&patternDet="+patternDet,
+                async: true, //设为同步
+                contentType: "application/json; charset=utf-8",
+                success: function (res) {
+                    Leaf.showMessage('提示', res.message);
+                    //debugger;
+                    returnBack();
+                }
+            });
+        }
+
+        function disableBtn() {
+            $('saveBtn_id').disable();
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="temp_interface_ds" autoQuery="true"
+                       queryDataSet="temp_interface_query_ds"
+                       queryUrl="${/request/@context_path}/fnd/interface/lines/query?headerId=${/model/header/record/@header_id}&amp;readLine=1">
+                <a:events>
+                    <a:event name="submitsuccess" handler="disableBtn"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form id="success_form" height="400" title="新增导入" marginWidth="100">
+                <a:grid id="temp_interface_grid_id" bindTarget="temp_interface_ds" marginHeight="150" navBar="true"
+                        marginWidth="150">
+                    <a:columns>
+                        <a:column name="attributes_1" width="80" prompt="序号" align="center"/>
+                        <a:column name="attributes_2" width="80" prompt="出质人" align="center"/>
+                        <a:column name="attributes_3" width="100" prompt="标的方" align="right"/>
+                        <a:column name="attributes_4" width="120" prompt="质押财产价值" align="left"/>
+                        <a:column name="attributes_5" width="130" prompt="市场价值/评估价值" align="left"/>
+                        <a:column name="attributes_6" width="150" prompt="质押财产描述" align="left"/>
+
+                        <a:column name="attributes_7" width="150" prompt="抵质押分类" align="center"/>
+                        <a:column name="attributes_8" width="150" prompt="抵（质）押状态" align="center"/>
+
+                        <a:column name="attributes_9" width="80" prompt="登记机关" align="left"/>
+                        <a:column name="attributes_10" width="80" prompt="登记编号" align="left"/>
+                        <a:column name="attributes_11" width="80" prompt="登记时间" align="left"/>
+                        <a:column name="attributes_12" width="80" prompt="登记到期日" align="left"/>
+                        <a:column name="attributes_13" width="80" prompt="备注" align="left"/>
+
+
+                    </a:columns>
+                </a:grid>
+                <a:screenTopToolbar>
+                    <a:gridButton id="saveBtn_id" click="saveBtn" text="DETERMINING_IMPORT"/>
+                    <a:gridButton click="returnBack" text="HAP_BACK"/>
+                </a:screenTopToolbar>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

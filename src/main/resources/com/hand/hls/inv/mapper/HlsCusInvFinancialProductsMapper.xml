@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.inv.mapper.HlsCusInvFinancialProductsMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.inv.dto.HlsCusInvFinancialProducts">
+        <result column="INV_PRODUCTS_ID" property="invProductsId" jdbcType="DECIMAL"/>
+        <result column="BANK_ID" property="bankId" jdbcType="DECIMAL"/>
+        <result column="FINANCIAL_PRODUCTS_NAME" property="financialProductsName" jdbcType="VARCHAR"/>
+        <result column="FINANCIAL_PRODUCTS_NUM" property="financialProductsNum" jdbcType="VARCHAR"/>
+        <result column="FINANCIAL_MAX_AMOUNT" property="financialMaxAmount" jdbcType="DECIMAL"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="ENABLE_FLAG" property="enableFlag" jdbcType="VARCHAR"/>
+
+        <!--外来字段-->
+        <result column="bank_name" property="bankIdN" jdbcType="VARCHAR"/>
+        <result column="conditions" property="conditions" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryProductsList" parameterType="com.hand.hls.inv.dto.HlsCusInvFinancialProducts"
+            resultMap="BaseResultMap">
+        select cb.bank_name ,p.*
+        from inv_financial_products p,csh_bank cb
+        where p.bank_id=cb.bank_id
+        <if test="bankName!=null">
+            and cb.bank_name like concat(concat('%',#{bankName}),'%')
+        </if>
+        <if test="financialProductsName!=null">
+            and p.financial_products_name like concat(concat('%',#{financialProductsName}),'%')
+        </if>
+        <if test="financialProductsNum!=null">
+            and p.financial_products_num like concat(concat('%',#{financialProductsNum}),'%')
+        </if>
+        <if test="conditions!=null">
+            and (cb.bank_name like concat(concat('%',#{conditions}),'%')
+            or
+            p.financial_products_name like concat(concat('%',#{conditions}),'%')
+            )
+        </if>
+    </select>
+
+
+</mapper>

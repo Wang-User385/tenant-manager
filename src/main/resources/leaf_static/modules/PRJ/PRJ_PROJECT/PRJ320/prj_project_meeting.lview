@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="hls200_marketing_report"
+                url="${/request/@context_path}/modules/HLS/HLS200/hls_marketing_report_detail.lview"/>
+        <a:link id="prj320_judge_vote_detail"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ320/prj_project_meeting_vote_detail.lview"/>
+        <a:link id="prj316_project_modify_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify.lview"/>
+        <script><![CDATA[
+
+        //项目维护
+        function project_detail_open(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data, function_code = 'PRJ316F2';
+            param['url_title'] = '项目明细';
+            param['winid'] = 'project_modify_winid';
+            param['function_code'] = function_code;
+            // var project_status = record.get('project_status');
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            // console.log(param);
+            hls_doc_get_layout_code(param, 'prj316_project_modify_id', ds_id, function_code);
+        }
+
+        function voting_detail_open(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            if (record.get('approval_id')) {
+                var param = record.data;
+                param['function_code'] = 'PRJ320F1';
+                param['url_title'] = '投票明细';
+                param['function_usage'] = 'QUERY';
+                param['winid'] = 'judge_vote_detail_winid';
+                param['approval_id'] = record.get('approval_id');
+                param['project_id'] = record.get('project_id');
+                hls_doc_get_layout_code(param, 'prj320_judge_vote_detail', ds_id, 'PRJ320F1', null, null, '${/parameter/@layout_code}_autoQuery');
+            } else {
+                Leaf.showMessage('提示', '只有已经创建会议的项目才能查看投票明细！');
+                return false;
+            }
+        }
+
+        function marketing_report_open(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['function_code'] = 'HLS200F1';
+            param['url_title'] = '营销报备详情';
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'marketing_report_detail_winid';
+            hls_doc_get_layout_code(param, 'hls200_marketing_report', ds_id, 'HLS200', null, null, '${/parameter/@layout_code}_autoQuery');
+        }
+
+        //汇总业审委综合意见
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage('提示', '请至少选择一条上会信息！');
+                return false;
+            }
+            var data = [];
+            for (var i = 0; i < records.length; i++) {
+                var approval_status = records[i].get('approval_status');
+                if (approval_status == 'VOTED') {
+                    data.push(records[i].data);
+                } else {
+                    Leaf.showMessage('提示', '只有投票完成的项目才能进行意见汇总！');
+                    return false;
+                }
+            }
+            Leaf.showConfirm('${l:HLS.PROMPT}', '确认汇总意见吗?', function okFun() {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: '${/request/@context_path}/prj/project/approval/wfl/submit',
+                    para: data,
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        $(ds_id).query();
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            })
+
+        };
+
+        //会议创建
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage('提示', '请至少选择一条上会信息！');
+                return false;
+            }
+            var list = [];
+            for (var i = 0; i < records.length; i++) {
+                var approval_status = records[i].get('approval_status');
+                if (approval_status == 'MEETING') {
+                    var project_meeting_id = records[i].get('project_id');
+                    list.push(project_meeting_id);
+                } else {
+                    Leaf.showMessage('提示', '只有待上会的项目可以创建会议！');
+                    return false;
+                }
+            }
+            var projectIds = list.join('-');
+
+            Leaf.request({
+                url: "${/request/@context_path}/prj/project/approval/create",
+                para: projectIds,
+                type: "POST",
+                success: function (res) {
+                    // Leaf.Masker.unmask(Ext.getBody());
+                    var approval_id = res.result.record[0].approval_id;
+                    var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ320/prj_project_meeting_create.lview';
+                    var win = new Leaf.Window({
+                        id: 'prj320_meeting_create_winid',
+                        url: url,
+                        params: {
+                            winid: 'prj320_meeting_create_winid',
+                            ds_id: ds_id,
+                            approval_id: approval_id
+                        },
+                        title: '',
+                        fullScreen: true
+                    });
+                },
+                scope: this
+            });
+
+
+        };
+
+        //项目撤回
+        window['${/parameter/@layout_code}_user_button4_layout_dynamic_click'] = function () {debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var records = $(ds_id).getSelected();
+            if (records.length != 1) {
+                Leaf.showMessage('提示', '请选择一条上会信息！');
+                return false;
+            }
+            for (var i = 0; i < records.length; i++) {
+                var meetingStatus = records[i].get('approval_status');
+                if (meetingStatus != 'VOTING' && meetingStatus != 'MEETING') {
+                    Leaf.showMessage('提示', '只能待上会和投票中的上会信息才能项目撤回！');
+                    return false;
+                }
+            }
+            Leaf.showConfirm('${l:HLS.PROMPT}', '确认进行项目撤回吗?', function okFun() {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: '${/request/@context_path}/prj/project/project/meeting/withdraw',
+                    para: records[0].data,
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.SideBar.show({
+                            msg: '操作成功',
+                            duration: 2000
+                        });
+                        $(ds_id).query();
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            });
+
+
+
+        };
+
+        //投票完成
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            // debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage('提示', '请至少选择一条上会信息！');
+                return false;
+            }
+            var saveData = [];
+            for (var i = 0; i < records.length; i++) {
+                var meetingStatus = records[i].get('approval_status');
+                if (meetingStatus == 'VOTING') {
+                    saveData.push(records[i].data);
+                } else {
+                    Leaf.showMessage('提示', '只能投票中的上会信息才能完成投票！');
+                    return false;
+                }
+            }
+            Leaf.showConfirm('${l:HLS.PROMPT}', '确认完成投票吗?', function okFun() {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: '${/request/@context_path}/prj/project/meeting/update/status',
+                    para: saveData,
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.SideBar.show({
+                            msg: '投票完成',
+                            duration: 2000
+                        });
+                        $(ds_id).query();
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            });
+        };
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+
+            if (name === 'detail') {
+                return '<a href="javascript:window[\'' + 'voting_detail_open' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">投票明细</a>';
+            }
+            if (name === 'marketing_report_number') {
+                return '<a href="javascript:window[\'' + 'marketing_report_open' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+            if (name === 'project_number' && value) {
+                return '<a href="javascript:window[\'' + 'project_detail_open' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

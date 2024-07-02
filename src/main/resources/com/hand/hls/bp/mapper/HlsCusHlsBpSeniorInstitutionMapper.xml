@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.HlsCusHlsBpSeniorInstitutionMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.HlsCusHlsBpSeniorInstitution">
+        <result column="BP_SENIOR_INSTITUTION_ID" property="bpSeniorInstitutionId" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="SUPERIOR_ID" property="superiorId" jdbcType="DECIMAL" />
+        <result column="SUPERIOR_ID_N" property="superiorIdN" jdbcType="DECIMAL" />
+        <result column="REGISTER_TYPE" property="registerType" jdbcType="VARCHAR" />
+        <result column="REGISTER_TYPE_N" property="registerTypeN" jdbcType="VARCHAR" />
+        <result column="REGISTER_NUM" property="registerNum" jdbcType="VARCHAR" />
+        <result column="CORP_ID" property="corpId" jdbcType="VARCHAR" />
+        <result column="CREDIT_CODE" property="creditCode" jdbcType="VARCHAR" />
+        <result column="SUPERIOR_NAME" property="superiorName" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryAll" parameterType="com.hand.hls.bp.dto.HlsCusHlsBpSeniorInstitution" resultMap="BaseResultMap">
+        SELECT
+        hbsi.*,
+        (SELECT h.bp_name FROM hls_bp_master h where h.bp_id = hbsi.SUPERIOR_ID) SUPERIOR_ID_N,
+        (SELECT v.meaning FROM sys_code_value_b_v v WHERE v.code = 'BP.REGISTRATION_NUM_TYPE' AND v.code_value = hbsi.REGISTER_TYPE) REGISTER_TYPE_N
+        FROM
+        Hls_Bp_Senior_Institution  hbsi
+        <where>
+            <if test="bpId != null">
+                hbsi.bp_id = #{bpId}
+            </if>
+            <if test="bpSeniorInstitutionId != null">
+                hbsi.BP_SENIOR_INSTITUTION_ID = #{bpSeniorInstitutionId}
+            </if>
+        </where>
+    </select>
+</mapper>

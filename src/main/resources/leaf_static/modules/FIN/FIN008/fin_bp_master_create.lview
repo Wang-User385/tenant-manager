@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaorong
+    $Date: 2019-4-16 上午11:48:56
+    $Revision: 2.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+        var flag = '${/parameter/@flag}';
+        // 权限字段赋值
+        window['${/parameter/@layout_code}_set_authority_rule_string'] = function (document_type, business_type, division, employee_code) {
+            Leaf.request({
+                url: "${/request/@context_path}/hls/bp/master/generateAuthorityString?division=" + division + "&documentType=" + document_type + "&businessType=" + business_type + "&employeeCode=" + employee_code,
+                success: function (res) {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+                    $(ds_id).getCurrentRecord().set('authority_rule_string', res.result.record[0]);
+                },
+                sync: true,
+                scope: this
+            });
+        }
+        //保存前调用获取融资机构编码
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = false;
+            var document_category = '${/parameter/@document_category}';
+            var document_type = '${/parameter/@document_type}';
+            var business_type = '${/parameter/@business_type}';
+            var employee_code = record.get('employee_code');
+            var division = '';
+
+            if (record.isNew){
+                // 给融资经理赋值
+                record.set('finance_manager','${/session/@user_id}');
+                //设置权限字符串
+                window['${/parameter/@layout_code}_set_authority_rule_string'](document_type, business_type, division, employee_code);
+            }
+            debugger;
+            // 校验手机号、银行账号正确性
+            var bank_account_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_bank_account');
+            var bank_account_record = $(bank_account_ds).getAll();
+            for(var i = 0;i<bank_account_record.length;i++){
+                // 银行账号校验
+                var bank_num = bank_account_record[i].get('bank_account_num');
+
+                var bankNumCheck = /^[1-9]\d{7,29}$/;
+                if (bankNumCheck.test(bank_num) === false) {
+                    Leaf.showMessage("提示", "机构账户信息中银行账号格式错误!", null);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+
+            }
+            var info_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_contact_info');
+            var info_record = $(info_ds).getAll();
+            for(var i = 0;i<info_record.length;i++){
+                //手机号校验
+                var phone = info_record[i].get('cell_phone');
+                var spouse_phone = info_record[i].get('phone');
+                var phoneCheck = /^[1][3,4,5,6,7,8,9][0-9]{9}$/;
+                if (phoneCheck.test(phone) === false) {
+                    Leaf.showMessage("提示", "联系人信息中手机号格式错误!", null);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+                var  reg = /^([0-9]{3,4}-)?[0-9]{7,8}$/;
+                var spousePhoneCheck = new RegExp(reg);
+                if (spouse_phone != null && spouse_phone != "") {
+                    if (spousePhoneCheck.test(spouse_phone) === false) {
+                        Leaf.showMessage("提示", "联系人信息中电话格式错误!", null);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        return false;
+                    }
+                }
+                //邮箱校验
+                var email = info_record[i].get('email');
+                var emailCheck = /^([a-zA-Z\d][\w-]{2,})(\.[a-z]{2,})?@(\w{2,})?([a-z]{2,})?(\-[a-z]{2,})?\.([a-z]{2,})(\.[a-z]{2,})?$/;
+                if(email != null && email != ''){
+                    if(emailCheck.test(email) === false){
+                        Leaf.showMessage("提示", "联系人信息中邮箱格式错误!");
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        return false;
+                    }
+                }
+            }
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_contact_info');
+            var datas = $(ds_id).getJsonData();
+            Leaf.request({
+                url: '${/request/@context_path}/hls/bp/queryBpPhone',
+                para : datas,
+                success: function (res) {
+
+                    var records = res.result.record;
+                    // 手机号重复性校验
+                    if (records.length > 0) {
+                        Leaf.showMessage('${l:HLS.PROMPT}','手机号重复');
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        return false;
+                    } else {
+                        Leaf.request({
+                            url: '${/request/@context_path}/hls/bp/queryBpMasterLov',
+                            para :{
+                                bpName: record.get('bp_name')
+                            },
+                            success: function (res) {
+
+                                var records = res.result.record;
+                                // 商业伙伴名称重复性校验
+                                if (Ext.isEmpty(record.get('bp_id')) && records.length > 0) {
+                                    Leaf.showMessage('${l:HLS.PROMPT}','已存在名为' + record.get('bp_name') + '的融资机构！');
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                    return false;
+                                } else {
+                                    for (var i=0;i<records.length;i++){
+                                        if (records[i].bp_id != record.get('bp_id')){
+                                            Leaf.showMessage('${l:HLS.PROMPT}','已存在名为' + record.get('bp_name') + '的融资机构！');
+                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                            return false;
+                                        }
+                                    }
+                                }
+
+                                if (record.get('bp_code')) {
+                                    check_flag=true;
+                                }else{
+                                    Leaf.request({
+                                        url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type + "&employeeCode=" + employee_code,
+                                        success: function (res) {
+                                            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+                                            $(ds_id).getCurrentRecord().set('bp_code', res.result.record[0]);
+                                            $(ds_id).getCurrentRecord().set('company_id', '${/session/@companyId}');
+                                            check_flag = true;
+                                        },
+                                        error: function (res) {
+                                            record.set('bp_code', res.result.record[0]);
+                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        },
+                                        failure: function (res) {
+                                            record.set('bp_code', res.result.record[0]);
+                                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        },
+                                        sync: true,
+                                        scope: this
+                                    });
+                                }
+                            },
+                            error: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            failure: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            sync: true,
+                            scope: this
+                        });
+                    }
+                },
+                error: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true,
+                scope: this
+            });
+
+
+
+
+
+            return check_flag;
+        };
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            var bp_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            $(bp_ds).setQueryParameter('bp_id', $(bp_ds).getAt(0).get("bp_id"));
+            $(bp_ds).query();
+        };
+
+        //附件上传超链接
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'attach_link' && record.isNew) {
+                return null;
+            } else if (name == 'attach_link' && !record.isNew) {
+                return '<a href="javascript:fin001f1_open_attach(\'' + record.get('bp_attachment_id') + '\')">上传</a>';
+            }
+            return value;
+        };
+
+        //附件
+        var win;
+
+        function fin001f1_open_attach(bp_attachment_id) {
+            debugger;
+            var url;
+            var function_usage;
+            if (flag == '1') {
+                url = '${/request/@context_path}/downloadFile.lview?projectAttachmentId=' + bp_attachment_id;
+                function_usage = 'QUERY';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview?projectAttachmentId=' + bp_attachment_id;
+                function_usage = 'MODIFY';
+            }
+            win = new Leaf.Window({
+                id: 'fin001f1_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: bp_attachment_id,
+                    table_name: 'bp_master_attachment',
+                    winid: 'fin001f1_open_attachment_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'bp_master_attachment');
+                $(ds_id).query();
+            });
+        }
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_address')) {
+                $(ds.id).getCurrentRecord().set('country_id', 46);
+                $(ds.id).getCurrentRecord().set('country_id_n', '中国');
+            } else if(ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'bp_master_attachment')) {
+                $(ds.id).getCurrentRecord().set('bp_attachment_category', 'LON_CONTRACT');
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

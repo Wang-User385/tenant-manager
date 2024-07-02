@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.activiti.mapper.HlsCusActMeetingJudgeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.activiti.dto.HlsCusActMeetingJudge">
+        <id column="judge_id" property="judgeId" jdbcType="BIGINT"/>
+        <result column="judge_member_code" property="judgeMemberCode" jdbcType="VARCHAR"/>
+        <result column="judge_suggestion" property="judgeSuggestion" jdbcType="VARCHAR"/>
+        <result column="judge_comment" property="judgeComment" jdbcType="VARCHAR"/>
+        <result column="process_instance_id" property="processInstanceId" jdbcType="BIGINT"/>
+        <result column="meeting_id" property="meetingId" jdbcType="BIGINT"/>
+        <result column="judge_member_name" property="judgeMemberName" jdbcType="VARCHAR"/>
+        <result column="judge_date" property="judgeDate" jdbcType="DATE"/>
+        <result column="to_be_satisfied_condition" property="toBeSatisfiedCondition" jdbcType="VARCHAR"/>
+        <result column="position_name" property="positionName" jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+        <result column="company_short_name" property="companyShortName" jdbcType="VARCHAR"/>
+        <result column="judge_time" property="judgeTime" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--根据user name查询employee code-->
+    <select id="queryEmployeeCodeByUserName" parameterType="com.hand.hls.activiti.dto.HlsCusActMeetingJudge"
+            resultMap="BaseResultMap">
+        select fe.employee_code as judge_member_code
+        from fnd_employee fe,
+        sys_user su,
+        sys_user_allocation sua,
+        fnd_employee_assigns fea
+        where su.USER_ID = sua.user_id
+        and su.USER_NAME = #{judgeMemberCode}
+        and fe.employee_id = fea.employee_id
+        and fea.employee_assign_id = sua.employee_assign_id
+        <choose>
+            <when test="companyId!=null and companyId!=''">
+                and sua.company_id = #{companyId}
+            </when>
+            <otherwise>
+                and sua.company_id = #{request.companyId}
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="queryJudgeIdByDetails" parameterType="com.hand.hls.activiti.dto.HlsCusActMeetingJudge"
+            resultType="java.lang.Long">
+        SELECT judge_id
+        FROM
+        act_meeting_judge
+        WHERE
+        1 = 1
+        <if test="processInstanceId != null and processInstanceId != ''">
+            and process_instance_id = #{processInstanceId}
+        </if>
+        <if test="meetingId != null and meetingId != ''">
+            and meeting_id = #{meetingId}
+        </if>
+        <if test="judgeMemberCode != null and judgeMemberCode != ''">
+            and judge_member_code = #{judgeMemberCode}
+        </if>
+    </select>
+
+    <select id="queryAllJudgeDetailByProcessInstacneId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT t1.*,
+        t1.last_update_date AS judge_time,
+        (SELECT fe.name
+            FROM fnd_employee fe
+            WHERE fe.employee_code = t1.judge_member_code
+            AND fe.company_id = #{request.companyId}) NAME,
+        (SELECT fop.position_name
+            FROM fnd_org_position     fop,
+            fnd_employee         fe,
+            fnd_employee_assigns fea
+            WHERE fe.employee_id = fea.employee_id
+            AND fea.position_id = fop.position_id
+            AND fe.employee_code = t1.judge_member_code
+            AND fe.company_id = #{request.companyId}
+            AND fea.position_id = (SELECT MAX(p.position_id)
+            FROM fnd_employee_assigns p
+            WHERE p.employee_id = fe.employee_id)) position_name,
+        (SELECT DISTINCT fou.unit_name
+            FROM fnd_org_unit         fou,
+            fnd_employee_assigns fea,
+            fnd_employee         fe
+            WHERE fou.unit_id = fea.unit_id
+            AND fe.employee_id = fea.employee_id
+            AND fe.employee_code = t1.judge_member_code
+            AND fe.company_id = #{request.companyId}
+            AND fea.unit_id = (SELECT MAX(p.unit_id)
+                FROM fnd_employee_assigns p
+                WHERE p.employee_id = fe.employee_id)) unit_name,
+        (SELECT fcb.company_short_name
+            FROM fnd_company  fcb,
+            fnd_employee fe
+            WHERE fe.company_id = fcb.company_id
+            AND fe.employee_code = t1.judge_member_code
+            AND fe.company_id = #{request.companyId}) company_short_name
+        FROM act_meeting_judge t1
+        WHERE
+        1 = 1
+        <if test="processInstanceId != null and processInstanceId != ''">
+            and t1.process_instance_id = #{processInstanceId}
+        </if>
+    </select>
+
+    <select id="queryAllJudgeDetailByMeetingId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT t1.*,
+            t1.last_update_date AS judge_time,
+            (SELECT fe.name
+                FROM fnd_employee fe
+                WHERE fe.employee_code = t1.judge_member_code
+                AND fe.company_id = #{request.companyId}) NAME,
+            (SELECT fop.position_name
+                FROM fnd_org_position     fop,
+                fnd_employee         fe,
+                fnd_employee_assigns fea
+                WHERE fe.employee_id = fea.employee_id
+                AND fea.position_id = fop.position_id
+                AND fe.employee_code = t1.judge_member_code
+                AND fe.company_id = #{request.companyId}
+                AND fea.position_id = (SELECT MAX(p.position_id)
+                FROM fnd_employee_assigns p
+                WHERE p.employee_id = fe.employee_id)) position_name,
+            (SELECT DISTINCT fou.unit_name
+                FROM fnd_org_unit         fou,
+                fnd_employee_assigns fea,
+                fnd_employee         fe
+                WHERE fou.unit_id = fea.unit_id
+                AND fe.employee_id = fea.employee_id
+                AND fe.employee_code = t1.judge_member_code
+                AND fe.company_id = #{request.companyId}
+                AND fea.unit_id = (SELECT MAX(p.unit_id)
+                FROM fnd_employee_assigns p
+                WHERE p.employee_id = fe.employee_id)) unit_name,
+            (SELECT fcb.company_short_name
+                FROM fnd_company  fcb,
+                fnd_employee fe
+                WHERE fe.company_id = fcb.company_id
+                AND fe.employee_code = t1.judge_member_code
+                AND fe.company_id = #{request.companyId}) company_short_name
+        FROM act_meeting_judge t1
+        WHERE
+        1 = 1
+        <if test="meetingId != null and meetingId != ''">
+            and t1.meeting_id = #{meetingId}
+        </if>
+    </select>
+
+    <select id="queryJudgeDetailByProcessInstanceId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select amj.judge_id,
+        (select fe.name
+        from fnd_employee fe
+        where amj.judge_member_code = fe.employee_code) as judge_member_name,
+        CASE amj.judge_suggestion
+        WHEN 'PART_AGREE' THEN
+        '有条件同意'
+        WHEN 'AGREE' THEN
+        '同意'
+        WHEN 'DISAGREE' THEN
+        '不同意'
+        ELSE
+        ''
+        END as judge_suggestion,
+        amj.judge_comment,
+        amj.creation_date as judge_date
+        from act_meeting_judge amj
+        WHERE
+        1 = 1
+        <if test="processInstanceId != null and processInstanceId != ''">
+            and process_instance_id = #{processInstanceId}
+        </if>
+    </select>
+
+    <select id="queryPartAgreeDetailDetailByProcessInstanceId" resultMap="BaseResultMap">
+        select amj.judge_id,
+        amj.judge_member_code,
+        (select fe.name
+        from fnd_employee fe
+        where amj.judge_member_code = fe.employee_code) as judge_member_name,
+        CASE amj.judge_suggestion
+        WHEN 'PART_AGREE' THEN
+        '有条件同意'
+        WHEN 'AGREE' THEN
+        '同意'
+        ELSE
+        '不同意'
+        END as judge_suggestion,
+        amj.judge_comment,
+        amj.creation_date as judge_date,
+        amj.to_be_satisfied_condition
+        from act_meeting_judge amj
+        WHERE
+        1 = 1
+        <if test="processInstanceId != null and processInstanceId != ''">
+            and process_instance_id = #{processInstanceId}
+        </if>
+        and amj.judge_suggestion = 'PART_AGREE'
+    </select>
+
+
+    <update id="updateToBeSatisfiedConditionById" parameterType="com.hand.hls.activiti.dto.HlsCusActMeetingJudge">
+        UPDATE
+        act_meeting_judge
+        SET
+        to_be_satisfied_condition = #{toBeSatisfiedCondition}
+        WHERE
+        1 = 1
+        <if test="judgeId != null and judgeId != ''">
+            and judge_id = #{judgeId}
+        </if>
+
+    </update>
+
+    <select id="queryMemberCodeInToBeSatisfiedConditionById" parameterType="java.lang.Long"
+            resultType="java.lang.String">
+        select DISTINCT
+        judge_member_code
+        FROM
+        act_meeting_judge
+        WHERE
+        1 = 1
+        AND judge_suggestion = 'PART_AGREE'
+        <if test="processInstanceId != null and processInstanceId != ''">
+            and process_instance_id = #{processInstanceId}
+        </if>
+
+    </select>
+
+
+</mapper>

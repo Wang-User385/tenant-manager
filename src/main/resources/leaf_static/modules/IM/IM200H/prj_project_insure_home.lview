@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+        var index = 0;
+
+        function pad(num, n) {
+            var len = num.toString().length;
+            while (len < n) {
+                num = "0" + num;
+                len++;
+            }
+            return num;
+        }
+
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            if (ds.id === ds_id && record){
+                // 当记录的实物保单状态不为未交接时，记录为只读
+                if(record.get('policy_status') != 'HANDOVER'){
+                    for (var i = 0; i < config_records.length; i++) {
+                        var column_name = config_records[i].data.column_name;
+                        var validation_type = config_records[i].data.validation_type;
+                        record.getField(column_name).setReadOnly(true);
+                        record.getField(column_name).setRequired(false);
+                        if (column_name != 'insured_status' && (validation_type == 'COMBOBOX' || validation_type == 'LOV_D')) {
+                            record.getField(column_name + '_n').setReadOnly(true);
+                            record.getField(column_name + '_n').setRequired(false);
+                        }
+                    }
+                }else{
+                    for (var i = 0; i < config_records.length; i++) {
+                        var column_name = config_records[i].data.column_name;
+                        var validation_type = config_records[i].data.validation_type;
+                        record.getField(column_name).setReadOnly(false);
+                        if (validation_type == 'COMBOBOX' || validation_type == 'LOV_D') {
+                            record.getField(column_name + '_n').setReadOnly(false);
+                        }
+
+                    }
+                }
+            }
+        }
+
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_insure_beneficiary');
+            if (ds.id == ds_id) {
+                var records = $(ds_id).getAll();
+                var length;
+                if (records.length > 0) {
+                    length = records.length - 1;
+                    index = length;
+                } else {
+                    index = 0;
+                }
+                index++;
+                record.set('beneficiary_number', pad(index, 3));
+            }
+
+        }
+        //新增
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            $(ds_id).create();
+
+        }
+        //实体保单交接
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            debugger;
+            var record = $(ds_id).getSelected()[0];
+            var policy_status = record.get('policy_status');
+            if (Ext.isEmpty(policy_status) || policy_status != 'HANDOVER') {
+                Leaf.showMessage('提示', '只有未交接状态的单据可以进行交接！');
+                return;
+            } else {
+                new Leaf.showConfirm('${l:HLS.PROMPT}', '确认交接保单?', function okFun() {
+                    record.set('policy_status', 'HANDOVING');
+                    $(ds_id).submit();
+                }, function cancel() {
+                    Leaf.Masker.unmask(Ext.getBody());
+                }, 200, 100);
+            }
+
+
+        }
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name === 'attactment' && record.get('insure_id')) {
+                link_function = 'attactment';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '附件上传' + '</a>';
+            } else if (name === 'attachment_a' && record.get('beneficiary_id')) {
+                link_function = 'attachment_a';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '附件上传' + '</a>';
+            } else if (name === 'attachment_b' && record.get('settlement_id')) {
+                link_function = 'attachment_b';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '附件上传' + '</a>';
+            }
+        }
+
+        window['attactment'] = function (record_id, ds_id) {
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_insure');
+            var project_record = $(prj_ds_id).getCurrentRecord();
+            var insure_id = project_record.get('insure_id');
+            if (insure_id == undefined || insure_id == 0) {
+                $L.showInfoMessage("提示", "请先保存当前页面信息，再上传附件!");
+                return;
+            }
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            // if('${/parameter/@file_flag}' == 'Y'){
+            //     url = '${/request/@context_path}/downloadFile.lview';
+            //     function_usage = 'QUERY';
+            // }
+            var table_name;
+            table_name = 'PRJ_PROJECT_INSURE';
+            var win = new Leaf.Window({
+                id: 'im200_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': insure_id,
+                    'table_name': table_name,
+                    winid: 'im200_open_attachment_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                // $(prj_ds_id).query();
+            });
+        };
+
+        window['attachment_a'] = function (record_id, ds_id) {
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_insure_beneficiary');
+            var project_record = $(prj_ds_id).getCurrentRecord();
+            var beneficiary_id = project_record.get('beneficiary_id');
+            if (beneficiary_id == undefined || beneficiary_id == 0) {
+                $L.showInfoMessage("提示", "请先保存当前页面信息，再上传附件!");
+                return;
+            }
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            // if('${/parameter/@file_flag}' == 'Y'){
+            //     url = '${/request/@context_path}/downloadFile.lview';
+            //     function_usage = 'QUERY';
+            // }
+            var table_name;
+            table_name = 'PRJ_INSURE_BENEFICIARY';
+            var win = new Leaf.Window({
+                id: 'im200_open_attachment_a_winid',
+                url: url,
+                params: {
+                    'header_id': beneficiary_id,
+                    'table_name': table_name,
+                    winid: 'im200_open_attachment_a_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                // $(prj_ds_id).query();
+            });
+        };
+
+        window['attachment_b'] = function (record_id, ds_id) {
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_insure_settlement_list');
+            var project_record = $(prj_ds_id).getCurrentRecord();
+            var settlement_id = project_record.get('settlement_id');
+            if (settlement_id == undefined || settlement_id == 0) {
+                $L.showInfoMessage("提示", "请先保存当前页面信息，再上传附件!");
+                return;
+            }
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            // if('${/parameter/@file_flag}' == 'Y'){
+            //     url = '${/request/@context_path}/downloadFile.lview';
+            //     function_usage = 'QUERY';
+            // }
+            var table_name;
+            table_name = 'PRJ_INSURE_SETTLEMENT_LIST';
+            var win = new Leaf.Window({
+                id: 'im200_open_attachment_b_winid',
+                url: url,
+                params: {
+                    'header_id': settlement_id,
+                    'table_name': table_name,
+                    winid: 'im200_open_attachment_b_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                // $(prj_ds_id).query();
+            });
+        };
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+        };
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function(ds, qpara, bp_seq) {
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.HlsSysDocumentHistoryDetailMapper" >
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.HlsSysDocumentHistoryDetail">
+        <id column="history_detail_id" jdbcType="BIGINT" property="historyDetailId"/>
+        <result column="OBJECT_VERSION_NUMBER" jdbcType="BIGINT" property="objectVersionNumber"/>
+        <result column="REQUEST_ID" jdbcType="BIGINT" property="requestId"/>
+        <result column="PROGRAM_ID" jdbcType="BIGINT" property="programId"/>
+        <result column="CREATED_BY" jdbcType="BIGINT" property="createdBy"/>
+        <result column="CREATION_DATE" jdbcType="DATE" property="creationDate"/>
+        <result column="LAST_UPDATED_BY" jdbcType="BIGINT" property="lastUpdatedBy"/>
+        <result column="LAST_UPDATE_DATE" jdbcType="DATE" property="lastUpdateDate"/>
+        <result column="LAST_UPDATE_LOGIN" jdbcType="BIGINT" property="lastUpdateLogin"/>
+    </resultMap>
+
+    <insert id="dataTransfer" parameterType="long">
+        insert into sys_document_history_detail_d
+        select sdhd.*
+        from con_contract_change_req     cccr,
+             sys_document_history        sdh,
+             sys_document_history_detail sdhd
+        where cccr.change_req_id = #{changeReqId}
+          and cccr.change_req_id = sdh.document_id
+          and sdh.history_id = sdhd.history_id
+    </insert>
+
+    <delete id="deleteTransferData" parameterType="long">
+        delete sys_document_history_detail t
+        where t.history_detail_id in
+           (select sdhd.history_detail_id
+              from con_contract_change_req     cccr,
+                   sys_document_history        sdh,
+                   sys_document_history_detail sdhd
+             where cccr.change_req_id = #{changeReqId}
+               and cccr.change_req_id = sdh.document_id
+               and sdh.history_id = sdhd.history_id)
+    </delete>
+
+    <insert id="bpDataTransfer" parameterType="long">
+        insert into sys_document_history_detail_d
+        select sdhd.*
+        from hls_bp_master_change_req    bpcr,
+             sys_document_history        sdh,
+             sys_document_history_detail sdhd
+        where bpcr.change_req_id = #{changeReqId}
+          and bpcr.change_req_id = sdh.document_id
+          and sdh.history_id = sdhd.history_id
+    </insert>
+    <delete id="bpDeleteTransferData" parameterType="long">
+        delete sys_document_history_detail t
+        where t.history_detail_id in
+           (select sdhd.history_detail_id
+              from hls_bp_master_change_req    bpcr,
+                   sys_document_history        sdh,
+                   sys_document_history_detail sdhd
+             where bpcr.change_req_id = #{changeReqId}
+        and bpcr.change_req_id = sdh.document_id
+        and sdh.history_id = sdhd.history_id)
+    </delete>
+</mapper>

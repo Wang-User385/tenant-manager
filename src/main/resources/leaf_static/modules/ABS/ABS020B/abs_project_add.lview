@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="ABS002F2_create_detail_id"
+                url="${/request/@context_path}/modules/ABS/ABS020A/abs_project_detail.lview"/>
+
+        <script><![CDATA[
+
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            debugger;
+
+            var user_name = '${/session/@employeeName}';
+            var company_name = '${/session/@companyName}';
+            ds.getCurrentRecord().set('user_name', user_name);
+            ds.getCurrentRecord().set('company_name', company_name);
+
+
+        };
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+
+
+            if (name == 'business_type') {
+                if(record.get('business_type') != null &&record.get('business_type') != '' && value != 'OTHER'){
+
+                    record.set('project_english_type',record.get('business_type'));
+                }
+                if (value == 'OTHER') {
+                    record.getField('other_project_type').setRequired(true);
+                    record.getField('other_project_type').setReadOnly(false);
+                    record.getField('project_english_type').setRequired(true);
+                    record.getField('project_english_type').setReadOnly(false);
+                    record.set('project_english_type','');
+
+
+                } else {
+                    record.getField('other_project_type').setRequired(false);
+                    record.getField('other_project_type').setReadOnly(true);
+                    record.set('other_project_type','');
+                    record.getField('project_english_type').setRequired(false);
+                    record.getField('project_english_type').setReadOnly(true);
+
+                }
+
+
+            }
+        }
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            debugger;
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+            var dsRecord = $(ds_id).getCurrentRecord();
+
+            var param = {};
+            if ($(ds_id).validate()) {
+                param['url_title'] = 'ABS募集立项明细';
+                param['function_code'] = 'ABS002F2';
+                param['function_usage'] = 'CREATE';
+                param['winid'] = 'ABS002F2_detail_win_id';
+                param['business_type'] = dsRecord.get('business_type');
+                param['business_type_n'] = dsRecord.get('business_type_n');
+                param['other_project_type'] = dsRecord.get('other_project_type');
+                /*
+            param['other_project_type_n']=dsRecord.get('other_project_type_n');
+*/
+                param['project_date'] = dsRecord.get('project_date');
+                param['parent_winid'] = '${/parameter/@winid}';
+                param['parent_ds_id'] = '${/parameter/@parent_ds_id}';
+
+                hls_doc_get_layout_code(param, 'ABS002F2_create_detail_id', null, 'ABS002');
+            }
+
+        };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>

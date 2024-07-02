@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="pageLink_add_project_approver"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ320/prj_project_approval_choose_approver.lview"/>
+        <script><![CDATA[
+
+        Leaf.onReady(function () {
+            //debugger;
+            // alert('${/parameter/@approval_id}');
+            Leaf.request({
+                url: "${/request/@context_path}/prj/project/meeting/approver/create",
+                para: {
+                    approval_id: '${/parameter/@approval_id}'
+                },
+                type: "POST",
+                success: function (res) {
+                },
+                scope: this
+            });
+        });
+
+        function prj320_meeting_judge_ds_query(ds, para) {
+            para['approval_id'] = '${/parameter/@approval_id}';
+        }
+
+        function validate_meeting_time(record, name, value) {
+            var reg = /^\d\d:\d\d$/;
+            if (reg.test(value)) {
+                return true;
+            }
+            return '上会时间格式应为【hh:mm】,举例【09:05】';
+        }
+
+        function add_meeting_judge() {
+            var win = new Leaf.Window({
+                id: 'prj_project_approval_choose_approver',
+                url: $('pageLink_add_project_approver').getUrl(),
+                params: {
+                    winid: 'prj_project_approval_choose_approver',
+                    approval_id: '${/parameter/@approval_id}'
+                },
+                title: '添加评审委员',
+                fullScreen: true
+
+            });
+
+            win.on('close', function () {
+                $('prj320_meeting_judge_ds').query();
+            });
+        }
+
+        function remove_meeting_judge() {
+            var ds_id = $('prj320_meeting_judge_ds');
+            var records = ds_id.getSelected();
+            if (records.length != 0) {
+                var datas = [];
+                for (var i = 0; i < records.length; i++) {
+                    records[i].set('__status', 'delete');
+                    datas.push(records[i].data);
+                }
+                new Leaf.showConfirm('${l:HLS.PROMPT}', '确定删除评委?', function okFun() {
+                    Leaf.Masker.mask(Ext.getBody());
+                    Leaf.request({
+                        url: '${/request/@context_path}/prj/project/meeting/approver/remove',
+                        async: false,
+                        para: datas,
+                        success: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            ds_id.query();
+                            Leaf.SideBar.show({
+                                msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                duration: 2000
+                            });
+                        },
+                        error: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                        },
+                        failure: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                        }
+                    });
+                }, function cancel() {
+                }, 200, 100);
+            } else {
+                Leaf.showMessage('提示', '请至少选择一条评委信息！');
+                return false;
+            }
+        }
+
+        function create_meeting() {
+            debugger;
+            var meeting_ds_id = $('prj320_meeting_info_ds');
+            var judge_ds_id = $('prj320_meeting_judge_ds');
+            var approval_id = '${/parameter/@approval_id}';
+            if (meeting_ds_id.validate()) {
+                var meeting_record = meeting_ds_id.getCurrentRecord();
+                var meeting_id = meeting_record.get('project_meeting_id');
+                var meeting_time = meeting_record.get('meeting_time');
+                judge_ds_id.submit();
+                Leaf.request({
+                    url: '${/request/@context_path}/prj/project/approval/final/submit?approvalId=' + approval_id +
+                        '&meetingId=' + meeting_id + '&meetingTime=' + meeting_time,
+                    success: function (res) {
+                        // judge_ds_id.submit();
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        $('${/parameter/@winid}').close();
+                        $('${/parameter/@ds_id}').query();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="prj320_meeting_info_ds" autoCreate="true"
+                       queryUrl="${/request/@context_path}/prj/project/meeting/info/query"
+                       submitUrl="${/request/@context_path}/prj/project/meeting/submit">
+                <a:fields>
+                    <a:field name="meeting_name" lovHeight="800"
+                             lovUrl="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ320/prj_project_approval_choose_meeting.lview"
+                             lovWidth="600" required="true">
+                        <a:mapping>
+                            <a:map from="project_meeting_id" to="project_meeting_id"/>
+                            <a:map from="meeting_name" to="meeting_name"/>
+                            <a:map from="meeting_location" to="meeting_location"/>
+                            <a:map from="meeting_date" to="meeting_date"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="meeting_time" required="true" validator="validate_meeting_time"/>
+                    <a:field name="meeting_location" readOnly="true"/>
+                    <a:field name="meeting_date" readOnly="true" datatype="date"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="prj320_meeting_judge_ds" autoQuery="true" selectable="true"
+                       queryUrl="${/request/@context_path}/prj/project/meeting/approver/query?wflRuleControlFlag=Y"
+                       submitUrl="${/request/@context_path}/prj/project/meeting/approver/submit">
+                <a:fields>
+                    <a:field name="director_flag" checkedValue="Y" defaultValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="prj320_meeting_judge_ds_query"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="add_meeting_judge" text="添加评委"/>
+                <a:gridButton click="remove_meeting_judge" text="删除评委"/>
+                <a:gridButton click="create_meeting" text="创建完成"/>
+            </a:screenTopToolbar>
+            <a:form title="会议信息" labelwidth="140" column="4">
+                <a:lov name="meeting_name" bindTarget="prj320_meeting_info_ds" prompt="会议名称"
+                       emptyText="会议名称" width="140">
+                </a:lov>
+                <a:textField name="meeting_location" bindTarget="prj320_meeting_info_ds" prompt="上会地点"
+                             emptyText="上会地点" width="140">
+                </a:textField>
+                <a:datePicker name="meeting_date" bindTarget="prj320_meeting_info_ds" prompt="上会日期"
+                              emptyText="上会日期" width="140">
+                </a:datePicker>
+                <a:textField name="meeting_time" bindTarget="prj320_meeting_info_ds" prompt="上会时间"
+                             emptyText="上会时间" width="140">
+                </a:textField>
+            </a:form>
+            <a:grid id='prj320_meeting_judge_grid' bindTarget="prj320_meeting_judge_ds" marginHeight="150"
+                    marginWidth="100" navBar="true">
+                <a:columns>
+                    <a:column name="name" prompt="员工姓名" width="200" align="center"/>
+<!--                    <a:column name="unit_name" prompt="部门名称" width="200" align="center"/>-->
+                    <a:column name="position_name" prompt="岗位名称" width="200" align="center"/>
+                    <a:column name="director_flag" prompt="业审委主任" width="200" editor="approverDs_grid_check"/>
+                </a:columns>
+                <a:editors>
+                    <a:checkBox id="approverDs_grid_check"/>
+                    <a:textField id="approverDs_grid_tf"/>
+                    <a:numberField id="approverDs_grid_nf_integer" allowDecimals="false" allowNegative="false"/>
+                    <a:lov id="approverDs_grid_lov"/>
+                    <a:comboBox id="approverDs_grid_comb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

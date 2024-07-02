@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: gq
+    $Date: 2021-05-10
+    $Description: 租金催收
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="con_rent_detail_id"
+                url="${/request/@context_path}/modules/CN/CN100/con_rent_info.lview"/>
+        <a:link id="con_rent_cash_id"
+                url="${/request/@context_path}/modules/CN/CN100/con_rent_cash.lview"/>
+        <a:link id="con_rent_risk_id"
+                url="${/request/@context_path}/modules/RISK/RISK100/risk_warning.lview"/>
+        <a:link id="con_rent_email_send_id"
+                url="${/request/@context_path}/modules/CN/CN100/con_rent_email_send.lview"/>
+        <a:link id="cn100_risk_risk100_warning_link_id"
+                url="${/request/@context_path}/modules/RISK/RISK100/risk_warning.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq){
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_G_RESULT_prj_project_ds':
+                    //管理页面查询自己的单据
+                    if('${/parameter/@function_code}' == 'CN100'){
+                        qpara['created_by'] = '${/session/@user_id}';
+                    }
+                    break;
+            }
+        }
+
+        // 超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if ((name === 'contract_number'||name === 'contract_num') && value) {
+                return '<a href="javascript:open_contract_number(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+        };
+
+        function open_contract_number(ds_id, record_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['function_code'] = 'CN100F1';
+            param['url_title'] = '租金催收明细';
+            param['project_id'] = record.get('project_id');
+            param['function_usage'] = 'QUERY';
+            hls_doc_get_layout_code(param, 'con_rent_cash_id', ds_id, 'CN1OO');
+        }
+
+        //催收记录维护
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getSelected();
+            var param = record[0].data;
+            param['function_code'] = 'CN100F2';
+            param['url_title'] = '租金催收明细';
+            param['function_usage'] = 'UPDATE';
+            param['tenant_id'] = record[0].get('tenant_id');
+            param['tenant_id_n'] = record[0].get('tenant_id_n');
+            param['employee_id_n'] = record[0].get('host_project_manager_n');
+            param['function_usage'] = 'UPDATE';
+            hls_doc_get_layout_code(param, 'con_rent_detail_id', ds_id, 'CN1OO');
+        }
+        //风险预警
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getSelected();
+            var param = record[0].data;
+            param['function_code'] = 'RISK100';
+            param['url_title'] = '风险预警';
+            param['winid'] = 'con_rent_risk_win_id';
+
+            param['function_usage'] = 'UPDATE';
+            hls_doc_get_layout_code(param, 'cn100_risk_risk100_warning_link_id', ds_id, 'CN1OO');
+
+        }
+        // 在线编辑
+        function editOffice(source_pk_value){
+            //查看
+            if(source_pk_value){
+                if('${/parameter/@function_usage}' == 'QUERY'){
+                    window.open("${/request/@context_path}/sys/office/view?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
+                }else{
+                    //编辑
+                    window.open("${/request/@context_path}/sys/office/review?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
+                }
+            }else{
+                $L.showInfoMessage("提示","催收文件不存在，请先生成催收文件!");
+            }
+        }
+
+        //《租金支付通知书》打印
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getSelected()[0];
+            var source_pk_value1 = record.get('source_pk_value1');
+            var bonded_lease_flag = record.get('bonded_lease_flag');
+            var template_code ;
+            if(bonded_lease_flag == 'N'){
+                template_code ='COLLECTION_BOOK';
+            }else{
+                template_code ='COLLECTION_BOOKS';
+            }
+            if(!source_pk_value1){
+                if(record.get('project_id') && record.get('project_id') != null && record.get('project_id') != '' ){
+                    Leaf.Masker.mask(Ext.getBody(), '正在生成催收文件...');
+                    Leaf.request({
+                        url: "${/request/@context_path}/prj/project/create/content",
+                        para: {project_id: record.get('project_id'),template_code},
+                        success: function (res) {
+                            console.log(res);
+                            var source_pk_value1 = res.result.record[0].source_pk_value1;
+                            if (source_pk_value1 == 'undefined' || source_pk_value1 == '' || source_pk_value1 == null) {
+                                Leaf.Masker.unmask(Ext.getBody());
+                                Leaf.showInfoMessage('未找到催收文件模板!');
+                                return;
+                            } else {
+                                Leaf.Masker.unmask(Ext.getBody());
+                                // Leaf.showInfoMessage('合同文本生成成功!');
+                                var ds_con = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                                // $(ds_con).query();
+                                editOffice(source_pk_value1);
+                            }
+                        },
+                        error: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                        },
+                        failure: function (res) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                }
+            }else{
+                editOffice(source_pk_value1);
+            }
+        }
+        //《逾期支付催收函》打印
+        window['${/parameter/@layout_code}_user_button5_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getSelected()[0];
+            debugger
+            var template_code = "COLLECTION_LETTERL";
+            debugger;
+            if(record.get('project_id') && record.get('project_id') != null && record.get('project_id') != '' && record.get('overdue_status') =='Y'){
+                Leaf.Masker.mask(Ext.getBody(), '正在生成催收文件...');
+                Leaf.request({
+                    url: "${/request/@context_path}/prj/project/create/content",
+                    para: {project_id: record.get('project_id'),template_code},
+                    success: function (res) {
+                        console.log(res);
+                        // var source_pk_value1 = res.result.record[0].source_pk_value1;
+                        // if (source_pk_value1 == 'undefined' || source_pk_value1 == '' || source_pk_value1 == null) {
+                        //     Leaf.Masker.unmask(Ext.getBody());
+                        //     Leaf.showInfoMessage('未找到催收文件模板!');
+                        //     return;
+                        // } else {
+                        //     Leaf.Masker.unmask(Ext.getBody());
+                        //     // Leaf.showInfoMessage('合同文本生成成功!');
+                        //     var ds_con = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                        //     // $(ds_con).query();
+                        //     editOffice(source_pk_value1);
+                        // }
+
+                        var attachment_id = res.result.record[0].attachment_id;
+                        var down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
+                        console.log(down_url);
+                        location.href = down_url;
+                        Leaf.Masker.unmask(Ext.getBody());
+
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            } else {
+                Leaf.SideBar.show({
+                    type:'warning',
+                    msg: '合同未逾期！',
+                    duration: 1000
+
+                });
+            }
+        }
+        //《担保人告知函》打印
+        window['${/parameter/@layout_code}_user_button6_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getSelected()[0];
+            var template_code = "COLLECTION_LETTERG";
+            debugger;
+            if(record.get('project_id') && record.get('project_id') != null && record.get('project_id') != '' ){
+                Leaf.Masker.mask(Ext.getBody(), '正在生成催收文件...');
+                Leaf.request({
+                    url: "${/request/@context_path}/prj/project/create/content",
+                    para: {project_id: record.get('project_id'),template_code},
+                    success: function (res) {
+                        console.log(res);
+                        var source_pk_value1 = res.result.record[0].source_pk_value1;
+                        if (source_pk_value1 == 'undefined' || source_pk_value1 == '' || source_pk_value1 == null) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            Leaf.showInfoMessage('未找到催收文件模板!');
+                            return;
+                        } else {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            // Leaf.showInfoMessage('合同文本生成成功!');
+                            var ds_con = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                            // $(ds_con).query();
+                            editOffice(source_pk_value1);
+                        }
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+        }
+        //邮件发送
+        window['${/parameter/@layout_code}_user_button7_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getSelected();
+            var param = record[0].data;
+            param['function_code'] = 'CN100F3';
+            param['url_title'] = '租金催收邮件发送';
+            param['function_usage'] = 'UPDATE';
+            param['tenant_id'] = record[0].get('tenant_id');
+            param['tenant_id_n'] = record[0].get('tenant_id_n');
+            param['overdue_amounts'] = record[0].get('overdue_amounts');
+            param['function_usage'] = 'UPDATE';
+            hls_doc_get_layout_code(param, 'con_rent_email_send_id', ds_id, 'CN1OO');
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

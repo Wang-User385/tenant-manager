@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020-02-08
+    $Description:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="rsc_create_id_1"
+                url="${/request/@context_path}/modules/AST/AST_FIVE/AST005/rsc_fc_estimate_add.lview"/>
+        <a:link id="ast_fc_estimate_detail_id"
+                url="${/request/@context_path}/modules/AST/AST_FIVE/AST005/rsc_ten_enstimate_detial.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq){
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_G_RESULT_ast_fc_estimate_ds':
+                    //管理页面查询自己的单据
+                    if('${/parameter/@function_code}' == 'AST020'){
+                        qpara['created_by'] = '${/session/@user_id}';
+                    }
+                    break;
+            }
+        }
+
+        function ast_fc_estimate_detail_open(record_id, ds_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var status = param.raise_status;
+            var type = (status === "APPROVING" || status === 'APPROVED' || status === "CLOSED") ? 'QUERY' : 'MODIFY';
+
+            param['url_title'] = '指标计算明细';
+            param['function_usage'] = type;
+            param['function_code'] = 'AST010F2';
+            param['winid'] = 'ast_fc_estimate_detail_winid';
+            var link_id = 'ast_fc_estimate_detail_id';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'AST010', null, null);
+        }
+        // function ast_fc_estimate_detail_open(record_id, ds_id) {
+        //     debugger;
+        //     var record = $(ds_id).findById(record_id);
+        //     var param = record.data;
+        //     // var status = param.status;
+        //     // var business_type = param.business_type;
+        //     // var type = (status === "APPROVING" || status === 'APPROVED' || status === "CLOSED") ? 'QUERY' : 'MODIFY';
+        //
+        //     param['url_title'] = '指标计算明细';
+        //     param['function_usage'] = 'MODIFY';
+        //     param['function_code'] = 'AST010F2';
+        //     param['winid'] = 'ast_fc_estimate_detail_winid';
+        //     var link_id = 'ast_fc_estimate_detail_id';
+        //     hls_doc_get_layout_code(param, link_id, ds_id, 'AST010', null, null);
+        // }
+
+
+        //
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq){
+            debugger;
+            if(record.data.now_count_status=='APPROVING'||record.data.now_count_status=='APPROVED'||'${/parameter/@function_code}' == 'AST020_F1'){
+                // record.fields.break_rate.setReadOnly(true);
+                // record.fields.now_count.setReadOnly(true);
+                record.getField('break_rate').setReadOnly(true);
+                record.getField('now_count').setReadOnly(true);
+            }
+            var link_function = 'ast_fc_estimate_detail_open';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'detial_plan') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">计算明细</a>';
+            }
+
+
+        }
+
+
+        //
+        //提交审批
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function (){
+            //alert(123)
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            debugger;
+            var ds_id =  get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ast_fc_estimate');
+            var record = $(ds_id).getSelected();
+            if (record.length != 1) {
+                Leaf.showMessage('提示', '至少选择一条评级分类信息提交审批！');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return false;
+            }
+            if(record.length == 1){
+                var contractRecord= record[0].data;
+
+                var fcEstimateId = contractRecord.fc_estimate_id;
+                if(contractRecord.now_count_status=='NEW'||contractRecord.now_count_status=='REJECTED') {
+                    Leaf.request({
+                        url: "${/request/@context_path}/ast/fc/estimate/approval2",
+                        para: {
+                            fcEstimateId:fcEstimateId
+                        },
+                        success: function (r) {
+                            //  debugger;
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                                //$('${/parameter/@winid}').close();
+                                $(ds_id).query();
+                            });
+                        },
+                        error: function (r) {
+                            // $L.Maassets_disposal_detail_id1sker.unmask(document.body);
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            // Leaf.showMessage("提示", r.error.message, null);
+                            $(ds_id).query();
+                        },
+                        scope: this
+                    });
+                }else{
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    $L.showInfoMessage("提示", "单据状态错误，不予许提交", function () {
+                        // $('${/parameter/@winid}').close();
+                        $(ds_id).query();
+                    });
+                }
+
+
+
+            }
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

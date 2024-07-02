@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+
+        <script><![CDATA[
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_G_AVS_LIST_litigation_management_ds':
+                    //管理页面查询自己的单据
+                    if('${/parameter/@function_code}' == 'AVS001'){
+                        qpara['created_by'] = '${/session/@user_id}';
+                    }
+                    break;
+            }
+        };
+        // 创建
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function (){
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'litigation_management');
+            $(ds_id).create({
+                status:'NEW'
+            });
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'litigation_management');
+            $(ds_id).getCurrentRecord().set('handle_date', new Date());
+        };
+        // 删除
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function (){
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'litigation_management');
+            var ds = $(ds_id);
+            var record = ds.getSelected();
+            var contractRecord= record[0].data;
+            if(ds.getSelected().length==0){
+                Leaf.showErrorMessage('提示','请选择记录！',null,200,100);
+                return ;
+            }
+            if(contractRecord.status=='NEW'){
+                Leaf.showConfirm('提示','确定删除！',function(){
+                    if(ds.validate()){
+                        ds.setSubmitUrl('${/request/@context_path}/litigation/management/remove'); //接口
+                        ds.submitSelected();
+                        ds.query();
+
+                    }
+
+                })
+            }else{
+                Leaf.showMessage('提示','该单据不能被删除！',null,200,100);
+                return ;
+            }
+            //debugger;
+            // var record = $(ds_id).getSelected();
+            // console.log(record)
+            // console.log(record.length)
+            // //var id = [];
+            //
+            // var litigationManagementId = record.litigation_management_id;
+            // if(record.length > 0){
+            //
+            //     Leaf.showConfirm('提示','确定删除！',function(){
+            //         for(var i=0;i<record.length;i++){
+            //             //id.push(record[i].litigation_management_id)
+            //
+            //             Leaf.request({
+            //                 url: "${/request/@context_path}/litigation/management/remove",
+            //                 para: {
+            //                     litigationManagementId:record[i].litigation_management_id
+            //                 },
+            //                 success: function (r) {
+            //                     //  debugger;
+            //                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //                     // $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+            //                     //     //$('${/parameter/@winid}').close();
+            //                     //     $(ds_id).query();
+            //                     // });
+            //
+            //                 },
+            //                 error: function (r) {
+            //                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //
+            //                 },
+            //                 scope: this
+            //             });
+            //
+            //         }
+            //         $(ds_id).query();
+            //     })
+            //
+            // }
+
+        }
+
+
+        //提交审批
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function (){
+
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            //debugger;
+            var ds_id =  get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'litigation_management');
+            var record = $(ds_id).getSelected();
+            if (record.length != 1) {
+                Leaf.showMessage('提示', '至少选择一条诉讼信息提交审批！');
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return false;
+            }
+
+            if(record.length == 1){
+                var contractRecord= record[0].data;
+
+                var litigationManagementId = contractRecord.litigation_management_id;
+
+                if(contractRecord.status=='NEW'||contractRecord.status=='REJECTED') {
+                    Leaf.request({
+                        url: "${/request/@context_path}/litigation/management/approval",
+                        para: {
+                            litigationManagementId:litigationManagementId
+                        },
+                        success: function (r) {
+                            //  debugger;
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+
+                                $(ds_id).query();
+                            });
+
+                        },
+                        error: function (r) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $(ds_id).query();
+                        },
+                        scope: this
+                    });
+                }else{
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    $L.showInfoMessage("提示", "单据状态错误，不予许提交", function () {
+                        // $('${/parameter/@winid}').close();
+                        $(ds_id).query();
+                    });
+
+                }
+
+            }else {
+                Leaf.showMessage('提示', '只能勾选一条进行审批！');
+                return false;
+            }
+        }
+
+
+
+
+        window['approval_upload_file'] = function (record_id, litigation_management_id,function_usage) {
+            if (typeof (litigation_management_id) === 'undefined' || 'undefined' === litigation_management_id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            debugger;
+            var url;
+            if (function_usage == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'avs316wfl_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': litigation_management_id,
+                    'table_name': 'litigation_management',
+                    winid: 'avs320_open_attachment_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'litigation_management');
+                $(ds_id).query();
+            });
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq){
+           // debugger;
+            var function_usage;
+            if(record.get('status')=='APPROVING'||record.get('status')=='APPROVED'||'${/parameter/@function_code}' == 'AVS001F1'){
+                function_usage = 'QUERY';
+                record.getField('contract_number').setReadOnly(true);
+                record.getField('litigation_amount').setReadOnly(true);
+                record.getField('handle_way').setReadOnly(true);
+                record.getField('description').setReadOnly(true);
+                record.getField('litigation_relevant_amount').setReadOnly(true);
+                record.getField('handle_date').setReadOnly(true);
+                record.getField('bp_id').setReadOnly(true);
+                record.getField('bp_id_n').setReadOnly(true);
+                record.getField('contract_number_n').setReadOnly(true);
+                record.getField('handle_way_n').setReadOnly(true);
+
+
+            }
+
+
+            if (name == 'file_uplod') {
+
+                return '<a href="javascript:approval_upload_file(\'' + record.id + '\',\'' + record.get('litigation_management_id') + '\',\''+function_usage+'\')">附件上传</a>';
+            }
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="abs020a_detail_back_link_id"
+                url="${/request/@context_path}/modules/ABS/ABS000H/abs_project_raise_home.lview"/>
+        <script><![CDATA[
+
+        //保存前调用 (调用编码规则 生成编号)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+
+            if (record.get('project_number')) {
+                return true;
+            }
+
+            var documentCategory = 'ABS_PROJECT';
+            var documentType = 'ABS_PROJECT';
+            var businessType = 'ABS_PROJECT';
+            if ($(ds_id).getCurrentRecord().get('project_number') == null) {
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory + "&documentType=" + documentType + "&businessType=" + businessType,
+                    success: function (res) {
+                        $(ds_id).getCurrentRecord().set('project_number', res.result.record[0]);
+                        check_flag = true;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+            return check_flag;
+        };
+
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+            if ('${/parameter/@function_code}' == 'ABS002F2' && '${/parameter/@function_usage}' == 'CREATE') {
+                var user_name = '${/session/@userName}';
+                var company_name = '${/session/@companyName}';
+                ds.getCurrentRecord().set('create_person', user_name);
+                ds.getCurrentRecord().set('company_name', company_name);
+                ds.getCurrentRecord().set('unit_id', '${/session/@unitId}');
+                ds.getCurrentRecord().set('unit_name', '${/session/@unitName}');
+                ds.getCurrentRecord().set('company_id', '${/session/@companyId}');
+                ds.getCurrentRecord().set('user_id', '${/session/@userId}');
+                ds.getCurrentRecord().set('create_person', '${/session/@employeeName}');
+                ds.getCurrentRecord().set('project_status', 'NEW');
+                ds.getCurrentRecord().set('transfer_status', 'NEW');
+                ds.getCurrentRecord().set('exspense_status', 'NEW');
+                ds.getCurrentRecord().set('document_category', 'ABS_PROJECT');
+                ds.getCurrentRecord().set('document_type', 'ABS_PROJECT');
+            }
+
+            var business_type = '${/parameter/@business_type}';
+            var project_date = '${/parameter/@project_date}';
+            if (business_type != null && business_type != '') {
+                ds.getCurrentRecord().set('business_type', business_type);
+                ds.getCurrentRecord().set('project_english_type', business_type);
+                ds.getCurrentRecord().set('business_type_n', '${/parameter/@business_type_n}');
+                ds.getCurrentRecord().set('other_project_type', '${/parameter/@other_project_type}');
+                ds.getCurrentRecord().set('other_project_type_n', '${/parameter/@other_project_type_n}');
+
+            }
+
+            if (project_date != null && project_date != '') {
+                ds.getCurrentRecord().set('project_date', project_date);
+            }
+
+
+            var project_id = '${/parameter/@project_id}';
+            if (project_id != null && project_id != '') {
+                ds.getCurrentRecord().set('project_id', project_id);
+                ds.getCurrentRecord().set('source_key', project_id);
+            }
+
+
+        };
+
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            debugger;
+            var ct_abs_project_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+            var projectRecord = $(ct_abs_project_id).getCurrentRecord().data;
+            var project_id = projectRecord.project_id;
+            debugger;
+            if (ds.id === '${/parameter/@layout_code}_G_ATTACHMENT_ct_abs_project_attachment_ds') {
+                //ds.setQueryParameter('source_key', project_id);
+                qpara['source_key'] = project_id;
+            }
+
+
+        };
+
+
+        //提交审批
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+
+            debugger;
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+            //基本信息
+            var ct_abs_project_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+
+            if ($(ct_abs_project_id).isModified()) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('提示', '${l:EXIT_BEFORE_SAVE}');
+                return;
+            }
+            if ($(ct_abs_project_id).validate()) {
+                var record = $(ct_abs_project_id).data[0].data;
+                var project_id = record.project_id;
+                if (project_id != null) {
+                    new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                        window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                        Leaf.request({
+                            url: '${/request/@context_path}/ct/abs/project/submit/wfl',
+                            para: {
+                                project_id: project_id,
+                            },
+                            success: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                if (res.success) {
+                                    window.location.href = $('abs020a_detail_back_link_id').getUrl() + location.search;
+
+
+                                } else {
+                                    Leaf.showErrorMessage('提示', res.message);
+                                }
+                            },
+                            failure: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            error: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            scope: this
+                        });
+                    }, function cancel() {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    }, 200, 100);
+                } else {
+                    $L.showInfoMessage("提示", "请先保存!", null);
+                }
+            }
+
+            /*
+                        var projectRecord = $(ct_abs_project_id).getCurrentRecord().data;
+            */
+
+            /*  //账户信息
+              var ct_abs_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_bank_account');
+              if($(ct_abs_bank_account_id).getAll().length != 0){
+                  var  accountRecords =$(ct_abs_bank_account_id).getAll();
+                  for(var i=0;i<accountRecords.length;i++){
+                      accountRecords[i].set('source_type','ABS_PROJECT');
+                      hlsCusAbsProBankAccounts.push(accountRecords[i].data);
+                  }
+              }*/
+            /*
+                        //机构信息
+                        var ct_abs_project_organization_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project_organization');
+                        if($(ct_abs_project_organization_id).getAll().length != 0){
+                            var  organizationRecord =$(ct_abs_project_organization_id).getAll();
+                            for(var i=0;i<organizationRecord.length;i++){
+                                hlsCusAbsProjectOrganizations.push(organizationRecord[i].data);
+                            }
+                        }
+
+                        //费用信息
+                        var ct_abs_pro_fee_info_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_pro_fee_info');
+                        if($(ct_abs_pro_fee_info_id).getAll().length != 0){
+                            var  feeRecord =$(ct_abs_pro_fee_info_id).getAll();
+                            for(var i=0;i<feeRecord.length;i++){
+                                hlsCusAbsProFeeInfos.push(feeRecord[i].data);
+                            }
+                        }
+
+
+                        //资产包信息
+                        var ct_abs_assets_package_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_package');
+                        // var packRecord = $(ct_abs_assets_package_id).getCurrentRecord().data;
+
+                        //附件信息 ct_abs_project_attachment
+                        var ct_abs_project_attachment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project_attachment');
+
+
+                        //避免栈溢出
+                        projectRecord[ct_abs_bank_account_id.replace('_ds','')]=undefined;
+                        projectRecord[ct_abs_project_organization_id.replace('_ds','')]=undefined;
+                        projectRecord[ct_abs_pro_fee_info_id.replace('_ds','')]=undefined;
+                        projectRecord[ct_abs_assets_package_id.replace('_ds','')]=undefined;
+                        projectRecord[ct_abs_project_attachment_id.replace('_ds','')]=undefined;*/
+
+
+            /*  Leaf.request({
+                  url: '${/request/@context_path}/ct/abs/project/submit/wfl',
+                  para: {
+
+                      // hlsCusAbsProAttachments:$('#absProjectFileGrid').data('kendoGrid').dataSource.data(),
+
+                  },
+
+                  success: function (res) {
+                      window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                      Leaf.showSuccessMessage('${HLS.SUBMIT_SUCCESS}', '提交审批成功', function () {
+                          if ('${/parameter/@winid}') {
+                              $('${/parameter/@winid}').close();
+                              $('${/parameter/@parent_ds_id}').query();
+                          }
+                          if ('${/parameter/@parent_winid}') {
+                              $('${/parameter/@parent_winid}').close();
+                          }
+                      });
+
+
+                  },
+                  failure: function () {
+                      window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                  },
+                  error: function () {
+                      window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                  },
+                  scope: this
+              });
+  */
+        };
+
+        function attachment_action(project_attachment_id) {
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            win = new Leaf.Window({
+                id: 'fin001f1_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: project_attachment_id,
+                    table_name: 'ct_abs_project_attachment',
+                    winid: 'fin001f1_open_attachment_winid'
+                },
+                title: '文件上传',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project_attachment');
+                $(ds_id).query();
+            });
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'download') {
+                return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + record.get('attachment_id') + '">下载</a>';
+            }
+            if (name === 'upload' && !record.isNew) {
+                return '<a href="javascript:attachment_action(\'' + record.get('project_attachment_id') + '\')">上传</a>';
+
+            }
+        };
+
+        //附件上传
+        window['${/parameter/@layout_code}_G_ATTACHMENT_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_project');
+            var project_record = $(ds_id).getCurrentRecord();
+            var project_id = project_record.get('project_id');
+            if (project_id == null) {
+                $L.showInfoMessage("提示", "请先保存信息再上传附件!");
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                //url = '${/request/@context_path}/downloadFile.lview';
+                $L.showInfoMessage("提示", "当前无法编辑页面!");
+                return;
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'abs_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': project_id,
+                    'table_name': 'CT_ABS_PROJECT',
+                    winid: 'abs_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var document_list_ds_id = "${/parameter/@layout_code}_G_ATTACHMENT_ct_abs_project_attachment_ds";
+                $(document_list_ds_id).query();
+            });
+        };
+
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            window.location.href = $('abs020a_detail_back_link_id').getUrl() + location.search;
+
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>

@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:p="uncertain.proc" xmlns:c="leaf.application.action"
+          xmlns:s="leaf.plugin.script" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="PRJ316WFL_QUOTATION_SELECT"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316S2/prj_project_quotation_select.lview"/>
+        <a:link id="prj316wfl_project_query_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify.lview"/>
+        <a:link id="prj_chance_detail_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail.lview"/>
+        <a:link id="${/parameter/@layout_code}_change_wfl_detail_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANGE/PRJ110F1/prj_change_req_wfl.lview"/>
+        <a:link id="prj316wfl_project_change_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANGE/PRJ100/prj_project_change_modify.lview"/>
+        <a:link id="prj316wfl_chance_detail_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail.lview"/>
+        <a:link id="lease_info_detaill_id"
+                url="${/request/@context_path}/modules/LEASE/LEASE001/lease_item_modify_detail.lview"/>
+        <a:link id="SW001_PLEDGE_LEASE"
+                url="${/request/@context_path}/modules/SW/SW001/hls_pledge_lease_detail.lview"/>
+        <a:link id="prj_wfl_upload_detail_id" url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify_attachment_pop.lview"/>
+        <a:link id="prj_project_save_link_id" url="${/request/@context_path}/prj/wfl/saveWflProject"/>
+
+        <script src="${/request/@context_path}/resources/hls/imgPreview/viewer.js"/>
+        <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
+        <link href="${/request/@context_path}/resources/hls/imgPreview/viewer.css" rel="stylesheet" type="text/css"/>
+        <script><![CDATA[
+        var bp_hide_flag = 'N' ;
+        var file_hide_flag = 'N';
+        var comments_hide_flag = 'N';
+        var comments_readOnly_flag = 'N';
+
+        var taskDefinitionKey ='';
+        if(parent.currentTaskInfo != undefined){
+            taskDefinitionKey = parent.currentTaskInfo.task_definition_key;
+        }
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function(ds, qpara, bp_seq) {
+            console.log(ds.id);
+        };
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            debugger;
+            flag=record.data.conglomerate_flag_n;
+            if("否"===flag){
+                record.set("belong_conglomerate","");
+                record.getField('belong_conglomerate').setReadOnly(true);
+            }
+        };
+
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getCurrentRecord();
+            var project_id = record.get('project_id');
+            var param = {};
+            param['url_title'] = '附件';
+            param['function_code'] = 'PRJ316WFP1';
+            param['project_id'] = project_id;
+            param['approval_id'] = 1;
+            //hls_doc_get_layout_code(param, 'prj_wfl_upload_detail_id', null, 'PRJ316F2WL2', null, null, null);
+            hls_doc_get_layout_code(param, 'prj_wfl_upload_detail_id', ds_id, 'PRJ316F2WL3');
+        };
+
+        //投放前条件导入
+        window['${/parameter/@layout_code}_G_REQUEST_BEFORE_USER_BUTTON1_layout_dynamic_tab_click'] = function() {
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC_INFO');
+            var approval_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_approval', 'F_AUDIT_INFO');
+            var project_record = $(project_ds_id).getCurrentRecord();
+            var approval_record = $(approval_ds_id).getCurrentRecord();
+            var project_id = project_record.get('project_id');
+            var approval_id = approval_record.get('approval_id');
+
+            var win = new Leaf.Window({
+                id: 'chance_access_compare_import_win_id',
+                params: {
+                    winid: 'chance_access_compare_import_win_id'
+                },
+                url: '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/condition_import.lview?project_id='+project_id+'&approval_id='+approval_id+'&approval_type=BEFORE',
+                title: '投放前条件导入',
+                fullScreen: false,
+                width: 500,
+                height: 400,
+                draggable: true
+            });
+            win.on('close', function () {
+                var condition_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_approval_condition', 'G_REQUEST_BEFORE');
+                $(condition_ds_id).query();
+            });
+        }
+
+        window['lease_item_detail'] = function (record_id, ds_id) {
+            //debugger;
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '租赁物详细信息';
+            param['function_code'] = 'LEASE001F1';
+            param['winid'] = 'lease_item_detail_winid';
+            param['ds_id'] = ds_id;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                param['function_usage'] = 'QUERY';
+            }
+            var link_id = 'lease_info_detaill_id';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'LEASE001');
+        };
+
+        window['pledge_detail'] = function (record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            var status = param.lease_item_id;
+            var type = 'MODIFY';
+            param['url_title'] = '抵质押物详细';
+            param['function_code'] = 'SW001F1';
+            param['function_usage'] = type;
+            param['winid'] = 'hls_lease_item_winid';
+            param['ds_id'] = ds_id;
+            param['function_usage'] = 'QUERY';
+            var link_id = 'SW001_PLEDGE_LEASE';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'SW001');
+        };
+
+
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            // debugger;
+            var link_function = 'upload_file';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '-&#45;&#45;' + name] = record;
+            var project_attachment_id = record.get('project_attachment_id');
+            if (name == 'download') {
+                return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + record.get('attachment_id') + '">下载</a>';
+            }
+            if (name == 'upload') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('project_attachment_id') + '\');">附件</a>';
+            }
+            if (name == 'lease_item_code') {
+                //debugger;
+                if (record.get('lease_item_type') == 'LEASE') {
+                    link_function = 'lease_item_detail';
+                } else if (record.get('lease_item_type') == 'MORTGAGE' || record.get('lease_item_type') == 'PLEDGE') {
+                    link_function = 'pledge_detail';
+                }
+                var detail = '';
+                if (value) {
+                    detail = value;
+                }
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + detail + '</a>';
+            }
+            if (name == 'quotation_cal') {
+                if('${/parameter/@function_usage}' == 'QUERY'){
+                    link_function = 'quotation_ready_detail';
+                    return '<a style="display: inline-block;background: #5A7FFF;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;left: 30px;" href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '报价详情' + '</a>';
+                }else{
+                    link_function = 'quotation_cal_detail';
+                    return '<a style="display: inline-block;background: #5A7FFF;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;left: 30px;" href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '报价引用' + '</a>';
+                }
+
+            }
+            if(name == 'quotation_detail'){
+                if('${/parameter/@function_usage}' == 'QUERY'){
+                    if(('${/parameter/@project_status}' == 'NOTICE_APPROVED' || '${/parameter/@project_status}' == 'NOTICE_VETO' || '${/parameter/@project_status}' == 'NOTICE_HOLD') && '${/parameter/@business_type}' != 'GENERAL_CREDIT_APPROVAL' && '${/parameter/@business_type}' != 'VENDOR_CREDIT_APPROVAL' && '${/parameter/@business_type}' != 'UNION_CREDIT_APPROVAL'){
+                        link_function = 'price_approval_table';
+                        return '<a style="display: inline-block;background: #5A7FFF;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;margin-left: -102px;" href="javascript:window[\'' + link_function + '\'](\'' + record.get('source_document_id') + '\',\'' + record.get('quotation_id') + '\');">' + '价格审批意见' + '</a>';
+                    }else{
+                        return '<a style="display: inline-block;background: #fff;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;margin-left: -102px;"></a>';
+                    }
+                }else {
+                    link_function = 'quotation_detail';
+                    return '<a style="display: inline-block;background: #5A7FFF;color: #fff;width: 220px;text-align: center;position: absolute;height: 26px;margin-top: -1px;margin-left: -102px;" href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '新建报价' + '</a>';
+                }
+            }
+            if (name == 'attachment_data_t' && project_attachment_id) {
+                link_function = 'prj_attachement_upload';
+                var file_number = record.get('file_number');
+                if ('${/parameter/@function_usage}' == 'QUERY'){
+                    return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('project_attachment_id') + '\',\'' + record.ds.id + '\');">' + '附件查看(' + file_number + ')' + '</a>';
+                }else{
+                    return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('project_attachment_id') + '\',\'' + record.ds.id + '\');">' + '附件上传(' + file_number + ')' + '</a>';
+                }  }
+            if (name == 'lease_item_details') {
+                link_function = 'lease_item_details';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '租赁物明细' + '</a>';
+            }
+            if (name == 'pledge_pledge_details') {
+                link_function = 'pledge_pledge_details';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '抵质押物明细' + '</a>';
+            }
+
+            if (name == 'file_name' && value) {
+                var str = value.split(',');
+                var url = '' ;
+                for(var i = 0;i < str.length;i++){
+                    var temp = record.get('attachment_id').split(',');
+                    url = url + '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + temp[i] +'">' + str[i] +' ; </a>';
+                }
+                return url;
+            }
+            if (name == 'bp_detali' ) {
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '客户详细信息' + '</a>';
+            }
+            if(name == 'finnance_info'){
+                return '<a href="javascript:open_finance_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '财务报表' + '</a>';
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_G_REPLY_PARA_prj_credit_reply_para_ds':
+                    var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(prj_ds_id).getCurrentRecord();
+                    var project_id = prj_record.get('project_id');
+                    qpara['reply_id'] = project_id;
+                    break;
+
+            }
+        };
+
+        //新增时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+            console.log('aaaaaaaaaaaaaaaaaaaaa' + ds.id);
+            var condition_ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_approval_condition', 'G_REQUEST_BEFORE');
+            var condition_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_approval_condition', 'G_REQUEST_AFTER');
+            if(condition_ds_id1 == ds.id){
+                record.set('approval_type', 'BEFORE');
+            }
+            if(condition_ds_id2 == ds.id){
+                record.set('approval_type', 'AFTER');
+            }
+        };
+
+        $L.ComboBox.prototype.collapse = function () {
+            Ext.get(document.documentElement).un("mousedown", this.triggerBlur, this);
+            if (this.popup) {
+                this.popup.moveTo(-1000, -1000);
+                this.popup.removeClass('animated zoomInDownPopup');
+                this.popup.addClass('animated zoomOut');
+            }
+            this.fireEvent("collapse", this);
+        }
+        //保存前调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            debugger;
+            var pp_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var ppRecord = $(pp_ds_id).getCurrentRecord();
+            var project_id = ppRecord.get('project_id');
+
+            var paca_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_approval_condition', 'G_REQUEST_BEFORE');
+            var pacb_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_approval_condition', 'G_REQUEST_AFTER');
+            var pacaRecord = $(paca_ds_id).getCurrentRecord();
+            var pacbRecord = $(pacb_ds_id).getCurrentRecord();
+
+            if(pacaRecord != null){
+                pacaRecord.set('project_id', project_id);
+            }
+            if(pacbRecord != null){
+                pacbRecord.set('project_id', project_id);
+            }
+            // 业审会审议信息
+            var sy_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_approval', 'F_AUDIT_INFO');
+
+            // 业审会评审表决结果
+            var ps_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_approval', 'F_AUDIT_RESULT');
+            if(sy_ds_id){
+                $(sy_ds_id).getCurrentRecord().set('project_id', project_id);
+            }
+            if(ps_ds_id){
+                $(ps_ds_id).getCurrentRecord().set('project_id', project_id);
+            }
+            return true;
+        };
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            switch (ds.id) {
+                case '${/parameter/@layout_code}_F_AUDIT_INFO_prj_project_approval_ds':
+                    qpara['approval_type'] = 'NORMAL';
+                    break;
+                case '${/parameter/@layout_code}_F_AUDIT_DISCUSS_prj_project_approval_ds':
+                    qpara['approval_type'] = 'NORMAL';
+                    break;
+                case '${/parameter/@layout_code}_F_AUDIT_RESULT_prj_project_approval_ds':
+                    qpara['approval_type'] = 'NORMAL';
+                    break;
+            }
+        };
+        //报告生成
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            // debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_approval', 'F_AUDIT_INFO');
+            if ($(ds_id).validate()) {
+                var record = $(ds_id).getCurrentRecord();
+                Leaf.Masker.mask(Ext.getBody(), '正在生成...');
+                var printData = [];
+                var str = {approval_id:record.get('approval_id'), templet_id:1};
+                printData.push(str);
+                Leaf.request({
+                    url: "${/request/@context_path}/prj/project/create/auditContent",
+                    para: printData,
+                    success: function (res) {
+                        debugger;
+                        var attachment_id = res.result.record[0].attachment_id;
+                        /*var attachment_ids = "";
+                        for(var i = 0; i < res.result.record.length; i++){
+                            if(i == 0){
+                                attachment_ids = res.result.record[0].attachment_id;
+                            }else{
+                                attachment_ids = attachment_ids + ',' + res.result.record[i].attachment_id;
+                            }
+                        }*/
+                        /*var down_url = "${/request/@context_path}/prj/attachment/download/zip?attachment_id=" + attachment_id;
+                        console.log(down_url);
+                        location.href = down_url;*/
+                        var down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + res.result.record[0].attachment_id;
+                        location.href = down_url;
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask($('rsc_five_class_code_window').wrap);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+        };
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_approval', 'F_AUDIT_INFO');
+            if("conglomerate_flag_n"===name&&"否"===value){
+                $jq('#PROJECT_MODIFY_FINANCE_LEASE_WFL_AUDIT_CREDIT_F_CREDIT_PROGRAM_HLS_CREDIT_PLAN_BELONG_CONGLOMERATE > div > input').val("");
+                $jq('#PROJECT_MODIFY_FINANCE_LEASE_WFL_AUDIT_CREDIT_F_CREDIT_PROGRAM_HLS_CREDIT_PLAN_BELONG_CONGLOMERATE > div > input').attr("readonly","readonly");
+                $jq('#PROJECT_MODIFY_FINANCE_LEASE_WFL_AUDIT_CREDIT_F_CREDIT_PROGRAM_HLS_CREDIT_PLAN_BELONG_CONGLOMERATE > div > input').css("background","#EEEEEE");
+            }else if("conglomerate_flag_n"===name&&"是"===value){
+                $jq('#PROJECT_MODIFY_FINANCE_LEASE_WFL_AUDIT_CREDIT_F_CREDIT_PROGRAM_HLS_CREDIT_PLAN_BELONG_CONGLOMERATE > div > input').attr("readonly",false);
+                $jq('#PROJECT_MODIFY_FINANCE_LEASE_WFL_AUDIT_CREDIT_F_CREDIT_PROGRAM_HLS_CREDIT_PLAN_BELONG_CONGLOMERATE > div > input').css("background","#FFFFFF");
+            }
+            if (ds.id === ds_id) {
+                console.log(record);
+                if (name === 'fist_meet') {
+                    if (record.get('fist_meet') == '4') {
+                        $(ds_id).getCurrentRecord().getField('other').setRequired(true);
+                        $(ds_id).getCurrentRecord().getField('other').setReadOnly(false);
+                    }else{
+                        $(ds_id).getCurrentRecord().getField('other').setRequired(false);
+                        $(ds_id).getCurrentRecord().getField('other').setReadOnly(true);
+                    }
+                }
+            }
+        };
+
+
+        //提交前调用,校验上传附件
+        function beforeSubmit(countiune) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id).getCurrentRecord();
+            var project_id = record.get('project_id');
+
+            var ppa_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_approval', 'F_AUDIT_DISCUSS');
+            if($(ppa_ds_id).validate()) {
+                $(ppa_ds_id).submit();
+            }else{
+                return false;
+            }
+
+            var printData = [];
+            var str = {project_id:project_id};
+            printData.push(str);
+
+            if (! (taskDefinitionKey == 'sid-XSY3JbLh-POdO-462U-8sR4-Z4uW3WtyGyMK' || taskDefinitionKey == 'sid-lwqVNxnc-sSEv-491d-8BZa-6tzdhUWoPzX8')) {
+                countiune();
+            }else {
+                Leaf.request({
+                    url: '${/request/@context_path}/prj/project/checkWflAtt',
+                    para: printData,
+                    success: function (datas) {
+                        if (datas.success) {
+                            if(datas.result.record.length==0 && taskDefinitionKey == 'sid-XSY3JbLh-POdO-462U-8sR4-Z4uW3WtyGyMK'){
+                                Leaf.showMessage('提示', '请上传法律审查意见！');
+                                return;
+                            }else if(datas.result.record.length==0 && taskDefinitionKey == 'sid-lwqVNxnc-sSEv-491d-8BZa-6tzdhUWoPzX8'){
+                                Leaf.showMessage('提示', '请上传风险审查意见！');
+                                return;
+                            }else{
+                                countiune();
+                            }
+                        }
+                        return;
+                    }
+                });
+            }
+        }
+
+        //保存成功调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
+            var ds_id;
+            ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_CREDIT_PROGRAM');
+            var record2 = $(ds_id).getCurrentRecord();
+
+            var datas = record2.data;;
+
+            var param=datas;
+            var meet_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_approval', 'F_AUDIT_RESULT');
+            var meet_record = $(meet_ds_id).getCurrentRecord();
+            param['approval_result'] = meet_record.get('approval_result');
+            param['approval_id'] = meet_record.get('approval_id');
+            Leaf.request({
+                url: $('prj_project_save_link_id').getUrl(),
+                para: param,
+                success: function (res) {
+                    $L.showInfoMessage("提示", "保存成功!", function () {
+                        $(meet_ds_id).query();
+                    });
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function (res) {
+                    //window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (res) {
+                    //window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true,
+                scope: this
+            });
+
+
+
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+        <a:screenBody>
+            <!--<a:screenTopToolbar>
+                <a:gridButton id="hls_project_prj_quotation_id" style="display:none;" click="hls_quotation_id_detail"
+                              text="报价详情"/>
+                <a:gridButton id="hls_project_detail_id" style="display:none;" click="hls_project_detail"
+                              text="尽调页面详情"/>
+                <a:gridButton id="hls_project_detail_page_id" style="display:none;" click="prj_report_detail"
+                              text="尽调报告"/>
+                <a:gridButton id="hls_project_report_id" style="display:none;" click="prj_risk_report_detail"
+                              text="风险审查报告"/>
+                <a:gridButton id="hls_project_reply_id" style="display:none;" click="prj_reply_detail" text="项目批复书"/>
+            </a:screenTopToolbar>-->
+        </a:screenBody>
+    </a:view>
+</a:screen>

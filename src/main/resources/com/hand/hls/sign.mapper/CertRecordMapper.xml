@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sign.mapper.CertRecordMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.sign.dto.CertRecord">
+        <result column="record_id" property="recordId" jdbcType="DECIMAL"/>
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL"/>
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="bp_class" property="bpClass" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="regno" property="regno" jdbcType="VARCHAR"/>
+        <result column="bp_category" property="bpCategory" jdbcType="VARCHAR"/>
+        <result column="bp_category_n" property="bpCategoryN" jdbcType="VARCHAR"/>
+        <result column="bp_attachment_id" property="bpAttachmentId" jdbcType="VARCHAR"/>
+        <result column="company_phone" property="companyPhone" jdbcType="VARCHAR"/>
+        <result column="agent_name" property="agentName" jdbcType="VARCHAR"/>
+        <result column="agent_phone" property="agentPhone" jdbcType="VARCHAR"/>
+        <result column="agent_id_card_no" property="agentIdCardNo" jdbcType="VARCHAR"/>
+        <result column="sign_id" property="signId" jdbcType="VARCHAR"/>
+        <result column="legal_name" property="legalName" jdbcType="VARCHAR"/>
+        <result column="legal_phone" property="legalPhone" jdbcType="VARCHAR"/>
+        <result column="legal_id_card_no" property="legalIdCardNo" jdbcType="VARCHAR"/>
+        <result column="legal_sign_id" property="legalSignId" jdbcType="VARCHAR"/>
+        <result column="check_time" property="checkTime" jdbcType="VARCHAR"/>
+        <result column="open_time" property="openTime" jdbcType="VARCHAR"/>
+        <result column="legal_open_time" property="legalOpenTime" jdbcType="VARCHAR"/>
+        <result column="check_time_format" property="checkTimeFormat" jdbcType="VARCHAR"/>
+        <result column="open_time_format" property="openTimeFormat" jdbcType="VARCHAR"/>
+        <result column="legal_open_time_format" property="legalOpenTimeFormat" jdbcType="VARCHAR"/>
+        <result column="sign_enabled_flag" property="signEnabledFlag" jdbcType="VARCHAR"/>
+        <result column="sign_check_status" property="signCheckStatus" jdbcType="VARCHAR"/>
+        <result column="sign_check_status_n" property="signCheckStatusN" jdbcType="VARCHAR"/>
+        <result column="vender_name" property="venderName" jdbcType="VARCHAR"/>
+        <result column="operate_user_id" property="operateUserId" jdbcType="VARCHAR"/>
+        <result column="operate_user_id_n" property="operateUserIdN" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="created_by" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="last_update_date" property="lastUpdateDate" jdbcType="DATE"/>
+        <result column="last_updated_by" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+    </resultMap>
+
+    <select id="signAccountOpenQuery" resultMap="BaseResultMap">
+        select v.*
+        from (select hm.bp_id,
+        hm.bp_code,
+        hm.bp_class,
+        hm.bp_name,
+        hm.regno,
+        hm.bp_category,
+        (select bc.description
+        from hls_bp_category bc
+        where bc.bp_category = hm.bp_category) bp_category_n,
+        (select max(ma.bp_attachment_id)
+        from bp_master_attachment ma
+        where ma.bp_id = hm.bp_id) bp_attachment_id,
+        t.record_id,
+        t.company_phone,
+        t.agent_name,
+        t.agent_phone,
+        t.agent_id_card_no,
+        t.legal_name,
+        t.legal_phone,
+        t.legal_id_card_no,
+        t.legal_sign_id,
+        t.check_time,
+        t.open_time,
+        t.legal_open_time,
+        to_char(trunc(to_date(t.check_time, 'yyyyMMddHH24miss')),
+        'yyyy-mm-dd') check_time_format,
+        to_char(trunc(to_date(t.open_time, 'yyyyMMddHH24miss')),
+        'yyyy-mm-dd') open_time_format,
+        to_char(trunc(to_date(t.legal_open_time, 'yyyyMMddHH24miss')),
+        'yyyy-mm-dd') legal_open_time_format,
+        nvl(t.sign_check_status, 'N') sign_check_status,
+        (SELECT sv.meaning
+        FROM sys_code_value_b_v sv
+        WHERE sv.CODE = 'ANXINSIGN_CHECK_STATUS'
+        AND sv.code_value = nvl(t.sign_check_status, 'N')) sign_check_status_n,
+        t.sign_enabled_flag,
+        t.sign_id,
+        t.operate_user_id,
+        (Select wm_concat(hm1.bp_name)
+        From hls_bp_master_relation t1,
+        hls_bp_master_relation t2,
+        hls_bp_master          hm1
+        Where t1.bp_id = hm.bp_id
+        And t1.relation_type = 'VENDER'
+        And t2.bp_id = t1.related_bp_id
+        And t2.relation_type = 'MANUFACTURER'
+        And hm1.bp_id = t2.related_bp_id) vender_name,
+        (select su.description
+        from sys_user su
+        where su.user_id = t.operate_user_id) operate_user_id_n,
+        (select fu.unit_name
+        from sys_user_allocation  sa,
+        fnd_employee_assigns fa,
+        fnd_org_unit         fu
+        where sa.user_id = t.operate_user_id
+        and fa.employee_assign_id = sa.employee_assign_id
+        and fu.unit_id = fa.unit_id
+        and fa.primary_position_flag = 'Y') unit_name
+        from prj_cert_record t
+        right join hls_bp_master hm
+        on hm.bp_id = t.bp_id
+        where exists
+        (select *
+        from hls_bp_master_role hr
+        where hr.bp_id = hm.bp_id
+        and hr.bp_category = 'DEALER')
+        or (hm.bp_class = 'ORG' and exists
+        (select *
+        from hls_bp_master_role hr
+        where hr.bp_id = hm.bp_id
+        and hr.bp_category in
+        ('DEALER', 'TENANT', 'MANUFACTURER', 'VENDER')))) v
+        <where>
+            <if test="anxinsignEnabledFlag!=null">
+                and nvl(v.anxinsign_enabled_flag,'N') = #{anxinsignEnabledFlag}
+            </if>
+            <if test="anxinsignId!=null">
+                and  v.anxinsign_id  like concat(concat('%',#{anxinsignId}),'%')
+            </if>
+            <if test="legalAnxinsignId!=null">
+                and  v.legal_anxinsign_id  like concat(concat('%',#{legalAnxinsignId}),'%')
+            </if>
+            <if test="bpCode!=null">
+                and  v.bp_code  like concat(concat('%',#{bpCode}),'%')
+            </if>
+            <if test="bpName!=null">
+                and  v.bp_name  like concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="agentName!=null">
+                and  v.agent_name  like concat(concat('%',#{agentName}),'%')
+            </if>
+            <if test="venderName!=null">
+                and  v.vender_name  like concat(concat('%',#{venderName}),'%')
+            </if>
+            <if test="checkTimeFrom!=null">
+                and to_date(v.check_time_format,'yyyy-mm-dd') &gt;= to_date(#{checkTimeFrom},'yyyy-mm-dd')
+            </if>
+            <if test="checkTimeTo!=null">
+                and to_date(v.check_time_format,'yyyy-mm-dd') &lt;= to_date(#{checkTimeTo},'yyyy-mm-dd')
+            </if>
+            <if test="openTimeFrom!=null">
+                and to_date(v.open_time_format,'yyyy-mm-dd') &gt;= to_date(#{openTimeFrom},'yyyy-mm-dd')
+            </if>
+            <if test="openTimeTo!=null">
+                and to_date(v.open_time_format,'yyyy-mm-dd') &lt;= to_date(#{openTimeTo},'yyyy-mm-dd')
+            </if>
+            <if test="legalOpenTimeFrom!=null">
+                and to_date(v.legal_open_time_format,'yyyy-mm-dd') &gt;= to_date(#{legalOpenTimeFrom},'yyyy-mm-dd')
+            </if>
+            <if test="leaglOpenTimeTo!=null">
+                and to_date(v.legal_open_time_format,'yyyy-mm-dd') &lt;= to_date(#{leaglOpenTimeTo},'yyyy-mm-dd')
+            </if>
+            <if test="anxinsignCheckStatus!=null">
+                and  nvl(v.anxinsign_check_status,'N')  = #{anxinsignCheckStatus}
+            </if>
+        </where>
+        order by v.bp_code desc
+    </select>
+
+    <select id="signRecordSelectByBpId" resultMap="BaseResultMap">
+        select *
+        from yx_anxinsign_record t
+        where t.bp_id = to_number(#{bpId})
+    </select>
+
+    <select id="signRecordSelectByUserId" resultMap="BaseResultMap">
+        select *
+        from yx_anxinsign_record t,sys_user su
+        where t.bp_id = su.bp_id
+        and su.user_id =  to_number(#{userId})
+    </select>
+
+    <select id="queryLoginIpByUserId" parameterType="java.lang.Long" resultType="java.lang.String">
+        select t.ip from sys_user_login t where t.login_id = (select max(l.login_id) from sys_user_login l where l.user_id = #{userId})
+    </select>
+</mapper>

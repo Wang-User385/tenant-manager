@@ -1,0 +1,101 @@
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        /*初始化*/
+        Leaf.onReady(function (){
+            var ds = $('metadata_item_fields_ds');
+            if (bpIds !== undefined && bpIds.data.length > 0){
+                for ( var i = 0; i< bpIds.data.length; i++){
+                    ds.create({bpId: bpIds.data[i].data.bpId,bpName: bpIds.data[i].data.bpName,bpCategory: bpIds.data[i].data.bpCategory});
+                }
+            }
+        })
+
+        function metadata_item_fields_ds_grid_multiLovEf(record, name) {
+            return "metadata_item_fields_ds_grid_mulLov"
+        }
+
+        function metadata_item_fields_ds_grid_addFields() {
+            var params = {
+                url: "${/request/@context_path}/bp/manufacturer/partner/lov/query",
+                servcie: "/bp/manufacturer/partner/lov/query~com.hand.hls.ast.dto.LovAssetClassDto",
+                dto: "com.hand.hls.ast.dto.LovAssetClassDto",
+                showCode: "bp_name",
+                lovid: "metadata_item_fields_ds_grid_mulLov",
+                gridheight: "390",
+                innerwidth: "1170",
+                innergridwidth: "555",
+                lovautoquery: "true",
+                lovlabelwidth: "90"
+            };
+            var url = "${/request/@context_path}/sys_multiLov.lview";
+            $(params.lovid).record = $("metadata_item_fields_ds").create();
+            $(params.lovid).displayfield = "bp_name";
+            $(params.lovid).valuefield = "bp_name";
+            $(params.lovid).binder = {
+                name: "bpName",
+                ds: $("metadata_item_fields_ds")
+            }
+            $(params.lovid).win = new $L.Window({
+                title: '添加字段',
+                url: urlAppendPara(url, params),
+                height: 550,
+                width: 1200
+            });
+        }
+
+        function urlAppendPara(url,para){
+            var i=0;
+            for(key in para){
+                url += (url.indexOf("?")<0 && i==0 ? "?" : "&");
+                url += (key+"="+para[key]);
+            }
+            return url;
+        }
+
+        function multi_lov_submit() {
+            bpIds = $('metadata_item_fields_ds');
+            $('${/parameter/@winId}').close();
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="metadata_item_fields_ds" selectable="true">
+                <a:fields>
+                    <a:field name="bpId"/>
+                    <a:field name="bpName"/>
+                    <a:field name="bpCategory"/>
+                    <a:field name="bpName" autoComplete="true" required="true"
+                             lovLabelWidth="90" lovWidth="1200" lovGridHeight="450" lovHeight="550" innerGridWidth="300"
+                             lovService="/bp/manufacturer/partner/lov/query~com.hand.hls.ast.dto.LovAssetClassDto" pagesize="1000"
+                             prompt="厂商/合作方" displayField="bp_name" valueField="bp_name">
+                        <a:mapping>
+                            <a:map from="bp_id" to="bpId"/>
+                            <a:map from="bp_name" to="bpName"/>
+                            <a:map from="bp_category" to="bpCategory"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody padding="0">
+            <a:grid id="metadata_item_fields_ds_grid" bindTarget="metadata_item_fields_ds"
+                    width="500" height="400" navBar="false" navBarType="complex">
+                <a:toolBar>
+                    <a:button click="metadata_item_fields_ds_grid_addFields" text="选择厂商/合作方"/>
+                    <a:button type="delete" text="删除"/>
+                    <a:button click="multi_lov_submit" text="确认"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column width="100" name="bpCategory" prompt="类型" align="center"/>
+                    <a:column width="300" name="bpName" prompt="商业伙伴名称"
+                              editorFunction="metadata_item_fields_ds_grid_multiLovEf"/>
+                </a:columns>
+                <a:editors>
+                    <a:multiLov id="metadata_item_fields_ds_grid_mulLov"></a:multiLov>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

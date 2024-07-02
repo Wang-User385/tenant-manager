@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="fin003_lon_create_id1"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON001/lon_contract_apply.lview"/>
+        <a:link id="CSH007_create_detail_id12"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH302/csh_payment_detail.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            if ('${/parameter/@function_code}' == 'BILL001F2' && '${/parameter/@function_usage}' == 'CREATE') {
+                var head_record = ds.getAt(0);
+                head_record.set('bill_form', '${/parameter/@bill_form}');
+                head_record.set('bill_form_n', '${/parameter/@bill_form_n}');
+                head_record.set('bill_type', '${/parameter/@bill_type}');
+                head_record.set('bill_type_n', '${/parameter/@bill_type_n}');
+                head_record.set('project_number', '${/parameter/@project_number}');
+                head_record.set('loan_contract_number', '${/parameter/@loan_contract_number}');
+                head_record.set('payment_req_id', '${/parameter/@payment_req_id}');
+                head_record.set('project_id', '${/parameter/@project_id}');
+                head_record.set('loan_contract_id', '${/parameter/@contract_id}');
+
+                head_record.set('payment_req_number', '${/parameter/@payment_req_number}');
+                head_record.set('project_name', '${/parameter/@project_name}');
+                head_record.set('apply_bill_date', '${/parameter/@apply_bill_date}');
+                head_record.set('curreny', '${/parameter/@currency}');
+                head_record.set('curreny_n', '${/parameter/@currency_n}');
+
+                head_record.set('receive_bill_id', '${/parameter/@receive_bill_id}');
+                head_record.set('receive_bill_id_n', '${/parameter/@receive_bill_id_n}');
+                head_record.set('credit_date', '${/parameter/@credit_date}');
+                head_record.set('bp_id_tenant', '${/parameter/@tenant_id}');
+
+                head_record.set('agent_id','${/session/@user_id}');
+                head_record.set('agent_name','${/session/@employeeName}');
+                head_record.set('agent_organzation_id','${/session/@unitId}');
+                head_record.set('agent_organzation_name','${/session/@unitName}');
+                head_record.set('bill_amount', '${/parameter/@bill_amount}');
+
+            }
+        }
+
+
+        //保存前调用 (调用编码规则 生成编号)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bill_request');
+
+            if (record.get('bill_apply_number')) {
+                return true;
+            }
+
+            var documentCategory = 'HLS_BILL';
+            var documentType = 'HLS_BILL_REQUEST';
+            var businessType = 'HLS_BILL_REQUEST';
+            if($(ds_id).getCurrentRecord().get('bill_apply_number') == null){
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory + "&documentType=" + documentType + "&businessType=" + businessType,
+                    success: function (res) {
+                        $(ds_id).getCurrentRecord().set('bill_apply_number', res.result.record[0]);
+                        $(ds_id).getCurrentRecord().set('bill_status', 'NEW');
+                        check_flag = true;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+            return check_flag;
+        };
+
+
+
+
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            debugger;
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bill_request');
+                if ($(ds_id).isModified()) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示', '${l:EXIT_BEFORE_SAVE}');
+                    return;
+                }
+                if ($(ds_id).validate()) {
+                    var record = $(ds_id).data[0].data;
+                    var bill_id = record.bill_id;
+                    if (bill_id != null) {
+                        new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                            Leaf.request({
+                                url: '${/request/@context_path}/hls/bill/request/submit',
+                                para: {
+                                    bill_id: bill_id,
+                                },
+                                success: function (res) {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                    if (res.success) {
+                                        $("${/parameter/@winid}").close();
+
+
+                                    } else {
+                                        Leaf.showErrorMessage('提示', res.message);
+                                    }
+                                },
+                                failure: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                },
+                                error: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                },
+                                scope: this
+                            });
+                        }, function cancel() {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        }, 200, 100);
+                    } else {
+                        $L.showInfoMessage("提示", "请先保存!", null);
+                    }
+                }
+
+        }
+
+        function open_loan_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+           param['url_title'] = '租赁合同查询';
+
+            param['function_code'] = 'FIN003F1';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['hidden_button_code'] = ['save', 'submit_approval'];
+            param['winid'] = 'lon_contract_modify_winid';
+            param['contract_id'] = record.get('loan_contract_id');
+            param['document_id'] = record.get('loan_contract_id');
+            param['company_id'] = '${/session/@companyId}';
+            hls_doc_get_layout_code(param, 'fin003_lon_create_id1');
+
+        }
+        function open_detail_win1(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+
+            param['function_code'] = 'CSH008F1';
+            param['url_title'] = '付款支付明细查询';
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'csh_repayment_req_create_winId';
+            param['parent_winid'] = 'csh_repayment_req_create_winId_close';
+
+            hls_doc_get_layout_code(param, 'CSH007_create_detail_id12');
+
+
+        }
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+
+            if (name == 'loan_contract_number') {
+                return '<a href="javascript:open_loan_win(\'' + record.ds.id + '\',\'' + record.id + '\')">融资合同明细</a>';
+            }else if (name == 'payment_req_number') {
+                return '<a href="javascript:open_detail_win1(\'' + record.ds.id + '\',\'' + record.id + '\')">付款明细</a>';
+            }
+
+            return value;
+        };
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            $('${/parameter/@winid}').close();
+
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

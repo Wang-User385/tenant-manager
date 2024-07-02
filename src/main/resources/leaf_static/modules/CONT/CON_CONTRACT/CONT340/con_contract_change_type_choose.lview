@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+
+        <a:link id="${/parameter/@layout_code}_change_partial_prepayment_link_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT340/con_contract_change_partial_prepayment.lview"/>
+        <a:link id="cont340f1_contract_change_req_check_times_link"
+                url="${/request/@context_path}/con/contract/change/req/partial/prepayment/check/times"/>
+        <a:link id="cont340f1_contract_change_req_check_date_link"
+                url="${/request/@context_path}/con/contract/change/req/partial/prepayment/check/date"/>
+
+        <script><![CDATA[
+        function splitparameter(aUrl, key, value) {
+            // return aUrl.indexOf('?') > -1 ? aUrl + '&' + key + '=' + value : aUrl + '?' + key + '=' + value;
+            // url1或url2里如果有$，再根据是否有参数做处理
+            if (aUrl.indexOf('$') > -1) {
+                if (aUrl.indexOf('=') > -1) {
+                    return aUrl + '&' + key + '=' + value;
+                }
+                else {
+                    return aUrl + key + '=' + value;
+                }
+            }
+            if (aUrl.indexOf('?') > -1) {
+                return aUrl + '&' + key + '=' + value;
+            }
+            if (aUrl.indexOf('$') === -1 && aUrl.indexOf('?') === -1) {
+                return aUrl + '?' + key + '=' + value;
+            }
+        }
+
+        window['${/parameter/@layout_code}_change_type'] = {
+
+            PARTIAL_PREPAYMENT: {
+                function_code: 'CONT340F2',
+                url_title: '合同变更-大单提前部分还本'
+            }
+        };
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            //创建时查新数据
+            if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req')
+                && '${/parameter/@function_usage}' !== 'QUERY') {
+                qpara.contract_id = -1;
+            } else if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req')) {
+                qpara.change_req_id = '${/parameter/@change_req_id}';
+            }
+
+        };
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value, bp_seq) {
+            debugger
+            var change_req_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req');
+            if(name == 'change_start_date' && record.get("change_start_date")){
+                var datas = {
+                    change_start_date: record.get("change_start_date"),
+                    contract_id: record.get("contract_id")
+                };
+                $L.Masker.mask(Ext.getBody(),"查询数据中");
+                Leaf.request({
+                    url: $("cont340f1_contract_change_req_check_times_link").getUrl(),
+                    para: datas,
+                    success: function (res) {
+                        $L.Masker.unmask(Ext.getBody());
+                        if(res && res.result && res.result.record){
+                            var data =  res.result.record[0];
+                            for(var v in data){
+                                record.set(v,data[v]);
+                            }
+                        }else {
+                            Leaf.showErrorMessage('提示', res.message);
+                        }
+                    },
+                    failure: function () {
+                        $L.Masker.unmask(Ext.getBody());
+                    },
+                    error: function () {
+                        $L.Masker.unmask(Ext.getBody());
+                    }
+                })
+            }
+            if(name == 'ccr_start_times' && record.get("ccr_start_times") != null){
+                var datas = {
+                    ccr_start_times: record.get("ccr_start_times"),
+                    change_start_date: record.get("change_start_date"),
+                    contract_id: record.get("contract_id")
+                };
+                $L.Masker.mask(Ext.getBody(),"查询数据中");
+                Leaf.request({
+                    url: $("cont340f1_contract_change_req_check_date_link").getUrl(),
+                    para: datas,
+                    success: function (res) {
+                        $L.Masker.unmask(Ext.getBody());
+                        if(res.result.record[0]){
+
+                        }else {
+                            Leaf.showErrorMessage('提示','当前选择的提前还本日不在合同还款期间内，请确保当前日期处于合同还款期间内，且当前日期所属期次的租金未进行核销；', null, 500,100);
+                            record.set('change_start_date',null);
+                            record.set('ccr_start_times',null);
+                        }
+                    },
+                    failure: function () {
+                        $L.Masker.unmask(Ext.getBody());
+                        Leaf.showErrorMessage('提示','当前选择的提前还本日不在合同还款期间内，请确保当前日期处于合同还款期间内，且当前日期所属期次的租金未进行核销；', null, 500,100);
+                    },
+                    error: function () {
+                        $L.Masker.unmask(Ext.getBody());
+                        Leaf.showErrorMessage('提示','当前选择的提前还本日不在合同还款期间内，请确保当前日期处于合同还款期间内，且当前日期所属期次的租金未进行核销；', null, 500,100);
+                    }
+                })
+            }
+
+        };
+
+
+        //取消申请
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_EXIT_LAYOUT_DYNAMIC_CLICK'] = function () {
+            if ('${/parameter/@winid}') {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req');
+                var param = $(ds_id).data[0].data;
+                if (!param.change_req_id) {
+                    $('${/parameter/@winid}').close();
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return;
+                }
+                Leaf.request({
+                    url: '${/request/@context_path}/con/contract/change/req/partial/prepayment/cancel',
+                    para: {change_req_id: param.change_req_id},
+                    success: function (res) {
+                        window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        if (res.success) {
+                            $('${/parameter/@winid}').close();
+                        } else {
+                            Leaf.showErrorMessage('提示', '取消申请失败！' + res.message);
+                        }
+                    }
+                });
+            }
+        };
+
+        //下一步
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req');
+            var param = $(ds_id).data[0].data;
+
+            if (!$(ds_id).validate()) {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return;
+            }
+            //状态校验
+            var con_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            var con_record = $(con_ds_id).getCurrentRecord();
+            var record = $(ds_id).getCurrentRecord();
+            var contract_status = con_record.get("contract_status");
+            var change_type = record.get("change_type");
+            var annual_pay_times = con_record.get('annual_pay_times');
+            /*if(contract_status !== 'INCEPT'){
+                Leaf.showErrorMessage('提示', '只有起租状态的合同才能做变更！');
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return;
+            }*/
+
+            $(ds_id).setSubmitUrl('${/request/@context_path}/con/contract/change/request/partial/prepayment/submit');
+            $(ds_id).on("submitsuccess", window['${/parameter/@layout_code}_next_step'](param));
+            $(ds_id).submit();
+
+        };
+
+        //保存按钮
+        window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req');
+            if (!$(ds_id).validate()) {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return;
+            }
+            //控制权限：合同状态为新建和签约可以进行租前变更，其他变更只有合同状态为起租才可以进行变更
+            var con_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            var con_record = $(con_ds_id).getCurrentRecord();
+            var record = $(ds_id).getCurrentRecord();
+            var contract_status = con_record.get("contract_status");
+            var annual_pay_times = con_record.get('annual_pay_times');
+            var change_type = record.get("change_type");
+            /*if(contract_status !== 'INCEPT'){
+                Leaf.showErrorMessage('提示', '只有起租状态的合同才能做变更！');
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return;
+            }*/
+
+            $(ds_id).setSubmitUrl('${/request/@context_path}/con/contract/change/request/partial/prepayment/submit');
+            $(ds_id).on('submitsuccess', window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']);
+            $(ds_id).submit();
+        };
+
+
+        window['${/parameter/@layout_code}_next_step'] = function (param) {
+            return function () {
+                $jq.extend(param, window['${/parameter/@layout_code}_change_type'][param.change_type]);
+                param['winid'] = 'con_contract_' + param.change_type.toLowerCase() + '_window_id';
+                var link_id = '${/parameter/@layout_code}_change_' + param.change_type.toLowerCase() + '_link_id';
+                param['manufacturer_code'] = param.manufacturer_code;
+                hls_doc_get_layout_code(
+                    param,
+                    link_id,
+                    get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract'),
+                    'CONT340',
+                    '340con_contract_choose_win_id',
+                    'Y'
+                )
+            }
+        };
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            debugger
+            if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req')) {
+                ds.data[0].set('change_type', 'PARTIAL_PREPAYMENT');
+                ds.data[0].set('change_type_n', '部分提前还本');
+                ds.data[0].set('contract_id', '${/parameter/@contract_id}');
+                var today = new Date();
+                ds.data[0].set('change_req_date',today);
+            }
+        };
+
+        Leaf.onReady(function () {
+            if ('${/parameter/@function_usage}' === 'QUERY'){
+               var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req');
+               $(ds_id).on('load', function () {
+                   window.setTimeout(window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'], 0)
+               })
+            }
+
+        })
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+    
+    

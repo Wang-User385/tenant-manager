@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.BpMasterReplyMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.BpMasterReply">
+        <result column="REPLY_ID" property="replyId" jdbcType="DECIMAL"/>
+        <result column="CREDIT_LINE_ID" property="creditLineId" jdbcType="DECIMAL"/>
+        <result column="REPLY_CODE" property="replyCode" jdbcType="VARCHAR"/>
+        <result column="REPLY_AMOUNT" property="replyAmount" jdbcType="DECIMAL"/>
+        <result column="VALID_FROM" property="validFrom" jdbcType="DATE"/>
+        <result column="VALID_TO" property="validTo" jdbcType="DATE"/>
+        <result column="FLOATING_RANGE_METHOD" property="floatingRangeMethod" jdbcType="VARCHAR"/>
+        <result column="LATEST_FLAG" property="latestFlag" jdbcType="VARCHAR"/>
+        <result column="valid_from_n" property="validFromN" jdbcType="VARCHAR"/>
+        <result column="valid_to_n" property="validToN" jdbcType="VARCHAR"/>
+        <result column="floating_range_method_n" property="floatingRangeMethodN" jdbcType="VARCHAR"/>
+        <result column="cyclic_amount" property="cyclicAmount" jdbcType="DECIMAL"/>
+        <result column="not_cyclic_amount" property="notCyclicAmount" jdbcType="DECIMAL"/>
+        <result column="insurance_free_amount" property="insuranceFreeAmount"/>
+        <result column="insurance_free_period" property="insuranceFreePeriod"/>
+        <result column="floating_range_method" property="floatingRangeMethod"/>
+        <result column="guarantee_method" property="guaranteeMethod" jdbcType="VARCHAR"/>
+        <result column="guarantee_method_n" property="guaranteeMethodN" jdbcType="VARCHAR"/>
+        <result column="residual_price_type" property="residualPriceType" jdbcType="VARCHAR"/>
+        <result column="vaule_to" property="vauleTo" jdbcType="VARCHAR"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="reply_para" property="replyPara" jdbcType="VARCHAR"/>
+        <result column="BEAR_GUARANTEE_FLAG" property="bearGuaranteeFlag" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--根据主机厂查询到批复编号-->
+    <select id="selectReplyInfo" resultMap="BaseResultMap">
+        <choose>
+            <when test="manufacturerId !=null">
+                select v.* from (select r.*
+                from hls_bp_master          hbm,
+                hls_credit_line        hcl,
+                hls_bp_master_reply    r
+                where hbm.bp_id = #{manufacturerId}
+                and hbm.bp_id = hcl.bp_id
+                and hcl.ENABLED_FLAG = 'Y'
+                and hcl.company_id = #{request.companyId}
+                and r.credit_line_id = hcl.credit_line_id
+                and r.latest_flag = 'Y'
+                order by r.creation_date desc)v
+                where 1 = 1 and rownum = 1
+            </when>
+            <otherwise>
+                select v.* from (select r.*
+                from hls_bp_master          hbm,
+                hls_bp_master_relation hbmr,
+                hls_credit_line        hcl,
+                hls_bp_master_reply    r
+                where hbm.bp_id = hbmr.bp_id
+                and hbm.bp_id = #{factoryId}
+                and hbmr.relation_type = 'MANUFACTURER'
+                and hbmr.related_bp_id = hcl.bp_id
+                and hcl.ENABLED_FLAG = 'Y'
+                and hcl.company_id = #{request.companyId}
+                and r.credit_line_id = hcl.credit_line_id
+                and r.latest_flag = 'Y'
+                order by r.creation_date desc)v
+                where 1 = 1 and rownum = 1
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <!--根据主机厂查询批复查询批复产品参数-->
+    <select id="selectReplyParaInfo" resultMap="BaseResultMap">
+                select v.*,
+                 (select hbrp.default_value
+          from hls_bp_reply_para hbrp
+          where hbrp.reply_id = v.reply_id
+          and hbrp.reply_para = 'INSURANCE_FREE_AMOUNT'
+          ) insurance_free_amount,
+          (select hbrp.default_value
+          from hls_bp_reply_para hbrp
+          where hbrp.reply_id = v.reply_id
+          and hbrp.reply_para = 'INSURANCE_FREE_PERIOD'
+          ) insurance_free_period
+
+                from (select r.*
+          from hls_bp_master          hbm,
+               hls_bp_master_relation hbmr,
+               hls_credit_line        hcl,
+               hls_bp_master_reply    r
+         where hbm.bp_id = hbmr.bp_id
+           and hbm.bp_id = #{factoryId}
+           and hbmr.relation_type = 'MANUFACTURER'
+           and hbmr.related_bp_id = hcl.bp_id
+           and hcl.ENABLED_FLAG = 'Y'
+           and hcl.company_id = #{request.companyId}
+           and r.credit_line_id = hcl.credit_line_id
+           and r.latest_flag = 'Y'
+         order by r.creation_date desc)v
+         where 1 = 1 and rownum = 1
+    </select>
+
+
+    <select id="manufacturerQuery" resultMap="BaseResultMap" parameterType="com.hand.hls.prj.dto.BpMasterReply">
+        SELECT
+        hbm.reply_code,
+        hbm.cyclic_amount,
+        hbm.not_cyclic_amount,
+        hbm.reply_amount,
+        to_char(hbm.valid_from,'YYYY-MM-DD') valid_from_n,
+        to_char(hbm.valid_to,'YYYY-MM-DD') valid_to_n,
+        hbm.floating_range_method,
+        hbm.latest_flag,
+        hbm.bear_guarantee_flag,
+        hbm.reply_id,
+        (SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v. CODE = 'CON.FLOATING_RANGE_METHOD'
+        AND v.code_value = hbm.floating_range_method) floating_range_method_n,
+        hbm.GUARANTEE_METHOD,
+        (SELECT v.meaning FROM sys_code_value_b_v v WHERE v.CODE = 'GUARANTEE_METHOD' AND v.code_value = hbm.GUARANTEE_METHOD) GUARANTEE_METHOD_N
+        FROM hls_bp_master_reply hbm
+        <where>
+            hbm.credit_line_id = #{creditLineId}
+        </where>
+    </select>
+
+    <select id="queryMaxCreationDateReplyInfo" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select *
+        from (SELECT *
+        FROM hls_bp_master_reply hbm
+        where  hbm.credit_line_id = #{creditLineId}
+        order by hbm.creation_date desc)
+        where rownum = 1
+    </select>
+
+    <select id="queryLatestReplyInfo" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        SELECT *
+  FROM hls_bp_master_reply hbm
+ where hbm.credit_line_id = #{creditLineId}
+   and hbm.latest_flag = 'Y'
+    </select>
+
+    <select id="queryNotLatestReplyInfo" resultMap="BaseResultMap" parameterType="com.hand.hls.prj.dto.BpMasterReply">
+        SELECT *
+  FROM hls_bp_master_reply hbm
+ where hbm.credit_line_id = #{creditLineId}
+   and hbm.reply_id != #{replyId}
+    </select>
+
+    <select id="queryReplyInfoByQuotationId" resultMap="BaseResultMap">
+            select hbm.*,
+                  (SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v. CODE = 'CON.FLOATING_RANGE_METHOD'
+        AND v.code_value = hbm.floating_range_method) floating_range_method_n
+          from prj_quotation          quo,
+               hls_reply_product      hrp,
+               hls_bp_master_reply    hbm,
+               hls_product_definition hpd
+         where quo.plan_id = hpd.definition_id
+           and hpd.reply_product_id = hrp.reply_product_id
+           and hrp.reply_id = hbm.reply_id
+           and quo.QUOTATION_ID = #{quotationId}
+    </select>
+
+    <select id="queryReplyParaByBpIdAndReplyPara" resultMap="BaseResultMap">
+        select
+        hbrp.vaule_to, hbmr.latest_flag, hbmr.valid_from, hbmr.creation_date,hbrp.reply_para
+        from
+        hls_bp_reply_para hbrp,hls_bp_master_reply hbmr,hls_credit_line hcl
+        where hbrp.reply_id=hbmr.reply_id
+        and hbmr.credit_line_id=hcl.credit_line_id
+        and hcl.P_CREDIT_LINE_ID is null
+        and hcl.bp_id=#{bpId}
+    </select>
+
+
+</mapper>

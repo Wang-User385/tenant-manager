@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <link href="${/request/@context_path}/css/common/leaf_search_engine.css" rel="stylesheet"
+              type="text/css"/>
+        <a:link id="search_engine_prj306_bp_master_modify_id" url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="search_engine_prj316_project_modify_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_modify.lview"/>
+        <a:link id="search_engine_con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="search_engine_transaction_query_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_query.lview"/>
+        <a:link id="search_engine_csh_payment_req_query_link_id"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH302/csh_payment_req_query.lview"/>
+        <script type="text/tmplate" id="search_engine_link_function_block_template"><![CDATA[
+        <div class="leaf_search_engine_link_function">{{name}}</div>
+        ]]></script>
+        <script><![CDATA[
+        function search_engine_data_load(ds){
+            if(ds.id == 'search_engine_hls_bp_master_result_ds'){
+                jQuery(".block_num").eq(0).html(ds.totalCount);
+            }else if(ds.id == 'search_engine_prj_project_result_ds'){
+                jQuery(".block_num").eq(1).html(ds.totalCount);
+            }else if(ds.id == 'search_engine_con_contract_result_ds'){
+                jQuery(".block_num").eq(2).html(ds.totalCount);
+            }else if(ds.id == 'search_engine_csh_transation_result_ds'){
+                jQuery(".block_num").eq(3).html(ds.totalCount);
+            }else if(ds.id == 'search_engine_pay_payment_result_ds'){
+                jQuery(".block_num").eq(4).html(ds.totalCount);
+            }else if(ds.id == 'search_engine_acr_gather_result_ds'){
+                jQuery(".block_num").eq(5).html(ds.totalCount);
+            }else if(ds.id == 'search_engine_acr_payment_result_ds'){
+                jQuery(".block_num").eq(6).html(ds.totalCount);
+            }
+        }
+        function search_engine_hls_bp_master_bp_code(record,index){
+            return '<a style="cursor: pointer;" onclick="open_search_engine_hls_bp_master('+record.id+')">'+record.get("bp_code")+'</a>';
+        }
+        function search_engine_project_number(record,index){
+            return '<a style="cursor: pointer;" onclick="open_search_engine_project('+record.id+')">'+record.get("project_number")+'</a>';
+        }
+        function search_engine_contract_number(record,index){
+            return '<a style="cursor: pointer;" onclick="open_search_engine_contract('+record.id+')">'+record.get("contract_number")+'</a>';
+        }
+        function search_engine_transaction_num(record,index){
+            return '<a style="cursor: pointer;" onclick="open_search_engine_transaction('+record.get("transaction_id")+')">'+record.get("transaction_num")+'</a>';
+        }
+        function search_engine_payment_req_number(record,index){
+            return '<a style="cursor: pointer;" onclick="open_search_engine_transaction('+record.id+')">'+record.get("payment_req_number")+'</a>';
+        }
+        function search_engine_acr_document_number(record,index){
+            return '<a style="cursor: pointer;" onclick="open_search_engine_acr_document_number('+record.get("invoice_hd_id")+')">'+record.get("document_number")+'</a>';
+        }
+        function open_search_engine_hls_bp_master(record_id){
+            var record = $("search_engine_hls_bp_master_result_ds").findById(record_id);
+            var param = record.data;
+            param['url_title'] = '商业伙伴查询';
+            if (param['bp_class'] == 'ORG') {
+                param['function_code'] = 'BP100F1';
+            } else {
+                param['function_code'] = 'BP100F2';
+            }
+            param['function_usage'] = 'QUERY';
+            param['winid']='bp_master_query_winid';
+
+            hls_doc_get_layout_code(param, 'search_engine_prj306_bp_master_modify_id', "search_engine_hls_bp_master_result_ds",'PRJ306');
+        }
+        function open_search_engine_project(record_id){
+            var record = $("search_engine_prj_project_result_ds").findById(record_id);
+            var param = record.data;
+            param['url_title'] = '项目明细';
+            param['function_code'] = 'PRJ316F2';
+            param['winid'] = 'project_modify_winid';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            hls_doc_get_layout_code(param, 'search_engine_prj316_project_modify_id', "search_engine_prj_project_result_ds", 'PRJ316');
+        }
+        function open_search_engine_contract(record_id){
+            var param = $("search_engine_con_contract_result_ds").findById(record_id).data;
+            param['url_title'] = '合同明细';
+            param['function_code'] = 'CONT301F1WFL2';
+            param['winid'] = 'con_contract_detail_winid';
+            param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc'];
+            param.maintain_type = 'READONLY';
+            param.function_usage = 'QUERY';
+            param['report_flag'] = 'Y';
+            hls_doc_get_layout_code(param, 'search_engine_con_contract_detail_id', "search_engine_con_contract_result_ds", 'CONT301')
+        }
+        function open_search_engine_transaction(transaction_id){
+            var win = new Leaf.Window({
+                id: 'search_engine_transaction_query_winId',
+                url: $('search_engine_transaction_query_link').getUrl(),
+                params: {
+                    winId: 'search_engine_transaction_query_winId',
+                    transaction_id: transaction_id
+                },
+                title: '收款查询',
+                width: 800,
+                height: 450,
+                draggable: true
+            });
+        }
+        function open_search_engine_transaction(record_id){
+            var record = $("search_engine_pay_payment_result_ds").findById(record_id).data;
+            new Leaf.Window({
+                id: "search_engine_csh_payment_req_query_win_id",
+                url: $('search_engine_csh_payment_req_query_link_id').getUrl(),
+                title: '付款申请查询',
+                params: {
+                    payment_req_id: record.payment_req_id,
+                    contract_id: record.contract_id,
+                    winId: 'search_engine_csh_payment_req_query_win_id',
+                    reverse_flag: record.reverse_flag,
+                    deduct_flag: record.deduct_flag
+
+                },
+                fullScreen: true,
+                draggable: true
+            })
+        }
+        function open_search_engine_acr_document_number(invoice_hd_id){
+            new Leaf.Window({
+                id: "search_engine_vat_invoice_rec_detail_id",
+                url: "${/request/@context_path}/modules/VAT/VAT_INVOICE_REC/ACR002/vat_invoice_rec_confirm_detail.lview",
+                title: '详情',
+                fullScreen: true,
+                params: {
+                    invoice_hd_id: invoice_hd_id,
+                    winId: "search_engine_vat_invoice_rec_detail_id"
+                },
+                draggable: true,
+                closeable: true
+            });
+        }
+        ]]></script>
+         <a:dataSets>
+             <a:dataSet id="search_engine_hls_bp_master_result_ds" pageSize="5" queryUrl="${/request/@context_path}/hls/bp/home/query" autoQuery="false">
+                <a:events>
+                    <a:event name="load" handler="search_engine_data_load"/>
+                </a:events>
+             </a:dataSet>
+             <a:dataSet id="search_engine_prj_project_result_ds" pageSize="5" queryUrl="${/request/@context_path}/search/project/home/query" autoQuery="false">
+                 <a:events>
+                     <a:event name="load" handler="search_engine_data_load"/>
+                 </a:events>
+             </a:dataSet>
+             <a:dataSet id="search_engine_con_contract_result_ds" pageSize="5" queryUrl="${/request/@context_path}/search/contract/home/query" autoQuery="false">
+                 <a:events>
+                     <a:event name="load" handler="search_engine_data_load"/>
+                 </a:events>
+             </a:dataSet>
+             <a:dataSet id="search_engine_csh_transation_result_ds" pageSize="5" queryUrl="${/request/@context_path}/search/csh/home/query" autoQuery="false">
+                 <a:events>
+                     <a:event name="load" handler="search_engine_data_load"/>
+                 </a:events>
+             </a:dataSet>
+             <a:dataSet id="search_engine_pay_payment_result_ds" pageSize="5" queryUrl="${/request/@context_path}/search/csh/payment/home/query" autoQuery="false">
+                 <a:events>
+                     <a:event name="load" handler="search_engine_data_load"/>
+                 </a:events>
+             </a:dataSet>
+             <a:dataSet id="search_engine_acr_gather_result_ds" pageSize="5" queryUrl="${/request/@context_path}/search/invoice/ln/home/query" autoQuery="false">
+                 <a:events>
+                     <a:event name="load" handler="search_engine_data_load"/>
+                 </a:events>
+             </a:dataSet>
+             <a:dataSet id="search_engine_acr_payment_result_ds" pageSize="5" queryUrl="${/request/@context_path}/search/invoice/hd/home/query" autoQuery="false">
+                 <a:events>
+                     <a:event name="load" handler="search_engine_data_load"/>
+                 </a:events>
+             </a:dataSet>
+
+         </a:dataSets>
+        <div class="leaf_search_engine">
+            <div class="leaf_search_engine_link_function margin_left margin_top">
+                <div class="leaf_search_engine_link_function_title">
+                    <span class="leaf_search_engine_link_function_title_h">相关功能</span>
+                    <span class="leaf_search_engine_link_function_title_num" id="leaf_search_engine_link_function_title_num">(0)</span>
+                </div>
+                <div class="leaf_search_engine_link_function_content" >
+                    <div class="leaf_search_engine_link_function_scroll" id="leaf_search_engine_link_function_scroll">
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <a:screenBody style="display:none;"/>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+        <script><![CDATA[
+            jQuery(".leaf_search_engine_info_content_tab").each(function(index,obj){
+                this.index = index;
+                jQuery(this).click(function(){
+                    jQuery(".leaf_search_engine_info_content_tab").removeClass("leaf_search_engine_info_content_tab_fouse");
+                    jQuery(".leaf_search_engine_info_body").hide();
+                    jQuery(this).addClass("leaf_search_engine_info_content_tab_fouse");
+                    jQuery(".leaf_search_engine_info_body").eq(this.index).show();
+                });
+            });
+            function initSearchBlock(info){
+                $L.Masker.mask(Ext.get("mainTab"))
+                jQuery(".leaf_search_engine").show();
+                initSearchLinkFunction(info);
+            }
+            function searchUnMasker(){
+                $L.Masker.unmask(Ext.get("mainTab"));
+                jQuery(".leaf_search_engine").hide();
+                disBorderInput();
+            }
+            function initSearchLinkFunction(info){
+                Leaf.request({
+                    url: '${/request/@context_path}/sys/function/home/search',
+                    para: {
+                        functionCode: info
+                    },
+                    scope: this,
+                    success: function (res) {
+                        if(res && res.result){
+                            var template = jQuery("#search_engine_link_function_block_template").html();
+                            var content = jQuery("#leaf_search_engine_link_function_scroll");
+                            content.empty();
+                            jQuery("#leaf_search_engine_link_function_title_num").html("("+res.result.totalCount+")");
+                            for(var i = 0; i < res.result.record.length; i++){
+                                var data = res.result.record[i];
+                                var str = template.replace("{{name}}",data.name || "");
+                                var node = jQuery(str);
+                                node.appendTo(content);
+                                node[0].data = data;
+                                node.click(function(){
+                                    var obj = this.data;
+                                    var type = 'two';
+                                    var module_desc = obj.module_name;
+                                    var function_desc = obj.function_description
+                                    if(obj.parent_module_name){
+                                        type = 'three';
+                                        module_desc = obj.parent_module_name;
+                                        function_desc = obj.module_name;
+                                    }
+                                    searchUnMasker();
+                                    goToModuleFunction(obj.sys_role_module_id,obj.function_code,obj.function_name,obj.url,function_desc,module_desc,type);
+                                });
+                            }
+                        }
+
+                    }
+                });
+            }
+            var searchDatasetArr = [
+                'search_engine_hls_bp_master_result_ds',
+                'search_engine_prj_project_result_ds',
+                'search_engine_con_contract_result_ds',
+                'search_engine_csh_transation_result_ds',
+                'search_engine_pay_payment_result_ds',
+                'search_engine_acr_gather_result_ds',
+                'search_engine_acr_payment_result_ds'
+            ];
+            function searchSendDataSetRequest(info){
+                for(var i = 0; i < searchDatasetArr.length; i++){
+                    $(searchDatasetArr[i]).setQueryParameter("query_info",info);
+                    $(searchDatasetArr[i]).query();
+                }
+            }
+        ]]></script>
+    </a:view>
+</a:screen>

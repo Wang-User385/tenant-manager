@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sign.mapper.SignVerifyMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.sign.dto.SignVerify" autoMapping="true" extends="com.hand.hap.mapper.StdMapper.STD">
+        <result column="verify_id" property="verifyId" jdbcType="DECIMAL"/>
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL"/>
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="bp_class" property="bpClass" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="register_cert_num" property="registerCertNum" jdbcType="VARCHAR"/>
+        <result column="bp_category" property="bpCategory" jdbcType="VARCHAR"/>
+        <result column="bp_category_n" property="bpCategoryN" jdbcType="VARCHAR"/>
+        <result column="bp_type" property="bpType" jdbcType="VARCHAR"/>
+        <result column="bp_type_n" property="bpTypeN" jdbcType="VARCHAR"/>
+        <result column="bp_attachment_id" property="bpAttachmentId" jdbcType="DECIMAL"/>
+        <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
+        <result column="person_name" property="personName" jdbcType="VARCHAR"/>
+        <result column="receive_phone_number" property="receivePhoneNumber" jdbcType="VARCHAR"/>
+        <result column="id_number" property="idNumber" jdbcType="VARCHAR"/>
+        <result column="check_time" property="checkTime" jdbcType="TIMESTAMP"/>
+        <result column="open_time" property="openTime" jdbcType="TIMESTAMP"/>
+        <result column="legal_open_time" property="legalOpenTime" jdbcType="TIMESTAMP"/>
+        <result column="check_time_format" property="checkTimeFormat" jdbcType="VARCHAR"/>
+        <result column="open_time_format" property="openTimeFormat" jdbcType="VARCHAR"/>
+        <result column="legal_open_time_format" property="legalOpenTimeFormat" jdbcType="VARCHAR"/>
+        <result column="sign_check_status" property="signCheckStatus" jdbcType="VARCHAR"/>
+        <result column="sign_check_status_n" property="signCheckStatusN" jdbcType="VARCHAR"/>
+        <result column="sign_enabled_flag" property="signEnabledFlag" jdbcType="VARCHAR"/>
+        <result column="sign_enabled_flag_n" property="signEnabledFlagN" jdbcType="VARCHAR"/>
+        <result column="operate_user_id" property="operateUserId" jdbcType="DECIMAL"/>
+        <result column="vender_name" property="venderName" jdbcType="VARCHAR"/>
+        <result column="operate_user_id_n" property="operateUserIdN" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="signAccountOpenQuery" resultMap="BaseResultMap">
+        select v.*
+        from (select hm.bp_id,
+        hm.bp_code,
+        hm.bp_class,
+        hm.bp_name,
+        hm.REGISTER_CERT_NUM,
+        hm.bp_category,
+        (select bc.description
+        from hls_bp_category bc
+        where bc.bp_category = hm.bp_category) bp_category_n,
+        hm.bp_type,
+        (select sc.meaning
+        from sys_code_value_b_v sc
+        where sc.code = 'BP.BP_MASTER_ROLE'
+        AND sc.CODE_VALUE = hm.bp_type) bp_type_n,
+        (select max(ma.bp_attachment_id)
+        from hls_bp_attachment ma
+        where ma.bp_id = hm.bp_id) bp_attachment_id,
+        t.verify_id,
+        t.phone_number,
+        t.person_name,
+        t.receive_phone_number,
+        t.id_number,
+        t.check_time,
+        t.open_time,
+        t.legal_open_time,
+        to_char(trunc(t.check_time),
+        'yyyy-mm-dd') check_time_format,
+        to_char(trunc(t.open_time),
+        'yyyy-mm-dd') open_time_format,
+        to_char(trunc(t.legal_open_time),
+        'yyyy-mm-dd') legal_open_time_format,
+        nvl(t.sign_check_status, 'N') sign_check_status,
+        (SELECT sv.meaning
+        FROM sys_code_value_b_v sv
+        WHERE sv.CODE = 'SIGN_CHECK_STATUS'
+        AND sv.code_value = nvl(t.sign_check_status, 'N')) sign_check_status_n,
+        t.sign_enabled_flag,
+        (select  bv.meaning as value_name
+        from sys_code_value_b_v bv
+        where bv.code = 'SYS.YES_NO'
+        and bv.code_value=t.sign_enabled_flag) as sign_enabled_flag_n,
+        t.operate_user_id,
+        (Select wm_concat(hm1.bp_name)
+        From hls_bp_master_relation t1,
+        hls_bp_master_relation t2,
+        hls_bp_master          hm1
+        Where t1.bp_id = hm.bp_id
+        And t1.relation_type = 'VENDER'
+        And t2.bp_id = t1.related_bp_id
+        And t2.relation_type = 'MANUFACTURER'
+        And hm1.bp_id = t2.related_bp_id) vender_name,
+        (select su.description
+        from sys_user su
+        where su.user_id = t.operate_user_id) operate_user_id_n,
+        (select fu.unit_name
+        from sys_user_allocation  sa,
+        fnd_employee_assigns fa,
+        fnd_org_unit         fu
+        where sa.user_id = t.operate_user_id
+        and fa.employee_assign_id = sa.employee_assign_id
+        and fu.unit_id = fa.unit_id
+        and fa.primary_position_flag = 'Y') unit_name
+        from prj_sign_verify t
+        right join hls_bp_master hm
+        on hm.bp_id = t.bp_id
+        where exists
+        (select *
+        from hls_bp_master_role hr
+        where hr.bp_id = hm.bp_id
+        and hr.bp_category = 'DEALER')
+        or (hm.bp_class = 'ORG' and exists
+        (select *
+        from hls_bp_master_role hr
+        where hr.bp_id = hm.bp_id
+        and hr.bp_category in
+        ('DEALER', 'TENANT', 'MANUFACTURER', 'VENDER')))) v
+        <where>
+            <if test="signEnabledFlag!=null">
+                and nvl(v.sign_enabled_flag,'N') = #{signEnabledFlag}
+            </if>
+            <if test="verifyId!=null">
+                and  v.verify_id  like concat(concat('%',#{verifyId}),'%')
+            </if>
+            <if test="bpCode!=null">
+                and  v.bp_code  like concat(concat('%',#{bpCode}),'%')
+            </if>
+            <if test="bpName!=null">
+                and  v.bp_name  like concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="personName!=null">
+                and  v.person_name  like concat(concat('%',#{personName}),'%')
+            </if>
+            <if test="venderName!=null">
+                and  v.vender_name  like concat(concat('%',#{venderName}),'%')
+            </if>
+            <if test="checkTimeFrom!=null">
+                and to_date(v.check_time_format,'yyyy-mm-dd') &gt;= to_date(#{checkTimeFrom},'yyyy-mm-dd')
+            </if>
+            <if test="checkTimeTo!=null">
+                and to_date(v.check_time_format,'yyyy-mm-dd') &lt;= to_date(#{checkTimeTo},'yyyy-mm-dd')
+            </if>
+            <if test="openTimeFrom!=null">
+                and to_date(v.open_time_format,'yyyy-mm-dd') &gt;= to_date(#{openTimeFrom},'yyyy-mm-dd')
+            </if>
+            <if test="openTimeTo!=null">
+                and to_date(v.open_time_format,'yyyy-mm-dd') &lt;= to_date(#{openTimeTo},'yyyy-mm-dd')
+            </if>
+            <if test="legalOpenTimeFrom!=null">
+                and to_date(v.legal_open_time_format,'yyyy-mm-dd') &gt;= to_date(#{legalOpenTimeFrom},'yyyy-mm-dd')
+            </if>
+            <if test="legalOpenTimeTo!=null">
+                and to_date(v.legal_open_time_format,'yyyy-mm-dd') &lt;= to_date(#{leaglOpenTimeTo},'yyyy-mm-dd')
+            </if>
+            <if test="signCheckStatus!=null">
+                and  nvl(v.sign_check_status,'N')  = #{signCheckStatus}
+            </if>
+        </where>
+        order by v.bp_id desc
+    </select>
+
+    <select id="queryVerifiedBp" resultMap="BaseResultMap">
+        select * from (
+        SELECT sv.* FROM PRJ_SIGN_VERIFY sv
+        where bp_id = #{bpId} and nvl(sv.SIGN_ENABLED_FLAG,'Y') = 'Y' and sv.VERIFY_RESULT = 'SUCCESS'
+        order by sv.open_time desc) where rownum &lt;=1
+    </select>
+</mapper>

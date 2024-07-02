@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="false"
+          trace="true">
+    <a:view>
+        <style>
+            html, body {
+                height: 1000px;
+                width: 90%;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="duration_wfl_id"
+                url="${/request/@context_path}/modules/HLS/HLS400/hls_duration_execute_modify.lview"/>
+
+        <script><![CDATA[
+
+        var businessKey = '${/parameter/@businessKey}';
+
+        var param = parent.currentTaskInfo.execution_variables;
+
+        var contractId = param.filter(function (o) {
+            return o.name == "contractId";
+        })[0].value;
+
+        var projectId = param.filter(function (o) {
+            return o.name == "projectId";
+        })[0].value;
+
+        var executeType = param.filter(function (o) {
+            return o.name == "executeType";
+        })[0].value;
+
+        var function_code = '';
+
+        if (executeType == 'ET') {
+            function_code = 'HLS400F3';
+        } else if (executeType == 'PREPAYMENT') {
+            function_code = 'HLS400F4';
+        } else if (executeType == 'RELEASE') {
+            function_code = 'HLS400F5';
+        } else if (executeType == 'REPURCHASE') {
+            function_code = 'HLS400F6';
+        } else {
+            function_code = 'HLS400F8';
+        }
+
+
+        var pageChooser = new PageChooser({
+            url: $('duration_wfl_id').getUrl(),
+            function_code: function_code,
+            context_path: '${/request/@context_path}',
+            opt: {
+                contract_id: contractId,
+                project_id: projectId,
+                hd_id: businessKey,
+                maintain_type: 'READONLY',
+                function_usage: 'QUERY',
+                function_code: function_code,
+                execute_type: executeType
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

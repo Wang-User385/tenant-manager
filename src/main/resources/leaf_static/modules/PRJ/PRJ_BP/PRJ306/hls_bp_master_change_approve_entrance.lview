@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            body {
+                height: 400px;
+                width: 1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="hls_bp_master_change_approve_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_BP/PRJ306/hls_bp_master_change_history_detail.lview"/>
+        <a:link id="hls_bp_master_approve_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_BP/PRJ320/hls_bp_master_vender_modify.lview"/>
+        <script><![CDATA[
+        var list = parent.currentTaskInfo.execution_variables;
+        var param;
+        var page_type;
+        var work_flow;
+        var nodeId = parent.currentTaskInfo.task_definition_key;
+        var bp_relation_id;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].name === 'documentCategory' && list[i].value === 'HLS_BP_MASTER_CHANGE') {
+                page_type = 'HLS_BP_MASTER_CHANGE';
+            } else if (list[i].name === 'hlsBpMaster') {
+                param = JSON.parse(list[i].value);
+            } else if (list[i].name === 'WORK_FLOW') {
+                work_flow = list[i].value;
+            } else if (list[i].name === 'bpRelationId') {
+                bp_relation_id = list[i].value;
+            }
+        }
+
+        if (page_type === 'HLS_BP_MASTER_CHANGE') {
+            var function_code;
+            if (param.bpClass == 'ORG') {
+                function_code = 'PRJ306S1';
+            } else {
+                function_code = 'PRJ306S2';
+            }
+            var bp_id = '${/parameter/@bpId}';
+            var pageChooser = new PageChooser({
+                url: $('hls_bp_master_change_approve_link_id').getUrl(),
+                function_code: function_code,
+                context_path: '${/request/@context_path}',
+                opt: {
+                    change_req_id: "${/parameter/@businessKey}",
+                    document_id: "${/parameter/@businessKey}",
+                    bp_id: param.bpId,
+                    document_category: 'HLS_BP_MASTER_CHANGE',
+                    maintain_type: 'READONLY',
+                    function_usage: 'QUERY'
+                },
+                success: function (realUrl) {
+                    location.href = realUrl;
+                }
+            });
+        } else {
+            var pageChooser = new PageChooser({
+                url: $('hls_bp_master_approve_link_id').getUrl() + '?function_code=PRJ320_LS_F1',
+                function_code: 'PRJ320_LS_F1',
+                context_path: '${/request/@context_path}',
+                opt: {
+                    bp_id: "${/parameter/@businessKey}",
+                    maintain_type: 'READONLY',
+                    function_usage: 'QUERY',
+                    wfl_flag: 'Y',
+                    node_id:nodeId,
+                    work_flow:work_flow,
+                    bp_relation_id:bp_relation_id
+                },
+                success: function (realUrl) {
+                    location.href = realUrl;
+                }
+            });
+        }
+
+        ]]></script>
+        <!--<a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>-->
+    </a:view>
+</a:screen>
+    
+    

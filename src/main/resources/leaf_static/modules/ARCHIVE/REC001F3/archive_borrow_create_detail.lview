@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="rec001f3_detail_back_link_id"
+                url="${/request/@context_path}/modules/ARCHIVE/REC001F3/archive_borrow_home.lview"/>
+        <script><![CDATA[
+
+        //更新时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            var borrow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_archive_borrow');
+            if (ds.id === borrow_ds_id) {
+                var para = {project_id:record.get('project_id')};
+                if (name == 'element_class_flag' && value === 'Y') {
+                    para.archive_type = 'ELEMENT_CLASS';
+                }
+                if (name == 'management_class_flag' && value === 'Y') {
+                    para.archive_type = 'MANAGEMENT_CLASS';
+                }
+                if (name == 'warrant_class_flag' && value === 'Y') {
+                    para.archive_type = 'WARRANT_CLASS';
+                }
+                if (name == 'general_class_flag' && value === 'Y') {
+                    para.archive_type = 'GENERAL_CLASS';
+                }
+                if(para.archive_type){
+                    Leaf.request({
+                        url: '${/request/@context_path}/archive/borrow/check',
+                        para:para,
+                        success: function(res) {
+                        },
+                        error: function(res) {
+                            record.set(name,"N");
+                        },
+                        faliure: function() {
+                        },
+                        scope: this
+                    });
+                }
+            }
+        }
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            if(!record.get("borrow_id")){
+                record.set("project_id","${/parameter/@project_id}");
+                record.set("project_number","${/parameter/@project_number}");
+                record.set("project_name","${/parameter/@project_name}");
+                record.set("bp_name","${/parameter/@bp_name}");
+                record.set("employee_id_n","${/parameter/@employee_id_n}");
+                record.set("unit_id_n","${/parameter/@unit_id_n}");
+                record.set("employee_id","${/parameter/@employee_id}");
+                record.set("unit_id","${/parameter/@unit_id}");
+                record.set("borrow_return_status","NEW");
+                record.set("borrow_return_status_n","新建");
+                //设置权限字符串
+                window['${/parameter/@layout_code}_set_authority_rule_string'](record,"ARCHIVE_BORROW", "ARCHIVE_BORROW", '${/session/@employeeCode}');
+
+            }
+
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+
+        };
+
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+
+        };
+
+        window['${/parameter/@layout_code}_set_authority_rule_string'] = function (record,document_type, business_type, employee_code) {
+            Leaf.request({
+                url: "${/request/@context_path}/prj/project/generateAuthorityString?documentType=" + document_type + "&businessType=" + business_type + "&employeeCode=" + employee_code,
+                success: function (res) {
+                    record.set('authority_rule_string', res.result.record[0]);
+                },
+                sync: true,
+                scope: this
+            });
+        };
+
+        //提交审批
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            var archive_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jc_archive_borrow');
+            if ($(archive_ds).isModified()) {
+                $L.showMessage('提示', '请先保存！');
+                return false;
+            }
+            var record = $(archive_ds).getCurrentRecord().data;
+
+            Leaf.showConfirm('提示', '确定提交审批?', function () {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: "${/request/@context_path}/archive/borrow/approval/submit",
+                    para: record,
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showSuccessMessage('提示', '提交审批成功', function () {
+                            top.refreshFrame();
+                        });
+
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            },null,200,200);
+
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

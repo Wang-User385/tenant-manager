@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2019年3月6日
+    $Revision: 1.0
+    $Purpose: 收付抵扣
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <a:link id="csh_payment_req_deduction_create_link" url="${/request/@context_path}/csh/payment/req/dt/save"/>
+
+        <script type="text/javascript"><![CDATA[
+
+        var payment_req_ln_id = '${/parameter/@payment_req_ln_id}';
+        var contract_id = '${/parameter/@contract_id}';
+        var read_only = !'${/parameter/@read_only}' ? 'Y' : '${/parameter/@read_only}';
+        function csh_payment_req_deduction_save() {
+            var head_ds = $('csh_payment_req_deduction_hd_ds');
+            var record = head_ds.getCurrentRecord();
+            var can_deduction_amount = record.get('can_deduction_amount');
+            if (can_deduction_amount < 0) {
+                Leaf.showErrorMessage('提示', '抵扣金额超过剩余可抵扣金额！', null, 200, 100);
+                return;
+            }
+
+            var line_ds = $('csh_payment_req_deduction_ln_ds')
+            var records = line_ds.getAll();
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '请至少新增一条记录！');
+                return;
+            }
+
+            if (line_ds.validate()) {
+                //组装数据
+                var saveData = [];
+                for (var i = 0; i < records.length; i++) {
+                    var deduct_amount = records[i].get('deduct_amount');
+                    var surplus_amount = records[i].get('surplus_amount');
+                    if (deduct_amount > surplus_amount) {
+                        Leaf.showErrorMessage('提示', '抵扣金额超过剩余金额！', null, 200, 100);
+                        return;
+                    }
+                    if (deduct_amount < 0 || deduct_amount == 0) {
+                        Leaf.showErrorMessage('提示', '抵扣金额必须大于0！', null, 200, 100);
+                        return;
+                    }
+                    records[i].set('can_deduction_amount','${/parameter/@amount}');
+                    saveData.push(records[i].data);
+                }
+                var winId = '${/parameter/@winId}';
+                Leaf.Masker.mask($(winId).wrap, '保存中。。');
+                Leaf.request({
+                    url: $('csh_payment_req_deduction_create_link').getUrl(),
+                    para: saveData,
+                    success: function (res) {
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        $('csh_payment_req_deduction_ln_ds').query();
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    failure: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    scope: this
+                });
+            }
+
+
+        }
+
+        function csh_payment_req_deduction_return() {
+            $('${/parameter/@winId}').close();
+        }
+
+        function contract_number_lov_before_event(lov) {
+            debugger
+            var ds = $('csh_payment_req_deduction_ln_ds');
+            var records = ds.getAll();
+            var not_cashflow_ids_str = '';
+
+            if (records.length >= 2) {
+                for (var i = 0; i < records.length - 1; i++) {
+                    if (i == 0) {
+                        not_cashflow_ids_str = records[i].get("cashflow_id")
+                    } else {
+                        not_cashflow_ids_str = not_cashflow_ids_str + ',' + records[i].get("cashflow_id");
+                    }
+                }
+            }
+            var record = ds.getCurrentRecord();
+            var contract_number = record.getMeta().getField('contract_number');
+            var quotation_id = '${/parameter/@quotation_id}';
+            //排除掉之前选择的现金流
+            contract_number.setLovPara('notCashflowIdsStr', not_cashflow_ids_str);
+            contract_number.setLovPara('cfStatus', 'RELEASE');
+            contract_number.setLovPara('cfDirection', 'INFLOW');
+            contract_number.setLovPara('SurplusAmountFlag', 'Y');
+            contract_number.setLovPara('contractId',contract_id);
+            contract_number.setLovPara('nCfType',1);
+            contract_number.setLovPara('quotationId',quotation_id);
+            contract_number.setLovPara('surplusDeductFlag','Y');   //筛选剩余可抵扣金额>0(dueamount > deduct_amount)
+
+        }
+
+
+        function contract_number_lov_commit_event(lov, r1, r2) {
+            //金额判断
+            var head_ds = $('csh_payment_req_deduction_hd_ds');
+            var record = head_ds.getCurrentRecord();
+            var can_deduction_amount = record.get('can_deduction_amount');
+
+            var deduct_amount = r1.get('deduct_amount');
+            var deduct_principal = r1.get('deduct_principal');
+            var deduct_interest = r1.get('deduct_interest');
+
+            if (minus(can_deduction_amount, deduct_interest) <= 0) {
+                r1.set('deduct_amount', can_deduction_amount);
+                r1.set('deduct_principal', 0);
+                r1.set('deduct_interest', can_deduction_amount);
+                record.set('can_deduction_amount', minus(can_deduction_amount, can_deduction_amount));
+
+            } else if (minus(can_deduction_amount, deduct_interest) > 0 && minus(can_deduction_amount, deduct_amount) <= 0) {
+                r1.set('deduct_amount', can_deduction_amount);
+                r1.set('deduct_principal', minus(can_deduction_amount, deduct_interest));
+                r1.set('deduct_interest', deduct_interest);
+                record.set('can_deduction_amount', minus(can_deduction_amount, can_deduction_amount));
+            }
+
+            if (minus(can_deduction_amount, deduct_amount) > 0) {
+                r1.set('deduct_amount', deduct_amount);
+                r1.set('deduct_principal', deduct_principal);
+                r1.set('deduct_interest', deduct_interest);
+                record.set('can_deduction_amount', minus(can_deduction_amount, deduct_amount));
+            }
+        }
+
+
+        function csh_payment_req_deduction_ln_event(ds, record, name, value, oldValue) {
+            var head_record = $('csh_payment_req_deduction_hd_ds').getCurrentRecord();
+            var can_deduction_amount = head_record.get('can_deduction_amount');
+            var deduct_amount = record.get('deduct_amount');
+            //更新剩余可抵扣金额
+            /*if (name == 'deduct_amount') {
+                var surplus_amount = record.get('surplus_amount');
+                var surplus_principal = record.get('surplus_principal');
+                var surplus_interest = record.get('surplus_interest');
+                if ((oldValue === 0 || oldValue)) {
+                    head_record.set('can_deduction_amount', minus(can_deduction_amount, minus(value, oldValue)));
+                }
+                if (minus(value, surplus_amount) > 0) {
+                    Leaf.showErrorMessage('提示', '抵扣金额超过剩余金额！', null, 200, 100);
+                    return;
+                } else if (minus(value, surplus_amount) <= 0 && minus(value, surplus_interest) <= 0) {
+
+                    record.set('deduct_principal', 0);
+                    record.set('deduct_interest', value || 0);
+                } else if (minus(value, surplus_amount) <= 0 && minus(value, surplus_interest) >= 0) {
+                    record.set('deduct_principal', minus(value, surplus_interest));
+                    record.set('deduct_interest', surplus_interest);
+                }
+            } else if (name == 'deduct_principal') {
+                record.set('deduct_interest', minus(deduct_amount, value));
+
+            } else if (name == 'deduct_interest') {
+                record.set('deduct_principal', minus(deduct_amount, value));
+            }*/
+            if (name == 'deduct_amount') {
+                if ((oldValue === 0 || oldValue)) {
+                    head_record.set('can_deduction_amount', minus(can_deduction_amount, minus(value, oldValue)));
+                }
+            }
+        }
+
+        function csh_payment_req_deduction_ln_load_event(ds) {
+            var records = ds.getAll();
+            if(ds.getAll().length > 0){
+                var head_record = $('csh_payment_req_deduction_hd_ds').getCurrentRecord();
+                var can_deduction_amount = '${/parameter/@amount}';
+                for(var i = 0; i < ds.getAll().length; i++){
+                    can_deduction_amount -= ds.getAt(i).get('deduct_amount');
+                }
+                head_record.set('can_deduction_amount', can_deduction_amount);
+            }
+        }
+
+        Leaf.onReady(function(){
+            if(read_only === 'Y'){
+                var records = $('csh_payment_req_deduction_ln_ds').getAll();
+                if(records.length > 0){
+                    for(var i = 0; i < records.length; i++){
+                        records[i].getField('contract_number').setReadOnly(true);
+                        records[i].getField('deduct_amount').setReadOnly(true);
+                        // records[i].getField('deduct_principal').setReadOnly(true);
+                        // records[i].getField('deduct_interest').setReadOnly(true);
+                    }
+                }
+                $jq('table[text="保存"]').parent('.screenTopToolbar').remove();
+                $jq('table[text="新增"]').remove();
+                $jq('table[text="删除"]').remove();
+
+                $jq('table[id="PAY_REQ_DEDUCT_BUTTON_SAVE"]').remove();
+                $jq('table[id="PAY_REQ_DEDUCT_BUTTON_RETURN"]').remove();
+
+            }
+        })
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="csh_payment_req_deduction_hd_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="can_deduction_amount" readOnly="true" defaultValue="${/parameter/@amount}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_payment_req_deduction_ln_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/payment/req/dt/query?paymentReqLnId=${/parameter/@payment_req_ln_id}"
+                       submitUrl="${/request/@context_path}/csh/payment/req/dt/save"
+                       deleteUrl="${/request/@context_path}/csh/payment/req/dt/remove" selectable="true">
+                <a:fields>
+                    <a:field name="contract_number" autoComplete="true" required="true" lovGridHeight="350"
+                             lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/contract/cashflow/deduct/queryLov~hls.layout.dto.LovContractCashflowDeductDto"
+                             lovWidth="950"
+                             title="合同编号" prompt="合同编号">
+                        <a:mapping>
+                            <a:map from="contract_number" to="contract_number"/>
+                            <a:map from="cashflow_id" to="cashflow_id"/>
+                            <a:map from="contract_id" to="contract_id"/>
+                            <a:map from="cashflow_id" to="source_doc_line_id"/>
+                            <a:map from="contract_id" to="source_doc_id"/>
+                            <a:map from="times" to="times"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                            <a:map from="due_date_format" to="due_date"/>
+                            <a:map from="due_amount" to="due_amount"/>
+                            <a:map from="cf_item_n" to="cf_item_n"/>
+                            <a:map from="cf_item" to="cf_item"/>
+                            <a:map from="cf_type" to="cf_type"/>
+                            <a:map from="surplus_amount" to="surplus_amount"/>
+                            <a:map from="surplus_principal" to="surplus_principal"/>
+                            <a:map from="surplus_interest" to="surplus_interest"/>
+                            <a:map from="surplus_amount" to="deduct_amount"/>
+                            <a:map from="surplus_principal" to="deduct_principal"/>
+                            <a:map from="surplus_interest" to="deduct_interest"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="due_date" datatype="date"/>
+                    <a:field name="source_doc_category" defaultValue="CON_CONTRACT"/>
+                    <a:field name="payment_req_ln_id" defaultValue="${/parameter/@payment_req_ln_id}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="csh_payment_req_deduction_ln_event"/>
+                    <a:event name="load" handler="csh_payment_req_deduction_ln_load_event"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton id="PAY_REQ_DEDUCT_BUTTON_SAVE" click="csh_payment_req_deduction_save" text="HLS.SAVE"/>
+                <a:gridButton id="PAY_REQ_DEDUCT_BUTTON_RETURN" click="csh_payment_req_deduction_return" text="HLS.RETURN"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:hBox labelSeparator=" " labelWidth="120">
+                    <a:numberField name="can_deduction_amount"
+                                   bindTarget="csh_payment_req_deduction_hd_ds"
+                                   prompt="剩余可抵扣金额"/>
+                </a:hBox>
+            </a:form>
+            <a:grid id="csh_payment_req_deduction_ln_id" bindTarget="csh_payment_req_deduction_ln_ds" marginHeight="200"
+                    marginWidth="30" navBar="true">
+                <a:toolBar>
+                    <a:button type="add"/>
+                    <a:button type="delete"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="contract_number" prompt="合同编号" editor="deduction_editor_lov" width="300"/>
+                    <a:column name="times" prompt="期数" width="80" align="right"/>
+                    <a:column name="cf_item_n" prompt="性质" width="150"/>
+                    <!--<a:column name="bp_name" prompt="商业伙伴" width="200"/>-->
+                    <a:column name="due_date" prompt="预定收款日期" width="100" renderer="Leaf.formatDate" align="center"/>
+                    <a:column name="due_amount" prompt="预定收款金额" renderer="Leaf.formatMoney" align="right" width="100"/>
+                    <a:column name="surplus_amount" prompt="剩余金额" renderer="Leaf.formatMoney" align="right" width="100"/>
+                    <a:column name="deduct_amount" prompt="抵扣金额" align="right" renderer="Leaf.formatMoney" width="100"/>
+                    <!--<a:column name="deduct_principal" prompt="抵扣本金" editor="deduction_editor_nf" align="right" renderer="Leaf.formatMoney" width="100"/>-->
+                    <!--<a:column name="deduct_interest" prompt="抵扣利息" editor="deduction_editor_nf" align="right" renderer="Leaf.formatMoney" width="100"/>-->
+                </a:columns>
+                <a:editors>
+                    <a:lov id="deduction_editor_lov">
+                        <a:events>
+                            <a:event name="beforetriggerclick" handler="contract_number_lov_before_event"/>
+                            <a:event name="commit" handler="contract_number_lov_commit_event"/>
+                        </a:events>
+                    </a:lov>
+                     <a:numberField id="deduction_editor_nf" allowNegative="false"/>
+                </a:editors>
+            </a:grid>
+
+        </a:screenBody>
+    </a:view>
+</a:screen>

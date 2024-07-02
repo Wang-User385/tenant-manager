@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            body {
+                height: 400px;
+                width: 1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="lon_withdraw_detail_link"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_withdraw_detail.lview"/>
+        <script><![CDATA[
+
+        debugger;
+        var businessKey = '${/parameter/@businessKey}';
+        var param = parent.currentTaskInfo.execution_variables;
+        var contractId = param.filter(function (o) {
+            return o.name == "contractId";
+        })[0].value;
+        var maintain_type = 'READONLY';
+        var function_usage = 'QUERY';
+
+        //资金经办确认实际提款信息节点审批页面可以编辑
+        if(parent.currentTaskInfo.task_definition_key == "sid-DbOvWfRl-zeAR-4k6Z-98DD-DLSbhvUJgnNl"){
+            maintain_type = 'UPDATE';
+            function_usage = 'MODIFY';
+        }
+
+        var pageChooser = new PageChooser({
+            url: $('lon_withdraw_detail_link').getUrl() + '?function_code=FIN003S3',
+            function_code: 'FIN003S3',
+            context_path: '${/request/@context_path}',
+            opt: {
+                businessKey : '${/parameter/@businessKey}',
+                contractId: contractId,
+                withdrawId: '${/parameter/@businessKey}',
+                maintain_type: maintain_type,
+                function_usage: function_usage,
+                hidden_button_code : ['user_button3']
+
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+        ]]></script>
+    </a:view>
+</a:screen>
+

@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+
+        <a:link id="rptm001_calc_price_quotation_common_link_id"
+                url="${/request/@context_path}/modules/FND/HLS_COMMON/HLS900/quotation_calc_common.lview"/>
+        <script><![CDATA[
+
+
+        function detail_renderer(value, record, name) {
+            return '<a href="javascript:winOpen_detail(\'' + record.get('flt_req_ln_id') + '\');">明细</a>';
+        }
+
+        function winOpen_detail(flt_req_ln_id) {
+            if(flt_req_ln_id == undefined || flt_req_ln_id == '' || flt_req_ln_id == 'undefined'){
+                Leaf.showInfoMessage("提示" , "请先进行调息计算");
+                return ;
+            }
+            var win = new Leaf.Window({
+                id: 'cont303_floating_detail_winid',
+                url: '${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT303/con_floating_rate_req_detail.lview',
+                params: {
+                    winid: 'cont303_floating_detail_winid',
+                    flt_req_ln_id: flt_req_ln_id
+                },
+                title: '调息明细',
+                fullScreen: true
+            });
+        }
+
+
+        function history_renderer(value, record, name) {
+            return '<a href="javascript:winOpen_history(\'' + record.get('quotation_id') + '\',\'' + record.get('flt_req_ln_id')   + '\');">历史</a>';
+        }
+
+        function winOpen_history(quotation_id , flt_req_ln_id) {
+            if(flt_req_ln_id == undefined || flt_req_ln_id == '' || flt_req_ln_id == 'undefined'){
+                Leaf.showInfoMessage("提示" , "请先进行调息计算");
+                return ;
+            }
+
+            var win = new Leaf.Window({
+                id: 'cont303_floating_history_winid',
+                url: '${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT303/con_floating_rate_req_history.lview',
+                params: {
+                    winid: 'cont303_floating_history_winid',
+                    // flt_req_id: flt_req_id,
+                    flt_req_ln_id : flt_req_ln_id,
+                    quotation_id: quotation_id
+
+                },
+                title: '调息历史',
+                width: 900,
+                height: 600
+            });
+        }
+
+        function quotation_renderer(value, record, name) {
+            return '<a href="javascript:quotation_calc_detail_adjust(\'' + record.get('quotation_id_new')+ '\',\'' + record.get('adjust_rate_price')  + '\');">调息报价查看</a>';
+        }
+
+
+        function quotation_renderer_origin(value, record, name) {
+            return '<a href="javascript:quotation_calc_detail(\'' + record.get('quotation_id') + '\',\''  + record.get('price_list')  + '\');">原报价查看</a>';
+        }
+
+        function quotation_calc_detail(quotation_id , price_list ) {
+            debugger;
+            var price_list = price_list;
+            var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId='+quotation_id + '&priceList='+price_list  + '&readOnly=Y';
+            var win = new Leaf.Window({
+                id: 'hls900_open_price_winid',
+                url: url,
+                title: 'excel测算',
+                fullScreen: true
+            });
+        }
+
+        function quotation_calc_detail_adjust(quotation_id , price_list ) {
+            debugger;
+            var price_list = price_list;
+            if(quotation_id == 'undefined' || quotation_id == null || quotation_id == ''){
+                Leaf.showInfoMessage("提示" , "请先进行调息计算");
+                return ;
+            }
+
+            var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId='+quotation_id + '&priceList='+price_list  + '&readOnly=Y';
+            var win = new Leaf.Window({
+                id: 'hls900_open_price_winid',
+                url: url,
+                title: 'excel测算',
+                fullScreen: true
+            });
+
+        }
+
+
+
+        function cont303_floating_calc_query() {
+            $('con_floating_rate_quotation_calc_result_ds').query();
+        }
+
+        function cont303_floating_calc_reset() {
+            $('con_floating_rate_quotation_calc_query_ds').reset();
+            $('con_floating_rate_quotation_calc_result_ds').query();
+        }
+
+
+
+        function cont303_floating_calc_return() {
+
+            $('${/parameter/@winid}').close();
+        }
+
+        function amount_renderer(value, record, name) {
+            if (value > 0) {
+                return '<div  style="color: #ff0000">' + Leaf.formatMoney(value) + '</div >';
+            } else if (value < 0) {
+                return '<div  style="color:#ade47c;">' + Leaf.formatMoney(value) + '</div >';
+            } else {
+                return Leaf.formatMoney(value);
+            }
+
+        }
+
+        //百分数格式化
+        function percentFormat(value,record,name){
+            if (name == 'base_rate') {
+                if (!isNaN(value)) {
+                    return parseFloat(value * 100).toFixed(2) + '%';
+                } else {
+                    return '';
+                }
+            }
+
+            if (name == 'int_rate') {
+                if (!isNaN(value)) {
+                    return parseFloat(value * 100).toFixed(2) + '%';
+                } else {
+                    return '';
+                }
+            }
+
+
+            if (name == 'new_base_rate') {
+                if (!isNaN(value)) {
+                    return parseFloat(value * 100).toFixed(2) + '%';
+                } else {
+                    return '';
+                }
+            }
+
+            if (name == 'new_int_rate') {
+                if (!isNaN(value)) {
+                    return parseFloat(value * 100).toFixed(2) + '%';
+                } else {
+                    return '';
+                }
+            }
+
+        }
+
+        ]]></script>
+
+        <a:dataSets>
+            <a:dataSet id="con_floating_rate_quotation_calc_query_ds">
+                <!--<a:fields>
+                    <a:field name="flt_req_id" defaultValue="${/parameter/@flt_req_id}"/>
+                </a:fields>-->
+            </a:dataSet>
+            <a:dataSet id="con_floating_rate_quotation_calc_result_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/query/floating/interest"
+                       queryDataSet="con_floating_rate_quotation_calc_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="first_release_date" datatype="date"/>
+                    <a:field name="lease_start_date" datatype="date"/>
+                    <a:field name="lpr_fixed_date" datatype="date"/>
+                    <a:field name="next_adjustment_date" datatype="date"/>
+                    <a:field name="lpr_link_date" datatype="date"/>
+                    <a:field name="flt_req_date" datatype="date"/>
+                    <a:field name="interest_rate_day" datatype="date"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="cont303_floating_calc_query" text="HLS.QUERY"/>
+                <a:gridButton click="cont303_floating_calc_reset" text="HLS.RESET"/>
+            </a:screenTopToolbar>
+            <a:form labelWidth="100" marginWidth="50" column="3">
+                <a:datePicker name="next_adjustment_date_from" bindTarget="con_floating_rate_quotation_calc_query_ds"
+                              prompt="租金变更日从">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:datePicker>
+                <a:datePicker name="next_adjustment_date_to" bindTarget="con_floating_rate_quotation_calc_query_ds"
+                              prompt="租金变更日到">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:datePicker>
+
+                <a:textField name="contract_number" bindTarget="con_floating_rate_quotation_calc_query_ds"
+                             prompt="支付表编号">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="contract_name" bindTarget="con_floating_rate_quotation_calc_query_ds" prompt="合同名称">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="bp_name" bindTarget="con_floating_rate_quotation_calc_query_ds" prompt="承租人名称">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="project_number" bindTarget="con_floating_rate_quotation_calc_query_ds"
+                             prompt="项目编号">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:textField>
+
+
+                <a:textField name="contract_number_con" bindTarget="con_floating_rate_quotation_calc_query_ds"
+                             prompt="合同编号">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:textField>
+
+                <a:textField name="unit_name" bindTarget="con_floating_rate_quotation_calc_query_ds"
+                             prompt="部门名称">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:textField>
+
+                <a:textField name="company_name" bindTarget="con_floating_rate_quotation_calc_query_ds"
+                             prompt="公司名称">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont303_floating_calc_query"/>
+                    </a:events>
+                </a:textField>
+
+
+
+            </a:form>
+
+            <a:grid id="con_floating_rate_quotation_calc_grid_ds"
+                    bindTarget="con_floating_rate_quotation_calc_result_ds" width="1000" marginHeight="120"
+                    marginWidth="10"
+                    navBar="true">
+                <a:toolBar>
+                    <a:button type="excel"/>
+                </a:toolBar>
+                <a:columns>
+<!--                    <a:column name="flt_req_date" prompt="调息执行时间" width="150" align="center" renderer="Leaf.formatDate"/>-->
+<!--                    <a:column name="flt_req_user_name" prompt="调息执行人" width="150" align="center"/>-->
+                    <a:column name="contract_number" prompt="支付表编号" width="150" align="center"/>
+                    <a:column name="contract_number_con" prompt="合同编号" width="220" align="center"/>
+                    <a:column name="contract_name" prompt="合同名称" width="220" align="center"/>
+                    <a:column name="bp_name" prompt="承租人名称" width="200" align="center"/>
+                    <a:column name="project_number" prompt="项目编号" width="150" align="center"/>
+                    <a:column name="project_name" prompt="项目名称" width="200" align="center"/>
+                    <a:column name="unit_name" prompt="部门名称" width="200" align="center"/>
+                    <a:column name="company_name" prompt="公司名称" width="200" align="center"/>
+                    <a:column name="lpr_base_date_n" prompt="调息基准日期" width="150" align="center"/>
+                    <a:column name="lpr_fixed_date" prompt="调息指定日期" width="150" align="center"
+                              renderer="Leaf.formatDate"/>
+                    <a:column name="lpr_adjustment_term" prompt="调息期限（月）" width="150" align="center"/>
+                    <a:column name="lpr_adjustment_period_n" prompt="调息期次" width="150" align="center"/>
+                    <a:column name="lpr_link_date" prompt="lpr挂钩日期" width="150" align="center"
+                              renderer="Leaf.formatDate"/>
+                    <a:column name="interest_rate_day" prompt="利率调整日" width="150" align="center"
+                              renderer="Leaf.formatDate"/>
+                    <a:column name="next_adjustment_date" prompt="租金变更日" width="150" align="center"
+                              renderer="Leaf.formatDate"/>
+                    <a:column name="description" prompt="报价名称" width="250" align="center"/>
+                    <a:column name="price_list_n" prompt="报价方案" width="150" align="center"/>
+                    <a:column name="adjust_rate_description" prompt="调息报价方案" width="150" align="center"/>
+                    <a:column name="finance_amount" prompt="融资金额（元）" width="150" align="center"
+                              renderer="Leaf.formatMoney"/>
+                    <a:column name="first_release_date" prompt="放款日期" width="150" align="center"
+                              renderer="Leaf.formatDate"/>
+                    <a:column name="lease_start_date" prompt="起租日期" width="150" align="center"
+                              renderer="Leaf.formatDate"/>
+                    <a:column name="lease_term" prompt="租赁月数" width="150" align="center"/>
+
+                    <a:column name="int_rate_type_n" prompt="利率类型" width="150" align="center"/>
+                    <a:column name="float_type" prompt="利率浮动类型" width="150" align="center"/>
+                    <a:column name="base_rate_type_n" prompt="基准利率标准" width="150" align="center"/>
+                    <a:column name="base_rate" prompt="基准利率值" width="150" align="center" renderer="percentFormat"/>
+                    <a:column name="floating_way_rate" prompt="浮动值（BP）" width="150" align="center"/>
+                    <a:column name="int_rate" prompt="年利率(%)" width="150" align="center" renderer="percentFormat"/>
+
+                    <a:column name="new_base_rate" prompt="新基准利率" align="center" width="100" renderer="percentFormat"/>
+                    <a:column name="new_int_rate" prompt="新年利率" align="center" width="100" renderer="percentFormat"/>
+                    <a:column name="contract_status_n" prompt="合同状态" width="100" align="center"/>
+                    <a:column name="status_n" prompt="计算状态" width="100" align="center"/>
+                    <a:column name="flt_req_ln_id" prompt="明细" align="center" renderer="detail_renderer"/>
+                    <a:column name="quotation_id" prompt="历史" align="center" renderer="history_renderer"/>
+<!--                    <a:column name="quotation_id_new" prompt="新报价id" align="center" hidden="true" />-->
+                    <a:column name="quotation_calc_detail_origin" prompt="原报价查看" align="center" renderer="quotation_renderer_origin"/>
+                    <a:column name="quotation_calc_detail" prompt="调息报价查看" align="center" renderer="quotation_renderer" />
+
+
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

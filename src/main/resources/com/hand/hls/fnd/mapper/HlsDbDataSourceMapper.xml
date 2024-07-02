@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fnd.mapper.HlsDbDataSourceMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.HlsDbDataSource">
+        <result column="data_source_id" property="dataSourceId" jdbcType="DECIMAL" />
+        <result column="data_source_code" property="dataSourceCode" jdbcType="VARCHAR" />
+        <result column="usage_type" property="usageType" jdbcType="VARCHAR" />
+        <result column="company_id" property="companyId" jdbcType="DECIMAL" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR" />
+        <result column="sql_context" property="sqlContext" jdbcType="CLOB" typeHandler="com.hand.hap.mybatis.handler.ClobTypeHandler"/>
+    </resultMap>
+    <select id="queryInfo" resultMap="BaseResultMap">
+          select hdds.* from HLS_DB_DATA_SOURCE hdds
+
+          <where>
+              <if test="description != null and description != ''">
+
+                  hdds.description like concat(concat('%',#{description}),'%')
+              </if>
+
+              <if test="dataSourceCode != null and dataSourceCode != ''">
+                  hdds.data_source_code like concat(concat('%',#{dataSourceCode}),'%')
+              </if>
+          </where>
+    </select>
+
+    <select id="query" resultMap="BaseResultMap" parameterType="com.hand.hls.fnd.dto.HlsDbDataSource">
+        SELECT *
+        FROM
+        hls_db_data_source dds
+        <where>
+        1=1
+            <if test="dataSourceId!=null">
+               and  dds.data_source_id = #{dataSourceId}
+            </if>
+            <if test="dataSourceCode!=null">
+                and dds.data_source_code like concat(concat('%',#{dataSourceCode}),'%')
+            </if>
+            <if test="description!=null">
+                and dds.description like concat(concat('%',#{description}),'%')
+            </if>
+            <if test="usageType != null">
+                and dds.usage_type = #{usageType}
+            </if>
+            <!--<if test="dataSourceCode!=null">-->
+                <!--AND (dds.data_source_code LIKE CONCAT(concat('%',#{dataSourceCode}),'%') or dds.description LIKE concat(CONCAT('%',#{dataSourceCode}),'%')-->
+                <!--or EXISTS (-->
+                <!--SELECT 'x'-->
+                <!--FROM <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail" /> scvbv-->
+                <!--WHERE scvbv.code = 'HLS.DB_DATA_SOURCE_USAGE_TYPE'-->
+                <!--AND scvbv.code_value = dds.usage_type-->
+                <!--AND scvbv.meaning LIKE CONCAT(concat('%',#{dataSourceCode}),'%')-->
+                <!--)-->
+                <!--)-->
+            <!--</if>-->
+        </where>
+        ORDER BY dds.data_source_code ASC
+    </select>
+</mapper>

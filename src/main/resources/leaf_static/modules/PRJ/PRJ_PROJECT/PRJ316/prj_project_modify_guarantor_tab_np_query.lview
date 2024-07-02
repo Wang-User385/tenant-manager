@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: hxh
+    $Date: 2020年4月17日
+    $Revision: 1.0
+    $Purpose: 尽调报告维护（项目报告维护）
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:p="uncertain.proc" xmlns:c="leaf.application.action" xmlns:s="leaf.plugin.script" customizationEnabled="true" trace="true">
+
+    <a:view>
+
+        <script><![CDATA[
+        function onQuery_prj_create_guarantor_np_ds(){
+            debugger;
+            var project_id = '${/parameter/@project_id}';
+            var bp_id = '${/parameter/@guarantor_np_id}';
+            if(bp_id == '') {
+                $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryUrl('${/request/@context_path}/hls/bp/query/master/detail/prj');
+                $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryParameter('bp_id',0);
+                $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryParameter('bp_type', 'WARRANTOR');
+                $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryParameter('marketing_report_id', '${/parameter/@marketing_report_id}');
+            }else{
+                // $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryUrl('${/request/@context_path}/hls/bp/query/master/detail/prj');
+                $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryParameter('project_id','${/parameter/@project_id}');
+                $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryParameter('bp_categroy','PRJ_PROJECT');
+                //$('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryParameter('bp_seq','${/parameter/@bp_seq}');
+                $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryParameter('bp_id','${/parameter/@guarantor_np_id}');
+                $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').setQueryParameter('bp_type','WARRANTOR');
+            }
+
+        }
+
+        function onLoad_prj_create_guarantor_np_ds(){
+            debugger;
+            var bp_record = $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').getCurrentRecord();
+            var bp_id = 0;
+            if(bp_record != undefined){
+                bp_id = bp_record.get('bp_id');
+            }
+            //地址信息
+            $('guarantor_np_address_${/parameter/@bp_seq}_ds').setQueryParameter('bp_id', bp_id);
+            $('guarantor_np_address_${/parameter/@bp_seq}_ds').query();
+
+        }
+
+        function onUpdate_prj_create_tenant_ds(ds, record, name, value, oldValue){
+            if(name == 'bp_id_n'){
+                var bp_record = record.data;
+                //console.log(record);
+                parent.guarantor_np_id_change();
+            }
+        }
+
+        //担保人维护
+        function guarantor_np_bp_modify(){
+            //debugger;
+            var param = $('prj_create_guarantor_np_${/parameter/@bp_seq}_ds').getCurrentRecord().data;
+            parent.bp_modify(param);
+        }
+
+
+
+
+        ]]></script>
+        <a:dataSets>
+            <!--联络信息-->
+            <a:dataSet id="guarantor_np_address_${/parameter/@bp_seq}_ds" autoPageSize="true"  autoCreate="true"
+                       queryurl="${/request/@context_path}/ct/prj/project/bp/address/query">
+                <a:datas>
+                    <a:record/>
+                </a:datas>
+            </a:dataSet>
+            <!--担保人信息-->
+            <a:dataSet id="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" autoPageSize="true"  autoCreate="true" autoQuery="true"
+                       queryurl="${/request/@context_path}/hls/bp/query/master/detail/prj">
+                <a:fields>
+                    <a:field name="bp_id"/>
+                    <a:field name="bp_id_n" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90" readOnly="true"
+                             lovService="/hls/bp/query/master/detail/prj?bp_type=WARRANTOR&amp;bp_class=NP&amp;project_id=${/parameter/@project_id}~hls.layout.dto.LovHlsBpMasterDto" lovWidth="550"
+                             title="HLS.BP_TITLE" prompt="商业伙伴">
+                        <a:mapping>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="bp_name" to="bp_id_n"/>
+                            <a:map from="bp_code" to="bp_code"/>
+                            <a:map from="bp_type" to="bp_type"/>
+                            <a:map from="bp_type_n" to="bp_type_n"/>
+                            <a:map from="bp_eng_name" to="bp_eng_name"/>
+                            <a:map from="extra_nam" to="extra_nam"/>
+                            <a:map from="bp_class" to="bp_class"/>
+                            <a:map from="bp_class_n" to="bp_class_n"/>
+                            <a:map from="id_type_n" to="id_type_n"/>
+                            <a:map from="expiry_certificate" to="expiry_certificate"/>
+                            <a:map from="marital_status_n" to="marital_status_n"/>
+                            <a:map from="date_of_birth" to="date_of_birth"/>
+                            <a:map from="gender_n" to="gender_n"/>
+                            <a:map from="age" to="age"/>
+                            <a:map from="nationality_n" to="nationality_n"/>
+                            <a:map from="phone" to="phone"/>
+                            <a:map from="working_company" to="working_company"/>
+                            <a:map from="business_job" to="business_job"/>
+                            <a:map from="personal_credit" to="personal_credit"/>
+                            <a:map from="ref_v02" to="ref_v02"/>
+                            <a:map from="family_name" to="family_name"/>
+                            <a:map from="family_id_type_n" to="family_id_type_n"/>
+                            <a:map from="family_name" to="family_name"/>
+                            <a:map from="family_id_card_no" to="family_id_card_no"/>
+                            <a:map from="family_phone" to="family_phone"/>
+                            <a:map from="family_country_n" to="family_country_n"/>
+                            <a:map from="family_personal_credit" to="family_personal_credit"/>
+                            <a:map from="highest_degree_n" to="highest_degree_n"/>
+                            <a:map from="personal_resume" to="personal_resume"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bp_type"/>
+                    <a:field name="bp_type_n"/>
+                    <a:field name="bp_code"/>
+                    <a:field name="bp_eng_name"/>
+                    <a:field name="extra_nam"/>
+                    <a:field name="bp_class"/>
+                    <a:field name="bp_class_n" />
+                    <a:field name="expiry_certificate" datatype="date"/>
+                    <a:field name="date_of_birth" datatype="date"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="onQuery_prj_create_guarantor_np_ds"/>
+                    <a:event name="update" handler="onUpdate_prj_create_tenant_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form column="1" labelWidth="100" prompt="" title="自然人基本信息">
+                <a:box column="4" labelWidth="120">
+                    <a:lov name="bp_id_n" width="120" prompt="客户名称" required="true"
+                           bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds">
+                    </a:lov>
+                    <a:comboBox name="bp_type_n" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                prompt="客户角色" width="120"/>
+                    <a:comboBox name="bp_class_n" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                prompt="客户分类" width="120"/>
+                    <a:textField name="bp_code" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="客户编号" width="120"/>
+                    <a:comboBox name="id_type_n" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                prompt="证件类型" width="120"/>
+                    <a:textField name="id_card_no" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="证件号码" width="120"/>
+                    <a:datePicker name="expiry_certificate" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                  prompt="证件有效期" width="120"/>
+                    <a:comboBox name="marital_status_n" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                prompt="婚姻状况" width="120"/>
+                    <a:datePicker name="date_of_birth" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                  prompt="出生日期" width="120"/>
+                    <a:comboBox name="gender_n" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                prompt="性别" width="120"/>
+                    <a:textField name="age" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="年龄" width="120"/>
+                    <a:comboBox name="nationality_n" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                prompt="国籍" width="120"/>
+
+                </a:box>
+                <a:box column="3" labelWidth="120">
+                    <a:textField name="phone" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="手机号" width="120"/>
+                    <a:textField name="working_company" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="工作单位" width="365"/>
+                    <a:textField name="business_job" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="职务" width="120"/>
+                </a:box>
+                <a:box column="4" labelWidth="120">
+                    <a:textField name="highest_degree_n" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="最高学历" width="120"/>
+                    <a:textField name="bp_detail" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="客户信息明显" width="365"/>
+                </a:box>
+                <a:box column="1" labelWidth="120">
+                    <a:textField name="personal_credit" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="个人征信" width="860" height="100"/>
+                    <a:textField name="personal_resume" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="个人简历" width="860" height="100"/>
+                    <a:textField name="ref_v02" bindTarget="prj_create_guarantor_np_${/parameter/@bp_seq}_ds" readOnly="true"
+                                 prompt="备注" width="860" height="100"/>
+                </a:box>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+
+</a:screen>

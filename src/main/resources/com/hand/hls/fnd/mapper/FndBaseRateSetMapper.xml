@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fnd.mapper.FndBaseRateSetMapper" >
+  <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.FndBaseRateSet" >
+    <id column="base_rate_set" property="baseRateSet" jdbcType="VARCHAR" />
+    <result column="description" property="description" jdbcType="VARCHAR" />
+    <result column="base_rate_type" property="baseRateType" jdbcType="VARCHAR" />
+<!--    <result column="currency" property="currency" jdbcType="VARCHAR" />-->
+    <result column="currency" property="currencyCode" jdbcType="VARCHAR" />
+    <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR" />
+    <result column="valid_from" property="validFrom" jdbcType="DATE" />
+    <result column="valid_to" property="validTo" jdbcType="DATE" />
+    <result column="typeCount" property="typeCount" jdbcType="DATE"/>
+    <result column="currency_name" property="currencyName"/>
+    <result column="base_rate" property="baseRate"/>
+
+  </resultMap>
+  
+  <select id="selectAll" parameterType="com.hand.hls.fnd.dto.FndBaseRateSet"
+ resultMap="BaseResultMap">
+	select * from fnd_base_rate_set
+	order by valid_from
+ </select>
+  
+    <select id="selectByQuery" parameterType="com.hand.hls.fnd.dto.FndBaseRateSet"
+	 resultMap="BaseResultMap">
+       SELECT tab.* from
+        (SELECT
+        fbrs.*, fc.currency_name
+        FROM
+        fnd_base_rate_set fbrs,
+        fnd_currency fc
+		where
+            fc.currency_code = fbrs.currency
+        )tab
+        <where>
+            1=1
+            <if test="baseRateSet!=null">
+
+               and  tab.base_rate_set like concat(concat('%',#{baseRateSet}),'%')
+            </if>
+            <if test="description!=null">
+                and tab.description like concat(concat('%',#{description}),'%')
+            </if>
+            <if test="baseRateType!=null">
+
+                and tab.base_rate_type =#{baseRateType}
+            </if>
+            <if test="currencyName!=null">
+                and tab.currency_name =#{currencyName}
+            </if>
+        </where>
+        order by tab.valid_from desc
+	</select>
+	 
+  <select id="getCount" parameterType="com.hand.hls.fnd.dto.FndBaseRateSet" resultMap="BaseResultMap">
+  select fbrs.base_rate_type,
+		 max(fbrs.valid_from) typeCount 
+  from fnd_base_rate_set fbrs group by fbrs.base_rate_type;
+  </select>
+    <select id="queryForFinanceContract" resultMap="BaseResultMap" parameterType="com.hand.hls.fnd.dto.FndBaseRateSet">
+        SELECT
+        fbr.description||':'||fbr.base_rate*100||'%' description,
+        fbr.*
+
+        FROM
+        fnd_base_rate_set fbrs,
+        fnd_base_rate fbr
+        WHERE
+        fbrs.base_rate_set = fbr.base_rate_set
+        <if test="loanTerm!=null">
+            and fbr.months_from &lt; #{loanTerm}
+            and fbr.months_to &gt;=#{loanTerm}
+        </if>
+        and fbrs.base_rate_type =#{baseRateType}
+        and ((fbrs.valid_from &lt;= sysdate and fbrs.valid_to &gt;= sysdate ) or (fbrs.valid_from &lt;= sysdate and
+        fbrs.valid_to is NULL))
+        and fbrs.enabled_flag = 'Y'
+    </select>
+</mapper>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Date: 2018-12-27
+    $Revision: 1.0
+    $Purpose: 评分模板定义-数据源定义
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function score_template_db_source_ds_grid_refresh(){
+            $("score_template_db_source_ds").query();
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="db_data_source_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/db/combox">
+                <a:fields>
+                    <a:field name="data_source_id"/>
+                    <a:field name="data_source_code"/>
+                    <a:field name="description"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="score_template_db_source_query_ds">
+                <a:datas>
+                    <a:record score_template_hd_id="${/parameter/@scoreTemplateHdId}"/>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="score_template_db_source_ds" autoPageSize="true" fetchAll="false" selectable="true"
+                       autoQuery="true" queryDataSet="score_template_db_source_query_ds" queryMethod="POST"
+                       queryUrl="${/request/@context_path}/fnd/score/template/db/source/query"
+                       deleteUrl="${/request/@context_path}/fnd/score/template/db/source/remove"
+                       submitUrl="${/request/@context_path}/fnd/score/template/db/source/submit">
+                <a:fields>
+                    <a:field name="db_data_source_name" required="true" options="db_data_source_ds" displayField="description">
+                        <a:mapping>
+                            <a:map from="data_source_id" to="db_data_source_id"/>
+                            <a:map from="description" to="db_data_source_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="score_template_hd_id" defaultValue="${/parameter/@scoreTemplateHdId}"/>
+                    <a:field name="score_template_db_source_id"/>
+                    <a:field name="enabled_flag" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="score_template_db_source_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="score_template_db_source_ds_grid" text="HAP.SAVE" type="save"/>
+                <a:gridButton bind="score_template_db_source_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton click="score_template_db_source_ds_grid_refresh" text="HAP.REFRESH"/>
+            </a:screenTopToolbar>
+            <a:grid id="score_template_db_source_ds_grid"  bindTarget="score_template_db_source_ds"
+                    marginHeight="150"  width="815" navBar="true">
+                <a:columns>
+                    <a:column width="520" name="db_data_source_name" editor="score_template_db_source_ds_grid_cb" prompt="数据源"/>
+                    <a:column width="250" name="enabled_flag" editor="score_template_db_source_ds_grid_check" prompt="是否启用" align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:comboBox id="score_template_db_source_ds_grid_cb"/>
+                    <a:checkBox id="score_template_db_source_ds_grid_check"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

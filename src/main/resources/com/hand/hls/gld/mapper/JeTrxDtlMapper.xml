@@ -1,0 +1,826 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.gld.mapper.JeTrxDtlMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.gld.dto.JeTrxDtl">
+        <result column="JE_TRX_DTL_ID" property="jeTrxDtlId" jdbcType="DECIMAL" />
+        <result column="JE_TRX_ID" property="jeTrxId" jdbcType="DECIMAL" />
+        <result column="JE_TRX" property="jeTrx" jdbcType="VARCHAR" />
+<!--        <result column="JE_TRX_N" property="jeTrxN" jdbcType="VARCHAR" />-->
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL" />
+        <result column="JE_SOURCE_DOC" property="jeSourceDoc" jdbcType="VARCHAR" />
+        <result column="JE_SOURCE_ID" property="jeSourceId" jdbcType="DECIMAL" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" />
+        <result column="MSG_LOG" property="msgLog" jdbcType="VARCHAR" />
+        <result column="OPERATE_TYPE" property="operateType" jdbcType="VARCHAR" />
+        <result column="REVERSE_JE_TRX_ID" property="reverseJeTrxId" jdbcType="DECIMAL" />
+        <result column="REVERSE_JE_DATE" property="reverseJeDate" jdbcType="VARCHAR" />
+        <result column="STATUS_N" property="statusN" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_NUMBER" property="contractNumber"/>
+        <result column="CONTRACT_NAME" property="contractName"/>
+        <result column="LAST_UPDATE_DATE" property="lastUpdateDate"/>
+        <result column="LAST_UPDATE_DATE_FROM" property="lastUpdateDateFromStr" />
+        <result column="LAST_UPDATE_DATE_TO" property="lastUpdateDateToStr" />
+        <result column="LEASE_START_DATE" property="leaseStartDate" />
+        <result column="LEASE_ITEM_AMOUNT" property="leaseItemAmount" />
+        <result column="DOCUMENT_NUMBER" property="documentNumber"/>
+        <result column="OPERATE_TYPE_N" property="operateTypeN"/>
+    </resultMap>
+    <select id="queryJeTrxDtlStatus" resultMap="BaseResultMap">
+        SELECT *
+        FROM GLD_JE_TRX_DTL gjtd
+        WHERE gjtd.STATUS == 'NEW'
+    </select>
+
+    <select id="waitGenerateList" parameterType="com.hand.hls.gld.dto.JeTrxDtl" resultMap="BaseResultMap">
+        SELECT * FROM (
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX gjt
+        WHERE
+        gjt.JE_TRX = gjtd.JE_TRX
+        ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        (
+        SELECT
+        cc.contract_number
+        FROM
+        con_contract cc
+        WHERE
+        cc.contract_id = gjtd.JE_SOURCE_ID
+        ) AS CONTRACT_NUMBER,
+        (
+        SELECT
+        cc.contract_name
+        FROM
+        con_contract cc
+        WHERE
+        cc.contract_id = gjtd.JE_SOURCE_ID
+        ) AS CONTRACT_NAME,
+        gjtd.JE_TRX_ID,
+        gjtd.JE_TRX,
+        gjtd.JE_TRX_DTL_ID,
+        gjtd.MSG_LOG,
+        gjtd.LAST_UPDATE_DATE,
+        gjtd.JE_SOURCE_ID,
+        gjtd.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        gjtd.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL gjtd
+        WHERE  gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+        UNION
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX gjt
+        WHERE
+        gjt.JE_TRX = gjtd.JE_TRX
+        ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        (
+        SELECT
+        lcw.withdraw_number
+        FROM
+        lon_contract_withdraw lcw
+        WHERE
+        lcw.withdraw_id = gjtd.JE_SOURCE_ID
+        ) AS CONTRACT_NUMBER,
+        (
+        SELECT
+        lcw.report_name
+        FROM
+        lon_contract_withdraw lcw
+        WHERE
+        lcw.withdraw_id = gjtd.JE_SOURCE_ID
+        ) AS CONTRACT_NAME,
+        gjtd.JE_TRX_ID,
+        gjtd.JE_TRX,
+        gjtd.JE_TRX_DTL_ID,
+        gjtd.MSG_LOG,
+        gjtd.LAST_UPDATE_DATE,
+        gjtd.JE_SOURCE_ID,
+        gjtd.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        gjtd.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL gjtd
+        WHERE gjtd.JE_SOURCE_DOC = 'LON_CONTRACT_WITHDRAW'
+        UNION
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX gjt
+        WHERE
+        gjt.JE_TRX = gjtd.JE_TRX
+        ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        (
+        SELECT
+        lcw.withdraw_number
+        FROM
+        lon_contract_withdraw lcw,
+        lon_contract_repayment lcr
+        WHERE
+        lcr.repayment_id = gjtd.JE_SOURCE_ID
+        and lcr.withdraw_id = lcw.withdraw_id
+        ) AS CONTRACT_NUMBER,
+        (
+        SELECT
+        lcw.report_name
+        FROM
+        lon_contract_withdraw lcw,
+        lon_contract_repayment lcr
+        WHERE
+        lcr.repayment_id = gjtd.JE_SOURCE_ID
+        and lcr.withdraw_id = lcw.withdraw_id
+        ) AS CONTRACT_NAME,
+        gjtd.JE_TRX_ID,
+        gjtd.JE_TRX,
+        gjtd.JE_TRX_DTL_ID,
+        gjtd.MSG_LOG,
+        gjtd.LAST_UPDATE_DATE,
+        gjtd.JE_SOURCE_ID,
+        gjtd.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        gjtd.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL gjtd
+        WHERE gjtd.JE_SOURCE_DOC = 'LON_CONTRACT_REPAYMENT'
+        UNION
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX gjt
+        WHERE
+        gjt.JE_TRX = gjtd.JE_TRX
+        ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        (
+        SELECT
+        cc.contract_number
+        FROM
+        fct_contract cc
+        WHERE
+        cc.contract_id = gjtd.JE_SOURCE_ID
+        ) AS CONTRACT_NUMBER,
+        (
+        SELECT
+        nvl(cc.report_name,cc.contract_name)
+        FROM
+        fct_contract cc
+        WHERE
+        cc.contract_id = gjtd.JE_SOURCE_ID
+        ) AS CONTRACT_NAME,
+        gjtd.JE_TRX_ID,
+        gjtd.JE_TRX,
+        gjtd.JE_TRX_DTL_ID,
+        gjtd.MSG_LOG,
+        gjtd.LAST_UPDATE_DATE,
+        gjtd.JE_SOURCE_ID,
+        gjtd.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        gjtd.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL gjtd
+        WHERE gjtd.JE_SOURCE_DOC = 'FCT_CONTRACT'
+        -- 计提
+        UNION
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX gjt
+        WHERE
+        gjt.JE_TRX = gjtd.JE_TRX
+        ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        (
+        case when (
+        select ct.source_type
+        from ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        ) = 'LON_CONTRACT_WITHDRAW' then (
+        select lcw.withdraw_number
+        from lon_contract_withdraw lcw,ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        and ct.source_id = lcw.withdraw_id
+        )
+        when (
+        select ct.source_type
+        from ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        ) = 'CON_CONTRACT' then (
+        select cc.contract_number
+        from con_contract cc,ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        and ct.source_id = cc.contract_id
+        )
+        when (
+        select ct.source_type
+        from ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        ) = 'FCT_CONTRACT' then (
+        select fc.contract_number
+        from fct_contract fc,ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        and ct.source_id = fc.contract_id
+        )
+        else '' end
+        )CONTRACT_NUMBER,
+        (
+        case when (
+        select ct.source_type
+        from ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        ) = 'LON_CONTRACT_WITHDRAW' then (
+        select lcw.report_name
+        from lon_contract_withdraw lcw,ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        and ct.source_id = lcw.withdraw_id
+        )
+        when (
+        select ct.source_type
+        from ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        ) = 'CON_CONTRACT' then (
+        select cc.contract_name
+        from con_contract cc,ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        and ct.source_id = cc.contract_id
+        )
+        when (
+        select ct.source_type
+        from ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        ) = 'FCT_CONTRACT' then (
+        select nvl(fc.report_name,fc.contract_name)
+        from fct_contract fc,ct_document_fin_income ct
+        where ct.fin_income_id = gjtd.JE_SOURCE_ID
+        and ct.source_id = fc.contract_id
+        )
+        else '' end
+        )CONTRACT_NAME,
+        gjtd.JE_TRX_ID,
+        gjtd.JE_TRX,
+        gjtd.JE_TRX_DTL_ID,
+        gjtd.MSG_LOG,
+        gjtd.LAST_UPDATE_DATE,
+        gjtd.JE_SOURCE_ID,
+        gjtd.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        gjtd.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL gjtd
+        WHERE gjtd.JE_SOURCE_DOC = 'CT_DOCUMENT_FIN_INCOME'
+
+        -- 拨备计提
+        UNION
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX gjt
+        WHERE
+        gjt.JE_TRX = gjtd.JE_TRX
+        ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        (select rpl.contract_number from RESERVE_PLAN_LN rpl
+        where rpl.reserve_plan_ln_id = gjtd.JE_SOURCE_ID) CONTRACT_NUMBER,
+        (
+        case when (
+        select rpl.contract_type
+        from RESERVE_PLAN_LN rpl
+        where rpl.reserve_plan_ln_id = gjtd.JE_SOURCE_ID
+        ) = 'FCT' then (
+        select nvl(fc.report_name,fc.contract_name)
+        from fct_contract fc,
+        RESERVE_PLAN_LN rpl
+        where rpl.reserve_plan_ln_id = gjtd.JE_SOURCE_ID
+        and rpl.contract_id = fc.contract_id
+        )
+        when (
+        select rpl.contract_type
+        from RESERVE_PLAN_LN rpl
+        where rpl.reserve_plan_ln_id = gjtd.JE_SOURCE_ID
+        ) = 'CON' then (
+        select cc.contract_name
+        from con_contract cc,
+        RESERVE_PLAN_LN rpl
+        where rpl.reserve_plan_ln_id = gjtd.JE_SOURCE_ID
+        and rpl.contract_id = cc.contract_id
+        )
+        else '' end
+        ) CONTRACT_NAME,
+        gjtd.JE_TRX_ID,
+        gjtd.JE_TRX,
+        gjtd.JE_TRX_DTL_ID,
+        gjtd.MSG_LOG,
+        gjtd.LAST_UPDATE_DATE,
+        gjtd.JE_SOURCE_ID,
+        gjtd.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        gjtd.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL gjtd
+        WHERE gjtd.JE_SOURCE_DOC = 'RESERVE_PLAN_LN'
+
+        UNION
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX GJT
+        WHERE
+        GJT.JE_TRX = GJTD.JE_TRX )                                  AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        nvl(nvl(nvl(LCW.WITHDRAW_NUMBER,CAP.PRODUCT_NUMBER),CAJ.PROJECT_NUMBER),EFTL.TRANSFER_NUMBER)        CONTRACT_NUMBER,
+        nvl(nvl(nvl(LCW.REPORT_NAME,CAP.PRODUCT_NAME),CAJ.PROJECT_NAME),'')    CONTRACT_NAME,
+        GJTD.JE_TRX_ID,
+        GJTD.JE_TRX,
+        GJTD.JE_TRX_DTL_ID,
+        GJTD.MSG_LOG,
+        GJTD.LAST_UPDATE_DATE,
+        GJTD.JE_SOURCE_ID,
+        GJTD.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        GJTD.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL GJTD
+        JOIN
+        EFT_FUND_TRANSFER_LIST EFTL
+        ON
+        GJTD.JE_SOURCE_ID=EFTL.TRANSFER_LIST_ID
+        LEFT JOIN
+        LON_CONTRACT_WITHDRAW LCW
+        ON
+        LCW.WITHDRAW_ID=EFTL.SOURCE_DOC_ID
+        AND EFTL.SOURCE_DOC_CATEGORY='LON_CONTRACT_REPAYMENT'
+        LEFT JOIN
+        CT_ABS_PRODUCT CAP
+        ON
+        CAP.PRODUCT_ID=EFTL.SOURCE_DOC_ID
+        AND EFTL.SOURCE_DOC_CATEGORY!='LON_CONTRACT_REPAYMENT'
+        AND EFTL.SOURCE_DOC_CATEGORY!='CT_ABS_PROJECT_FEE'
+        LEFT JOIN
+        CT_ABS_PROJECT CAJ
+        ON
+        CAJ.PROJECT_ID=EFTL.SOURCE_DOC_ID
+        AND EFTL.SOURCE_DOC_CATEGORY= 'CT_ABS_PROJECT_FEE'
+        WHERE
+        GJTD.JE_SOURCE_DOC='EFT_FUND_TRANSFER_LIST'
+        UNION
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX GJT
+        WHERE
+        GJT.JE_TRX = GJTD.JE_TRX ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        CAP.PRODUCT_NUMBER                    CONTRACT_NUMBER,
+        CAP.PRODUCT_NAME                      CONTRACT_NAME,
+        GJTD.JE_TRX_ID,
+        GJTD.JE_TRX,
+        GJTD.JE_TRX_DTL_ID,
+        GJTD.MSG_LOG,
+        GJTD.LAST_UPDATE_DATE,
+        GJTD.JE_SOURCE_ID,
+        GJTD.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        GJTD.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL GJTD
+        JOIN
+        CT_ABS_PRODUCT CAP
+        ON
+        GJTD.JE_SOURCE_ID=CAP.PRODUCT_ID
+        WHERE
+        GJTD.JE_SOURCE_DOC='ABS_PRODUCT'
+        UNION
+
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX GJT
+        WHERE
+        GJT.JE_TRX = GJTD.JE_TRX ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        CAP.PRODUCT_NUMBER                    CONTRACT_NUMBER,
+        CAP.PRODUCT_NAME                      CONTRACT_NAME,
+        GJTD.JE_TRX_ID,
+        GJTD.JE_TRX,
+        GJTD.JE_TRX_DTL_ID,
+        GJTD.MSG_LOG,
+        GJTD.LAST_UPDATE_DATE,
+        GJTD.JE_SOURCE_ID,
+        GJTD.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        GJTD.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL GJTD
+        JOIN
+        CT_ABS_PRODUCT_RECEIPT CAPR
+        ON
+        GJTD.JE_SOURCE_ID=CAPR.RECEIPT_ID
+        JOIN
+        CT_ABS_PRODUCT CAP
+        ON
+        CAPR.PRODUCT_ID=CAP.PRODUCT_ID
+        WHERE
+        GJTD.JE_SOURCE_DOC='ABS_PRODUCT_RECEIPT'
+
+        UNION
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX gjt
+        WHERE
+        gjt.JE_TRX = gjtd.JE_TRX
+        ) AS DESCRIPTION,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'GLD.OPERATE_TYPE'
+        AND v.code_value = gjtd.OPERATE_TYPE) OPERATE_TYPE_N,
+        (
+        select lcw.withdraw_number
+        from lon_contract_withdraw lcw
+        where lcw.withdraw_id = gjtd.JE_SOURCE_ID
+        ) CONTRACT_NUMBER,
+        (
+        select lcw.report_name
+        from lon_contract_withdraw lcw
+        where lcw.withdraw_id = gjtd.JE_SOURCE_ID
+        ) CONTRACT_NAME,
+        gjtd.JE_TRX_ID,
+        gjtd.JE_TRX,
+        gjtd.JE_TRX_DTL_ID,
+        gjtd.MSG_LOG,
+        gjtd.LAST_UPDATE_DATE,
+        gjtd.JE_SOURCE_ID,
+        gjtd.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS,
+        gjtd.COMPANY_ID
+        FROM
+        GLD_JE_TRX_DTL gjtd
+        WHERE (gjtd.JE_SOURCE_DOC not in
+        ('CON_CONTRACT','LON_CONTRACT_WITHDRAW','FCT_CONTRACT','LON_CONTRACT_REPAYMENT','CT_DOCUMENT_FIN_INCOME','RESERVE_PLAN_LN','EFT_FUND_TRANSFER_LIST','ABS_PRODUCT','ABS_PRODUCT_RECEIPT')
+        or gjtd.je_source_doc is null)
+        ) tab
+        <where>
+            <if test="statusList!=null">
+                and  tab.STATUS IN
+                <foreach collection="statusList" index="index" item="item" open="("
+                         separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+
+            <if test="status!=null">
+                and  tab.STATUS = #{statusN}
+            </if>
+
+            <if test="jeTrx!=null">
+                AND tab.JE_TRX = #{jeTrx}
+            </if>
+            <if test="jeTrxN!=null">
+                AND tab.DESCRIPTION = #{jeTrxN}
+            </if>
+            <if test="contractName!=null">
+                AND (tab.CONTRACT_NAME  LIKE CONCAT(concat('%',#{contractName}),'%')
+                OR tab.CONTRACT_NAME LIKE CONCAT(concat('%',#{contractName}),'%'))
+            </if>
+            <if test="contractNumber!=null">
+                AND (tab.CONTRACT_NUMBER  LIKE CONCAT(concat('%',#{contractNumber}),'%')
+                OR tab.CONTRACT_NAME LIKE CONCAT(concat('%',#{contractNumber}),'%'))
+            </if>
+            <if test="jeTrxDtlId!=null">
+                AND tab.JE_TRX_DTL_ID = #{jeTrxDtlId}
+            </if>
+            <if test="lastUpdateDate!=null">
+                AND trunc(tab.LAST_UPDATE_DATE) = trunc(#{lastUpdateDate})
+            </if>
+            <if test="lastUpdateDateFromStr != null">
+                and tab.LAST_UPDATE_DATE>= #{lastUpdateDateFromStr}
+            </if>
+            <if test="lastUpdateDateToStr != null">
+                and tab.LAST_UPDATE_DATE &lt;= #{lastUpdateDateToStr}
+            </if>
+            <if test="description">
+                AND tab.description = #{description}
+            </if>
+        </where>
+        order by  LAST_UPDATE_DATE desc
+    </select>
+
+    <select id="gld320aJeTrxDtlQuery"  parameterType="com.hand.hls.gld.dto.JeTrxDtl" resultMap="BaseResultMap">
+        SELECT * FROM (
+        SELECT
+        (
+        SELECT
+        gjt.DESCRIPTION
+        FROM
+        GLD_JE_TRX gjt
+        WHERE
+        gjt.JE_TRX = gjtd.JE_TRX
+        ) AS DESCRIPTION,
+        (
+        SELECT
+        cc.contract_number
+        FROM
+        con_contract cc
+        WHERE
+        cc.contract_id = gjtd.JE_SOURCE_ID
+        ) AS CONTRACT_NUMBER,
+        (
+        SELECT
+        cc.contract_name
+        FROM
+        con_contract cc
+        WHERE
+        cc.contract_id = gjtd.JE_SOURCE_ID
+        ) AS CONTRACT_NAME,
+        (
+        SELECT
+        cc.lease_start_date
+        FROM
+        con_contract cc
+        WHERE
+        cc.contract_id = gjtd.JE_SOURCE_ID
+        ) AS LEASE_START_DATE,
+        (
+        SELECT
+        cc.lease_item_amount
+        FROM
+        con_contract cc
+        WHERE
+        cc.contract_id = gjtd.JE_SOURCE_ID
+        ) AS LEASE_ITEM_AMOUNT,
+        (
+        SELECT
+        ct.transaction_num
+        FROM
+        csh_transaction ct
+        WHERE gjtd.JE_TRX_ID=ct.transaction_id
+        UNION
+        SELECT
+        ct.transaction_num
+        FROM
+        csh_transaction ct, csh_write_off cwo
+        WHERE
+        cwo.csh_transaction_id = ct.transaction_id
+        and  gjtd.JE_TRX_ID=cwo.write_off_id
+        GROUP BY  ct.transaction_num
+        )
+        AS DOCUMENT_NUMBER,
+        (
+        SELECT cwo.csh_write_off_amount AS AMOUNT
+        FROM
+        csh_write_off cwo
+        WHERE
+        gjtd.JE_TRX_ID=cwo.write_off_id
+        UNION
+        SELECT ct.transaction_amount AS AMOUNT
+        FROM
+        csh_transaction ct
+        WHERE
+        gjtd.JE_TRX_ID=ct.transaction_id
+        UNION
+        SELECT gcfi.FINANCE_INCOME AS AMOUNT
+        FROM
+        gld_contract_finance_income gcfi
+        WHERE
+        gjtd.JE_TRX_ID=gcfi.FINANCE_INCOME_ID
+        UNION
+        SELECT aih.total_amount AS AMOUNT
+        FROM
+        acr_invoice_hd aih
+        WHERE
+        gjtd.JE_TRX_ID=aih.invoice_hd_id
+        ) AS JETRX_AMOUNT,
+        gjtd.JE_TRX_ID,
+        gjtd.JE_TRX,
+        gjtd.JE_TRX_DTL_ID,
+        gjtd.MSG_LOG,
+        gjtd.LAST_UPDATE_DATE,
+        gjtd.JE_SOURCE_ID,
+        gjtd.JE_SOURCE_DOC,
+        (
+        SELECT
+        v.meaning
+        FROM
+        <include refid="hls.core.sys.mapper.SysCodeValueMapper.queryCodeDetail"/>
+        v
+        WHERE
+        v.code = 'GLD.JE_TRX_DTL_STATUS'
+        AND v.code_value = gjtd.STATUS
+        ) AS STATUS
+        FROM
+        GLD_JE_TRX_DTL gjtd
+        ) tab
+        <where>
+            <if test="status!=null">
+                tab.STATUS IN
+                <foreach collection="queryList1" index="index" item="item" open="("
+                         separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="description!=null">
+                AND tab.DESCRIPTION IN
+                <foreach collection="queryList" index="index" item="item" open="("
+                         separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="contractNumber!=null">
+                AND tab.CONTRACT_NUMBER like concat(concat('%',#{contractNumber}),'%')
+                OR tab.CONTRACT_NAME like concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="documentNumber!=null">
+                AND tab.DOCUMENT_NUMBER like concat(concat('%',#{documentNumber}),'%')
+                OR tab.JETRX_AMOUNT = #{documentNumber}
+            </if>
+            <if test="lastUpdateDateFromStr != null">
+                and to_char(tab.LAST_UPDATE_DATE,'YYYY-MM-DD')>= #{lastUpdateDateFromStr}
+            </if>
+            <if test="lastUpdateDateToStr != null">
+                and to_char(tab.LAST_UPDATE_DATE,'YYYY-MM-DD') &lt;=#{lastUpdateDateToStr}
+            </if>
+        </where>
+        order by  LAST_UPDATE_DATE desc
+    </select>
+
+    <select id="selectTrxDtlByJeHeader" resultMap="BaseResultMap">
+        select
+        distinct
+        gjh.company_id,
+        gjtd.je_source_doc,
+        gjtd.je_source_id
+        from
+        gld_je_head gjh
+        join
+        gld_je_line gjl
+        on
+        gjh.je_head_id=gjl.je_head_id
+        join
+        gld_je_trx_dtl gjtd
+        on
+        gjtd.je_trx_dtl_id=gjl.source_id
+        and
+        gjl.source_type='JE_TRX_DTL'
+        where
+        gjtd.je_source_id is not null
+        and gjh.je_head_id in
+        <foreach item="item" index="index" collection="jeHeadList" open="(" separator="," close=")">
+            #{item.jeHeadId}
+        </foreach>
+    </select>
+
+
+
+    <select id="queryNewByContract"  parameterType="com.hand.hls.gld.dto.JeTrxDtl" resultMap="BaseResultMap">
+        select d.*
+          from gld_je_trx_dtl d
+         where d.je_trx = 'CONTRACT_INCEPT'
+           and d.je_source_doc = 'CON_CONTRACT'
+           and d.status = 'NEW'
+           and d.je_trx_id = #{jeTrxId}
+    </select>
+
+</mapper>

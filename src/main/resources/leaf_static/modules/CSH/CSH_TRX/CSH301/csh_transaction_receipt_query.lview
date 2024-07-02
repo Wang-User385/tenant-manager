@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+        <a:link id="csh301_receipt_save_link"
+                url="${/request/@context_path}/csh/transaction/submit"/>
+
+
+        <script type="text/javascript"><![CDATA[
+        var transaction_id;
+        function onLoad_csh_transaction_receipt_head_ds(ds,name){
+            var record = ds.getAt(0);
+            if(record){
+                if('${/parameter/@transaction_type}' == 'ADVANCE_RECEIPT'){
+                    record.getField("payment_method_n").setReadOnly(true);
+                    record.getField("payment_method").setReadOnly(true);
+                }
+            }
+        }
+        function csh511_receipt_import_and_write_off() {
+            new Leaf.Window({
+                url: $('csh_receipt_import_link').getUrl(),
+                params: {
+                    action_type: 'TRANSACTION_AND_WRITE_OFF'
+                },
+                title: '收款导入并核销',
+                id: 'csh_receipt_import_and_write_off_window',
+                fullScreen: true
+            });
+        }
+
+        function csh511_receipt_import() {
+            new Leaf.Window({
+                url: $('csh_receipt_import_link').getUrl(),
+                params: {
+                    action_type: 'TRANSACTION'
+                },
+                title: '收款导入',
+                id: 'csh_receipt_import_window',
+                fullScreen: true
+            });
+        }
+
+        function csh301_receipt_save(flag) {
+            if ($('csh_transaction_receipt_head_ds').validate()) {
+                var record = $('csh_transaction_receipt_head_ds').getAt(0);
+                if (flag != 'Y') {
+                    Leaf.Masker.mask(Ext.getBody(), '${l:HLS.SAVING}');
+                }
+                var saveData = [];
+                record.set('receipt_type', 'MANUAL');
+                /*if (flag == 'Y') {
+                    record.set('posted_flag', 'Y');
+                } else {
+                    record.set('posted_flag', 'N');
+                }
+                record.set('_status', 'insert');*/
+                saveData.push(record.data);
+                Leaf.request({
+                    url: $('csh301_receipt_save_link').getUrl(),
+                    para: saveData,
+                    success: function (res) {
+                        transaction_id = res.result.record[0].transaction_id
+                        csh301_receipt_back();
+                        csh301_transaction_query();
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+        }
+
+        function csh301_receipt_posted() {
+            if ($('csh_transaction_receipt_head_ds').validate()) {
+                Leaf.Masker.mask(Ext.getBody(), '${l:CSH511.SAVE_AND_POST}');
+                csh301_receipt_save('Y');
+            }
+        }
+
+        function csh301_receipt_back() {
+            $('${/parameter/@winId}').close();
+        }
+
+        function onUpdate_csh301_receipt(ds, record, name, value, oldvalue) {
+            if (name == 'bp_id') {
+                if (value != oldvalue) {
+                    record.set('bp_bank_account_id', '');
+                    record.set('bp_bank_account_name', '');
+                    record.set('bp_bank_account_num', '');
+                    record.set('bp_bank_name', '');
+                    record.set('bp_bank_branch_name', '');
+                }
+                record.getField('bp_bank_account_code').setLovPara('bp_id', value);
+            } else if (name == 'transaction_amount') {
+                if (value === 0) {
+                    record.set('transaction_amount', '');
+                    Leaf.showMessage('${l:PROMPT}', '${l:CSH510.ZERO_AMOUNTS_ALLOWED}');
+                }
+            } else if (name == 'bank_account_id') {
+                if (record.get('zero_amounts_allowed') == 'N' && record.get('transaction_amount') === 0) {
+                    Leaf.showMessage('${l:PROMPT}', '${l:CSH510.ZERO_AMOUNTS_ALLOWED}');
+                }
+            }
+        }
+
+
+        function periodname(res) {
+            var head_record = $('csh_transaction_receipt_head_ds').getAt(0);
+            if (res) {
+                var period_name = res.result.record.period_name,
+                    internal_period_num = res.result.record.internal_period_num;
+                if (period_name) {
+                    head_record.set('period_name', period_name);
+                    head_record.set('internal_period_num', internal_period_num);
+                } else {
+                    head_record.set('period_name', '');
+                    head_record.set('internal_period_num', '');
+                    if (head_record.get('transaction_date')) {
+                        head_record.set('transaction_date', '');
+                        Leaf.showMessage('${l:PROMPT}', '${l:CSH511.PERIOD_ERROR}');
+                    }
+                }
+            }
+        }
+
+
+        ]]></script>
+        <a:dataSets>
+
+            <a:dataSet id="csh_transaction_receipt_head_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/transaction/query?transactionId=${/parameter/@transaction_id}">
+                <a:fields>
+                    <a:field name="transaction_date" datatype="date" required="true" prompt="收款日期"/>
+                    <a:field name="transaction_amount" required="true" prompt="收款金额"/>
+
+                    <a:field name="bank_account_name" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90" lovService="/csh/bank/account/query~hls.layout.dto.LovCshBankAccountDto"
+                             lovWidth="850" required="true" title="CSH511.BANK_ACCOUNT_CODE" prompt="收款账户">
+                        <a:mapping>
+                            <a:map from="bank_account_id" to="bank_account_id"/>
+                            <a:map from="bank_account_num" to="bank_account_num"/>
+                            <a:map from="bank_account_name" to="bank_account_name"/>
+                            <a:map from="bank_account_code" to="bank_account_code"/>
+                            <a:map from="bank_branch_name" to="bank_branch_name"/>
+                            <a:map from="currency" to="currency_code"/>
+                            <a:map from="currency_n" to="currency_n"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bank_account_num" readOnly="true"/>
+                    <a:field name="currency_n" readOnly="true"/>
+                    <a:field name="currency_code" readOnly="true"/>
+
+                    <a:field name="bp_name" autoComplete="true" required="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/hls/bp/queryBpMasterLov~hls.layout.dto.LovHlsBpMasterDto" lovWidth="550"
+                             title="HLS.BP_TITLE" prompt="商业伙伴">
+                        <a:mapping>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                            <a:map from="bp_code" to="bp_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="payment_method_n" displayField="code_value_name" options="payment_method_ds"
+                             returnField="payment_method" valueField="code_value"/>
+                    <a:field name="payment_method"/>
+
+
+                    <a:field name="bp_bank_account_name" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/hls/bp/bank/account/queryLov~hls.layout.dto.LovBpBankAccountDto"
+                             lovWidth="580" title="CSH511.BP_BANK_ACCOUNT_CODE" required="true" prompt="对方账户">
+                        <a:mapping>
+                            <a:map from="bank_account_id" to="bp_bank_account_id"/>
+                            <a:map from="bank_account_num" to="bp_bank_account_num"/>
+                            <a:map from="bank_account_name" to="bp_bank_account_name"/>
+                            <a:map from="bank_full_name" to="bp_bank_name"/>
+                            <a:map from="bank_branch_name" to="bp_bank_branch_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bp_bank_account_num" readOnly="true"/>
+                    <a:field name="bp_bank_name" readOnly="true"/>
+                    <a:field name="bp_bank_branch_name" readOnly="true"/>
+
+
+
+                    <a:field name="bank_slip_num" readOnly="true"/>
+                    <a:field name="description" readOnly="true"/>
+                    <a:field name="comments" readOnly="true"/>
+                    <a:field name="payment_method_n" readOnly="true"/>
+
+
+                    <a:field name="company_id" readOnly="true" defaultValue="${/session/@companyId}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdate_csh301_receipt"/>
+                    <a:event name="load" handler="onLoad_csh_transaction_receipt_head_ds" />
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton id="csh301_receipt_update_back_id" click="csh301_receipt_back" text="HLS.RETURN"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:fieldSet title="收款信息" width="750">
+                    <a:box column="2" labelWidth="100">
+                        <a:datePicker name="transaction_date" bindTarget="csh_transaction_receipt_head_ds"
+                                      prompt="收款日期" readOnly="true" renderer="Leaf.formatDate"/>
+                        <a:numberField name="transaction_amount" bindTarget="csh_transaction_receipt_head_ds"
+                                       prompt="收款金额" readOnly="true" renderer="Leaf.formatMoney"/>
+                        <a:textField name="bank_slip_num" bindTarget="csh_transaction_receipt_head_ds" prompt="银行流水号"/>
+                        <a:textField name="currency_n" bindTarget="csh_transaction_receipt_head_ds" prompt="币种"/>
+                    </a:box>
+                    <a:box column="1" labelWidth="100">
+                        <a:lov name="bank_account_name" bindTarget="csh_transaction_receipt_head_ds" prompt="收款账户"
+                               readOnly="true" width="370"/>
+                    </a:box>
+                    <a:box column="1" labelWidth="100">
+                        <a:textField name="bank_account_num" bindTarget="csh_transaction_receipt_head_ds"
+                                     prompt="收款账号" width="370"/>
+                    </a:box>
+                    <a:box column="1" labelWidth="100">
+                        <a:textField name="ref_v01" bindTarget="csh_transaction_receipt_head_ds" prompt="虚拟账号"
+                                     width="370" readOnly="true"/>
+                    </a:box>
+                    <a:box column="1" labelWidth="100">
+                        <a:textField name="description" bindTarget="csh_transaction_receipt_head_ds" prompt="摘要"
+                                     width="370"/>
+                    </a:box>
+                    <a:box column="1" labelWidth="100">
+                        <a:textField name="comments" bindTarget="csh_transaction_receipt_head_ds" prompt="附言"
+                                     width="370"/>
+                    </a:box>
+                </a:fieldSet>
+
+                <a:fieldSet column="4" labelWidth="250" title="对方账户信息" width="750">
+                    <a:box column="2" labelWidth="100">
+                        <a:lov name="bp_name" bindTarget="csh_transaction_receipt_head_ds" prompt="商业伙伴"
+                               readOnly="true"/>
+                        <a:comboBox name="payment_method_n" bindTarget="csh_transaction_receipt_head_ds" prompt="付款方式"/>
+                        <a:lov name="bp_bank_account_name" bindTarget="csh_transaction_receipt_head_ds" prompt="对方账户"
+                               readOnly="true"/>
+                        <a:textField name="bp_bank_account_num" bindTarget="csh_transaction_receipt_head_ds"
+                                     prompt="对方账号"/>
+                        <a:textField name="bp_bank_name" bindTarget="csh_transaction_receipt_head_ds" prompt="银行名称"/>
+                        <a:textField name="bp_bank_branch_name" bindTarget="csh_transaction_receipt_head_ds"
+                                     prompt="支行名称"/>
+                    </a:box>
+                </a:fieldSet>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

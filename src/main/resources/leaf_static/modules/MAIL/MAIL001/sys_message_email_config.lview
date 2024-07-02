@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        <!--查询-->
+        function sys_message_email_config_screen_query() {
+            $('sys_message_email_config_ds').query();
+        }
+
+        <!--重置查询条件-->
+        function sys_message_email_config_screen_reset() {
+            $('sys_message_email_config_query_ds').reset();
+            $('sys_message_email_config_ds').query();
+        }
+
+        function business_parter_type_ds_grid_editFun(record, name) {
+            if (record.isNew) {
+                if (name == 'fin_statement_templet_code') {
+                    return 'sys_message_email_config_ds_grid_tf';
+                }
+            }
+            return '';
+        }
+
+        <!--打开窗口：编辑-->
+        function winOpen_sys_message_email_config_edit(config_id) {
+            var win = new Leaf.Window({
+                id : "sys_message_email_config_edit",
+                url : "${/request/@context_path}/modules/MAIL/MAIL001/sys_message_email_config_edit.lview",
+                title : '编辑',
+                fullScreen : false,
+                params: {
+                    config_id: config_id,
+                    winId: "sys_message_email_config_edit"
+                },
+                draggable : true,
+                closeable : true,
+                side:'right',
+                width : 850,
+                height : 480
+            });
+            win.on('close',function () {
+                sys_message_email_config_screen_query();
+            })
+        }
+
+        function sys_message_email_config_screen_add(value, record, name) {
+            winOpen_sys_message_email_config_edit(-1);
+        }
+
+        <!--grid渲染-->
+        function render_sys_message_email_config_ds_grid(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'edit') {
+                    return '<a href="javascript:winOpen_sys_message_email_config_edit(\'' + record.get('config_id') +'\');">编辑</a>';
+                }
+                return '';
+            }
+            return '';
+        }
+
+        // function sys_message_email_config_screen_del(){
+        //     var ds = $('sys_message_email_config_ds');
+        //     if(ds.getSelected().length==0){
+        //         Leaf.showErrorMessage( '提示', '请选择记录！',null, 200, 100 );
+        //         return ;
+        //     }
+        //     Leaf.showConfirm('提示', '确定删除？', function(){
+        //         if (ds.validate()) {
+        //             ds.setSubmitUrl('${/request/@context_path}/sys/messageEmailAccount/remove')
+        //             ds.submitSelected();
+        //         }
+        //     }, null, 200, 100 );
+        // }
+
+
+        function sysFlagRenderer(value,record, name){
+            return value == 'Y' ? '是' : '否';
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys_message_email_config_query_ds">
+                <a:fields>
+                    <a:field name="config_code"/>
+                    <a:field name="description"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="sys_message_email_config_ds" autoPageSize="true" autoQuery="true" queryDataSet="sys_message_email_config_query_ds" selectable="true"
+                       queryUrl ="${/request/@context_path}/sys/messageEmailConfig/query"
+                       deleteUrl="${/request/@context_path}/sys/messageEmailConfig/remove"
+                       >
+                <a:fields>
+                    <a:field name="enable" defaultValue="Y"/>
+                    <a:field name="use_white_list"  defaultValue="Y"/>
+                    <a:field name="config_id"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="sys_message_email_config_screen_add" text="HLS.NEW"/>
+                <a:gridButton bind="sys_message_email_config_ds_grid" type="delete"/>
+                <a:gridButton click="sys_message_email_config_screen_query" text="HLS.QUERY"/>
+                <a:gridButton click="sys_message_email_config_screen_reset" text="HLS.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="100">
+                <a:textField name="config_code" bindTarget="sys_message_email_config_query_ds" prompt="配置代码" emptyText="配置代码" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="sys_message_email_config_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="description" bindTarget="sys_message_email_config_query_ds" prompt="描述" emptyText="描述" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="sys_message_email_config_screen_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="sys_message_email_config_ds_grid"  bindTarget="sys_message_email_config_ds"
+                    marginHeight="150" marginWidth="30" navBar="true">
+                <a:columns>
+                    <a:column width="200" name="config_code" prompt="配置代码"/>
+                    <a:column width="200" name="description" prompt="描述"/>
+                    <a:column width="200" name="host" prompt="邮件服务器"/>
+                    <a:column width="200" name="port" prompt="端口"/>
+                    <a:column width="150" name="use_white_list" renderer="sysFlagRenderer" prompt="启用白名单" align="center"/>
+                    <a:column width="150" name="enable" renderer="sysFlagRenderer" prompt="是否启用" align="center"/>
+                    <a:column width="150" name="edit" renderer="render_sys_message_email_config_ds_grid" prompt="编辑" align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="sys_message_email_config_ds_grid_lov"/>
+                    <a:textField id="sys_message_email_config_ds_grid_tf"/>
+                    <a:checkBox id="sys_message_email_config_ds_grid_check"/>
+                    <a:comboBox id="sys_message_email_config_ds_grid_combo"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

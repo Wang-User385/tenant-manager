@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="prj100_prj_change_create_link_id" url="${/request/@context_path}/chance/change/req/submit"/>
+        <a:link id="prj100_prj_recreate_link_id" url="${/request/@context_path}/chance/recreate"/>
+        <a:link id="prj100_prj_change_detail_link_id" url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_change_detail.lview"/>
+        <a:link id="prj_chance_detail_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail.lview"/>
+        <a:link id="prj_credit_detail_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_credit_modify_detail.lview"/>
+        <a:link id="chance_change_info_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_change_info.lview"/>
+        <a:link id="prj_chance_new_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_add.lview"/>
+        <script><![CDATA[
+
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            if (ds.queryurl.indexOf('history_flag') === -1) {
+                ds.queryurl = ds.queryurl + "&document_history_flag=N";
+            }
+            switch (ds.id) {
+                case get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance'):
+                    qpara['created_by'] = '${/session/@user_id}';
+                    break;
+            }
+        };
+        //日期相差月数计算date1-date2  均为日期类型
+        function left_months(date1, date2) {
+            // debugger;
+            var date1Time = Date.parse(date1);
+            var date2Time = Date.parse(date2);
+            var diffDays = div(div(div(minus(date1Time, date2Time), 3600), 1000), 24);
+            var months_result = mul(div(diffDays,365),12);
+            // return Math.ceil(months_result);
+            return months_result;
+        }
+
+        function prj001_detail_open(record_id, ds_id) {
+             debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var status = param.credit_line_status;
+            var business_type = param.business_type;
+            var type = (status === "APPROVING" || status === 'APPROVED' || status === "CLOSED" || status === "PENDING") ? 'QUERY' : 'MODIFY';
+
+            param['url_title'] = '立项维护';
+
+            if(business_type == 'T+0_LEASE_FACTORING' || business_type == 'T+N_LEASE_FACTORING' ){
+                param['function_code'] = 'PRJ001F3';
+            }else if( business_type == 'LEASE_WITHOUT_RECOURSE_IN' || business_type == 'OPERATING_LEASE_WITHOUT_RECOURSE_IN' ){
+                param['function_code'] = 'PRJ001F4';
+            }else if(record.get("credit_flag")=='Y'){
+                param['function_code'] = 'PRJ003F1';
+                var link_id = 'prj_credit_detail_id';
+            }else{
+                param['function_code'] = 'PRJ001F1';
+                var link_id = 'prj_chance_detail_id';
+            }
+            param['function_usage'] = type;
+            param['winid'] = 'prj_chance_detail_winid';
+
+            hls_doc_get_layout_code(param, link_id, ds_id, 'PRJ001', null, null);
+        }
+
+        // 超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            debugger;
+            var link_function = 'prj001_detail_open';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'credit_line_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        // 新增立项
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+            var param = {};
+            debugger;
+            param['url_title'] = '立项新增';
+            param['function_code'] = 'PRJ001F2';
+            param['unit_id'] = '${/session/@unitId}';
+            param['winid'] = 'prj_chance_new_winid';
+            param['ds_id'] = ds_id;
+            param['screen_width'] = '600';
+            param['side'] = 'right';
+            param['proposer_employee_name'] = '${/session/@employeeName}';
+            var link_id = 'prj_chance_new_id';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'PRJ001');
+        };
+
+        var hlsCusHlsCreditLineChances=[];
+
+        // 关闭  按钮
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+            // debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+            var chanceRecord = $(ds_id).getSelected();
+
+            var closeFlag = 'Y';
+            if(chanceRecord.length != 0 ){
+                // debugger;
+                for (var i=0;i<chanceRecord.length;i++){
+                    if(chanceRecord[i].data.credit_line_status == 'NEW' ){
+                        hlsCusHlsCreditLineChances.push(chanceRecord[i].data);
+                    }else{
+                        closeFlag='N';
+                    }
+
+                }
+            }
+
+            if(chanceRecord.length == 0){
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showWarningMessage('提示','请选择需要关闭的项目!');
+
+            }else if(closeFlag == 'N'){
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('提示','非新建状态的单据，无法关闭!')
+            }else {
+
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                new Leaf.showConfirm('${l:HLS.PROMPT}', '确认关闭吗?', function okFun() {
+                    Leaf.request({
+                        url: '${/request/@context_path}/hls/credit/line/chance/closeCreditChance',
+                        para:  hlsCusHlsCreditLineChances,
+
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.SideBar.show({
+                                msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                duration: 2000
+                            });
+                            $(ds_id).query();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                });
+
+            }
+
+        };
+
+
+        function chanceClose() {
+            // debugger;
+            console.log(hlsCusHlsCreditLineChances);
+            Leaf.request({
+                url: '${/request/@context_path}/hls/credit/line/chance/closeCreditChance',
+                para: {
+                    hlsCusHlsCreditLineChances: hlsCusHlsCreditLineChances
+                },
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        }
+
+
+        //以下开始变更功能
+        //立项变更
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+            var prj_chance_result_ds = $(ds_id);
+            var records = prj_chance_result_ds.getSelected();
+
+            if (records.length != 1) {
+                $L.showInfoMessage("提示", "请选择一个立项进行变更!");
+                return;
+            }
+
+            var record = records[0];
+
+            var status = record.get('credit_line_status');
+
+            if(status == 'PENDING'){
+                $L.showInfoMessage("提示","当前立项正在变更中!");
+                return;
+            }
+
+            if(status != 'APPROVED'){
+                $L.showInfoMessage("提示","非审批通过的立项不可变更!");
+                return;
+            }
+
+            var chance_id = record.get('chance_id');
+            var credit_line_number = record.get('credit_line_number');
+
+            //直接进入变更页面
+            Leaf.request({
+                url: $('prj100_prj_change_create_link_id').getUrl(),
+                para: {'chance_id': chance_id, 'change_type': 'CHANCE_ALL_CHANGE','approve_number': credit_line_number},
+                success: function (res) {
+                    $L.Masker.unmask(Ext.getBody());
+                    $L.showInfoMessage("提示","创建成功!",function () {
+                        var record = res.result.record[0];
+                        var param = record, function_code;
+
+                        param['url_title'] = '项目变更明细';
+                        function_code = 'PRJ001F1_CHANGE';
+                        param['winid'] = 'prj100_chance_change_create_winid';
+                        param['function_code'] = function_code;
+                        param['source_chance_id'] = chance_id /*'${/parameter/@source_chance_id}'*/;
+                        hls_doc_get_layout_code(param, 'prj100_prj_change_detail_link_id', null, function_code,'${/parameter/@winid}','Y');
+                    });
+                },
+                failure: function () {
+                    $L.Masker.unmask(Ext.getBody());
+                },
+                error: function () {
+                    $L.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+
+
+
+
+
+            /*var changeWin = new Leaf.Window({
+                id: 'prj100_open_change_create_winid',
+                url: '${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_change_create.lview',
+                params: {
+                    chance_id: chance_id,
+                    credit_line_number:credit_line_number,
+                    winid: 'prj100_open_change_create_winid'
+                },
+                title: '立项变更创建',
+                height: 430,
+                width: 800
+            });
+
+            changeWin.on('close',function(){
+                $(ds_id).query();
+            });*/
+        }
+
+        //变更历史查看
+        window['${/parameter/@layout_code}_user_button4_layout_dynamic_click'] = function () {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+            var prj_project_result_ds = $(ds_id);
+            var records = prj_project_result_ds.getSelected();
+
+            if (records.length != 1) {
+                $L.showInfoMessage("提示", "请选择一个项目查看变更信息!");
+                return;
+            }
+
+            var record = records[0];
+
+            var chance_id = record.get('chance_id');
+
+            var param = {};
+            param['url_title'] = '立项变更信息';
+            param['function_code'] = 'CHANCECHANGE100';
+            param['winid'] = 'chance_change_info_winid';
+            param['screen_width'] = '800';
+            param['side'] = 'right';
+            param['source_chance_id'] = chance_id;
+
+            hls_doc_get_layout_code(param, 'chance_change_info_id', ds_id, 'CHANCECHANGE100');
+        };
+
+        //重新立项
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
+            var prj_chance_result_ds = $(ds_id);
+            var records = prj_chance_result_ds.getSelected();
+            if (records.length != 1) {
+                $L.showInfoMessage("提示", "请选择一个立项进行变更!");
+                return;
+            }
+            var record = records[0];
+            var status = record.get('credit_line_status');
+            if(status != 'APPROVED'){
+                $L.showInfoMessage("提示","非审批通过的立项不可变更!");
+                return;
+            }
+            var chance_id = record.get('chance_id');
+            var credit_flag = record.get('credit_flag');
+
+            var function_code = 'PRJ001F1';
+            var link_id = 'prj_chance_detail_id';
+            if(credit_flag=='Y'){
+                function_code = 'PRJ003F1';
+                link_id = 'prj_credit_detail_id';
+            }
+
+            //直接进入变更页面
+            Leaf.request({
+                url: $('prj100_prj_recreate_link_id').getUrl(),
+                para: {'chance_id': chance_id, 'credit_flag': credit_flag},
+                success: function (res) {
+                    $L.Masker.unmask(Ext.getBody());
+                    $L.showInfoMessage("提示","创建成功!",function () {
+                        var record = res.result.record[0];
+                        var param = record;
+                        var type = 'MODIFY';
+                        //param['chance_id'] = '立项维护';
+                        param['url_title'] = '立项维护';
+                        param['function_code'] = function_code;
+                        param['function_usage'] = type;
+                        param['winid'] = 'prj_chance_detail_winid';
+                        //var link_id = 'prj_chance_detail_id';
+                        hls_doc_get_layout_code(param, link_id, ds_id, 'PRJ001', null, null);
+                    });
+                },
+                failure: function () {
+                    $L.Masker.unmask(Ext.getBody());
+                },
+                error: function () {
+                    $L.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

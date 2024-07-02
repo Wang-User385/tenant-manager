@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.lease.mapper.LeaseItemInsuranceMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.lease.dto.LeaseItemInsurance">
+        <result column="INSURANCE_ID" property="insuranceId" jdbcType="DECIMAL" />
+        <result column="INSURANCE_TYPE" property="insuranceType" jdbcType="VARCHAR" />
+        <result column="INSURANCE_TYPE_N" property="insuranceTypeN" jdbcType="VARCHAR" />
+        <result column="INSURANCE_DATE_FROM" property="insuranceDateFrom" jdbcType="DATE" />
+        <result column="INSURANCE_DATE_TO" property="insuranceDateTo" jdbcType="DATE" />
+        <result column="INSURANCE_COMPANY" property="insuranceCompany" jdbcType="VARCHAR" />
+        <result column="INSURANCE_NUMBER" property="insuranceNumber" jdbcType="VARCHAR" />
+        <result column="INSURANCE_AMOUNT" property="insuranceAmount" jdbcType="DECIMAL" />
+        <result column="FIRST_BENEFICIARY" property="firstBeneficiary" jdbcType="VARCHAR" />
+        <result column="CON_LEASE_ITEM_ID" property="conLeaseItemId" jdbcType="DECIMAL" />
+
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="CONTRACT_NAME" property="contractName" jdbcType="VARCHAR" />
+        <result column="FULL_NAME" property="fullName" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="selectNew" resultMap="BaseResultMap">
+        select
+            i.INSURANCE_ID,
+            i.INSURANCE_TYPE,
+            (select meaning
+             from sys_code_value_b_v
+             where code = 'NEW_INSURANCE_TYPE'
+               and code_value = i.INSURANCE_TYPE) as insurance_type_n,
+            i.INSURANCE_DATE_FROM,
+            i.INSURANCE_DATE_TO,
+            i.INSURANCE_COMPANY,
+            i.INSURANCE_NUMBER,
+            i.INSURANCE_AMOUNT,
+            i.FIRST_BENEFICIARY,
+            i.CREATION_DATE,
+            i.CON_LEASE_ITEM_ID
+        from CON_LEASE_ITEM_INSURANCE i
+        where i.CON_LEASE_ITEM_ID = #{conLeaseItemId}
+        order by i.INSURANCE_DATE_FROM desc
+    </select>
+
+    <select id="queryAll" resultMap="BaseResultMap">
+        select * from (
+        select T1.INSURANCE_ID,
+               t3.CONTRACT_NUMBER,
+               t3.CONTRACT_NAME,
+               t2.FULL_NAME,
+               t1.INSURANCE_TYPE,
+               (select meaning
+                from sys_code_value_b_v
+                where code = 'NEW_INSURANCE_TYPE'
+                  and code_value = t1.INSURANCE_TYPE) as insurance_type_n,
+               t1.INSURANCE_DATE_FROM,
+               t1.INSURANCE_DATE_TO,
+               t1.INSURANCE_COMPANY,
+               t1.INSURANCE_NUMBER,
+               t1.INSURANCE_AMOUNT,
+               t1.FIRST_BENEFICIARY
+        from con_lease_item_insurance t1
+        inner join con_contract_lease_item t2
+          on t1.con_lease_item_id = t2.contract_lease_item_id
+        inner join con_contract t3
+          on t2.contract_id = t3.contract_id) v
+        <where>
+            <if test="contractNumber!=null">
+                and v.contract_number like concat('%', concat(#{contractNumber,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="contractName!=null">
+                and v.contract_name like concat('%', concat(#{contractName,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="fullName!=null">
+                and v.full_name like concat('%', concat(#{fullName,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="insuranceType!=null">
+                and v.insurance_type like concat('%', concat(#{insuranceType,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="insuranceDateFrom!=null">
+                and to_date(v.insurance_date_from,'yyyy-mm-dd') &gt;= to_date(#{insuranceDateFrom},'yyyy-mm-dd')
+            </if>
+            <if test="insuranceDateTo!=null">
+                and to_date(v.insurance_date_to,'yyyy-mm-dd') &lt;= to_date(#{insuranceDateTo},'yyyy-mm-dd')
+            </if>
+            <if test="insuranceCompany!=null">
+                and v.insurance_company like concat('%', concat(#{insuranceCompany,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="insuranceNumber!=null">
+                and v.insurance_number like concat('%', concat(#{insuranceNumber,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="insuranceAmount!=null">
+                and v.INSURANCE_AMOUNT = #{insuranceAmount}
+            </if>
+            <if test="firstBeneficiary!=null">
+                and v.first_beneficiary like concat('%', concat(#{firstBeneficiary,jdbcType=VARCHAR}, '%'))
+            </if>
+        </where>
+        order by t1.INSURANCE_DATE_FROM desc
+    </select>
+
+    <select id="queryAll1" resultMap="BaseResultMap">
+        select *
+        from (select t1.insurance_id,
+        t3.contract_id,
+        t3.contract_number,
+        t3.contract_name,
+        t3.contract_status,
+        t2.full_name,
+        t1.insurance_type,
+        (select meaning
+        from sys_code_value_b_v
+        where code = 'NEW_INSURANCE_TYPE'
+        and code_value = t1.insurance_type) as insurance_type_n,
+        t1.insurance_date_from,
+        t1.insurance_date_to,
+        t1.insurance_company,
+        t1.insurance_number,
+        t1.insurance_amount,
+        t1.first_beneficiary
+        from con_contract_lease_item t2
+        inner join con_contract t3
+        on t2.contract_id = t3.contract_id
+        left join con_lease_item_insurance t1
+        on t1.con_lease_item_id = t2.contract_lease_item_id
+        where t3.document_type in ('CONL', 'CONLB')
+        and t2.full_name is not null) v
+        <where>
+            <if test="contractNumber!=null">
+                and v.contract_number like concat('%', concat(#{contractNumber,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="contractName!=null">
+                and v.contract_name like concat('%', concat(#{contractName,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="fullName!=null">
+                and v.full_name like concat('%', concat(#{fullName,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="insuranceType!=null">
+                and v.insurance_type like concat('%', concat(#{insuranceType,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="insuranceDateFrom!=null">
+                and v.insurance_date_from &gt;= to_date(#{insuranceDateFrom},'yyyy-mm-dd')
+            </if>
+            <if test="insuranceDateTo!=null">
+                and v.insurance_date_to &lt;= to_date(#{insuranceDateTo},'yyyy-mm-dd')
+            </if>
+            <if test="insuranceCompany!=null">
+                and v.insurance_company like concat('%', concat(#{insuranceCompany,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="insuranceNumber!=null">
+                and v.insurance_number like concat('%', concat(#{insuranceNumber,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="insuranceAmount!=null">
+                and v.INSURANCE_AMOUNT = #{insuranceAmount}
+            </if>
+            <if test="firstBeneficiary!=null">
+                and v.first_beneficiary like concat('%', concat(#{firstBeneficiary,jdbcType=VARCHAR}, '%'))
+            </if>
+        </where>
+        order by v.contract_id desc
+    </select>
+
+    <select id="queryContractLeaseItemInsurance" parameterType="long" resultMap="BaseResultMap">
+        select ii.*,(select meaning
+                     from sys_code_value_b_v
+                     where code = 'NEW_INSURANCE_TYPE'
+                       and code_value = ii.INSURANCE_TYPE) as insurance_type_n
+        from CON_CONTRACT_LEASE_ITEM i, CON_LEASE_ITEM_INSURANCE ii where i.CONTRACT_ID = #{contractId} and i.CONTRACT_LEASE_ITEM_ID = ii.CON_LEASE_ITEM_ID
+    </select>
+
+    <select id="queryInsuranceNumberExistsCount" parameterType="string" resultType="integer">
+        select count(i.INSURANCE_ID) from CON_LEASE_ITEM_INSURANCE i where i.INSURANCE_NUMBER = #{insuranceNumber}
+    </select>
+
+    <select id="selectOverdueInsurance" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+            t.*
+        from(
+                SELECT
+                    clii.* ,
+                    ROW_NUMBER() OVER (PARTITION BY clii.INSURANCE_TYPE ORDER BY clii.INSURANCE_DATE_TO desc)  AS row_flag
+                FROM CON_LEASE_ITEM_INSURANCE clii
+                WHERE clii.CON_LEASE_ITEM_ID = #{contractLeaseItemId}
+            ) t WHERE t.row_flag = 1
+                AND t.INSURANCE_DATE_TO &lt; TO_DATE(TO_CHAR(SYSDATE,'yyyy-MM-dd'),'yyyy-MM-dd')
+    </select>
+</mapper>

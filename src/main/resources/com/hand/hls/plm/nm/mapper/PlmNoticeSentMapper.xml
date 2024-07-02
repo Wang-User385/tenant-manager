@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.plm.nm.mapper.PlmNoticeSentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.plm.nm.dto.PlmNoticeSent">
+        <result column="NOTICE_ID" property="noticeId" jdbcType="DECIMAL" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="NOTICE_TYPE" property="noticeType" jdbcType="VARCHAR" />
+        <result column="COURIER_COMPANY" property="courierCompany" jdbcType="VARCHAR" />
+        <result column="TRACKING_NUMBER" property="trackingNumber" jdbcType="VARCHAR" />
+        <result column="SHIPPING_DATE" property="shippingDate" jdbcType="DATE" />
+        <result column="RECIPIENT" property="recipient" jdbcType="VARCHAR" />
+        <result column="RECIPIENT_CALL" property="recipientCall" jdbcType="VARCHAR" />
+        <result column="RECIPIENT_ADDRESS" property="recipientAddress" jdbcType="VARCHAR" />
+        <result column="ZIP_CODE" property="zipCode" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_TYPE" property="documentType" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_CATEGORY" property="documentCategory" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_STYLE" property="documentStyle" jdbcType="VARCHAR" />
+        <result column="BUSINESS_TYPE" property="businessType" jdbcType="VARCHAR" />
+
+        <result column="CONTRACT_NAME" property="contractName" jdbcType="VARCHAR" />
+        <result column="APPROVAL_NUMBER" property="approvalNumber" jdbcType="VARCHAR" />
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR" />
+        <result column="DUE_DATE" property="dueDate" jdbcType="DATE" />
+        <result column="notice_type_desc" property="noticeTypeDesc" jdbcType="VARCHAR" />
+
+    </resultMap>
+
+    <select id="selectNoticeSentAll" resultMap="BaseResultMap" parameterType="com.hand.hls.plm.nm.dto.PlmNoticeSent">
+        SELECT NOS.*,(SELECT v.meaning FROM sys_code_value_b_v v WHERE v.code_value = NOS.notice_type and v.code = 'AST008.NOTICE_TYPE')as notice_type_desc
+        FROM (
+        SELECT
+        pns.NOTICE_ID,
+        pns.BP_ID,
+        pns.TIMES,
+        pns.NOTICE_TYPE,
+        pns.COURIER_COMPANY,
+        pns.TRACKING_NUMBER,
+        pns.SHIPPING_DATE,
+        pns.RECIPIENT,
+        pns.RECIPIENT_CALL,
+        pns.RECIPIENT_ADDRESS,
+        pns.ZIP_CODE,
+        pns.DESCRIPTION,
+        pns.DOCUMENT_TYPE,
+        pns.DOCUMENT_CATEGORY,
+        pns.DOCUMENT_STYLE,
+        pns.BUSINESS_TYPE,
+        pns.CONTRACT_ID,
+        fc.CONTRACT_NUMBER,
+        fc.CONTRACT_NAME,
+        fc.APPROVAL_NUMBER,
+        hbm.BP_NAME,
+        (SELECT MIN(FQC.DUE_DATE) FROM FCT_QUOTATION_CASHFLOW FQC WHERE FQC.CONTRACT_ID=pns.CONTRACT_ID AND FQC.TIMES=PNS.TIMES) DUE_DATE,
+        pns.CREATED_BY
+        FROM PLM_NOTICE_SENT pns
+        LEFT JOIN FCT_CONTRACT fc ON pns.CONTRACT_ID = fc.CONTRACT_ID
+        LEFT JOIN HLS_BP_MASTER hbm ON pns.BP_ID = hbm.BP_ID
+        WHERE
+            fc.DATA_CLASS='NORMAL'
+        AND fc.DOCUMENT_CATEGORY='FCT_CONTRACT'
+        AND fc.DOCUMENT_CATEGORY= pns.DOCUMENT_STYLE
+
+        UNION ALL
+
+        SELECT
+        pns.NOTICE_ID,
+        pns.BP_ID,
+        pns.TIMES,
+        pns.NOTICE_TYPE,
+        pns.COURIER_COMPANY,
+        pns.TRACKING_NUMBER,
+        pns.SHIPPING_DATE,
+        pns.RECIPIENT,
+        pns.RECIPIENT_CALL,
+        pns.RECIPIENT_ADDRESS,
+        pns.ZIP_CODE,
+        pns.DESCRIPTION,
+        pns.DOCUMENT_TYPE,
+        pns.DOCUMENT_CATEGORY,
+        pns.DOCUMENT_STYLE,
+        pns.BUSINESS_TYPE,
+        pns.CONTRACT_ID,
+        cc.CONTRACT_NUMBER,
+        cc.CONTRACT_NAME,
+        fp.APPROVAL_NUMBER,
+        hbm.BP_NAME,
+         (SELECT MIN(FQC.DUE_DATE) FROM CON_CONTRACT_CASHFLOW FQC WHERE FQC.CONTRACT_ID=pns.CONTRACT_ID AND FQC.TIMES=PNS.TIMES) DUE_DATE,
+        pns.CREATED_BY
+        FROM PLM_NOTICE_SENT pns
+        LEFT JOIN CON_CONTRACT cc ON pns.CONTRACT_ID = cc.CONTRACT_ID
+        LEFT JOIN PRJ_PROJECT fp ON cc.PROJECT_ID = fp.PROJECT_ID
+        LEFT JOIN HLS_BP_MASTER hbm ON pns.BP_ID = hbm.BP_ID
+        WHERE
+            cc.DATA_CLASS='NORMAL'
+        AND cc.DOCUMENT_CATEGORY='CON_CONTRACT'
+        AND cc.DOCUMENT_CATEGORY= pns.DOCUMENT_STYLE
+        ) NOS
+        WHERE 1=1
+        AND (NOS.CREATED_BY=#{request.userId} OR #{positionCode}='00300' OR #{positionCode}='05500' OR #{request.userId}=10001)
+        <if test="noticeId!=null">
+            AND NOS.NOTICE_ID = #{noticeId}
+        </if>
+        <if test="noticeType!=null">
+            AND NOS.NOTICE_TYPE = #{noticeType}
+        </if>
+        <if test="bpName!=null">
+            and NOS.BP_NAME like concat(concat('%',#{bpName}),'%')
+        </if>
+        <if test="dueDateStart!=null">
+            AND NOS.DUE_DATE &gt;= #{dueDateStart}
+        </if>
+        <if test="dueDateEnd!=null">
+            AND NOS.DUE_DATE &lt;= #{dueDateEnd}
+        </if>
+        <if test="shippingDateStart!=null">
+            AND NOS.SHIPPING_DATE &gt;= #{shippingDateStart}
+        </if>
+        <if test="shippingDateEnd!=null">
+            AND NOS.SHIPPING_DATE &lt;= #{shippingDateEnd}
+        </if>
+        ORDER BY NOS.NOTICE_ID DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure outputPath="/parameter">
+        <a:model-query model="$com.hand.hls.fnd.service.IHlsFndAttributeSequenceService.selectHeaderId"
+                       rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator=","
+                        status_field="/parameter/@ImportSuccess" template_code="YX_LEASE_ITEM_MANUFACTURER"
+                        user_id="${/session/@user_id}"/>
+    </a:init-procedure>
+
+    <a:view>
+        <a:link id="prj355_excel_import_link" url="${/request/@context_path}/yx/manufacturer/batch/excel/import"/>
+        <a:link id="prj316f10_project_import_error_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316/prj_project_excel_import_error_msg.lview"/>
+        <script><![CDATA[
+
+
+        function prj355_excel_import_error_close(datas){
+            parent.$L.Masker.unmask(parent.Ext.getBody());
+            prj355_excel_import_close();
+        }
+
+        function prj355_excel_import_close(){
+            parent._file_upload_window.close();
+        }
+
+        parent.Leaf.request({
+            url: $('prj355_excel_import_link').getUrl() + "?headerId=${/model/header/record/@header_id}",
+            para: {headerId:'${/model/header/record/@header_id}'},
+            success: function (res) {
+                parent.$L.Masker.unmask(parent.Ext.getBody());
+                $L.Masker.unmask(Ext.getBody());
+
+                if(res.error.message == 'Y'){
+                    parent.$L.showConfirm("提示", "导入成功",function(){
+                        prj355_excel_import_close();
+                    });
+                }else {
+
+                    var win = new Leaf.Window({
+                        id: 'prj355_excel_import_open_winid',
+                        params: {
+                            winid: 'yx_lease_item_import_error_message_win_id',
+                            funciton_code: 'PRJ316F10',
+                            layout_code: 'PRJ316F10',
+                            head_id: '${/model/header/record/@header_id}',
+                            function_usage: 'QUERY',
+                            document_category: 'YX_LEASE_ITEM_MANUFACTURER'
+                        },
+                        url: $('prj316f10_project_import_error_id').getUrl(),
+                        title: '生产厂商导入异常信息',
+                        fullScreen: true
+                    });
+
+                    win.on('close', function () {
+                        prj355_excel_import_close();
+                    });
+                }
+            },
+            failure: function (datas) {
+                prj355_excel_import_error_close(datas);
+            },
+            error: function (datas) {
+                prj355_excel_import_error_close(datas);
+            },
+            scope: this,
+            sync: true
+        });
+
+        ]]></script>
+        <a:screenBody>
+
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

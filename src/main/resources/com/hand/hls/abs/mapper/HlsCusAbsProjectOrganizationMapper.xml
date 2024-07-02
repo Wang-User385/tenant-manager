@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProjectOrganizationMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProjectOrganization">
+        <result column="organization_id" property="organizationId" jdbcType="DECIMAL"/>
+        <result column="project_id" property="projectId" jdbcType="DECIMAL"/>
+        <result column="organization_type" property="organizationType" jdbcType="VARCHAR"/>
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL"/>
+        <result column="take_lead" property="takeLead" jdbcType="VARCHAR"/>
+        <result column="collection_flag" property="collectionFlag" jdbcType="VARCHAR"/>
+        <result column="bank_account_type" property="bankAccountType" jdbcType="VARCHAR"/>
+        <result column="bank_account_id" property="bankAccountId" jdbcType="DECIMAL"/>
+        <result column="contact_person" property="contactPerson" jdbcType="VARCHAR"/>
+        <result column="contact_phone" property="contactPhone" jdbcType="VARCHAR"/>
+        <result column="organization_name" property="organizationName" jdbcType="VARCHAR"/>
+        <result column="bank_account_name" property="bankAccountName" jdbcType="VARCHAR"/>
+        <result column="bank_account_num" property="bankAccountNum" jdbcType="VARCHAR"/>
+        <result column="bank_branch_name" property="bankBranchName" jdbcType="VARCHAR"/>
+        <result column="receiver_flag" property="receiverFlag" jdbcType="VARCHAR"/>
+         <result column="description" property="description" jdbcType="VARCHAR" />
+         <result column="organization_type_n" property="organizationTypeN" jdbcType="VARCHAR" />
+        <result column="organization_name_n" property="organizationNameN" jdbcType="VARCHAR"/>
+        <result column="bank_account_name_n" property="bankAccountNameN" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryDetail" parameterType="com.hand.hls.abs.dto.HlsCusAbsProjectOrganization" resultMap="BaseResultMap">
+        select co.*,
+        co.organization_name as organization_name_n,
+        co.bank_account_name as bank_account_name_n,
+        (select scv.MEANING
+        from sys_code_b sc,sys_code_value_b scv
+        where sc.CODE_ID = scv.CODE_ID
+        and sc.CODE = 'ABS.INSTITUTION_TYPE'
+        and scv.value = co.organization_type) organization_type_n
+
+        from ct_abs_project_organization co
+        where
+        1 = 1
+        <if test="projectId != null">
+            and co.project_id = #{projectId}
+        </if>
+        <if test="receiverFlag != null">
+            and co.receiver_flag = #{receiverFlag}
+        </if>
+         <if test="organizationName != null">
+            and co.organization_name = #{organizationName}
+        </if>
+    </select>
+
+</mapper>

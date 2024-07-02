@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: huangtianyang
+    Date: 2019/02/19 16:37
+    Revision: 1.0 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="eft101_detail_id" url="${/request/@context_path}/modules/EFT/EFT100/recvice_detail.lview"/>
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            ds.setQueryParameter('business_type', 'GAP');
+        }
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'open_payment_detail_win';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'apply_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        function open_payment_detail_win(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = {};
+            param.transfer_id = record.get('transfer_id');
+            param['url_title'] = '资金调拨明细';
+            param['function_code'] = 'EFT101';
+            param['winid'] = 'eft101_detail_winid';
+            if(record.get('apply_status') === 'APPROVING' || record.get('apply_status') === 'APPROVED'){
+                param['maintain_type'] = 'READONLY';
+                param['function_usage'] = 'QUERY';
+            }
+            hls_doc_get_layout_code(param, 'eft101_detail_id', ds_id, 'EFT100');
+        }
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            let array = $('EFT200_G_CON_eft_fund_transfer_ds').getSelectedJson();
+            if(array.length === 0){
+                return;
+            }
+            var isCanConfirm = array.every(function (item) {
+                return item.apply_status === 'NEW' || item.apply_status === 'APPROVED_RETURN';
+            });
+
+            if(!isCanConfirm) {
+                Leaf.showMessage("提示", "不能作废已经确认或作废或者调拨单未审批通过的单据,请检查！", null);
+                return;
+            }
+
+            Leaf.showConfirm("提示", "确认作废?", function () {
+                Leaf.request({
+                    url: "${/request/@context_path}/eft/finance/task/list/cancel",
+                    para: array,
+                    success: function (datas) {
+                        $('EFT200_G_CON_eft_fund_transfer_ds').query();
+                        Leaf.showMessage("提示", "操作成功!", null);
+                    },
+                    error: function () {
+                        Leaf.showMessage("提示", "初始化出错!", null);
+                    },
+                    scope: this
+                });
+            });
+        };
+
+
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            Leaf.showConfirm("提示", "新增调拨?", function () {
+                Leaf.request({
+                    url: "${/request/@context_path}/eft/gap/transfer/create",
+                    success: function (datas) {
+                        var transfer_id = datas.result.record[0].transfer_id;
+                        var param = {};
+                        param.transfer_id = transfer_id;
+                        param['url_title'] = '资金调拨明细';
+                        param['function_code'] = 'EFT101';
+                        param['winid'] = 'eft101_detail_winid';
+                        hls_doc_get_layout_code(param, 'eft101_detail_id', 'EFT200_G_CON_eft_fund_transfer_ds', 'EFT200');
+                    },
+                    error: function () {
+                        Leaf.showMessage("提示", "初始化出错!", null);
+                    },
+                    scope: this
+                });
+            });
+
+        };
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+    
+    

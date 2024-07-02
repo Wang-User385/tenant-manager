@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="ast020_asset_class_head_add"
+                url="${/request/@context_path}/modules/AST/AST_MANAGE/AST020/hls_asset_class_detail.lview"/>
+        <a:link id="ast020_asset_class_detail_id"
+                url="${/request/@context_path}/modules/AST/AST_MANAGE/AST020/hls_asset_class_contract_detail.lview"/>
+        <script><![CDATA[
+        /*创建*/
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_asset_class_head');
+            var param = {};
+            param['url_title'] = '资产分类创建';
+            param['function_code'] = 'AST020_LS_F1';
+            param['function_usage'] = 'MODIFY';
+            param['winid'] = 'asset_class_head_add_winid';
+            param['screen_width'] = '600';
+            param['screen_height'] = '350';
+            hls_doc_get_layout_code(param, 'ast020_asset_class_head_add', ds_id, 'AST020_LS');
+        }
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'class_detail') {
+                return '<a href="javascript:open_asset_class_detail_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + config_record.get('prompt') + '</a>';
+            }
+            return value;
+        };
+
+        /*function open_asset_class_detail_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '分类明细页面';
+            param['function_code'] = 'AST020F1';
+            // param['function_usage'] = 'CREATE';
+            if (record.get('approve_status') === 'APPROVING' || record.get('approve_status') === 'APPROVED' ) {
+                param['function_usage'] = 'QUERY';
+                param['maintain_type'] = 'READONLY';
+            } else {
+                param['function_usage'] = 'MODIFY';
+            }
+            param['winid'] = 'asset_class_detail_winid';
+            hls_doc_get_layout_code(param, 'ast020_asset_class_detail_id', ds_id, 'AST020');
+        }*/
+
+
+        function open_asset_class_detail_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param=record.data;
+            param['url_title'] = '分类明细页面创建';
+           if(record.get('document_type') === 'PERIOD' ){
+               //调整类型：定时
+               param['function_code'] = 'AST020_LS_F2';
+           } else{
+               //调整类型：临时
+               param['function_code'] = 'AST020_LS_F3';
+           }
+            if (record.get('approve_status') === 'APPROVING' || record.get('approve_status') === 'APPROVED' ) {
+                param['function_usage'] = 'QUERY';
+                param['maintain_type'] = 'READONLY';
+            } else {
+                param['function_usage'] = 'MODIFY';
+            }
+            param['winid'] = 'asset_class_detail_winid';
+            hls_doc_get_layout_code(param, 'ast020_asset_class_detail_id', ds_id, 'AST020_LS');
+        }
+
+        //提交审批
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_asset_class_head');
+            var record = $(ds_id).getCurrentRecord();
+            var class_head_id = record.get('class_head_id');
+            var approve_status = record.get('approve_status');
+            if (approve_status == 'APPROVING' || approve_status == 'APPROVED') {
+                Leaf.showMessage('${HLS.PROMPT}', '该单据不可提交审批，请核对单据状态！');
+                return;
+            }
+
+            //校验字段必填
+            if($(ds_id).validate()){
+                new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: '${/request/@context_path}/hls/asset/class/wfl/submit',
+                        para: {
+                            class_head_id: class_head_id
+                        },
+                        success: function (res) {
+                            Leaf.SideBar.show({
+                                msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                duration: 2000
+                            });
+                            $(ds_id).query();
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }, function cancel() {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                }, 200, 100);
+            }
+        };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

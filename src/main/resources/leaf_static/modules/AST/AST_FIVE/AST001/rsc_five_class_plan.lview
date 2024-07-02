@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangxing5129  
+    $Date: 2013-8-3 上午11:03:33  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure>
+        <a:model-query
+                defaultWhereClause="v.code=&apos;RSC200_RSC_FIVE_CLASS_USAGE_TYPE&apos; and v.code_value=&apos;SIGNAL_LAMP&apos;"
+                model="$com.hand.hap.system.service.ICodeService.getSysCodeDefaultValue" rootPath="usage_type"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="rsc_five_class_code_link"
+                url="${/request/@context_path}/modules/AST/AST_FIVE/AST001/rsc_five_class_code.lview"/>
+        <!--<a:link id="rsc_fc_target_signal_lamp_link" url="${/request/@context_path}/modules/AST/AST_FIVE/AST001/rsc_fc_target_signal_lamp.lview"/>-->
+        <a:link id="sys_service_welcome_link" url="${/request/@context_path}/welcome.lview"/>
+        <script><![CDATA[
+            function rsc_200_query() {
+                $('rsc200_result_ds').query();
+            }
+            
+            function rsc_200_grid_submit() {
+                var result_ds = $('rsc200_result_ds');
+                if (result_ds.validate()) {
+                    result_ds.submit();
+                }
+            }
+            
+            function rsc_200_grid_add() {
+                $('rsc_class_plan_grid').showEditorByRecord($('rsc200_result_ds').create());
+            
+            }
+            
+            function rsc200PlanCodeFunction(record, name) {
+                if (record.isNew) {
+                    return 'rsc200_five_class_plan_tf';
+                } else {
+                    return '';
+                }
+            }
+            
+            function rsc200ModifyPageRenderer(value, record, name) {
+                var plan_code = record.get('five_class_plan');
+                var usage_type = record.get('usage_type');
+            
+                if (record.isNew) {
+                    return '';
+                }
+                return '<a href="javascript:rsc200OpenPage(\'' + plan_code + '\',\'' + usage_type + '\')">${l:RSC_FIVE_CLASS_PLANS.MODIFY_PAGE}</a>';
+            }
+            
+            function rsc200OpenPage(plan_code, usage_type) {
+            
+                new Leaf.Window({
+                    id: 'rsc_five_class_code_window',
+                    url: $('rsc_five_class_code_link').getUrl() + '?plan_code=' + plan_code + '&usage_type=' + usage_type,
+                    title: '${l:RSC_FIVE_CLASS_PLANS.SET_CODE}',
+                    height: 450,
+                    width: 690
+                });
+            }
+            
+            function rsc200LightRuleRend(value, record, name) {
+                var plan_code = record.get('five_class_plan');
+                var usage_type = record.get('usage_type');
+                if (record.isNew || usage_type == 'RISK_MATRIX') {
+                    return '';
+                } else {
+                    return '<a href="javascript:rsc200OpenLampRulePage(\'' + plan_code + '\',\'' + usage_type + '\')">${l:RSC_FIVE_CLASS_PLANS.MODIFY_PAGE}</a>';
+                }
+            }
+            
+            function rsc200OpenLampRulePage(plan_code, usage_type) {
+                new Leaf.Window({
+                    id: 'rsc_fc_target_signal_lamp',
+                    url: $('rsc_fc_target_signal_lamp_link').getUrl() + '?plan_code=' + plan_code + '&usage_type=' + usage_type,
+                    title: '${l:RSC_FIVE_CLASS_TARGET_VALUE.LAMP_LIGHT_RULE}',
+                    height: 445,
+                    width: 440
+                });
+            }
+            
+            function rsc200CompanyAllocation(value, record, name) {
+            
+               }
+            
+            function planCodeValidator(record, name, value) {
+                if (name == 'five_class_plan' && record.isNew && !(Leaf.isEmpty(record.get('five_class_plan')))) {
+                    var records = $('rsc200_result_ds').getAll();
+            
+                    for (var i = 0,
+                        length = records.length;i < length;i++) {
+                        var r = records[i],
+                            v = r.get(name);
+            
+                        if (r != record && v == value) {
+                            return '${l:RSC_FIVE_CLASS_PLANS.E001}';
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            function rsc200ClassPlanUpdate(ds, record, name, valid) {
+                if (name == 'five_class_plan' && !valid) {
+                    Leaf.showInfoMessage('${l:PROMPT.ERROR}', '${l:RSC_FIVE_CLASS_PLANS.E001}');
+                }
+            }
+            
+            function rsc200UsageTypeFunction(record, name) {
+                if (record.isNew) {
+                    return 'rsc200_five_class_plan_cbb';
+                } else {
+                    return '';
+                }
+            }
+            
+            function submitsuccess(ds, record) {
+                $('rsc200_result_ds').query();
+            }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="rsc200_updatemethod" lookupCode="RSC_FIVE_CLASS_UPDATE_METHOD"/>
+            <a:dataSet id="rec200_usage_type_ds" lookupCode="RSC_FIVE_CLASS_USAGE_TYPE"/>
+            <a:dataSet id="rsc200_query_ds" queryUrl="${/request/@context_path}/ast/five/class/plan/query"
+                       submitUrl="${/request/@context_path}/ast/five/class/plan/submit"/>
+            <a:dataSet id="rsc200_result_ds" autoCount="true" autoQuery="true" fetchAll="false"
+                       queryUrl="${/request/@context_path}/ast/five/class/plan/query"
+                       submitUrl="${/request/@context_path}/ast/five/class/plan/submit" pageSize="15"
+                       queryDataSet="rsc200_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="five_class_plan" required="true" validator="planCodeValidator"/>
+                    <a:field name="usage_type_desc" defaultValue="${/model/usage_type/record/@code_value_name}"
+                             displayField="code_value_name" options="rec200_usage_type_ds" required="true"
+                             returnField="usage_type" valueField="code_value"/>
+                    <a:field name="calculate_object"/>
+                    <a:field name="update_system_method_desc" displayField="code_value_name"
+                             options="rsc200_updatemethod" returnField="update_system_method" valueField="code_value"/>
+                    <a:field name="description" required="true"/>
+                    <a:field name="usage_type" defaultValue="${/model/usage_type/record/@code_value}"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="rsc_200_query" text="HLS.QUERY"/>
+                <a:gridButton click="rsc_200_grid_add" text="HLS.NEW"/>
+                <a:gridButton click="rsc_200_grid_submit" text="HLS.SAVE"/>
+            </a:screenTopToolbar>
+            <a:grid id="rsc_class_plan_grid" bindTarget="rsc200_result_ds" marginHeight="50" marginWidth="20" navBar="true"
+                    width="1000">
+                <a:columns>
+                    <a:column name="five_class_plan" align="left" editorFunction="rsc200PlanCodeFunction"
+                              prompt="RSC_FIVE_CLASS_PLAN.FIVE_CLASS_PLAN_CODE" sortable="true" width="100"/>
+                    <a:column name="description" align="left" editor="rsc200_five_class_plan_tf"
+                              prompt="RSC_FIVE_CLASS_PLAN.DESCRIPTION" width="200"/>
+                    <!--<a:column name="usage_type_desc" align="left" editorFunction="rsc200UsageTypeFunction"
+                              prompt="RSC_FIVE_CLASS_PLAN.USAGE_TYPE" width="100"/>
+                    <a:column name="calculate_object" align="left" editor="rsc200_five_class_plan_tf"
+                              prompt="RSC_FIVE_CLASS_PLAN.CALCULATE_OBJECT" width="100"/>
+                    <a:column name="update_system_method_desc" align="left" editor="rsc200_five_class_plan_cbb"
+                              prompt="RSC_FIVE_CLASS_PLAN.UPDATE_SYSTEM_METHOD" width="100"/>-->
+                    <a:column name="rsc_200_level_definition" align="center"
+                              prompt="RSC_FIVE_CLASS_PLAN.LEVEL_DEFINITION" renderer="rsc200ModifyPageRenderer"
+                              width="80"/>
+                    <!--<a:column name="rsc_200_light_rule_ren" align="center" prompt="RSC_FIVE_CLASS_PLAN.LIGHT_RULE" renderer="rsc200LightRuleRend" width="100"/>-->
+                    <!-- <a:column name="rsc_200_company_allocation" prompt="RSC_FIVE_CLASS_PLAN.COMPANY_ALLOCATION" renderer="rsc200CompanyAllocation"/> -->
+                    <a:column name="enabled_flag" align="center" prompt="RSC_FIVE_CLASS_PLAN.ENABLED_FLAG"
+                              editor="rsc200_five_class_plan_cb" width="50"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="rsc200_five_class_plan_tf"/>
+                    <a:comboBox id="rsc200_five_class_plan_cbb"/>
+                    <a:checkBox id="rsc200_five_class_plan_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

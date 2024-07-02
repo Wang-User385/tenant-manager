@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hls.mapper.HlsDurationDepositAccountMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hls.dto.HlsDurationDepositAccount">
+        <result column="ACCOUNT_ID" property="accountId" jdbcType="DECIMAL" />
+        <result column="DEPOSIT_ID" property="depositId" jdbcType="DECIMAL" />
+        <result column="BANK_ACCOUNT_ID" property="bankAccountId" jdbcType="DECIMAL" />
+        <result column="REFUND_AMOUNT" property="refundAmount" jdbcType="DECIMAL" />
+        <result column="PAYMENT_METHOD" property="paymentMethod" jdbcType="VARCHAR" />
+        <result column="BANK_SLIP_NUM" property="bankSlipNum" jdbcType="VARCHAR" />
+
+        <!--关联查询字段 -->
+        <result column="bank_branch_name" property="bankBranchName" jdbcType="VARCHAR" />
+        <result column="bank_account_num" property="bankAccountNum" jdbcType="VARCHAR" />
+        <result column="bank_account_name" property="bankAccountName" jdbcType="VARCHAR" />
+        <result column="payment_method_n" property="paymentMethodN" jdbcType="VARCHAR" />
+
+    </resultMap>
+    <select id="hlsDurationDepositAccountDetailQuery" resultMap="BaseResultMap" parameterType="com.hand.hls.hls.dto.HlsDurationDepositAccount">
+        select
+            t.*,
+            (select cba.bank_branch_name from csh_bank_account cba where cba.bank_account_id = t.bank_account_id)bank_branch_name,
+            (select cba.bank_account_num from csh_bank_account cba where cba.bank_account_id = t.bank_account_id)bank_account_num,
+            (select cba.bank_account_name from csh_bank_account cba where cba.bank_account_id = t.bank_account_id)bank_account_name,
+            (SELECT scv.meaning
+             FROM sys_code_b scb, sys_code_value_b scv
+             WHERE scb.CODE = 'CSH.PAYMENT_METHOD'
+               AND scb.CODE_ID = scv.CODE_ID
+               AND scv.value = t.payment_method) payment_method_n
+        from hls_duration_deposit_account t
+        <where>
+            <if test="depositId!=null">
+                t.deposit_id = #{depositId}
+            </if>
+        </where>
+    </select>
+
+    <select id="getRefundAmount" resultType="java.lang.Double" parameterType="com.hand.hls.hls.dto.HlsDurationDepositAccount">
+        SELECT nvl(SUM(nvl(l.refund_amount, 0)),0) refund_amount
+        FROM hls_duration_deposit         d,
+             hls_duration_ln              l
+        WHERE d.hd_id = l.hd_id
+          AND l.source_type IN ('DEPOSIT', 'INTEREST')
+          and d.source_id = #{depositId}
+    </select>
+</mapper>

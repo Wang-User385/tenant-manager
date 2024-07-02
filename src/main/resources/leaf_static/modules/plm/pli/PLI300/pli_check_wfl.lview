@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: lrd
+    Date: 2020/02/24 14:13
+    Revision: 1.0
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            html,body{
+                height: 1000px;
+                width: 90%;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="pli_check_wfl_detail_link_id"
+                url="${/request/@context_path}/modules/plm/pli/PLI300/pli_check_detail.lview"/>
+        <script><![CDATA[
+
+        var businessKey = '${/parameter/@businessKey}';
+
+        var readModel = '${/parameter/@readModel}';
+
+        if (!businessKey) {
+            businessKey = parent.currentTaskInfo.process_instance.business_key;
+        }
+
+        var postloanInspection = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "postloanInspection";
+        });
+
+        postloanInspection = JSON.parse(postloanInspection[0].value);
+
+        var isPlaneCheck = postloanInspection.isPlaneCheck;
+
+        var inspectionMethod = postloanInspection.inspectionMethod;
+
+        var finStatementHdId = postloanInspection.finStatementHdId;
+
+        var inspectionType = postloanInspection.inspectionType;
+
+
+        var function_code;
+
+        //打开对应的页面
+        if(isPlaneCheck == 'Y'){
+            //飞机（非现场）
+            if(inspectionType == 'OFF_SITE_INSPECT_PLAN'){
+                function_code = 'LOAN_INSPECTION';
+            }
+            //飞机（不定期-现场）
+            if(inspectionMethod == 'IRREGULAR' && inspectionType == 'ON_SITE_INSPECT_PLANE'){
+                function_code = 'LOAN_INSPECTION_SCENE';
+            }
+        }else{
+            if(inspectionType == 'ON_SITE_INSPECT'){
+                //现场定期
+                if(inspectionMethod == 'REGULAR') {
+                    function_code = 'LOAN_SCENE';
+                }
+                //现场不定期
+                if(inspectionMethod == 'IRREGULAR') {
+                    function_code = 'LOAN_NOSCENE';
+                }
+            }
+            if(inspectionType == 'OFF_SITE_INSPECT'){
+                //非现场定期
+                if(inspectionMethod == 'REGULAR') {
+                    function_code = 'LOAN_OFF_SCENE';
+                }
+                //非现场不定期
+                if(inspectionMethod == 'IRREGULAR') {
+                    function_code = 'LOAN_OFF_NOSCENE';
+                }
+            }
+
+        }
+
+        var opt = {
+            postloan_inspection_id:    postloanInspection.postloanInspectionId,
+            bp_id :  postloanInspection.bpId,
+            fin_statement_hd_id: postloanInspection.finStatementHdId,
+            function_code :function_code
+        }
+
+        if(readModel != 'edit'){
+            opt['maintain_type'] = 'READONLY';
+            opt['function_usage'] = 'QUERY';
+        }
+        opt['readModel'] = readModel;
+
+        var pageChooser = new PageChooser({
+            url: $('pli_check_wfl_detail_link_id').getUrl(),
+            function_code: function_code,
+            context_path: '${/request/@context_path}',
+            opt: opt,
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

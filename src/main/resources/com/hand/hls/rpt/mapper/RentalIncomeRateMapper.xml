@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.rpt.mapper.RentalIncomeRateMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.rpt.dto.RentalIncomeRate">
+        <result column="RECORD_ID" property="recordId" jdbcType="BIGINT"/>
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="BIGINT"/>
+        <result column="CONTRACT_ID" property="contractId" jdbcType="BIGINT"/>
+        <result column="BP_ID" property="bpId" jdbcType="BIGINT"/>
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR"/>
+        <result column="CF_ITEM" property="cfItem" jdbcType="BIGINT"/>
+        <result column="ORGANIZATION_NAME" property="organizationName" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="DUE_DATE" property="dueDate" jdbcType="TIMESTAMP"/>
+        <result column="LAST_RECEIVED_DATE" property="lastReceivedDate" jdbcType="TIMESTAMP"/>
+        <result column="CURRENCY_NAME" property="currencyName" jdbcType="VARCHAR"/>
+        <result column="INT_RATE" property="intRate" jdbcType="DECIMAL"/>
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL"/>
+        <result column="RECEIVED_AMOUNT" property="receivedAmount" jdbcType="DECIMAL"/>
+        <result column="OVERDUE_AMOUNT" property="overdueAmount" jdbcType="DECIMAL"/>
+        <result column="BUSINESS_UNIT" property="businessUnit" jdbcType="VARCHAR"/>
+        <result column="PLAN_JUDGE" property="planJudge" jdbcType="VARCHAR"/>
+        <result column="SOURCES_FLAG" property="sourcesFlag" jdbcType="VARCHAR"/>
+        <result column="TIMES" property="times" jdbcType="BIGINT"/>
+
+        <result column="attributes_1" property="attributes_1" jdbcType="VARCHAR"/>
+        <result column="attributes_2" property="attributes_2" jdbcType="VARCHAR"/>
+        <result column="attributes_3" property="attributes_3" jdbcType="VARCHAR"/>
+        <result column="attributes_4" property="attributes_4" jdbcType="VARCHAR"/>
+        <result column="attributes_5" property="attributes_5" jdbcType="VARCHAR"/>
+        <result column="attributes_6" property="attributes_6" jdbcType="VARCHAR"/>
+        <result column="attributes_7" property="attributes_7" jdbcType="VARCHAR"/>
+        <result column="attributes_8" property="attributes_8" jdbcType="VARCHAR"/>
+        <result column="attributes_9" property="attributes_9" jdbcType="VARCHAR"/>
+        <result column="attributes_10" property="attributes_10" jdbcType="VARCHAR"/>
+        <result column="attributes_11" property="attributes_11" jdbcType="VARCHAR"/>
+        <result column="attributes_12" property="attributes_12" jdbcType="VARCHAR"/>
+        <result column="attributes_13" property="attributes_13" jdbcType="VARCHAR"/>
+        <result column="attributes_14" property="attributes_12" jdbcType="VARCHAR"/>
+        <result column="attributes_15" property="attributes_13" jdbcType="VARCHAR"/>
+
+        <result column="DUE_DATE_FROM" property="dueDateFrom" jdbcType="TIMESTAMP"/>
+        <result column="DUE_DATE_TO" property="dueDateTo" jdbcType="TIMESTAMP"/>
+        <result column="DUE_AMOUNT_FROM" property="dueAmountFrom" jdbcType="DECIMAL"/>
+        <result column="DUE_AMOUNT_TO" property="dueAmountTo" jdbcType="DECIMAL"/>
+        <result column="OUTSTANDING_AMOUNT" property="outstandingAmount" jdbcType="DECIMAL"/>
+        <result column="OUTSTANDING_AMOUNT_FROM" property="outstandingAmountFrom" jdbcType="DECIMAL"/>
+        <result column="OUTSTANDING_AMOUNT_TO" property="outstandingAmountTo" jdbcType="DECIMAL"/>
+        <result column="RECEIVED_RATE" property="receivedRate" jdbcType="DECIMAL"/>
+        <result column="CASHFLOW_ITEM_DESC" property="cashflowItemDesc" jdbcType="VARCHAR"/>
+        <result column="SOURCES_FLAG_N" property="sourcesFlagN" jdbcType="VARCHAR"/>
+        <result column="HEADER_ID" property="headerId" jdbcType="BIGINT"/>
+
+
+
+    </resultMap>
+
+    <select id="queryRentalRateInfo" parameterType="com.hand.hls.rpt.dto.RentalIncomeRate" resultMap="BaseResultMap">
+        select t1.*
+        from (SELECT cc.contract_id,
+        cf.cashflow_id,
+        cc.tenant_id bp_id,
+        (select bm.bp_name
+        from hls_bp_master bm
+        where bm.bp_id = cc.tenant_id) bp_name,
+        cc.contract_number,
+        cf.cf_item,
+        (select hci.description
+        from hls_cashflow_item hci
+        where hci.cf_item = cf.cf_item) cashflow_item_desc,
+        cf.due_amount,
+        cf.times,
+        nvl(cf.received_amount, 0) as received_amount,
+        cf.due_amount - nvl(cf.received_amount, 0) as outstanding_amount,
+        cf.due_date,
+        nvl(cf.last_received_date,
+        (select max(cw.write_off_date)
+        from csh_write_off cw
+        where cw.cashflow_id = cf.cashflow_id
+        and cw.reversed_flag = 'N')) as last_received_date,
+        (select fc.currency_name
+        from fnd_currency fc
+        where fc.currency_code = cc.currency) currency_name,
+        (select fu.unit_name
+        from fnd_org_unit fu
+        where fu.unit_id = cc.unit_id) business_unit,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'RPT.DATA_SOURCES_FLAG'
+        and sv.code_value =
+        nvl('CONTRACT',
+        (select rt.sources_flag
+        from rpt_rental_income_rate rt
+        where rt.cashflow_id = cf.cashflow_id))) sources_flag_n
+        FROM con_contract cc, con_contract_cashflow cf
+        where cf.contract_id = cc.contract_id
+        and cf.cf_direction = 'INFLOW'
+        union all
+        SELECT t.cashflow_id,
+        t.contract_id,
+        t.bp_id,
+        t.bp_name,
+        t.contract_number,
+        t.cf_item,
+        (select hci.description
+        from hls_cashflow_item hci
+        where hci.cf_item = t.cf_item) cashflow_item_desc,
+        t.due_amount,
+        t.times,
+        t.received_amount,
+        t.due_amount - nvl(t.received_amount, 0) as outstanding_amount,
+        t.due_date,
+        t.last_received_date,
+        t.currency_name,
+        t.business_unit,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'RPT.DATA_SOURCES_FLAG'
+        and sv.code_value = t.sources_flag) sources_flag_n
+        FROM rpt_rental_income_rate t
+        where t.sources_flag = 'IMPORT') t1
+        <where>1=1
+            <if test="dueDateTo != null">
+                and t1.due_date &lt;= #{dueDateTo}
+            </if>
+
+            <if test="dueDateFrom != null">
+                and t1.due_date &gt;= #{dueDateFrom}
+            </if>
+            <if test="bpName!=null and bpName!=''">
+                AND t1.bp_name LIKE concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="currencyName!=null and currencyName!=''">
+                AND t1.currency_name LIKE concat(concat('%',#{currencyName}),'%')
+            </if>
+            <if test="contractNumber!=null and currencyName!=''">
+                AND t1.contract_number LIKE concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="dueAmountFrom!=null and dueAmountFrom!=''">
+                and t1.due_amount &gt;=  #{dueAmountFrom}
+            </if>
+            <if test="dueAmountTo!=null and dueAmountTo!=''">
+                and t1.due_amount &lt;= #{dueAmountTo}
+            </if>
+            <if test="businessUnit!=null and businessUnit!=''">
+                AND t1.business_unit LIKE concat(concat('%',#{businessUnit}),'%')
+            </if>
+            <if test="times!=null and times!=''">
+                and t1.times = #{times}
+            </if>
+            <if test="outstandingAmountFrom!=null and outstandingAmountFrom!=''">
+                and t1.outstanding_amount &gt;= #{outstandingAmountFrom}
+            </if>
+            <if test="outstandingAmountTo!=null and outstandingAmountTo!=''">
+                and t1.outstanding_amount &lt;= #{outstandingAmountTo}
+            </if>
+            <if test="cashflowItemDesc!=null and cashflowItemDesc!=''">
+                AND t1.cashflow_item_desc LIKE concat(concat('%',#{cashflowItemDesc}),'%')
+            </if>
+            <if test="cfItem!=null and cfItem!=''">
+                AND t1.cf_item = #{cfItem}
+            </if>
+        </where>
+        order by t1.contract_id desc
+    </select>
+
+    <select id="queryRentalIncomeRate" parameterType="com.hand.hls.rpt.dto.RentalIncomeRate" resultMap="BaseResultMap">
+        SELECT t1.record_id,
+        t1.cashflow_id,
+        t1.contract_id,
+        t1.bp_id,
+        t1.bp_name,
+        t1.cf_item,
+        (select hci.description
+        from hls_cashflow_item hci
+        where hci.cf_item = t1.cf_item) cashflow_item_desc,
+        t1.organization_name,
+        t1.contract_number,
+        t1.due_date,
+        t1.last_received_date,
+        t1.currency_name,
+        t1.int_rate,
+        t1.due_amount,
+        t1.received_amount,
+        t1.overdue_amount,
+        t1.due_amount - nvl(t1.received_amount, 0) as outstanding_amount,
+        t1.business_unit,
+        t1.plan_judge,
+        t1.sources_flag,
+        (select sv.MEANING
+        from sys_code_value_b_v sv
+        where sv.CODE = 'RPT.DATA_SOURCES_FLAG'
+        and sv.code_value = t1.sources_flag) sources_flag_n,
+        t1.times
+        FROM rpt_rental_income_rate t1
+        <where>1=1
+            <if test="dueDateTo != null">
+                and t1.due_date &lt;= #{dueDateTo}
+            </if>
+
+            <if test="dueDateFrom != null">
+                and t1.due_date &gt;= #{dueDateFrom}
+            </if>
+            <if test="bpName!=null and bpName!=''">
+                AND t1.bp_name LIKE concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="currencyName!=null and currencyName!=''">
+                AND t1.currency_name LIKE concat(concat('%',#{currencyName}),'%')
+            </if>
+            <if test="contractNumber!=null and currencyName!=''">
+                AND t1.contract_number LIKE concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="dueAmountFrom!=null and dueAmountFrom!=''">
+                and t1.due_amount &gt;= #{dueAmountFrom}
+            </if>
+            <if test="dueAmountTo!=null and dueAmountTo!=''">
+                and t1.due_amount &lt;= #{dueAmountFrom}
+            </if>
+            <if test="businessUnit!=null and businessUnit!=''">
+                AND t1.business_unit LIKE concat(concat('%',#{businessUnit}),'%')
+            </if>
+            <if test="times!=null and times!=''">
+                and t1.times &lt;= #{times}
+            </if>
+            <if test="outstandingAmountFrom!=null and outstandingAmountFrom!=''">
+                and t1.outstanding_amount &gt;= #{outstandingAmountFrom}
+            </if>
+            <if test="outstandingAmountTo!=null and outstandingAmountTo!=''">
+                and t1.outstanding_amount &lt;= #{outstandingAmountTo}
+            </if>
+            <if test="cashflowItemDesc!=null and cashflowItemDesc!=''">
+                AND t1.cashflow_item_desc LIKE concat(concat('%',#{cashflowItemDesc}),'%')
+            </if>
+        </where>
+        order by t1.contract_id desc
+    </select>
+
+    <select id="rateExcelImportSelect"  parameterType="com.hand.hls.rpt.dto.RentalIncomeRate" resultMap="BaseResultMap">
+        select fil.attributes_1 ,
+        fil.attributes_2 ,
+        fil.attributes_3 ,
+        fil.attributes_4 ,
+        fil.attributes_5 ,
+        fil.attributes_6 ,
+        fil.attributes_7 ,
+        fil.attributes_8 ,
+        fil.attributes_9 ,
+        fil.attributes_10 ,
+        fil.attributes_11 ,
+        fil.attributes_12 ,
+        fil.attributes_13,
+        fil.attributes_14,
+        fil.attributes_15
+        from fnd_interface_lines fil
+        <where>
+            and fil.header_id = #{headerId}
+            and fil.line_number >0
+        </where>
+        order by line_number
+    </select>
+
+    <select id="rentalIncomeRateTotal"  parameterType="com.hand.hls.rpt.dto.RentalIncomeRate" resultMap="BaseResultMap">
+        SELECT t1.*
+        FROM (select nvl((SELECT SUM(cf.due_amount)
+        FROM con_contract          cc,
+        con_contract_cashflow cf
+        WHERE cc.contract_id = cf.contract_id
+        and fu.unit_id = cc.unit_id),
+        0) +
+        nvl((SELECT SUM(rt.due_amount)
+        FROM rpt_rental_income_rate rt
+        WHERE rt.business_unit = fu.unit_name
+        AND rt.sources_flag = 'IMPORT'),
+        0) due_amount,
+        nvl((SELECT SUM(cf.received_amount)
+        FROM con_contract          cc,
+        con_contract_cashflow cf
+        WHERE cc.contract_id = cf.contract_id
+        and fu.unit_id = cc.unit_id),
+        0) +
+        nvl((SELECT SUM(rt.received_amount)
+        FROM rpt_rental_income_rate rt
+        WHERE rt.business_unit = fu.unit_name
+        AND rt.sources_flag = 'IMPORT'),
+        0) received_amount,
+        (SELECT MIN(cc.int_rate)
+        FROM con_contract cc
+        WHERE fu.unit_id = cc.unit_id) int_rate,
+        (SELECT MIN(cf.due_date)
+        FROM con_contract          cc,
+        con_contract_cashflow cf
+        WHERE cc.contract_id = cf.contract_id
+        and fu.unit_id = cc.unit_id) due_date,
+        fu.unit_name business_unit,
+        (SELECT fc.currency_name
+        FROM fnd_currency fc, con_contract cc
+        WHERE fc.currency_code = cc.currency
+        and fu.unit_id = cc.unit_id
+        and rownum=1) currency_name,
+        nvl((SELECT nvl(SUM(cf.due_amount), 0) -
+        nvl(SUM(cf.received_amount), 0)
+        FROM con_contract          cc,
+        con_contract_cashflow cf
+        WHERE cc.contract_id = cf.contract_id
+        and fu.unit_id = cc.unit_id),
+        0) +
+        nvl((SELECT nvl(SUM(rt.due_amount), 0) -
+        nvl(SUM(rt.received_amount), 0)
+        FROM rpt_rental_income_rate rt
+        WHERE rt.business_unit = fu.unit_name
+        AND rt.sources_flag = 'IMPORT'),
+        0) AS overdue_amount,
+
+        round((nvl((SELECT SUM(cf.received_amount)
+        FROM con_contract          cc,
+        con_contract_cashflow cf
+        WHERE cc.contract_id =
+        cf.contract_id
+        and fu.unit_id = cc.unit_id),
+        0) +
+        nvl((SELECT SUM(rt.received_amount)
+        FROM rpt_rental_income_rate rt
+        WHERE rt.business_unit =
+        fu.unit_name
+        AND rt.sources_flag = 'IMPORT'),
+        0)) /
+        (nvl((SELECT SUM(cf.due_amount)
+        FROM con_contract          cc,
+        con_contract_cashflow cf
+        WHERE cc.contract_id =
+        cf.contract_id
+        and fu.unit_id = cc.unit_id),
+        0) +
+        nvl((SELECT SUM(rt.due_amount)
+        FROM rpt_rental_income_rate rt
+        WHERE rt.business_unit =
+        fu.unit_name
+        AND rt.sources_flag = 'IMPORT'),
+        0)),
+        4) received_rate
+        from fnd_org_unit fu
+        where exists (select 1
+        from con_contract cc
+        where cc.unit_id = fu.unit_id)
+        or exists
+        (select 1
+        from rpt_rental_income_rate rt
+        where rt.business_unit = fu.unit_name)) t1
+        <where> 1=1
+            <if test="dueDateFrom!= null">
+                and t1.due_date &gt;= #{dueDateFrom}
+            </if>
+            <if test="dueDateTo!= null">
+                and t1.due_date &lt;= #{dueDateTo}
+            </if>
+            <if test="currencyName!=null and currencyName!=''">
+                AND t1.currency_name LIKE concat(concat('%',#{currencyName}),'%')
+            </if>
+        </where>
+    </select>
+</mapper>

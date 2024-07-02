@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="acr001f1_acr_invoice_create_id"
+                url="${/request/@context_path}/modules/VAT/VAT_INVOICE_REC/ACR001/cashflow_write_off_info.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_create_layout_dynamic_click'] = function () {
+            var arr = $("${/parameter/@layout_code}_G_DISPLAY_INFO_con_contract_cashflow_ds").getSelected();
+            if (arr.length == 0) {
+                $L.showInfoMessage("提示", "请选择要开票的现金流!");
+            } else {
+                for (var i = 0; i < arr.length; i++) {
+                    if (arr[i].get("un_open_amount") <= 0) {
+                        $L.showInfoMessage("提示", "请确认未开票金额大于0");
+                        return;
+                    }
+                }
+                insertHdTemp(arr);
+                enter_invoice_create_win(arr, temp_id);
+            }
+        };
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'write_off') {
+                return '<a href="javascript:open_invoice_create_win(\'' + record.id + '\',\'' + record.ds.id + '\')">核销情况</a>';
+            }
+            return value;
+        };
+
+        function open_invoice_create_win(id, ds) {
+            var param = {};
+            param['url_title'] = '核销明细';
+            param['function_code'] = 'ACR001F1';
+            param['winid'] = 'csh_write_off_winid';
+            param['screen_width'] = '800';
+            param['screen_height'] = '400';
+            param['cashflow_id'] = $(ds).findById(id).get("cashflow_id");
+            hls_doc_get_layout_code(param, 'acr001f1_acr_invoice_create_id', null, 'ACR001F1');
+        }
+
+        function enter_invoice_create_win(arr, temp_id) {
+            var params = [];
+            arr.forEach(function (i) {
+                params.push(i.data.cashflow_id);
+            });
+            new Leaf.Window({
+                id: 'invoice_create_win_id',
+                params: {
+                    temp_id: temp_id,
+                    cashflow_ids: JSON.stringify(params),
+                    win_id: 'invoice_create_win_id',
+                    parent_win_id:'${/parameter/@winid}'
+                },
+                url: '${/request/@context_path}/modules/VAT/VAT_INVOICE_REC/ACR001/vat_invoice_rec_create_edit.lview',
+                title: '销项发票创建',
+                fullScreen: true
+            });
+        }
+
+        var temp_id = null;
+
+        function insertHdTemp(arr) {
+            var params = [];
+            arr.forEach(function (i) {
+                var billingType = "";
+                if(i.data.cf_item_desc == '本金'){
+                    billingType = 'PRINCIPAL';
+                }else if(i.data.cf_item_desc == '利息'){
+                    billingType = 'INTEREST';
+                }
+                params.push({
+                    "cashflowId": i.data.cashflow_id,
+                    "billingType": billingType
+                });
+            });
+            var url = "${/request/@context_path}/acr/invoice/hd/temp/insertTempList?_csrf=${/session/@_csrf.token}";
+            jQuery.ajax({
+                type: 'POST',
+                url: url,
+                data: JSON.stringify(params),
+                async: false,
+                contentType: "application/json; charset=utf-8",
+                success: function (responseData) {
+                    temp_id = responseData;
+                }
+            });
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

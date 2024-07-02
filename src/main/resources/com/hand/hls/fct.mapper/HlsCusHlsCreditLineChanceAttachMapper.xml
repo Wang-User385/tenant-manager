@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceAttachMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceAttach">
+        <result column="chance_attachment_id" property="chanceAttachmentId" jdbcType="DECIMAL"/>
+        <result column="chance_id" property="chanceId" jdbcType="DECIMAL"/>
+        <result column="source_id" property="sourceId" jdbcType="DECIMAL"/>
+        <result column="document_name" property="documentName" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="file_name" property="fileName" jdbcType="VARCHAR"/>
+        <result column="attachment_id" property="attachmentId" jdbcType="VARCHAR"/>
+        <result column="upload_date" property="uploadDate" jdbcType="DATE"/>
+        <result column="upload_person" property="uploadPerson" jdbcType="VARCHAR"/>
+
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+    </resultMap>
+
+
+    <select id="queryCreditChanceAttachInfo" resultMap="BaseResultMap">
+        SELECT hcla.document_name,
+             hcla.description,
+             hcla.chance_attachment_id,
+             hcla.chance_id,
+             (select   wm_concat(fa.attachment_id)
+                  from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+                 where fa.attachment_id = fam.attachment_id
+                   and fam.table_name = 'HLS_CREDIT_LINE_CHANCE'
+                   and hcla.chance_attachment_id = fam.table_pk_value) attachment_id,
+              (select  wm_concat(fa.file_name)
+                  from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+                 where fa.attachment_id = fam.attachment_id
+                   and fam.table_name = 'HLS_CREDIT_LINE_CHANCE'
+                   and hcla.chance_attachment_id = fam.table_pk_value) file_name,
+               (select  max(fa.creation_date)
+                  from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+                 where fa.attachment_id = fam.attachment_id
+                   and fam.table_name = 'HLS_CREDIT_LINE_CHANCE'
+                   and hcla.chance_attachment_id = fam.table_pk_value) upload_date,
+               (select  max(su.description)
+                  from fnd_atm_attachment fa, fnd_atm_attachment_multi fam ,sys_user su
+                 where fa.attachment_id = fam.attachment_id
+                   and fam.table_name = 'HLS_CREDIT_LINE_CHANCE'
+                   and hcla.chance_attachment_id = fam.table_pk_value
+                   and su.user_id = fa.created_by)  upload_person
+          FROM hls_credit_line_attach   hcla
+
+         where
+           hcla.chance_id = #{chanceId}
+
+    </select>
+
+
+
+
+</mapper>

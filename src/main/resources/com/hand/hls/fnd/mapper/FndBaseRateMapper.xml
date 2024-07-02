@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fnd.mapper.FndBaseRateMapper" >
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.FndBaseRate" >
+        <id column="base_rate_id" property="baseRateId" jdbcType="BIGINT" />
+        <result column="base_rate_set" property="baseRateSet" jdbcType="VARCHAR" />
+        <result column="currency" property="currency" jdbcType="VARCHAR" />
+        <result column="base_rate" property="baseRate" jdbcType="DOUBLE" />
+        <result column="months_from" property="monthsFrom" jdbcType="BIGINT" />
+        <result column="months_to" property="monthsTo" jdbcType="BIGINT" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="valid_from" property="validFrom" jdbcType="DATE" />
+        <result column="valid_to" property="validTo" jdbcType="DATE" />
+    </resultMap>
+
+
+    <select id="selectByBaseRateSet" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select
+    *
+    from fnd_base_rate
+    where base_rate_set = #{baseRateSet,jdbcType=VARCHAR}
+  </select>
+
+    <select id="selectByBaseRateType" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select
+    a.*,
+    b.valid_from,
+    b.valid_to
+    from fnd_base_rate a,
+    fnd_base_rate_set b
+    where a.base_rate_set = b.base_rate_set
+    and a.description =#{baseRateType,jdbcType=VARCHAR}
+    </select>
+
+    <select id="selectLatestByBaseRateType" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    SELECT
+        fbr.base_rate_id,
+        fbr.base_rate_set,
+        fbr.currency,
+        fbr.base_rate,
+        fbr.months_from,
+        fbr.months_to,
+        fbr.description
+    FROM
+        fnd_base_rate fbr
+    WHERE
+        fbr.base_rate_set = (
+            SELECT
+                fbrs.base_rate_set
+            FROM
+                fnd_base_rate_set fbrs
+            WHERE
+                (
+                    sysdate BETWEEN fbrs.valid_from
+                    AND fbrs.valid_to
+                    OR (
+                        sysdate > fbrs.valid_from
+                        AND fbrs.valid_to IS NULL
+                    )
+                )
+            AND fbrs.base_rate_type = (
+                SELECT
+                    b.
+                VALUE
+                    value_code
+                FROM
+                    sys_code_b a,
+                    sys_code_value_b b
+                WHERE
+                    a.CODE_ID = b.CODE_ID
+                AND b.ENABLED_FLAG = 'Y'
+                AND a. CODE = 'FND.BASE_RATE_TYPE'
+                AND b.MEANING = #{baseRateType,jdbcType=VARCHAR}
+            )
+            AND fbrs.enabled_flag = 'Y'
+              and rownum=1
+            ORDER BY
+                fbrs.LAST_UPDATE_DATE DESC
+
+        )
+    </select>
+
+</mapper>

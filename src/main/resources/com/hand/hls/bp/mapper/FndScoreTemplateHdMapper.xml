@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.FndScoreTemplateHdMapper">
+    <resultMap id="BaseResultMap1" type="com.hand.hls.bp.dto.FndScoreTemplateHd">
+        <result column="score_template_hd_id" property="scoreTemplateHdId" jdbcType="DECIMAL"/>
+        <result column="company_id" property="companyId" jdbcType="DECIMAL"/>
+        <result column="score_template_hd_code" property="scoreTemplateHdCode" jdbcType="VARCHAR"/>
+        <result column="score_template_hd_name" property="scoreTemplateHdName" jdbcType="VARCHAR"/>
+        <result column="score_template_type_id" property="scoreTemplateTypeId" jdbcType="DECIMAL"/>
+        <result column="score_template_type_name" property="scoreTemplateTypeName" jdbcType="VARCHAR"/>
+        <result column="calc_method" property="calcMethod" jdbcType="VARCHAR"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="financial_flag" property="financialFlag" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="DbColumnMap1" type="com.hand.hls.bp.dto.HlsDbDataSourceColumn">
+        <result column="data_source_column_id" property="dataSourceColumnId" jdbcType="DECIMAL"/>
+        <result column="data_source_id" property="dataSourceId" jdbcType="DECIMAL"/>
+        <result column="data_source_tb_id" property="dataSourceTbId" jdbcType="DECIMAL"/>
+        <result column="column_name" property="columnName" jdbcType="VARCHAR"/>
+        <result column="column_type" property="columnType" jdbcType="VARCHAR"/>
+        <result column="alias_name" property="aliasName" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="dsDescription" property="dsDescription"/>
+    </resultMap>
+
+
+
+    <select id="query1" parameterType="com.hand.hls.bp.dto.FndScoreTemplateHd" resultMap="BaseResultMap1">
+        SELECT fsth.*,fstt.score_template_type_name
+        FROM fnd_score_template_hd fsth
+        left join fnd_score_template_type fstt on fsth.score_template_type_id = fstt.score_template_type_id
+        <where>
+            1=1
+            <if test="scoreTemplateHdId!=null">
+                AND fsth.score_template_hd_id = #{scoreTemplateHdId}
+            </if>
+            <if test="companyId!=null">
+                AND fsth.company_id = #{companyId}
+            </if>
+            <if test="scoreTemplateHdCode!=null">
+                AND fsth.score_template_hd_code LIKE CONCAT(concat('%',#{scoreTemplateHdCode}),'%')
+            </if>
+            <if test="scoreTemplateHdName!=null">
+                AND fsth.score_template_hd_name LIKE CONCAT(concat('%',#{scoreTemplateHdName}),'%')
+            </if>
+            <if test="calcMethod!=null">
+                AND fsth.calc_method LIKE CONCAT(concat('%',#{calcMethod}),'%')
+            </if>
+            <if test="scoreTemplateTypeId!=null">
+                AND fsth.score_template_type_id = #{scoreTemplateTypeId}
+            </if>
+        </where>
+        ORDER BY fsth.score_template_hd_code ASC
+    </select>
+
+
+    <!--<select id="selectList" parameterType="com.hand.hls.bp.dto.FndScoreTemplateHd" resultMap="BaseResultMap1">
+        SELECT * from fnd_score_template_hd fsth
+        <where>
+            <if test="enabledFlag != null">
+                fsth.enabled_flag = #{enabledFlag}
+            </if>
+            <if test="companyId != null">
+                and fsth.company_id = #{companyId}
+            </if>
+        </where>
+    </select>
+
+    <select id="dbCloumnData" parameterType="com.hand.hls.bp.dto.FndScoreTemplateHd" resultMap="DbColumnMap1">
+        SELECT hddsc.*,hddsc.description AS dsDescription
+        FROM hls_db_data_source_column hddsc
+        WHERE EXISTS (
+        SELECT *
+        FROM
+        fnd_score_tplt_db_source fstds
+        WHERE fstds.db_data_source_id = hddsc.data_source_id
+        AND fstds.score_template_hd_id = #{scoreTemplateHdId}
+        )
+    </select>
+
+    <select id="query" parameterType="com.hand.hls.bp.dto.FndScoreTemplateHd" resultMap="BaseResultMap1">
+        SELECT fsth.*,fstt.score_template_type_name
+        FROM fnd_score_template_hd fsth
+        left join fnd_score_template_type fstt on fsth.score_template_type_id = fstt.score_template_type_id
+        <where>
+            1=1
+            <if test="scoreTemplateHdId!=null">
+                AND fsth.score_template_hd_id = #{scoreTemplateHdId}
+            </if>
+            <if test="companyId!=null">
+                AND fsth.company_id = #{companyId}
+            </if>
+            <if test="scoreTemplateHdCode!=null">
+                AND fsth.score_template_hd_code LIKE CONCAT(concat('%',#{scoreTemplateHdCode}),'%')
+            </if>
+            <if test="scoreTemplateHdName!=null">
+                AND fsth.score_template_hd_name LIKE CONCAT(concat('%',#{scoreTemplateHdName}),'%')
+            </if>
+            <if test="calcMethod!=null">
+                AND fsth.calc_method LIKE CONCAT(concat('%',#{calcMethod}),'%')
+            </if>
+            <if test="scoreTemplateTypeId!=null">
+                AND fsth.score_template_type_id = #{scoreTemplateTypeId}
+            </if>
+        </where>
+        ORDER BY fsth.score_template_hd_code ASC
+    </select>
+
+    <select id="selectDbLov" resultMap="DbColumnMap1" parameterType="com.hand.hls.bp.dto.FndScoreTemplateLn">
+        select b.data_source_column_id,
+        b.column_name,
+        b.description as dsDescription
+        from
+        FND_SCORE_TPLT_DB_SOURCE a,
+        hls_db_data_source_column b
+        where a.score_template_hd_id = #{scoreTemplateHdId}
+        <if test="columnName!=null">
+            AND b.cloumn_name = #{columnName}
+        </if>
+        and a.db_data_source_id = b.data_source_id
+        and a.enabled_flag = 'Y'
+        and b.enabled_flag = 'Y'
+    </select>
+-->
+    <select id="selectScoreTemplateHd" resultMap="BaseResultMap1">
+        select
+        fsth.SCORE_TEMPLATE_HD_ID as value_code,
+        fsth.SCORE_TEMPLATE_HD_NAME as value_name,
+        fsth.SCORE_TEMPLATE_HD_NAME,
+        fsth.SCORE_TEMPLATE_HD_CODE,
+        fsth.SCORE_TEMPLATE_HD_ID,
+        fsth.FINANCIAL_FLAG
+        from fnd_score_template_hd fsth
+        where ENABLED_FLAG = 'Y'
+    </select>
+
+
+
+</mapper>

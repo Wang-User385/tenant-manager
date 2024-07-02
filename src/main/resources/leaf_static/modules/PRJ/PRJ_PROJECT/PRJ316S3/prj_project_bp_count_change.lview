@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        var tenant_sec_count = 0;
+        var tenant_sec_max = 999;
+        var warrantor_count = 0;
+        var warrantor_max = 999;
+        var warrantor_count_np = 0;
+        var warrantor_max_np = 999;
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var check_flag = 'Y';
+            var check_sec_flag = 'Y';
+            var check_war_flag = 'Y';
+            var parent_ds_id = '${/parameter/@parent_ds_id}';
+            var bp_ds_id = '${/parameter/@layout_code}_G_GRID_prj_project_bp_ds';
+            var bp_record = $(bp_ds_id).getAll();
+            for(var i=0;i<bp_record.length;i++){
+                if(bp_record[i].data.bp_type == 'TENANT_SEC'){
+                    if(bp_record[i].get('bp_count') < 0){
+                        check_flag = 'N';
+                        check_sec_flag = 'N0';
+                        break;
+                    }else if(bp_record[i].get('bp_count') > tenant_sec_max){
+                        check_flag = 'N';
+                        check_sec_flag = 'N1';
+                        break;
+                    }else{
+                        tenant_sec_count = bp_record[i].get('bp_count');
+                    }
+                }else if (bp_record[i].data.bp_type == 'WARRANTOR' && bp_record[i].data.bp_class == 'ORG'){
+                    if(bp_record[i].get('bp_count') < 0){
+                        check_flag = 'N';
+                        check_war_flag = 'N0';
+                        break;
+                    }else if(bp_record[i].get('bp_count') > warrantor_max){
+                        check_flag = 'N';
+                        check_war_flag = 'N1';
+                        break;
+                    }else{
+                        warrantor_count = bp_record[i].get('bp_count');
+                    }
+                }else if (bp_record[i].data.bp_type == 'WARRANTOR' && bp_record[i].data.bp_class == 'NP'){
+                    if(bp_record[i].get('bp_count') < 0){
+                        check_flag = 'N';
+                        check_war_flag = 'NP0';
+                        break;
+                    }else if(bp_record[i].get('bp_count') > warrantor_max_np){
+                        check_flag = 'N';
+                        check_war_flag = 'NP1';
+                        break;
+                    }else{
+                        warrantor_count_np = bp_record[i].get('bp_count');
+                    }
+                }
+            }
+
+            if(check_flag == 'N'){
+                if(check_sec_flag == 'N0'){
+                    Leaf.showMessage('提示','共同承租人数量不能小于0！');
+                }
+                // if(check_sec_flag == 'N1'){
+                //     Leaf.showMessage('提示','共同承租人数量大于已报备的最大数量！');
+                // }
+                if(check_war_flag == 'N0'){
+                    Leaf.showMessage('提示','法人担保人数量不能小于0！');
+                }
+                // if(check_war_flag == 'N1'){
+                //     Leaf.showMessage('提示','法人担保人数量大于已报备的最大数量！');
+                // }
+                if(check_war_flag == 'NP0'){
+                    Leaf.showMessage('提示','自然人担保人数量不能小于0！');
+                }
+                // if(check_war_flag == 'NP1'){
+                //     Leaf.showMessage('提示','自然人担保人数量大于已报备的最大数量！');
+                // }
+
+            }else{
+                $(parent_ds_id).getCurrentRecord().set('tenant_sec_count',tenant_sec_count);
+                $(parent_ds_id).getCurrentRecord().set('warrantor_count',warrantor_count);
+                $(parent_ds_id).getCurrentRecord().set('warrantor_count_np',warrantor_count_np);
+                $('${/parameter/@winid}').close();
+            }
+
+        };
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+            //debugger;
+            var bp_ds_id = '${/parameter/@layout_code}_G_GRID_prj_project_bp_ds';
+            if(ds.id == bp_ds_id){
+                var bp_record = $(bp_ds_id).getAll();
+                //console.log(bp_record);
+                for(var i=0;i<bp_record.length;i++){
+                    if(bp_record[i].data.bp_type == 'TENANT_SEC'){
+                        bp_record[i].set('bp_count',tenant_sec_count);
+                    }else if (bp_record[i].data.bp_type == 'WARRANTOR' && bp_record[i].data.bp_class == 'ORG'){
+                        bp_record[i].set('bp_count',warrantor_count);
+                    }else if(bp_record[i].data.bp_type == 'WARRANTOR' && bp_record[i].data.bp_class == 'NP'){
+                        bp_record[i].set('bp_count',warrantor_count_np);
+                    }
+                }
+                //console.log(bp_record);
+            }
+            //console.log(bp_record);
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            debugger;
+            if(ds.id == '${/parameter/@layout_code}_G_GRID_prj_project_bp_ds'){
+                var project_id = '${/parameter/@project_id}';
+                ds.setQueryParameter('project_id',project_id);
+            }
+        };
+
+        Leaf.onReady(function() {
+            tenant_sec_count = '${/parameter/@tenant_sec_count}';
+            tenant_sec_max = 99;
+            warrantor_count = '${/parameter/@warrantor_count}';
+            warrantor_max = 99;
+            warrantor_count_np = '${/parameter/@warrantor_count_np}';
+            warrantor_max_np = 99;
+        });
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: congweijing
+    $Date:2021年5月14日
+    $Revision: 1.0
+    $Purpose: 关税现金流待付
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_cont_tariff_payment_req_detail_link"
+                url="${/request/@context_path}/modules/CONT/CONT_TARIFF/TARIFF001/cont_tariff_payment_req_detail.lview"/>
+        <script><![CDATA[
+        //付款申请
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var cashflow_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
+            var cashflow_records = $(cashflow_ds).getSelected();
+            var records=[];
+            var check_flag = 'Y';
+            for(var i=0;i<cashflow_records.length;i++){
+                var bp_name = cashflow_records[0].get('bp_name');
+                var contract_id = cashflow_records[0].get('contract_id');
+                if(cashflow_records[i].get('bp_name') != bp_name){
+                    check_flag = 'N_BP_NAME';
+                    break;
+                }
+
+                if(cashflow_records[i].get('contract_id') != contract_id){
+                    check_flag = 'N_CONTRACT_ID';
+                    break;
+                }
+                records.push(cashflow_records[i].data);
+            }
+            if(check_flag == 'N_BP_NAME'){
+                Leaf.showMessage('提示','所选现金流客户名称不同，无法创建付款申请！');
+                return false;
+            }
+            if(check_flag == 'N_CONTRACT_ID'){
+                Leaf.showMessage('提示','所选现金流支付表编号不同，无法创建付款申请！');
+                return false;
+            }
+            if(cashflow_records.length > 0){
+                Leaf.showConfirm('提示', '确定创建付款申请?', function () {
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: '${/request/@context_path}/tariff/csh/payment/req/create',
+                        para: records,
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $(cashflow_ds).query();
+                            var payment_req_id = res.result.record[0].payment_req_id;
+                            if (payment_req_id != null) {
+                                var param = {
+                                    payment_req_id: payment_req_id,
+                                    url_title: '关税付款申请明细',
+                                    function_code: 'TARIFF001F6',
+                                    function_usage: 'MODIFY',
+                                    winid: 'cont_tariff_payment_req_detail_winid'
+                                };
+                                hls_doc_get_layout_code(param, '${/parameter/@layout_code}_cont_tariff_payment_req_detail_link', null, 'TARIFF001');
+                            } else {
+                                Leaf.showMessage('提示', '未获取到正确的付款申请头ID！');
+                            }
+
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                },null,200,200)
+            }else{
+                Leaf.showMessage('提示','请选择现金流再进行付款申请！');
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }
+
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

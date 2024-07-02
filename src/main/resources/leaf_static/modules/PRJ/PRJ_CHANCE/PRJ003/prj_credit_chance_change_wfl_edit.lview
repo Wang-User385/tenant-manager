@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020-02-21
+    $Description: 工作流跳转页面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            body {
+                height: 400px;
+                width: 1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+
+        <a:link id="prj300_prj_change_detail_link_id" url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ003/prj_credit_chance_change_wfl_edit_detail.lview"/>
+
+        <script id="scriptA"><![CDATA[
+        debugger
+        var businessKey = '${/parameter/@businessKey}';
+        var bk = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "businessKey";
+        });
+        var chance = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "chanceId";
+        });
+        var chanceId =  chance[0].value;
+        if(!businessKey){
+            businessKey = bk[0].value;
+        }
+        var pageChooser = new PageChooser({
+            url: $('prj300_prj_change_detail_link_id').getUrl(),
+            function_code: 'PRJ003F1_CHANGE_AMT',
+            context_path: '${/request/@context_path}',
+            opt: {
+                chance_id: chanceId,
+                maintain_type: 'UPDATE',
+                function_usage: 'MODIFY',
+                function_code: 'PRJ003F1_CHANGE_AMT',
+                credit_flag : 'Y',
+                wfl_bp_flag : '${/parameter/@wflRuleControlFlag}',
+                hidden_button_code:['USER_BUTTON2', 'USER_BUTTON3', 'EXIT']
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

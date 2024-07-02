@@ -1,0 +1,1171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.gld.mapper.HlsCusJeHeadMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.gld.dto.HlsCusJeHead">
+        <result column="JE_HEAD_ID" property="jeHeadId" jdbcType="DECIMAL" />
+        <result column="JE_HD_TEMPLATE_ID" property="jeHdTemplateId" />
+        <result column="DOCUMENT_CATEGORY" property="documentCategory" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_TYPE" property="documentType" jdbcType="VARCHAR" />
+        <result column="BUSINESS_TYPE" property="businessType" jdbcType="VARCHAR" />
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL" />
+        <result column="JE_NUMBER" property="jeNumber" jdbcType="VARCHAR" />
+        <result column="JE_HEAD_STR" property="jeHeadStr" jdbcType="VARCHAR" />
+        <result column="JE_DATE" property="jeDate" jdbcType="DATE" />
+        <result column="PERIOD_NAME" property="periodName" jdbcType="VARCHAR" />
+        <result column="CURRENCY" property="currency" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="JE_STATUS" property="jeStatus" jdbcType="VARCHAR" />
+        <result column="JE_CREATED_BY" property="jeCreatedBy" jdbcType="DECIMAL" />
+        <result column="JE_CREATION_DATE" property="jeCreationDate" jdbcType="DATE" />
+        <result column="JE_CONFIRMED_BY" property="jeConfirmedBy" jdbcType="DECIMAL" />
+        <result column="JE_CONFIRM_DATE" property="jeConfirmDate" jdbcType="DATE" />
+        <result column="GL_STATUS" property="glStatus" jdbcType="VARCHAR" />
+        <result column="GL_MSG" property="glMsg" jdbcType="VARCHAR" />
+        <result column="REVERSE_FLAG" property="reverseFlag"/>
+        <result column="REVERSE_JE_HEAD_ID" property="reverseJeHeadId"/>
+        <result column="JE_TRX_DESCRIPTION" property="jeTrxDescription"/>
+        <result column="JE_STATUS_DESCRIPTION" property="jeStatusDescription"/>
+        <result column="DR_AMOUNT_TOTAL" property="drAmountTotal"/>
+        <result column="CR_AMOUNT_TOTAL" property="crAmountTotal"/>
+        <result column="JE_TRX" property="jeTrx"/>
+        <result column="voucher_number" property="voucherNumber"/>
+        <result column="voucher_id" property="voucherId"/>
+        <result column="je_type" property="jeType"/>
+        <result column="je_amount" property="jeAmount"/>
+        <result column="com_org_num" property="comOrgNum"/>
+        <result column="gl_status_n" property="glStatusN"/>
+        <result column="company_name" property="companyName"/>
+        <result column="currency_name" property="currencyName"/>
+        <result column="currency_n" property="currencyN"/>
+        <result column="exchange_rate" property="exchangeRate"/>
+        <result column="created_date" property="createdDate"/>
+        <result column="business_type_n" property="businessTypeN"/>
+    </resultMap>
+
+    <select id="jeListQuery" parameterType="com.hand.hls.gld.dto.JeHead" resultMap="BaseResultMap">
+        SELECT
+        temp.*
+        FROM
+        (
+        SELECT
+        gjh.*,
+        (
+        SELECT
+        DESCRIPTION
+        FROM
+        hls_document_status
+        WHERE
+        document_category = 'GLD_JE_HEAD'
+        AND status_code = gjh.je_status
+        ) AS JE_STATUS_DESCRIPTION,
+        (
+        SELECT
+        SUM(gjl.DR_AMOUNT)
+        FROM
+        gld_je_line gjl
+        WHERE
+        gjl.JE_HEAD_ID = gjh.JE_HEAD_ID
+        ) AS DR_AMOUNT_TOTAL,
+        (
+        SELECT
+        SUM(gjl.CR_AMOUNT)
+        FROM
+        gld_je_line gjl
+        WHERE
+        gjl.JE_HEAD_ID = gjh.JE_HEAD_ID
+        ) AS CR_AMOUNT_TOTAL,
+        (
+        SELECT
+        wm_concat(v.JE_TRX_EDSCRIPTION)
+        FROM
+        (
+        SELECT DISTINCT
+        glt.description AS JE_TRX_EDSCRIPTION,
+        gjl.JE_HEAD_ID
+        FROM
+        gld_je_line gjl,
+        gld_je_trx glt
+        WHERE
+        gjl.JE_TRX = glt.je_trx
+        ) v
+        WHERE
+        v.JE_HEAD_ID = gjh.JE_HEAD_ID
+        GROUP BY
+        v.JE_HEAD_ID
+        ) AS JE_TRX_DESCRIPTION,
+        (
+        SELECT
+        wm_concat(v.JE_TRX)
+        FROM
+        (
+        SELECT DISTINCT
+        gjl.JE_HEAD_ID,gjl.JE_TRX
+        FROM
+        gld_je_line gjl
+        ) v
+        WHERE
+        v.JE_HEAD_ID = gjh.JE_HEAD_ID
+        GROUP BY
+        v.JE_HEAD_ID
+        ) AS JE_TRX
+        FROM
+        gld_je_head gjh
+        ) temp
+        <where>
+            temp.je_status != 'TRIAL'
+            AND temp.je_status != 'RETRIAL'
+           <if test="jeTrxDescription!=null">
+                AND temp.je_trx_description like concat(concat('%',#{jeTrxDescription}),'%')
+            </if>
+            <if test="jeHeadId!=null">
+                AND temp.je_head_id = #{jeHeadId}
+            </if>
+            <if test="periodName!=null">
+                AND temp.period_name = #{periodName}
+           </if>
+            <if test="amountValue!=null">
+                AND (
+                temp.DR_AMOUNT_TOTAL = #{amountValue}
+                OR temp.CR_AMOUNT_TOTAL = #{amountValue}
+                )
+            </if>
+            <if test="description!=null">
+                AND temp.description LIKE concat(concat('%',#{description}),'%')
+            </if>
+            <if test="jeNumber!=null">
+                AND temp.je_number LIKE concat(concat('%',#{jeNumber}),'%')
+            </if>
+            <if test="jeStatus!=null">
+                AND #{jeStatus} = temp.JE_STATUS
+            </if>
+            <if test="dateFrom!=null">
+                AND to_char(temp.JE_DATE,'YYYY-MM-DD') &gt;= #{dateFrom}
+            </if>
+            <if test="dateTo!=null">
+                AND to_char(temp.JE_DATE,'YYYY-MM-DD') &lt;= #{dateTo}
+            </if>
+            <if test="paramJeTrx!=null">
+                AND JE_TRX IN
+                <foreach collection="paramJeTrx" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="paramStatus!=null">
+                AND temp.JE_STATUS IN
+                <foreach collection="paramStatus" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="paramPeriodName!=null">
+                AND temp.PERIOD_NAME IN
+                <foreach collection="paramPeriodName" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="amountFrom!=null and amountTo!=null">
+                AND (CR_AMOUNT_TOTAL BETWEEN #{amountFrom} AND #{amountTo} OR CR_AMOUNT_TOTAL BETWEEN #{amountFrom} AND #{amountTo})
+            </if>
+            <if test="amountFrom!=null and amountTo==null">
+                AND (CR_AMOUNT_TOTAL &gt; #{amountFrom} OR CR_AMOUNT_TOTAL &gt; #{amountFrom})
+            </if>
+            <if test="amountFrom==null and amountTo!=null">
+                AND (CR_AMOUNT_TOTAL &lt; #{amountFrom} OR CR_AMOUNT_TOTAL &lt; #{amountFrom})
+            </if>
+            <if test="contractNumberFrom!=null">
+                AND
+                #{contractNumberFrom} &lt;(
+                SELECT
+                min(conInfo.CONTRACT_NUMBER)
+                FROM
+                (
+                SELECT
+                gjl.*, (
+                SELECT
+                CONTRACT_NUMBER
+                FROM
+                con_contract
+                WHERE
+                contract_id = (
+                SELECT
+                JE_SOURCE_ID
+                FROM
+                GLD_JE_TRX_DTL
+                WHERE
+                gjl.SOURCE_ID = JE_TRX_DTL_ID
+                )
+                ) AS CONTRACT_NUMBER,
+                gjtd.JE_SOURCE_ID
+                FROM
+                gld_je_line gjl,
+                gld_je_trx_dtl gjtd
+                WHERE
+                gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+                AND gjl.SOURCE_ID = gjtd.JE_TRX_DTL_ID
+                ) conInfo
+                WHERE
+                conInfo.JE_HEAD_ID = temp.JE_HEAD_ID
+                )
+            </if>
+            <if test="contractNumberTo!=null">
+                AND
+                #{contractNumberTo}&gt;(
+                SELECT
+                max(conInfo.CONTRACT_NUMBER)
+                FROM
+                (
+                SELECT
+                gjl.*, (
+                SELECT
+                CONTRACT_NUMBER
+                FROM
+                con_contract
+                WHERE
+                contract_id = (
+                SELECT
+                JE_SOURCE_ID
+                FROM
+                GLD_JE_TRX_DTL
+                WHERE
+                gjl.SOURCE_ID = JE_TRX_DTL_ID
+                )
+                ) AS CONTRACT_NUMBER,
+                gjtd.JE_SOURCE_ID
+                FROM
+                gld_je_line gjl,
+                gld_je_trx_dtl gjtd
+                WHERE
+                gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+                AND gjl.SOURCE_ID = gjtd.JE_TRX_DTL_ID
+                ) conInfo
+                WHERE
+                conInfo.JE_HEAD_ID = temp.JE_HEAD_ID
+                )
+            </if>
+<!--            <if test="companyId!=null">-->
+<!--                AND  temp.COMPANY_ID = #{companyId}-->
+<!--            </if>-->
+        </where>
+        order by  creation_date desc
+    </select>
+
+    <select id="jeListQueryTrial" parameterType="com.hand.hls.gld.dto.JeHead" resultMap="BaseResultMap">
+        SELECT
+        temp.*
+        FROM
+        (
+        SELECT
+        gjh.*,
+        (
+        SELECT
+        DESCRIPTION
+        FROM
+        hls_document_status
+        WHERE
+        document_category = 'GLD_JE_HEAD'
+        AND status_code = gjh.je_status
+        ) AS JE_STATUS_DESCRIPTION,
+        (
+        SELECT
+        SUM(gjl.DR_AMOUNT)
+        FROM
+        gld_je_line gjl
+        WHERE
+        gjl.JE_HEAD_ID = gjh.JE_HEAD_ID
+        ) AS DR_AMOUNT_TOTAL,
+        (
+        SELECT
+        SUM(gjl.CR_AMOUNT)
+        FROM
+        gld_je_line gjl
+        WHERE
+        gjl.JE_HEAD_ID = gjh.JE_HEAD_ID
+        ) AS CR_AMOUNT_TOTAL,
+        (
+        SELECT
+        wm_concat(v.JE_TRX_EDSCRIPTION)
+        FROM
+        (
+        SELECT DISTINCT
+        glt.description AS JE_TRX_EDSCRIPTION,
+        gjl.JE_HEAD_ID
+        FROM
+        gld_je_line gjl,
+        gld_je_trx glt
+        WHERE
+        gjl.JE_TRX = glt.je_trx
+        ) v
+        WHERE
+        v.JE_HEAD_ID = gjh.JE_HEAD_ID
+        GROUP BY
+        v.JE_HEAD_ID
+        ) AS JE_TRX_DESCRIPTION,
+        (
+        SELECT
+        wm_concat(v.JE_TRX)
+        FROM
+        (
+        SELECT DISTINCT
+        gjl.JE_HEAD_ID,gjl.JE_TRX
+        FROM
+        gld_je_line gjl
+        ) v
+        WHERE
+        v.JE_HEAD_ID = gjh.JE_HEAD_ID
+        GROUP BY
+        v.JE_HEAD_ID
+        ) AS JE_TRX
+        FROM
+        gld_je_head gjh
+        ) temp
+        <where>
+            temp.je_status = 'TRIAL'
+            <if test="jeTrxDescription!=null">
+                AND temp.je_trx_description like concat('%', #{jeTrxDescription} ,'%')
+            </if>
+            <if test="jeHeadId!=null">
+                AND temp.je_head_id = #{jeHeadId}
+            </if>
+            <if test="periodName!=null">
+                AND temp.period_name = #{periodName}
+            </if>
+            <if test="amountValue!=null">
+                AND (
+                temp.DR_AMOUNT_TOTAL = #{amountValue}
+                OR temp.CR_AMOUNT_TOTAL = #{amountValue}
+                )
+            </if>
+            <if test="description!=null">
+                AND temp.description LIKE concat(concat('%',#{description}),'%')
+            </if>
+            <if test="jeNumber!=null">
+                AND temp.je_number LIKE concat(concat('%',#{jeNumber}),'%')
+            </if>
+            <if test="jeStatus!=null">
+                AND #{jeStatus} = temp.JE_STATUS
+            </if>
+            <if test="dateFrom!=null">
+                AND to_char(temp.JE_DATE,'YYYY-MM-DD') &gt;= #{dateFrom}
+            </if>
+            <if test="dateTo!=null">
+                AND to_char(temp.JE_DATE,'YYYY-MM-DD') &lt;= #{dateTo}
+            </if>
+            <if test="paramJeTrx!=null">
+                AND JE_TRX IN
+                <foreach collection="paramJeTrx" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="paramStatus!=null">
+                AND temp.JE_STATUS IN
+                <foreach collection="paramStatus" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="paramPeriodName!=null">
+                AND temp.PERIOD_NAME IN
+                <foreach collection="paramPeriodName" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="amountFrom!=null and amountTo!=null">
+                AND (CR_AMOUNT_TOTAL BETWEEN #{amountFrom} AND #{amountTo} OR CR_AMOUNT_TOTAL BETWEEN #{amountFrom} AND #{amountTo})
+            </if>
+            <if test="amountFrom!=null and amountTo==null">
+                AND (CR_AMOUNT_TOTAL &gt; #{amountFrom} OR CR_AMOUNT_TOTAL &gt; #{amountFrom})
+            </if>
+            <if test="amountFrom==null and amountTo!=null">
+                AND (CR_AMOUNT_TOTAL &lt; #{amountFrom} OR CR_AMOUNT_TOTAL &lt; #{amountFrom})
+            </if>
+            <if test="contractNumberFrom!=null">
+                AND
+                #{contractNumberFrom} &lt;(
+                SELECT
+                min(conInfo.CONTRACT_NUMBER)
+                FROM
+                (
+                SELECT
+                gjl.*, (
+                SELECT
+                CONTRACT_NUMBER
+                FROM
+                con_contract
+                WHERE
+                contract_id = (
+                SELECT
+                JE_SOURCE_ID
+                FROM
+                GLD_JE_TRX_DTL
+                WHERE
+                gjl.SOURCE_ID = JE_TRX_DTL_ID
+                )
+                ) AS CONTRACT_NUMBER,
+                gjtd.JE_SOURCE_ID
+                FROM
+                gld_je_line gjl,
+                gld_je_trx_dtl gjtd
+                WHERE
+                gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+                AND gjl.SOURCE_ID = gjtd.JE_TRX_DTL_ID
+                ) conInfo
+                WHERE
+                conInfo.JE_HEAD_ID = temp.JE_HEAD_ID
+                )
+            </if>
+            <if test="contractNumberTo!=null">
+                AND
+                #{contractNumberTo}&gt;(
+                SELECT
+                max(conInfo.CONTRACT_NUMBER)
+                FROM
+                (
+                SELECT
+                gjl.*, (
+                SELECT
+                CONTRACT_NUMBER
+                FROM
+                con_contract
+                WHERE
+                contract_id = (
+                SELECT
+                JE_SOURCE_ID
+                FROM
+                GLD_JE_TRX_DTL
+                WHERE
+                gjl.SOURCE_ID = JE_TRX_DTL_ID
+                )
+                ) AS CONTRACT_NUMBER,
+                gjtd.JE_SOURCE_ID
+                FROM
+                gld_je_line gjl,
+                gld_je_trx_dtl gjtd
+                WHERE
+                gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+                AND gjl.SOURCE_ID = gjtd.JE_TRX_DTL_ID
+                ) conInfo
+                WHERE
+                conInfo.JE_HEAD_ID = temp.JE_HEAD_ID
+                )
+            </if>
+            <if test="companyId!=null">
+                AND  temp.COMPANY_ID = #{companyId}
+            </if>
+        </where>
+        order by  creation_date desc
+    </select>
+
+    <select id="jeListQueryRetrial" parameterType="com.hand.hls.gld.dto.JeHead" resultMap="BaseResultMap">
+        SELECT
+        temp.*
+        FROM
+        (
+        SELECT
+        gjh.*,
+        (
+        SELECT
+        DESCRIPTION
+        FROM
+        hls_document_status
+        WHERE
+        document_category = 'GLD_JE_HEAD'
+        AND status_code = gjh.je_status
+        ) AS JE_STATUS_DESCRIPTION,
+        (
+        SELECT
+        SUM(gjl.DR_AMOUNT)
+        FROM
+        gld_je_line gjl
+        WHERE
+        gjl.JE_HEAD_ID = gjh.JE_HEAD_ID
+        ) AS DR_AMOUNT_TOTAL,
+        (
+        SELECT
+        SUM(gjl.CR_AMOUNT)
+        FROM
+        gld_je_line gjl
+        WHERE
+        gjl.JE_HEAD_ID = gjh.JE_HEAD_ID
+        ) AS CR_AMOUNT_TOTAL,
+        (
+        SELECT
+        wm_concat(v.JE_TRX_EDSCRIPTION)
+        FROM
+        (
+        SELECT DISTINCT
+        glt.description AS JE_TRX_EDSCRIPTION,
+        gjl.JE_HEAD_ID
+        FROM
+        gld_je_line gjl,
+        gld_je_trx glt
+        WHERE
+        gjl.JE_TRX = glt.je_trx
+        ) v
+        WHERE
+        v.JE_HEAD_ID = gjh.JE_HEAD_ID
+        GROUP BY
+        v.JE_HEAD_ID
+        ) AS JE_TRX_DESCRIPTION,
+        (
+        SELECT
+        wm_concat(v.JE_TRX)
+        FROM
+        (
+        SELECT DISTINCT
+        gjl.JE_HEAD_ID,gjl.JE_TRX
+        FROM
+        gld_je_line gjl
+        ) v
+        WHERE
+        v.JE_HEAD_ID = gjh.JE_HEAD_ID
+        GROUP BY
+        v.JE_HEAD_ID
+        ) AS JE_TRX
+        FROM
+        gld_je_head gjh
+        ) temp
+        <where>
+            temp.je_status = 'RETRIAL'
+            <if test="jeTrxDescription!=null">
+                AND temp.je_trx_description like concat('%', #{jeTrxDescription} ,'%')
+            </if>
+            <if test="periodName!=null">
+                AND temp.period_name = #{periodName}
+            </if>
+            <if test="jeHeadId!=null">
+                AND temp.je_head_id = #{jeHeadId}
+            </if>
+            <if test="amountValue!=null">
+                AND (
+                temp.DR_AMOUNT_TOTAL = #{amountValue}
+                OR temp.CR_AMOUNT_TOTAL = #{amountValue}
+                )
+            </if>
+            <if test="description!=null">
+                AND temp.description LIKE concat(concat('%',#{description}),'%')
+            </if>
+            <if test="jeNumber!=null">
+                AND temp.je_number LIKE concat(concat('%',#{jeNumber}),'%')
+            </if>
+            <if test="jeStatus!=null">
+                AND #{jeStatus} = temp.JE_STATUS
+            </if>
+            <if test="dateFrom!=null">
+                AND to_char(temp.JE_DATE,'YYYY-MM-DD') &gt;= #{dateFrom}
+            </if>
+            <if test="dateTo!=null">
+                AND to_char(temp.JE_DATE,'YYYY-MM-DD') &lt;= #{dateTo}
+            </if>
+            <if test="paramJeTrx!=null">
+                AND JE_TRX IN
+                <foreach collection="paramJeTrx" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="paramStatus!=null">
+                AND temp.JE_STATUS IN
+                <foreach collection="paramStatus" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="paramPeriodName!=null">
+                AND temp.PERIOD_NAME IN
+                <foreach collection="paramPeriodName" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="amountFrom!=null and amountTo!=null">
+                AND (CR_AMOUNT_TOTAL BETWEEN #{amountFrom} AND #{amountTo} OR CR_AMOUNT_TOTAL BETWEEN #{amountFrom} AND #{amountTo})
+            </if>
+            <if test="amountFrom!=null and amountTo==null">
+                AND (CR_AMOUNT_TOTAL &gt; #{amountFrom} OR CR_AMOUNT_TOTAL &gt; #{amountFrom})
+            </if>
+            <if test="amountFrom==null and amountTo!=null">
+                AND (CR_AMOUNT_TOTAL &lt; #{amountFrom} OR CR_AMOUNT_TOTAL &lt; #{amountFrom})
+            </if>
+            <if test="contractNumberFrom!=null">
+                AND
+                #{contractNumberFrom} &lt;(
+                SELECT
+                min(conInfo.CONTRACT_NUMBER)
+                FROM
+                (
+                SELECT
+                gjl.*, (
+                SELECT
+                CONTRACT_NUMBER
+                FROM
+                con_contract
+                WHERE
+                contract_id = (
+                SELECT
+                JE_SOURCE_ID
+                FROM
+                GLD_JE_TRX_DTL
+                WHERE
+                gjl.SOURCE_ID = JE_TRX_DTL_ID
+                )
+                ) AS CONTRACT_NUMBER,
+                gjtd.JE_SOURCE_ID
+                FROM
+                gld_je_line gjl,
+                gld_je_trx_dtl gjtd
+                WHERE
+                gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+                AND gjl.SOURCE_ID = gjtd.JE_TRX_DTL_ID
+                ) conInfo
+                WHERE
+                conInfo.JE_HEAD_ID = temp.JE_HEAD_ID
+                )
+            </if>
+            <if test="contractNumberTo!=null">
+                AND
+                #{contractNumberTo}&gt;(
+                SELECT
+                max(conInfo.CONTRACT_NUMBER)
+                FROM
+                (
+                SELECT
+                gjl.*, (
+                SELECT
+                CONTRACT_NUMBER
+                FROM
+                con_contract
+                WHERE
+                contract_id = (
+                SELECT
+                JE_SOURCE_ID
+                FROM
+                GLD_JE_TRX_DTL
+                WHERE
+                gjl.SOURCE_ID = JE_TRX_DTL_ID
+                )
+                ) AS CONTRACT_NUMBER,
+                gjtd.JE_SOURCE_ID
+                FROM
+                gld_je_line gjl,
+                gld_je_trx_dtl gjtd
+                WHERE
+                gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+                AND gjl.SOURCE_ID = gjtd.JE_TRX_DTL_ID
+                ) conInfo
+                WHERE
+                conInfo.JE_HEAD_ID = temp.JE_HEAD_ID
+                )
+            </if>
+            <if test="companyId!=null">
+                AND  temp.COMPANY_ID = #{companyId}
+            </if>
+        </where>
+        order by  creation_date desc
+    </select>
+
+
+    <select id="gldJeDataQuery"  parameterType="com.hand.hls.gld.dto.HlsCusJeHead"  resultMap="BaseResultMap">
+        SELECT *
+        from (select t.je_head_id,
+        t.je_number,
+        t.period_name,
+        t.je_status,
+        t.je_date,
+        t.currency,
+        (select sum(nvl(gl.dr_amount, 0))
+        from gld_je_line gl
+        where gl.je_head_id = t.je_head_id) je_amount,
+        t.description,
+        case
+        when (select gl.je_trx
+        from gld_je_line gl
+        where gl.je_head_id = t.je_head_id
+        and rownum=1) = 'PRE_FIN_INCOME_RECOGNITION' THEN
+        '预'
+        ELSE
+        '业'
+        end je_type, --凭证分类
+        t.gl_msg,
+        t.gl_status,
+        (select scvb.meaning
+        from sys_code_value_b scvb, sys_code_b scb
+        where scvb.CODE_ID = scb.CODE_ID
+        and scb.code = 'GLD.GL_STATUS'
+        and scvb.value = t.gl_status) as gl_status_n,
+        t.voucher_id,
+        t.voucher_number,
+        t.je_creation_date,
+        (select fc.ws_com_code
+        from fnd_company fc
+        where fc.company_id = t.company_id) com_org_num,
+
+        (
+        SELECT
+        wm_concat(gv.JE_TRX_EDSCRIPTION)
+        FROM
+        (
+        SELECT DISTINCT
+        glt.description AS JE_TRX_EDSCRIPTION,
+        gjl.JE_HEAD_ID
+        FROM
+        gld_je_line gjl,
+        gld_je_trx glt
+        WHERE
+        gjl.JE_TRX = glt.je_trx
+        ) gv
+        WHERE
+        gv.JE_HEAD_ID = t.JE_HEAD_ID
+        GROUP BY
+        gv.JE_HEAD_ID
+        ) AS JE_TRX_DESCRIPTION
+
+        from gld_je_head t) v
+        where 1=1
+        and nvl(v.je_status,'NEW')='CONFIRM'
+        <if test="dateFrom!=null">
+            and trunc(v.JE_DATE) &gt;= trunc(to_date(#{dateFrom},'yyyy-mm-dd hh24:mi:ss'))
+
+        </if>
+        <if test="dateTo!=null">
+            and trunc(v.JE_DATE) &lt;= trunc(to_date(#{dateTo},'yyyy-mm-dd hh24:mi:ss'))
+        </if>
+
+        <if test="amountFrom!=null">
+            AND v.je_amount &gt;=#{amountFrom}
+        </if>
+        <!--<if test="amountFrom!=null and amountTo==null">-->
+            <!--AND (v.je_amount &gt; #{amountFrom} OR v.je_amount &gt; #{amountFrom})-->
+        <!--</if>-->
+        <!--<if test="amountFrom==null and amountTo!=null">-->
+            <!--AND (v.je_amount &lt; #{amountFrom} OR v.je_amount &lt; #{amountFrom})-->
+        <!--</if>-->
+        <if test="voucherNumber!=null">
+            AND v.voucher_number LIKE CONCAT(concat('%',#{voucherNumber}),'%')
+        </if>
+        <if test="jeNumber!=null">
+            AND v.je_number LIKE CONCAT(concat('%',#{jeNumber}),'%')
+        </if>
+
+        <if test="glStatus!=null">
+            AND v.gl_status =#{glStatus}
+        </if>
+
+        <if test="periodName != null">
+            and v.period_name like concat(concat('%',#{periodName}),'%')
+        </if>
+
+        <if test="jeStatus != null">
+            and v.je_status = #{jeStatus}
+        </if>
+
+        <if test="description != null">
+            and v.description like concat(concat('%',#{description}),'%')
+        </if>
+
+        <if test="jeDescription != null">
+            and v.je_head_id IN (SELECT l.je_head_id
+            FROM gld_je_line l
+            WHERE l.je_description like concat(concat('%',#{jeDescription}),'%'))
+        </if>
+
+        <if test="paymentNumber != null">
+            and v.je_head_id IN (SELECT l.je_head_id
+            FROM gld_je_line l
+            WHERE l.segment_3 like concat(concat('%',#{paymentNumber}),'%'))
+        </if>
+    </select>
+
+    <select id="jeListQueryDetail" parameterType="com.hand.hls.gld.dto.JeHead" resultMap="BaseResultMap">
+        SELECT
+        temp.*
+        FROM
+        (
+        SELECT
+        gjh.JE_HEAD_ID,
+        gjh.JE_HD_TEMPLATE_ID,
+        gjh.DOCUMENT_CATEGORY,
+        gjh.DOCUMENT_TYPE,
+        gjh.BUSINESS_TYPE,
+        gjh.COMPANY_ID,
+        gjh.JE_NUMBER,
+        gjh.JE_HEAD_STR,
+        gjh.JE_DATE,
+        gjh.PERIOD_NAME,
+        gjh.CURRENCY,
+        gjh.DESCRIPTION,
+        gjh.JE_STATUS,
+        gjh.JE_CREATED_BY,
+        gjh.JE_CREATION_DATE,
+        gjh.JE_CONFIRMED_BY,
+        gjh.JE_CONFIRM_DATE,
+        gjh.GL_STATUS,
+        gjh.GL_MSG,
+        gjh.OBJECT_VERSION_NUMBER,
+        gjh.CREATION_DATE,
+        gjh.JE_CREATION_DATE as CREATED_DATE,
+        gjh.REVERSE_FLAG,
+        gjh.REVERSE_JE_HEAD_ID,
+        gjh.OPERATE_ID,
+        gjh.VOUCHER_NUMBER,
+        gjh.VOUCHER_ID,
+        gjh.TRIALED_BY,
+        gjh.RETRIALED_BY,
+        gjh.EXCHANGE_RATE,
+        (select t.description
+        from HLS_DOCUMENT_TYPE t
+        WHERE T.document_category = 'GLD_JE_HEAD'
+        AND t.business_type = gjh.business_type) business_type_n,
+        (
+        SELECT
+        DESCRIPTION
+        FROM
+        hls_document_status
+        WHERE
+        document_category = 'GLD_JE_HEAD'
+        AND status_code = gjh.je_status
+        ) AS JE_STATUS_DESCRIPTION,
+        (select fc.company_full_name
+        from fnd_company fc
+        where fc.company_id = gjh.company_id) company_name,
+        (SELECT fc.currency_name
+        FROM fnd_currency fc
+        WHERE fc.currency_code = gjh.currency) currency_n,
+        (
+        SELECT
+        SUM(gjl.DR_AMOUNT)
+        FROM
+        gld_je_line gjl
+        WHERE
+        gjl.JE_HEAD_ID = gjh.JE_HEAD_ID
+        ) AS DR_AMOUNT_TOTAL,
+        (
+        SELECT
+        SUM(gjl.CR_AMOUNT)
+        FROM
+        gld_je_line gjl
+        WHERE
+        gjl.JE_HEAD_ID = gjh.JE_HEAD_ID
+        ) AS CR_AMOUNT_TOTAL,
+        (
+        SELECT
+        wm_concat(v.JE_TRX_EDSCRIPTION)
+        FROM
+        (
+        SELECT DISTINCT
+        glt.description AS JE_TRX_EDSCRIPTION,
+        gjl.JE_HEAD_ID
+        FROM
+        gld_je_line gjl,
+        gld_je_trx glt
+        WHERE
+        gjl.JE_TRX = glt.je_trx
+        ) v
+        WHERE
+        v.JE_HEAD_ID = gjh.JE_HEAD_ID
+        GROUP BY
+        v.JE_HEAD_ID
+        ) AS JE_TRX_DESCRIPTION,
+        (
+        SELECT
+        wm_concat(v.JE_TRX)
+        FROM
+        (
+        SELECT DISTINCT
+        gjl.JE_HEAD_ID,gjl.JE_TRX
+        FROM
+        gld_je_line gjl
+        ) v
+        WHERE
+        v.JE_HEAD_ID = gjh.JE_HEAD_ID
+        GROUP BY
+        v.JE_HEAD_ID
+        ) AS JE_TRX
+        FROM
+        gld_je_head gjh
+        ) temp
+        <where>
+            1=1
+            <!--            <if test="jeTrxDescription!=null">-->
+            <!--                AND temp.je_trx_description like concat('%', #{jeTrxDescription} ,'%')-->
+            <!--            </if>-->
+            <if test="jeHeadId!=null">
+                AND temp.je_head_id = #{jeHeadId}
+            </if>
+            <!--            <if test="periodName!=null">-->
+            <!--                AND temp.period_name = #{periodName}-->
+            <!--            </if>-->
+            <if test="amountValue!=null">
+                AND (
+                temp.DR_AMOUNT_TOTAL = #{amountValue}
+                OR temp.CR_AMOUNT_TOTAL = #{amountValue}
+                )
+            </if>
+            <if test="description!=null">
+                AND temp.description LIKE concat(concat('%',#{description}),'%')
+            </if>
+            <if test="jeNumber!=null">
+                AND temp.je_number LIKE concat(concat('%',#{jeNumber}),'%')
+            </if>
+            <if test="jeStatus!=null">
+                AND #{jeStatus} = temp.JE_STATUS
+            </if>
+            <if test="dateFrom!=null">
+                AND to_char(temp.JE_DATE,'YYYY-MM-DD') &gt;= #{dateFrom}
+            </if>
+            <if test="dateTo!=null">
+                AND to_char(temp.JE_DATE,'YYYY-MM-DD') &lt;= #{dateTo}
+            </if>
+            <if test="paramJeTrx!=null">
+                AND JE_TRX IN
+                <foreach collection="paramJeTrx" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="paramStatus!=null">
+                AND temp.JE_STATUS IN
+                <foreach collection="paramStatus" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="paramPeriodName!=null">
+                AND temp.PERIOD_NAME IN
+                <foreach collection="paramPeriodName" index="index" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="amountFrom!=null and amountTo!=null">
+                AND (CR_AMOUNT_TOTAL BETWEEN #{amountFrom} AND #{amountTo} OR CR_AMOUNT_TOTAL BETWEEN #{amountFrom} AND #{amountTo})
+            </if>
+            <if test="amountFrom!=null and amountTo==null">
+                AND (CR_AMOUNT_TOTAL &gt; #{amountFrom} OR CR_AMOUNT_TOTAL &gt; #{amountFrom})
+            </if>
+            <if test="amountFrom==null and amountTo!=null">
+                AND (CR_AMOUNT_TOTAL &lt; #{amountFrom} OR CR_AMOUNT_TOTAL &lt; #{amountFrom})
+            </if>
+            <if test="contractNumberFrom!=null">
+                AND
+                #{contractNumberFrom} &lt;(
+                SELECT
+                min(conInfo.CONTRACT_NUMBER)
+                FROM
+                (
+                SELECT
+                gjl.*, (
+                SELECT
+                CONTRACT_NUMBER
+                FROM
+                con_contract
+                WHERE
+                contract_id = (
+                SELECT
+                JE_SOURCE_ID
+                FROM
+                GLD_JE_TRX_DTL
+                WHERE
+                gjl.SOURCE_ID = JE_TRX_DTL_ID
+                )
+                ) AS CONTRACT_NUMBER,
+                gjtd.JE_SOURCE_ID
+                FROM
+                gld_je_line gjl,
+                gld_je_trx_dtl gjtd
+                WHERE
+                gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+                AND gjl.SOURCE_ID = gjtd.JE_TRX_DTL_ID
+                ) conInfo
+                WHERE
+                conInfo.JE_HEAD_ID = temp.JE_HEAD_ID
+                )
+            </if>
+            <if test="contractNumberTo!=null">
+                AND
+                #{contractNumberTo}&gt;(
+                SELECT
+                max(conInfo.CONTRACT_NUMBER)
+                FROM
+                (
+                SELECT
+                gjl.*, (
+                SELECT
+                CONTRACT_NUMBER
+                FROM
+                con_contract
+                WHERE
+                contract_id = (
+                SELECT
+                JE_SOURCE_ID
+                FROM
+                GLD_JE_TRX_DTL
+                WHERE
+                gjl.SOURCE_ID = JE_TRX_DTL_ID
+                )
+                ) AS CONTRACT_NUMBER,
+                gjtd.JE_SOURCE_ID
+                FROM
+                gld_je_line gjl,
+                gld_je_trx_dtl gjtd
+                WHERE
+                gjtd.JE_SOURCE_DOC = 'CON_CONTRACT'
+                AND gjl.SOURCE_ID = gjtd.JE_TRX_DTL_ID
+                ) conInfo
+                WHERE
+                conInfo.JE_HEAD_ID = temp.JE_HEAD_ID
+                )
+            </if>
+            <!--            <if test="companyId!=null">-->
+            <!--                AND  temp.COMPANY_ID = #{companyId}-->
+            <!--            </if>-->
+        </where>
+        order by  creation_date desc
+    </select>
+
+
+
+
+    <select id="queryNotConfirmBy"  parameterType="com.hand.hls.gld.dto.HlsCusJeHead"  resultMap="BaseResultMap">
+      select distinct h.je_status
+          from gld_je_line l, gld_je_trx_dtl d, GLD_JE_HEAD H
+         <where> d.je_trx_dtl_id = l.source_id
+           and h.je_head_id = l.je_head_id
+           and d.je_trx = 'CONTRACT_INCEPT'
+           and d.je_source_doc = 'CON_CONTRACT'
+           and d.je_trx_id = #{jeTrxId}
+         </where>
+    </select>
+
+    <resultMap id="HeadInfoMap" type="map">
+        <result column="je_head_id" property="je_head_id"/>
+        <result column="je_number" property="je_number"/>
+        <result column="period_name" property="period_name"/>
+        <result column="je_date" property="je_date"/>
+        <result column="description" property="description"/>
+        <result column="dr_amount" property="dr_amount"/>
+        <result column="cr_amount" property="cr_amount"/>
+        <result column="je_status_n" property="je_status_n"/>
+        <result column="je_status" property="je_status"/>
+        <result column="je_trx_n" property="je_trx_n"/>
+        <result column="gld_je_head" property="gld_je_head"/>
+        <result column="trial_flag" property="trial_flag"/>
+        <result column="document_type" property="document_type"/>
+        <result column="je_description" property="je_description"/>
+        <result column="gl_status_n" property="gl_status_n"/>
+        <result column="gl_status" property="gl_status"/>
+        <result column="company_id" property="company_id"/>
+        <result column="company_name" property="company_name"/>
+        <result column="trialed_by_n" property="trialed_by_n"/>
+        <result column="trialed_by" property="trialed_by"/>
+        <result column="retrialed_by_n" property="retrialed_by_n"/>
+        <result column="retrialed_by" property="retrialed_by"/>
+    </resultMap>
+    <select id="selectHeadInfo" resultMap="HeadInfoMap" parameterType="com.hand.hls.gld.dto.HlsCusJeHead">
+        select v.* from (
+        select
+        t.je_head_id,
+        t.je_number,
+        t.period_name,
+        t.je_date,
+        t.description,
+        t.document_type,
+        t.gl_status,
+        t.company_id,
+        t.trialed_by,
+        t.retrialed_by,
+        (SELECT s.description
+        FROM sys_user s
+        WHERE s.user_id = t.trialed_by) trialed_by_n,
+        (SELECT s.description
+        FROM sys_user s
+        WHERE s.user_id = t.retrialed_by) retrialed_by_n,
+        (select fc.company_full_name
+        from fnd_company fc
+        where fc.company_id = t.company_id) company_name,
+        (select scvb.meaning
+        from sys_code_value_b scvb, sys_code_b scb
+        where scvb.CODE_ID = scb.CODE_ID
+        and scb.code = 'GLD.GL_STATUS'
+        and scvb.value = t.gl_status) as gl_status_n,
+        sum(l.dr_amount)
+         as dr_amount,
+        sum(l.cr_amount)
+         as cr_amount,
+        t.je_status,
+        (
+        SELECT
+        DESCRIPTION
+        FROM
+        hls_document_status
+        WHERE
+        document_category = 'GLD_JE_HEAD'
+        AND status_code = t.je_status
+        ) AS je_status_n
+        from gld_je_head t left join gld_je_line l on t.je_head_id = l.je_head_id
+        group by t.je_head_id,
+        t.je_number,
+        t.period_name,
+        t.je_date,
+        t.description,
+        t.document_type,
+        t.gl_status,
+        t.je_status,
+        t.TRIALED_BY,
+        t.RETRIALED_BY,
+        t.company_id) v
+        <where>
+            <if test="jeNumber != null">
+                and v.je_number like concat(concat('%',#{jeNumber}),'%')
+            </if>
+            <if test="trialedByN != null">
+                and v.trialed_by_n like concat(concat('%',#{trialedByN}),'%')
+            </if>
+            <if test="retrialedByN != null">
+                and v.retrialed_by_n like concat(concat('%',#{retrialedByN}),'%')
+            </if>
+            <if test="periodName != null">
+                and v.period_name like concat(concat('%',#{periodName}),'%')
+            </if>
+            <if test="description != null">
+                and v.description like concat(concat('%',#{description}),'%')
+            </if>
+            <if test="jeDateFrom != null">
+                and trunc(v.je_date) &gt;= trunc(#{jeDateFrom})
+            </if>
+            <if test="jeDateTo != null">
+                and trunc(v.je_date) &lt;= trunc(#{jeDateTo})
+            </if>
+            <if test="jeStatus != null">
+                and v.je_status = #{jeStatus}
+            </if>
+            <if test="glStatus != null">
+                and v.gl_status = #{glStatus}
+            </if>
+
+            <if test="jeDescription != null">
+                and v.je_head_id IN (SELECT l.je_head_id
+                FROM gld_je_line l
+                WHERE l.je_description like concat(concat('%',#{jeDescription}),'%'))
+            </if>
+
+            <if test="paymentNumber != null">
+                and v.je_head_id IN (
+                (SELECT l.je_head_id
+                FROM GLD_JE_TRX_DTL ld,gld_je_line l
+                WHERE ld.JE_TRX_DTL_ID = l.source_id
+                and l.source_type='JE_TRX_DTL'
+                AND ld.je_source_doc = 'CON_CONTRACT'
+                AND ld.je_source_id =
+                (SELECT cc.contract_id
+                FROM con_contract cc
+                WHERE cc.contract_number LIKE concat(concat('%',#{paymentNumber}),'%')
+                AND cc.data_class = 'NORMAL'))
+                )
+            </if>
+
+            <if test="trialFlag != null">
+                and ((v.dr_amount = v.cr_amount
+                and v.document_type != 'OFFBS') or v.document_type = 'OFFBS')
+            </if>
+            <if test="sortname == null">
+                and 1 = 1
+                order by v.je_date desc
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hap.mail.mapper.MessageRuleMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hap.mail.dto.MessageRule">
+        <result column="RULE_ID" property="ruleId" jdbcType="DECIMAL" />
+        <result column="RULE_CODE" property="ruleCode" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="MESSAGE_TYPE" property="messageType" jdbcType="VARCHAR" />
+        <result column="RULE_V1" property="ruleV1" jdbcType="VARCHAR" />
+        <result column="RULE_V2" property="ruleV2" jdbcType="VARCHAR" />
+        <result column="RULE_V3" property="ruleV3" jdbcType="VARCHAR" />
+        <result column="RULE_V4" property="ruleV4" jdbcType="VARCHAR" />
+        <result column="RULE_V5" property="ruleV5" jdbcType="VARCHAR" />
+        <result column="RULE_V6" property="ruleV6" jdbcType="VARCHAR" />
+        <result column="RULE_V7" property="ruleV7" jdbcType="VARCHAR" />
+        <result column="RULE_N1" property="ruleN1" jdbcType="DECIMAL" />
+        <result column="RULE_N2" property="ruleN2" jdbcType="DECIMAL" />
+        <result column="RULE_N3" property="ruleN3" jdbcType="DECIMAL" />
+        <result column="RULE_N4" property="ruleN4" jdbcType="DECIMAL" />
+        <result column="RULE_N5" property="ruleN5" jdbcType="DECIMAL" />
+        <result column="RULE_N6" property="ruleN6" jdbcType="DECIMAL" />
+        <result column="RULE_N7" property="ruleN7" jdbcType="DECIMAL" />
+        <result column="RULE_D1" property="ruleD1" jdbcType="DATE" />
+        <result column="RULE_D2" property="ruleD2" jdbcType="DATE" />
+        <result column="RULE_D3" property="ruleD3" jdbcType="DATE" />
+        <result column="RULE_D4" property="ruleD4" jdbcType="DATE" />
+        <result column="RULE_D5" property="ruleD5" jdbcType="DATE" />
+        <result column="RULE_D6" property="ruleD6" jdbcType="DATE" />
+        <result column="RULE_D7" property="ruleD7" jdbcType="DATE" />
+
+        <result column="MESSAGE_TYPE_N" property="messageTypeN" jdbcType="VARCHAR" />
+        <result column="RULE_N1_N" property="ruleN1N" jdbcType="VARCHAR" />
+        <result column="RULE_N2_N" property="ruleN2N" jdbcType="VARCHAR" />
+        <result column="RULE_V1_N" property="ruleV1N" jdbcType="VARCHAR" />
+        <result column="RULE_V2_N" property="ruleV2N" jdbcType="VARCHAR" />
+        <result column="RULE_V3_N" property="ruleV3N" jdbcType="VARCHAR" />
+        <result column="RULE_N4_N" property="ruleN4N" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryForLview" resultMap="BaseResultMap">
+        SELECT
+            smr.*,
+            ( SELECT v.meaning AS value_name FROM sys_code_value_b_v v WHERE v.code = 'SMS_MESSAGE_TYPE' AND v.code_value = smr.message_type ) AS MESSAGE_TYPE_n,
+            ( SELECT hm.bp_name AS value_name FROM HLS_BP_MASTER hm WHERE hm.BP_CATEGORY = 'MANUFACTURER' AND hm.bp_id = smr.rule_n1 ) AS RULE_N1_n,
+            ( SELECT hm.bp_name AS value_name FROM HLS_BP_MASTER hm WHERE hm.BP_CATEGORY = 'VENDER' AND hm.bp_id = smr.rule_n2 ) AS RULE_N2_n,
+            ( SELECT hbt.DESCRIPTION AS value_name FROM HLS_BUSINESS_TYPE hbt WHERE hbt.DOCUMENT_CATEGORY = 'HLS_BP_MASTER' AND hbt.business_type = smr.rule_v1 ) AS RULE_V1_n,
+            ( SELECT sc.meaning AS value_name FROM sys_code_value_b_v sc WHERE sc.code = 'CON.CONTRACT_STATUS' AND sc.code_value = smr.rule_v2 ) AS RULE_V2_n,
+            ( SELECT sc.meaning AS value_name FROM sys_code_value_b_v sc WHERE sc.code = 'SYS.YES_NO' AND sc.code_value = smr.rule_v3 ) AS RULE_V3_n,
+            ( SELECT smt.DESCRIPTION AS value_name FROM SYS_MESSAGE_TEMPLATE smt WHERE smt.template_id = smr.rule_n4 ) AS RULE_N4_n
+        FROM
+            sys_message_rule smr
+        ORDER BY
+            smr.message_type,
+            smr.rule_code
+    </select>
+
+    <select id="queryForSendMessage" resultMap="BaseResultMap">
+        select * from sys_message_rule smr
+        where smr.message_type='PHONE_MESSAGE'
+    </select>
+
+    <select id="queryForSendWechat" resultMap="BaseResultMap">
+        select * from sys_message_rule smr
+        where smr.message_type='WECHAT_MESSAGE'
+    </select>
+
+    <select id="queryTemplateRule" resultMap="BaseResultMap">
+        select * from sys_message_rule smr
+        where smr.message_type='PHONE_MESSAGE'
+          and smr.rule_n4 = (
+            select template_id from sys_message_template t where  t.template_code = #{tempalteCode}
+        and t.enable = 'Y'
+        ) and smr.RULE_V3='Y'
+    </select>
+</mapper>

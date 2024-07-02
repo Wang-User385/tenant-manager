@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hn.mapper.PrjLeaseInspectMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hn.dto.PrjLeaseInspect">
+        <result column="PRJ_LEASE_ID" property="prjLeaseId" jdbcType="DECIMAL" />
+        <result column="project_id" property="projectId" jdbcType="DECIMAL" />
+        <result column="USER_ID" property="userId" jdbcType="DECIMAL" />
+        <result column="LEASE_INSPECT_DATE" property="leaseInspectDate" jdbcType="DATE" />
+        <result column="LEASE_INSPECT_STATUS" property="leaseInspectStatus" jdbcType="VARCHAR" />
+        <result column="APPROVE_STATUS" property="approveStatus" jdbcType="VARCHAR" />
+        <result column="APPROVE_STATUS_N" property="approveStatusN" jdbcType="VARCHAR" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="USER_ID_N" property="userIdN" jdbcType="VARCHAR" />
+        <result column="BP_ID_N" property="bpIdN" jdbcType="VARCHAR" />
+        <result column="LEASE_INSPECT_NUMBER" property="leaseInspectNumber" jdbcType="VARCHAR" />
+        <result column="WORK_HOURS" property="workHours" jdbcType="DECIMAL" />
+        <result column="WORKER_NUM" property="workerNum" jdbcType="DATE" />
+        <result column="WORK_TYPE" property="workType" jdbcType="VARCHAR" />
+        <result column="PRODUCE_DESC" property="produceDesc" jdbcType="VARCHAR" />
+        <result column="LEASE_QUALITY_DESC" property="leaseQualityDesc" jdbcType="VARCHAR" />
+        <result column="LEASE_EXCEPT_FLAG" property="leaseExceptFlag" jdbcType="VARCHAR" />
+        <result column="EXCEPT_DESC" property="exceptDesc" jdbcType="VARCHAR" />
+        <result column="MAINTAIN_FREQUENCY_CONTENT" property="maintainFrequencyContent" jdbcType="VARCHAR" />
+        <result column="CHECK_FREQUENCY_CONTENT" property="checkFrequencyContent" jdbcType="VARCHAR" />
+        <result column="MAINTAIN_WORKER" property="maintainWorker" jdbcType="VARCHAR" />
+        <result column="PRACTICE_QUALIFY" property="practiceQualify" jdbcType="VARCHAR" />
+        <result column="SYSTEM_MADE_FLAG" property="systemMadeFlag" jdbcType="VARCHAR" />
+        <result column="SYSTEM_MADE_FLAG_N" property="systemMadeFlagN" jdbcType="VARCHAR" />
+        <result column="LEASE_IN_PLACE" property="leaseInPlace" jdbcType="VARCHAR" />
+        <result column="LEASE_IN_PLACE_N" property="leaseInPlaceN" jdbcType="VARCHAR" />
+        <result column="EQUIP_SAFE_FLAG" property="equipSafeFlag" jdbcType="VARCHAR" />
+        <result column="STOP_FREQUENCY_CONTENT" property="stopFrequencyContent" jdbcType="VARCHAR" />
+        <result column="PRODUCER_SAFE_EQUIP" property="producerSafeEquip" jdbcType="VARCHAR" />
+        <result column="CONCLUSION_SUGGEST" property="conclusionSuggest" jdbcType="VARCHAR" />
+        <result column="INSURE_NUMBER" property="insureNumber" jdbcType="VARCHAR" />
+        <result column="authority_rule_string" property="authorityRuleString" jdbcType="VARCHAR" />
+        <result column="INSURE_CATEGORY_N" property="insureCategoryN" jdbcType="VARCHAR" />
+        <result column="INSURE_CATEGORY" property="insureCategory" jdbcType="VARCHAR" />
+        <result column="INSURE_END_DATE" property="insureEndDate" jdbcType="DATE" />
+        <result column="INSURED_STATUS_N" property="insuredStatusN" jdbcType="VARCHAR" />
+        <result column="REMARKS" property="remarks" jdbcType="VARCHAR" />
+        <result column="contract_name" property="contractName" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <select id="queryList" parameterType="com.hand.hls.hn.dto.PrjLeaseInspect" resultMap="BaseResultMap">
+        select * from (SELECT
+        c.CREATED_BY,
+        p.EXCEPT_DESC,
+        p.MAINTAIN_FREQUENCY_CONTENT,
+        p.CHECK_FREQUENCY_CONTENT,
+        p.MAINTAIN_WORKER,
+        p.PRACTICE_QUALIFY,
+        c.contract_name,
+        c.contract_number,
+        c.project_id,
+        p.lease_inspect_date,
+        p.prj_lease_id,
+        p.lease_inspect_number,
+        p.lease_inspect_status,
+        p.approve_status,
+        p.LEASE_EXCEPT_FLAG,
+        p.LEASE_QUALITY_DESC,
+        p.PRODUCE_DESC,
+        p.WORK_TYPE,
+        p.WORKER_NUM,
+        p.WORK_HOURS,
+        p.SYSTEM_MADE_FLAG,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.CODE = 'LEASE_RULE_MAKE'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE= p.SYSTEM_MADE_FLAG
+        ) SYSTEM_MADE_FLAG_N,
+        p.LEASE_IN_PLACE,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.CODE = 'LEASE_IN_PLACE'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE= p.LEASE_IN_PLACE
+        ) LEASE_IN_PLACE_N,
+        p.EQUIP_SAFE_FLAG,
+        p.CONCLUSION_SUGGEST,
+        p.PRODUCER_SAFE_EQUIP,
+        p.STOP_FREQUENCY_CONTENT,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.CODE = 'HLS.WORK_FLOW_STATUS'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE= p.approve_status
+        ) approve_status_n,
+        (SELECT em.name
+        FROM fnd_employee em
+        WHERE em.employee_id = p.user_id) user_id_n,
+
+        CASE
+        WHEN c.BUSINESS_TYPE in('T+N_LEASE_FACTORING','T+0_LEASE_FACTORING') THEN
+        ( SELECT wm_concat(b.bp_name)
+        FROM hls_bp_master b ,prj_project_bp hclcb
+        WHERE c.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'RECEIVABLE_DEBTOR'
+        )
+        WHEN c.BUSINESS_TYPE in('LEASE_WITHOUT_RECOURSE_IN','OPERATING_LEASE_WITHOUT_RECOURSE_IN') THEN
+        ( SELECT wm_concat(b.bp_name)
+        FROM hls_bp_master b ,prj_project_bp hclcb
+        WHERE c.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'ASSET_TRANSFEROR'
+        )
+        ELSE
+        ( SELECT wm_concat(b.bp_name)
+        FROM hls_bp_master b ,prj_project_bp hclcb
+        WHERE c.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'TENANT'
+        )
+        END AS bp_id_n,
+
+        (select pi.insure_number from prj_project_insure pi where pi.insure_id = (select max(pii.insure_id)from prj_project_insure pii where pii.project_id = p.project_id))insure_number,
+        (select pi.INSURE_CATEGORY from prj_project_insure pi where pi.insure_id = (select max(pii.insure_id)from prj_project_insure pii where pii.project_id = p.project_id))INSURE_CATEGORY,
+        (select pi.INSURE_END_DATE from prj_project_insure pi where pi.insure_id = (select max(pii.insure_id)from prj_project_insure pii where pii.project_id = p.project_id))INSURE_END_DATE,
+        (select pi.INSURED_STATUS from prj_project_insure pi where pi.insure_id = (select max(pii.insure_id)from prj_project_insure pii where pii.project_id = p.project_id))INSURED_STATUS,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb. CODE = 'INSURE_STATUS'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.
+        VALUE
+        = (select pi.INSURED_STATUS from prj_project_insure pi where pi.insure_id = (select max(pii.insure_id)from prj_project_insure pii where pii.project_id = p.project_id))
+        ) INSURED_STATUS_N,
+        p.authority_rule_string,
+        p.REMARKS,
+        p.user_id as inspect_created_by,
+        c.host_project_manager
+        FROM
+        prj_project c,
+        prj_lease_inspect p
+        WHERE
+        c.project_id = p.project_id) t
+        <where>
+            1=1
+            <if test="createdBy !=null">
+                and (t.created_by = #{request.userId}
+                or t.inspect_created_by  = #{request.userId}
+                or t.host_project_manager = #{request.userId}
+                or EXISTS (SELECT
+                1
+                FROM
+                sys_user U
+                LEFT JOIN SYS_USER_ALLOCATION UR ON UR.USER_ID = U.USER_ID
+                LEFT JOIN SYS_ROLE_B R ON R.ROLE_ID = UR.ROLE_ID
+                WHERE
+                R.ROLE_CODE = 'ADMIN' and U.USER_ID = #{createdBy}))
+            </if>
+            <if test="projectId !=null">
+                AND t.project_id = #{projectId}
+            </if>
+            <if test="prjLeaseId !=null">
+                AND t.prj_lease_id = #{prjLeaseId}
+            </if>
+            <if test="leaseInspectNumber !=null">
+                AND t.lease_inspect_number = #{leaseInspectNumber}
+            </if>
+            <if test="leaseInspectDate !=null">
+                AND t.lease_inspect_date = #{leaseInspectDate}
+            </if>
+            <if test="approveStatus !=null">
+                AND t.approve_status = #{approveStatus}
+            </if>
+            <if test="contractNumber !=null">
+                AND t.CONTRACT_NUMBER = #{contractNumber}
+            </if>
+            <if test="leaseInspectDateFrom!=null">
+                and t.LEASE_INSPECT_DATE &gt;= #{leaseInspectDateFrom}
+            </if>
+            <if test="leaseInspectDateTo!=null">
+                and t.LEASE_INSPECT_DATE &lt;= #{leaseInspectDateTo}
+            </if>
+        </where>
+        order by t.PRJ_LEASE_ID desc
+    </select>
+
+
+</mapper>

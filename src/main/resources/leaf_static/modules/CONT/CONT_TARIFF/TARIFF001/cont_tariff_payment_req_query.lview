@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: congweijing
+    $Date:2021年5月17日
+    $Revision: 1.0
+    $Purpose: 关税付款申请查询
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_cont_tariff_payment_req_detail_link"
+                url="${/request/@context_path}/modules/CONT/CONT_TARIFF/TARIFF001/cont_tariff_payment_req_detail.lview"/>
+        <script><![CDATA[
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'open_payment_req_detail_win';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'payment_req_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        //付款申请详情
+        function open_payment_req_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '付款申请详情';
+            param['function_code'] = 'TARIFF001F6';
+            param['winid'] = 'payment_req_detail_winid';
+            //param['layout_debugger_flag'] = 'Y';
+
+            if (param['payment_req_status'] !== 'NEW' && param['payment_req_status'] !== 'APPROVED_RETURN'&& param['payment_req_status'] !== 'REJECTED') {
+                param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc'];
+                param['maintain_type'] = 'READONLY';
+                param['function_usage'] = 'QUERY';
+                param['function_code'] = 'TARIFF001F6';
+            }
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_cont_tariff_payment_req_detail_link', ds_id, 'TARIFF001');
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

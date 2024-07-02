@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        <!--operations-->
+        function if200_sys_interface_invoke_query() {
+            $("if200_sys_interface_invoke_in_ds").query();
+            $("if200_sys_interface_invoke_out_ds").query();
+        }
+
+        function if200_sys_interface_invoke_reset() {
+            $('if200_sys_interface_invoke_in_query_ds').reset();
+            $('if200_sys_interface_invoke_out_query_ds').reset();
+            if200_sys_interface_invoke_query();
+        }
+
+        <!--render-->
+        function if200_sys_interface_invoke_in_operation(value,record,name){
+            return '<a href="javascript:if200_sys_interface_invoke_in_detail(\'' + record.get('inbound_id') + '\')">查看</a>';
+        }
+
+        function if200_sys_interface_invoke_out_operation(value,record,name){
+            return '<a href="javascript:if200_sys_interface_invoke_out_detail(\'' + record.get('outbound_id') + '\')">查看</a>';
+        }
+
+        function if200_sys_interface_invoke_response_time_render(value,record,name){
+            if(value!=null&&value!=""){
+                return value+"ms";
+            }else{
+                return value;
+            }
+        }
+
+        function if200_sys_interface_invoke_request_status_render(value,record,name){
+            if(value!=null&&value!=""){
+                if(value=="success"){
+                    return '<a style="color:green">成功</a>';
+                }else{
+                    return '<a style="color:red">失败</a>';
+                }
+            }else{
+                return value;
+            }
+        }
+
+        <!--new Window-->
+        function if200_sys_interface_invoke_in_detail(inboundId){
+            new Leaf.Window({
+                id: 'win_if200_sys_interface_invoke_in_detail',
+                url: '${/request/@context_path}/modules/ITFC/ITFC002/if_sys_interface_inbound_detail.lview',
+                params: {
+                    inboundId:inboundId
+                },
+                title: '详情',
+                width:1100,
+                height:550
+            });
+        }
+
+        function if200_sys_interface_invoke_out_detail(outboundId){
+            new Leaf.Window({
+                id: 'win_if200_sys_interface_header_edit',
+                url: '${/request/@context_path}/modules/ITFC/ITFC002/if_sys_interface_outbound_detail.lview',
+                params: {
+                    outboundId:outboundId
+                },
+                title: '详情',
+                width:1100,
+                height:550
+            });
+        }
+
+
+        function if200_document_info(value,record,name){
+            return '<a href="javascript:if200_document_info_detail(\'' + record.get('outbound_id') + '\')">单据信息</a>';
+        }
+
+
+        function if200_document_info_detail(outboundId){
+            var win = new Leaf.Window({
+                id: 'win_ws_parameters_id',
+                url: '${/request/@context_path}/modules/ITFC/ITFC002/if_sys_interface_invoke_document_info.lview',
+                params: {
+                    winid: 'win_ws_document_id',
+                    outboundId:outboundId
+                },
+                title: '单据信息',
+                side:'right',
+                width:1000,
+                height:750
+            });
+            win.on('close', function () {
+                $('if200_sys_interface_invoke_out_ds').query();
+            });
+        }
+
+        function if200_resend_click(value,record,name){
+            if(record.get('request_status')!='success'){
+                return '<a href="javascript:resend(\'' + record.get('outbound_id') + '\')">重发</a>';
+           }
+
+        }
+
+        function resend(outbound_id){
+            Leaf.Masker.mask(Ext.getBody(), '请求中。。。');
+            Leaf.request({
+                url: '${/request/@context_path}/hls/ws/interface/unified/resend',
+                para:{
+                    outbound_id:outbound_id
+                },
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+
+                    $('if200_sys_interface_invoke_out_ds').query();
+                },
+                failure: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="if200_sys_interface_invoke_request_status_ds">
+                <a:datas>
+                    <a:record text="成功" value="success"></a:record>
+                    <a:record text="失败" value="failure"></a:record>
+                </a:datas>
+            </a:dataSet>
+            <a:dataSet id="if200_sys_interface_invoke_in_query_ds">
+                <a:fields>
+                    <a:field name="request_status_text" options="if200_sys_interface_invoke_request_status_ds" displayField="text" valueField="value" returnField="request_status"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="if200_sys_interface_invoke_in_ds" selectable="true" autoQuery="true" queryUrl="${/request/@context_path}/leaf/sys/invoke/querryInbound" queryDataSet="if200_sys_interface_invoke_in_query_ds"/>
+            <a:dataSet id="if200_sys_interface_invoke_out_query_ds">
+                <a:fields>
+                    <a:field name="request_status_text" options="if200_sys_interface_invoke_request_status_ds" displayField="text" valueField="value" returnField="request_status"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="if200_sys_interface_invoke_out_ds" selectable="true" autoQuery="true" queryUrl="${/request/@context_path}/leaf/sys/invoke/querryOutbound" queryDataSet="if200_sys_interface_invoke_out_query_ds"/>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="if200_sys_interface_invoke_query" text="HLS.QUERY"/>
+                <a:gridButton click="if200_sys_interface_invoke_reset" text="HLS.RESET"/>
+            </a:screenTopToolbar>
+            <a:tabPanel marginWidth="30" marginHeight="40">
+                <a:tabs>
+                    <a:tab prompt="入站请求" width="130" selected="true">
+                        <a:form column="3" title="查询条件" labelwidth="100" style="width:100%">
+                            <a:textField name="interface_name" bindTarget="if200_sys_interface_invoke_in_query_ds" prompt="接口名称" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:textField>
+                            <a:textField name="interface_url" bindTarget="if200_sys_interface_invoke_in_query_ds" prompt="接口地址" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:textField>
+                            <a:comboBox name="request_status_text" bindTarget="if200_sys_interface_invoke_in_query_ds" prompt="请求状态" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:comboBox>
+
+                            <a:dateTimePicker name="start_date" bindTarget="if200_sys_interface_invoke_in_query_ds" prompt="开始日期" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:dateTimePicker>
+                            <a:dateTimePicker name="end_date" bindTarget="if200_sys_interface_invoke_in_query_ds" prompt="截止日期" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:dateTimePicker>
+                            <a:textField name="request_status" bindTarget="if200_sys_interface_invoke_in_query_ds" width="165" hidden="true">
+                            </a:textField>
+                        </a:form>
+                        <a:grid id="if200_sys_interface_invoke_in_ds_grid" bindTarget="if200_sys_interface_invoke_in_ds"
+                                marginHeight="370" marginWidth="64" navBar="true">
+                            <a:columns>
+                                <a:column width="140" name="interface_name" prompt="接口名称" align="center"/>
+                                <a:column width="280" name="interface_url" prompt="接口地址" align="center"/>
+                                <a:column width="160" name="request_time" prompt="请求日期" align="center" renderer="Leaf.formatDate"/>
+                                <a:column width="120" name="request_method" prompt="请求方式" align="center"/>
+                                <a:column width="180" name="ip" prompt="用户IP" align="center"/>
+                                <a:column width="120" name="response_time" prompt="响应时间" align="center" renderer="if200_sys_interface_invoke_response_time_render"/>
+                                <a:column width="120" name="request_status" prompt="请求状态" align="center" renderer="if200_sys_interface_invoke_request_status_render"/>
+                                <a:column width="123"  prompt="操作" align="center" renderer="if200_sys_interface_invoke_in_operation"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="出站请求" width="130">
+                        <a:form column="3" title="查询条件" labelwidth="110" style="width:100%">
+                            <a:textField name="interface_name" bindTarget="if200_sys_interface_invoke_out_query_ds" prompt="接口名称" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:textField>
+                            <a:textField name="interface_url" bindTarget="if200_sys_interface_invoke_out_query_ds" prompt="接口地址" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:textField>
+                            <a:comboBox name="request_status_text" bindTarget="if200_sys_interface_invoke_out_query_ds" prompt="请求状态" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:comboBox>
+
+                            <a:dateTimePicker name="start_date" bindTarget="if200_sys_interface_invoke_out_query_ds" prompt="开始日期" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:dateTimePicker>
+                            <a:dateTimePicker name="end_date" bindTarget="if200_sys_interface_invoke_out_query_ds" prompt="截止日期" width="165">
+                                <a:events>
+                                    <a:event name="enterdown" handler="if200_sys_interface_invoke_query"/>
+                                </a:events>
+                            </a:dateTimePicker>
+                            <a:textField name="request_status" bindTarget="if200_sys_interface_invoke_out_query_ds" width="165" hidden="true">
+                            </a:textField>
+                        </a:form>
+                        <a:grid id="if200_sys_interface_invoke_out_ds_grid" bindTarget="if200_sys_interface_invoke_out_ds"
+                                marginHeight="220" marginWidth="50" navBar="true">
+                            <a:columns>
+                                <a:column width="160" name="interface_name" prompt="接口名称" align="center"/>
+                                <a:column width="340" name="interface_url" prompt="接口地址" align="center"/>
+                                <a:column width="170" name="request_time" prompt="请求日期" align="center" renderer="Leaf.formatDate"/>
+                                <a:column width="170" name="response_code" prompt="HTTP CODE" align="center"/>
+                                <a:column width="130" name="response_time" prompt="响应时间" align="center" renderer="if200_sys_interface_invoke_response_time_render"/>
+                                <a:column width="135" name="request_status" prompt="请求状态" align="center" renderer="if200_sys_interface_invoke_request_status_render"/>
+                                <a:column width="100"  prompt="操作" align="center" renderer="if200_sys_interface_invoke_out_operation"/>
+                                <a:column width="100"  prompt="单据信息" align="center" renderer="if200_document_info"/>
+                                <a:column width="100"  prompt="重发" align="center" renderer="if200_resend_click"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

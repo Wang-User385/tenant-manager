@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: congweijing
+    Date: 2021/04/27 13:30
+    Revision: 1.0
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="hls200_quotation_calc_submit_link_id" url="${/request/@context_path}/ct/prj/quotation/re/calc"/>
+        <a:link id="hls200_quotation_info_save_link_id" url="${/request/@context_path}/prj/quotation/record/save"/>
+        <script><![CDATA[
+        var wfl_flag = '${/parameter/@wfl_flag}'||'N';
+        var vat_rate = '${/parameter/@vat_rate}';
+        // 保存前校验
+        var go_flag = true;
+
+        //报价计算 ，跳转在线ecxel
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            // Leaf.Masker.mask(Ext.getBody());
+            // debugger;
+            var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            var quotationRecord = $(quotation_ds_id).getCurrentRecord();
+            var quotation_id = quotationRecord.get('quotation_id');
+            var price_list = quotationRecord.get('price_list');
+            var url = '${/request/@context_path}/modules/HLS/HLS200/hls_marketing_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = url + '&readOnly=Y';
+                //带入数据后打开excel
+                var win = new Leaf.Window({
+                    id: 'hls900_open_price_winid',
+                    url: url,
+                    title: 'excel测算',
+                    fullScreen: true
+                });
+                return;
+            }
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            window['${/parameter/@layout_code}_SAVE1_LAYOUT_DYNAMIC_CLICK'](function () {
+                Leaf.request({
+                    url: $('hls200_quotation_calc_submit_link_id').getUrl() + "?quotationId=" + quotation_id,
+                    type: "GET",
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.SideBar.show({
+                            msg: '计算成功',
+                            duration: 2000
+                        });
+                        Leaf.Masker.unmask(Ext.getBody());
+                        //带入数据后打开excel
+                        var win = new Leaf.Window({
+                            id: 'hls900_open_price_winid',
+                            url: url,
+                            title: 'excel测算',
+                            fullScreen: true
+                        });
+                        win.on('close', function () {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            $(quotation_ds_id).query();
+                        });
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }, 'N');
+        };
+
+        //报价计算 - 保存
+        window['${/parameter/@layout_code}_SAVE1_LAYOUT_DYNAMIC_CLICK'] = function (func, calcFlag) {
+            Leaf.Masker.mask(Ext.getBody(), '正在保存...');
+            // debugger;
+            var quote_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation','G_QUOTATION');
+            var cash_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow','G_CASHFLOW');
+            var quotation_record = $(quote_ds_id).getCurrentRecord();
+            // 进入excel前打包数据存入excel
+            var params = {};
+            var data = $(quote_ds_id).getCurrentRecord();
+            if (data) {
+                // param = data[0];
+                params = data.data;
+            }
+            if (calcFlag == 'N') {
+                params['calc_flag'] = 'N';
+            }
+            //param带入excel
+            params[quote_ds_id.replace('_ds', '')] = undefined;
+            params[cash_ds_id.replace('_ds', '')] = undefined;
+            Leaf.request({
+                url: $('hls200_quotation_info_save_link_id').getUrl(),
+                type: "POST",
+                para: params,
+                success: function (res) {
+                    // debugger;
+                    // Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        msg: '保存成功',
+                        duration: 2000
+                    });
+                    if (typeof func == 'function') {
+                        func();
+                    }
+                },
+                error: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+
+        };
+
+        //提交审批
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                var payment_confirm_id = '${/parameter/@payment_confirm_id}';
+                var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+                var cashflow_records = $(cashflow_ds_id).getAll();
+                if(cashflow_records.length > 0){
+                    Leaf.request({
+                        url: '${/request/@context_path}/submit/contract/confirm/wfl',
+                        para: {payment_confirm_id: payment_confirm_id},
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.showSuccessMessage('${HLS.SUBMIT_SUCCESS}', '提交审批成功', function () {
+                                if ('${/parameter/@winid}') {
+                                    $("RPTM100_G_RESULTS_prj_project_ds").query();
+                                    $('${/parameter/@winid}').close();
+                                }
+                            });
+
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                } else {
+                    Leaf.showMessage("提示", "现金流信息不能为空,请检查！", null);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return;
+                }
+
+            })
+        }
+
+        //更新时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            var quotation_grid_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            if (ds.id === quotation_grid_ds_id) {
+                if (name == 'lease_item_amount_org' || name == 'exchange_rate') {
+                    record.set('lease_item_amount', record.get('lease_item_amount_org') * record.get('exchange_rate'))
+                }
+                var quotation_record = $(quotation_grid_ds_id).getCurrentRecord();
+                if (value) {
+                    switch (name) {
+                        case 'int_rate_type':
+                            if (value === 'FLOATING') {
+                                quotation_record.getField('base_rate').setReadOnly(true);
+                                quotation_record.getField('base_rate_collect').setReadOnly(false);
+                                quotation_record.getField('base_rate_collect_n').setReadOnly(false);
+                                quotation_record.getField('base_rate_collect').setRequired(true);
+                                quotation_record.getField('base_rate_collect_n').setRequired(true);
+                                quotation_record.getField('base_rate_type').setReadOnly(false);
+                                quotation_record.getField('base_rate_type_n').setReadOnly(false);
+                                quotation_record.getField('base_rate_type').setRequired(true);
+                                quotation_record.getField('base_rate_type_n').setRequired(true);
+                                quotation_record.getField('floating_way_rate').setReadOnly(false);
+                            } else {
+                                quotation_record.getField('base_rate').setReadOnly(false);
+                                quotation_record.getField('base_rate_collect').setReadOnly(true);
+                                quotation_record.getField('base_rate_collect_n').setReadOnly(true);
+                                quotation_record.getField('base_rate_collect').setRequired(false);
+                                quotation_record.getField('base_rate_collect_n').setRequired(false);
+                                quotation_record.set('base_rate_collect', '');
+                                quotation_record.set('base_rate_collect_n', '');
+                                quotation_record.getField('base_rate_type').setReadOnly(true);
+                                quotation_record.getField('base_rate_type_n').setReadOnly(true);
+                                quotation_record.getField('base_rate_type').setRequired(false);
+                                quotation_record.getField('base_rate_type_n').setRequired(false);
+                                quotation_record.set('base_rate_type', '');
+                                quotation_record.set('base_rate_type_n', '');
+                                quotation_record.getField('floating_way_rate').setReadOnly(true);
+                                quotation_record.set('floating_way_rate', '');
+                                quotation_record.set('int_rate', quotation_record.get('base_rate'));
+                            }
+                            break;
+                        case 'floating_way_rate':
+                            window['${/parameter/@layout_code}_calc_int_rate']();
+                            break;
+                        case 'base_rate':
+                            window['${/parameter/@layout_code}_calc_int_rate']();
+                            break;
+                        case 'exchange_rate':
+                            if (quotation_record.get('lease_item_amount_org') != null && quotation_record.get('exchange_rate') != null) {
+                                quotation_record.set('lease_item_amount', quotation_record.get('lease_item_amount_org') * quotation_record.get('exchange_rate'));
+                            }
+                            break;
+                        case 'lease_item_amount_org':
+                            if (quotation_record.get('lease_item_amount_org') != null && quotation_record.get('exchange_rate') != null) {
+                                quotation_record.set('lease_item_amount', quotation_record.get('lease_item_amount_org') * quotation_record.get('exchange_rate'));
+                            }
+                            break;
+                    }
+                }
+            }
+
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+            if (ds.id === cashflow_ds_id) {
+                var records = $(cashflow_ds_id).getAll();
+                if (value) {
+                    switch (name) {
+                        case 'principal':
+                            for(var i=1;i<records.length;i++){
+                                var outstanding_principal = records[i-1].get('outstanding_principal') - records[i].get('principal');
+                                records[i].set('outstanding_principal', outstanding_principal);
+                            }
+                            //直租本金拆税，回租不拆
+                            if(vat_rate == 0.13){
+                                record.set('net_principal', div(value,plus(1,vat_rate)));
+                            }else{
+                                record.set('net_principal', value);
+                            }
+                            break;
+                        case 'interest':
+                            var net_interest = div(value,plus(1,vat_rate)).toFixed(2);
+                            record.set('net_interest', net_interest);
+                            record.set('vat_interest', sub(value,net_interest));
+                            break;
+                    }
+                }
+            }
+        }
+
+        window['${/parameter/@layout_code}_calc_int_rate'] = function () {
+            // debugger;
+            var prj_quotation_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            var quotation_record = $(prj_quotation_ds).getCurrentRecord();
+            var floating_way_rate = quotation_record.get('floating_way_rate');
+            var base_rate = quotation_record.get('base_rate');
+            if (floating_way_rate != null && base_rate != null) {
+                //年利率=基准利率+利率浮动制（bp）*0.01%
+                quotation_record.set('int_rate', plus(base_rate, div(floating_way_rate, 10000)));
+            }
+            if (floating_way_rate == null && base_rate != null) {
+                //年利率=基准利率+利率浮动制（bp）*0.01%
+                quotation_record.set('int_rate', base_rate);
+            }
+        };
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            // debugger;
+            var prj_quotation_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation','G_QUOTATION');
+            if (ds.id === prj_quotation_ds) {
+                if (record.get('int_rate_type') != 'FLOATING' && '${/parameter/@function_usage}' != 'QUERY' ) {
+                    record.getField('base_rate').setReadOnly(false);
+                    record.getField('base_rate_collect').setReadOnly(true);
+                    record.getField('base_rate_collect_n').setReadOnly(true);
+                    record.getField('base_rate_collect').setRequired(false);
+                    record.getField('base_rate_collect_n').setRequired(false);
+                    record.set('base_rate_collect', '');
+                    record.set('base_rate_collect_n', '');
+                    record.getField('base_rate_type').setReadOnly(true);
+                    record.getField('base_rate_type_n').setReadOnly(true);
+                    record.getField('base_rate_type').setRequired(false);
+                    record.getField('base_rate_type_n').setRequired(false);
+                    record.set('base_rate_type', '');
+                    record.set('base_rate_type_n', '');
+                    record.getField('floating_way_rate').setReadOnly(true);
+                    record.set('floating_way_rate', '');
+                }
+                vat_rate=record.get('vat_rate');
+            }
+        }
+        function sleep(time){
+            var timeStamp = new Date().getTime();
+            var endTime = timeStamp + time;
+            while(true){
+                if (new Date().getTime() > endTime){
+                    return;
+                }
+            }
+        }
+        //保存前调用,先更新现金流日期
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            if (ds.id === prj_project_ds_id){
+                go_flag = addCashflow();
+            }
+            console.log(go_flag);
+            return go_flag;
+        };
+        window['${/parameter/@layout_code}_G_CASHFLOW_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+            var cashflow_ds = $(cashflow_ds_id);
+            cashflow_ds.submit();
+        }
+
+        function addCashflow() {
+            var check_flag = true;
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var base_records = $(base_ds_id).getCurrentRecord();
+            var project_id = base_records.get('project_id');
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            var records = $(ds_id).getCurrentRecord();
+            var quotation_id = records.get('quotation_id');
+            var lease_start_date = records.get('lease_start_date');
+
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+            var cashflow_records = $(cashflow_ds_id).getAll();
+            var para=[];
+            debugger;
+            // 本金之和
+            let allPrincipal = 0;
+            // 第0期剩余本金
+            let outstandingPrincipal = 0;
+            for (var i=0;i<cashflow_records.length;i++){
+                var cash_record =cashflow_records[i];
+                if (cash_record.get('times') == '0') {
+                    outstandingPrincipal = cash_record.get('outstanding_principal');
+                }
+                var due_amount=cash_record.get('due_amount');
+                var principal=cash_record.get('principal');
+                allPrincipal = plus(allPrincipal,principal);
+                var interest=cash_record.get('interest');
+                if( due_amount != plus(principal,interest)){
+                    Leaf.showMessage("提示", "本利之和不等于租金，请检查!", null);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+                para.push(cash_record.data);
+            }
+            if (outstandingPrincipal !== allPrincipal){
+                Leaf.showMessage("提示", "各期现金流本金之和不等于投放本金总额，请检查!", null);
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                return false;
+            }
+            Leaf.request({
+                url: "${/request/@context_path}/con/contract/updateCshDate",
+                para: {
+                    lease_start_date:lease_start_date,
+                    quotation_id:quotation_id,
+                    project_id:project_id,
+                    cashflows: para
+                },
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    /*$L.showInfoMessage("提示", "操作成功!", function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                        $(ds_id).query();
+                    });*/
+
+                },
+                error: function (res) {
+                    check_flag = false;
+                    //Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    check_flag = false;
+                    //Leaf.Masker.unmask(Ext.getBody());
+                },
+                async: false,
+                scope: this
+            });
+            return check_flag;
+        }
+
+        // 保存成功相关逻辑
+        function saveSucess() {
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var base_records = $(base_ds_id).getCurrentRecord();
+            var project_id = base_records.get('project_id');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            var records = $(ds_id).getCurrentRecord();
+            var quotation_id = records.get('quotation_id');
+
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+            var cashflow_records = $(cashflow_ds_id).getAll();
+            var para=[];
+            for (var i=0;i<cashflow_records.length;i++){
+                var cash_record =cashflow_records[i];
+                para.push(cash_record.data);
+            }
+            if($(cashflow_ds_id).validate() && cashflow_records.length > 0){
+                Leaf.request({
+                    url: "${/request/@context_path}/con/contract/updateQuotationInfo",
+                    para: {
+                        quotation_id:quotation_id,
+                        project_id:project_id,
+                        cashflows: para
+                    },
+                    success: function (r) {
+                    },
+                    error: function (r) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+            $(ds_id).query();
+            var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            $(quotation_ds_id).query();
+            $(cashflow_ds_id).query();
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        }
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            if(wfl_flag=='Y') {
+                switch (ds.id) {
+                    case '${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds':
+                        var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                        var prj_record = $(prj_ds_id).getCurrentRecord();
+                        qpara['project_id'] = prj_record.get('project_id');
+                        qpara['quotation_id'] = prj_record.get('quotation_id');
+                        qpara['payment_confirm_id'] = prj_record.get('payment_confirm_id');
+                        break;
+                }
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            if(wfl_flag=='Y') {
+                switch (ds.id) {
+                    case '${/parameter/@layout_code}_G_CASHFLOW_prj_quotation_cashflow_ds':
+                        var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                        var prj_record = $(prj_ds_id).getCurrentRecord();
+                        var project_id = prj_record.get('project_id');
+                        qpara['project_id'] = project_id;
+                        qpara['quotation_id'] = prj_record.get('quotation_id');
+                        qpara['payment_confirm_id'] = prj_record.get('payment_confirm_id');
+                        break;
+                }
+            }
+        };
+
+        ///工作流页面执行前校验
+        function beforeSubmit(countiune) {
+            //debugger;
+            //仅退回节点校验
+            if('${/parameter/@return_node_flag}' == 'Y'){
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+                var confirm_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_rent_payment_confirm');
+                if($(ds_id).validate()) {
+                    $(ds_id).submit();
+                    countiune();
+                    return true;
+                }else{
+                    return false;
+                }
+            }else{
+                countiune();
+                return true;
+            }
+        }
+
+        //新增时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+            var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            var record = $(quotation_ds_id).getCurrentRecord();
+            var quotation_id = record.get('quotation_id');
+            if(ds_id == ds.id){
+                record.set('quotation_id', quotation_id);
+                record.set('tax_type_rate', vat_rate)
+            }
+        };
+
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            var cashflow_ds_id = '${/parameter/@layout_code}_G_CASHFLOW_prj_quotation_cashflow_ds';
+            if (ds.id === cashflow_ds_id && record) {
+                if (record.get('times') == '0') {
+                    record.getField('due_date').setReadOnly(true);
+                    record.getField('due_amount').setReadOnly(true);
+                    record.getField('principal').setReadOnly(true);
+                    record.getField('times').setReadOnly(true);
+                    record.getField('interest').setReadOnly(true);
+                }
+            }
+        }
+        //移除前事件(grid,attach,gridbox,table)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_brfore_remove'] = function(ds, record, bp_seq) {
+            var cashflow_ds_id = '${/parameter/@layout_code}_G_CASHFLOW_prj_quotation_cashflow_ds';
+            if (ds.id === cashflow_ds_id && record) {
+                for (let i = 0; i < record.length; i++) {
+                    if (record[i].get('times') == '0') {
+                        $L.showInfoMessage("提示", "第0期现金流不可删除!");
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+
+        Leaf.onReady(function() {
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+            var cashflow_ds = $(cashflow_ds_id);
+            cashflow_ds.on('beforesubmit', function () {
+                return addCashflow();
+            });
+            cashflow_ds.on('submitsuccess', function () {
+                saveSucess();
+            });
+        });
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

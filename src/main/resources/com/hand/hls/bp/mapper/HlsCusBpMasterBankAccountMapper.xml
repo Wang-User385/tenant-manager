@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper" >
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount" >
+        <id column="bank_account_id" property="bankAccountId" jdbcType="BIGINT"/>
+        <result column="bp_id" property="bpId" jdbcType="BIGINT"/>
+        <result column="bank_account_num" property="bankAccountNum" jdbcType="VARCHAR"/>
+        <result column="tss_bank_num" property="tssBankNum" jdbcType="VARCHAR"/>
+        <result column="bank_account_name" property="bankAccountName" jdbcType="VARCHAR"/>
+        <result column="currency" property="currency" jdbcType="VARCHAR"/>
+        <result column="bank_full_name" property="bankFullName" jdbcType="VARCHAR"/>
+        <result column="bank_branch_name" property="bankBranchName" jdbcType="VARCHAR"/>
+        <result column="country" property="country" jdbcType="VARCHAR"/>
+        <result column="province" property="province" jdbcType="VARCHAR"/>
+        <result column="city" property="city" jdbcType="VARCHAR"/>
+        <result column="district" property="district" jdbcType="VARCHAR"/>
+        <result column="debt_flag" property="debtFlag" jdbcType="VARCHAR"/>
+        <result column="debt_bank_id" property="debtBankId" jdbcType="BIGINT"/>
+        <result column="debt_bank_name" property="debtBankName" jdbcType="VARCHAR"/>
+        <result column="debt_bank_code" property="debtBankCode" jdbcType="VARCHAR"/>
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="bank_account_type" property="bankAccountType" jdbcType="VARCHAR"/>
+        <result column="bank_account_type_n" property="bankAccountTypeN" jdbcType="VARCHAR"/>
+        <result column="account_nature" property="accountNature" jdbcType="VARCHAR"/>
+        <result column="account_nature_n" property="accountNatureN" jdbcType="VARCHAR"/>
+        <result column="REMARKS" property="remarks" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="project_id" property="projectId" jdbcType="BIGINT"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="CONTACT_PERSON" property="contactPerson" jdbcType="VARCHAR"/>
+        <result column="CONTACT_NUM" property="contactNum" jdbcType="VARCHAR"/>
+        <result column="IBAN" property="iban" jdbcType="VARCHAR"/>
+        <result column="BANK_CODE" property="bankCode" jdbcType="VARCHAR"/>
+        <result column="SWIFT_CODE" property="swiftCode" jdbcType="VARCHAR"/>
+        <result column="BANK_ADDRESS" property="bankAddress" jdbcType="VARCHAR"/>
+        <result column="primary_flag" property="primaryFlag" jdbcType="VARCHAR"/>
+    </resultMap>
+    <select id="queryAll" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        SELECT
+        ba.bank_account_id,
+        ba.bp_id,
+        ba.bank_account_num,
+        ba.bank_account_name,
+        ba.currency,
+        ba.bank_full_name,
+        ba.bank_branch_name,
+        ba.country,
+        ba.REMARKS,
+        hbm.BP_NAME,
+        hbm.BP_CODE,
+        (select fp.description from fnd_province fp where fp.province = ba.province) province,
+        (select fc.description from fnd_city fc where fc.city = ba.city) city,
+        (select fd.description from fnd_district fd where fd.district = ba.district) district,
+        ba.debt_bank_id,
+        (select hdb.BANK_NAME from hls_debt_deduction_bank hdb where hdb.BANK_ID = ba.debt_bank_id) debt_bank_name,
+        (select hdb.BANK_CODE from hls_debt_deduction_bank hdb where hdb.BANK_ID = ba.debt_bank_id) debt_bank_code,
+        ba.debt_flag,
+        ba.bank_account_type
+        FROM
+        hls_bp_master_bank_account ba
+        left join HLS_BP_MASTER hbm ON ba.BP_ID = hbm.BP_ID
+        where
+        1=1
+        <if test="bpId != null">
+            and ba.bp_id =#{bpId}
+        </if>
+        <if test="bankAccountId != null">
+            and ba.bank_account_id =#{bankAccountId}
+        </if>
+        <if test="bankAccountNum != null">
+            and ba.bank_account_num LIKE concat(concat('%',#{bankAccountNum}),'%')
+        </if>
+        /*--添加按照账户名称去模糊查询 by tengfei*/
+        <if test="bankAccountName!=null and bankAccountName!=''">
+            and ba.bank_account_name like concat(concat('%',#{bankAccountName}),'%')
+        </if>
+        <if test="bpName!=null and bpName!=''">
+            and hbm.bp_name like concat(concat('%',#{bpName}),'%')
+        </if>
+        <if test="bankFullName != null">
+            and ba.bank_full_name LIKE concat(concat('%',#{bankFullName}),'%')
+        </if>
+    </select>
+
+    <select id="debtAccountQuery" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        SELECT
+        ba.bank_account_id,
+        ba.bank_account_name,
+        ba.bank_account_num,
+        ba.bank_branch_name,
+        ba.bank_full_name,
+        ba.bank_account_type
+        FROM
+        hls_bp_master_bank_account ba,
+        hls_bp_master bm
+        WHERE
+        bm.bp_id = ba.bp_id
+        and bm.bp_code = #{bpCode}
+    </select>
+
+
+    <update id="modifyBpMasterBankAccountDeptBankId" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        update hls_bp_master_bank_account
+        set debt_bank_id = null
+        where bank_account_id = #{bankAccountId}
+    </update>
+    <select id="queryBpBankAccountIdByNum" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        select
+        t1.*,
+        hbm.BP_NAME,
+        hbm.BP_CODE
+        from
+        hls_bp_master_bank_account t1
+        left join HLS_BP_MASTER hbm
+        ON t1.BP_ID = hbm.BP_ID
+
+        <where>
+            1=1
+            <if test="bankAccountNum != null">
+                and  t1.bank_account_num =#{bankAccountNum}
+            </if>
+            <if test="bpId != null">
+                and   t1.bp_id =#{bpId}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryBpBankAccountInfo" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        SELECT
+        ba.bank_account_id,
+        ba.bp_id,
+        ba.bank_account_num,
+        ba.bank_account_name,
+        ba.currency,
+        ba.bank_full_name,
+        ba.bank_branch_name,
+        ba.country,
+        ba.REMARKS,
+        hbm.BP_NAME,
+        hbm.BP_CODE,
+        (select fp.description from fnd_province fp where fp.province = ba.province) province,
+        (select fc.description from fnd_city fc where fc.city = ba.city) city,
+        (select fd.description from fnd_district fd where fd.district = ba.district) district,
+        ba.debt_bank_id,
+        (select hdb.BANK_NAME from hls_debt_deduction_bank hdb where hdb.BANK_ID = ba.debt_bank_id) debt_bank_name,
+        (select hdb.BANK_CODE from hls_debt_deduction_bank hdb where hdb.BANK_ID = ba.debt_bank_id) debt_bank_code,
+        ba.debt_flag,
+        ba.bank_account_type
+        FROM
+        hls_bp_master_bank_account ba
+        join HLS_BP_MASTER hbm ON ba.BP_ID = hbm.BP_ID
+        <if test="projectId != null and projectId != 0">
+            left join FCT_PROJECT_BP fpb ON hbm.BP_ID = fpb.BP_ID
+        </if>
+        where
+        1=1
+        <if test="projectId != null and projectId != 0">
+            and fpb.BP_ROLE_TYPE  = 'SELLER'
+            and fpb.project_Id = #{projectId}
+        </if>
+        <if test="bpId != null">
+            and ba.bp_id =#{bpId}
+        </if>
+        <if test="bankAccountId != null">
+            and ba.bank_account_id =#{bankAccountId}
+        </if>
+        <if test="bankAccountNum != null">
+            and ba.bank_account_num LIKE concat(concat('%',#{bankAccountNum}),'%')
+        </if>
+        /*--添加按照账户名称去模糊查询 by tengfei*/
+        <if test="bankAccountName!=null and bankAccountName!=''">
+            and ba.bank_account_name like concat(concat('%',#{bankAccountName}),'%')
+        </if>
+        <if test="bpName!=null and bpName!=''">
+            and hbm.bp_name like concat(concat('%',#{bpName}),'%')
+        </if>
+        <if test="bankFullName != null">
+            and ba.bank_full_name LIKE concat(concat('%',#{bankFullName}),'%')
+        </if>
+    </select>
+
+
+    <select id="queryConBpBankAccountInfo" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        SELECT
+        ba.bank_account_id,
+        ba.bp_id,
+        ba.bank_account_num,
+        ba.bank_account_name,
+        ba.currency,
+        ba.bank_full_name,
+        ba.bank_branch_name,
+        ba.country,
+        ba.REMARKS,
+        hbm.BP_NAME,
+        hbm.BP_CODE,
+        (select fp.description from fnd_province fp where fp.province = ba.province) province,
+        (select fc.description from fnd_city fc where fc.city = ba.city) city,
+        (select fd.description from fnd_district fd where fd.district = ba.district) district,
+        ba.debt_bank_id,
+        (select hdb.BANK_NAME from hls_debt_deduction_bank hdb where hdb.BANK_ID = ba.debt_bank_id) debt_bank_name,
+        (select hdb.BANK_CODE from hls_debt_deduction_bank hdb where hdb.BANK_ID = ba.debt_bank_id) debt_bank_code,
+        ba.debt_flag,
+        ba.bank_account_type
+        FROM
+        hls_bp_master_bank_account ba
+        left join HLS_BP_MASTER hbm ON ba.BP_ID = hbm.BP_ID
+        <if test="projectId != null and projectId != 0">
+            left join PRJ_PROJECT_BP ppb ON hbm.BP_ID = ppb.BP_ID
+        </if>
+        where
+        1=1
+        and ppb.bp_role_type='CLIENT'
+        <if test="projectId != null and projectId != 0">
+
+            and ppb.project_Id = #{projectId}
+        </if>
+        <if test="bpId != null">
+            and ba.bp_id =#{bpId}
+        </if>
+        <if test="bankAccountId != null">
+            and ba.bank_account_id =#{bankAccountId}
+        </if>
+        <if test="bankAccountNum != null">
+            and ba.bank_account_num LIKE concat(concat('%',#{bankAccountNum}),'%')
+        </if>
+        <if test="bankAccountName!=null and bankAccountName!=''">
+            and ba.bank_account_name like concat(concat('%',#{bankAccountName}),'%')
+        </if>
+        <if test="bpName!=null and bpName!=''">
+            and hbm.bp_name like concat(concat('%',#{bpName}),'%')
+        </if>
+        <if test="bankFullName != null">
+            and ba.bank_full_name LIKE concat(concat('%',#{bankFullName}),'%')
+        </if>
+    </select>
+
+    <select id="queryCusBpMasterBankByBpId" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        SELECT
+        ba.*,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'BANK_TYPE_BP'
+        and sc.code_value = ba.BANK_ACCOUNT_TYPE) BANK_ACCOUNT_TYPE_N
+        FROM
+        hls_bp_master_bank_account ba
+        <where>
+            <if test="bpId != null">
+                and ba.bp_id =#{bpId}
+            </if>
+        </where>
+
+    </select>
+
+
+    <select id="queryHlsBpMasterBankAccountLov" parameterType="com.hand.hls.prj.dto.HlsBpMasterBankAccount" resultMap="BaseResultMap">
+        select * from hls_bp_master_bank_account t
+        <where>
+            t.enabled_flag = 'Y'
+            <if test="bpId!=null">
+                and t.bp_id  = #{bpId}
+            </if>
+            <if test="bankAccountCode!=null">
+                <bind name="bankAccountCode" value="'%'+bankAccountCode+'%'"/>
+                and t.bank_account_code like #{bankAccountCode}
+            </if>
+            <if test="bankAccountNum!=null">
+                <bind name="bankAccountNum" value="'%'+bankAccountNum+'%'"/>
+                and t.bank_account_num like #{bankAccountNum}
+            </if>
+            <if test="bankAccountName!=null">
+                <bind name="bankAccountName" value="'%'+bankAccountName+'%'"/>
+                and t.bank_account_name like #{bankAccountName}
+            </if>
+            <if test="bankFullName!=null">
+                <bind name="bankFullName" value="'%'+bankFullName+'%'"/>
+                and t.bank_full_name like #{bankFullName}
+            </if>
+            <if test="bankBranchName!=null">
+                <bind name="bankBranchName" value="'%'+bankBranchName+'%'"/>
+                and t.bank_branch_name like #{bankBranchName}
+            </if>
+        </where>
+    </select>
+
+    <select id="query1" resultMap="BaseResultMap" >
+        SELECT
+            hbmba.bank_account_id,
+            hbmba.bp_id,
+            hbmba.bank_account_code  ,
+            hbmba.bank_account_name ,
+            hbmba.bank_account_num ,
+            hbmba.tss_bank_code tssBankCodeN,
+            hbmba.bank_full_name ,
+            hbmba.bank_branch_name,
+            hbmba.currency,
+            (select v.meaning  from  sys_code_value_b_v v  where v.code_value=hbmba.currency and  v.code='CHS.CURRENCY_TYPE') currency_n,
+            hbmba.account_nature,
+            (select v.meaning  from  sys_code_value_b_v v  where v.code_value=hbmba.account_nature and  v.code='BANK_TYPE_BP') account_nature_n,
+            hbmba.cnaps_code,
+            hbmba.swift_code,
+            hbmba.account_start_date,
+            hbmba.account_end_date,
+            hbmba.tss_bank_num ,
+            hbmba.country_id ,
+            hbmba.province_id ,
+            hbmba.city_id ,
+            hbmba.district_id ,
+            hbmba.tss_bank_code,
+            hbmba.enabled_flag,
+            fc.description countryIdN,
+            fp.description provinceIdN,
+            fci.description cityIdN,
+            fd.description districtIdN
+        FROM
+            hls_bp_master_bank_account hbmba
+                LEFT JOIN fnd_country fc ON fc.country = hbmba.country_id
+                LEFT JOIN fnd_province fp ON fp.province = hbmba.province_id
+                LEFT JOIN fnd_city fci ON fci.city = hbmba.city_id
+                LEFT JOIN fnd_district fd on fd.district = hbmba.district_id
+        where
+            hbmba.bp_id = #{bpId}
+    </select>
+
+
+    <select id="queryBankDetails" resultMap="BaseResultMap" parameterType="java.util.Map">
+    SELECT
+        hbmba.bank_account_id,
+        hbmba.bp_id,
+        hbmba.bank_account_code  ,
+        hbmba.bank_account_name ,
+        hbmba.bank_account_num ,
+        hbmba.tss_bank_code tssBankCodeN,
+        hbmba.bank_full_name ,
+        hbmba.bank_branch_name,
+        hbmba.currency,
+        (select v.meaning  from  sys_code_value_b_v v  where v.code_value=hbmba.currency and  v.code='CHS.CURRENCY_TYPE') currency_n,
+        hbmba.account_nature,
+        (select v.meaning  from  sys_code_value_b_v v  where v.code_value=hbmba.account_nature and  v.code='NATURE_OF_ACCOUNT') account_nature_n,
+        hbmba.cnaps_code,
+        hbmba.swift_code,
+        hbmba.account_start_date,
+        hbmba.account_end_date,
+        hbmba.tss_bank_num ,
+        hbmba.country_id ,
+        hbmba.province_id ,
+        hbmba.city_id ,
+        hbmba.district_id ,
+        hbmba.tss_bank_code,
+        hbmba.enabled_flag,
+        fc.description countryIdN,
+        fp.description provinceIdN,
+        fci.description cityIdN,
+        fd.description districtIdN,
+        hbmba.primary_flag
+    FROM
+        hls_bp_master_bank_account hbmba
+    LEFT JOIN fnd_country fc ON fc.country = hbmba.country_id
+    LEFT JOIN fnd_province fp ON fp.province = hbmba.province_id
+    LEFT JOIN fnd_city fci ON fci.city = hbmba.city_id
+    LEFT JOIN fnd_district fd on fd.district = hbmba.district_id
+    where
+    hbmba.bp_id = #{bpId}
+  </select>
+
+    <update id="updateEbsCodeforBp" parameterType="com.hand.hls.prj.dto.HlsBpMasterBankAccount">
+        update hls_bp_master_bank_account ha set ha.ebs_business_code=#{ebsBusinessCode}
+        where ha.bp_id=#{bpId} and ha.bank_account_num=#{bankAccountNum}
+    </update>
+</mapper>

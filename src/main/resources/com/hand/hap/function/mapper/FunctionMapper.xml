@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hap.function.mapper.FunctionMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hap.function.dto.Function" extends="com.hand.hap.mapper.StdMapper.STD">
+        <id column="FUNCTION_ID" property="functionId" jdbcType="DECIMAL"/>
+        <result column="MODULE_CODE" property="moduleCode" jdbcType="VARCHAR"/>
+        <result column="FUNCTION_ICON" property="functionIcon" jdbcType="VARCHAR"/>
+        <result column="FUNCTION_CODE" property="functionCode" jdbcType="VARCHAR"/>
+        <result column="FUNCTION_NAME" property="functionName" jdbcType="VARCHAR"/>
+        <result column="FUNCTION_DESCRIPTION" property="functionDescription" jdbcType="VARCHAR"/>
+        <result column="LANG" property="lang" jdbcType="VARCHAR"/>
+        <result column="RESOURCE_ID" property="resourceId" jdbcType="DECIMAL"/>
+        <result column="PARENT_FUNCTION_ID" property="parentFunctionId" jdbcType="DECIMAL"/>
+        <result column="TYPE" property="type" jdbcType="VARCHAR"/>
+        <result column="FUNCTION_SEQUENCE" property="functionSequence" jdbcType="DECIMAL"/>
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR"/>
+
+        <result column="name" property="name"/>
+        <result column="module_name" property="moduleName"/>
+        <result column="parent_module_name" property="parentModuleName"/>
+        <result column="module_name" property="moduleName"/>
+        <result column="sys_role_module_id" property="sysRoleModuleId"/>
+        <result column="url" property="url"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        FUNCTION_ID, MODULE_CODE, FUNCTION_ICON,FUNCTION_SEQUENCE, FUNCTION_CODE, FUNCTION_NAME, FUNCTION_DESCRIPTION, RESOURCE_ID, TYPE,
+        PARENT_FUNCTION_ID, OBJECT_VERSION_NUMBER, REQUEST_ID, PROGRAM_ID, CREATION_DATE, CREATED_BY,
+        LAST_UPDATED_BY, LAST_UPDATE_DATE, LAST_UPDATE_LOGIN, ATTRIBUTE_CATEGORY, ATTRIBUTE1,
+        ATTRIBUTE2, ATTRIBUTE3, ATTRIBUTE4, ATTRIBUTE5, ATTRIBUTE6, ATTRIBUTE7, ATTRIBUTE8,
+        ATTRIBUTE9, ATTRIBUTE10, ATTRIBUTE11, ATTRIBUTE12, ATTRIBUTE13, ATTRIBUTE14, ATTRIBUTE15
+    </sql>
+
+    <resultMap id="ResourceResultMap" type="com.hand.hap.function.dto.Resource"
+               extends="com.hand.hap.mapper.StdMapper.STD">
+        <id column="RESOURCE_ID" property="resourceId" jdbcType="DECIMAL"/>
+        <result column="URL" property="url" jdbcType="VARCHAR"/>
+        <result column="TYPE" property="type" jdbcType="VARCHAR"/>
+        <result column="NAME" property="name" jdbcType="VARCHAR"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="LOGIN_REQUIRE" property="loginRequire" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectExistsResourcesByFunction" resultMap="ResourceResultMap" parameterType="map">
+        SELECT
+        B.RESOURCE_ID, B.URL, B.TYPE, T.NAME, T.DESCRIPTION, B.LOGIN_REQUIRE, B.OBJECT_VERSION_NUMBER,
+        B.REQUEST_ID, B.PROGRAM_ID, B.CREATION_DATE, B.CREATED_BY, B.LAST_UPDATED_BY, B.LAST_UPDATE_DATE,
+        B.LAST_UPDATE_LOGIN, B.ATTRIBUTE_CATEGORY, B.ATTRIBUTE1, B.ATTRIBUTE2, B.ATTRIBUTE3, B.ATTRIBUTE4,
+        B.ATTRIBUTE5, B.ATTRIBUTE6, B.ATTRIBUTE7, B.ATTRIBUTE8, B.ATTRIBUTE9, B.ATTRIBUTE10, B.ATTRIBUTE11,
+        B.ATTRIBUTE12, B.ATTRIBUTE13, B.ATTRIBUTE14, B.ATTRIBUTE15
+        FROM SYS_RESOURCE_B B
+        LEFT OUTER JOIN SYS_RESOURCE_TL T
+        ON(B.RESOURCE_ID = T.RESOURCE_ID AND T.LANG = #{request.locale,jdbcType=VARCHAR})
+        JOIN SYS_FUNCTION_RESOURCE SFR
+        ON(B.RESOURCE_ID=SFR.RESOURCE_ID AND SFR.FUNCTION_ID=#{function.functionId,jdbcType=DECIMAL})
+        <where>
+            <if test="resource.url != null">
+                AND B.URL LIKE CONCAT('%',CONCAT(#{resource.url,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="resource.name != null">
+                AND T.NAME LIKE CONCAT('%',CONCAT(#{resource.name,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="resource.type != null">
+                AND B.TYPE LIKE CONCAT('%',CONCAT(#{resource.type,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="resource.description != null">
+                AND T.DESCRIPTION LIKE CONCAT('%',CONCAT(#{resource.description,jdbcType=VARCHAR},'%'))
+            </if>
+        </where>
+        ORDER BY B.RESOURCE_ID
+    </select>
+
+    <select id="selectFunctionLov" resultMap="BaseResultMap" parameterType="com.hand.hap.function.dto.Function">
+        select * from sys_function_b s
+        where s.PARENT_FUNCTION_ID is null
+        <if test="functionCode != null">
+            and s.function_code = #{functionCode}
+        </if>
+        <if test="functionName != null">
+            and s.function_name = #{functionName}
+        </if>
+
+    </select>
+
+    <select id="selectNotExistsResourcesByFunction" resultMap="ResourceResultMap" parameterType="map">
+        SELECT
+        B.RESOURCE_ID, B.URL, B.TYPE, T.NAME, T.DESCRIPTION, B.LOGIN_REQUIRE, B.OBJECT_VERSION_NUMBER,
+        B.REQUEST_ID, B.PROGRAM_ID, B.CREATION_DATE, B.CREATED_BY, B.LAST_UPDATED_BY, B.LAST_UPDATE_DATE,
+        B.LAST_UPDATE_LOGIN, B.ATTRIBUTE_CATEGORY, B.ATTRIBUTE1, B.ATTRIBUTE2, B.ATTRIBUTE3, B.ATTRIBUTE4,
+        B.ATTRIBUTE5, B.ATTRIBUTE6, B.ATTRIBUTE7, B.ATTRIBUTE8, B.ATTRIBUTE9, B.ATTRIBUTE10, B.ATTRIBUTE11,
+        B.ATTRIBUTE12, B.ATTRIBUTE13, B.ATTRIBUTE14, B.ATTRIBUTE15
+        FROM SYS_RESOURCE_B B
+        LEFT OUTER JOIN SYS_RESOURCE_TL T
+        ON(B.RESOURCE_ID = T.RESOURCE_ID AND T.LANG = #{request.locale,jdbcType=VARCHAR})
+        <where>
+            B.RESOURCE_ID NOT IN (
+            SELECT SFR.RESOURCE_ID FROM SYS_FUNCTION_RESOURCE SFR
+            WHERE SFR.FUNCTION_ID = #{function.functionId,jdbcType=DECIMAL}
+            AND SFR.RESOURCE_ID IS NOT NULL)
+            <if test="resource.url != null">
+                AND B.URL LIKE CONCAT('%',CONCAT(#{resource.url,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="resource.name != null">
+                AND T.NAME LIKE CONCAT('%',CONCAT(#{resource.name,jdbcType=VARCHAR},'%'))
+            </if>
+        </where>
+        ORDER BY B.RESOURCE_ID
+    </select>
+
+    <select id="selectForCache" resultMap="BaseResultMap">
+        SELECT SFB.FUNCTION_ID,
+               SFB.MODULE_CODE,
+               SFB.FUNCTION_ICON,
+               SFB.FUNCTION_SEQUENCE,
+               SFB.FUNCTION_CODE,
+               SFT.FUNCTION_NAME,
+               SFT.FUNCTION_DESCRIPTION,
+               SFB.RESOURCE_ID,
+               SFB.TYPE,
+               SFB.PARENT_FUNCTION_ID,
+               SFT.LANG
+        FROM SYS_FUNCTION_B SFB
+        LEFT OUTER JOIN SYS_FUNCTION_TL SFT ON (SFB.FUNCTION_ID = SFT.FUNCTION_ID)
+        WHERE SFT.LANG IS NOT NULL
+    </select>
+
+    <resultMap id="FunctionResultMap" type="uncertain.composite.CompositeMap">
+        <result column="function_id" property="function_id"/>
+        <result column="module_code" property="module_code"/>
+        <result column="function_name_id" property="function_name_id"/>
+        <result column="function_icon" property="function_icon"/>
+        <result column="function_code" property="function_code"/>
+        <result column="function_name" property="function_name"/>
+        <result column="function_description" property="function_description"/>
+        <result column="resource_id" property="resource_id"/>
+        <result column="type" property="type"/>
+        <result column="parent_function_id" property="parent_function_id"/>
+        <result column="enabled_flag" property="enabled_flag"/>
+        <result column="function_sequence" property="function_sequence"/>
+        <result column="function_type" property="function_type"/>
+        <result column="height" property="height"/>
+        <result column="width" property="width"/>
+        <result column="homepage_resource_id" property="homepage_resource_id"/>
+        <result column="toolbar_flag" property="toolbar_flag"/>
+        <result column="description_id" property="description_id"/>
+        <result column="icon" property="icon"/>
+        <result column="sequence" property="sequence"/>
+        <result column="service_id" property="service_id"/>
+        <result column="sys_role_module_id" property="sys_role_module_id"/>
+        <result column="role_id" property="role_id"/>
+        <result column="parent_module_code" property="parent_module_code"/>
+        <result column="url" property="url"/>
+        <result column="name" property="name"/>
+        <result column="description" property="description"/>
+        <result column="login_require" property="login_require"/>
+        <result column="access_check" property="access_check"/>
+        <result column="locked_by" property="locked_by"/>
+        <result column="module_name" property="module_name"/>
+        <result column="module_description" property="module_description"/>
+        <result column="module_serial_number" property="module_serial_number"/>
+        <result column="module_icon" property="module_icon"/>
+        <result column="background_color" property="background_color"/>
+        <result column="open_mode" property="open_mode"/>
+        <result column="module_level" property="module_level"/>
+
+    </resultMap>
+
+
+
+    <select id="selectFunctionRoleMap" resultMap="FunctionResultMap"
+            parameterType="com.hand.hap.function.dto.Function">
+        select
+        sfb.FUNCTION_ID,
+        sfb.MODULE_CODE,
+        sfb.FUNCTION_NAME_ID,
+        sfb.FUNCTION_ICON,
+        sfb.FUNCTION_CODE,
+        sfb.FUNCTION_NAME,
+        sfb.FUNCTION_DESCRIPTION,
+        sfb.RESOURCE_ID,
+        sfb.TYPE,
+        sfb.PARENT_FUNCTION_ID,
+        sfb.FUNCTION_SEQUENCE,
+        sfb.FUNCTION_TYPE,
+        sfb.HEIGHT,
+        sfb.WIDTH,
+        sfb.HOMEPAGE_RESOURCE_ID,
+        sfb.TOOLBAR_FLAG,
+        sfb.DESCRIPTION_ID,
+        sfb.ICON,
+        sfb.SEQUENCE,
+        sfb.SERVICE_ID,
+        srm.ENABLED_FLAG,
+        srm.SYS_ROLE_MODULE_ID,
+        srm.ROLE_ID,
+        srm.PARENT_MODULE_CODE,
+        srb.URL,
+        srb. NAME,
+        srb.DESCRIPTION,
+        srb.LOGIN_REQUIRE,
+        srb.ACCESS_CHECK,
+        srb.LOCKED_BY,
+        sm.MODULE_NAME,
+        sm.MODULE_DESCRIPTION,
+        sm.MODULE_SERIAL_NUMBER,
+        sm.MODULE_ICON,
+        sm.BACKGROUND_COLOR,
+        sm.OPEN_MODE,
+        sm.MODULE_LEVEL,
+        (select sm.MODULE_NAME from sys_module sm where sm.MODULE_CODE = srm.PARENT_MODULE_CODE) PARENT_MODULE_NAME
+        from sys_function_b sfb,sys_role_module srm,sys_resource_b srb,sys_module sm where sfb.MODULE_CODE =
+        srm.MODULE_CODE
+        and sfb.RESOURCE_ID = srb.RESOURCE_ID
+        and srm.role_id = #{roleId}
+        and srm.MODULE_CODE = sm.MODULE_CODE
+        and not EXISTS (select * from sys_role_module_exclude_func srmef
+        where srmef.FUNCTION_ID = sfb.function_id and srmef.role_id = #{roleId}
+        and srmef.module_code = sm.MODULE_CODE
+        )
+        <if test="functionCode != null">
+            and (
+            sfb.function_code like CONCAT('%',CONCAT(#{functionCode},'%'))
+            or
+            sfb.function_name like CONCAT('%',CONCAT(#{functionCode},'%'))
+            )
+        </if>
+        order by sfb.function_sequence asc
+    </select>
+
+    <select id="selectFunctionRole" resultMap="BaseResultMap"
+            parameterType="com.hand.hap.function.dto.Function">
+        select
+        sfb.*,
+        srm.role_id,
+        srm.sys_role_module_id,
+        srb.name,
+        srb.url,
+        sm.module_name,
+        (select sm.MODULE_NAME from sys_module sm where sm.MODULE_CODE = srm.PARENT_MODULE_CODE) PARENT_MODULE_NAME
+        from sys_function_b sfb,sys_role_module srm,sys_resource_b srb,sys_module sm where sfb.MODULE_CODE =
+        srm.MODULE_CODE
+        and sfb.RESOURCE_ID = srb.RESOURCE_ID
+        and srm.role_id = #{roleId}
+        and srm.MODULE_CODE = sm.MODULE_CODE
+        and not EXISTS (select * from sys_role_module_exclude_func srmef
+        where srmef.FUNCTION_ID = sfb.function_id and srmef.role_id = #{roleId}
+        )
+        <if test="functionCode != null">
+            and (
+            sfb.function_code like CONCAT('%',CONCAT(#{functionCode},'%'))
+            or
+            sfb.function_name like CONCAT('%',CONCAT(#{functionCode},'%'))
+            )
+        </if>
+        order by sfb.function_sequence asc
+    </select>
+
+    <select id="selectFunctionIdByParentId" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        SELECT SFB.FUNCTION_ID
+        FROM SYS_FUNCTION_B SFB
+        WHERE  SFB.PARENT_FUNCTION_ID = #{parentId,jdbcType=DECIMAL}
+    </select>
+
+
+    <select id="queryRoleModuleFunctions" resultMap="BaseResultMap" parameterType="com.hand.hap.function.dto.Function">
+            SELECT
+            sfb.function_code,
+            sfb.function_name,
+            sfb.function_id,
+            sfb.function_description,
+            (
+                CASE
+                WHEN (
+                    SELECT
+                        count(*)
+                    FROM
+                        sys_role_module_exclude_func smc
+                    WHERE
+                        smc.module_code = #{moduleCode}
+                    AND smc.role_id = #{roleId}
+                    AND smc.function_id = sfb.function_id
+                ) = 0 THEN
+                    'Y'
+                ELSE
+                    'N'
+                END
+            ) AS enabled_flag
+        FROM
+            sys_function_b sfb
+        WHERE
+            sfb.module_code = #{moduleCode}
+    </select>
+
+    <select id="queryRoleFunctions" resultMap="BaseResultMap" parameterType="com.hand.hap.function.dto.Function">
+            SELECT
+            sfb.function_code,
+            sfb.function_name,
+            sfb.function_id,
+            sfb.function_description,
+            (
+                CASE
+                WHEN (
+                    SELECT
+                        count(*)
+                    FROM
+                        sys_function_b sb,
+                        sys_role_module_exclude_func smc
+                    WHERE smc.role_id = #{roleId}
+                    AND smc.function_id = sfb.function_id
+                ) = 0 THEN
+                    'Y'
+                ELSE
+                    'N'
+                END
+            ) AS enabled_flag
+        FROM
+            sys_function_b sfb
+    </select>
+
+    <select id="selectFunctionForLeafInitScript" resultType="com.hand.hap.function.dto.Function">
+    SELECT
+        SFB.FUNCTION_ID AS functionId,
+        SFB.FUNCTION_CODE AS functionCode,
+        SFB.FUNCTION_NAME AS functionName,
+        SFB.ENABLED_FLAG AS enabledFlag,
+        SFB.MODULE_CODE AS moduleCode,
+        SFB.FUNCTION_SEQUENCE AS functionSequence,
+        SFBP.FUNCTION_CODE parentFunctionCode,
+        SRB.URL AS resourceUrl
+    FROM
+        SYS_FUNCTION_B SFB
+    LEFT JOIN
+        SYS_FUNCTION_B SFBP ON SFB.PARENT_FUNCTION_ID = SFBP.FUNCTION_ID
+    LEFT JOIN
+        SYS_RESOURCE_B SRB ON SFB.RESOURCE_ID = SRB.RESOURCE_ID
+
+    </select>
+</mapper>

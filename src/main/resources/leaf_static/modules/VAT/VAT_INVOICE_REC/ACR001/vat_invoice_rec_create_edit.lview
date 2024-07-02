@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        $L.onReady(function () {
+            $('vat_invoice_rec_create_edit_hd_query_ds').create({
+                "cf_id_str": '${/parameter/@cashflow_ids}',
+                "temp_id": '${/parameter/@temp_id}'
+            });
+            $('vat_invoice_rec_create_edit_hd_ds').query();
+        });
+
+        function vat_invoice_rec_create_edit_hd_close() {
+            $('${/parameter/@win_id}').close();
+            $('${/parameter/@parent_win_id}').close();
+            $('vat_invoice_rec_ds').query();
+        }
+
+        /**
+         * 创建发票
+         */
+        function vat_invoice_rec_create_edit_hd_create() {
+            if ($('vat_invoice_rec_create_edit_hd_ds').validate()) {
+                $('vat_invoice_rec_create_edit_hd_ds').getAll().forEach(function (i) {
+                    i.dirty = true;
+                });
+                $('vat_invoice_rec_create_edit_ln_ds').getAll().forEach(function (i) {
+                    i.dirty = true;
+                });
+
+                //发票备注必填校验
+                var datas = $('vat_invoice_rec_create_edit_hd_ds').getAll();
+                var description_flag='Y';
+                for(var i = 0; i < datas.length; i++){
+                    var record = datas[i];
+                    if(record.get('write_off_flag_n') == '未核销' || record.get('write_off_flag_n') == '部分核销'){
+                        if(record.get('description') == null || record.get('description') == ''){
+                            description_flag = 'N';
+                            break;
+                        }
+                    }
+                }
+                if(description_flag == 'N'){
+                    Leaf.showMessage('提示','存在未核销或部分核销的现金流，请先填写字段<b>【发票备注】</b>，再创建!');
+                }else{
+                    $('vat_invoice_rec_create_edit_hd_ds').setSubmitUrl("${/request/@context_path}/acr/invoice/hd/create");
+                    $('vat_invoice_rec_create_edit_hd_ds').submit();
+                }
+
+            }
+        }
+
+
+        /**
+         * 设定查询参数
+         */
+        function hdlovPreEvent(lov) {
+            if (lov.binder.name == 'bp_id_n') {
+                var cashflowId = lov.record.data.cashflow_id;
+                if (cashflowId != undefined) {
+                    lov.controller = '/con/contract/bp/queryByCashflowId?cashflowId=' + cashflowId;
+                }
+            }
+        }
+
+        //提交成功回调函数
+        function on_submit_success(ds, response) {
+            if (response.success && ds.submiturl != "${/request/@context_path}/acr/invoice/hd/temp/submit") {
+                deleteTempInfo();
+                vat_invoice_rec_create_edit_hd_close();
+            }
+            var hd_rule = $('hd_combine_ds').getCurrentRecord().get('hd_rule');
+            if(hd_rule != undefined){
+                var url = "${/request/@context_path}/acr/invoice/hd/selectForCreate?combineRule=" + hd_rule;
+                $('vat_invoice_rec_create_edit_hd_ds').setQueryUrl(url);
+                $('vat_invoice_rec_create_edit_hd_ds').query();
+            }
+
+        }
+
+        /**
+         * 头合并
+         * @param radio
+         */
+        var saveFlag = false;
+
+        function turn_save_flag() {
+            saveFlag = true;
+        }
+
+        function combine_invoice_hd(radio) {
+            if (!saveFlag) {
+                Leaf.showMessage("提示", "请先保存!", null);
+                return;
+            }
+            var url = "${/request/@context_path}/acr/invoice/hd/selectForCreate?combineRule=" + radio.value;
+            $('vat_invoice_rec_create_edit_hd_ds').setQueryUrl(url);
+            $('vat_invoice_rec_create_edit_hd_ds').query();
+        }
+
+        /**
+         * 行合并
+         * @param radio
+         */
+        function combine_invoice_ln(radio) {
+            if (!$('hd_combine_ds').getCurrentRecord().get("hd_rule") || $('hd_combine_ds').getCurrentRecord().get("hd_rule") == "N") {
+                Leaf.showMessage("提示", "请先合并头!", null);
+                return;
+            }
+            var url = "${/request/@context_path}/acr/invoice/ln/selectForCreate?combineRule=" + radio.value;
+            $('vat_invoice_rec_create_edit_ln_ds').setQueryUrl(url);
+            $('vat_invoice_rec_create_edit_ln_ds').query();
+        }
+
+        /**
+         * 存临时表
+         */
+        function vat_invoice_rec_create_edit_hd_save() {
+            if ($('vat_invoice_rec_create_edit_hd_ds').validate()) {
+                saveTempInfo();
+                saveFlag = true;
+            } else {
+                return;
+            }
+        }
+
+        function saveTempInfo() {
+            $('vat_invoice_rec_create_edit_hd_ds').setSubmitUrl("${/request/@context_path}/acr/invoice/hd/temp/submit");
+            $('vat_invoice_rec_create_edit_hd_ds').submit();
+        }
+
+        function deleteTempInfo() {
+            var url = "${/request/@context_path}/acr/invoice/hd/temp/delete?tempId=${/parameter/@temp_id}";
+            jQuery.ajax({
+                url: url,
+                type: "get",
+                success: function (response) {
+                }
+            });
+        }
+
+        function check_net_amount(record, name, value) {
+            if ((record.get('due_amount') - record.get('billing_amount')) < value) {
+                return "开票金额超过未开金额!"
+            }
+            return true;
+        }
+
+        function vat_invoice_rec_create_edit_hd_ds_load(ds) {
+            var datas = ds.getAll();
+
+            for(var i = 0; i < datas.length; i++){
+                var record = datas[i];
+                record.set('billing_way','1');
+                record.set('billing_way_n','电子票');
+                record.set('invoice_date',new Date());
+                /*if($('hd_combine_ds').getCurrentRecord().get('hd_rule') == 'CN' || $('hd_combine_ds').getCurrentRecord().get('hd_rule') == 'BP'){
+                    if(record.get('write_off_flag_n') == '核销'){
+                        record.getField('description').setRequired(false);
+                    }else{
+                        record.getField('description').setRequired(true);
+                    }
+                }*/
+            }
+        }
+        function vat_invoice_rec_create_edit_ln_ds_load(ds) {
+            var datas = ds.getAll();
+
+            for(var i = 0; i < datas.length; i++){
+                var record = datas[i];
+                var due_amount = record.get('due_amount');
+                var billing_amount = record.get('billing_amount');
+                if(due_amount != null &&  billing_amount != null ){
+                    var total_amount = due_amount - billing_amount;
+                }
+                record.set('total_amount' ,  total_amount );
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="hd_combine_ds" autoCreate="true"/>
+            <a:dataSet id="vat_billing_way_ds" lookupCode="VAT.BILLING_WAY"/>
+            <a:dataSet id="vat_invoice_kind_n_ds" lookupCode="VAT.INVOICE_KIND"/>
+            <a:dataSet id="vat_invoice_rec_create_edit_hd_query_ds"/>
+            <a:dataSet id="vat_invoice_rec_create_edit_hd_ds"
+                       queryUrl="${/request/@context_path}/acr/invoice/hd/selectForCreate?combineRule=N"
+                       queryDataSet="vat_invoice_rec_create_edit_hd_query_ds">
+                <a:fields>
+                    <a:field name="bp_id_n" lovGridHeight="300" lovHeight="510"
+                             lovLabelWidth="100" required="true"
+                             lovService="/con/contract/bp/queryByCashflowId~com.hand.hls.cont.dto.ConContractBpDetailLov"
+                             lovWidth="600"
+                             title="选择开票对象">
+                        <a:mapping>
+                            <a:map from="bp_name" to="bp_id_n"/>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="invoice_kind" to="invoice_kind"/>
+                            <a:map from="invoice_kind_n" to="invoice_kind_n"/>
+                            <a:map from="invoice_title" to="bp_name"/>
+                            <a:map from="tax_registry_num" to="bp_tax_registry_num"/>
+                            <a:map from="invoice_bp_address_phone_num" to="bp_address_phone_num"/>
+                            <a:map from="invoice_bp_bank_account" to="bp_bank_account"/>
+                            <a:map from="taxpayer_type" to="taxpayer_type"/>
+                            <a:map from="taxpayer_type_n" to="taxpayer_type_n"/>
+                        </a:mapping>
+                    </a:field>
+
+                    <a:field name="invoice_kind_n" options="vat_invoice_kind_n_ds" displayField="code_value_name"
+                             valueField="code_value" readOnly="true"
+                             returnField="invoice_kind"/>
+                    <a:field name="bp_name" readOnly="true"/>
+                    <a:field name="bp_tax_registry_num" readOnly="true"/>
+                    <a:field name="bp_address_phone_num" readOnly="true"/>
+                    <a:field name="bp_bank_account" readOnly="true"/>
+                    <a:field name="taxpayer_type_n" readOnly="true"/>
+
+                    <a:field name="billing_way_n" options="vat_billing_way_ds" displayField="code_value_name"
+                             valueField="code_value" required="true"
+                             returnField="billing_way"/>
+                    <a:field name="invoice_date" required="true" datatype="date"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="on_submit_success"/>
+                    <a:event name="submit" handler="turn_save_flag"/>
+                    <a:event name="load" handler="vat_invoice_rec_create_edit_hd_ds_load"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="vat_invoice_rec_create_edit_ln_ds" autoPageSize="true" indexChangeDisquery="true"
+                       bindTarget="vat_invoice_rec_create_edit_hd_ds" bindName="acrInvoiceLns"
+                       queryUrl="${/request/@context_path}/acr/invoice/ln/selectForCreate?combineRule=N">
+                <a:fields>
+                    <a:field name="net_amount" validator="check_net_amount"/>
+                    <a:field name="total_amount"  validator="check_net_amount"  />
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="vat_invoice_rec_create_edit_ln_ds_load"/>
+                </a:events>
+
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="vat_invoice_rec_create_edit_hd_close" text="HAP_CLOSE"/>
+                <a:gridButton click="vat_invoice_rec_create_edit_hd_create" text="HLS.CREATE"/>
+            </a:screenTopToolbar>
+            <a:form title="发票头信息" height="370">
+                <a:grid id="vat_invoice_rec_create_edit_hd_ds_grid" bindTarget="vat_invoice_rec_create_edit_hd_ds"
+                        marginHeight="340" marginWidth="30">
+                    <a:toolBar>
+                        <a:BaseViewComponent>
+                            <a:autoForm title="发票头信息" ></a:autoForm>
+                        </a:BaseViewComponent>
+                    </a:toolBar>
+                    <a:columns>
+                        <a:column name="bp_name_tenant" width="130" prompt="承租人"/>
+                        <a:column name="billing_method_n" width="160" prompt="开票规则"/>
+                        <a:column name="bp_id_n" width="100" prompt="开票对象名称"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_lv"/>
+                        <a:column name="invoice_kind_n" width="100" prompt="发票种类" align="center"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_cb"/>
+                        <a:column name="billing_way_n" width="100" prompt="开票方式" align="center"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_cb"/>
+                        <a:column name="bp_name" width="130" prompt="发票抬头"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_tf"/>
+                        <a:column name="bp_tax_registry_num" width="150" prompt="纳税人识别号"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_tf"/>
+                        <a:column name="bp_address_phone_num" width="100" prompt="开票地址电话" align="center"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_tf"/>
+                        <a:column name="bp_bank_account" width="100" prompt="开户行及账号" align="center"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_tf"/>
+                        <a:column name="invoice_date" width="100" prompt="开票时间" renderer="Leaf.formatDate"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_dp"/>
+                        <a:column name="description" width="200" prompt="发票备注"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_tf"/>
+                        <a:column name="taxpayer_type_n" width="200" prompt="纳税人类型" align="center"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:textField id="vat_invoice_rec_create_edit_hd_ds_grid_tf"/>
+                        <a:checkBox id="vat_invoice_rec_create_edit_hd_ds_grid_ck"/>
+                        <a:lov id="vat_invoice_rec_create_edit_hd_ds_grid_lv">
+                            <a:events>
+                                <a:event name="beforetriggerclick" handler="hdlovPreEvent"/>
+                            </a:events>
+                        </a:lov>
+                        <a:comboBox id="vat_invoice_rec_create_edit_hd_ds_grid_cb"/>
+                    </a:editors>
+                </a:grid>
+            </a:form>
+
+            <a:form title="发票行信息" height="370">
+                <a:grid id="vat_invoice_rec_create_edit_ln_ds_grid" bindTarget="vat_invoice_rec_create_edit_ln_ds"
+                        marginHeight="340" marginWidth="30">
+                    <a:toolBar>
+                        <a:BaseViewComponent>
+                            <a:autoForm title="发票行信息"></a:autoForm>
+                        </a:BaseViewComponent>
+                    </a:toolBar>
+                    <a:columns>
+                        <!--<a:column name="contract_number" width="130" prompt="合同号"/>-->
+                        <a:column name="legal_contract_number" width="130" prompt="法务合同编号"/>
+                        <a:column name="times" width="160" prompt="期数"/>
+                        <a:column name="cf_item_n" width="100" prompt="应收项目"/>
+                        <a:column name="taxable_service_name" width="100" prompt="货物及应税劳务名称" align="center"/>
+                        <a:column name="invoice_code" width="100" prompt="税收分类编码" align="center"/>
+                        <a:column name="currency_desc" width="130" prompt="币种"/>
+                        <a:column name="due_amount" width="150" prompt="应收金额(元)"/>
+                        <!--<a:column name="received_amount" width="100" prompt="已收金额" align="center"/>-->
+                        <a:column name="billing_amount" width="100" prompt="已开票金额(元)" align="center"/>
+                        <a:column name="total_amount" width="100" prompt="本次开票金额(元)"
+                                  editor="vat_invoice_rec_create_edit_hd_ds_grid_lf"/>
+                        <a:column name="tax_type_code_n" width="200" prompt="税率(%)"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:checkBox id="vat_invoice_rec_create_edit_ln_ds_grid_ck"/>
+                        <a:textField id="vat_invoice_rec_create_edit_ln_ds_grid_tf"/>
+                        <a:lov id="vat_invoice_rec_create_edit_ln_ds_grid_lv">
+                        </a:lov>
+                        <a:comboBox id="vat_invoice_rec_create_edit_ln_ds_grid_cb"/>
+                        <a:numberField id="vat_invoice_rec_create_edit_hd_ds_grid_lf"/>
+                    </a:editors>
+                </a:grid>
+            </a:form>
+
+        </a:screenBody>
+    </a:view>
+</a:screen>

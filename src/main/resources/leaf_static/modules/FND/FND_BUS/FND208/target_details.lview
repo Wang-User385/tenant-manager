@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: wj
+    $Date: 2018-12-26
+    $Revision: 2.0
+    $Purpose: 评分指标定义-指标明细
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script src="${/request/@context_path}/common/code?leftCode=FND.SCORE_TEMPLATE_LEFT"
+                type="text/javascript"></script>
+        <script src="${/request/@context_path}/common/code?rightCode=FND.SCORE_TEMPLATE_RIGHT"
+                type="text/javascript"></script>
+
+
+        <script src="${/request/@context_path}/common/code?fromValueCode=FND.START_VALUE"
+                type="text/javascript"></script>
+        <script src="${/request/@context_path}/common/code?toValueCode=FND.END_VALUE"
+                type="text/javascript"></script>
+        <script><![CDATA[
+        var resourceTypeECMap = {};
+        leftCode.forEach(function (i) {
+            resourceTypeECMap[i.value] = i.meaning;
+        });
+        rightCode.forEach(function (i) {
+            resourceTypeECMap[i.value] = i.meaning;
+        });
+
+        fromValueCode.forEach(function (i) {
+            resourceTypeECMap[i.value] = i.meaning;
+        });
+        toValueCode.forEach(function (i) {
+            resourceTypeECMap[i.value] = i.meaning;
+        });
+
+        <!--将type中英文存入对应的ds-->
+        $L.onReady(function () {
+            leftCode.forEach(function (i) {
+                $("left_bracket_ds").create({"left_bracket": i.value, "left_bracket_desc": i.meaning});
+            });
+            rightCode.forEach(function (i) {
+                $("right_bracket_ds").create({"right_bracket": i.value, "right_bracket_desc": i.meaning});
+            });
+
+            fromValueCode.forEach(function (i) {
+                $("from_value_ds").create({"from_value": i.value, "from_value_desc": i.meaning});
+            });
+            toValueCode.forEach(function (i) {
+                $("to_value_ds").create({"to_value": i.value, "to_value_desc": i.meaning});
+            });
+        });
+
+
+
+        $L.onReady(function(){
+            $("score_target_query_ds").create({
+                resourceId:"${/parameter/@resourceId}"
+            });
+        });
+
+        //查询方法
+        function number_line_query() {
+            $('score_target_custom_ds').query();
+        }
+        function score_target_reset() {
+
+            $('score_target_query_ds').reset();
+            $('score_target_custom_ds').query();
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="left_bracket_ds">
+                <a:fields>
+                    <a:field name="left_bracket_desc"/>
+                    <a:field name="left_bracket"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="from_value_ds">
+                <a:fields>
+                    <a:field name="from_value_desc"/>
+                    <a:field name="from_value"/>
+                </a:fields>
+            </a:dataSet>
+
+           <!-- <a:dataSet id="from_value_ds" lookupCode="FND.START_VALUE"/>
+            <a:dataSet id="to_value_ds" lookupCode="FND.END_VALUE"/>-->
+
+            <a:dataSet id="to_value_ds">
+                <a:fields>
+                    <a:field name="to_value_desc"/>
+                    <a:field name="to_value"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="right_bracket_ds">
+                <a:fields>
+                    <a:field name="right_bracket_desc"/>
+                    <a:field name="right_bracket"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="score_target_query_ds">
+                <a:fields>
+                    <a:field name="score_target_id" defaultValue="${/parameter/@score_target_id}"/>
+                    <a:field name="resourceId"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="score_target_custom_ds" autoPageSize="true" fetchAll="false" selectable="true"
+                       autoQuery="true" queryDataSet="score_target_query_ds"
+                       queryUrl ="${/request/@context_path}/fnd/score/target/values/queryAll"
+                       deleteUrl="${/request/@context_path}/fnd/score/target/values/remove"
+                       submitUrl="${/request/@context_path}/fnd/score/target/values/submit">
+                <a:fields>
+                    <a:field name="score_target_id" defaultValue="${/parameter/@score_target_id}"/>
+                    <a:field name="line_number" />
+                    <a:field name="left_bracket" />
+                    <a:field name="left_bracket_desc" options="left_bracket_ds" displayField="left_bracket_desc"
+                             valueField="left_bracket" returnField="left_bracket"/>
+
+                    <a:field name="from_value"/>
+                    <a:field name="from_value_desc" options="from_value_ds" displayField="from_value_desc"
+                             valueField="from_value" returnField="from_value"/>
+
+                    <a:field name="to_value" />
+                    <a:field name="to_value_desc" options="to_value_ds" returnField="to_value"
+                             displayField="to_value_desc" valueField="to_value"/>
+
+                    <a:field name="right_bracket" />
+                    <a:field name="right_bracket_desc" options="right_bracket_ds" displayField="right_bracket_desc"
+                             valueField="right_bracket" returnField="right_bracket"/>
+                    <a:field name="description" />
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="score_target_define" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="score_target_define" text="HAP.SAVE" type="save"/>
+                <a:gridButton bind="score_target_define" text="HAP.DELETE" type="delete"/>
+                <a:gridButton click="number_line_query" text="HAP.QUERY"/>
+                <a:gridButton click="score_target_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="1" title="查询条件" labelwidth="100">
+                <a:textField name="line_number" bindTarget="score_target_query_ds" prompt="序号"
+                             width="220">
+                    <a:events>
+                        <a:event name="enterdown" handler="number_line_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="score_target_define"  bindTarget="score_target_custom_ds"
+                    marginHeight="150"  width="815" navBar="true" >
+                <a:columns>
+                    <a:column width="100" name="line_number" editor="score_target_define_tf" prompt="序号"/>
+                    <a:column width="130" name="left_bracket_desc" editor="score_target_combo" prompt="左边界"/>
+                    <a:column width="130" name="from_value_desc" editor="score_target_combo" prompt="起始值" align="center"/>
+                    <a:column width="130" name="to_value_desc" editor="score_target_combo" prompt="结束值" align="center"/>
+                    <a:column width="130" name="right_bracket_desc" editor="score_target_combo" prompt="右边界" align="center"/>
+                    <a:column width="130" name="description" editor="score_target_define_tf" prompt="描述" align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="score_target_define_tf"/>
+                    <a:checkBox id="score_target_define_check"/>
+                    <a:comboBox id="score_target_combo"/>
+                    <a:numberField id="score_target_define_nf" allowNegative="false" allowDecimals="false"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

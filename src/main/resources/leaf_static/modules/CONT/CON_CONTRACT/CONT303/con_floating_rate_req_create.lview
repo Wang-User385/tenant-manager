@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    $Author: Eugene Song
+    $Date: 2019年4月18日
+    $Revision: 1.0
+    $Purpose: 合同调息
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" customizationEnabled="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.sys.service.SysDefaultValueService.querySysDefaultValue"
+                       rootPath="default_value"/>
+    </a:init-procedure>
+    <a:view>
+        <script><![CDATA[
+
+        function cont303_floating_return() {
+            $('${/parameter/@winid}').close();
+        }
+
+        function cont303_floating_create() {
+            var winId = '${/parameter/@winid}';
+            Leaf.Masker.mask($(winId).wrap, '创建中。。');
+            var record = $('con_floating_rate_req_create_ds').getAt(0);
+            var description = Ext.isEmpty(record.get('description')) ? '' : record.get('description');
+            Leaf.request({
+                url: "${/request/@context_path}/con/floating/ln/create/rateChange?description=" + description,
+                success: function (res) {
+                    Leaf.Masker.unmask($(winId).wrap);
+                    var flt_req_id = res.result.record[0].flt_req_id;
+                    var win = new Leaf.Window({
+                        id: 'cont303_floating_calc_winid',
+                        url: '${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT303/con_floating_rate_req_calc.lview',
+                        params: {
+                            winid: 'cont303_floating_calc_winid',
+                            flt_req_id: flt_req_id
+                        },
+                        title: '调息创建',
+                        fullScreen: true
+
+                    });
+                    win.on('close', function () {
+                        var createWin = $('cont303_floating_create_winid');
+                        createWin.close();
+                        cont303_floating_query();
+                    });
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                scope: this
+            });
+        }
+
+        function con_floating_rate_req_create_ds_add(ds,record,index){
+            ds.getAt(0).set("flt_req_date",new Date());
+        }
+
+        ]]></script>
+        <a:screenBody>
+
+            <a:dataSets>
+                <a:dataSet id="con_floating_rate_req_create_ds" autoCreate="true">
+                    <a:fields>
+                        <a:field name="flt_req_date" readOnly="true"/>
+                    </a:fields>
+                    <a:events>
+                        <a:event name="add" handler="con_floating_rate_req_create_ds_add"/>
+                    </a:events>
+                </a:dataSet>
+            </a:dataSets>
+            <a:screenTopToolbar>
+                <a:gridButton click="cont303_floating_return" text="返回"/>
+                <a:gridButton click="cont303_floating_create" text="创建"/>
+            </a:screenTopToolbar>
+            <a:form width="350" height="180">
+                <a:datePicker name="flt_req_date" bindTarget="con_floating_rate_req_create_ds" renderer=""
+                              prompt="申请日期"/>
+                <a:textArea name="description"
+                            bindTarget="con_floating_rate_req_create_ds"
+                            prompt="调息说明" height="120" width="270"/>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>
+    
+    

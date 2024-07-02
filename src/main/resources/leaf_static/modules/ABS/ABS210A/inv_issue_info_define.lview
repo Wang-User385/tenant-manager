@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+
+        <script><![CDATA[
+
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+            debugger;
+            var fin_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'inv_issue_info','G_GRID');
+            var issue_type_n ;
+            if(record != null && record != ''){
+                if(ds.id === fin_id){
+                    console.log(record);
+                    if(record.get('issue_type') == 'LOOP'){
+                        issue_type_n='循环额度';
+                    }else if(record.get('issue_type') == 'ONCE'){
+                        issue_type_n='一次性额度';
+                    }
+                    record.set('issue_type_n', issue_type_n);
+                }
+            }
+
+        };
+
+        function attachment_action(record_id, ds_id) {
+            // debugger;
+            var record = $(ds_id).findById(record_id),
+                project_attachment_id = record.get('issue_info_id');
+            if (!project_attachment_id) {
+                Leaf.showErrorMessage('提示', '请先保存再上传附件！', null, 200, 100);
+                return;
+            }
+            console.log(record.get('issue_info_id'));
+            new Leaf.Window({
+                id: 'open_attachment_win_id',
+                url: '${/request/@context_path}/uploadFile.lview',
+                params: {
+                    header_id: record.get('issue_info_id'),
+                    table_name: 'INV_ISSUE_INFO',
+                    winid: 'open_attachment_win_id'
+                },
+                title: '附件上传',
+                width: 900,
+                height: 475
+            });
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+
+            if (name === 'attachment') {
+                return '<a href="javascript:window[\'' + 'attachment_action' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">上传</a>';
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

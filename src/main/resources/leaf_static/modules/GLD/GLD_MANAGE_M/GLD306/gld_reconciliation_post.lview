@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="je_trx_detail_id"
+                url="${/request/@context_path}/modules/GLD/GLD304/je_trx_line_detail.lview"/>
+        <script><![CDATA[
+        function gls304_detail_open(record_id,ds_id,je_head_id){
+            new Leaf.Window({
+                id: 'gld204_certificate_id',
+                url: '${/request/@context_path}/modules/GLD/GLD_MANAGE/GLD204F1/gld_je_line_info.lview',
+                params: {
+                    winid: 'gld204_certificate_win_id',
+                    je_head_id:je_head_id
+                },
+                title: '凭证明细',
+                fullScreen: true
+            });
+        }
+
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'gls304_detail_open';
+            if (name === 'je_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\',\''+record.data.je_head_id+'\');">'+value+'</a>';
+            }
+        };
+
+
+
+        //凭证传输
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'gld_je_head');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '请至少选择一条记录！');
+                return;
+            }
+
+            var jeHeadArr = [];
+            for(var i=0;i<records.length;i++){
+
+               var gl_status= records[i].get('gl_status');
+               if(gl_status=='SYN'||gl_status=='DELETE_FAILURE'){
+                   Leaf.showMessage('提示！', '所勾选记录存在已同步或者删除失败的凭证！');
+                   return;
+               }
+
+                var jeHead = {};
+                jeHead.jeHeadId = records[i].get('je_head_id');
+                jeHead._status = 'update';
+                jeHeadArr.push(jeHead);
+            }
+
+            Leaf.showConfirm('提示', '确定进行凭证传输？', function () {
+                if ($(ds_id).validate()) {
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: "${/request/@context_path}/gld/je/data/post",
+                        para: {
+                            jeHeadList:jeHeadArr,
+                            session_id:'${/session/@session_id}'
+                        },
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $(ds_id).query();
+                        },
+                        error: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }
+
+            }, null, 200, 100);
+
+        };
+
+
+        //凭证删除
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'gld_je_head');
+            var records = $(ds_id).getSelected();
+            if (records.length !=1) {
+                Leaf.showMessage('提示！', '请选择一条记录！');
+                return;
+            }
+            var gl_status= records[0].get('gl_status');
+            if(gl_status!='SYN'&&gl_status!='DELETE_FAILURE'){
+                Leaf.showMessage('提示！', '所勾选记录不是已同步或者删除失败的凭证不能进行删除操作！');
+                return;
+            }
+
+            var record=$(ds_id).getSelected()[0];
+            Leaf.showConfirm('提示', '确定进行凭证删除？', function () {
+                if ($(ds_id).validate()) {
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: "${/request/@context_path}/gld/je/data/delete",
+                        para: {
+                            voucher_id:record.get('voucher_id'),
+                            com_org_num:record.get('com_org_num'),
+                            source_id:record.get('je_head_id')
+                        },
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $(ds_id).query();
+                        },
+                        error: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }
+
+            }, null, 200, 100);
+
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

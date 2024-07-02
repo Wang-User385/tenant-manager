@@ -1,0 +1,9 @@
+package com.hand.hls.lease.service;
+
+import com.hand.hap.core.ProxySelf;
+import com.hand.hap.system.service.IBaseService;
+import com.hand.hls.lease.dto.LeaseItemInsurance;
+
+public interface ILeaseItemInsuranceService  extends IBaseService<LeaseItemInsurance>, ProxySelf<ILeaseItemInsuranceService> {
+
+}

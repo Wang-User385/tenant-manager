@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: congweijing
+    $Date:2021年5月17日
+    $Revision: 1.0
+    $Purpose: 关税付款申请详情
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <script><![CDATA[
+        //提交审批
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            if ($(ds_id).validate()) {
+                if ($(ds_id).isModified()) {
+                    $L.showMessage('提示', '请先保存！');
+                    return false;
+                } else {
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: "${/request/@context_path}/submit/tariff/csh/payment/req/wfl",
+                        para: {payment_req_id: $(ds_id).getCurrentRecord().get("payment_req_id")},
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                                $('${/parameter/@winid}').close();
+                            });
+                        },
+                        error: function (res) {
+                            $L.showInfoMessage("提示", "提交失败!");
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            $L.showInfoMessage("提示", "提交失败!");
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        sync: true,
+                        scope: this
+                    });
+                }
+            }
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

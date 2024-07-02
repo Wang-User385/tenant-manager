@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.lon.mapper.LonBankAccountMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.lon.dto.LonBankAccount">
+        <result column="BANK_ACCOUNT_ID" property="bankAccountId" jdbcType="DECIMAL" />
+        <result column="BANK_NAME" property="bankName" jdbcType="VARCHAR" />
+        <result column="BANK_BRANCH_NAME" property="bankBranchName" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_NAME" property="bankAccountName" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_NUM" property="bankAccountNum" jdbcType="VARCHAR" />
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="CSH_BANK_ACCOUNT_ID" property="cshBankAccountId" jdbcType="DECIMAL" />
+        <result column="BANK_DEPOSIT_NAME" property="bankDepositName" jdbcType="VARCHAR" />
+        <result column="bank_account_type" property="bankAccountType" jdbcType="VARCHAR" />
+        <result column="bank_account_type_n" property="bankAccountTypeN" jdbcType="VARCHAR" />
+        <result column="COMPANY_ID_N" property="companyIdN" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="queryLonBankDetail" resultMap="BaseResultMap" parameterType="com.hand.hls.lon.dto.LonBankAccount">
+        select clba.*,
+        (select scv.MEANING
+        from sys_code_b sc,sys_code_value_b scv
+        where sc.CODE_ID = scv.CODE_ID
+        and sc.CODE = 'RZ_ACCOUNT_TYPE'
+        and scv.value = clba.bank_account_type) bank_account_type_n,
+        (select f.COMPANY_FULL_NAME  from fnd_company f where f.company_id = clba.company_id)company_id_n
+        from CT_LON_BANK_ACCOUNT clba
+        <where>
+            <if test="bpId != null">
+                and clba.bp_id = #{bpId}
+            </if>
+        </where>
+
+    </select>
+
+</mapper>

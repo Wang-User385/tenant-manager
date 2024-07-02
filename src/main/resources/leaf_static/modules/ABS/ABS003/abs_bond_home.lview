@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="ABS003F2_ABS_CREATE_link" url="${/request/@context_path}/modules/ABS/ABS003/abs_bond_create.lview"/>
+        <a:link id="ABS003F2_ABS_PRODUCT_DETAIL_link"
+                url="${/request/@context_path}/modules/ABS/ABS003/abs_product_detail.lview"/>
+
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_create_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product');
+            var param = {};
+            param['url_title'] = 'ABS发债产品成立';
+            param['function_code'] = 'ABS003F1';
+            param['winid'] = 'ABS003F1_ABS_CREATE_winid';
+            param['screen_width'] = '700';
+            param['side'] = 'right';
+            hls_doc_get_layout_code(param, 'ABS003F2_ABS_CREATE_link', ds_id, 'ABS003');
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name === 'product_number') {
+                return '<a href="javascript:open_window(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+            return value;
+        };
+
+        function open_window(ds_id, record_id) {
+            var param = {};
+            var record = $(ds_id).findById(record_id);
+            param.product_id = record.get('product_id');
+            param.document_type = record.get('document_type');
+            param['url_title'] = '发债产品详情';
+            param['function_code'] = 'ABS003F2';
+            param['winid'] = 'ABS003F2_ABS_DETAIL_winid';
+            if (record.get('product_status') != 'NEW' && record.get('product_status') != 'REJECTED') {
+                param['hidden_button_code'] = ['save', 'submit_approve'];
+                param['maintain_type'] = 'READONLY';
+                param['function_usage'] = 'QUERY';
+            }
+            //隐藏右边的部分按钮
+            if (record.get('product_status') !== "APPROVED") {
+                param['hidden_right_button'] = true;
+            }
+            hls_doc_get_layout_code(param, 'ABS003F2_ABS_PRODUCT_DETAIL_link', ds_id, 'ABS003');
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

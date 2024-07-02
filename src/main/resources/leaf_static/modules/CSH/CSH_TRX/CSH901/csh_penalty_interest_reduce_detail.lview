@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+
+        <script><![CDATA[
+        var contract_num='${/parameter/@contract_num}';
+
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+
+            if(ds.id == '${/parameter/@layout_code}_G_GRID_con_debt_exemption_req_cf_ds'){
+                    qpara['contract_id_list'] = JSON.parse('${/parameter/@contract_id_list}');
+            }else{
+                qpara['contract_id'] = '${/parameter/@contract_id}';
+            }
+        };
+
+        //新增和加载时调用(form)
+        window['${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+
+
+            if(ds.id == '${/parameter/@layout_code}_F_FORM_con_debt_exemption_req_ds'){
+                debugger
+                record.set('tenant_code','${/parameter/@tenant_code}');
+                record.set('tenant_name','${/parameter/@tenant_name}');
+                record.set('manufacturer_name','${/parameter/@manufacturer_name}');
+                record.set('countract_num','${/parameter/@contract_num}');
+                record.set('req_date',new Date());
+                record.set('project_number','${/parameter/@project_number}');
+                record.set('project_name','${/parameter/@project_name}');
+                record.set('description','${/parameter/@description}');
+                record.set('business_type','${/parameter/@business_type}');
+                record.set('company_id','${/parameter/@company_id}');
+                record.set('req_user_id','${/session/@userId}');
+                record.set('req_date',new Date());
+                record.set('contract_id_list','${/parameter/@contract_id_list}');
+
+
+            }
+        };
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var debt_hd_ds = '${/parameter/@layout_code}_F_FORM_con_debt_exemption_req_ds';
+            var debt_ln_ds = '${/parameter/@layout_code}_G_GRID_con_debt_exemption_req_cf_ds';
+            var hd_record = $(debt_hd_ds).getCurrentRecord();
+            var ln_record = $(debt_ln_ds).getAll();
+            for(var i=0;i<ln_record.length;i++){
+                if(ln_record[i].data.exempted_amount<0){
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示','减免金额超过未受罚金合计！');
+                    return false;
+                }
+            }
+            hd_record.set('document_type','CON_PENALTY_REDUCE');
+            hd_record.set('document_category','CON_PENALTY_REDUCE');
+            hd_record.set('business_type','CON_PENALTY_REDUCE');
+            hd_record.set('document_id','${/parameter/@contract_id}');
+            var param = hd_record.data;
+            var hlsCusConDebtExemptionReqCfList = [];
+            for(var i=0;i<ln_record.length;i++){
+                hlsCusConDebtExemptionReqCfList.push(ln_record[i].data);
+            }
+            param['hlsCusConDebtExemptionReqCfList'] = hlsCusConDebtExemptionReqCfList;
+            if(ln_record.length == 0){
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('提示','该合同未生成罚息减免现金流！');
+                return false;
+            }else if(hd_record.get('description') == null || hd_record.get('description') == ''){
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('提示','请先填写变更原因再提交！');
+                return false;
+            }else{
+
+                var message = '';
+                var write_off_flag = 'Y';
+                for(var i=0;i<ln_record.length;i++){
+                    if(ln_record[i].get('write_off_flag') != 'FULL'){
+                        write_off_flag = 'N';
+                        var list=ln_record[i].get('message').split("-");
+                        if(list[1].trim().length>2){
+                            list[1]=conversionMonth(list[1]);
+                        }
+                        message='第'+list[0]+'期-'+list[1]+'月'+list[2];
+                        message = message  + '仍未核销，请核销后再进行罚息减免！' + '</br>';
+                        break;
+                    }
+                }
+                if(write_off_flag == 'N'){
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示',message);
+                    return false;
+                }
+                /*if('${/parameter/@left_amount}' > 0){
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示','请先将租金核销完再进行罚息减免！');
+                }else{*/
+                    Leaf.request({
+                        url: '${/request/@context_path}/csh/penalty/reduce/sumbit',
+                        para: param,
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                            Leaf.showSuccessMessage('${HLS.SUBMIT_SUCCESS}','提交成功', function () {
+                                //$(ds_id).query();
+                                $('${/parameter/@parent_ds_id}').query();
+                                $('${/parameter/@winid}').close();
+                            });
+
+                        }
+                    });
+                //}
+
+            }
+        };
+
+        function conversionMonth(mounth){
+            var m="";
+            switch (mounth) {
+                case "JAN":
+                    m=1;break;
+                case "FEB":
+                    m=2;break;
+                case "MAR":
+                    m=3;break;
+                case "APR":
+                    m=4;break;
+                case "MAY":
+                    m=5;break;
+                case "JUN":
+                    m=6;break;
+                case "JUL":
+                    m=7;break;
+                case "AUG":
+                    m=8;break;
+                case "SEPT":
+                    m=9;break;
+                case "OCT":
+                    m=10;break;
+                case "NOV":
+                    m=11;break;
+                case "DEC":
+                    m=12;break;
+            }
+            return m;
+        }
+
+
+
+        //更新时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value, bp_seq) {
+
+            if(ds.id == '${/parameter/@layout_code}_G_GRID_con_debt_exemption_req_cf_ds'){
+                if(name == 'exemption_amount'){
+                    record.set('exempted_amount',record.get('due_amount') - value);
+
+                    var ds_head =  '${/parameter/@layout_code}_F_FORM_con_debt_exemption_req_ds';
+                    var record_head = $(ds_head).getAt(0);
+                    var sum_amount=0;
+                    var debt_id_date=$(ds.id).getAll();
+                    for(var i=0;i<debt_id_date.length;i++){
+                             sum_amount =plus(debt_id_date[i].data.exemption_amount,sum_amount);
+                    }
+                    record_head.set('sum_amount',sum_amount)
+                }
+                // var debt_id_date=$(ds.id).getAll();
+                // var sum_amount=0;
+                // for(var i=0;i<contract_num;i++){
+                //     sum_amount+=debt_id_date[i].data.exemption_amount;
+                // }
+                // record.set('sum_amount',sum_amount);
+                debugger
+                }
+
+
+        };
+
+        //超链接渲染
+        // window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+        //     window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+        //     var link_function = '${/parameter/@layout_code}_attachment_detail';
+        //     if (name === 'attach_link') {
+        //         return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + name + '\');">上传/下载</a>';
+        //     }
+        //     return value;
+        // };
+
+        // 打开附件窗口
+        // window['${/parameter/@layout_code}_attachment_detail'] = function (record_id, name) {
+        //     var record = window['${/parameter/@layout_code}_hls_link_render_record'][record_id + '---' + name];
+        //     if ('${/parameter/@function_usage}' == 'QUERY') {
+        //         url = '${/request/@context_path}/downloadFile.lview';
+        //     } else {
+        //         url = '${/request/@context_path}/uploadFile.lview';
+        //     }
+        //     if (record.get('debt_attachment_id')) {
+        //     var win = new Leaf.Window({
+        //         id: 'CSH_OPEN_ATTACHMENT_WINID',
+        //         url: url,
+        //         params: {
+        //             header_id: record.get('debt_attachment_id'),
+        //             table_name: 'con_debt_attachment',
+        //             winid: 'CSH_OPEN_ATTACHMENT_WINID',
+        //             function_usage: '${/parameter/@function_usage}'
+        //         },
+        //         title: '附件',
+        //         width: 800,
+        //         height: 575
+        //     });
+        //         win.on('close', function () {
+        //             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_debt_attachment');
+        //             $(ds_id).query();
+        //         });
+        //     } else {
+        //         $L.showInfoMessage("提示", "请先保存!", null);
+        //     }
+        //
+        // }
+
+        // //新增时调用(grid,table,gridBox)
+        // window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+        //     if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_debt_attachment')) {
+        //         record.set('contract_id', '${/parameter/@contract_id}');
+        //         record.set('debt_attachment_category', 'DEBT_EXEMPTION');
+        //     }
+        // };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

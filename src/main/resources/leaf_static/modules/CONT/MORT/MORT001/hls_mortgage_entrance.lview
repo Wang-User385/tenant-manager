@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yericong
+    $Date: 2022-11-17 上午11:48:56
+    $Revision: 1.0
+    $Purpose:零售业务抵押管理入口页面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true" trace="true">
+    <a:view>
+        <a:link id="hls_lease_motor_mortgage_link_id" url="${/request/@context_path}/modules/CONT/MORT/MORT001/hls_motor_mortgage_create.lview"/>
+        <a:link id="hls_lease_machine_mortgage_link_id" url="${/request/@context_path}/modules/CONT/MORT/MORT001/hls_machine_mortgage_create.lview"/>
+        <script><![CDATA[
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract','G_CONTRACT_LIST');
+            var prj_project_result_ds = $(ds_id);
+            var records = prj_project_result_ds.getSelected();
+            if (records.length != 1) {
+                $L.showInfoMessage("提示", "请选择一条数据!");
+                return;
+            }
+            var record = records[0];
+            var param = {};
+            param['contract_id'] = record.get('contract_id');
+            param['contract_number'] = record.get('contract_number');
+            param['division'] = record.get('division');
+            var contract_id = record.get('contract_id');
+            var contract_number = record.get('contract_number');
+            if (record.get('division') == 'Vehicle_Leasing' || record.get('division') == 'COMMERCIAL_VEHICLE') {
+                if(!record.get('mortgage_id')){
+                    Leaf.request({
+                        url: "${/request/@context_path}/mort/save",
+                        para: {
+                            contract_id: contract_id,
+                            contract_number: contract_number
+                        },
+                        success: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }
+                param['url_title'] = '抵押物维护（汽车租赁）';
+                param['function_code'] = 'MORT001F1';
+                param['function_usage'] = 'MODIFY';
+                param['winid'] = 'hls_lease_motor_mortgage_create_winId';
+                var link_id = 'hls_lease_motor_mortgage_link_id';
+                hls_doc_get_layout_code(param, link_id, ds_id, 'MORT001');
+            }
+            if (record.get('division') == 'Construction_machinery' || record.get('division') == 'ENGINEERING_MACHINERY') {
+                if(!record.get('mortgage_id')){
+                    Leaf.request({
+                        url: "${/request/@context_path}/mort/save",
+                        para: {
+                            contract_id: contract_id,
+                            contract_number: contract_number
+                        },
+                        success: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }
+                param['url_title'] = '抵押物维护（工程机械）';
+                param['function_code'] = 'MORT001F2';
+                param['function_usage'] = 'MODIFY';
+                param['winid'] = 'hls_lease_machine_mortgage_create_winId';
+                var link_id = 'hls_lease_machine_mortgage_link_id';
+                hls_doc_get_layout_code(param, link_id, ds_id, 'MORT001');
+            }
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            if (name == 'mortgage_number') {
+                return '<a href="javascript:open_mortgage_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+        };
+
+        function open_mortgage_win(ds_id, record_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var contract_id = param['contract_id'];
+            var contract_number = param['contract_number'];
+            if (param['division'] == 'Vehicle_Leasing' || param['division'] == 'COMMERCIAL_VEHICLE') {
+                if(!record.get('mortgage_id')){
+                    Leaf.request({
+                        url: "${/request/@context_path}/mort/save",
+                        para: {
+                            contract_id: contract_id,
+                            contract_number: contract_number
+                        },
+                        success: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }
+                param['url_title'] = '抵押物维护（汽车租赁）';
+                param['function_code'] = 'MORT001F1';
+                param['function_usage'] = 'MODIFY';
+                param['winid'] = 'hls_lease_motor_mortgage_create_winId';
+                var link_id = 'hls_lease_motor_mortgage_link_id';
+                hls_doc_get_layout_code(param, link_id, ds_id, 'MORT001');
+            }
+            if (param['division'] == 'Construction_machinery' || param['division'] == 'ENGINEERING_MACHINERY') {
+                //var mortgage_number = record.get('mortgage_number');
+                if(!record.get('mortgage_id')){
+                    Leaf.request({
+                        url: "${/request/@context_path}/mort/save",
+                        para: {
+                            contract_id: contract_id,
+                            contract_number: contract_number
+                        },
+                        success: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                }
+                param['url_title'] = '抵押物维护（工程机械）';
+                param['function_code'] = 'MORT001F2';
+                param['function_usage'] = 'MODIFY';
+                param['winid'] = 'hls_lease_machine_mortgage_create_winId';
+                var link_id = 'hls_lease_machine_mortgage_link_id';
+                hls_doc_get_layout_code(param, link_id, ds_id, 'MORT001');
+            }
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

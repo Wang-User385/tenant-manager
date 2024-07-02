@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        <!--init-->
+        $L.onReady(function(){
+            var status=[{text:"已结束",value:"ENDED"},{text:"在运行",value:"RUNNING"}];
+            status.forEach(function(item){
+                $('wfl_process_monitor_status_ds').create({"text":item.text,"value":item.value});
+            });
+
+            var involvedData = [{text: "我发起的", value: "TRUE"}, {text: "我参与的（包含发起）", value: "FALSE"}];
+            involvedData.forEach(function(item){
+                $('wfl_process_involved_ds').create({"text":item.text,"value":item.value});
+            });
+        });
+
+        <!--operations-->
+        function wfl_process_history_query() {
+            $('wfl_process_history_ds').query();
+        }
+
+        function wfl_process_history_add() {
+            $('wfl_process_history_ds').create();
+        }
+
+        function wfl_process_history_save() {
+            var ds = $('wfl_process_history_ds');
+            if (ds.validate()) {
+                ds.setSubmitUrl('${/request/@context_path}/leaf/wfl/approve/strategy/submit');
+                ds.submit();
+            }
+        }
+
+        function openReCallConfirm(id){
+            var procId = parseInt(id);
+            Leaf.showConfirm('提示', '确定撤回？', function(id){
+                var ds = $('wfl_process_history_ds');
+                if (ds.validate()) {
+                    var header = $jq('meta[name=_csrf_header]').attr('content');
+                    var token = $jq('meta[name=_csrf]').attr('content');
+                    var headers = {};
+                    headers[header] = token;
+                    var url = '${/request/@context_path}/wfl/runtime/prc/back/'+procId;
+                    jQuery.ajax({
+                        type: 'POST',
+                        url: url,
+                        headers:headers,
+                        contentType: "application/json; charset=utf-8",
+                        success: function (datas) {
+                            if(datas.success){
+                                $L.showInfoMessage("提示","撤回成功!");
+                            } else {
+                                $L.showErrorMessage("错误", datas.message);
+                            }
+                            ds.query();
+                        }
+                    });
+                }
+            }, null, 200, 100 );
+        }
+
+        function wfl_process_history_quit() {
+            location.href = $('pageLink_welcome').getUrl();
+        }
+
+        function wfl_process_history_reset(){
+            $('wfl_process_history_query_ds').reset();
+            wfl_process_history_query();
+        }
+
+        function onSubmitSuccess_wfl_process_history_ds(ds) {
+            wfl_process_history_query();
+        }
+
+
+        <!--renders-->
+        function process_status_render(value,record,name){
+            if (null != record.get('end_time')) {
+                return "<span style='color:#5d6d7c;'>已结束</span>"
+            } else {
+                if (record.get('suspended')) {
+                    return "<span style='color:goldenrod;'>挂起中</span>"
+                } else {
+                    return "<span style='color:green;'>运行中</span>"
+                }
+            }
+        }
+
+        function end_status_detail_render(value, record, name){
+            if (null != record.get('end_time')) {
+                var last_approve_action = record.get('last_approve_action');
+                var end_status_description = "";
+                switch (last_approve_action) {
+                    case 'REJECT':
+                        end_status_description = "审批拒绝";
+                        break;
+                    case 'REJECTED':
+                        end_status_description = "审批拒绝";
+                        break;
+                    case 'APPROVED_RETURN':
+                        end_status_description = "审批拒绝";
+                        break;
+                    case 'VETOED':
+                        end_status_description = "审批拒绝";
+                        break;
+                    case 'APPROVED':
+                        end_status_description = "审批通过";
+                        break;
+                    case 'PASS':
+                        end_status_description = "审批通过";
+                        break;
+                    default:""
+                }
+
+            }else{
+                end_status_description = "审批中";
+            }
+            return "<span style='color:#5d6d7c;'>"+end_status_description+"</span>"
+        }
+
+        function operations_render(value, record, name){
+            var html = '<a href="javascript:winOpen_process_instance_info_detail(\'' + record.get('id') + '\',\'' + record.get('task_id') + '\',\'' + record.get('process_name') + '\');">查看</a>&nbsp;&nbsp;&nbsp;&nbsp;';
+            // if(!(record.get('end_time')!=null&&record.get('end_time')!="")){
+            //     html = html+'<a href="javascript:openReCallConfirm(\'' + record.get('id') + '\');">撤回</a>&nbsp;&nbsp;&nbsp;&nbsp;';
+            // }
+            return html;
+        }
+
+        function process_approve_history_render(value, record, name){
+            return '<a href="javascript:winOpen_process_approve_history(\'' + record.get('id') + '\',\'' + record.get('task_id') + '\',\'' + record.get('process_name') + '\');">查看</a>';
+        }
+
+        <!--new Window-->
+        function winOpen_process_instance_info_detail(id,taskId,processName){
+            new Leaf.Window({
+                id: 'win_process_instance_info_detail',
+                url: '${/request/@context_path}/modules/WFL/WFL003/process_instance_detail.lview',
+                params: {
+                    id: id,
+                    taskId: taskId
+                },
+                title: processName,
+                fullScreen:true
+            });
+        }
+
+        function winOpen_process_approve_history(id,taskId,processName){
+            new Leaf.Window({
+                id: 'win_process_instance_info_detail',
+                url: '${/request/@context_path}/modules/MYWFL/MYWFL002/process_approve_history.lview',
+                params: {
+                    id: id,
+                    taskId: taskId
+                },
+                title: '审批历史-'+processName,
+                fullScreen:true
+            });
+        }
+        function beforeQuery_wfl_process_history_ds(){
+            if('${/parameter/@project_id}' != null && '${/parameter/project_id}}' !=''){
+                $('wfl_process_history_ds').setQueryParameter('project_id', '${/parameter/@project_id}');
+            }
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="wfl_process_involved_ds"/>
+            <a:dataSet id="wfl_process_monitor_status_ds"/>
+            <a:dataSet id="wfl_process_history_query_ds">
+                <a:fields>
+                    <a:field name="involved_n" options="wfl_process_involved_ds" displayField="text" valueField="value" returnField="involved"/>
+                    <a:field name="process_instance_status_n" options="wfl_process_monitor_status_ds" displayField="text" valueField="value" returnField="process_instance_status"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="wfl_process_history_ds" autoPageSize="true" autoQuery="true" queryUrl="${/request/@context_path}/wfl/leaf/history/query"
+                       queryDataSet="wfl_process_history_query_ds" selectable="true" selectionModel="single">
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_wfl_process_history_ds"/>
+                    <a:event name="query" handler="beforeQuery_wfl_process_history_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="wfl_process_history_query" text="HAP.QUERY"/>
+                <a:gridButton click="wfl_process_history_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="3" labelwidth="130" title="查询条件" style="width:100%">
+                <a:comboBox name="involved_n" bindTarget="wfl_process_history_query_ds" prompt="参与人" width="200"
+                            editable="false">
+                    <a:events>
+                        <a:event name="enterdown" handler="wfl_process_history_query"/>
+                    </a:events>
+                </a:comboBox>
+                <a:datePicker name="started_after" bindTarget="wfl_process_history_query_ds" prompt="开始日期从" width="200" editable="false">
+                    <a:events>
+                        <a:event name="enterdown" handler="wfl_process_history_query"/>
+                    </a:events>
+                </a:datePicker>
+                <a:datePicker name="started_before" bindTarget="wfl_process_history_query_ds" prompt="开始日期至" width="200" editable="false">
+                    <a:events>
+                        <a:event name="enterdown" handler="wfl_process_history_query"/>
+                    </a:events>
+                </a:datePicker>
+                <a:comboBox name="process_instance_status_n" bindTarget="wfl_process_history_query_ds" prompt="是否结束" width="200" editable="false">
+                    <a:events>
+                        <a:event name="enterdown" handler="wfl_process_history_query"/>
+                    </a:events>
+                </a:comboBox>
+                <a:datePicker name="finished_after" bindTarget="wfl_process_history_query_ds" prompt="结束日期从" width="200" editable="false">
+                    <a:events>
+                        <a:event name="enterdown" handler="wfl_process_history_query"/>
+                    </a:events>
+                </a:datePicker>
+                <a:datePicker name="finished_before" bindTarget="wfl_process_history_query_ds" prompt="结束日期至" width="200" editable="false">
+                    <a:events>
+                        <a:event name="enterdown" handler="wfl_process_history_query"/>
+                    </a:events>
+                </a:datePicker>
+            </a:form>
+            <a:grid id="wfl_process_history_ds_grid" bindTarget="wfl_process_history_ds" marginWidth="30"
+                    marginHeight="170"
+                    navBar="true">
+                <a:columns>
+                    <a:column name="id" width="90" prompt="流程实例ID"/>
+                    <a:column width="100" prompt="流程状态" renderer="process_status_render" align="center"/>
+                    <a:column width="140" prompt="操作" renderer="operations_render" align="center"/>
+                    <a:column name="document_name" width="120" prompt="单据名称"/>
+                    <a:column name="process_name" width="120" prompt="流程名称"/>
+                    <!--<a:column name="process_definition_id" width="190" prompt="流程定义ID"/>-->
+                    <a:column name="last_approver" width="100" prompt="最后审批人"/>
+                    <a:column name="current_approver" width="120" prompt="当前审批人"/>
+                    <a:column width="100" prompt="审批历史" renderer="process_approve_history_render" align="center"/>
+                    <a:column name="start_user_name" width="120" prompt="提交人"/>
+                    <a:column name="start_time" width="140" prompt="开始时间"/>
+                    <a:column name="end_time" width="140" prompt="结束时间"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="wfl_process_history_ds_grid_tf"/>
+                    <a:textField id="wfl_process_history_ds_grid_tf_upper" maxLength="30" typeCase="upper"/>
+                    <a:checkBox id="wfl_process_history_ds_grid_check"/>
+                    <a:datePicker id="wfl_process_history_ds_grid_dp" editable="false"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

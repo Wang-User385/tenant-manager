@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="history_asset_link_id" url="${/request/@context_path}/modules/AST/AST_MANAGE/AST020/hls_asset_class_contract_history_report.lview"/>
+        <a:link id="sig001_project_modify_id" url="${/request/@context_path}/modules/SIG/SIG_PROJECT/SIG001F1/sig_project_modify.lview"/>
+        <script><![CDATA[
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'contract_number') {
+                var link_function = 'open_contract_detail_win';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }else  if(name == 'history_level'){
+                var link_function = 'open_history_asset_win';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '历史分类' + '</a>';
+            }
+        };
+
+        function open_history_asset_win(record_id, ds_id){
+            pageSize = $(ds_id).pagesize;
+            page = $(ds_id).currentPage;
+            index = $(ds_id).currentIndex;
+            var param = $(ds_id).findById(record_id).data;
+            Leaf.Masker.mask(Ext.getBody(), '执行中。。')
+            Leaf.request({
+                url: "${/request/@context_path}/contract/queryContractId?contractNumber=" + param.contract_number,
+                success: function (args) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    if (args.success) {
+                        param['contract_id'] = args.result.record[0].contract_id;
+                        param['url_title'] = '资产分类历史记录';
+                        param['function_code'] = 'RPT008F1';
+                        param['function_usage'] = 'QUERY';
+                        param['winid'] = 'history_asset_winId';
+                        hls_doc_get_layout_code(param, 'history_asset_link_id', ds_id, 'RPT008');
+                    }
+                },
+                failure: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+        function open_contract_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '合同详细页面';
+            param['function_code'] = 'SIG001F1';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            hls_doc_get_layout_code(param, 'sig001_project_modify_id', ds_id, 'RPT008');
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Revision: 1.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="sig100_sing_batch_wfl_approve_link_id" url="${/request/@context_path}/modules/SIG/SIG_TASK/SIG100F1/sign_agree.lview"/>
+        <a:link id="sig100_sign_count_link_id" url="${/request/@context_path}/modules/SIG/SIG_TASK/SIG100F1/sign_count.lview"/>
+
+    <script><![CDATA[
+    //超链接渲染
+    window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+        if (name === 'to_do') {
+            var str = '';
+            str += '<a href="javascript:winOpen_task_detail(\''
+                + record.get('task_id') + '\',\''
+                + record.get('proc_inst_id') + '\',\''
+                + record.get("name") + '\');">';
+            str += '办理</a>';
+            return str;
+        }
+    }
+
+    <!--打开窗口：待办详细-->
+    function winOpen_task_detail(task_id, process_instance_id, name) {
+        var openWin = new Leaf.Window({
+            id: 'task_detail_win',
+            url: '${/request/@context_path}/modules/MYWFL/MYWFL001/task_detail.lview',
+            params: {
+                taskId: task_id,
+                isAdmin: true,
+                processInstanceId: process_instance_id,
+                winId: 'task_detail_win'
+            },
+            title: "待办办理：" + name,
+            fullScreen: true
+        });
+        openWin.on('close', function () {
+            // query_zjwfl5110_toDoDs();
+            $("${/parameter/@layout_code}_R_GRID_act_ru_task_ds").query();
+        });
+    }
+
+    //投放审查测算
+    window['${/parameter/@layout_code}_sign_calc_layout_dynamic_click'] = function () {
+        var datas =  $("${/parameter/@layout_code}_R_GRID_act_ru_task_ds").getSelectedJson();
+        if(datas == null || datas.length == 0){
+            $L.showInfoMessage("提示","请选择要投放审查测算的数据！");
+            return;
+        }
+        if(datas.length > 1) {
+            var credit_line_id = datas[0].credit_line_id;
+            for (var i = 1; i < datas.length; i++) {
+                if(datas[i].credit_line_id != credit_line_id){
+                    $L.showInfoMessage("提示","请选择额度数据相同的单据!");
+                    return;
+                }
+            }
+        }
+        var win = new Leaf.Window({
+            id: '${/parameter/@layout_code}_sign_wfl_count_winid',
+            url: $("sig100_sign_count_link_id").getUrl(),
+            title: '投放审查测算',
+            width: 1000,
+            height: 575
+        });
+    }
+
+    //批量同意
+    window['${/parameter/@layout_code}_sign_approve_layout_dynamic_click'] = function () {
+        var datads = '${/parameter/@layout_code}'+'_R_GRID_act_ru_task_ds';
+        var datas =  $("${/parameter/@layout_code}_R_GRID_act_ru_task_ds").getSelectedJson();
+        if(datas == null || datas.length == 0){
+            $L.showInfoMessage("提示","请选择要批量同意的数据！");
+            return;
+        }
+        new Leaf.Window({
+            id: 'sign_wfl_batch_approve_comments_winid',
+            url: $('sig100_sing_batch_wfl_approve_link_id').getUrl(),
+            params: {
+                winid: 'sign_wfl_batch_approve_comments_winid',
+                datasds:datads
+            },
+            title: '签约批量审批',
+            width: 400,
+            height: 250
+        });
+    }
+
+    //客户评级
+    window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+        window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+        //$L.Masker.mask(Ext.getBody(),'正在评分...');
+        var prj_project_ds_id = '${/parameter/@layout_code}_R_GRID_act_ru_task_ds';
+        var selectRecords = $(prj_project_ds_id).getSelected();
+        if(selectRecords.length != 1){
+            $L.showInfoMessage("提示","请勾选一条要评分的数据!");
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //$L.Masker.unmask(Ext.getBody());
+            return;
+        }
+
+        var record = selectRecords[0];
+        //hls_score_calculation
+        var scoreCalculation = {};
+        // scoreCalculation.score_id = '';
+        // scoreCalculation.company_id = '';
+        scoreCalculation.objectType = 'PRJ_PROJECT';
+        scoreCalculation.objectId = record.get('business_key');
+        // scoreCalculation.fiscalYear = '';
+        // scoreCalculation.fiscalMonth = '';
+        // scoreCalculation.score_date = '';
+        // scoreCalculation.score_user_id = '';
+        // scoreCalculation.description = '';
+        // scoreCalculation.score_template_hd_id = '';
+        // scoreCalculation.score_result_id = '';
+
+        //评分
+        var scoreUrl = '${/request/@context_path}/hls/score/calculation?reCalcFlag=Y&_csrf=${/session/@_csrf.token}';
+        jQuery.ajax({
+            type: 'post',
+            url: scoreUrl,
+            data: JSON.stringify(scoreCalculation),
+            async: false,
+            contentType: "application/json; charset=utf-8",
+            success: function (data) {
+                if (data.success == true){
+                    // 返回一个scoreId
+                    scoreId = data.rows[0].scoreId;
+
+                    if(Ext.isEmpty(scoreId)){
+                        $L.showInfoMessage("提示","评分失败，请联系管理员!");
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        //$L.Masker.unmask(Ext.getBody());
+                        return;
+                    }
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    //进入评分结果页面
+                    var detailUrl = '${/request/@context_path}/modules/SIG/SIG_PROJECT/SIG001/prj_score_detail.lview';
+                    new Leaf.Window({
+                        id: 'prj_score_detail_winid',
+                        url: detailUrl,
+                        title: '评分结果',
+                        params: {
+                            winId: 'prj_score_detail_winid',
+                            scoreId: scoreId,
+                            function_code: '${/parameter/@function_code}',
+                            function_usage: 'QUERY'
+                        },
+                        fullScreen: true
+                    });
+                } else {
+                    Leaf.showMessage("提示", data.message, null);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    //$L.Masker.unmask(Ext.getBody());
+                    return;
+                }
+            },
+            failure: function () {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            },
+            error: function () {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            },
+            scope: this
+        });
+    };
+    ]]></script>
+    </a:view>
+</a:screen>

@@ -1,0 +1,872 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsAssetsPackageMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsAssetsPackage">
+        <result column="PACKAGE_ID" property="packageId" jdbcType="DECIMAL" />
+        <result column="PACK_ID" property="packId" jdbcType="DECIMAL" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="CON_DOCUMENT_CATEGORY" property="conDocumentCategory" jdbcType="VARCHAR" />
+        <result column="TIMES_FROM" property="timesFrom" jdbcType="DECIMAL" />
+        <result column="TIMES_TO" property="timesTo" jdbcType="DECIMAL" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="REF_PACKAGE_ID" property="refPackageId" jdbcType="VARCHAR" />
+        <result column="ASSET_TYPE" property="assetType" jdbcType="VARCHAR" />
+
+        <result column="CONTRACT_NAME" property="contractName" jdbcType="VARCHAR" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="APPROVAL_NUMBER" property="approvalNumber" jdbcType="VARCHAR" />
+        <result column="SAL_BP_NAME" property="salBpName" jdbcType="VARCHAR" />
+        <result column="BUY_BP_NAME" property="buyBpName" jdbcType="VARCHAR" />
+        <result column="SURPLUS_DEPOSIT_AMOUNT" property="surplusDepositAmount" jdbcType="DECIMAL" />
+        <result column="UNCOLLECTED_DUE_AMOUNT" property="uncollectedDueAmount" jdbcType="DECIMAL" />
+        <result column="UNCOLLECTED_PRINCIPAL" property="uncollectedPrincipal" jdbcType="DECIMAL" />
+        <result column="UNCOLLECTED_INTEREST" property="uncollectedInterest" jdbcType="DECIMAL" />
+        <result column="UNCOLLECTED_DEPOSIT" property="uncollectedDeposit" jdbcType="DECIMAL" />
+        <result column="UNCOLLECTED_CHARGE" property="uncollectedCharge" jdbcType="DECIMAL" />
+        <result column="UNCOLLECTED_OTHER_AMOUNT" property="uncollectedOtherAmount" jdbcType="DECIMAL" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="PRINCIPAL" property="principal" jdbcType="DECIMAL" />
+        <result column="INTEREST" property="interest" jdbcType="DECIMAL" />
+        <result column="RECEIVED_AMOUNT" property="receivedAmount" jdbcType="DECIMAL" />
+        <result column="SURPLUS_AMOUNT" property="surplusAmount" jdbcType="DECIMAL" />
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL" />
+        <result column="DUE_DATE" property="dueDate" jdbcType="DATE" />
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL" />
+        <result column="OCCUPY_DOCUMENT" property="occupyDocument" jdbcType="VARCHAR" />
+        <result column="OCCUPY_MAJOR_NAME" property="occupyMajorName" jdbcType="VARCHAR" />
+        <result column="OCCUPY_LINE_STATUS" property="occupyLineStatus" jdbcType="VARCHAR" />
+        <result column="OCCUPY_TIMES_FROM" property="occupyTimesFrom" jdbcType="DECIMAL" />
+        <result column="OCCUPY_TIMES_TO" property="occupyTimesTo" jdbcType="DECIMAL" />
+        <result column="OVERDUE_STATUS" property="overDueStatus" jdbcType="VARCHAR" />
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL" />
+        <result column="SORTORDER" property="sortorder" jdbcType="VARCHAR" />
+        <result column="PRE_CLEAN_TOTAL_MONEY" property="preCleanTotalMoney" jdbcType="DECIMAL"/>
+        <result column="PRE_SERVICE_CHARGE" property="preServiceCharge" jdbcType="DECIMAL"/>
+        <result column="FINISH_CONUT" property="finishCount" jdbcType="DECIMAL"/>
+        <result column="CON_PACK_STATUS" property="conPackStatus" jdbcType="VARCHAR" />
+        <result column="OCCUPY_PACK_NUMBER" property="occupyPackNumber" jdbcType="VARCHAR" />
+        <result column="OCCUPY_PROJECT_NUMBER" property="occupyProjectNumber" jdbcType="VARCHAR" />
+        <result column="TIMES_FROM_N" property="timesFromN" jdbcType="VARCHAR" />
+        <result column="TIMES_TO_N" property="timesToN" jdbcType="VARCHAR" />
+        <result column="OVERDUE_STATUS_N" property="overdueStatusN" jdbcType="VARCHAR" />
+        <result column="pack_date_from_n" property="packDateFromN" jdbcType="VARCHAR" />
+        <result column="pack_date_to_n" property="packDateToN" jdbcType="VARCHAR" />
+        <result column="pack_date_from" property="packDateFrom" jdbcType="DATE" />
+        <result column="pack_date_to" property="packDateTo" jdbcType="DATE" />
+    </resultMap>
+
+    <sql id="contractDeatailSql">
+         (
+                SELECT
+                    FC.CONTRACT_ID,
+                    FC.CONTRACT_NAME,
+                    FC.CONTRACT_NUMBER,
+                    FC.APPROVAL_NUMBER,
+                    'FCT_CONTRACT' CON_DOCUMENT_CATEGORY,
+                    (
+                        SELECT
+                            MAX(BM.BP_NAME)
+                        FROM
+                            FCT_PROJECT_BP PB
+                        JOIN
+                            HLS_BP_MASTER BM
+                        ON
+                            PB.BP_ID=BM.BP_ID
+                        WHERE
+                            PB.BP_ROLE_TYPE='SELLER'
+                        AND PB.PROJECT_ID=FC.PROJECT_ID) SAL_BP_NAME,
+                    (
+                        SELECT
+                            MAX(BM.BP_NAME)
+                        FROM
+                            FCT_PROJECT_BP PB
+                        JOIN
+                            HLS_BP_MASTER BM
+                        ON
+                            PB.BP_ID=BM.BP_ID
+                        WHERE
+                            PB.BP_ROLE_TYPE='BUYER'
+                        AND PB.PROJECT_ID=FC.PROJECT_ID) BUY_BP_NAME,
+                    CA.QUOTATION_CASHFLOW_ID             CASHFLOW_ID,
+                    CA.CF_ITEM,
+                    CA.TIMES,
+                    CA.DUE_DATE,
+                    CA.OVERDUE_STATUS,
+                    nvl(CA.DUE_AMOUNT,0) DUE_AMOUNT,
+                    nvl(CA.DUE_AMOUNT,0)-nvl(CA.RECEIVED_AMOUNT,0)   UNCOLLECTED_DUE_AMOUNT,
+                    CASE
+                        WHEN CA.CF_ITEM=54
+                        THEN nvl(CA.DUE_AMOUNT,0)-nvl(CA.RECEIVED_AMOUNT,0)
+                        ELSE 0
+                       END  UNCOLLECTED_PRINCIPAL,
+                     CASE
+                        WHEN CA.CF_ITEM=55
+                        THEN nvl(CA.DUE_AMOUNT,0)-nvl(CA.RECEIVED_AMOUNT,0)
+                        ELSE 0
+                       END   UNCOLLECTED_INTEREST,
+                     CASE
+                        WHEN CA.CF_ITEM=54
+                        THEN nvl(CA.DUE_AMOUNT,0)
+                        ELSE 0
+                       END  PRINCIPAL,
+                     CASE
+                        WHEN CA.CF_ITEM=55
+                        THEN nvl(CA.DUE_AMOUNT,0)
+                        ELSE 0
+                       END   INTEREST,
+                       FC.PRE_CLEAN_TOTAL_MONEY,
+                       FC.PRE_SERVICE_CHARGE
+                FROM
+                    FCT_CONTRACT FC
+                JOIN
+                    FCT_QUOTATION_CASHFLOW CA
+                ON
+                    FC.CONTRACT_ID=CA.CONTRACT_ID
+                WHERE
+                    FC.DATA_CLASS='NORMAL'
+                AND CA.CF_STATUS = 'RELEASE'
+                AND CA.CF_DIRECTION = 'INFLOW'
+                AND CA.CF_ITEM IN(54,55,11)
+                UNION
+                SELECT
+                    FC.CONTRACT_ID,
+                    FC.CONTRACT_NAME,
+                    FC.CONTRACT_NUMBER,
+                    PP.APPROVAL_NUMBER,
+                    'CON_CONTRACT' CON_DOCUMENT_CATEGORY,
+                    (
+                        SELECT
+                            MAX(BM.BP_NAME)
+                        FROM
+                            PRJ_PROJECT_BP PB
+                        JOIN
+                            HLS_BP_MASTER BM
+                        ON
+                            PB.BP_ID=BM.BP_ID
+                        WHERE
+                            PB.BP_CATEGROY='CON_CONTRACT'
+                        AND PB.BP_TYPE='TENANT'
+                        AND PB.PROJECT_ID=FC.PROJECT_ID) SAL_BP_NAME,
+                    (
+                        SELECT
+                            MAX(BM.BP_NAME)
+                        FROM
+                            PRJ_PROJECT_BP PB
+                        JOIN
+                            HLS_BP_MASTER BM
+                        ON
+                            PB.BP_ID=BM.BP_ID
+                        WHERE
+                            PB.BP_CATEGROY='CON_CONTRACT'
+                        AND PB.BP_TYPE='TENANT_SEC'
+                        AND PB.PROJECT_ID=FC.PROJECT_ID) BUY_BP_NAME,
+                    CA.CASHFLOW_ID,
+                    CA.CF_ITEM,
+                    CA.TIMES,
+                    CA.DUE_DATE,
+                    CA.OVERDUE_STATUS,
+                    nvl(CA.DUE_AMOUNT,0) DUE_AMOUNT,
+                    nvl(CA.DUE_AMOUNT,0)-nvl(CA.RECEIVED_AMOUNT,0)   UNCOLLECTED_DUE_AMOUNT,
+                    nvl(CA.PRINCIPAL,0)-nvl(CA.RECEIVED_PRINCIPAL,0) UNCOLLECTED_PRINCIPAL,
+                    nvl(CA.INTEREST,0)-nvl(CA.RECEIVED_INTEREST,0)   UNCOLLECTED_INTEREST,
+                    nvl(CA.PRINCIPAL,0) PRINCIPAL,
+                    nvl(CA.INTEREST,0) INTEREST,
+                    FC.PRE_CLEAN_TOTAL_MONEY,
+                    FC.PRE_SERVICE_CHARGE
+                FROM
+                    CON_CONTRACT FC
+                JOIN PRJ_PROJECT PP
+                  ON PP.PROJECT_ID=FC.PROJECT_ID
+                JOIN
+                    CON_CONTRACT_CASHFLOW CA
+                ON
+                    FC.CONTRACT_ID=CA.CONTRACT_ID
+                WHERE
+                    FC.DATA_CLASS='NORMAL'
+                AND CA.CF_STATUS = 'RELEASE'
+                AND CA.CF_DIRECTION = 'INFLOW'
+                AND CA.CF_ITEM IN (1,11) )
+    </sql>
+
+    <select id="selectAssetsPackage" parameterType="com.hand.hls.abs.dto.HlsCusAbsAssetsPackage" resultMap="BaseResultMap">
+        SELECT PACK.*,
+        ( CASE WHEN PACK.OVERDUE_STATUS > 0 THEN '是' ELSE '否' END ) OVERDUE_STATUS_N  ,
+        UNCOLLECTED_PRINCIPAL + UNCOLLECTED_INTEREST + UNCOLLECTED_OTHER_AMOUNT as UNCOLLECTED_DUE_AMOUNT
+        FROM (SELECT
+        caap.PACKAGE_ID,
+        caap.PACK_ID,
+        caap.CONTRACT_ID,
+        cc.CONTRACT_NUMBER,
+        cc.CONTRACT_NAME,
+        SAL_BP_NAME.SAL_BP_NAME,
+        BUY_BP_NAME.BUY_BP_NAME,
+        to_char(caap.pack_date_from,'YYYY-MM-DD') AS pack_date_from,
+        to_char(caap.pack_date_to,'YYYY-MM-DD') AS pack_date_to,
+        to_char(caap.pack_date_from,'YYYY-MM-DD') AS pack_date_from_n,
+        to_char(caap.pack_date_to,'YYYY-MM-DD') AS pack_date_to_n,
+        nvl(
+        (
+        SELECT
+        SUM( nvl( CA.DUE_AMOUNT, 0 ) - nvl( CA.RECEIVED_AMOUNT, 0 ) )
+        FROM
+        CON_CONTRACT_CASHFLOW CA
+        WHERE
+        CA.CONTRACT_ID = CAAP.CONTRACT_ID
+        AND CA.CF_ITEM = 52
+        ),
+        0
+        ) - nvl(
+        (
+        SELECT
+        nvl( SUM( CA.DUE_AMOUNT ), 0 ) - nvl( SUM( CA.RECEIVED_AMOUNT ), 0 )
+        FROM
+        CON_CONTRACT_CASHFLOW CA
+        WHERE
+        CA.CF_ITEM = 14
+        AND CA.CONTRACT_ID = CAAP.CONTRACT_ID
+        ),
+        0
+        ) AS SURPLUS_DEPOSIT_AMOUNT,
+        nvl((
+        SELECT
+        sum( nvl( ccc.PRINCIPAL, 0 )  )
+        FROM
+        con_contract_cashflow ccc
+        WHERE
+        ccc.CONTRACT_ID = cc.CONTRACT_ID
+        and ccc.cf_status = 'RELEASE'
+        AND ccc.CF_ITEM = 1
+        AND ccc.DUE_DATE &gt;= caap.PACK_DATE_FROM
+        AND ccc.DUE_DATE &lt;= caap.PACK_DATE_TO
+        AND caap.PACK_DATE_FROM IS NOT NULL
+        AND caap.PACK_DATE_TO IS NOT NULL
+        ),0) AS UNCOLLECTED_PRINCIPAL,
+        nvl((
+        SELECT
+        sum( nvl( ccc.INTEREST, 0 )  )
+        FROM
+        con_contract_cashflow ccc
+        WHERE
+        ccc.CONTRACT_ID = cc.CONTRACT_ID
+        AND ccc.CF_ITEM = 1
+        and ccc.cf_status = 'RELEASE'
+        AND ccc.DUE_DATE &gt;= caap.PACK_DATE_FROM
+        AND ccc.DUE_DATE &lt;= caap.PACK_DATE_TO
+        AND caap.PACK_DATE_FROM IS NOT NULL
+        AND caap.PACK_DATE_TO IS NOT NULL
+        ),0) AS UNCOLLECTED_INTEREST,
+        nvl(
+        (
+        SELECT
+        SUM( nvl( ccc.due_amount, 0 ) )
+        FROM
+        con_contract_cashflow ccc
+        WHERE
+        ccc.CONTRACT_ID = cc.CONTRACT_ID
+        and ccc.cf_status = 'RELEASE'
+        AND ccc.CF_ITEM = 51
+        AND ccc.DUE_DATE &gt;= caap.PACK_DATE_FROM
+        AND ccc.DUE_DATE &lt;= caap.PACK_DATE_TO
+        AND caap.PACK_DATE_FROM IS NOT NULL
+        AND caap.PACK_DATE_TO IS NOT NULL
+        ),
+        0
+        ) AS UNCOLLECTED_DEPOSIT,
+        nvl(
+        (
+        SELECT
+        SUM( nvl( ccc.due_amount, 0 ) )
+        FROM
+        con_contract_cashflow ccc
+        WHERE
+        ccc.CONTRACT_ID = cc.CONTRACT_ID
+        and ccc.cf_status = 'RELEASE'
+        AND ccc.CF_ITEM = 3
+        AND ccc.DUE_DATE &gt;= caap.PACK_DATE_FROM
+        AND ccc.DUE_DATE &lt;= caap.PACK_DATE_TO
+        AND caap.PACK_DATE_FROM IS NOT NULL
+        AND caap.PACK_DATE_TO IS NOT NULL
+        ),
+        0
+        ) AS UNCOLLECTED_CHARGE,
+        nvl((
+        SELECT
+        sum( nvl( ccc.DUE_AMOUNT, 0 ) )
+        FROM
+        con_contract_cashflow ccc
+        WHERE
+        ccc.CONTRACT_ID = cc.CONTRACT_ID
+        AND ccc.CF_DIRECTION = 'INFLOW'
+        and ccc.cf_status = 'RELEASE'
+        AND CCC.CF_ITEM NOT IN ( 1, 51 ,3)
+        AND ccc.DUE_DATE &gt;= caap.PACK_DATE_FROM
+        AND ccc.DUE_DATE &lt;= caap.PACK_DATE_TO
+        AND caap.PACK_DATE_FROM IS NOT NULL
+        AND caap.PACK_DATE_TO IS NOT NULL
+        ),0) AS UNCOLLECTED_OTHER_AMOUNT ,
+        (
+        SELECT
+        nvl( SUM( CASE WHEN CA.OVERDUE_STATUS = 'Y' THEN 1 ELSE 0 END ), 0 )
+        FROM
+        CON_CONTRACT_CASHFLOW CA
+        WHERE
+        CC.CONTRACT_ID = CA.CONTRACT_ID
+        AND CA.DUE_DATE &gt;= caap.PACK_DATE_FROM
+        AND CA.DUE_DATE &lt;= caap.PACK_DATE_TO
+        AND caap.PACK_DATE_FROM is not null
+        AND caap.PACK_DATE_TO is not null
+        ) AS OVERDUE_STATUS
+        FROM
+        ct_abs_assets_package caap
+        LEFT JOIN con_contract cc ON caap.CONTRACT_ID = cc.CONTRACT_ID
+        LEFT JOIN (
+        SELECT
+        PB.PROJECT_ID,
+        wm_concat( BM.BP_NAME ) AS SAL_BP_NAME
+        FROM
+        PRJ_PROJECT_BP PB
+        JOIN HLS_BP_MASTER BM ON PB.BP_ID = BM.BP_ID
+        WHERE
+        PB.BP_TYPE = 'TENANT'
+        GROUP BY
+        PB.PROJECT_ID
+        ) SAL_BP_NAME ON SAL_BP_NAME.PROJECT_ID = CC.PROJECT_ID
+        LEFT JOIN (
+        SELECT
+        PB.PROJECT_ID,
+        wm_concat( BM.BP_NAME ) AS BUY_BP_NAME
+        FROM
+        PRJ_PROJECT_BP PB
+        JOIN HLS_BP_MASTER BM ON PB.BP_ID = BM.BP_ID
+        WHERE
+        PB.BP_TYPE = 'TENANT_SEC'
+        GROUP BY
+        PB.PROJECT_ID
+        ) BUY_BP_NAME ON BUY_BP_NAME.PROJECT_ID = CC.PROJECT_ID
+        ) PACK
+        WHERE 1=1
+        <if test="packId != null">
+            AND PACK.PACK_ID = #{packId}
+        </if>
+    </select>
+
+
+    <select id="selectPackageContract" parameterType="com.hand.hls.abs.dto.HlsCusAbsAssetsPackage"  resultMap="BaseResultMap">
+        select PACK.*
+        --         ( CASE WHEN PACK.OVERDUE_STATUS > 0 THEN '是' ELSE '否' END ) OVERDUE_STATUS_N
+        from (SELECT
+        CC.CONTRACT_ID,
+        CC.CONTRACT_NAME,
+        CC.CONTRACT_NUMBER,
+        PP.APPROVAL_NUMBER,
+        'CON_CONTRACT' AS CON_DOCUMENT_CATEGORY,
+        SAL_BP_NAME.SAL_BP_NAME,
+        BUY_BP_NAME.BUY_BP_NAME,
+        (
+        SELECT
+        nvl( SUM( CASE WHEN CA.OVERDUE_STATUS = 'Y' THEN 1 ELSE 0 END ), 0 )
+        FROM
+        CON_CONTRACT_CASHFLOW CA
+        WHERE
+        CC.CONTRACT_ID = CA.CONTRACT_ID
+        ) AS OVERDUE_STATUS,
+        (select to_char(cap.BASE_DATE_FROM ,'YYYY-MM-DD') from ct_abs_assets_pack cap where cap.PACK_ID = #{packId}) as pack_date_from,
+        (select to_char(cap.BASE_DATE_FROM ,'YYYY-MM-DD') from ct_abs_assets_pack cap where cap.PACK_ID = #{packId}) as pack_date_from_n,
+        (select to_char(cap.BASE_DATE_TO ,'YYYY-MM-DD') from ct_abs_assets_pack cap where cap.PACK_ID = #{packId}) as pack_date_to,
+        (select to_char(cap.BASE_DATE_TO ,'YYYY-MM-DD') from ct_abs_assets_pack cap where cap.PACK_ID = #{packId}) as pack_date_to_n
+        FROM
+        CON_CONTRACT CC
+        JOIN PRJ_PROJECT PP ON PP.PROJECT_ID = CC.PROJECT_ID
+        LEFT JOIN (
+        SELECT
+        PB.PROJECT_ID,
+        wm_concat( BM.BP_NAME ) AS SAL_BP_NAME
+        FROM
+        PRJ_PROJECT_BP PB
+        JOIN HLS_BP_MASTER BM ON PB.BP_ID = BM.BP_ID
+        WHERE
+        PB.BP_TYPE = 'TENANT'
+        GROUP BY
+        PB.PROJECT_ID
+        ) SAL_BP_NAME ON SAL_BP_NAME.PROJECT_ID = CC.PROJECT_ID
+        LEFT JOIN (
+        SELECT
+        PB.PROJECT_ID,
+        wm_concat( BM.BP_NAME ) AS BUY_BP_NAME
+        FROM
+        PRJ_PROJECT_BP PB
+        JOIN HLS_BP_MASTER BM ON PB.BP_ID = BM.BP_ID
+        WHERE
+        PB.BP_TYPE = 'TENANT_SEC'
+        GROUP BY
+        PB.PROJECT_ID
+        ) BUY_BP_NAME ON BUY_BP_NAME.PROJECT_ID = CC.PROJECT_ID
+        WHERE
+        CC.DATA_CLASS = 'NORMAL'
+        AND CC.CONTRACT_STATUS = 'INCEPT')PACK
+        WHERE  1=1
+        <if test="contractNumber != null">
+            AND PACK.CONTRACT_NUMBER like concat('%',concat(#{contractNumber},'%'))
+        </if>
+        <if test="salBpName != null">
+            AND PACK.SAL_BP_NAME  like concat('%',concat(#{salBpName},'%'))
+        </if>
+        <if test="occupyLineStatus != null">
+            AND PACK.OCCUPY_LINE_STATUS = #{occupyLineStatus}
+        </if>
+    </select>
+
+    <select id="selectPackageConCashFlow" parameterType="com.hand.hls.abs.dto.HlsCusAbsAssetsPackage"  resultMap="BaseResultMap">
+        SELECT
+        CONTRACT.CONTRACT_ID,
+        CONTRACT.CONTRACT_NAME,
+        CONTRACT.CONTRACT_NUMBER,
+        CONTRACT.CON_DOCUMENT_CATEGORY,
+        CONTRACT.TIMES,
+        MAX(CONTRACT.DUE_DATE) DUE_DATE,
+        SUM(CONTRACT.DUE_AMOUNT) DUE_AMOUNT,
+        SUM(nvl(CONTRACT.RECEIVED_AMOUNT,0))  RECEIVED_AMOUNT,
+        SUM(nvl(CONTRACT.DUE_AMOUNT,0) -nvl(CONTRACT.RECEIVED_AMOUNT,0)) SURPLUS_AMOUNT,
+        SUM(CONTRACT.PRINCIPAL) PRINCIPAL,
+        SUM(CONTRACT.INTEREST)  INTEREST
+        FROM
+        (
+        (
+        SELECT
+        CON.CONTRACT_ID,
+        CON.CONTRACT_NAME,
+        CON.CONTRACT_NUMBER,
+        CON.COMPANY_ID,
+        CON_FLOW.CASHFLOW_ID,
+        CON_FLOW.DUE_DATE,
+        CON_FLOW.DUE_AMOUNT,
+        CON_FLOW.RECEIVED_AMOUNT,
+        CON_FLOW.TIMES,
+        CON_FLOW.WRITE_OFF_FLAG,
+        CON_FLOW.CF_ITEM,
+        CON_FLOW.CF_TYPE,
+        nvl(CON_FLOW.PRINCIPAL,0) PRINCIPAL,
+        nvl(CON_FLOW.INTEREST,0)  INTEREST,
+        'CON_CONTRACT'            CON_DOCUMENT_CATEGORY
+        FROM
+        CON_CONTRACT CON
+        JOIN
+        CON_CONTRACT_CASHFLOW CON_FLOW
+        ON
+        CON.CONTRACT_ID=CON_FLOW.CONTRACT_ID
+        WHERE
+        CON.DATA_CLASS='NORMAL'
+        AND CON_FLOW.CF_STATUS='RELEASE'
+        AND CON_FLOW.CF_DIRECTION='INFLOW'
+        AND CON_FLOW.CF_ITEM =1 )
+        UNION
+        (
+        SELECT
+        CON.CONTRACT_ID,
+        CON.CONTRACT_NAME,
+        CON.CONTRACT_NUMBER,
+        CON.COMPANY_ID,
+        CON_FLOW.QUOTATION_CASHFLOW_ID CASHFLOW_ID,
+        CON_FLOW.DUE_DATE,
+        CON_FLOW.DUE_AMOUNT,
+        CON_FLOW.RECEIVED_AMOUNT,
+        CON_FLOW.TIMES,
+        CON_FLOW.WRITE_OFF_FLAG,
+        CON_FLOW.CF_ITEM,
+        CON_FLOW.CF_TYPE,
+        CASE
+        WHEN CON_FLOW.CF_ITEM=54
+        THEN nvl(CON_FLOW.DUE_AMOUNT,0)
+        ELSE 0
+        END  PRINCIPAL,
+        CASE
+        WHEN CON_FLOW.CF_ITEM=55
+        THEN nvl(CON_FLOW.DUE_AMOUNT,0)
+        ELSE 0
+        END   INTEREST,
+        'FCT_CONTRACT'            CON_DOCUMENT_CATEGORY
+        FROM
+        FCT_CONTRACT CON
+        JOIN
+        FCT_QUOTATION_CASHFLOW CON_FLOW
+        ON
+        CON.CONTRACT_ID=CON_FLOW.CONTRACT_ID
+        WHERE
+        CON.DATA_CLASS='NORMAL'
+        AND CON_FLOW.CF_STATUS='RELEASE'
+        AND CON_FLOW.CF_DIRECTION='INFLOW'
+        AND CON_FLOW.CF_ITEM IN(54,55) ) ) CONTRACT
+        WHERE
+        1=1
+        <if test="contractId!=null">
+            AND CONTRACT.CONTRACT_ID=#{contractId}
+        </if>
+        <if test="packId!=null">
+            AND CONTRACT.DUE_DATE>=
+            (SELECT CP.BASE_DATE
+            FROM
+            CT_ABS_ASSETS_PACK CP
+            WHERE CP.PACK_ID=#{packId})
+        </if>
+        <if test="conDocumentCategory!=null">
+            AND CONTRACT.CON_DOCUMENT_CATEGORY=#{conDocumentCategory}
+        </if>
+        <if test="times!=null">
+            AND  CONTRACT.TIMES=#{times}
+        </if>
+        <if test="timesFrom!=null">
+            AND CONTRACT.TIMES &gt;= #{timesFrom}
+        </if>
+        <if test="timesTo!=null">
+            AND CONTRACT.TIMES  &lt;= #{timesTo}
+        </if>
+        GROUP BY
+        CONTRACT.CONTRACT_ID,
+        CONTRACT.CONTRACT_NAME,
+        CONTRACT.CONTRACT_NUMBER,
+        CONTRACT.CON_DOCUMENT_CATEGORY,
+        CONTRACT.TIMES
+        ORDER BY
+        CONTRACT.TIMES
+    </select>
+
+    <select id="selectBetweenTimesCashflow"  parameterType="com.hand.hls.abs.dto.HlsCusAbsAssetsPackage"  resultMap="BaseResultMap">
+        SELECT
+        CON.CONTRACT_ID,
+        CON.CON_DOCUMENT_CATEGORY,
+        nvl(SUM(CASE
+        WHEN CON.OVERDUE_STATUS='Y'
+        THEN 1
+        ELSE 0
+        END),0) OVERDUE_STATUS,
+        nvl(SUM(CON.UNCOLLECTED_DUE_AMOUNT),0) UNCOLLECTED_DUE_AMOUNT,
+        nvl(SUM(CON.UNCOLLECTED_PRINCIPAL),0) UNCOLLECTED_PRINCIPAL,
+        nvl(SUM(CON.UNCOLLECTED_INTEREST),0) UNCOLLECTED_INTEREST
+        FROM
+        (
+        SELECT
+        FC.CONTRACT_ID,
+        'FCT_CONTRACT' CON_DOCUMENT_CATEGORY,
+        CA.QUOTATION_CASHFLOW_ID             CASHFLOW_ID,
+        CA.CF_ITEM,
+        CA.TIMES,
+        CA.OVERDUE_STATUS,
+        nvl(CA.DUE_AMOUNT,0)-nvl(CA.RECEIVED_AMOUNT,0)   UNCOLLECTED_DUE_AMOUNT,
+        CASE
+        WHEN CA.CF_ITEM=54
+        THEN nvl(CA.DUE_AMOUNT,0)-nvl(CA.RECEIVED_AMOUNT,0)
+        ELSE 0
+        END  UNCOLLECTED_PRINCIPAL,
+        CASE
+        WHEN CA.CF_ITEM=55
+        THEN nvl(CA.DUE_AMOUNT,0)-nvl(CA.RECEIVED_AMOUNT,0)
+        ELSE 0
+        END   UNCOLLECTED_INTEREST
+        FROM
+        FCT_CONTRACT FC
+        JOIN
+        FCT_QUOTATION_CASHFLOW CA
+        ON
+        FC.CONTRACT_ID=CA.CONTRACT_ID
+        WHERE
+        FC.DATA_CLASS='NORMAL'
+        AND CA.CF_STATUS = 'RELEASE'
+        AND CA.CF_DIRECTION = 'INFLOW'
+        AND CA.CF_ITEM IN(54,55)
+        UNION
+        SELECT
+        FC.CONTRACT_ID,
+        'CON_CONTRACT' CON_DOCUMENT_CATEGORY,
+        CA.CASHFLOW_ID,
+        CA.CF_ITEM,
+        CA.TIMES,
+        CA.OVERDUE_STATUS,
+        nvl(CA.DUE_AMOUNT,0)-nvl(CA.RECEIVED_AMOUNT,0)   UNCOLLECTED_DUE_AMOUNT,
+        nvl(CA.PRINCIPAL,0)-nvl(CA.RECEIVED_PRINCIPAL,0) UNCOLLECTED_PRINCIPAL,
+        nvl(CA.INTEREST,0)-nvl(CA.RECEIVED_INTEREST,0)   UNCOLLECTED_INTEREST
+        FROM
+        CON_CONTRACT FC
+        JOIN
+        CON_CONTRACT_CASHFLOW CA
+        ON
+        FC.CONTRACT_ID=CA.CONTRACT_ID
+        WHERE
+        FC.DATA_CLASS='NORMAL'
+        AND CA.CF_STATUS = 'RELEASE'
+        AND CA.CF_DIRECTION = 'INFLOW'
+        AND CA.CF_ITEM =1 ) CON
+        WHERE
+        1=1
+        <if test="contractId!=null">
+            AND CON.CONTRACT_ID=#{contractId}
+        </if>
+        <if test="conDocumentCategory!=null">
+            AND CON.CON_DOCUMENT_CATEGORY=#{conDocumentCategory}
+        </if>
+        <if test="timesFrom!=null">
+            AND CON.TIMES &gt;= #{timesFrom}
+        </if>
+        <if test="timesTo!=null">
+            AND CON.TIMES  &lt;= #{timesTo}
+        </if>
+        GROUP BY
+        CON.CONTRACT_ID,
+        CON.CON_DOCUMENT_CATEGORY
+    </select>
+
+    <select id="selectPackageOccupyData"   resultMap="BaseResultMap">
+        SELECT
+        PACK.*,
+        nvl(LON.CONTRACT_NUMBER,PJ.PROJECT_NUMBER) OCCUPY_DOCUMENT,
+        nvl(LON.EXTRA_NAM,PJ.PROJECT_SHORT_NAME)   OCCUPY_MAJOR_NAME,
+        nvl(FC.CONTRACT_NUMBER,CC.CONTRACT_NUMBER) CONTRACT_NUMBER,
+        nvl(FC.APPROVAL_NUMBER,NULL)               APPROVAL_NUMBER
+        FROM
+        CT_ABS_ASSETS_PACKAGE PACK
+        LEFT JOIN
+        FCT_CONTRACT FC
+        ON
+        FC.CONTRACT_ID=PACK.CONTRACT_ID
+        AND PACK.CON_DOCUMENT_CATEGORY='FCT_CONTRACT'
+        LEFT JOIN
+        CON_CONTRACT CC
+        ON
+        CC.CONTRACT_ID=PACK.CONTRACT_ID
+        AND PACK.CON_DOCUMENT_CATEGORY='CON_CONTRACT'
+        LEFT JOIN
+        (
+        SELECT
+        P.PLEDGE_DOC_ID,
+        P.PLEDGE_DOC_CATEGORY ,
+        MAX(L.CONTRACT_NUMBER) CONTRACT_NUMBER,
+        MAX(M.EXTRA_NAM)       EXTRA_NAM
+        FROM
+        CT_LON_CONTRACT_PLEDGE P,
+        LON_CONTRACT L,
+        HLS_BP_MASTER M
+        WHERE
+        P.CONTRACT_ID=L.CONTRACT_ID
+        AND M.BP_ID=L.CREDIT_BP_ID
+        AND P.PLEDGE_RELEASE_FLAG='Y'
+        AND L.DATA_CLASS='NORMAL'
+        GROUP BY
+        P.PLEDGE_DOC_ID,
+        P.PLEDGE_DOC_CATEGORY) LON
+        ON
+        LON.PLEDGE_DOC_ID=PACK.CONTRACT_ID
+        AND LON.PLEDGE_DOC_CATEGORY=PACK.CON_DOCUMENT_CATEGORY
+        LEFT JOIN
+        CT_ABS_PROJECT PJ
+        ON
+        PJ.PACK_ID=PACK.PACK_ID
+        AND PJ.PROJECT_STATUS IN ('APPROVING',
+        'APPROVED')
+        WHERE
+        nvl(LON.CONTRACT_NUMBER,PJ.PROJECT_NUMBER) IS NOT NULL
+        <if test="packId != null">
+            AND PACK.PACK_ID = #{packId}
+        </if>
+    </select>
+
+    <select id="selectPackContarctCashFlow" resultMap="BaseResultMap">
+        SELECT
+        (@i :=@i + 1) as SORTORDER,
+        TEMP.*
+        FROM
+        (
+        SELECT
+        CON.CONTRACT_ID,
+        MAX(CON.CONTRACT_NUMBER) CONTRACT_NUMBER,
+        MAX(CON.APPROVAL_NUMBER) APPROVAL_NUMBER,
+        MAX(CON.SAL_BP_NAME) SAL_BP_NAME,
+        MAX(CON.BUY_BP_NAME) BUY_BP_NAME,
+        CON.TIMES,
+        MAX(CON.DUE_DATE) DUE_DATE,
+        SUM(CON.DUE_AMOUNT) DUE_AMOUNT,
+        SUM(CON.PRINCIPAL) PRINCIPAL,
+        SUM(CON.INTEREST) INTEREST,
+        SUM(CON.UNCOLLECTED_DUE_AMOUNT) UNCOLLECTED_DUE_AMOUNT,
+        SUM(CON.UNCOLLECTED_PRINCIPAL) UNCOLLECTED_PRINCIPAL,
+        SUM(CON.UNCOLLECTED_INTEREST) UNCOLLECTED_INTEREST
+        FROM
+        CT_ABS_ASSETS_PACKAGE CAAP
+        JOIN  <include refid="contractDeatailSql"/> CON
+        ON
+        CAAP.CONTRACT_ID=CON.CONTRACT_ID
+        AND CAAP.CON_DOCUMENT_CATEGORY=CON.CON_DOCUMENT_CATEGORY
+        AND CAAP.TIMES_FROM &lt;=CON.TIMES
+        AND CAAP.TIMES_TO &gt;=CON.TIMES
+        WHERE
+        CON.DUE_DATE&gt;= #{startDateStr}
+        AND CON.DUE_DATE&lt;= #{endDateStr}
+        AND CAAP.PACK_ID=#{packId}
+        GROUP BY CON.CONTRACT_ID,CON.TIMES
+        ORDER BY CON.TIMES
+        ) TEMP,(SELECT @i := 0) AS row_seq
+    </select>
+
+    <!--提前结清选择合同-->
+    <select id="selectAbsPackageContractLov"  parameterType="com.hand.hls.abs.dto.HlsCusAbsAssetsPackage" resultMap="BaseResultMap">
+
+        SELECT
+        PACK.*
+        FROM
+        (
+        SELECT
+        CAAP.PACKAGE_ID,
+        CAAP.PACK_ID,
+        CAAP.CONTRACT_ID,
+        CAAP.CON_DOCUMENT_CATEGORY,
+        CAAP.TIMES_FROM,
+        CAAP.TIMES_TO,
+        CAAP.DESCRIPTION,
+        CON.CONTRACT_NAME,
+        CON.CONTRACT_NUMBER,
+        CON.APPROVAL_NUMBER,
+        CON.PRE_CLEAN_TOTAL_MONEY,
+        CON.PRE_SERVICE_CHARGE,
+        CON.UNCOLLECTED_DUE_AMOUNT
+        FROM
+        CT_ABS_ASSETS_PACKAGE CAAP
+        JOIN (
+        SELECT
+        FC.CONTRACT_ID,
+        FC.CONTRACT_NAME,
+        FC.CONTRACT_NUMBER,
+        FC.APPROVAL_NUMBER,
+        'FCT_CONTRACT' CON_DOCUMENT_CATEGORY,
+        FC.PRE_CLEAN_TOTAL_MONEY,
+        FC.PRE_SERVICE_CHARGE,
+        nvl(fc.RESIDUAL_INTEREST,0)+nvl(fc.RESIDUAL_PRINCIPAL ,0) UNCOLLECTED_DUE_AMOUNT
+        FROM
+        FCT_CONTRACT FC
+
+        WHERE
+        FC.DATA_CLASS='NORMAL'
+        UNION ALL
+        SELECT
+        FC.CONTRACT_ID,
+        FC.CONTRACT_NAME,
+        FC.CONTRACT_NUMBER,
+        PP.APPROVAL_NUMBER,
+        'CON_CONTRACT' CON_DOCUMENT_CATEGORY,
+        FC.PRE_CLEAN_TOTAL_MONEY,
+        FC.PRE_SERVICE_CHARGE,
+        nvl(fc.RESIDUAL_INTEREST,0)+nvl(fc.RESIDUAL_PRINCIPAL ,0) UNCOLLECTED_DUE_AMOUNT
+        FROM
+        CON_CONTRACT FC
+        JOIN
+        PRJ_PROJECT PP
+        ON
+        PP.PROJECT_ID=FC.PROJECT_ID
+        WHERE
+        FC.DATA_CLASS='NORMAL'
+        ) CON
+        ON
+        CAAP.CONTRACT_ID=CON.CONTRACT_ID
+        AND CAAP.CON_DOCUMENT_CATEGORY=CON.CON_DOCUMENT_CATEGORY
+        WHERE
+        1=1
+
+        ) PACK
+        WHERE 1=1
+        <if test="packId != null">
+            AND PACK.PACK_ID = #{packId}
+        </if>
+        <if test="contractName != null">
+            and PACK.CONTRACT_NAME LIKE CONCAT('%',CONCAT(#{contractName},'%'))
+        </if>
+        <if test="contractNumber != null">
+            and PACK.CONTRACT_NUMBER LIKE CONCAT('%',CONCAT(#{contractNumber},'%'))
+        </if>
+        <if test="approvalNumber != null">
+            and PACK.APPROVAL_NUMBER LIKE CONCAT('%',CONCAT(#{approvalNumber},'%'))
+        </if>
+    </select>
+
+    <delete id="deleteAssetPageageNotFinish">
+    DELETE
+    FROM
+        CT_ABS_ASSETS_PACKAGE CAAP
+    WHERE
+        CAAP.PACKAGE_ID NOT IN
+        (
+            SELECT
+                CF.PACKAGE_ID
+            FROM
+                CT_ABS_CONTRACT_FINISH CF)
+        AND  CAAP.PACK_ID = #{packId}
+    </delete>
+
+
+    <select id="selectAssetPageageNotFinish" resultMap="BaseResultMap">
+        SELECT
+            CHANGE_PAG.*
+        FROM
+            CT_ABS_ASSETS_PACKAGE CHANGE_PAG
+        LEFT JOIN
+            CT_ABS_ASSETS_PACKAGE NORMAL_PAG
+        ON
+            CHANGE_PAG.REF_PACKAGE_ID=NORMAL_PAG.PACKAGE_ID
+        WHERE
+            (CHANGE_PAG.REF_PACKAGE_ID IS NULL
+             OR
+              (
+                 CHANGE_PAG.REF_PACKAGE_ID NOT IN
+                    (SELECT
+                            CF.PACKAGE_ID
+                        FROM
+                            CT_ABS_CONTRACT_FINISH CF)
+              )
+            )
+        AND  CHANGE_PAG.PACK_ID = #{packId}
+    </select>
+    <select id="selectTimesDateCount" resultType="int">
+
+    </select>
+    <select id="selectPackDateCount" resultType="int">
+        SELECT count( 0 )
+        FROM
+        (
+        SELECT
+        ccc.*
+        FROM
+        con_contract_cashflow ccc,
+        ct_abs_assets_package caap
+        WHERE
+        ccc.CONTRACT_ID = caap.CONTRACT_ID
+        AND ccc.DUE_DATE &gt;= caap.PACK_DATE_FROM
+        AND ccc.DUE_DATE &lt;= caap.PACK_DATE_TO
+        AND ccc.CONTRACT_ID = #{contractId}
+        <if test="packageId != null">
+            AND  caap.package_id != #{packageId}
+        </if>
+        UNION
+        SELECT
+        ccc.*
+        FROM
+        con_contract_cashflow ccc,
+        ct_lon_contract_pledge clcp
+        WHERE
+        ccc.CONTRACT_ID = clcp.pledge_doc_id
+        AND ccc.DUE_DATE &gt;= clcp.PLEDGE_TIMES_FROM
+        AND ccc.DUE_DATE &lt;= clcp.PLEDGE_TIMES_TO AND ccc.CONTRACT_ID = #{contractId} ) v
+        WHERE v.DUE_DATE &gt;= #{packDateFrom}
+        AND v.DUE_DATE &lt;= #{packDateTo}
+    </select>
+    <select id="selectCashflowInfo" resultMap="BaseResultMap">
+        SELECT
+        CASE	WHEN	(
+        SELECT
+        nvl( SUM( CASE WHEN CA.OVERDUE_STATUS = 'Y' THEN 1 ELSE 0 END ), 0 )
+        FROM
+        CON_CONTRACT_CASHFLOW CA
+        WHERE
+        CA.CONTRACT_ID = #{contractId}
+        AND CA.DUE_DATE &gt;= #{packDateFrom}
+        AND CA.DUE_DATE &lt;= #{packDateTo} ) > 0
+        THEN'是' ELSE '否'
+        END AS OVERDUE_STATUS_N
+    </select>
+</mapper>

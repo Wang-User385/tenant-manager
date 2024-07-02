@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        $L.onReady(function(){
+            //初始化
+            var confirm_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_confirm_batch_temp');
+            //创建日期,厂商/合作方
+            $(confirm_ds).create({"create_date":  new Date().format("yyyy-mm-dd"), "manufacturer_name": "${/parameter/@manufacturer_name}"});
+            var contract_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            var contract_datas = $(contract_ds_id).getSelected();
+            if(contract_datas.length > 0){
+                for(var i = 0; i < contract_datas.length; i++){
+                    contract_datas[i].set('contract_id_n',contract_datas[i].get('contract_number'))
+                    $(contract_ds).add(contract_datas[i],i);
+                }
+            }
+        });
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            alert("查询方法执行：_on_layout_dynamic_grid_query")
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            $(ds_id).setQueryParameter('contract_ids', '${/parameter/@contract_ids}');
+        };
+        // 退出按钮
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+            $('${/parameter/@winid}').close();
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        };
+        // 确认按钮
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            var select_datas = $(ds_id).getAll();
+            for(var i = 0; i < select_datas.length; i++){
+                if(!(select_datas[i].get('contract_status') === 'INCEPT' || select_datas[i].get('contract_status') === 'PENDING' || select_datas[i].get('contract_status') === 'TERMINATE')){
+                    Leaf.showMessage('提示！', '只有起租、暂挂和结束的合同才可以打印业务确认函!');
+                    return;
+                }
+                if(select_datas[i].get('manufacturer_id') != select_datas[0].get('manufacturer_id')){
+                    Leaf.showMessage('提示！', select_datas[i].get('contract_number')+'不是同一厂商/合作方下的合同!');
+                    return;
+                }
+            }
+            var contractIds = [];
+            for(var i = 0; i < select_datas.length; i++){
+                contractIds.push(select_datas[i].get('contract_id'));
+            }
+            debugger
+            Leaf.request({
+                url: '${/request/@context_path}/con/dealer/business/confirm/create',
+                para: {
+                    contractIds:contractIds
+                },
+                success: function (res) {
+                    $('${/parameter/@winid}').close();
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this,
+                sync: true
+            });
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fp.mapper.JcFundFillingMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fp.dto.JcFundFilling">
+        <result column="FILLING_ID" property="fillingId" jdbcType="DECIMAL"/>
+        <result column="FILL_TYPE" property="fillType" jdbcType="VARCHAR"/>
+        <result column="FILL_YEAR" property="fillYear" jdbcType="VARCHAR"/>
+        <result column="FILL_QUARTER" property="fillQuarter" jdbcType="VARCHAR"/>
+        <result column="FILL_MON" property="fillMon" jdbcType="VARCHAR"/>
+        <result column="FILL_WEEK" property="fillWeek" jdbcType="VARCHAR"/>
+        <result column="unit_id" property="unitId" jdbcType="DECIMAL"/>
+        <result column="FILL_USER_ID" property="fillUserId" jdbcType="DECIMAL"/>
+        <result column="PLAN_STATUS" property="planStatus" jdbcType="VARCHAR"/>
+        <result column="FILL_TYPE_N" property="fillTypeN" jdbcType="VARCHAR"/>
+        <result column="FILL_YEAR_N" property="fillYearN" jdbcType="VARCHAR"/>
+        <result column="FILL_QUARTER_N" property="fillQuarterN" jdbcType="VARCHAR"/>
+        <result column="FILL_MON_N" property="fillMonN" jdbcType="VARCHAR"/>
+        <result column="FILL_WEEK_N" property="fillWeekN" jdbcType="VARCHAR"/>
+        <result column="unit_id_n" property="unitIdN" jdbcType="VARCHAR"/>
+        <result column="FILL_USER_ID_N" property="fillUserIdN" jdbcType="VARCHAR"/>
+        <result column="PLAN_STATUS_N" property="planStatusN" jdbcType="VARCHAR"/>
+        <result column="process_instance_id" property="processInstanceId"/>
+        <result column="IMPLEMENTATION_MEASURES" property="implementationMeasures"/>
+        <result column="ref_filling_id" property="refFillingId"/>
+        <result column="summary_status" property="summaryStatus"/>
+        <result column="summary_status_n" property="summaryStatusN"/>
+        <result column="req_status_n" property="reqStatusN"/>
+        <result column="req_status" property="reqStatus"/>
+        <result column="document_type" property="documentType"/>
+        <result column="user_id" property="userId"/>
+        <result column="allocation_id" property="allocationId"/>
+
+    </resultMap>
+
+    <select id="queryUserInfo" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        SELECT
+            a.user_id,a.allocation_id
+        FROM
+            sys_user_allocation a,
+            fnd_employee_assigns ea,
+            fnd_org_position f
+        WHERE
+            a.EMPLOYEE_ASSIGN_ID = ea.EMPLOYEE_ASSIGN_ID
+        AND ea.POSITION_ID = f.POSITION_ID
+        AND f.POSITION_CODE IN (
+            'A0430',
+            'A0440',
+            'A0450',
+            'A0510')
+    </select>
+    <select id="queryAllByUnitReq" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        select t1.*
+        from
+        (SELECT  t.*,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_TYPE'
+        AND sc.code_value = t.fill_type) FILL_TYPE_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_YEAR'
+        AND sc.code_value = t.fill_year) FILL_YEAR_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_QUARTER'
+        AND sc.code_value = t.fill_quarter) FILL_QUARTER_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_MON'
+        AND sc.code_value = t.fill_mon) FILL_MON_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_WEEK'
+        AND sc.code_value = t.fill_week) FILL_WEEK_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_STATUS'
+        AND sc.code_value = t.plan_status) PLAN_STATUS_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_STATUS'
+        AND sc.code_value = t.req_status) req_status_n,
+        (select s.description from sys_user s where s.user_id = t.fill_user_id)FILL_USER_ID_N,
+        (select u.unit_name from fnd_org_unit  u where u.unit_id = t.unit_id )unit_id_n
+        FROM jc_fund_filling t
+        )t1
+        where 1 = 1
+        and t1.req_status is not null
+        <if test="fillingId!= null and fillingId!= ''">
+            and t1.filling_id = #{fillingId}
+        </if>
+        <if test="fillType != null">
+            and t1.fill_type = #{fillType}
+        </if>
+        <if test="fillYear != null">
+            and t1.fill_year = #{fillYear}
+        </if>
+        <if test="fillQuarter != null">
+            and t1.fill_quarter = #{fillQuarter}
+        </if>
+        <if test="fillWeek != null">
+            and t1.fill_week = #{fillWeek}
+        </if>
+        <if test="fillMon != null">
+            and t1.fill_mon = #{fillMon}
+        </if>
+        <if test="unitId != null">
+            and (t1.unit_id = #{unitId} or EXISTS (SELECT
+            1
+            FROM
+            sys_user U
+            LEFT JOIN SYS_USER_ALLOCATION UR ON UR.USER_ID = U.USER_ID
+            LEFT JOIN SYS_ROLE_B R ON R.ROLE_ID = UR.ROLE_ID
+            WHERE
+            R.ROLE_CODE = 'ADMIN' and U.USER_ID = #{createdBy}) )
+        </if>
+        <if test="fillUserIdN != null">
+            and t1.fill_user_id_n = #{fillUserIdN}
+        </if>
+        <if test="reqStatus != null">
+            and t1.req_status = #{reqStatus}
+        </if>
+    </select>
+
+    <select id="queryReq" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        SELECT  t.*
+        FROM jc_fund_filling t
+        where 1 = 1
+        and t.plan_status = 'APPROVED'
+        and t.document_type = 'FILL'
+        and t.fill_type = 'WEEK'
+        and t.fill_year = #{fillYear}
+        and t.fill_mon = #{fillMon}
+        and t.fill_week = #{fillWeek}
+        and t.unit_id = #{unitId}
+    </select>
+
+    <select id="queryNormal" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        SELECT  t.*
+        FROM jc_fund_filling t
+        where 1 = 1
+        and t.plan_status = 'APPROVED'
+        and t.document_type = 'SUMMARY'
+        and t.fill_type = 'WEEK'
+        and t.fill_year = #{fillYear}
+        and t.fill_mon = #{fillMon}
+        and t.fill_week = #{fillWeek}
+    </select>
+
+    <select id="queryAllByUnit" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        select t1.*
+        from
+        (SELECT t.*,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_TYPE'
+        AND sc.code_value = t.fill_type) FILL_TYPE_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_YEAR'
+        AND sc.code_value = t.fill_year) FILL_YEAR_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_QUARTER'
+        AND sc.code_value = t.fill_quarter) FILL_QUARTER_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_MON'
+        AND sc.code_value = t.fill_mon) FILL_MON_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_WEEK'
+        AND sc.code_value = t.fill_week) FILL_WEEK_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_STATUS'
+        AND sc.code_value = t.plan_status) PLAN_STATUS_N,
+        (select s.description from sys_user s where s.user_id = t.fill_user_id)FILL_USER_ID_N,
+        (select u.unit_name from fnd_org_unit u where u.unit_id = t.unit_id )unit_id_n
+        FROM jc_fund_filling t
+        )t1
+        where 1 = 1
+        and t1.document_type = 'FILL'
+        <if test="fillingId!= null and fillingId!= ''">
+            and t1.filling_id = #{fillingId}
+        </if>
+        <if test="fillType != null">
+            and t1.fill_type = #{fillType}
+        </if>
+        <if test="fillYear != null">
+            and t1.fill_year = #{fillYear}
+        </if>
+        <if test="fillQuarter != null">
+            and t1.fill_quarter = #{fillQuarter}
+        </if>
+        <if test="fillWeek != null">
+            and t1.fill_week = #{fillWeek}
+        </if>
+        <if test="fillMon != null">
+            and t1.fill_mon = #{fillMon}
+        </if>
+        <if test="unitId != null">
+            and (t1.unit_id = #{unitId} or EXISTS (SELECT
+            1
+            FROM
+            sys_user U
+            LEFT JOIN SYS_USER_ALLOCATION UR ON UR.USER_ID = U.USER_ID
+            LEFT JOIN SYS_ROLE_B R ON R.ROLE_ID = UR.ROLE_ID
+            WHERE
+            R.ROLE_CODE = 'ADMIN' and U.USER_ID = #{createdBy}) )
+        </if>
+        <if test="fillUserIdN != null">
+            and t1.fill_user_id_n = #{fillUserIdN}
+        </if>
+        <if test="planStatus != null">
+            and t1.plan_status = #{planStatus}
+        </if>
+        order by t1.creation_date desc
+    </select>
+
+    <select id="queryAll" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        select t1.*
+        from
+        (SELECT t.*,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_TYPE'
+        AND sc.code_value = t.fill_type) FILL_TYPE_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_YEAR'
+        AND sc.code_value = t.fill_year) FILL_YEAR_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_QUARTER'
+        AND sc.code_value = t.fill_quarter) FILL_QUARTER_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_MON'
+        AND sc.code_value = t.fill_mon) FILL_MON_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_WEEK'
+        AND sc.code_value = t.fill_week) FILL_WEEK_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_STATUS'
+        AND sc.code_value = t.plan_status) PLAN_STATUS_N,
+        (select s.description from sys_user s where s.user_id = t.fill_user_id)FILL_USER_ID_N,
+        (select u.unit_name from fnd_org_unit u where u.unit_id = t.unit_id )unit_id_n
+        FROM jc_fund_filling t
+        )t1
+        where 1 = 1
+        <if test="fillingId != null">
+            and t1.filling_id = #{fillingId}
+        </if>
+        <if test="fillType != null">
+            and t1.fill_type = #{fillType}
+        </if>
+        <if test="fillYear != null">
+            and t1.fill_year = #{fillYear}
+        </if>
+        <if test="fillQuarter != null">
+            and t1.fill_quarter = #{fillQuarter}
+        </if>
+        <if test="fillWeek != null">
+            and t1.fill_week = #{fillWeek}
+        </if>
+        <if test="fillMon != null">
+            and t1.fill_mon = #{fillMon}
+        </if>
+        <if test="unitId != null">
+            and t1.unit_id = #{unitId}
+        </if>
+        <if test="fillUserIdN != null">
+            and t1.fill_user_id_n = #{fillUserIdN}
+        </if>
+        <if test="planStatus != null">
+            and t1.plan_status = #{planStatus}
+        </if>
+    </select>
+
+    <select id="queryAllNew" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        select t1.*
+        from
+        (SELECT t.*,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_TYPE'
+        AND sc.code_value = t.fill_type) FILL_TYPE_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_YEAR'
+        AND sc.code_value = t.fill_year) FILL_YEAR_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_QUARTER'
+        AND sc.code_value = t.fill_quarter) FILL_QUARTER_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_MON'
+        AND sc.code_value = t.fill_mon) FILL_MON_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_WEEK'
+        AND sc.code_value = t.fill_week) FILL_WEEK_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_STATUS'
+        AND sc.code_value = t.plan_status) PLAN_STATUS_N,
+        (SELECT sc.meaning value_name
+        FROM sys_code_value_b_v sc
+        WHERE sc. CODE = 'FP.FILL_STATUS'
+        AND sc.code_value = t.summary_status) summary_status_n,
+        (select s.description from sys_user s where s.user_id = t.fill_user_id)FILL_USER_ID_N,
+        (select u.unit_name from fnd_org_unit u where u.unit_id = t.unit_id )unit_id_n
+        FROM jc_fund_filling t
+        )t1
+        where 1 = 1
+        and t1.document_type = 'SUMMARY'
+        <if test="fillingId != null">
+            and t1.filling_id = #{fillingId}
+        </if>
+        <if test="fillType != null">
+            and t1.fill_type = #{fillType}
+        </if>
+        <if test="fillYear != null">
+            and t1.fill_year = #{fillYear}
+        </if>
+        <if test="fillQuarter != null">
+            and t1.fill_quarter = #{fillQuarter}
+        </if>
+        <if test="fillWeek != null">
+            and t1.fill_week = #{fillWeek}
+        </if>
+        <if test="fillMon != null">
+            and t1.fill_mon = #{fillMon}
+        </if>
+        <if test="unitId != null">
+            and t1.unit_id = #{unitId}
+        </if>
+        <if test="fillUserIdN != null">
+            and t1.fill_user_id_n = #{fillUserIdN}
+        </if>
+        <if test="planStatus != null">
+            and t1.plan_status = #{planStatus}
+        </if>
+    </select>
+    <select id="queryCheckApproved" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        select * from jc_fund_filling t1
+        <where>
+            1=1
+            and t1.plan_status = 'APPROVED'
+        </where>
+        <if test="fillType != null and fillType!=''">
+            and t1.fill_type = #{fillType}
+        </if>
+        <if test="fillYear != null and fillYear!=''">
+            and t1.fill_year = #{fillYear}
+        </if>
+        <if test="fillQuarter != null and fillQuarter!=''">
+            and t1.fill_quarter = #{fillQuarter}
+        </if>
+        <if test="fillWeek != null and fillWeek!=''">
+            and t1.fill_week = #{fillWeek}
+        </if>
+        <if test="fillMon != null and fillMon!=''">
+            and t1.fill_mon = #{fillMon}
+        </if>
+        group by t1.UNIT_ID
+    </select>
+    <select id="deleteFundLn" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        delete from jc_fund_filling_detail where filling_id = #{fillingId}
+    </select>
+    <select id="deleteFundDetail" parameterType="com.hand.hls.fp.dto.JcFundFilling" resultMap="BaseResultMap">
+        delete from jc_fund_filling_ln where filling_id = #{fillingId}
+    </select>
+</mapper>

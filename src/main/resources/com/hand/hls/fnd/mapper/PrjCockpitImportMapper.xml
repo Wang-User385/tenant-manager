@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fnd.mapper.PrjCockpitImportMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.PrjCockpitImport">
+        <result column="PRJ_COCKPIT_ID" property="prjCockpitId" jdbcType="DECIMAL" />
+        <result column="YEAR" property="year" jdbcType="DECIMAL" />
+        <result column="MON" property="mon" jdbcType="DECIMAL" />
+        <result column="HOST_PROJECT_MANAGER" property="hostProjectManager" jdbcType="DECIMAL" />
+        <result column="HOST_PROJECT_MANAGER_N" property="hostProjectManagerN" jdbcType="VARCHAR" />
+        <result column="LAUNCH_AMOUNT" property="launchAmount" jdbcType="DECIMAL" />
+        <result column="BEARING_AMOUNT" property="bearingAmount" jdbcType="DECIMAL" />
+        <result column="INCOME_AMOUNT" property="incomeAmount" jdbcType="DECIMAL" />
+        <result column="PROFIT_AMOUNT" property="profitAmount" jdbcType="DECIMAL" />
+    </resultMap>
+
+    <select id="queryUser" resultMap="BaseResultMap" parameterType="com.hand.hls.fnd.dto.PrjCockpitImport">
+        select t.user_id as host_project_manager  from sys_user t where t.description = #{hostProjectManagerN}
+    </select>
+
+    <select id="queryAll" resultMap="BaseResultMap" parameterType="com.hand.hls.fnd.dto.PrjCockpitImport">
+       select t1.* from (
+        select t.*,(select s.description from sys_user s where s.user_id = t.host_project_manager )host_project_manager_n from jc_prj_cockpit_import t
+       ) t1
+       <where>
+           1=1
+           <if test="year!=null">
+               and t1.year = #{year}
+           </if>
+           <if test="mon!=null">
+               and t1.mon = #{mon}
+           </if>
+           <if test="hostProjectManagerN!=null">
+               and t1.host_project_manager_n like concat(concat('%',#{hostProjectManagerN}),'%')
+           </if>
+       </where>
+    </select>
+</mapper>

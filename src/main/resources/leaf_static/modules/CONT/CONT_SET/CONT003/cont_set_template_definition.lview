@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author:wj
+    $Date: 2019-1-17
+    $Revision: 1.0
+    $Purpose: 文件模板定义
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script src="${/request/@context_path}/common/code?sysCodeData=HLS.DOC_FILE_TPLT_USAGE_CODE"
+                type="text/javascript"></script>
+        <script><![CDATA[
+        <!--获取resource type中英文映射数组，存入Map-->
+        var resourceTypeECMap = {};
+        sysCodeData.forEach(function (i) {
+            resourceTypeECMap[i.value] = i.meaning;
+        });
+
+        <!--将type中英文存入对应的ds-->
+        $L.onReady(function () {
+            sysCodeData.forEach(function (i) {
+                $("usage_code_data").create({"usage_code": i.value, "usage_code_desc": i.meaning});
+            });
+        });
+
+        function cont_templet_screen_query() {
+            $('cont_templet_ds').query();
+        }
+
+        function cont_templet_screen_reset() {
+            $('cont_templet_query_ds').reset();
+            $('cont_templet_ds').query();
+        }
+
+        <!--打开窗口：指标细节  fnd_file_template_definition-->
+        function winOpen_details(templet_id) {
+            new Leaf.Window({
+                url: "${/request/@context_path}/modules/CONT/CONT_SET/CONT003/parameter_details.lview",
+                title: '模板参数集',
+                params: {
+                    templet_id: templet_id
+                },
+                fullScreen: false,
+                draggable: true,
+                closeable: true,
+                side:'right',
+                width: 650,
+                height: 400,
+
+            });
+        }
+
+        function render_cont_templet_ds_grid(value, record, name) {
+            if (!record.isNew) {
+                return '<a href="javascript:winOpen_details(\'' + record.get('templet_id') + '\');">参数集</a>';
+            } else {
+                return '';
+            }
+        }
+        function render_templet_upload(value, record, name) {
+            if (!record.isNew) {
+                return '<a href="javascript:upload_file(\'' + record.get('templet_id') +'\');">模板上传</a>';
+            } else {
+                return '';
+            }
+        }
+        function upload_file(templet_id) {
+            new Leaf.Window({
+                url: "${/request/@context_path}/modules/CONT/CONT_SET/CONT003/fnd_contract_upload.lview",
+                title: '文件上传',
+                params: {
+                    templet_id: templet_id
+                },
+                fullScreen: false,
+                draggable: true,
+                closeable: true,
+                side:'right',
+                width: 650,
+                height: 400,
+
+            });
+        }
+
+        // function upload_file(id, name, query_only) {
+        //     var record = window['${/parameter/@layout_code}_hls_link_render_record'][id + '---' + name];
+        //     if (record.get('check_id')) {
+        //         var url;
+        //         if (query_only == 'Y') {
+        //             url = $('con731_cdd_downloadFile_id').getUrl() + '?table_name=PRJ_CDD_ITEM_CHECK&header_id=' + record.get('check_id');
+        //         } else {
+        //             url = $('con731_cdd_uploadFile_id').getUrl() + '?table_name=PRJ_CDD_ITEM_CHECK&header_id=' + record.get('check_id');
+        //         }
+        //         var win = new Leaf.Window({
+        //             url: url,
+        //             title: '${l:HLS.SUPPORTING_DOCUMENT}',
+        //             id: 'prj500_cdd_uploadFile_screen_id',
+        //             width: 850,
+        //             height: 400
+        //         });
+        //
+        //         win.on('close', function() {
+        //             record.ds.query();
+        //         });
+        //     } else {
+        //         Leaf.showMessage('${l:HLS.PROMPT}', '请先保存!');
+        //
+        //     }
+        // };
+
+        function templet_code_editor(record,name) {
+            if (name === 'templet_code') {
+                if (record.isNew) {
+                    return 'cont_templet_ds_grid_tf';
+                }
+                return '';
+            }
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="bp_class_query" lookupCode="FND.BP_CLASS"/>
+
+            <a:dataSet id="usage_code_data">
+                <a:fields>
+                    <a:field name="usage_code_desc"/>
+                    <a:field name="usage_code"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="templet_type_query" autoQuery="true" queryUrl="${/request/@context_path}/hls/doc/file/templet/type/query?enabledFlag=Y&amp;pageSize=999"/>
+            <a:dataSet id="bp_category_query" autoQuery="true" queryUrl="${/request/@context_path}/usage/category/query?enabledFlag=Y"/>
+            <!--查询fields-->
+            <a:dataSet id="cont_templet_query_ds">
+                <a:fields>
+                    <a:field name="templet_code"/>
+                    <a:field name="templet_name" />
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="cont_templet_ds" autoPageSize="true" autoQuery="true" queryDataSet="cont_templet_query_ds"
+                       selectable="true"
+                       queryUrl="${/request/@context_path}/fnd/hlsdocfiletemplet/query"
+                       deleteUrl="${/request/@context_path}/fnd/hlsdocfiletemplet/delete"
+                       submitUrl="${/request/@context_path}/fnd/hlsdocfiletemplet/submit">
+                <a:fields>
+                    <a:field name="templet_code"  required="true"/>
+                    <a:field name="templet_name" required="true"/>
+                    <a:field name="templet_type_desc" options="templet_type_query" displayField="description"
+                             valueField="templet_type" returnField="templet_type"/>
+
+                    <a:field name="usage_category_desc" options="bp_category_query" displayField="description"
+                             valueField="usage_category" returnField="usage_category" />
+                    <a:field name="usage_class_desc" displayField="code_value_name" returnField="usage_class" valueField="code_value" options="bp_class_query"/>
+
+
+                    <a:field name="usage_code_desc" options="usage_code_data" displayField="usage_code_desc"
+                             valueField="usage_code" returnField="usage_code"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="cont_templet_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="cont_templet_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton bind="cont_templet_ds_grid" text="HAP.SAVE" type="save"/>
+                <a:gridButton click="cont_templet_screen_query" text="HAP.QUERY"/>
+                <a:gridButton click="cont_templet_screen_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="100">
+                <a:textField name="templet_code" bindTarget="cont_templet_query_ds" prompt="模板代码" emptyText="模板代码"
+                             width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont_templet_screen_query"/>
+                    </a:events>
+                </a:textField>
+
+                <a:textField name="templet_name" bindTarget="cont_templet_query_ds" prompt="模板名称" emptyText="模板名称"
+                             width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="cont_templet_screen_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="cont_templet_ds_grid" bindTarget="cont_templet_ds"
+                    marginHeight="120" marginWidth="40" navBar="true">
+                <a:columns>
+                    <a:column width="160" name="templet_code" editorFunction="templet_code_editor" align="center" prompt="模板代码"/>
+                    <a:column width="160" name="templet_name" align="center" editor="cont_templet_ds_grid_tf" prompt="模板名称"/>
+                    <a:column width="160" name="usage_code_desc" align="center" editor="cont_templet_ds_grid_combo" prompt="模板用途"/>
+                    <a:column width="160" hidden="true" name="usage_code" editor="cont_templet_ds_grid_combo" prompt="模板用途"/>
+                    <a:column width="160" name="templet_type" hidden="true" editor="cont_templet_ds_grid_combo" prompt="模板类型"
+                              align="center"/>
+                    <a:column width="160" name="templet_type_desc" editor="cont_templet_ds_grid_combo" prompt="模板类型"
+                              align="center"/>
+
+                    <a:column width="120" name="usage_category_desc" editor="cont_templet_ds_grid_combo" prompt="签约类别"
+                              align="center"/>
+                    <a:column width="160"  name="usage_category" hidden="true" editor="cont_templet_ds_grid_combo" prompt="签约类别"
+                              align="center" />
+                    <a:column width="120" name="usage_class_desc" editor="cont_templet_ds_grid_combo" prompt="客户类别"
+                              align="center"/>
+                    <a:column width="160"  name="usage_class" hidden="true" editor="cont_templet_ds_grid_combo" prompt="客户类别"
+                              align="center" />
+
+                    <a:column width="130" name="upload" renderer="render_templet_upload" prompt="模板上传"
+                              align="center"/>
+                    <a:column width="120" name="note" editor="cont_templet_ds_grid_tf" prompt="说明"
+                              align="center"/>
+                    <a:column width="130" name="enabled_flag" editor="cont_templet_ds_grid_check" prompt="启用"
+                              align="center"/>
+                    <a:column width="120" name="param" renderer="render_cont_templet_ds_grid" prompt="参数集"
+                              align="center"/>
+
+                </a:columns>
+                <a:editors>
+                    <a:lov id="cont_templet_ds_grid_lov"/>
+                    <a:textField id="cont_templet_ds_grid_tf"/>
+                    <a:checkBox id="cont_templet_ds_grid_check"/>
+                    <a:comboBox id="cont_templet_ds_grid_combo"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

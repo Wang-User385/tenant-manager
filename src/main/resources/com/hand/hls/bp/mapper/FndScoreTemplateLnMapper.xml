@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.FndScoreTemplateLnMapper">
+    <resultMap id="BaseResultMap1" type="com.hand.hls.bp.dto.FndScoreTemplateLn">
+        <result column="score_template_ln_id" property="scoreTemplateLnId" jdbcType="DECIMAL" />
+        <result column="score_template_hd_id" property="scoreTemplateHdId" jdbcType="DECIMAL" />
+        <result column="summary_flag" property="summaryFlag" jdbcType="VARCHAR" />
+        <result column="score_target_id" property="scoreTargetId" jdbcType="DECIMAL" />
+        <result column="data_source_column_id" property="dataSourceColumnId" jdbcType="DECIMAL" />
+        <result column="weight_value" property="weightValue" jdbcType="DOUBLE" />
+        <result column="parent_ln_id" property="parentLnId" jdbcType="DECIMAL" />
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR" />
+        <result column="description" property="description" />
+        <result column="score_target_name" property="scoreTargetName" />
+        <result column="line_seq" property="lineSeq" jdbcType="DECIMAL" />
+        <result column="score_target_code" property="scoreTargetCode" />
+
+        <result column="score_result_dtl_id" property="scoreResultDtlId" jdbcType="BIGINT" />
+        <result column="score_result_id" property="scoreResultId" jdbcType="BIGINT" />
+        <result column="score_target_value_id" property="scoreTargetValueId" jdbcType="BIGINT"/>
+        <result column="target_value" property="targetValue" jdbcType="VARCHAR" />
+        <result column="target_score" property="targetScore" jdbcType="DOUBLE" />
+        <result column="target_score_original" property="targetScoreOriginal" jdbcType="DOUBLE" />
+        <result column="target_score_grade" property="targetScoreGrade" jdbcType="VARCHAR" />
+        <result column="targetName" property="targetName" jdbcType="VARCHAR" />
+        <result column="firstTargetName" property="firstTargetName" jdbcType="VARCHAR" />
+        <result column="descriptions" property="descriptions" jdbcType="VARCHAR"/>
+        <result column="score_values" property="scoreValues" jdbcType="BIGINT"/>
+        <result column="dsDescription" property="dsDescription"/>
+    </resultMap>
+
+
+    <resultMap id="BaseDetailResultMap1" type="com.hand.hls.bp.dto.FndScoreTemplateLn">
+        <result column="score_template_ln_id" property="scoreTemplateLnId" jdbcType="DECIMAL" />
+        <result column="score_template_hd_id" property="scoreTemplateHdId" jdbcType="DECIMAL" />
+        <result column="summary_flag" property="summaryFlag" jdbcType="VARCHAR" />
+        <result column="score_target_id" property="scoreTargetId" jdbcType="DECIMAL" />
+        <result column="data_source_column_id" property="dataSourceColumnId" jdbcType="DECIMAL" />
+        <result column="weight_value" property="weightValue" jdbcType="DOUBLE" />
+        <result column="parent_ln_id" property="parentLnId" jdbcType="DECIMAL" />
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR" />
+        <result column="description" property="description" />
+        <result column="score_target_name" property="scoreTargetName" />
+        <result column="score_target_code" property="scoreTargetCode" />
+
+        <result column="score_result_dtl_id" property="scoreResultDtlId" jdbcType="BIGINT" />
+        <result column="score_result_id" property="scoreResultId" jdbcType="BIGINT" />
+        <result column="score_target_value_id" property="scoreTargetValueId" jdbcType="BIGINT"/>
+        <result column="target_value" property="targetValue" jdbcType="VARCHAR" />
+        <result column="target_score" property="targetScore" jdbcType="DOUBLE" />
+        <result column="target_score_original" property="targetScoreOriginal" jdbcType="DOUBLE" />
+        <result column="target_score_grade" property="targetScoreGrade" jdbcType="VARCHAR" />
+        <result column="targetName" property="targetName" jdbcType="VARCHAR" />
+        <result column="firstTargetName" property="firstTargetName" jdbcType="VARCHAR" />
+        <result column="descriptions" property="descriptions" jdbcType="VARCHAR"/>
+        <result column="score_values" property="scoreValues" jdbcType="BIGINT"/>
+
+        <collection property="scoreTemplateLn"
+                    column="{scoreTemplateLnId=score_template_ln_id,scoreResultId=score_result_id}"
+                    javaType="java.util.ArrayList"
+                    ofType="com.hand.hls.bp.dto.FndScoreTemplateLn" select="queryScoreTemplateLn1"/>
+    </resultMap>
+
+
+    <select id="selectCollection1" resultMap="BaseDetailResultMap1" parameterType="com.hand.hls.bp.dto.FndScoreTemplateLn">
+        SELECT fsrd.score_template_ln_id AS score_template_ln_id, fsrd.score_result_id AS score_result_id,fsrd.*,fstl.*
+        from fnd_score_template_ln fstl,fnd_score_result_dtl fsrd
+        where fstl.score_template_ln_id = fsrd.score_template_ln_id
+    </select>
+
+    <!--遍历ln-->
+    <select id="queryScoreTemplateLn1" resultMap="BaseDetailResultMap1" parameterType="java.util.Map" >
+        SELECT
+        T1.description AS firstTargetName,
+        v1.*,T1.*
+        FROM
+        fnd_score_template_ln T1,
+        (
+        SELECT
+        T3.description AS descriptions,
+        v3.*
+        FROM
+        (
+        SELECT
+        v2.score_values,
+        T5.*
+        FROM
+        fnd_score_result_dtl T5
+        LEFT JOIN (
+        SELECT
+        T4.score_template_ln_id,
+        (
+            SELECT
+                max( stlv.score_value )
+            FROM
+                fnd_score_template_ln_value stlv
+            WHERE
+                stlv.SCORE_TEMPLATE_LN_ID = T4.score_template_ln_id
+              AND ABS( stlv.score_value ) = MAX( ABS( T4.score_value ) )
+        ) AS score_values
+        FROM
+        fnd_score_template_ln_value T4,hls_score_target_values fstv
+         where fstv.score_target_value_id = T4.score_target_value_id
+
+        GROUP BY
+        T4.score_template_ln_id
+        ORDER BY
+        T4.score_template_ln_id
+        )  v2 ON T5.score_template_ln_id = v2.score_template_ln_id
+        )  v3
+        LEFT JOIN hls_score_target_values T3 ON v3.score_target_value_id = T3.score_target_value_id
+        )  v1
+        WHERE
+        v1.score_template_ln_id = T1.score_template_ln_id
+        AND
+        T1.parent_ln_id = #{scoreTemplateLnId}
+        AND
+        v1.score_result_id = #{scoreResultId}
+
+    </select>
+
+
+
+
+    <select id="queryScoreTemplateLn2" resultMap="BaseDetailResultMap1" parameterType="java.util.Map" >
+        SELECT
+        T1.description AS firstTargetName,
+        v1.*,T1.*
+        FROM
+        fnd_score_template_ln T1,
+        (
+        SELECT
+        T3.description AS descriptions,
+        v3.*
+        FROM
+        (
+        SELECT
+        v2.score_values,
+        T5.*
+        FROM
+        fnd_score_result_dtl T5
+        LEFT JOIN (
+        SELECT
+        T4.score_template_ln_id,
+        MAX(T4.score_value) AS score_values
+        FROM
+        fnd_score_template_ln_value T4,hls_score_target_values fstv
+        where fstv.score_target_value_id = T4.score_target_value_id
+
+        GROUP BY
+        T4.score_template_ln_id
+        ORDER BY
+        T4.score_template_ln_id
+        )  v2 ON T5.score_template_ln_id = v2.score_template_ln_id
+        )  v3
+        LEFT JOIN hls_score_target_values T3 ON v3.score_target_value_id = T3.score_target_value_id
+        )  v1
+        WHERE
+        v1.score_template_ln_id = T1.score_template_ln_id
+        AND
+        T1.parent_ln_id in
+        <foreach collection="scoreTemplateLnId" index="index" open="(" separator="," close=")" item="item">
+          #{item}
+        </foreach>
+        AND
+        v1.score_result_id = #{scoreResultId}
+
+    </select>
+
+   <!-- <select id="select1" resultMap="BaseResultMap1" parameterType="com.hand.hls.bp.dto.FndScoreTemplateLn">
+        SELECT fstl.*,
+        (SELECT hst.score_target_code FROM hls_score_target hst WHERE hst.score_target_id = fstl.score_target_id) AS score_target_code,
+        (SELECT hst2.score_target_name FROM hls_score_target hst2 WHERE hst2.score_target_id = fstl.score_target_id) AS score_target_name,
+        (SELECT hddsc.description FROM hls_db_data_source_column hddsc WHERE hddsc.data_source_column_id = fstl.data_source_column_id) AS dsDescription
+        FROM
+        fnd_score_template_ln fstl
+        <where>
+            <if test="parentLnId != null">
+                fstl.parent_ln_id = #{parentLnId}
+            </if>
+            <if test="scoreTargetId != null">
+                AND fstl.score_target_id = #{scoreTargetId}
+            </if>
+            <if test="scoreTemplateLnId != null">
+                AND fstl.score_template_ln_id = #{scoreTemplateLnId}
+            </if>
+        </where>
+        ORDER BY fstl.line_seq ASC
+
+    </select>-->
+
+   <!-- <select id="selectLevelOne1" resultMap="BaseResultMap1" parameterType="com.hand.hls.bp.dto.FndScoreTemplateLn">
+        SELECT fstl.*,
+        (SELECT hst.score_target_code FROM hls_score_target hst WHERE hst.score_target_id = fstl.score_target_id) AS score_target_code,
+        (SELECT hst2.score_target_name FROM hls_score_target hst2 WHERE hst2.score_target_id = fstl.score_target_id) AS score_target_name,
+        (SELECT hddsc.description FROM hls_db_data_source_column hddsc WHERE hddsc.data_source_column_id = fstl.data_source_column_id) AS dsDescription
+        FROM
+        fnd_score_template_ln fstl
+        WHERE fstl.parent_ln_id IS NULL
+        <if test="scoreTemplateHdId!=null">
+            AND fstl.score_template_hd_id = #{scoreTemplateHdId}
+        </if>
+        ORDER  by fstl.line_seq ASC
+    </select>-->
+
+
+    <!--获取根节点 -->
+    <!--<select id="selectLnRoot" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        SELECT fstl.score_template_ln_id from fnd_score_template_ln fstl
+        where fstl.score_template_hd_id = #{scoreTemplateHdId}
+        and fstl.parent_ln_id is null
+        AND fstl.enabled_flag = 'Y'
+    </select>
+-->
+
+    <select id="selectLnRoot1" resultMap="BaseResultMap1" parameterType="java.lang.Long">
+        SELECT fstl.score_template_ln_id from fnd_score_template_ln fstl
+        where fstl.score_template_hd_id = #{scoreTemplateHdId}
+        and fstl.parent_ln_id is null
+        AND fstl.enabled_flag = 'Y'
+    </select>
+</mapper>

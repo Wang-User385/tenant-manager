@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: xiaorong
+    $Date: 2019-4-16 上午11:48:56
+    $Revision: 2.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="hls200_marketing_report"
+                url="${/request/@context_path}/modules/HLS/HLS200/hls_marketing_report_detail.lview"/>
+        <a:link id="HLS200_MARKETING_REPORT_WFL"
+                url="${/request/@context_path}/modules/HLS/HLS200/hls_marketing_report_detail_wfl.lview"/>
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq){
+            switch (ds.id) {
+                case get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_marketing_report'):
+                    qpara['created_by'] = '${/session/@user_id}';
+                    break;
+            }
+        };
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_marketing_report');
+
+            var userName;
+            Leaf.request({
+                url: "${/request/@context_path}/hls/marketing/report/querySession",
+                para: {
+                    host_project_manager : '${/session/@userId}'
+                },
+                success: function (res) {
+
+                    userName = res.result.record[0].host_project_manager_n;
+                },
+                error: function () {
+                    $L.Masker.unmask(document.body);
+                    Leaf.showMessage("提示", "保存出错!", null);
+                },
+                sync: true,
+                scope: this
+            });
+
+            var param = {};
+            param['url_title'] = '项目方案创建';
+            param['function_code'] = 'HLS200F1';
+            param['function_usage'] = 'CREATE';
+            param['user_name'] = userName;
+            param['function_usage'] = 'CREATE';
+
+            param['winid'] = 'hls200_marketing_report_create_winid';
+            hls_doc_get_layout_code(param, 'hls200_marketing_report', ds_id, 'HLS200', null, null, '${/parameter/@layout_code}_autoQuery');
+
+        };
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'marketing_report_number' && value) {
+                return '<a href="javascript:open_marketing_report_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+            return value;
+        };
+
+        function open_marketing_report_win(ds_id, record_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '项目方案明细';
+            if(record.get('status') == 'NEW'||record.get('status') == 'REJECTED'||record.get('status') == 'CANCEL'){
+                param['function_code'] = 'HLS200F1';
+                param['function_usage'] = 'MODIFY';
+                param['winid'] = 'marketing_report_detailwinid';
+                hls_doc_get_layout_code(param, 'hls200_marketing_report', ds_id, 'HLS200', null, null);
+            }else{
+                // param['function_code'] = 'HLS200F1';
+                // param['function_usage'] = 'QUERY';    //(目的是为了，当单据状态为审批中、审批通过时可以查看报价、意向书)
+                param['function_code'] = 'HLS200F1WFL';
+                param['function_usage'] = 'UPDATE';
+                param['winid'] = 'marketing_report_detailwinid_wfl';
+                hls_doc_get_layout_code(param, 'HLS200_MARKETING_REPORT_WFL', ds_id, 'HLS200', null, null);
+            }
+
+            // param['winid'] = 'marketing_report_detailwinid';
+            // hls_doc_get_layout_code(param, 'hls200_marketing_report', ds_id, 'HLS200', null, null);
+
+
+            // param['function_usage'] = 'CREATE';
+
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

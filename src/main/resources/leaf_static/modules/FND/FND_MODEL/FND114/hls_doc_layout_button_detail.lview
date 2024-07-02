@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: LR  
+    $Date: 2013-7-24 上午09:37:53  
+    $Revision: 1.0  
+    $Purpose: 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+        <a:model-query defaultWhereClause="t1.function_code=${/parameter/@function_code}"
+                       model="$com.hand.hls.layout.service.IDocLayoutButtonService.queryLovByfunctionCode"
+                       rootPath="hls031_function_name_path"/>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="hls031_doc_layout_button_function_query_link"
+                url="${/request/@context_path}/modules/FND/FND_MODEL/FND114/hls_doc_layout_button_function_query.lview"/>
+        <a:link id="hls031_doc_layout_button_proc_link"
+                url="${/request/@context_path}/modules/FND/FND_MODEL/FND114/hls_doc_layout_button_proc.lview"/>
+        <!--<a:link id="hls031_doc_layout_button_load_link" model="FND.FND_MODEL.FND114.hls_doc_layout_button" modelaction="execute"/>-->
+        <a:link id="hls031_doc_layout_button_reload_link" url="${/request/@context_path}/hls/doc/layout/button/reload"/>
+        <a:link id="hls_doc_layout_button_detail_javascript_link"
+                url="${/request/@context_path}/modules/FND/FND_MODEL/FND114/hls_doc_layout_button_detail_js.lview"/>
+        <script><![CDATA[
+        function hls031_button_detail_back() {
+            if ('${/parameter/@flag}' == 'true') {
+                $('hls031_doc_layout_button_detail_window').close();
+            } else {
+                var url = $('hls031_doc_layout_button_function_query_link').getUrl();
+                Leaf.go(url);
+            }
+        }
+
+        function hls031_button_detail_remove() {
+            $('hls031_button_detail_grid_id').remove();
+        }
+
+        function hls031_button_detail_save() {
+
+        }
+
+        function hls031_button_detail_query() {
+            $('hls031_button_detail_ds').query();
+        }
+
+        function hls031_button_detail_submit() {
+            $('hls031_button_detail_ds').setSubmitUrl("${/request/@context_path}/hls/doc/layout/button/submit");
+            $('hls031_button_detail_ds').submit();
+        }
+
+        function hls031_button_detail_load() {
+            Leaf.request({
+                url: "${/request/@context_path}/hls/doc/layout/button/load?functionCode="+'${/parameter/@function_code}',
+                success: function () {
+                    hls031_button_detail_query();
+                },
+                scope: this
+            });
+        }
+
+        function hls031_button_detail_reload() {
+            var records = $('hls031_button_detail_ds').getSelected();
+
+            if (records.length == 0) {
+                Leaf.showMessage('${l:HLS.PROMPT}', '${l:HLS.SELECT_RECORD}');
+                return;
+            }
+
+            var datas = [];
+            for (var i = 0; i < records.length; i++) {
+                datas[i] = {
+                    function_code: '${/parameter/@function_code}',
+                    button_code: records[i].get('button_code'),
+                    _status: 'insert'
+                };
+            }
+
+            Leaf.request({
+                url: $('hls031_doc_layout_button_reload_link').getUrl(),
+                para: datas,
+                success: function (res) {
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                    hls031_button_detail_query();
+                },
+                scope: this
+            });
+        }
+
+        function hls031_button_proc_update(button_code) {
+            new Leaf.Window({
+                id: 'hls031_doc_layout_button_proc_window',
+                url: $('hls031_doc_layout_button_proc_link').getUrl() + '?button_code=' + button_code + '&function_code=' + '${/parameter/@function_code}',
+                title: '${l:HLS031.PROCEDURE_EDIT}',
+                height: 450,
+                width: 600
+            });
+        }
+
+        function hls031_button_detail_render(value, record, name) {
+            var button_code = record.get('button_code');
+            if (record.get('system_flag') == 'N') {
+                return '<a href="javascript:hls031_button_proc_update(\'' + button_code + '\')">${l:HLS031.PROCEDURE_EDIT}</a>';
+            }
+        }
+
+        function hls031_detail_gird_cc(gird, row, name, record) {
+            record.getField('javascript').setLovUrl($('hls_doc_layout_button_detail_javascript_link').getUrl() + '?record_id=' + record.id);
+            record.getField('javascript').setTitle('JS脚本');
+
+            if (name == 'action_after_button_display') {
+                if (record.get('system_flag') == 'Y') {
+                    record.getField(name).setReadOnly(true);
+                } else if (record.get('system_flag') == 'N') {
+                    record.getField(name).setReadOnly(false);
+                }
+            }
+            if (name == 'javascript') {
+                if (record.get('system_flag') == 'Y') {
+                    record.getField(name).setReadOnly(true);
+                } else if (record.get('system_flag') == 'N') {
+                    record.getField(name).setReadOnly(false);
+                }
+            }
+        }
+
+        function hls031_button_detail_ds_add(ds, record, index) {
+            record.set('function_code', '${/model/hls031_function_name_path/record/@function_code}');
+        }
+
+        function button_code_ef(record, name) {
+            if (record.isNew) {
+                return 'hls031_button_detail_tf_id';
+            }
+            return '';
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="hls031_enabled_status_ds" lookupCode="ENABLED_STATUS"/>
+            <a:dataSet id="action_after_button_ds" lookupCode="HLS_ACTION_AFTER_BUTTON"/>
+            <a:dataSet id="button_type_button_ds" lookupCode="HLS_ACTION_BUTTON_TYPE"/>
+            <a:dataSet id="hls031_button_detail_query_ds">
+                <a:fields>
+                    <a:field name="function_code"
+                             defaultValue="${/model/hls031_function_name_path/record/@function_code}" readOnly="true"/>
+                    <a:field name="function_name"
+                             defaultValue="${/model/hls031_function_name_path/record/@function_name}" readOnly="true"/>
+                    <a:field name="button_code"/>
+                    <a:field name="prompt"/>
+                    <a:field name="enabled_flag_des" displayField="code_value_name" options="hls031_enabled_status_ds"
+                             returnField="enabled_flag" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="hls031_button_detail_ds" autoPageSize="true" autoQuery="true" fetchAll="true"
+                       queryUrl="${/request/@context_path}/hls/doc/layout/button/query"
+                       queryDataSet="hls031_button_detail_query_ds"
+                       deleteUrl="${/request/@context_path}/hls/doc/layout/button/remove"
+                       selectable="true">
+                <a:fields>
+                    <a:field name="button_code" required="true"/>
+                    <a:field name="prompt" required="true"/>
+                    <a:field name="icon"/>
+                    <a:field name="save_data_first" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="system_flag" checkedValue="Y" defaultValue="Y" readOnly="true" uncheckedValue="N"/>
+                    <a:field name="display_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                    <a:field name="query_display_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="action_after_button_display" displayField="code_value_name"
+                             options="action_after_button_ds" returnField="action_after_button"
+                             valueField="code_value"/>
+                    <a:field name="button_type_display" displayField="code_value_name"
+                             options="button_type_button_ds" returnField="button_type"
+                             valueField="code_value" defaultValue="顶部"/>
+                    <a:field name="button_type" defaultValue="top"/>
+                    <a:field name="action_after_button"/>
+                    <a:field name="javascript" lovHeight="430" lovWidth="580"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="add" handler="hls031_button_detail_ds_add"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:toolbarButton click="hls031_button_detail_back" text="HLS.BACK" width="80"/>
+                <a:gridButton bind="hls031_button_detail_grid_id" type="add" width="80"/>
+                <a:gridButton click="hls031_button_detail_submit" text="保存" width="80"/>
+                <a:toolbarButton click="hls031_button_detail_query" text="HLS.QUERY" width="80"/>
+                <a:toolbarButton click="hls031_button_detail_load" text="HLS031.BUTTON.LOAD" width="80"/>
+                <!-- <a:toolbarButton click="hls031_button_detail_reload" text="HLS031.BUTTON.RELOAD" width="80"/> -->
+                <a:toolbarButton click="hls031_button_detail_remove" text="HLS.REMOVE" width="80"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:hBox labelSeparator=" ">
+                    <a:textField name="function_code" bindTarget="hls031_button_detail_query_ds"
+                                 prompt="SYS8010.SYS_FUNCTION.FUNCTION_CODE" typeCase="upper"/>
+                    <a:textField name="function_name" bindTarget="hls031_button_detail_query_ds"
+                                 prompt="SYS8010.SYS_FUNCTION.FUNCTION_NAME"/>
+                </a:hBox>
+                <a:hBox labelSeparator=" ">
+                    <a:textField name="button_code" bindTarget="hls031_button_detail_query_ds"
+                                 prompt="HLS031.HLS_DOC_LAYOUT_BUTTON.BUTTON_CODE" typeCase="upper"/>
+                    <a:textField name="prompt" bindTarget="hls031_button_detail_query_ds"
+                                 prompt="HLS031.HLS_DOC_LAYOUT_BUTTON.PROMPT"/>
+                    <a:comboBox name="enabled_flag_des" bindTarget="hls031_button_detail_query_ds"
+                                prompt="HLS031.HLS_DOC_LAYOUT_BUTTON.ENABLED_FLAG"/>
+                </a:hBox>
+            </a:form>
+            <a:grid id="hls031_button_detail_grid_id" bindTarget="hls031_button_detail_ds" marginHeight="170"
+                    marginWidth="50">
+                <a:columns>
+                    <a:column name="display_order" align="right" autoAdjust="false" editor="hls031_button_detail_nf_id"
+                              width="50" prompt="排序"/>
+                    <a:column name="button_code" autoAdjust="false" editorFunction="button_code_ef" width="150" prompt="按钮代码"/>
+                    <a:column name="prompt" autoAdjust="false" editor="hls031_button_detail_tf_id" width="150" prompt="显示为"/>
+                    <a:column name="button_type_display" autoAdjust="false" editor="hls031_button_detail_cb_id" width="150" prompt="按钮类型"/>
+                    <a:column name="icon" autoAdjust="false" editor="hls031_button_detail_tf_id" width="150" prompt="图标"/>
+                    <a:column name="system_flag" autoAdjust="false" editor="hls031_button_detail_ck_id" width="60" prompt="系统"/>
+                    <a:column name="enabled_flag" autoAdjust="false" editor="hls031_button_detail_ck_id" width="60" prompt="启用"/>
+                    <a:column name="display_flag" autoAdjust="false" editor="hls031_button_detail_ck_id" width="60" prompt="显示"/>
+                    <a:column name="query_display_flag" autoAdjust="false" editor="hls031_button_detail_ck_id" width="110" prompt="查询页面显示标志"/>
+                    <a:column name="save_data_first" autoAdjust="false" editor="hls031_button_detail_ck_id"
+                              width="100" prompt="执行前保存"/>
+                    <a:column name="action_after_button_display" autoAdjust="false" editor="hls031_button_detail_cb_id"
+                              width="100" prompt="按钮后续操作"/>
+                    <a:column name="calc_btn" align="center" autoAdjust="false" prompt="程序维护"
+                              renderer="hls031_button_detail_render" width="100" />
+                    <a:column name="javascript" autoAdjust="false" editor="hls031_button_detail_lov_id" width="300" prompt="js脚本"/>
+                </a:columns>
+                <a:editors>
+                    <a:numberField id="hls031_button_detail_nf_id" allowDecimals="false" allowNegative="false"/>
+                    <a:textField id="hls031_button_detail_tf_id"/>
+                    <a:checkBox id="hls031_button_detail_ck_id"/>
+                    <a:comboBox id="hls031_button_detail_cb_id"/>
+                    <a:lov id="hls031_button_detail_lov_id"/>
+                </a:editors>
+                <a:events>
+                    <a:event name="cellclick" handler="hls031_detail_gird_cc"/>
+                </a:events>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

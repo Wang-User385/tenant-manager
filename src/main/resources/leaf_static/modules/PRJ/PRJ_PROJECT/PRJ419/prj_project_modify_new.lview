@@ -1,0 +1,2376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <!--        <script type="text/javascript" src="${/request/@context_path}/javascripts/calculateNull.js"></script>-->
+        <a:link id="prj306_bp_master_modify_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="PRJ419_open_insurance_information_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419F5/lease_item_insurance.lview"/>
+        <a:link id="PRJ419_open_invoice_information_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419F6/lease_item_invoice.lview"/>
+        <a:link id="PRJ419f3_project_doc_winid_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419F3/prj_project_doc_create.lview"/>
+        <a:link id="PRJ419f2_prj_wfl_submit_link_id" url="${/request/@context_path}/prj/project/new/wfl/submit"/>
+        <a:link id="prj318f1_prj_manufacturer_confirm_link_id" url="${/request/@context_path}/prj/manufacturer/confirm"/>
+        <a:link id="PRJ419f2_prj_bp_create_link_id" url="${/request/@context_path}/prj/project/bp/create"/>
+        <a:link id="PRJ419f2_prj_factory_link_id" url="${/request/@context_path}/hls/bp/master/factory/reply/query"/>
+        <a:link id="PRJ419f2_prj_lease_item_amount_link_id"
+                url="${/request/@context_path}/prj/project/lease/item/amount/query"/>
+        <a:link id="PRJ419f2_prj_lease_item_check_id"
+                url="${/request/@context_path}/prj/project/lease/item/check"/>
+        <a:link id="PRJ419f2_prj_get_quotation_number_link_id"
+                url="${/request/@context_path}/prj/create/quotation/number"/>
+        <a:link id="PRJ419_calculate_quotation_link_id" url="${/request/@context_path}/quotaion/auto/calc"/>
+        <a:link id="retry_generate_docx_link_id" url="${/request/@context_path}/prj/retry/generate/docx"/>
+        <a:link id="PRJ419f2_prj_get_divison_id"
+                url="${/request/@context_path}/prj/project/get/division"/>
+        <a:link id="PRJ419f2_prj_get_manufacturer_code"
+                url="${/request/@context_path}/prj/project/get/manufacturerCode"/>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+        <script><![CDATA[
+
+        /*定义全局对象变量*/
+        var PRJ419f2_viewModel = {
+            productList: [],
+            function_usage: '${/parameter/@function_usage}',
+            reply_id: 0,
+            lease_item_amount: 0
+        };
+        var	contextPath = '${/request/@context_path}';
+        var license_length_flag = true;
+        var special_char_valid = true;
+        let currentDivision = '${/parameter/@division}'
+        var manufacturerCode = '${/parameter/@manufacturer_code}'
+        var manufacturer_id='${/parameter/@manufacturer_id}'
+        let project_date='${/parameter/@project_date}';
+        let project_id='${/parameter/@project_id}';
+        var parent_layout_code = '${/parameter/@parent_layout_code}';
+        var ref_v02='${/parameter/@ref_v02}';
+        var finance_amount=0;
+        '${/parameter/@lease_channel}' == '10'
+
+        $L.onReady(function () {
+            debugger
+            getDivision();
+            getManufacturerCode();
+            var function_usage = '${/parameter/@function_usage}';
+            var wfl_flag = '${/parameter/@wfl_flag}';
+            var submit_hide = '${/parameter/@submit_hide}';
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var lease_item_ds= get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_lease_item');
+            var record = $(ds_id);
+            var lease_item_record = $(lease_item_ds);
+            if(wfl_flag == 'Y'){
+                $(ds_id).getCurrentRecord().getField("project_number_replace").setReadOnly(true);
+                $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(true);
+            }
+            if(manufacturerCode && manufacturerCode !== 'C000030601' ){
+                record.getField('partners_contract_number').setReadOnly(true);
+                record.getField('partners_payment_number').setReadOnly(true);
+            }
+            //三一进件整机编号允许为空
+            if (manufacturerCode && manufacturerCode == 'C000004453') {
+                lease_item_record.getField('serial_number').setRequired(false);
+            }
+
+            //根据业务线隐藏租赁物
+            hideGird();
+            debugger
+            if("DEALER"==ref_v02){
+                //承租人授信额度grid_id
+                let quta_grid_id = '#' + '${/parameter/@layout_code}_F_QUTA_component_id'
+                //承租人授信额度导航栏ID
+                let quta_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_QUTA_component_id']").attr("id");
+                //隐藏承租人授信额度
+                jQuery(quta_grid_id).hide();
+                jQuery(quta_component_id).hide();
+                jQuery(quta_component_id).prev().hide();
+                jQuery(quta_component_id).hide();
+                jQuery(quta_component_id).next().hide();
+            }
+            if (function_usage === 'QUERY' && (currentDivision === 'Vehicle_Leasing' )&&(currentDivision === 'COMMERCIAL_VEHICLE' )&& parent_layout_code === 'PRJ419') {
+                jQuery('#${/parameter/@layout_code}_save').hide();
+                jQuery('#${/parameter/@layout_code}_user_button1').hide();
+                jQuery(".navigationBarContent").css("margin-left", "130px");
+            } else if (function_usage === 'QUERY' && currentDivision === 'Construction_machinery' && parent_layout_code === 'PRJ419') {
+                jQuery('#${/parameter/@layout_code}_save').hide();
+                if (submit_hide) {
+                    jQuery('#${/parameter/@layout_code}_user_button1').hide();
+                }
+                jQuery(".navigationBarContent").css("margin-left", "130px");
+            }
+            if (function_usage === 'QUERY' && parent_layout_code === 'PRJ317' && currentDivision === 'PHOTOVOLTAIC_DEVICES') {
+                //隐藏天合附件按钮
+                jQuery('#${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_ADD_layout_dynamic_button_id').hide();
+                jQuery('#${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_DELETE_layout_dynamic_button_id').hide();
+                jQuery('#${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_SAVE_layout_dynamic_button_id').hide();
+            }
+            if (wfl_flag == 'Y') {
+                jQuery('#${/parameter/@layout_code}_project_doc').hide();
+                jQuery(".navigationBarId").hide();
+                jQuery(".navigationBarContent").css("margin-left", "0px");
+            }
+
+            //新增时带出创建页面的承租人
+            if ('${/parameter/@function_usage}' == 'CREATE') {
+                debugger
+                var tenant_ds_id = '${/parameter/@layout_code}_G_TENANT_BASIC_INFO_prj_project_bp_ds';
+                var record = new Leaf.Record({
+                    'bp_id': '${/parameter/@bp_id}',
+                    'bp_id_n': '${/parameter/@bp_id_n}',
+                    'tenant_name': '${/parameter/@bp_id_n}',
+                    'bp_categroy': 'TENANT',
+                    'bp_categroy_n': '${/parameter/@bp_categroy_n}',
+                    'bp_class': '${/parameter/@bp_class}',
+                    'bp_class_n': '${/parameter/@bp_class_n}',
+                    'bp_type': 'TENANT',
+                    'bp_type_n': '${/parameter/@bp_type_n}'
+                });
+                $(tenant_ds_id).add(record);
+            }
+            //查询额度信息
+            if('${/parameter/@function_usage}' != 'CREATE' && '${/parameter/@function_code}' != 'PRJ318F1'){
+                debugger
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                qureyAmount();
+            }
+        });
+
+        function qureyAmount() {
+            var record = $('${/parameter/@layout_code}_F_QUTA__ds').getCurrentRecord();
+            Leaf.request({
+                url: '${/request/@context_path}/prj/manufacturer/query/amount?projectId='+project_id,
+                success: function (res) {
+                    record.set('credit_amt',res.result.record[0].credit_amt);
+                    record.set('tenant_amount',res.result.record[0].tenant_amount);
+                    record.set('release_amount',finance_amount);
+                    record.set('surplus_amount',res.result.record[0].credit_amt - res.result.record[0].tenant_amount);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        }
+
+        function getDivision() {
+            currentDivision = '${/parameter/@division}'
+            let contractNumber;
+            if (!currentDivision) {
+                contractNumber = '${/parameter/@contract_number}';
+                if (!contractNumber) {
+                    contractNumber = '${/parameter/@project_number}';
+                }
+                Leaf.request({
+                    url: $('PRJ419f2_prj_get_divison_id').getUrl(),
+                    scope: this,
+                    para: {contractNumber: contractNumber,projectId:'${/parameter/@project_id}'},
+                    success: function (res) {
+                        if (res && res.result.record && res.result.record.length > 0 && res.result.record[0]) {
+                            currentDivision = res.result.record[0]
+                        }
+                    },
+                    sync: true
+                });
+            }
+        }
+
+        function getManufacturerCode() {
+            manufacturerCode = '${/parameter/@manufacturer_code}'
+            let contractNumber;
+            if (!manufacturerCode) {
+                contractNumber = '${/parameter/@contract_number}';
+                if (!contractNumber) {
+                    contractNumber = '${/parameter/@project_number}';
+                }
+                Leaf.request({
+                    url: $('PRJ419f2_prj_get_manufacturer_code').getUrl(),
+                    scope: this,
+                    para: {contractNumber: contractNumber,projectId:'${/parameter/@project_id}'},
+                    success: function (res) {
+                        if (res && res.result.record && res.result.record.length > 0 && res.result.record[0]) {
+                            manufacturerCode = res.result.record[0]
+                        }
+                    },
+                    sync: true
+                });
+            }
+        }
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if (name == 'bp_info_link' && !record.isNew) {
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:#ff0000">查看承租人</span></a>';
+            } else if (name == 'bp_supplier_link' && !record.isNew) {
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:red">查看供应商</span></a>';
+            } else if (name == 'bp_security_link' && !record.isNew) {
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:red">查看担保人</span></a>';
+
+            } else if (name == 'quote' && !record.isNew) {
+                if (PRJ419f2_viewModel.function_usage != 'QUERY') {
+                    return '<a href="javascript:PRJ419_open_price(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('quotation_id') + '\')"><span style="color:red">报价</span></a>';
+                }else{
+                    return '报价计算成功';
+                }
+            }
+            else if (name == 'attach_link' && record.isNew) {
+                return null;
+            }
+            else if (name == 'attach_link' && !record.isNew) {
+
+                var table_name = record.get("project_attachment_category");
+                var th_back_flag = record.get("th_back_flag");
+                var document_name  = record.get("document_name");
+                return '<a href="javascript:PRJ419_open_attach(\'' + record.get('project_attachment_id') + '\',\''+table_name + '\',\''+ document_name +'\',\''+ th_back_flag +'\')">上传/下载</a>';
+            }
+            else if (name == 'insurance_information' && !record.isNew) {
+                return '<a style="color: red;" href="javascript:PRJ419_open_insurance_information(\'' + record.ds.id + '\',\'' + record.id + '\')">保险信息</a>';
+            }
+            else if (name == 'bill_information' && !record.isNew) {
+                return '<a style="color: red;" href="javascript:PRJ419_open_invoice_information(\'' + record.ds.id + '\',\'' + record.id + '\')">' + config_record.get('prompt') + '</a>';
+            }
+            else if (name == 'calculate' && !record.isNew) {
+                if (PRJ419f2_viewModel.function_usage != 'QUERY' && '${/parameter/@lease_channel}'!= '20' && '${/parameter/@function_code}'!= 'PRJ318F1') {
+                    return '<a style="color: red;" href="javascript:PRJ419_calculate_quotation(\'' + record.ds.id + '\',\'' + record.id + '\')">计算</a>';
+                } else {
+                    return '计算成功';
+                }
+            }
+
+            return value;
+        };
+
+
+        //附件
+        var win;
+
+        function PRJ419_open_attach(project_attachment_id, table_name,document_name,th_back_flag) {
+            debugger
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            var parent_layout_code = '${/parameter/@parent_layout_code}';
+            var submit_hide = '${/parameter/@submit_hide}';
+            var work_flow = '${/parameter/@work_flow}';
+            var node_id = '${/parameter/@node_id}';
+            if (function_usage === 'QUERY'&&('${/parameter/@sign_status}'!='REJECTED'&&'${/parameter/@sign_status}'!='NEW')) {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            // url = '${/request/@context_path}/uploadFile.lview';
+            // if(document_name == '审查文件'){
+            //     url = '${/request/@context_path}/downloadFile.lview';
+            //     function_usage = 'QUERY';
+            // }
+            //厂商风险审查流程,投放审查流程 ，风险审查岗位，资管部负责人,投放审查岗，租后管理岗节点可以上传下载附件“审查文件”
+            // if(document_name == '审查文件' && (node_id  == 'sid-NADqOrSA-McJQ-4fHc-8uYZ-BKWVs7HBI46d'  || node_id == 'sid-jN5Ah6L5-KH8s-42iD-88b0-RquXNoZVcvvN'||
+            //     node_id == 'sid-QEd1QUWf-46Bo-4RUr-8G0I-bH5cZ9VKnVKo' ) ){
+            //     url = '${/request/@context_path}/uploadFile.lview';
+            //     function_usage = '${/parameter/@function_usage}';
+            // }
+            win = new Leaf.Window({
+                id: 'PRJ419_open_attachment_winid',
+                /*url: '${/request/@context_path}/modules/COMMON/ATTACH/project_attachment_upload.lview?projectAttachmentId=163',*/
+                //url: '${/request/@context_path}/uploadFile.lview?projectAttachmentId=' + project_attachment_id,
+                url: url,
+                params: {
+                    'header_id': project_attachment_id,
+                    'table_name': table_name,
+                    winid: 'PRJ419_open_attachment_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                debugger
+                var ds_id;
+                if (currentDivision === 'PHOTOVOLTAIC_DEVICES' || manufacturerCode == 'C000004453') {
+                    ds_id = "${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds";
+                } else {
+                    ds_id = "${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds";
+                }
+                $(ds_id).query();
+                if(parent_layout_code=='PRJ329'){
+                    record.getField('document_name').setReadOnly(false);
+                    record.getField('description').setReadOnly(false);
+                }
+            });
+        }
+
+        //根据业务线隐藏租赁物、报价方案
+        function hideGird() {
+            debugger
+            //商用车租赁物信息grid_id
+            let vehicle_grid_id = '#' + '${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_layout_grid_id_wrap'
+            //工程机械租赁物信息grid_id
+            let machine_grid_id = '#' + '${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_layout_grid_id_wrap'
+            //租赁物信息_光伏设备grid_id
+            let photovoltaic_grid_id = '#' + '${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_layout_grid_id_wrap'
+            //附件
+            let attachment_grid_id = '#' + '${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_layout_grid_id_wrap'
+            //天合附件grid_id
+            let th_attachment_grid_id = '#' + '${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_layout_grid_id_wrap'
+            //报价方案
+            let quotation_ds_id = '${/parameter/@layout_code}_G_QUOTATION_prj_quotation_layout_grid_id'
+            //租赁物信息_光伏设备
+            let lease_item_ds_id = '${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_layout_grid_id'
+
+            //工程机械导航栏ID
+            let machine_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_LEASING_MACHINE_component_id']").attr("id")
+            //商用车导航栏ID
+            let vehicle_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_LEASING_VEHICLE_component_id']").attr("id")
+            //光伏设备导航栏ID
+            let photovoltaic_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_LEASING_PHOTOVOLTAIC_component_id']").attr("id")
+            //附件
+            let attachment_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_CC_PRJ_BASIC_INFO_component_id']").attr("id")
+            //天合附件
+            let th_attachment_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_TH_PRJ_BASIC_INFO_component_id']").attr("id")
+
+            //隐藏左侧导航栏
+            if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') {//商用车
+                //隐藏租赁物_工程机械
+                jQuery(machine_grid_id).hide();
+                jQuery(machine_component_id).hide();
+                jQuery(machine_component_id).prev().hide();
+                jQuery(machine_component_id).hide();
+                jQuery(machine_component_id).next().hide();
+                //隐藏租赁物_光伏
+                jQuery(photovoltaic_grid_id).hide();
+                jQuery(photovoltaic_component_id).hide();
+                jQuery(photovoltaic_component_id).prev().hide();
+                jQuery(photovoltaic_component_id).hide();
+                jQuery(photovoltaic_component_id).next().hide();
+                //隐藏天合附件
+                jQuery(th_attachment_grid_id).hide();
+                jQuery(th_attachment_component_id).hide();
+                jQuery(th_attachment_component_id).prev().hide();
+                jQuery(th_attachment_component_id).hide();
+                jQuery(th_attachment_component_id).next().hide();
+            }else if (currentDivision === 'Construction_machinery' || currentDivision === 'ENGINEERING_MACHINERY'){ //工程机械
+                //隐藏商用车
+                jQuery(vehicle_grid_id).hide();
+                jQuery(vehicle_component_id).hide();
+                jQuery(vehicle_component_id).prev().hide();
+                jQuery(vehicle_component_id).hide();
+                jQuery(vehicle_component_id).next().hide();
+                //隐藏租赁物_光伏
+                jQuery(photovoltaic_grid_id).hide();
+                jQuery(photovoltaic_component_id).hide();
+                jQuery(photovoltaic_component_id).prev().hide();
+                jQuery(photovoltaic_component_id).hide();
+                jQuery(photovoltaic_component_id).next().hide();
+
+                //三一厂商
+                if (manufacturerCode == 'C000004453'){
+                    //隐藏附件
+                    jQuery(attachment_grid_id).hide();
+                    jQuery(attachment_component_id).hide();
+                    jQuery(attachment_component_id).prev().hide();
+                    jQuery(attachment_component_id).hide();
+                    jQuery(attachment_component_id).next().hide();
+                }else {
+                    //隐藏天合附件
+                    jQuery(th_attachment_grid_id).hide();
+                    jQuery(th_attachment_component_id).hide();
+                    jQuery(th_attachment_component_id).prev().hide();
+                    jQuery(th_attachment_component_id).hide();
+                    jQuery(th_attachment_component_id).next().hide();
+                }
+            }else { //光伏
+                //隐藏商用车
+                jQuery(vehicle_grid_id).hide();
+                jQuery(vehicle_component_id).hide();
+                jQuery(vehicle_component_id).prev().hide();
+                jQuery(vehicle_component_id).hide();
+                jQuery(vehicle_component_id).next().hide();
+                //隐藏租赁物_工程机械
+                jQuery(machine_grid_id).hide();
+                jQuery(machine_component_id).hide();
+                jQuery(machine_component_id).prev().hide();
+                jQuery(machine_component_id).hide();
+                jQuery(machine_component_id).next().hide();
+                //隐藏附件
+                jQuery(attachment_grid_id).hide();
+                jQuery(attachment_component_id).hide();
+                jQuery(attachment_component_id).prev().hide();
+                jQuery(attachment_component_id).hide();
+                jQuery(attachment_component_id).next().hide();
+            }
+            //非天合光伏业务线, 报价方案隐藏 装机量、单价、每期租金
+            if (currentDivision !== 'PHOTOVOLTAIC_DEVICES') {
+                $(quotation_ds_id).hideColumn('installed_capacity');
+                $(quotation_ds_id).hideColumn('unit_price');
+                $(quotation_ds_id).hideColumn('each_rental');
+            } else {
+                // debugger
+                //厂商非碳银
+                if (manufacturerCode !== 'C000032182') {
+                    //租赁物隐藏组件生产商
+                    $(lease_item_ds_id).hideColumn('module_producer');
+                } else {
+                    //碳银厂商报价方案隐藏每期租金
+                    $(quotation_ds_id).hideColumn('each_rental');
+                }
+            }
+        }
+
+        //报价
+        function PRJ419_open_price(dsId, record_id, quotationId) {
+            debugger
+            if ($(dsId).validate()) {
+                if (quotationId != 'undefined') {
+                    debugger
+                    PRJ419_calculate_quotation(dsId,record_id);
+                    //打开报价窗口
+                    var price_list = $(dsId).findById(record_id).get("price_list");
+                    var url = '${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/prj_project_fin_contract_calculate.lview?quotationId=' + quotationId + "&priceList=" + price_list;
+                    if ('${/parameter/@maintain_type}' === 'READONLY' || '${/parameter/@lease_channel}' == '20') {
+                        url = url + '&readOnly=Y';
+                    }
+                    var win = new Leaf.Window({
+                        id: 'PRJ419_open_price_winid',
+                        url: url,
+                        title: '项目报价',
+                        fullScreen: true
+                    });
+                    win.on('close', function () {
+                        var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+                        var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+                        $(ds_id).query();
+                        $(cashflow_ds_id).query();
+                    });
+                } else {
+                    Leaf.showMessage("提示", "请先保存报价信息!", null);
+                    return false;
+                }
+            }
+        }
+
+        function open_bp_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '客户信息维护';
+            if (param['bp_class'] == 'ORG') {
+                if(param['bp_type']=='MANUFACTURER'){
+                    param['function_code'] = 'BP100F4'
+
+                }else {
+                    param['function_code'] = 'BP100F1';
+                }
+            } else {
+                param['function_code'] = 'BP100F2';
+            }
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'bp_master_modify_winid';
+            hls_doc_get_layout_code(param, 'prj306_bp_master_modify_id', null, 'PRJ306');
+        }
+
+        function PRJ419_calculate_quotation(ds_id, record_id) {
+            var quotation_ds = $("${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds");
+            quotation_ds.on("submitsuccess", calcQuotation);
+            quotation_ds.submit();
+        }
+
+        function calcQuotation(ds) {
+            debugger
+            var quotation_ds = $("${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds");
+            var cashflow_ds = $("${/parameter/@layout_code}_G_CASHFLOW_prj_quotation_cashflow_ds");
+            quotation_ds.un("submitsuccess", calcQuotation);
+            // $L.Masker.mask(Ext.getBody(), '正在计算...');
+            var record = $('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds').getAt(0);
+            var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var projectId = $(prj_project_ds_id).getCurrentRecord().get("project_id");
+            var quotationId = ds.getCurrentRecord().get("quotation_id");
+            var leaseStartDate = record.get('lease_start_date');
+            var url = $('PRJ419_calculate_quotation_link_id').getUrl();
+            url = url + "?leaseStartDate=" + leaseStartDate;
+            url = url + "&quotationId=" + quotationId;
+            url = url + "&projectId=" + projectId;
+            Leaf.request({
+                url: url,
+                success: function (res) {
+                    debugger
+                    // $L.Masker.unmask(Ext.getBody());
+                    quotation_ds.query();
+                    cashflow_ds.query();
+                    if(quotation_ds.getCurrentRecord().get("calc_check_flag") == 'N'){
+                        $L.showInfoMessage("提示", quotation_ds.getCurrentRecord().get("calc_check_info"));
+                    }else{
+                        // $L.showInfoMessage("提示", "计算成功!");
+                        var record = $('${/parameter/@layout_code}_F_QUTA__ds').getCurrentRecord();
+                        finance_amount=quotation_ds.getCurrentRecord().get('finance_amount');
+                        record.set('release_amount',quotation_ds.getCurrentRecord().get('finance_amount'));
+                    }
+                },
+                failure: function (datas) {
+                    // $L.Masker.unmask(Ext.getBody());
+                },
+                error: function (datas) {
+                    // $L.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+
+        function PRJ419_open_insurance_information(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var parent_layout_code = '${/parameter/@parent_layout_code}';
+            var submit_hide = '${/parameter/@submit_hide}';
+            var function_usage = '${/parameter/@function_usage}';
+            param['url_title'] = '保险信息维护';
+            param['function_code'] = 'PRJ419F5';
+            param['winid'] = 'PRJ419_open_insurance_information_winid';
+            param['screen_width'] = '1100';
+            param['screen_height'] = '450';
+            //param['function_usage'] = 'MODIFY';
+            param['function_usage'] = function_usage;
+            param['maintain_type'] = 'READONLY';
+            param['manufacturer_code'] = manufacturerCode;
+            if ((parent_layout_code === 'PRJ419' && submit_hide)
+                || (parent_layout_code === 'PRJ317' && function_usage === 'QUERY')
+                || '${/parameter/@wfl_flag}' === 'Y') {
+                param['function_usage'] = 'QUERY';
+            }
+            hls_doc_get_layout_code(param, 'PRJ419_open_insurance_information_link_id', ds_id, 'PRJ419F2');
+        }
+
+        function PRJ419_open_invoice_information(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var parent_layout_code = '${/parameter/@parent_layout_code}';
+            var submit_hide = '${/parameter/@submit_hide}';
+            var function_usage = '${/parameter/@function_usage}';
+            param['url_title'] = '发票信息维护';
+            param['function_code'] = 'PRJ419F6';
+            param['winid'] = 'PRJ419_open_invoice_information_winid';
+            param['screen_width'] = '1000';
+            param['screen_height'] = '450';
+            /* param['function_usage'] = 'MODIFY';
+             param['maintain_type'] = 'READONLY';
+             param['manufacturer_code'] = manufacturerCode;
+             if ((parent_layout_code === 'PRJ419' && submit_hide)
+                 || (parent_layout_code === 'PRJ317' && function_usage === 'QUERY')
+                 || '${/parameter/@wfl_flag}' === 'Y') {
+                 param['function_usage'] = 'QUERY';
+             }*/
+
+            param['function_usage'] = function_usage;
+            hls_doc_get_layout_code(param, 'PRJ419_open_invoice_information_link_id', ds_id, 'PRJ419F6');
+        }
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+        };
+
+        //合同文本打印
+        window['${/parameter/@layout_code}_project_doc_layout_dynamic_click'] = function () {
+            debugger
+            var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(prj_project_ds_id).getCurrentRecord();
+            if (record.get("docx_flag") != 'Y') {
+                $L.showInfoMessage("提示", "当前无法打印合同文本，请完善进件信息并提交工作流!");
+                return;
+            }
+            var param = {};
+            param['project_id'] = record.get('project_id');
+            param['project_number'] = record.get('project_number');
+            param['url_title'] = '合同文本打印';
+            param['function_code'] = 'PRJ419F4';
+            param['screen_width'] = "1000";
+            param['screen_height'] = "500";
+            param['parent_layout_code'] = '${/parameter/@layout_code}';
+            param['winid'] = 'PRJ419f4_project_doc_winid';
+
+            hls_doc_get_layout_code(param, 'PRJ419f3_project_doc_winid_link_id', prj_project_ds_id, 'PRJ419F4');
+        };
+
+
+
+        //合同文本打印
+        window['${/parameter/@layout_code}_retry_generate_layout_dynamic_click'] = function () {
+            var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(prj_project_ds_id).getCurrentRecord();
+            Leaf.request({
+                url: $('retry_generate_docx_link_id').getUrl()+'?projectId='+record.get('project_id'),
+                scope: this,
+                success: function (res) {
+                    Leaf.showSuccessMessage('成功','合同文本生成成功！')
+                }
+            });
+        };
+
+        //客户评级
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var record = $('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds').getAt(0);
+            new Leaf.Window({
+                id: 'PRJ419_client_score_create_winid',
+                url: '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/client_score_create.lview',
+                title: '评级创建抽屉',
+                params: {
+                    tenantBpId: record.get('tenant_id'),
+                    bpName: record.get('tenant_name'),
+                    bpCode: record.get('bp_code'),
+                    projectId: record.get('project_id'),
+                    winId: 'PRJ419_client_score_create_winid',
+                    function_code: '${/parameter/@function_code}',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                width: 480,
+                height: 575
+            });
+        };
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_beforecreate'] = function (ds, record, config_records, bp_seq) {
+            debugger
+            var parentRecord = $('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds').getAt(0);
+            var prj_quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            if (ds.id == prj_quotation_ds_id) {
+                var datas = $(prj_quotation_ds_id).getAll();
+                if (datas.length == 1) {
+                    Leaf.showMessage("提示", "只能存在一条报价!", null);
+                    return false;
+                }
+                if (parentRecord.get('project_id')) {
+                    return true;
+                } else {
+                    Leaf.showMessage("提示", "请先保存项目信息!", null);
+                    return false;
+                }
+            }
+        };
+
+        function disableDs() {
+            try{
+                if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') { //商用车
+                    //删除工程机械ds
+                    $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').fields = {}
+                    $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').removeAll
+                    //删除光伏
+                    $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').fields = {}
+                    $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').removeAll
+                    //删除天合附件
+                    $('${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds').fields = {}
+                    $('${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds').removeAll
+                } else if (currentDivision === 'PHOTOVOLTAIC_DEVICES') { //光伏设备
+                    //删除工程机械ds
+                    $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').fields = {}
+                    $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').removeAll
+                    //删除商用车ds
+                    $('${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds').fields = {}
+                    $('${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds').removeAll
+                    //删除附件
+                    $('${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds').fields = {}
+                    $('${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds').removeAll
+                } else { //工程机械
+                    //删除商用车
+                    $('${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds').fields = {}
+                    $('${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds').removeAll
+                    //删除光伏
+                    $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').fields = {}
+                    $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').removeAll
+                    //三一厂商
+                    if (manufacturerCode == 'C000004453'){
+                        //删除附件
+                        $('${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds').fields = {}
+                        $('${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds').removeAll
+                    }else {
+                        //删除天合附件
+                        $('${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds').fields = {}
+                        $('${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds').removeAll
+                    }
+                }
+            }catch (e) {
+                console.log(e)
+            }
+        }
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            debugger
+            disableDs();
+            var wfl_flag = '${/parameter/@wfl_flag}';
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            if(wfl_flag == 'Y'){
+                $(ds_id).getCurrentRecord().getField("project_number_replace").setReadOnly(true);
+                $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(true);
+            }
+            if (judgeReadOnly()){
+                $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(false);
+            }
+            if ('${/parameter/@function_usage}' == 'CREATE') {
+                $(ds_id).getCurrentRecord().set('industry_type_n', '${/parameter/@industry_type_n}');
+                $(ds_id).getCurrentRecord().set('industry_type', '${/parameter/@industry_type}');
+                $(ds_id).getCurrentRecord().set('property_type_n', '${/parameter/@property_type_n}');
+                $(ds_id).getCurrentRecord().set('property_type', '${/parameter/@property_type}');
+                $(ds_id).getCurrentRecord().set('document_type_n', '${/parameter/@document_type_n}');
+                $(ds_id).getCurrentRecord().set('document_type', '${/parameter/@document_type}');
+                $(ds_id).getCurrentRecord().set('document_category', 'PRJ_PROJECT');
+                $(ds_id).getCurrentRecord().set('project_status', 'NEW');
+                $(ds_id).getCurrentRecord().set('company_id_n', '${/parameter/@company_id_n}');
+                $(ds_id).getCurrentRecord().set('company_id', '${/parameter/@company_id}');
+                $(ds_id).getCurrentRecord().set('business_type_n', '${/parameter/@business_type_n}');
+                $(ds_id).getCurrentRecord().set('business_type', '${/parameter/@business_type}');
+                /*$(ds_id).getCurrentRecord().set('lease_organization_n', '${/parameter/@lease_organization_n}');
+                $(ds_id).getCurrentRecord().set('lease_organization', '${/parameter/@lease_organization}');
+                $(ds_id).getCurrentRecord().set('employee_id_n', '${/parameter/@employee_id_n}');
+                $(ds_id).getCurrentRecord().set('employee_id', '${/parameter/@employee_id}');*/
+                $(ds_id).getCurrentRecord().set('lease_channel_n', '${/parameter/@lease_channel_n}');
+                $(ds_id).getCurrentRecord().set('lease_channel', '${/parameter/@lease_channel}');
+                $(ds_id).getCurrentRecord().set('tenant_id_n', '${/parameter/@bp_id_n}');
+                $(ds_id).getCurrentRecord().set('tenant_id', '${/parameter/@bp_id}');
+                $(ds_id).getCurrentRecord().set('employee_code', '${/parameter/@employee_code}');
+                $(ds_id).getCurrentRecord().set('owner_user_id', '${/parameter/@owner_user_id}');
+                $(ds_id).getCurrentRecord().set('bp_code', '${/parameter/@tenant_bp_code}');
+                $(ds_id).getCurrentRecord().set('bp_type_desc', '${/parameter/@bp_type_desc}');
+                $(ds_id).getCurrentRecord().set('bp_class', '${/parameter/@bp_class}');
+                $(ds_id).getCurrentRecord().set('bp_class_n', '${/parameter/@bp_class_n}');
+
+                $(ds_id).getCurrentRecord().set('employee_id_of_manager', '${/parameter/@employee_id_of_manager}');//部门负责人
+                $(ds_id).getCurrentRecord().set('employee_id_of_manager_n', '${/parameter/@employee_id_of_manager_n}');
+
+                /*主机厂*/
+                $(ds_id).getCurrentRecord().set('factory_id', '${/parameter/@factory_id}');
+                $(ds_id).getCurrentRecord().set('factory_id_n', '${/parameter/@factory_id_n}');
+
+                /*经销商*/
+                $(ds_id).getCurrentRecord().set('bp_id_vender', '${/parameter/@bp_vender_name}');
+                $(ds_id).getCurrentRecord().set('bp_id_vender_n', '${/parameter/@bp_vender_name_n}');
+
+                /*业务线*/
+                $(ds_id).getCurrentRecord().set('division', currentDivision);
+                $(ds_id).getCurrentRecord().set('division_n', '${/parameter/@division_n}');
+
+                $(ds_id).getCurrentRecord().set('manufacturer_id_n', '${/parameter/@manufacturer_id_n}');
+                $(ds_id).getCurrentRecord().set('manufacturer_id', '${/parameter/@manufacturer_id}');
+
+                $(ds_id).getCurrentRecord().set('seller_id_n', '${/parameter/@seller_id_n}');
+                $(ds_id).getCurrentRecord().set('seller_id', '${/parameter/@seller_id}');
+
+                $(ds_id).getCurrentRecord().set('floating_range_method', 'NEXT_YEAR_NUARY_1ST');
+                $(ds_id).getCurrentRecord().set('floating_range_method_n', '次年1月1日');
+
+                $(ds_id).getCurrentRecord().set('base_rate_type', 'PBOC');
+                $(ds_id).getCurrentRecord().set('base_rate_type_n', '人民银行基准利率');
+
+            }
+
+            if($(ds_id).getCurrentRecord().get("lease_channel") == 10&&$(ds_id).getCurrentRecord().get("division") == 'PHOTOVOLTAIC_DEVICES'){
+                $(ds_id).getCurrentRecord().getField("dealer_sign_type").setReadOnly(true);
+                $(ds_id).getCurrentRecord().getField("dealer_sign_type_n").setReadOnly(true);
+                $(ds_id).getCurrentRecord().getField("vender_sign_type").setReadOnly(true);
+                $(ds_id).getCurrentRecord().getField("vender_sign_type_n").setReadOnly(true);
+                $(ds_id).getCurrentRecord().getField("manufacturer_sign_type").setReadOnly(true);
+                $(ds_id).getCurrentRecord().getField("manufacturer_sign_type_n").setReadOnly(true);
+                $(ds_id).getCurrentRecord().getField("dealer_sign_type").setRequired(false);
+                $(ds_id).getCurrentRecord().getField("dealer_sign_type_n").setRequired(false);
+                $(ds_id).getCurrentRecord().getField("vender_sign_type").setRequired(false);
+                $(ds_id).getCurrentRecord().getField("vender_sign_type_n").setRequired(false);
+                $(ds_id).getCurrentRecord().getField("manufacturer_sign_type").setRequired(false);
+                $(ds_id).getCurrentRecord().getField("manufacturer_sign_type_n").setRequired(false);
+            }
+            debugger
+            //判断是不是厂商
+            // if ($(ds_id).getCurrentRecord().get("lease_channel") == 10) {
+                //根据主机厂带出厂商
+                window['${/parameter/@layout_code}_get_manufacturer'](ds_id, $(ds_id).getCurrentRecord().get("factory_id"), 'FACTORY');
+                $(ds_id).getCurrentRecord().getField("payment_bp_id_n").setReadOnly(true);
+            // } else if ($(ds_id).getCurrentRecord().get("lease_channel") == 20) {
+            //     window['${/parameter/@layout_code}_get_manufacturer'](ds_id, $(ds_id).getCurrentRecord().get("manufacturer_id"), 'MANUFACTURER');
+            // }
+            var record = $(ds_id).getCurrentRecord();
+            var lease_channel = 10;
+            var update_type;
+            if(lease_channel == 10){
+                Leaf.request({
+                    url: '${/request/@context_path}/prj/manufacturer/type/query',
+                    para: {
+                        manufacturer_id:record.get('manufacturer_id')
+                    },
+                    success: function (res) {
+                        update_type = res.result.record[0].incept_rule_type;
+                        // if(update_type === 'FIXED_DAY' && judgeReadOnly()){ //起租规则类型： 固定日
+                        //     record.getField("appoint_incept_flag").setReadOnly(false);
+                        //     record.getField("appoint_incept_flag").setRequired(true);
+                        //     record.getField("appoint_incept_flag_n").setReadOnly(false);
+                        //     record.getField("appoint_incept_flag_n").setRequired(true);
+                        // }else{
+                        //     record.getField("appoint_incept_flag").setReadOnly(true);
+                        //     record.getField("appoint_incept_flag").setRequired(false);
+                        //     record.getField("appoint_incept_flag_n").setReadOnly(true);
+                        //     record.getField("appoint_incept_flag_n").setRequired(false);
+                        //     record.set('appoint_incept_flag','N');
+                        //     record.set('appoint_incept_flag_n','否');
+                        // }
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }else{
+                // record.getField("appoint_incept_flag").setReadOnly(true);
+                // record.getField("appoint_incept_flag").setRequired(false);
+                // record.getField("appoint_incept_flag_n").setReadOnly(true);
+                // record.getField("appoint_incept_flag_n").setRequired(false);
+                // record.set('appoint_incept_flag','N');
+                // record.set('appoint_incept_flag_n','否');
+            }
+        };
+
+        function isAdvancedEquipment(record){
+            debugger
+            Leaf.request({
+                url: '${/request/@context_path}/prj/manufacturer/query/isAdvancedEquipment',
+                para: {
+                    classify_id:record.get('classify_id'),
+                    manufacturer_id:record.get('manufacturer_id')
+                },
+                scope: this,
+                success: function (res) {
+                    debugger
+                    for(var i=0;i<res.result.record.length;i++){
+                        if(res.result.record[i].classify_id==record.get('classify_id')){
+                            record.set('advanced_equipment_flag',res.result.record[i].advanced_equipment_flag)
+                            if(res.result.record[i].advanced_equipment_flag=="Y"){
+                                record.set('advanced_equipment_flag_n','是')
+                            }else{
+                                record.set('advanced_equipment_flag_n','否')
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            debugger
+            disableDs()
+            var regEn = /[`~!@#$%^&*()\-_+=<>?:"{}\,.\\/;'[\]]/im;//匹配所有英文特殊字符
+            var regCn = /[·！#￥（——）……：；“”‘、，|《。》？、【】[\]]/im;//匹配所有中文特殊字符
+            var regBlank = /[\s]/im;//匹配空白符（换页符、换行符、回车符、制表符、垂直制表符）
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var th_attachment_ds_id = '${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds'
+            var prj_quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            let lease_item_ds_id
+            if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') { //商用车
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds'
+            } else if (currentDivision === 'PHOTOVOLTAIC_DEVICES') { //光伏设备
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds'
+            } else { //工程机械
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds'
+            }
+            if(ds.id == prj_quotation_ds_id){
+                var lease_item_ds_record=$(lease_item_ds_id).getAll();
+                if(lease_item_ds_record.length>0&&PRJ419f2_viewModel.lease_item_amount!=0){
+                    //计算租赁物单价汇总
+                    var picTotal = 0;
+                    for (var i = 0; i<lease_item_ds_record.length; i++) {
+                        if (lease_item_ds_record[i].data.price != undefined) {
+                            picTotal = plus(picTotal,lease_item_ds_record[i].data.price);
+                        }
+                    }
+                    PRJ419f2_viewModel.lease_item_amount = picTotal;
+                }
+            }
+            if(ds.id == lease_item_ds_id){
+                if(name == 'brand_c'||name == 'series_c'||name == 'model_c'||name == 'engine_number'){
+                    if(regBlank.test(value)) {
+                        special_char_valid = false;
+                        Leaf.showMessage("提示", "字段含有非法字符（包括空格），请检查!", null);
+                        return;
+                    }else{
+                        special_char_valid = true;
+                    }
+                }else if(name == 'frame_number'&&value){
+                    if(regBlank.test(value)) {
+                        special_char_valid = false;
+                        Leaf.showMessage("提示", "字段含有非法字符（包括空格），请检查!", null);
+                        return;
+                    }else{
+                        special_char_valid = true;
+                    }
+                    if (value.length != 17) {
+                        license_length_flag = false;
+                        Leaf.showMessage("提示", "车架号长度应为17位!", null);
+                    } else {
+                        license_length_flag = true;
+                    }
+                }else if(name == 'trailer_flag'){ //车辆类型
+                    var wfl_flag = '${/parameter/@wfl_flag}'; //是否工作流
+                    if ($(project_ds_id).getCurrentRecord().get("division") == "COMMERCIAL_VEHICLE" && wfl_flag !== 'Y' && record) {
+                        if(value !== "TRAILER"){
+                            record.getField("engine_number").setReadOnly(false);
+                            record.getField("engine_number").setRequired(true);
+                            record.getField("frame_number").setReadOnly(false);
+                            record.getField("frame_number").setRequired(true);
+                            record.getField("province_code").setReadOnly(false);
+                            record.getField("province_code").setRequired(true);
+                            record.getField("city_code").setReadOnly(false);
+                            record.getField("city_code").setRequired(true);
+                        }else {
+                            record.getField("engine_number").setReadOnly(false);
+                            record.getField("engine_number").setRequired(false);
+                            record.getField("frame_number").setReadOnly(false);
+                            record.getField("frame_number").setRequired(false);
+                            record.getField("province_code").setReadOnly(false);
+                            record.getField("province_code").setRequired(false);
+                            record.getField("city_code").setReadOnly(false);
+                            record.getField("city_code").setRequired(false);
+                        }
+                    }
+                }
+                if(name === 'price' || name === 'purchase_tax' || name === 'insurance_premium' || name === 'net_price' || name === 'accessory_fee'  ) {
+                    // debugger
+                    setPrice();
+                    // debugger
+                    var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation','G_QUOTATION');
+                    //计算租赁物单价汇总
+                    var picTotal = 0;
+                    for (var i = 0; i<ds.data.length; i++) {
+                        if (ds.data[i].get("price") != undefined) {
+                            picTotal = plus(picTotal,ds.data[i].get("price"));
+                        }
+                    }
+                    PRJ419f2_viewModel.lease_item_amount = picTotal;
+                    debugger
+                    if ($(quotation_ds_id).data.length > 0){
+                        if (picTotal > 0) {
+                            //计算首付款：租赁物的单价汇总*首付比例
+                            var payment_ratio = $(quotation_ds_id).getAt(0).get("down_payment_ratio")
+                            var down_payment = mul(picTotal,payment_ratio);
+                            $(quotation_ds_id).getAt(0).set("down_payment",down_payment);
+                            //计算融资额:租赁物的单价汇总-首付款金额
+                            var finance_amount = minus(picTotal,down_payment);
+                            $(quotation_ds_id).getAt(0).set("finance_amount",finance_amount);
+                            //计算保证金：融资额 * 保证金比例
+                            var deposit_ratio = $(quotation_ds_id).getAt(0).get("deposit_ratio")
+                            var deposit = mul(finance_amount,deposit_ratio);
+                            $(quotation_ds_id).getAt(0).set("deposit",deposit);
+                            //计算服务费：融资额 * 服务费率
+                            var lease_charge_ratio = $(quotation_ds_id).getAt(0).get("lease_charge_ratio")
+                            var lease_charge = mul(finance_amount,lease_charge_ratio);
+                            $(quotation_ds_id).getAt(0).set("lease_charge",lease_charge);
+                            //计算管理费：融资额 * 管理费率 * 租赁年限（向上取整）
+                            debugger
+                            var management_fee_ratio = $(quotation_ds_id).getAt(0).get("management_fee_ratio");
+                            var lease_term = $(quotation_ds_id).getAt(0).get("lease_term_m");
+                            var lease_term_year = Math.ceil(lease_term/12);
+                            var management_fee = mul(mul(finance_amount,management_fee_ratio),lease_term_year);
+                            $(quotation_ds_id).getAt(0).set("management_fee",management_fee);
+                        } else {
+                            $(quotation_ds_id).getAt(0).set("down_payment",0);
+                            $(quotation_ds_id).getAt(0).set("finance_amount",0);
+                            $(quotation_ds_id).getAt(0).set("residual_value",0);
+                            $(quotation_ds_id).getAt(0).set("down_payment_ratio",0);
+                            $(quotation_ds_id).getAt(0).set("deposit",0);
+                            $(quotation_ds_id).getAt(0).set("deposit_ratio",0);
+                            $(quotation_ds_id).getAt(0).set("lease_charge",0);
+                            $(quotation_ds_id).getAt(0).set("lease_charge_ratio",0);
+                            $(quotation_ds_id).getAt(0).set("management_fee_ratio",0);
+                            $(quotation_ds_id).getAt(0).set("management_fee",0);
+                        }
+                    }
+                }
+                debugger
+                isAdvancedEquipment(record);
+            }
+
+            if (ds.id == '${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds') {
+                record.set('reply_id',PRJ419f2_viewModel.reply_id);
+                record.set('factory_id','${/parameter/@factory_id}');
+                record.set('dealer_id',$(project_ds_id).getCurrentRecord().get('bp_id_vender'));
+                record.set('manufacturer_id','${/parameter/@manufacturer_id}');
+                let requiredFlag = false;
+                // debugger
+                /*更新对应的价目表*/
+                if (name == 'plan_id') {
+                    var datas = PRJ419f2_viewModel.productList;
+                    for (var i = 0; i < datas.length; i++) {
+                        if (value == datas[i].definition_id) {
+                            var obj = datas[i];
+                            for (var v in obj) {
+                                var temp = v;
+                                record.set(v, obj[v]);
+                                if (temp == 'down_payment_ratio') {
+                                    record.set('down_payment', mul(PRJ419f2_viewModel.lease_item_amount, record.get('down_payment_ratio')));
+                                }
+                                if(temp === 'lease_charge_discount_rule'){
+                                    if(obj['lease_charge_discount_rule'] === 'AMOUNT' ){
+                                        requiredFlag = true;
+                                    }
+                                }
+                                if (temp == 'deposit_ratio') {
+                                    record.set('down_payment', mul(PRJ419f2_viewModel.lease_item_amount, obj['down_payment_ratio']));
+                                    record.set('deposit', mul(record.get('finance_amount'), record.get('deposit_ratio')));
+                                }
+                                if (temp == 'default_residual_value') {
+                                    if (obj[v] == 1) {
+                                        record.set('residual_value', mul(obj['default_residual_value'] , $(lease_item_ds_id).getAll().length));
+                                    } else {
+                                        record.set('residual_value', obj['default_residual_value']);
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if ($(lease_item_ds_id).data.length > 0) {
+                        //计算租赁物单价汇总
+                        var picTotal = 0;
+                        for (var i = 0; i<$(lease_item_ds_id).data.length; i++) {
+                            if ($(lease_item_ds_id).data[i].get("price") != undefined) {
+                                picTotal = plus(picTotal,$(lease_item_ds_id).data[i].get("price"));
+                            }
+                        }
+                        debugger
+                        //计算首付款：租赁物的单价汇总*首付比例
+                        var payment_ratio = ds.getAt(0).get("down_payment_ratio")
+                        var down_payment = mul(picTotal,payment_ratio);
+                        ds.getAt(0).set("down_payment",down_payment);
+                        //计算融资额:租赁物的单价汇总-首付款金额
+                        var finance_amount = minus(picTotal,down_payment);
+                        ds.getAt(0).set("finance_amount",finance_amount);
+                        //计算保证金：融资额 * 保证金比例
+                        var deposit_ratio = ds.getAt(0).get("deposit_ratio")
+                        var deposit = mul(finance_amount , deposit_ratio);
+                        ds.getAt(0).set("deposit",deposit);
+                        //计算服务费：融资额 * 服务费率
+                        var lease_charge_ratio = ds.getAt(0).get("lease_charge_ratio")
+                        var lease_charge = mul(finance_amount , lease_charge_ratio);
+                        ds.getAt(0).set("lease_charge",lease_charge);
+                        //计算管理费：融资额 * 管理费率 * 租赁年限（向上取整）
+                        var management_fee_ratio = ds.getAt(0).get("management_fee_ratio");
+                        var lease_term = ds.getAt(0).get("lease_term_m");
+                        var lease_term_year = Math.ceil(lease_term/12);
+                        var management_fee = mul(mul(finance_amount,management_fee_ratio),lease_term_year);
+                        ds.getAt(0).set("management_fee",management_fee);
+                        //计算租赁期数: 租赁期限/还款频率
+                        var annual_pay_times = ds.getAt(0).get("annual_pay_times");
+                        if(lease_term>0&&annual_pay_times>0){
+                            var lease_times =div(lease_term,annual_pay_times);
+                            ds.getAt(0).set("lease_times",lease_times);
+                        }
+                    }
+                    if(requiredFlag){
+                        var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation','G_QUOTATION');
+                        if ($(quotation_ds_id) && $(quotation_ds_id).getCurrentRecord() && judgeReadOnly()){
+                            $(quotation_ds_id).getCurrentRecord().getField("lease_charge_discount_num").setRequired(true);
+                            $(quotation_ds_id).getCurrentRecord().getField("lease_charge_discount_num").setReadOnly(false);
+                        }
+                    }else{
+                        var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation','G_QUOTATION');
+                        if ($(quotation_ds_id) && $(quotation_ds_id).getCurrentRecord()){
+                            $(quotation_ds_id).getCurrentRecord().getField("lease_charge_discount_num").setRequired(false);
+                            $(quotation_ds_id).getCurrentRecord().getField("lease_charge_discount_num").setReadOnly(true);
+                        }
+                    }
+                }
+                // debugger
+                if (name == 'down_payment') {
+                    if(PRJ419f2_viewModel.lease_item_amount!=0){
+                        record.set('down_payment_ratio', div(record.get('down_payment'), PRJ419f2_viewModel.lease_item_amount));
+                        record.set('finance_amount', minus(PRJ419f2_viewModel.lease_item_amount, record.get('down_payment')));
+                    }
+                }
+                if(name == 'lease_term_m'){
+                    if(PRJ419f2_viewModel.productList.lease_term_m!=''&&PRJ419f2_viewModel.productList.lease_term_m!=null&&PRJ419f2_viewModel.productList.lease_term_m!=undefined){
+                        record.set('lease_term_m',PRJ419f2_viewModel.productList.lease_term_m);
+                    }else{
+                        record.set('lease_term_m',value);
+                    }
+                }
+                if(name == 'lease_charge_discount_rule'){
+                    if(value == 'GAP'){
+                        record.set('lease_charge_discount_rule', 'GAP');
+                        record.set('lease_charge_discount_rule_n', '利差');
+                    }else{
+                        record.set('lease_charge_discount_rule', 'AMOUNT');
+                        record.set('lease_charge_discount_rule_n', '金额');
+                    }
+                }
+                //租金/服务费返利贴息支付期数
+                if(name == 'rental_discount_times'){
+                    if(value=='1'){
+                        record.set('rental_discount_times',value);
+                        record.set('rental_discount_times_n',value);
+                    }else if(value == 'EACH'){
+                        record.set('rental_discount_times',value);
+                        record.set('rental_discount_times_n','每一期');
+                    }
+                }
+                if (name == 'down_payment_ratio') {
+                    if(PRJ419f2_viewModel.lease_item_amount!=0){
+                        record.set('down_payment', mul(record.get('down_payment_ratio'), PRJ419f2_viewModel.lease_item_amount));
+                        record.set('finance_amount', minus(PRJ419f2_viewModel.lease_item_amount, record.get('down_payment')));
+                    }
+                }
+                if (name == 'deposit' ) {
+                    if (minus(PRJ419f2_viewModel.lease_item_amount, record.get('down_payment')) > 0) {
+                        record.set('deposit_ratio', div(record.get('deposit'), minus(PRJ419f2_viewModel.lease_item_amount, record.get('down_payment'))));
+                    }
+                }
+                if (name == 'deposit_ratio' ) {
+                    if (minus(PRJ419f2_viewModel.lease_item_amount, record.get('down_payment')) > 0) {
+                        record.set('deposit', mul(record.get('deposit_ratio'), minus(PRJ419f2_viewModel.lease_item_amount, record.get('down_payment'))));
+                    }
+                }
+                //投放对象类型
+                if(name == 'payment_bp_type'){
+                    debugger
+                    var prj_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(prj_ds).getCurrentRecord();
+                    // prj_record.set('payment_bp_type',value);
+                    debugger
+                    switch (value){
+                        case "MANUFACTURER":
+                            prj_record.set('payment_bp_id',prj_record.get('manufacturer_id'));
+                            prj_record.set('payment_bp_id_n',prj_record.get('manufacturer_id_n'));
+                            prj_record.set('payment_bp_type','MANUFACTURER');
+                            prj_record.set('payment_bp_type_n','厂商');
+                            break;
+                        case "PARTNERS":
+                            prj_record.set('payment_bp_id',prj_record.get('manufacturer_id'));
+                            prj_record.set('payment_bp_id_n',prj_record.get('manufacturer_id_n'));
+                            prj_record.set('payment_bp_type','PARTNERS');
+                            prj_record.set('payment_bp_type_n','合作方');
+                            break;
+                        case "TENANT":
+                            prj_record.set('payment_bp_id',prj_record.get('tenant_id'));
+                            prj_record.set('payment_bp_id_n',prj_record.get('tenant_id_n'));
+                            prj_record.set('payment_bp_type','TENANT');
+                            prj_record.set('payment_bp_type_n','承租人');
+                            break;
+                        case "VENDER":
+                            prj_record.set('payment_bp_id',prj_record.get('factory_id'));
+                            prj_record.set('payment_bp_id_n',prj_record.get('factory_id_n'));
+                            prj_record.set('payment_bp_type','VENDER');
+                            prj_record.set('payment_bp_type_n','主机厂');
+                            break;
+                        case "DEALER":
+                            prj_record.set('payment_bp_id',prj_record.get('bp_id_vender'));
+                            prj_record.set('payment_bp_id_n',prj_record.get('bp_id_vender_n'));
+                            prj_record.set('payment_bp_type','DEALER');
+                            prj_record.set('payment_bp_type_n','经销商');
+                            break;
+                    }
+                }
+                //返利贴息对象类型
+                if(name == 'repay_bp_type'){
+                    var prj_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(prj_ds).getCurrentRecord();
+                    prj_record.set('repay_bp_type',value);
+                }
+
+                //调息规则
+                if(name == 'floating_range_method'){
+                    var prj_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(prj_ds).getCurrentRecord();
+                    prj_record.set('floating_range_method',value);
+                }
+
+                if(name == 'floating_range_method_n'){
+                    var prj_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var prj_record = $(prj_ds).getCurrentRecord();
+                    prj_record.set('floating_range_method_n',value);
+                }
+
+                var wfl_flag = '${/parameter/@wfl_flag}';
+                if(wfl_flag !== 'Y'){
+                    //付款方式
+                    if(name == 'payment_type'){
+                        if(value === 'BANK_ACCEPTANCE' && judgeReadOnly()){
+                            record.getField('acceptance_term_n').setReadOnly(false);
+                            record.getField('acceptance_term_n').setRequired(true);
+                            record.getField('acceptance_term').setReadOnly(false);
+                            record.getField('acceptance_term').setRequired(true);
+                            record.getField('bank_deposit_ratio').setReadOnly(false);
+                            record.getField('bank_deposit_ratio').setRequired(true);
+                            record.getField('bank_lease_charge_ratio').setReadOnly(false);
+                            record.getField('bank_lease_charge_ratio').setRequired(true);
+                        }else {
+                            record.getField('acceptance_term_n').setReadOnly(true);
+                            record.getField('acceptance_term_n').setRequired(false);
+                            record.getField('acceptance_term').setReadOnly(true);
+                            record.getField('acceptance_term').setRequired(false);
+                            record.getField('bank_deposit_ratio').setReadOnly(true);
+                            record.getField('bank_deposit_ratio').setRequired(false);
+                            record.getField('bank_lease_charge_ratio').setReadOnly(true);
+                            record.getField('bank_lease_charge_ratio').setRequired(false);
+                            record.set('acceptance_term_n','');
+                            record.set('acceptance_term','');
+                            record.set('bank_deposit_ratio','');
+                            record.set('bank_lease_charge_ratio','');
+                        }
+                    }
+                }
+
+                //计算服务费
+                if(name == 'lease_charge_ratio') {
+                    //计算租赁物单价汇总
+                    var picTotal = 0;
+                    for (var i = 0; i<$(lease_item_ds_id).data.length; i++) {
+                        if ($(lease_item_ds_id).data[i].get("price") != undefined) {
+                            picTotal = plus(picTotal , $(lease_item_ds_id).data[i].get("price"));
+                        }
+                    }
+                    //计算首付款：租赁物的单价汇总*首付比例
+                    var payment_ratio = ds.getAt(0).get("down_payment_ratio")
+                    var down_payment = mul(picTotal,payment_ratio);
+                    //计算融资额:租赁物的单价汇总-首付款金额
+                    var finance_amount = minus(picTotal,down_payment);
+                    record.set("lease_charge",mul(finance_amount , record.get('lease_charge_ratio')));
+                }
+                //计算管理费
+                if(name == 'management_fee_ratio') {
+                    //计算租赁物单价汇总
+                    var picTotal = 0;
+                    for (var i = 0; i<$(lease_item_ds_id).data.length; i++) {
+                        if ($(lease_item_ds_id).data[i].get("price") != undefined) {
+                            picTotal = plus(picTotal , $(lease_item_ds_id).data[i].get("price"));
+                        }
+                    }
+                    //计算首付款：租赁物的单价汇总*首付比例
+                    var payment_ratio = ds.getAt(0).get("down_payment_ratio")
+                    var down_payment = mul(picTotal,payment_ratio);
+                    //计算融资额:租赁物的单价汇总-首付款金额
+                    var finance_amount = minus(picTotal,down_payment);
+                    var lease_term = ds.getAt(0).get("lease_term_m");
+                    var lease_term_year = Math.ceil(lease_term/12);
+                    record.set("management_fee",mul(mul(finance_amount , record.get('management_fee_ratio')),lease_term_year));
+                }
+                if(record.get('int_rate_calc_flag') === 'Y' || record.get('int_rate_calc_flag_n') === '是'){
+                    record.getField('int_rate').setReadOnly(true);
+                    record.getField('int_rate').setRequired(false);
+                }else if (judgeReadOnly()) {
+                    record.getField('int_rate').setReadOnly(false);
+                    record.getField('int_rate').setRequired(true);
+                }
+            }
+            // debugger
+            if(parent_layout_code=='PRJ329'){
+                record.getField('document_name').setReadOnly(false);
+                record.getField('description').setReadOnly(false);
+            }
+            if (ds.id === th_attachment_ds_id) {
+                record.getField('document_name').setReadOnly(false);
+                record.getField('description').setReadOnly(false);
+            }
+        };
+
+        //删除时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_remove'] = function(ds, record, bp_seq) {
+            debugger
+            disableDs()
+            let lease_item_ds_id
+            if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') { //商用车
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds'
+            } else if (currentDivision === 'PHOTOVOLTAIC_DEVICES') { //光伏设备
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds'
+            } else { //工程机械
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds'
+            }
+            if(ds.id == lease_item_ds_id){
+                var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation','G_QUOTATION');
+                //计算租赁物单价汇总
+                var picTotal = 0;
+                for (var i = 0; i<ds.data.length; i++) {
+                    if (ds.data[i].get("price") != undefined) {
+                        picTotal = plus(picTotal , ds.data[i].get("price"));
+                    }
+                }
+                PRJ419f2_viewModel.lease_item_amount = picTotal;
+                if ($(quotation_ds_id).data.length > 0) {
+                    if ($(lease_item_ds_id).getAll().length > 0 && picTotal > 0){
+                        //计算首付款：租赁物的单价汇总*首付比例
+                        var payment_ratio = $(quotation_ds_id).getAt(0).get("down_payment_ratio")
+                        var down_payment = mul(picTotal,payment_ratio);
+                        $(quotation_ds_id).getAt(0).set("down_payment",down_payment);
+                        //计算融资额:租赁物的单价汇总-首付款金额
+                        var finance_amount = minus(picTotal,down_payment);
+                        $(quotation_ds_id).getAt(0).set("finance_amount",finance_amount);
+                        //计算保证金：融资额 * 保证金比例
+                        var deposit_ratio = $(quotation_ds_id).getAt(0).get("deposit_ratio")
+                        var deposit = mul(finance_amount , deposit_ratio);
+                        $(quotation_ds_id).getAt(0).set("deposit",deposit);
+                        //计算服务费：融资额 * 服务费率
+                        var lease_charge_ratio = $(quotation_ds_id).getAt(0).get("lease_charge_ratio")
+                        var lease_charge = mul(finance_amount , lease_charge_ratio);
+                        $(quotation_ds_id).getAt(0).set("lease_charge",lease_charge);
+                        //计算管理费：融资额 * 管理费率 * 租赁年限（向上取整）
+                        var management_fee_ratio = $(quotation_ds_id).getAt(0).get("management_fee_ratio");
+                        var lease_term = $(quotation_ds_id).getAt(0).get("lease_term_m");
+                        var lease_term_year = Math.ceil(lease_term/12);
+                        var management_fee = mul(mul(finance_amount,management_fee_ratio),lease_term_year);
+                        $(quotation_ds_id).getAt(0).set("management_fee",management_fee);
+                        //名义货价类型为每台，计算名义价格：名义价格*租赁物个数
+                        var residual_price_type = $(quotation_ds_id).data[0].get("residual_price_type");
+                        var default_residual_value = $(quotation_ds_id).data[0].get("default_residual_value");
+                        if (residual_price_type == 1){
+                            var residual_value = mul(default_residual_value , $(lease_item_ds_id).getAll().length);
+                            $(quotation_ds_id).data[0].set("residual_value",residual_value);
+                        }
+                    }else {
+                        $(quotation_ds_id).getAt(0).set("down_payment",0);
+                        $(quotation_ds_id).getAt(0).set("finance_amount",0);
+                        $(quotation_ds_id).getAt(0).set("residual_value",0);
+                        $(quotation_ds_id).getAt(0).set("down_payment_ratio",0);
+                        $(quotation_ds_id).getAt(0).set("deposit",0);
+                        $(quotation_ds_id).getAt(0).set("deposit_ratio",0);
+                        $(quotation_ds_id).getAt(0).set("lease_charge",0);
+                        $(quotation_ds_id).getAt(0).set("lease_charge_ratio",0);
+                        $(quotation_ds_id).getAt(0).set("management_fee",0);
+                        $(quotation_ds_id).getAt(0).set("management_fee_ratio",0);
+                    }
+                }
+            }
+        };
+
+
+        //根据主机厂查询归属厂商, 根据归属厂商带出批复编号
+        window['${/parameter/@layout_code}_get_manufacturer'] = function (ds_id, document_id, type) {
+            debugger
+            var prj_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var prj_record = $(ds_id).getAt(0);
+            var para = {
+                manufacturer_id: manufacturer_id,
+                dealer_id:prj_record.get('bp_id_vender')
+            };
+            // if (type == 'FACTORY') {
+            //     para = {factory_id: document_id};
+            // }
+
+
+            //根据主机厂查询
+            Leaf.request({
+                url: $('PRJ419f2_prj_factory_link_id').getUrl(),
+                scope: this,
+                para: para,
+                success: function (res) {
+                    if (res.success) {
+                        debugger
+                        if (res.result && res.result.record && res.result.record.length == 1) {
+                            /*批复编号*/
+                            // $(ds_id).getCurrentRecord().set('reply_number', res.result.record[0].reply_code);
+                            //报价方案设置
+                            //var plan_combobox = $("${/parameter/@layout_code}_G_QUOTATION_plan_id_combobox_ds");
+                            PRJ419f2_viewModel.reply_id = res.result.record[0].reply_id;
+                            PRJ419f2_viewModel.productList = res.result.record[0].hls_product_definition_list;
+                            if (PRJ419f2_viewModel.productList.length == 0) {
+                                // $L.showInfoMessage("提示", "未查询到价目表信息!");
+                                console.log("res=" + res);
+                            }
+                        } else {
+                            PRJ419f2_viewModel.reply_id=0;
+                            // $L.showInfoMessage("提示", "没有查询到产品信息，请先配置产品信息！");
+                        }
+                    } else {
+                        // $L.showInfoMessage("提示", "未查询到产品信息,请检查相关配置!");
+                    }
+                }
+            });
+
+        };
+
+        //设置批复查询参数
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_cp_object_focus'] = function (object, tab_code, bp_seq) {
+            debugger
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var prj_record = $(ds_id).getAt(0);
+            var record = object.record;
+            if (tab_code == 'G_QUOTATION') {
+                if (PRJ419f2_viewModel.reply_id != null) {
+                    var field = record.getField("plan_id_n");
+                    field.setLovPara("reply_id", PRJ419f2_viewModel.reply_id);
+                    field.setLovPara("manufacturer_id", prj_record.get('manufacturer_id'));
+                    field.setLovPara("factory_id", prj_record.get('factory_id'));
+                    field.setLovPara("dealer_id", prj_record.get('bp_id_vender'));
+                    field.setLovPara("lease_channel", prj_record.get('lease_channel'));
+                    if(prj_record.get('bp_id_vender')){
+                        field.setLovPara("dealer_flag", 'Y');
+                    }else{
+                        field.setLovPara("dealer_flag", 'N');
+                        field.setLovPara("dealer_id", -1);
+                    }
+                }
+            }
+        };
+
+        //请求报价编号
+        window['${/parameter/@layout_code}_get_quotation_number'] = function (record, project_id) {
+            debugger
+            Leaf.request({
+                url: $('PRJ419f2_prj_get_quotation_number_link_id').getUrl() + "?projectId=" + project_id,
+                scope: this,
+                success: function (res) {
+                    if (res.success && res.result && res.result.record) {
+                        record.set("quotation_number", res.result.record[0].quotation_number);
+                    }
+                }
+            });
+
+        };
+
+        //新增时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            debugger
+            disableDs()
+            let lease_item_ds_id
+            if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') { //商用车
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds'
+            } else if (currentDivision === 'PHOTOVOLTAIC_DEVICES') { //光伏设备
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds'
+            } else { //工程机械
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds'
+            }
+            var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation','G_QUOTATION');
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow','G_CASHFLOW');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var parentRecord = $('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds').getAt(0);
+            var wfl_flag = '${/parameter/@wfl_flag}';
+            if(ds.id == lease_item_ds_id){
+                record.set('manufacturer_id',$(ds_id).getCurrentRecord().get('manufacturer_id'));
+            }
+            if (ds.id === lease_item_ds_id && wfl_flag !== 'Y'){
+                if (parentRecord.get("division") === "COMMERCIAL_VEHICLE") {
+                    if(record.get("trailer_flag") !== "TRAILER"){
+                        record.getField("engine_number").setReadOnly(false);
+                        record.getField("engine_number").setRequired(true);
+                        record.getField("frame_number").setReadOnly(false);
+                        record.getField("frame_number").setRequired(true);
+                        record.getField("province_code").setReadOnly(false);
+                        record.getField("province_code").setRequired(true);
+                        record.getField("city_code").setReadOnly(false);
+                        record.getField("city_code").setRequired(true);
+                    }else{
+                        record.getField("engine_number").setReadOnly(false);
+                        record.getField("engine_number").setRequired(false);
+                        record.getField("frame_number").setReadOnly(false);
+                        record.getField("frame_number").setRequired(false);
+                        record.getField("province_code").setReadOnly(false);
+                        record.getField("province_code").setRequired(false);
+                        record.getField("city_code").setReadOnly(false);
+                        record.getField("city_code").setRequired(false);
+                    }
+                }
+            }
+            if (ds.id == "${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds") {
+                if (parentRecord.get('project_id')) {
+                    debugger
+                    var source_document_id = parentRecord.get('project_id');
+                    var source_document_category = 'PRJ_PROJECT';
+                    record.set('source_document_id', source_document_id);
+                    record.set('status', 'NEW');
+                    record.set('source_document_category', source_document_category);
+                    record.set('business_type',$(ds_id).getCurrentRecord().data.business_type);
+                    record.set('business_type_n',$(ds_id).getCurrentRecord().data.business_type_n);
+                    record.set('payment_type', 'CASH');
+                    record.set('payment_type_n', '现金支付');
+
+                    /*设置报价编号*/
+                    window['${/parameter/@layout_code}_get_quotation_number'](record, parentRecord.get('project_id'));
+                }
+                if(record.get('int_rate_calc_flag') === 'Y' || record.get('int_rate_calc_flag_n') === '是'){
+                    record.getField('int_rate').setReadOnly(true);
+                    record.getField('int_rate').setRequired(false);
+                }else if (judgeReadOnly()) {
+                    record.getField('int_rate').setReadOnly(false);
+                    record.getField('int_rate').setRequired(true);
+                }
+            }
+
+            if (ds.id === "${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds" || ds.id === "${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds") {
+                record.set('project_attachment_category', 'prj_project_attachment');
+            }
+            //计算名义价格
+            if (ds.id == lease_item_ds_id && $(quotation_ds_id).data.length>0) {
+                var residual_price_type = $(quotation_ds_id).data[0].get("residual_price_type");
+                var default_residual_value = $(quotation_ds_id).data[0].get("default_residual_value");
+                if (residual_price_type == 1){
+                    // var pic = div($(quotation_ds_id).data[0].get("residual_value"),minus($(lease_item_ds_id).getAll().length,1));
+                    var residual_value = mul(default_residual_value , $(lease_item_ds_id).getAll().length);
+                    $(quotation_ds_id).data[0].set("residual_value",residual_value);
+                }
+                debugger;
+            }
+        };
+
+        function checkItemNumber(itemNumber, division,classifyId) {
+            let result = null;
+            if ('PHOTOVOLTAIC_DEVICES' === division) {
+                return result;
+            }
+            if (itemNumber && itemNumber.length > 0) {
+                Leaf.request({
+                    url: $('PRJ419f2_prj_lease_item_check_id').getUrl(),
+                    scope: this,
+                    para: {itemNumber: itemNumber,division:division,classifyId:classifyId},
+                    success: function (res) {
+                        if(res && res.result.record && res.result.record.length > 0 && res.result.record[0]){
+                            result = res.result.record[0]
+                        }
+                    },failure: function () {
+                        result = "未查询合同"
+                    },
+                    error: function () {
+                        result = "未查询合同"
+                    },
+                    sync: true
+                });
+            }
+            return result;
+        }
+
+
+        function setPrice() {
+            let vehicleDs = '${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds'
+            debugger
+            if (currentDivision === 'COMMERCIAL_VEHICLE') {
+                debugger
+                for (i = 0; i < $(vehicleDs).getAll().length; i++) {
+                    //租赁物净价
+                    let netPrice = $(vehicleDs).getAt(i).data.net_price
+                    //购置税
+                    let purchaseTax = $(vehicleDs).getAt(i).data.purchase_tax
+                    if(purchaseTax==undefined){
+                        purchaseTax=0;
+                    }
+                    //保险费
+                    let insurancePremium = $(vehicleDs).getAt(i).data.insurance_premium
+                    if(insurancePremium==undefined){
+                        insurancePremium=0;
+                    }
+                    //配件费
+                    let accessoryFee = $(vehicleDs).getAt(i).data.accessory_fee
+                    if(accessoryFee==undefined){
+                        accessoryFee=0;
+                    }
+                    //租赁物总价
+                    let price = plus(plus(plus(netPrice, purchaseTax), insurancePremium), accessoryFee)
+                    $(vehicleDs).getAt(i).data.price = price
+                }
+            }
+        }
+
+        //保存前调用获取项目编码
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            debugger
+            //window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            var tenant_ds_id = '${/parameter/@layout_code}_G_TENANT_BASIC_INFO_prj_project_bp_ds';
+            var tenant_ds_record=$(tenant_ds_id).getCurrentRecord();
+            record.set('prj_bp_id',tenant_ds_record.data.prj_bp_id);
+            if(ds.id==tenant_ds_id){
+                return true;
+            }
+            if (!license_length_flag) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', "车架号长度应为17位！");
+                return false;
+            }
+
+            if (!special_char_valid) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', "字段含有非法字符（包括空格），请检查！");
+                return false;
+            }
+
+            let lease_item_ds_id
+            if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') { //商用车
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds'
+            } else if (currentDivision === 'PHOTOVOLTAIC_DEVICES') { //光伏设备
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds'
+            } else { //工程机械
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds'
+            }
+
+            // //对车架号或者整机编号进行校验
+            // if ($(lease_item_ds_id) && $(lease_item_ds_id).data) {
+            //     let itemNumberArr = []
+            //     var headInfoDs = $('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds');
+            //     let project_number = headInfoDs.data[0].get('project_number')
+            //     for (let i = 0; i < $(lease_item_ds_id).data.length; i++) {
+            //         let itemNumber;
+            //         let checkFlag = '';
+            //
+            //         if (currentDivision === 'COMMERCIAL_VEHICLE') {
+            //             itemNumber = $(lease_item_ds_id).data[i].get('frame_number')
+            //             if (itemNumber && itemNumber.length > 0 && itemNumber.length !== 17) {
+            //                 Leaf.showMessage('${l:PROMPT_MESSAGE}','车架号长度应为17位!')
+            //                 window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //                 return false
+            //             }
+            //             checkFlag = checkItemNumber(itemNumber, 'COMMERCIAL_VEHICLE','null')
+            //         } else {
+            //             itemNumber = $(lease_item_ds_id).data[i].get('serial_number')
+            //             let classifyId = $(lease_item_ds_id).data[i].get('classify_id')
+            //             checkFlag = checkItemNumber(itemNumber, currentDivision,classifyId)
+            //             itemNumber = itemNumber + '-.-' + classifyId;
+            //         }
+            //         if(itemNumber){
+            //             if(itemNumberArr.indexOf(itemNumber) === -1){
+            //                 itemNumberArr.push(itemNumber)
+            //             }else{
+            //                 checkFlag = project_number
+            //             }
+            //         }
+            //         if (checkFlag && currentDivision !== 'PHOTOVOLTAIC_DEVICES') {
+            //             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //             if(itemNumber.indexOf('-.-') > 0){
+            //                 itemNumber = itemNumber.substr(0,itemNumber.indexOf('-.-'));
+            //             }
+            //             Leaf.showMessage('${l:PROMPT_MESSAGE}','与' + checkFlag + '合同车架号/(规格型号+整机编号)重复<br>重复号码：'+ itemNumber +'。',null,600,800);
+            //             return false;
+            //         }
+            //     }
+            // }
+
+
+            setPrice();
+            debugger
+            var quotation_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            var quotation_record = $(quotation_ds).getAll();
+            var check_flag = true;
+            if (quotation_record.length>0) {
+                if (quotation_record[0].dirty) {
+                    $("${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds").on("submitsuccess", calcQuotation);
+                }
+            }
+
+            debugger
+            //保存承租人备注
+            var tenant_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_bp','G_TENANT_BASIC_INFO');
+            var tenant_record = $(tenant_ds).getCurrentRecord();
+            //if(tenant_record.data.description&&'${/parameter/@function_usage}' != 'CREATE'){
+                saveDescription(tenant_record);
+            //}
+
+
+            //校验融资额与租赁物总价款
+            var records = $('${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds').getNewRecords();
+            for (var i = 0; i < records.length; i++) {
+                if (records[i].get('finance_amount') > records[i].get('lease_item_amount')) {
+                    $L.showInfoMessage("提示", "融资额不能高于租赁物总价款!", null);
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+                }
+            }
+
+            var document_category = "PRJ_PROJECT";
+            var document_type = record.get('document_type');
+            var business_type = record.get('business_type');
+            var division = record.get('division');
+            var employee_code = record.get('employee_code');
+            var factory_id = record.get('factory_id');
+            var manufacturer_id = record.get('manufacturer_id');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var partners_contract_number = $(ds_id).getCurrentRecord().get('partners_contract_number');
+            var partners_payment_number = $(ds_id).getCurrentRecord().get('partners_payment_number');
+            debugger
+            if(partners_contract_number!=undefined||partners_payment_number!=undefined){
+                //处理进件序号及支付表编号中的空格
+                Leaf.request({
+                    url: '${/request/@context_path}/project/partners_number/check',
+                    para: {
+                        partners_contract_number:partners_contract_number,
+                        partners_payment_number:partners_payment_number
+                    },
+                    success: function (res) {
+                        if(res.result.record[0].partners_contract_number != 'null') {
+                            $(ds_id).getCurrentRecord().set('partners_contract_number', res.result.record[0].partners_contract_number);
+                        }
+                        if(res.result.record[0].partners_payment_number != 'null') {
+                            $(ds_id).getCurrentRecord().set('partners_payment_number', res.result.record[0].partners_payment_number);}
+
+                    },
+                    failure: function () {
+                    },
+                    error: function () {
+                    },
+                    sync: true,
+                    scope: this
+
+                });
+            }
+
+
+
+            /*for (i = 0; i < quotation_record.length - 1; i++) {
+                if (quotation_record[i].data.contract_seq == quotation_record[i + 1].data.contract_seq) {
+                    Leaf.showMessage('提示', '序号不能相同，请重输');
+                    return false;
+                }
+            }*/
+            if (record.get('project_number')) {
+                return true;
+            }
+
+            //设置权限字符串
+            // window['${/parameter/@layout_code}_set_authority_rule_string'](document_type, business_type, division, employee_code);
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var requestUrl = '${/request/@context_path}/project/common/coding/getCodeValue';
+            requestUrl = requestUrl + "?documentCategory=" + document_category;
+            requestUrl = requestUrl + "&documentType=" + document_type;
+            requestUrl = requestUrl + "&businessType=" + business_type;
+            requestUrl = requestUrl + "&employeeCode=" + employee_code;
+            requestUrl = requestUrl + "&manufacturerId=" + manufacturer_id;
+            if ($(ds_id).getCurrentRecord().get('lease_channel') == '10') {
+                requestUrl = requestUrl + "&factoryId=" + factory_id;
+            }
+            Leaf.request({
+                url: requestUrl,
+                success: function (res) {
+                    $(ds_id).getCurrentRecord().set('project_number', res.result.record[0]);
+                    $(ds_id).getCurrentRecord().set('contract_text_status',"UNCREATED");
+                    check_flag = true;
+                },
+                error: function (res) {
+                    $L.showInfoMessage("提示", "编号生成失败，请联系管理员!");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (res) {
+                    $L.showInfoMessage("提示", "编号生成失败，请联系管理员!");
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true,
+                scope: this
+            });
+            //清空用于展示de bp承租人信息
+            //var tenant_ds_id = '${/parameter/@layout_code}_G_TENANT_BASIC_INFO_prj_project_bp_ds';
+            //$(tenant_ds_id).removeAll();
+            return check_flag;
+        };
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
+            disableDs()
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var projectNumberReplace = $(ds_id).getCurrentRecord().get('project_number_replace');
+            var project_id = $(ds_id).getCurrentRecord().get('project_id');
+            debugger
+            var headInfoDs = $('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds');
+            headInfoDs.setQueryParameter('project_id', project_id);
+            headInfoDs.query();
+            var quta_record = $('${/parameter/@layout_code}_F_QUTA__ds').getCurrentRecord();
+            if(projectNumberReplace && projectNumberReplace !== "" && project_id && project_id !== ""){
+                //如果有进件编号（替换）,就把这个值更新到字段上
+                Leaf.request({
+                    url: '${/request/@context_path}/document/number/replace/replace',
+                    para: {
+                        project_id:project_id,
+                        project_number:projectNumberReplace
+                    },
+                    success: function (res) {
+                        setTimeout(function() {
+                            var headInfoDs = $('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds');
+                            headInfoDs.setQueryParameter('project_id', project_id);
+                            debugger
+                            headInfoDs.query();
+                            debugger
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        }, 1000);
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+            if(!quta_record.get('credit_amt')){
+                qureyAmount()
+            }
+            debugger
+            //保存承租人备注
+            var tenant_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_bp','G_TENANT_BASIC_INFO');
+            var tenant_record = $(tenant_ds).getCurrentRecord();
+            if(tenant_record.data.description&&'${/parameter/@function_usage}' == 'CREATE'){
+                saveDescription(tenant_record);
+            }
+
+            // if(project_id != null){
+            //     window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            //     Leaf.request({
+            //         url: '${/request/@context_path}/prj/generate/project/sign/attach',
+            //         para: {
+            //             project_id:project_id
+            //         },
+            //         success: function (res) {
+            //             $('${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds').query();
+            //             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //         },
+            //         failure: function () {
+            //             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //         },
+            //         error: function () {
+            //             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //         },
+            //         scope: this
+            //     });
+            // }
+
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+            $('${/parameter/@layout_code}_G_QUOTATION_prj_quotation_ds').query();
+            debugger
+            $('${/parameter/@layout_code}_G_TENANT_BASIC_INFO_prj_project_bp_ds').query();
+
+            if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') { //商用车
+                $('${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds').query();
+            }else if (currentDivision === 'PHOTOVOLTAIC_DEVICES') { //光伏设备
+                $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').query();
+            }else { //工程机械
+                $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').query();
+            }
+        };
+
+        //提交审批
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            if ('${/parameter/@function_code}' == 'PRJ419F3') {
+                return $L.showInfoMessage("提示", "抱歉，该功能只允许查看", null);
+            }
+            debugger
+            if('${/parameter/@lease_channel}' == '10'){
+                var prjProjectBpRecord = $('${/parameter/@layout_code}_G_TENANT_BASIC_INFO_prj_project_bp_ds').getAt(0);
+                if (typeof prjProjectBpRecord == "undefined") {
+                    $L.showInfoMessage("提示", "必须添加承租人!", null);
+                    // $L.Masker.unmask(document.body);
+                    return;
+                }
+                var division = $("${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds").getCurrentRecord().get("division");
+                var quotationTypeNflag = false;
+                var quotation_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+                var record_quotation;
+                var project_id = $("${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds").getCurrentRecord().get("project_id");
+                if ($(quotation_ds).data.length) {
+                    jQuery.each($(quotation_ds).data, function (i, v) {
+                        if (v.isNew || v.dirty) {
+                            quotationTypeNflag = true;
+                        }
+                    });
+                    if (quotationTypeNflag) {
+                        quotationTypeNflag = false;
+                        $L.showMessage('提示', '请保存报价信息!');
+                        // $L.Masker.unmask(document.body);
+                        return;
+                    }
+                    jQuery.each($(quotation_ds).data, function (i, v) {
+                        if (v.data.quotation_count === 0) {
+                            quotationTypeNflag = true;
+                        }
+                    });
+                    if (quotationTypeNflag) {
+                        quotationTypeNflag = false;
+                        $L.showMessage('提示', '存在报价方案未维护，请先维护!');
+                        // $L.Masker.unmask(document.body);
+                        return;
+                    }
+                } else if (project_id == null) {
+                    $L.showMessage('提示', '请先保存!');
+                    // $L.Masker.unmask(document.body);
+                    return;
+                }
+
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                var payment_bp_id = $(ds_id).getCurrentRecord().get('payment_bp_id');
+                if(!payment_bp_id || payment_bp_id == ''){
+                    $L.showMessage('提示', '付款对象为空，请核对相应产品信息!');
+                    // $L.Masker.unmask(document.body);
+                    return;
+                }
+            }
+
+
+            var obj = window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'];
+            if (!obj.approve) {
+                obj.approve = function () {
+                    //先执行保存操作,保存成功后提交数据
+                    // 增加是否确认提示
+                    new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                        // $L.Masker.mask(document.body, "正在提交数据,请稍等..");
+                        if (!$('${/parameter/@bp_seq}${/parameter/@layout_code}_virtual_ds').validate()) {
+                            // $L.Masker.unmask(document.body);
+                            return;
+                        }
+                        window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                            var parentRecord = $('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds').getAt(0);
+                            var datas = {projectId: parentRecord.get("project_id")};
+                            Leaf.request({
+                                url: $('PRJ419f2_prj_wfl_submit_link_id').getUrl(),
+                                para: datas,
+                                success: function (res) {
+                                    // $L.Masker.unmask(document.body);
+                                    Leaf.showSuccessMessage('${HLS.SUBMIT_SUCCESS}', '进件提交成功', function () {
+                                        if ('${/parameter/@winid}') {
+                                            $('${/parameter/@winid}').close();
+                                        } else {
+                                            location.href = '${/request/@context_path}/user_role_home_page.lview';
+                                            parent.shMenu('show');
+                                        }
+                                    });
+                                    //$L.showInfoMessage("提示", "项目提交成功,已进入工作流审批!", null);
+                                },
+                                error: function () {
+                                    // $L.Masker.unmask(document.body);
+                                },
+                                scope: this
+                            });
+                        });
+                    }, function cancel() {
+                        // $L.Masker.unmask(document.body);
+                    }, 200, 100);
+                }
+            }
+
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](obj.approve);
+        };
+        // window['${/parameter/@layout_code}_set_authority_rule_string'] = function (document_type, business_type, division, employee_code) {
+        //     debugger
+        //     Leaf.request({
+        //         url: "${/request/@context_path}/prj/project/generateAuthorityString?division=" + division + "&documentType=" + document_type + "&businessType=" + business_type + "&employeeCode=" + employee_code,
+        //         success: function (res) {
+        //             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+        //             $(ds_id).getCurrentRecord().set('authority_rule_string', res.result.record[0]);
+        //         },
+        //         sync: true,
+        //         scope: this
+        //     });
+        // }
+
+
+        //附件预览
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(prj_project_ds_id).getCurrentRecord();
+            var contract_id =  record.get('project_id');
+            if (typeof(window.previewAtt) === 'function') {
+                previewAtt(contract_id,'project_id');
+            }else if(typeof(window.parent.previewAtt) === 'function'){
+                window.parent.previewAtt(contract_id,'project_id')
+            }else if(typeof(window.parent.parent.previewAtt) === 'function'){
+                window.parent.parent.previewAtt(contract_id,'project_id')
+            }else if(typeof(window.parent.parent.parent.previewAtt) === 'function'){
+                window.parent.parent.parent.previewAtt(contract_id,'project_id')
+            }
+        };
+
+        //审查确认
+        window['${/parameter/@layout_code}_manufacturer_confrim_layout_dynamic_click'] = function () {
+
+            // $L.Masker.mask(document.body, "操作中,请稍等..");
+
+            var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(prj_project_ds_id).getCurrentRecord();
+            var datas = {projectId: record.get("project_id")};
+            Leaf.request({
+                url: $('prj318f1_prj_manufacturer_confirm_link_id').getUrl(),
+                para: datas,
+                success: function (res) {
+                    // $L.Masker.unmask(document.body);
+                    $('${/parameter/@winid}').close();
+                },
+                error: function () {
+                    // $L.Masker.unmask(document.body);
+                },
+                scope: this
+            });
+        }
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            debugger
+            disableDs()
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment');
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow');
+            if('${/parameter/@function_code}' == 'PRJ318F1' && ds_id == ds.id){
+                $(ds_id).setQueryParameter('templet_type', 'PROJECT_SIGN');
+            }else if(ds.id == cashflow_ds_id && '${/parameter/@function_code}' == 'PRJ419F2'){
+                $(cashflow_ds_id).setQueryParameter('user_id', '${/session/@user_id}');
+            }
+            if(ds.id=='${/parameter/@layout_code}_G_TENANT_BASIC_INFO_prj_project_bp_ds'){
+                var tenant_ds_id = '${/parameter/@layout_code}_G_TENANT_BASIC_INFO_prj_project_bp_ds';
+                var tenant_ds_record=$(tenant_ds_id).getCurrentRecord();
+                if(tenant_ds_record){
+                    qpara['prj_bp_id']= tenant_ds_record.data.prj_bp_id;
+                }
+            }
+        };
+
+        //添加评分按钮
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function (){
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            //$L.Masker.mask(Ext.getBody(),'正在评分...');
+            var prj_project_ds_id = '${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds';
+
+            var record = $(prj_project_ds_id).getAt(0);
+            //hls_score_calculation
+            var scoreCalculation = {};
+            // scoreCalculation.score_id = '';
+            // scoreCalculation.company_id = '';
+            scoreCalculation.objectType = 'PRJ_PROJECT';
+            scoreCalculation.objectId = record.get('project_id');
+            // scoreCalculation.fiscalYear = '';
+            // scoreCalculation.fiscalMonth = '';
+            // scoreCalculation.score_date = '';
+            // scoreCalculation.score_user_id = '';
+            // scoreCalculation.description = '';
+            // scoreCalculation.score_template_hd_id = '';
+            // scoreCalculation.score_result_id = '';
+
+            //评分
+            var scoreUrl = '${/request/@context_path}/hls/score/calculation?reCalcFlag=Y&_csrf=${/session/@_csrf.token}';
+            jQuery.ajax({
+                type: 'post',
+                url: scoreUrl,
+                data: JSON.stringify(scoreCalculation),
+                async: false,
+                contentType: "application/json; charset=utf-8",
+                success: function (data) {
+                    if (data.success == true){
+                        // 返回一个scoreId
+                        scoreId = data.rows[0].scoreId;
+
+                        if(Ext.isEmpty(scoreId)){
+                            $L.showInfoMessage("提示","评分失败，请联系管理员!");
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            //$L.Masker.unmask(Ext.getBody());
+                            return;
+                        }
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        //进入评分结果页面
+                        var detailUrl = '${/request/@context_path}/modules/SIG/SIG_PROJECT/SIG001/prj_score_detail.lview';
+                        // var detailUrl = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_score_detail.lview';
+                        new Leaf.Window({
+                            id: 'prj_score_detail_winid',
+                            url: detailUrl,
+                            title: '评分结果',
+                            params: {
+                                winId: 'prj_score_detail_winid',
+                                scoreId: scoreId,
+                                function_code: '${/parameter/@function_code}',
+                                function_usage: '${/parameter/@function_usage}'
+                            },
+                            fullScreen: true
+                        });
+                    } else {
+                        // Leaf.showMessage("提示", data.message, null);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        //$L.Masker.unmask(Ext.getBody());
+                        return;
+                    }
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        };
+
+        function saveDescription(record){
+            debugger
+            Leaf.request({
+                url: '${/request/@context_path}/prj/save/description',
+                para: {
+                    prj_bp_id:record.get('prj_bp_id'),
+                    bp_id:record.get('bp_id'),
+                    project_id:record.get('project_id'),
+                    description:record.get('description'),
+                    retail_flag:'Y'
+                },
+                scope: this,
+                success: function (res) {
+                }
+            });
+        }
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+            debugger
+            var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            var project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var project_id = $(project_ds_id).getCurrentRecord().get('project_id');
+
+            let lease_item_ds_id
+            if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') { //商用车
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_VEHICLE_prj_project_lease_item_ds'
+            } else if (currentDivision === 'PHOTOVOLTAIC_DEVICES') { //光伏设备
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds'
+            } else { //工程机械
+                lease_item_ds_id =  '${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds'
+            }
+            var wfl_flag = '${/parameter/@wfl_flag}';
+
+            if (ds.id == lease_item_ds_id) {
+                var lease_item_record = record;
+                //根据业务线调整字段输入模式
+                if ($(project_ds_id).getCurrentRecord().get("division") === "COMMERCIAL_VEHICLE" && wfl_flag !== 'Y' && lease_item_record) {
+                    if(lease_item_record.get("trailer_flag") !== "TRAILER"){
+                        lease_item_record.getField("engine_number").setReadOnly(false);
+                        lease_item_record.getField("engine_number").setRequired(true);
+                        lease_item_record.getField("frame_number").setReadOnly(false);
+                        lease_item_record.getField("frame_number").setRequired(true);
+                        lease_item_record.getField("province_code").setReadOnly(false);
+                        lease_item_record.getField("province_code").setRequired(true);
+                        lease_item_record.getField("city_code").setReadOnly(false);
+                        lease_item_record.getField("city_code").setRequired(true);
+                    }else{
+                        lease_item_record.getField("engine_number").setReadOnly(false);
+                        lease_item_record.getField("engine_number").setRequired(false);
+                        lease_item_record.getField("frame_number").setReadOnly(false);
+                        lease_item_record.getField("frame_number").setRequired(false);
+                        lease_item_record.getField("province_code").setReadOnly(false);
+                        lease_item_record.getField("province_code").setRequired(false);
+                        lease_item_record.getField("city_code").setReadOnly(false);
+                        lease_item_record.getField("city_code").setRequired(false);
+                    }
+                }
+            }
+            if(quotation_ds_id == ds.id){
+                debugger
+                var record = $(quotation_ds_id).getAt(0);
+                if(record!=null){
+                    finance_amount=record.get('finance_amount');
+                }
+                var qota_record = $('${/parameter/@layout_code}_F_QUTA__ds').getCurrentRecord();
+                qota_record.set('release_amount',finance_amount);
+                if(record && '${/parameter/@function_usage}' != 'QUERY' && wfl_flag !== 'Y'){
+                    if(record.get('payment_type') === 'BANK_ACCEPTANCE' && judgeReadOnly()){
+                        record.getField('acceptance_term_n').setReadOnly(false);
+                        record.getField('acceptance_term_n').setRequired(true);
+                        record.getField('acceptance_term').setReadOnly(false);
+                        record.getField('acceptance_term').setRequired(true);
+                        record.getField('bank_deposit_ratio').setReadOnly(false);
+                        record.getField('bank_deposit_ratio').setRequired(true);
+                        record.getField('bank_lease_charge_ratio').setReadOnly(false);
+                        record.getField('bank_lease_charge_ratio').setRequired(true);
+                    }else {
+                        record.getField('acceptance_term_n').setReadOnly(true);
+                        record.getField('acceptance_term_n').setRequired(false);
+                        record.getField('acceptance_term').setReadOnly(true);
+                        record.getField('acceptance_term').setRequired(false);
+                        record.getField('bank_deposit_ratio').setReadOnly(true);
+                        record.getField('bank_deposit_ratio').setRequired(false);
+                        record.getField('bank_lease_charge_ratio').setReadOnly(true);
+                        record.getField('bank_lease_charge_ratio').setRequired(false);
+                    }
+                    if(record.get('int_rate_calc_flag') === 'Y' || record.get('int_rate_calc_flag_n') === '是'){
+                        record.getField('int_rate').setReadOnly(true);
+                        record.getField('int_rate').setRequired(false);
+                    }else if (judgeReadOnly()){
+                        record.getField('int_rate').setReadOnly(false);
+                        record.getField('int_rate').setRequired(true);
+                    }
+                }
+
+                //查询租赁物总额
+                Leaf.request({
+                    url: $('PRJ419f2_prj_lease_item_amount_link_id').getUrl(),
+                    scope: this,
+                    para: {project_id: project_id},
+                    success: function (res) {
+                        if (res.success) {
+                            if (res.result && res.result.record && res.result.record.length == 1) {
+                                PRJ419f2_viewModel.lease_item_amount = res.result.record[0].lease_item_amount;
+                                // if (record) {
+                                //     record.set("residual_value", res.result.record[0].residual_value);
+                                // }
+                            } else {
+                                $L.showInfoMessage("提示", "融资额查询失败，请检查租赁物信息!");
+                            }
+                        } else {
+                            $L.showInfoMessage("提示", "融资额查询失败，请检查租赁物信息!");
+                        }
+                    }
+                });
+            }
+            if(ds.id=='PRJ329F1_C_PRJ_BASIC_INFO_prj_project_attachment_ds'){
+                if(parent_layout_code=='PRJ329'&&record!=null&&record!=''){
+                    record.getField('document_name').setReadOnly(false);
+                    record.getField('description').setReadOnly(false);
+                }
+            }
+        };
+
+        //移除前事件(grid,attach,gridbox,table)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_brfore_remove'] = function(ds, record, bp_seq) {
+            debugger
+            disableDs()
+            // debugger
+            var th_attachment_ds_id = '${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds';
+            var attach_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment');
+            if(ds.id == attach_ds_id){
+                var records =  $(attach_ds_id).getSelected();
+                for (var i = 0; i < records.length; i++) {
+                    if (records[i].get('source_rule_id') != ''&&records[i].get('source_rule_id') != null&&records[i].get('source_rule_id') != undefined){
+                        $L.showInfoMessage("提示", "该附件为资料清单附件，不允许进行删除!", null);
+                        return false;
+                    }
+                    if (records[i].get('document_name') == '审查文件'){
+                        $L.showInfoMessage("提示", "该附件为审查流程文件，不允许进行删除!", null);
+                        return false;
+                    }
+                }
+            }
+            if (ds.id === th_attachment_ds_id) {
+                var records =  $(th_attachment_ds_id).getSelected();
+                for (var i = 0; i < records.length; i++) {
+                    if (records[i].get('attach_code') !== '' && records[i].get('attach_code') !== null && records[i].get('attach_code') !== undefined){
+                        $L.showInfoMessage("提示", "该附件不允许进行删除!", null);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+
+
+        //附件-批量下载
+        window['${/parameter/@layout_code}_C_PRJ_BASIC_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function (){
+            debugger
+            const ds_id = '${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds';
+            let records = $(ds_id).getSelected();
+            if(!records || records.length === 0){
+                records = $(ds_id).getAll();
+            }
+            var attachmentIds = null;
+            for(let i=0;i< records.length; i++){
+                if(records[i].get('file_attachment_id') && records[i].get('file_names')){
+                    if(!attachmentIds){
+                        attachmentIds = records[i].get('file_attachment_id');
+                    }else{
+                        attachmentIds += ',' + records[i].get('file_attachment_id') ;
+                    }
+                }
+            }
+            if(attachmentIds){
+                location.href = "${/request/@context_path}/attachment/zip/downloadFile?attachment_id=" + attachmentIds;
+            }else{
+                $L.showInfoMessage("提示","暂无已上传附件!");
+            }
+        }
+
+        //天合附件-批量下载
+        window['${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function (){
+            const ds_id = '${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds';
+            let records = $(ds_id).getSelected();
+            if(!records || records.length === 0){
+                records = $(ds_id).getAll();
+            }
+            var id_str = null;
+            for(let i=0;i< records.length; i++){
+                if(records[i].get('project_attachment_id') && records[i].get('file_names')){
+                    if(!id_str){
+                        id_str = records[i].get('project_attachment_id');
+                    }else{
+                        id_str += '-' + records[i].get('project_attachment_id') ;
+                    }
+                }
+            }
+            if(id_str){
+                window.location.href = encodeURI('${/request/@context_path}/attachment/zip/download?id='  + id_str + '&table=PRJ_PROJECT_ATTACHMENT');
+            }else{
+                $L.showInfoMessage("提示","暂无已上传附件!");
+            }
+        }
+
+
+        //租赁物工程机械导入
+        window['${/parameter/@layout_code}_G_LEASING_MACHINE_USER_BUTTON1_layout_dynamic_tab_click'] = function (){
+            const ds_id = '${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds';
+            let record = $(ds_id).getCurrentRecord();
+            const projectId = '${/parameter/@project_id}' || record.get("project_id");
+            if(projectId === '' || projectId === undefined ){
+                $L.showInfoMessage("提示","请先保存数据!");
+                return;
+            }
+            new Leaf.Window({
+                id: 'PRJ419_excel_import_open_winid',
+                params: {
+                    winid: 'PRJ419_excel_import_open_winid',
+                    division: 'ENGINEERING_MACHINERY',
+                    projectId: projectId
+                },
+                url: '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_excel_import_file2.lview',
+                title: '租赁物工程机械导入',
+                width: 430,
+                height: 360
+            });
+
+        }
+
+        //租赁物商用车导入
+        window['${/parameter/@layout_code}_G_LEASING_VEHICLE_USER_BUTTON1_layout_dynamic_tab_click'] = function (){
+            const ds_id = '${/parameter/@layout_code}_F_PRJ_BASIC_INFO_prj_project_ds';
+            let record = $(ds_id).getCurrentRecord();
+            const projectId = '${/parameter/@project_id}' || record.get("project_id");
+            if(projectId === '' || projectId === undefined ){
+                $L.showInfoMessage("提示","请先保存数据!");
+                return;
+            }
+            new Leaf.Window({
+                id: 'PRJ419_excel_import_open_winid',
+                params: {
+                    winid: 'PRJ419_excel_import_open_winid',
+                    division: 'COMMERCIAL_VEHICLE',
+                    projectId: projectId
+                },
+                url: '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/cv_prj_project_excel_import_file2.lview',
+                title: '租赁物商用车导入',
+                width: 430,
+                height: 360
+            });
+
+        }
+
+        //光伏设备业务线所有字段只读
+        function judgeReadOnly() {
+            return currentDivision !== 'PHOTOVOLTAIC_DEVICES';
+        }
+
+        function beforeSubmit(countiune) {
+            var nodeId = '${/parameter/@node_id}';
+            var work_flow ='${/parameter/@work_flow}';
+            var bussinessKey = '${/parameter/@project_id}'
+
+            if ((work_flow == 'RISK_REVIEW_WORK_FLOW' && nodeId == 'sid-7twnNrgm-p7Ax-4rSp-89zq-I4AnSAwn9LzZ')
+                ||(work_flow == 'PROJECT_REVIEW_WORK_FLOW' && nodeId == 'sid-63QYowiO-whdS-4MHv-809U-5Wy6SkTzZVif')
+                ||(work_flow == 'SIGN_WORK_FLOW' && nodeId == 'sid-NADqOrSA-McJQ-4fHc-8uYZ-BKWVs7HBI46d')) {
+                Leaf.request({
+                    url: '${/request/@context_path}/credit/query/reportLink',
+                    para: {
+                        documentNumber: bussinessKey
+                    },
+                    success: function (res) {
+                        if (res.error.code === 'N') {
+                            Leaf.showMessage("提示", "该进件未获取到决策报告无法同意!", null);
+                        } else {
+                            countiune();
+                        }
+                    },
+                    scope: this,
+                    sync:false
+                });
+            } else {
+                countiune();
+            }
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

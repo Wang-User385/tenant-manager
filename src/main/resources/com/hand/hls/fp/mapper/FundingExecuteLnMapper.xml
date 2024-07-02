@@ -1,0 +1,955 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fp.mapper.FundingExecuteLnMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fp.dto.FundingExecuteLn">
+        <result column="EXECUTE_LN_ID" property="executeLnId" jdbcType="DECIMAL"/>
+        <result column="EXCUTE_ID" property="excuteId" jdbcType="DECIMAL"/>
+        <result column="ITEM_CODE" property="itemCode" jdbcType="VARCHAR"/>
+        <result column="PLAN_AMOUNT" property="planAmount" jdbcType="DECIMAL"/>
+        <result column="EXECUTE_AMOUNT" property="executeAmount" jdbcType="DECIMAL"/>
+        <result column="PROCESS_INSTANCE_ID" property="processInstanceId" jdbcType="DECIMAL"/>
+        <result column="item_code_n" property="itemCodeN"/>
+        <result column="filling_id" property="fillingId"/>
+        <result column="summary_flay" property="summaryFlag"/>
+        <result column="deviate_ratio" property="deviateRatio"/>
+        <result column="fill_type" property="fillType"/>
+        <result column="FILL_TYPE_N" property="fillTypeN" jdbcType="VARCHAR"/>
+        <result column="confirm_status_n" property="confirmStatusN"/>
+        <result column="fill_year_n" property="fillYearN"/>
+        <result column="fill_quarter_n" property="fillQuarterN"/>
+        <result column="fill_mon_n" property="fillMonN"/>
+        <result column="fill_week_n" property="fillWeekN"/>
+        <result column="unit_id_n" property="unitIdN"/>
+        <result column="dimension_type_n" property="dimensionTypeN"/>
+        <result column="fill_year" property="fillYear"/>
+        <result column="fill_quarter" property="fillQuarter"/>
+        <result column="fill_mon" property="fillMon"/>
+        <result column="fill_week" property="fillWeek"/>
+        <result column="unit_id" property="unitId"/>
+        <result column="dimension_type" property="dimensionType"/>
+    </resultMap>
+
+    <select id="queryAllConfirmLn" parameterType="com.hand.hls.fp.dto.FundingExecuteLn" resultMap="BaseResultMap">
+        select t1.*
+        from
+        ( SELECT
+        t.*, (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.FILL_TYPE'
+        AND sc.code_value = t.fill_type
+        ) FILL_TYPE_N,
+        (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.FILL_YEAR'
+        AND sc.code_value = t.fill_year
+        ) FILL_YEAR_N,
+        (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.FILL_QUARTER'
+        AND sc.code_value = t.fill_quarter
+        ) FILL_QUARTER_N,
+        (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.FILL_MON'
+        AND sc.code_value = t.fill_mon
+        ) FILL_MON_N,
+        (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.FILL_WEEK'
+        AND sc.code_value = t.fill_week
+        ) FILL_WEEK_N,
+        (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.FILL_STATUS'
+        AND sc.code_value = t.plan_status
+        ) PLAN_STATUS_N,
+        (
+        SELECT
+        s.description
+        FROM
+        sys_user s
+        WHERE
+        s.user_id = t.fill_user_id
+        ) FILL_USER_ID_N,
+        (
+        SELECT
+        u.unit_name
+        FROM
+        fnd_org_unit u
+        WHERE
+        u.unit_id = t.unit_id
+        ) unit_id_n,
+        (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'EXCUTE_DIMENSION'
+        AND sc.code_value = t.DIMENSION_TYPE
+        ) DIMENSION_TYPE_n,
+        (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.CONFIRM_STATUS'
+        AND sc.code_value = t.CONFIRM_STATUS
+        ) CONFIRM_STATUS_n,
+        ((tt.EXECUTE_AMOUNT - tt.PLAN_AMOUNT)/tt.PLAN_AMOUNT)DEVIATE_RATIO,
+        tt.plan_amount,
+        tt.execute_amount,
+        tt.item_code,
+        (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.ITEM'
+        AND sc.code_value = tt.ITEM_CODE
+        )item_code_n
+        FROM
+        jc_funding_execute t,
+        jc_funding_execute_ln tt
+        WHERE
+        t.CONFIRM_STATUS = 'CONFIRM'
+        AND t.EXCUTE_ID = tt.EXCUTE_ID
+        )t1
+        <where>
+            1 = 1
+            <if test="fillingId != null">
+                and t1.filling_id = #{fillingId}
+            </if>
+            <if test="fillType != null">
+                and t1.fill_type = #{fillType}
+            </if>
+            <if test="fillYear != null">
+                and t1.fill_year = #{fillYear}
+            </if>
+            <if test="fillQuarter != null">
+                and t1.fill_quarter = #{fillQuarter}
+            </if>
+            <if test="fillWeek != null">
+                and t1.fill_week = #{fillWeek}
+            </if>
+            <if test="fillMon != null">
+                and t1.fill_mon = #{fillMon}
+            </if>
+            <if test="unitId != null">
+                and t1.unit_id = #{unitId}
+            </if>
+            <if test="fillUserIdN != null">
+                and t1.fill_user_id_n = #{fillUserIdN}
+            </if>
+            <if test="confirmStatus != null">
+                and t1.confirm_status = #{confirmStatus}
+            </if>
+            <if test="dimensionType != null">
+                and t1.dimension_type = #{dimensionType}
+            </if>
+        </where>
+
+    </select>
+
+    <select id="queryAll" parameterType="com.hand.hls.fp.dto.FundingExecuteLn" resultMap="BaseResultMap">
+        SELECT
+        t.*, (
+        SELECT
+        sc.meaning value_name
+        FROM
+        sys_code_value_b_v sc
+        WHERE
+        sc. CODE = 'FP.ITEM'
+        AND sc.code_value = t.ITEM_CODE
+        )item_code_n,
+        ((t.PLAN_AMOUNT - t.EXECUTE_AMOUNT)/t.PLAN_AMOUNT)DEVIATE_RATIO
+        FROM
+        jc_funding_execute_ln t
+        <where>
+            1 = 1
+            <if test="excuteId != null">
+                and t.excute_id = #{excuteId}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryAmount" parameterType="com.hand.hls.fp.dto.FundingExecuteLn" resultMap="BaseResultMap">
+        SELECT
+            (
+                SELECT
+                    (
+                        nvl(t.FIELD1, 0) + nvl(t.FIELD2, 0) + nvl(t.FIELD3, 0) + nvl(t.FIELD4, 0) + nvl(t.FIELD5, 0) + nvl(t.FIELD6, 0) + nvl(t.FIELD7, 0) + nvl(t.FIELD8, 0) + nvl(t.FIELD9, 0) + nvl(t.FIELD10, 0) + nvl(t.FIELD11, 0) + nvl(t.FIELD12, 0) + nvl(t.FIELD13, 0) + nvl(t.FIELD14, 0)
+                    ) plan_amount
+                FROM
+                    jc_fund_filling_ln t
+                WHERE
+                    t.FILL_ITEM_CODE = 'JY_INFLOW'
+                AND t.FILLING_ID = #{fillingId}
+            )plan_amount,
+            (
+                SELECT
+                    nvl(sum(
+                        nvl(c.RECEIVED_AMOUNT, 0)
+                    ),0) RECEIVED_AMOUNT
+                FROM
+                    con_contract_cashflow c
+                WHERE
+                    c.cf_item IN (1, 3, 5)
+                AND c.cf_status = 'RELEASE'
+                AND EXISTS (
+                        SELECT
+                            1
+                        FROM
+                            prj_project p,
+                            con_contract ct
+                        WHERE
+                            ct.project_id = p.project_id
+                        and ct.contract_id = c.contract_id
+                        AND p.host_unit_id = (
+                            SELECT
+                                ff.unit_id
+                            FROM
+                                jc_fund_filling ff
+                            WHERE
+                                ff.filling_id = #{fillingId}
+                        )
+                    )
+                AND (
+                    CASE #{fillType}
+                    WHEN 'WEEK' THEN
+                        c.DUE_date BETWEEN (
+                            SELECT
+                                a.START_DATE
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_WEEK = b.FILL_WEEK
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            a.END_DATE
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_WEEK = b.FILL_WEEK
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'MON' THEN
+                        c.due_date BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'QUARTER' THEN
+                        c.due_date BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_QUARTER = (
+                                CASE b.FILL_QUARTER
+                                WHEN 'FIRST' THEN
+                                    1
+                                WHEN 'SECOND' THEN
+                                    2
+                                WHEN 'THIRD' THEN
+                                    3
+                                WHEN 'FOURTH' THEN
+                                    4
+                                END
+                            )
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_QUARTER = (
+                            CASE b.FILL_QUARTER
+                            WHEN 'FIRST' THEN
+                                1
+                            WHEN 'SECOND' THEN
+                                2
+                            WHEN 'THIRD' THEN
+                                3
+                            WHEN 'FOURTH' THEN
+                                4
+                            END
+                        )
+                    )
+                    END
+                )
+            )EXECUTE_AMOUNT
+        FROM
+            DUAL
+    </select>
+    <select id="queryAmountOut" parameterType="com.hand.hls.fp.dto.FundingExecuteLn" resultMap="BaseResultMap">
+        SELECT
+            (
+                SELECT
+                    (
+                        nvl(t.FIELD1, 0) + nvl(t.FIELD2, 0) + nvl(t.FIELD3, 0) + nvl(t.FIELD4, 0) + nvl(t.FIELD5, 0) + nvl(t.FIELD6, 0) + nvl(t.FIELD7, 0) + nvl(t.FIELD8, 0) + nvl(t.FIELD9, 0) + nvl(t.FIELD10, 0) + nvl(t.FIELD11, 0) + nvl(t.FIELD12, 0) + nvl(t.FIELD13, 0) + nvl(t.FIELD14, 0)
+                    ) plan_amount
+                FROM
+                    jc_fund_filling_ln t
+                WHERE
+                    t.FILL_ITEM_CODE = 'JY_OUTFLOW'
+                AND t.FILLING_ID = #{fillingId}
+            )plan_amount,
+            (
+                SELECT
+                    nvl(sum(
+                        nvl(c.ACTUAL_HD_PAY_AMOUNT, 0)
+                    ),0)
+                FROM
+                    csh_payment_req_hd c
+                WHERE
+                    c.payment_type = 'PAYMENT'
+                AND c.payment_req_status = 'APPROVED'
+                AND EXISTS (
+                        SELECT
+                            1
+                        FROM
+                            prj_project p,
+                            con_contract ct
+                        WHERE
+                            ct.project_id = p.project_id
+                        and ct.contract_id = c.source_contract_id
+                        AND p.host_unit_id = (
+                            SELECT
+                                ff.unit_id
+                            FROM
+                                jc_fund_filling ff
+                            WHERE
+                                ff.filling_id = #{fillingId}
+                        )
+                    )
+                AND (
+                    CASE #{fillType}
+                    WHEN 'WEEK' THEN
+                        c.ACTUAL_PAY_DATE BETWEEN (
+                            SELECT
+                                a.START_DATE
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_WEEK = b.FILL_WEEK
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            a.END_DATE
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_WEEK = b.FILL_WEEK
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'MON' THEN
+                        c.ACTUAL_PAY_DATE BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'QUARTER' THEN
+                        c.ACTUAL_PAY_DATE BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_QUARTER = (
+                                CASE b.FILL_QUARTER
+                                WHEN 'FIRST' THEN
+                                    1
+                                WHEN 'SECOND' THEN
+                                    2
+                                WHEN 'THIRD' THEN
+                                    3
+                                WHEN 'FOURTH' THEN
+                                    4
+                                END
+                            )
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_QUARTER = (
+                            CASE b.FILL_QUARTER
+                            WHEN 'FIRST' THEN
+                                1
+                            WHEN 'SECOND' THEN
+                                2
+                            WHEN 'THIRD' THEN
+                                3
+                            WHEN 'FOURTH' THEN
+                                4
+                            END
+                        )
+                    )
+                    END
+                )
+            )EXECUTE_AMOUNT
+        FROM
+            DUAL
+    </select>
+    <select id="queryAmountSummary" parameterType="com.hand.hls.fp.dto.FundingExecuteLn" resultMap="BaseResultMap">
+        SELECT
+            (
+                SELECT
+                    (
+                        nvl(t.FIELD1, 0) + nvl(t.FIELD2, 0) + nvl(t.FIELD3, 0) + nvl(t.FIELD4, 0) + nvl(t.FIELD5, 0) + nvl(t.FIELD6, 0) + nvl(t.FIELD7, 0) + nvl(t.FIELD8, 0) + nvl(t.FIELD9, 0) + nvl(t.FIELD10, 0) + nvl(t.FIELD11, 0) + nvl(t.FIELD12, 0) + nvl(t.FIELD13, 0) + nvl(t.FIELD14, 0)
+                    ) plan_amount
+                FROM
+                    jc_fund_filling_ln t
+                WHERE
+                    t.FILL_ITEM_CODE = 'CAPITAL_INFLOW'
+                AND t.FILLING_ID = #{fillingId}
+            )plan_amount,
+            (
+                SELECT
+                    sum(
+                        nvl(c.RECEIVED_AMOUNT, 0)
+                    ) RECEIVED_AMOUNT
+                FROM
+                    con_contract_cashflow c
+                WHERE
+                    c.cf_item IN (1, 3, 5)
+                AND c.cf_status = 'RELEASE'
+                AND (
+                    CASE #{fillType}
+                    WHEN 'WEEK' THEN
+                        c.DUE_date BETWEEN (
+                            SELECT
+                                a.START_DATE
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_WEEK = b.FILL_WEEK
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            a.END_DATE
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_WEEK = b.FILL_WEEK
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'MON' THEN
+                        c.DUE_date BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'QUARTER' THEN
+                        c.due_date BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_QUARTER = (
+                                CASE b.FILL_QUARTER
+                                WHEN 'FIRST' THEN
+                                    1
+                                WHEN 'SECOND' THEN
+                                    2
+                                WHEN 'THIRD' THEN
+                                    3
+                                WHEN 'FOURTH' THEN
+                                    4
+                                END
+                            )
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_QUARTER = (
+                            CASE b.FILL_QUARTER
+                            WHEN 'FIRST' THEN
+                                1
+                            WHEN 'SECOND' THEN
+                                2
+                            WHEN 'THIRD' THEN
+                                3
+                            WHEN 'FOURTH' THEN
+                                4
+                            END
+                        )
+                    )
+                    END
+                )
+            ) + (SELECT
+                    nvl(sum(nvl(c.DUE_AMOUNT,0)),0)
+                FROM
+                    lon_contract_withdraw c
+                WHERE (
+                    CASE #{fillType}
+                    WHEN 'WEEK' THEN
+                        c.DUE_date BETWEEN (
+                            SELECT
+                                a.START_DATE
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_WEEK = b.FILL_WEEK
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            a.END_DATE
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_WEEK = b.FILL_WEEK
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'MON' THEN
+                        c.due_date BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'QUARTER' THEN
+                        c.due_date BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_QUARTER = (
+                                CASE b.FILL_QUARTER
+                                WHEN 'FIRST' THEN
+                                    1
+                                WHEN 'SECOND' THEN
+                                    2
+                                WHEN 'THIRD' THEN
+                                    3
+                                WHEN 'FOURTH' THEN
+                                    4
+                                END
+                            )
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_QUARTER = (
+                            CASE b.FILL_QUARTER
+                            WHEN 'FIRST' THEN
+                                1
+                            WHEN 'SECOND' THEN
+                                2
+                            WHEN 'THIRD' THEN
+                                3
+                            WHEN 'FOURTH' THEN
+                                4
+                            END
+                        )
+                    )
+                    END
+                ))EXECUTE_AMOUNT
+        FROM
+            DUAL
+    </select>
+
+    <select id="queryAmountSummaryOut" parameterType="com.hand.hls.fp.dto.FundingExecuteLn" resultMap="BaseResultMap">
+        SELECT
+            (
+                SELECT
+                    (
+                        nvl(t.FIELD1, 0) + nvl(t.FIELD2, 0) + nvl(t.FIELD3, 0) + nvl(t.FIELD4, 0) + nvl(t.FIELD5, 0) + nvl(t.FIELD6, 0) + nvl(t.FIELD7, 0) + nvl(t.FIELD8, 0) + nvl(t.FIELD9, 0) + nvl(t.FIELD10, 0) + nvl(t.FIELD11, 0) + nvl(t.FIELD12, 0) + nvl(t.FIELD13, 0) + nvl(t.FIELD14, 0)
+                    ) plan_amount
+                FROM
+                    jc_fund_filling_ln t
+                WHERE
+                    t.FILL_ITEM_CODE = 'CAPITAL_OUTFLOW'
+                AND t.FILLING_ID = #{fillingId}
+            )plan_amount,
+            (
+                SELECT
+                    nvl(sum(
+                        nvl(c.ACTUAL_HD_PAY_AMOUNT, 0)
+                    ),0)
+                FROM
+                    csh_payment_req_hd c
+                WHERE
+                    c.payment_type = 'PAYMENT'
+                AND c.payment_req_status = 'APPROVED'
+                AND (
+                    CASE #{fillType}
+                    WHEN 'WEEK' THEN
+                        c.ACTUAL_PAY_DATE BETWEEN (
+                            SELECT
+                                a.START_DATE
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_WEEK = b.FILL_WEEK
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            a.END_DATE
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_WEEK = b.FILL_WEEK
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'MON' THEN
+                        c.ACTUAL_PAY_DATE BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'QUARTER' THEN
+                        c.ACTUAL_PAY_DATE BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_QUARTER = (
+                                CASE b.FILL_QUARTER
+                                WHEN 'FIRST' THEN
+                                    1
+                                WHEN 'SECOND' THEN
+                                    2
+                                WHEN 'THIRD' THEN
+                                    3
+                                WHEN 'FOURTH' THEN
+                                    4
+                                END
+                            )
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_QUARTER = (
+                            CASE b.FILL_QUARTER
+                            WHEN 'FIRST' THEN
+                                1
+                            WHEN 'SECOND' THEN
+                                2
+                            WHEN 'THIRD' THEN
+                                3
+                            WHEN 'FOURTH' THEN
+                                4
+                            END
+                        )
+                    )
+                    END
+                )
+            ) + (SELECT
+			nvl(
+				sum(
+					nvl(c.PLANNED_DUE_AMOUNT,0)
+				),
+				0
+			)
+		FROM
+			lon_contract_repayment c
+                WHERE (
+                    CASE #{fillType}
+                    WHEN 'WEEK' THEN
+                        c.planned_due_date BETWEEN (
+                            SELECT
+                                a.START_DATE
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_WEEK = b.FILL_WEEK
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            a.END_DATE
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_WEEK = b.FILL_WEEK
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'MON' THEN
+                        c.planned_due_date BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_MON = b.fill_mon
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_MON = b.fill_mon
+                    )
+                    WHEN 'QUARTER' THEN
+                        c.planned_due_date BETWEEN (
+                            SELECT
+                                min(a.START_DATE)
+                            FROM
+                                jc_fund_plan_schedule a,
+                                jc_fund_filling b
+                            WHERE
+                                b.filling_id = #{fillingId}
+                            AND a.FILL_YEAR = b.FILL_YEAR
+                            AND a.FILL_QUARTER = (
+                                CASE b.FILL_QUARTER
+                                WHEN 'FIRST' THEN
+                                    1
+                                WHEN 'SECOND' THEN
+                                    2
+                                WHEN 'THIRD' THEN
+                                    3
+                                WHEN 'FOURTH' THEN
+                                    4
+                                END
+                            )
+                        )
+                    AND (
+                        SELECT
+                            max(a.END_DATE)
+                        FROM
+                            jc_fund_plan_schedule a,
+                            jc_fund_filling b
+                        WHERE
+                            b.filling_id = #{fillingId}
+                        AND a.FILL_YEAR = b.FILL_YEAR
+                        AND a.FILL_QUARTER = (
+                            CASE b.FILL_QUARTER
+                            WHEN 'FIRST' THEN
+                                1
+                            WHEN 'SECOND' THEN
+                                2
+                            WHEN 'THIRD' THEN
+                                3
+                            WHEN 'FOURTH' THEN
+                                4
+                            END
+                        )
+                    )
+                    END
+                ))EXECUTE_AMOUNT
+        FROM
+            DUAL
+    </select>
+
+    <select id="queryAmountSummarysOut" parameterType="com.hand.hls.fp.dto.FundingExecuteLn" resultMap="BaseResultMap">
+        SELECT
+            nvl(
+                sum(nvl(t.FIELD1, 0) + nvl(t.FIELD2, 0) + nvl(t.FIELD3, 0) + nvl(t.FIELD4, 0) + nvl(t.FIELD5, 0) + nvl(t.FIELD6, 0) + nvl(t.FIELD7, 0)
+                + nvl(t.FIELD8, 0) + nvl(t.FIELD9, 0) + nvl(t.FIELD10, 0) + nvl(t.FIELD11, 0) + nvl(t.FIELD12, 0) + nvl(t.FIELD13, 0) + nvl(t.FIELD14, 0)
+            ),0) plan_amount
+        FROM
+            jc_fund_filling_ln t
+        WHERE
+            t.FILL_ITEM_CODE in ('SALARY_BONUS','PURCHASE_OTHER')
+        AND t.FILLING_ID = #{fillingId}
+
+    </select>
+</mapper>

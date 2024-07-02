@@ -1,0 +1,691 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2020年5月28日
+    $Revision: 1.0
+    $Purpose: 存续期弹窗界面 共用
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="hls900_quotation_fee_save_link_id" url="${/request/@context_path}/prj/quotation/deposit/fee/save"/>
+
+        <script><![CDATA[
+
+
+        var quotation_id;
+
+        var duration_type = '${/parameter/@duration_type}';
+
+        if (duration_type == 'ET') {
+            quotation_id = '${/parameter/@et_quotation_id}';
+        } else if (duration_type == 'PREPAYMENT') {
+            quotation_id = '${/parameter/@prepayment_quotation_id}';
+        }
+
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+        };
+
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit');
+            if (ds.id === deposit_ds_id) {
+                if (!record.get('hd_id')) {
+                    record.set('hd_id', '${/parameter/@hd_id}');
+                }
+                if (!record.get('contract_id')) {
+                    record.set('contract_id', '${/parameter/@contract_id}');
+                }
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment');
+
+            //保证金退还和抵扣
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+            var et_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_ET_INFO');
+            var prepayment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_PREPAYMENT_INFO');
+
+            //提前结清-测算 && 提前还款-测算
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_CF_ALL');
+            var rental_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_CASHFLOW');
+            var quotation_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_DEPOSIT');
+            var expense_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_EXPENSE');
+            var payment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_PAYMENT');
+            var paynote_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_PAYNOTE');
+            var con_cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow', 'G_RESULT');
+
+
+            var grid_cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
+
+
+            if (attachment_ds_id == ds.id) {
+                ds.setQueryParameter('attachment_category', duration_type);
+            }
+            if (deposit_ds_id == ds.id) {
+                ds.setQueryParameter('risk_cf_item', '52');
+            }
+            if (interest_ds_id == ds.id) {
+                ds.setQueryParameter('cf_item', '502');
+            }
+            if (credit_ds_id == ds.id) {
+                ds.setQueryParameter('source_type', 'CREDIT');
+            }
+            if (et_ds_id == ds.id) {
+                ds.setQueryParameter('source_type', 'ET');
+            }
+
+            if (prepayment_ds_id == ds.id) {
+                ds.setQueryParameter('source_type', 'PREPAYMENT');
+            }
+
+
+            if (cashflow_ds_id == ds.id) {
+                ds.setQueryParameter('quotation_id', quotation_id);
+
+            }
+            if (rental_ds_id == ds.id) {
+                ds.setQueryParameter('quotation_id', quotation_id);
+                qpara['rental_flag'] = 'Y';
+            }
+            if (quotation_deposit_ds_id == ds.id) {
+                ds.setQueryParameter('quotation_id', quotation_id);
+                qpara['deposit_flag'] = 'Y';
+            }
+            if (expense_ds_id == ds.id) {
+                ds.setQueryParameter('quotation_id', quotation_id);
+                qpara['fee_flag'] = 'Y';
+            }
+            if (payment_ds_id == ds.id) {
+                ds.setQueryParameter('quotation_id', quotation_id);
+                qpara['cf_item'] = 0;
+            }
+            if (paynote_ds_id == ds.id) {
+                ds.setQueryParameter('quotation_id', quotation_id);
+                qpara['cf_item'] = 90;
+            }
+            if (con_cashflow_ds_id == ds.id) {
+                ds.setQueryParameter('contract_id', '${/parameter/@contract_id}');
+            }
+
+
+            if (grid_cashflow_ds_id == ds.id) {
+                ds.setQueryParameter('contract_id', '${/parameter/@contract_id}');
+                ds.setQueryParameter('cf_direction', 'INFLOW');
+            }
+
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+
+        };
+
+
+        //保证金 保存按钮
+        window['${/parameter/@layout_code}_custom_save_layout_dynamic_click'] = function (nextStep) {
+
+            var duration_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'F_DEPOSIT_INFO');
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+
+            var validate_check = true;
+            //必填校验
+            if (duration_deposit_ds_id) {
+                if (!$(duration_deposit_ds_id).validate()) {
+                    validate_check = false;
+                }
+            }
+
+            if (deposit_ds_id) {
+                if (!$(deposit_ds_id).validate()) {
+                    validate_check = false;
+                }
+            }
+
+            if (interest_ds_id) {
+                if (!$(interest_ds_id).validate()) {
+                    validate_check = false;
+                }
+            }
+
+            if (credit_ds_id) {
+                if (!$(credit_ds_id).validate()) {
+                    validate_check = false;
+                }
+            }
+
+            if (validate_check) {
+                //基本信息
+                var saveData = {};
+                saveData['hd_id'] = '${/parameter/@hd_id}';
+                saveData['duration_type'] = duration_type;
+
+                saveData['hls_duration_deposit_list'] = [];
+
+                var duration_deposit_record = $(duration_deposit_ds_id).getCurrentRecord();
+                duration_deposit_record.set('duration_type', duration_type);
+                saveData['hls_duration_deposit_list'].push(duration_deposit_record.data);
+
+                //保证金退还 && 保证金利息 && 债权
+                saveData['hls_duration_ln_list'] = [];
+
+                var deposit_records = $(deposit_ds_id).getAll();
+                var interest_records = $(interest_ds_id).getAll();
+                var credit_records = $(credit_ds_id).getAll();
+
+                deposit_records.forEach(function (record) {
+                    record.set('source_type', 'DEPOSIT');
+                    saveData['hls_duration_ln_list'].push(record.data);
+                });
+                interest_records.forEach(function (record) {
+                    record.set('source_type', 'INTEREST');
+                    saveData['hls_duration_ln_list'].push(record.data);
+                });
+                credit_records.forEach(function (record) {
+                    record.set('source_type', 'CREDIT');
+                    saveData['hls_duration_ln_list'].push(record.data);
+                });
+
+                saveData['hls_duration_attachment_list'] = [];
+
+                //把其他属性去掉，避免栈溢出
+                saveData[duration_deposit_ds_id.replace('_ds', '')] = undefined;
+
+                saveData[deposit_ds_id.replace('_ds', '')] = undefined;
+                saveData[interest_ds_id.replace('_ds', '')] = undefined;
+                saveData[credit_ds_id.replace('_ds', '')] = undefined;
+
+                saveData['hls_duration_deposit_list'][0][deposit_ds_id.replace('_ds', '')] = undefined;
+                saveData['hls_duration_deposit_list'][0][interest_ds_id.replace('_ds', '')] = undefined;
+                saveData['hls_duration_deposit_list'][0][credit_ds_id.replace('_ds', '')] = undefined;
+
+
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/duration/hd/save',
+                    para: saveData,
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        all_query();
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        if (typeof (nextStep) == 'function') {
+                            nextStep();
+                        }
+
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+
+
+        };
+
+
+        function all_query() {
+            var duration_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'F_DEPOSIT_INFO');
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_CF_ALL');
+
+            var et_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'F_ET_INFO');
+            var prepayment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'F_PREPAYMENT_INFO');
+
+            var rental_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_CASHFLOW');
+            var quotation_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_DEPOSIT');
+            var expense_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_EXPENSE');
+            var payment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_PAYMENT');
+            var paynote_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_PAYNOTE');
+
+
+            if (duration_deposit_ds_id) {
+                $(duration_deposit_ds_id).query();
+            }
+            if (deposit_ds_id) {
+                $(deposit_ds_id).query();
+            }
+            if (interest_ds_id) {
+                $(interest_ds_id).query();
+            }
+            if (credit_ds_id) {
+                $(credit_ds_id).query();
+            }
+            if (cashflow_ds_id) {
+                $(cashflow_ds_id).query();
+            }
+            if (et_ds_id) {
+                $(et_ds_id).query();
+            }
+            if (prepayment_ds_id) {
+                $(prepayment_ds_id).query();
+            }
+            if (rental_ds_id) {
+                $(rental_ds_id).query();
+            }
+            if (quotation_deposit_ds_id) {
+                $(quotation_deposit_ds_id).query();
+            }
+            if (expense_ds_id) {
+                $(expense_ds_id).query();
+            }
+            if (payment_ds_id) {
+                $(payment_ds_id).query();
+            }
+            if (paynote_ds_id) {
+                $(paynote_ds_id).query();
+            }
+
+        }
+
+
+        //提前结清 保存按钮 && 提前还款 保存按钮
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            if (duration_type == 'ET') {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'F_ET_INFO');
+            } else if (duration_type == 'PREPAYMENT') {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'F_PREPAYMENT_INFO');
+            }
+
+            var cashflow_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_CF_ALL');
+            var rental_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_CASHFLOW');
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_DEPOSIT');
+            var expense_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_EXPENSE');
+            var payment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_PAYMENT');
+            var paynote_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_PAYNOTE');
+
+            var validate_check = true;
+            //必填校验
+            if (ds_id) {
+                if (!$(ds_id).validate()) {
+                    validate_check = false;
+                }
+            }
+            if (validate_check) {
+                //基本信息
+                var saveData = {};
+                saveData['hd_id'] = '${/parameter/@hd_id}';
+                saveData['ln_id'] = '${/parameter/@ln_id}';
+                saveData['hls_duration_ln_list'] = [];
+                var et_record = $(ds_id).getCurrentRecord();
+                et_record.set('duration_type', duration_type);
+                saveData['hls_duration_ln_list'].push(et_record.data);
+                saveData[ds_id.replace('_ds', '')] = undefined;
+                saveData['hls_duration_ln_list'][0][cashflow_ds_id.replace('_ds', '')] = undefined;
+                saveData['hls_duration_ln_list'][0][rental_ds_id.replace('_ds', '')] = undefined;
+                saveData['hls_duration_ln_list'][0][deposit_ds_id.replace('_ds', '')] = undefined;
+                saveData['hls_duration_ln_list'][0][expense_ds_id.replace('_ds', '')] = undefined;
+                saveData['hls_duration_ln_list'][0][payment_ds_id.replace('_ds', '')] = undefined;
+                saveData['hls_duration_ln_list'][0][paynote_ds_id.replace('_ds', '')] = undefined;
+
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/duration/et/save',
+                    para: saveData,
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        all_query();
+                        if (duration_type == 'ET') {
+                            quotation_id = res.result.record[0].et_quotation_id;
+                        } else if (duration_type == 'PREPAYMENT') {
+                            quotation_id = res.result.record[0].prepayment_quotation_id;
+                        }
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+
+        };
+
+
+        //提前结清  测算按钮 && 提前还款 测算按钮
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+
+            if (quotation_id != null) {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/duration/et/calculate?lnId=' + '${/parameter/@ln_id}',
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        all_query();
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+
+        }
+
+        //提前还款 报价详情
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+
+            var base_info_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln');
+            var base_record = $(base_info_ds).getAt(0);
+            var priceList = base_record.get('prepayment_price_list');
+            var finance_amount = base_record.get('finance_amount');
+            if (quotation_id != null) {
+                var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&price_list=' + priceList + '&finance_amount=' + finance_amount;
+                var excelEdit = '${/parameter/@excel_edit}';
+                if (excelEdit != 'Y') {
+                    if ('${/parameter/@function_usage}' == 'QUERY') {
+                        url = url + '&readOnly=Y';
+                    }
+                }
+                var win = new Leaf.Window({
+                    id: 'hls900_open_price_winid',
+                    url: url,
+                    title: 'excel测算',
+                    fullScreen: true
+                });
+                win.on('close', function () {
+                    all_query()
+                });
+
+            } else {
+                Leaf.showMessage("提示", "请先点击保存!", null);
+                return false;
+            }
+
+
+        }
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+
+            var duration_deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit', 'F_DEPOSIT_INFO');
+            var credit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_CREDIT_INFO');
+
+            if (duration_deposit_ds_id == ds.id) {
+                //针对于保证金冲抵、退还方案 是否需要退还 影响 下方gird 只读还是必填
+                if (name == 'is_refund_flag') {
+                    window['${/parameter/@layout_code}_grid_refund_update'](value);
+                }
+                if (name == 'is_deduction_flag') {
+                    window['${/parameter/@layout_code}_grid_deduction_update'](value);
+                }
+            }
+            //保证金退还和抵扣 本次冲抵金额不能大于剩余金额
+            if (credit_ds_id == ds.id) {
+
+                var deduction_amount = record.get('deduction_amount') || 0;
+                var residual_amount = record.get('residual_amount') || 0;
+                var residual_interest = record.get('residual_interest') || 0;
+
+                if (name == 'deduction_amount') {
+                    if (minus(value, residual_amount) > 0) {
+                        Leaf.showMessage('提示！', '本次抵扣金额:' + value + '大于剩余金额:' + record.get('residual_amount'));
+                        return;
+                    } else if (minus(value, residual_amount) <= 0 && minus(value, residual_interest) <= 0) {
+                        record.set('deduction_principal', 0);
+                        record.set('deduction_interest', value || 0);
+                    } else if (minus(value, residual_amount) <= 0 && minus(value, residual_interest) >= 0) {
+                        record.set('deduction_principal', minus(value, residual_interest));
+                        record.set('deduction_interest', residual_interest);
+                    }
+                } else if (name == 'deduction_principal') {
+                    record.set('deduction_interest', minus(deduction_amount, value));
+
+                } else if (name == 'deduction_interest') {
+                    record.set('deduction_principal', minus(deduction_amount, value));
+                }
+            }
+        };
+
+        window['${/parameter/@layout_code}_grid_refund_update'] = function (value) {
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var deposit_records = $(deposit_ds_id).getAll();
+            var interest_records = $(interest_ds_id).getAll();
+            if (value == 'Y') {
+                deposit_records.forEach(function (record) {
+                    record.getField('refund_amount').setReadOnly(false);
+                    record.getField('refund_amount').setRequired(true);
+                });
+                interest_records.forEach(function (record) {
+                    record.getField('refund_amount').setReadOnly(false);
+                    record.getField('refund_amount').setRequired(true);
+                });
+            } else {
+                deposit_records.forEach(function (record) {
+                    record.getField('refund_amount').setReadOnly(true);
+                    record.getField('refund_amount').setRequired(false);
+                    record.set('refund_amount', 0);
+                });
+                interest_records.forEach(function (record) {
+                    record.getField('refund_amount').setReadOnly(true);
+                    record.getField('refund_amount').setRequired(false);
+                    record.set('refund_amount', 0);
+                });
+            }
+        };
+
+        window['${/parameter/@layout_code}_grid_deduction_update'] = function (value) {
+            var deposit_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_DEPOSIT_INFO');
+            var interest_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_ln', 'G_INTEREST_INFO');
+            var deposit_records = $(deposit_ds_id).getAll();
+            var interest_records = $(interest_ds_id).getAll();
+            if (value == 'Y') {
+                deposit_records.forEach(function (record) {
+                    record.getField('deduction_amount').setReadOnly(false);
+                    record.getField('deduction_amount').setRequired(true);
+                });
+                interest_records.forEach(function (record) {
+                    record.getField('deduction_amount').setReadOnly(false);
+                    record.getField('deduction_amount').setRequired(true);
+                });
+            } else {
+                deposit_records.forEach(function (record) {
+                    record.getField('deduction_amount').setReadOnly(true);
+                    record.getField('deduction_amount').setRequired(false);
+                    record.set('deduction_amount', 0);
+                });
+                interest_records.forEach(function (record) {
+                    record.getField('deduction_amount').setReadOnly(true);
+                    record.getField('deduction_amount').setRequired(false);
+                    record.set('deduction_amount', 0);
+                });
+            }
+        };
+
+
+        //grid的渲染，设置编辑模式
+        //点击下方刷新按钮时，可以保持只读、必填等状态
+        window['${/parameter/@layout_code}_renderer_model'] = function (temp_value, record, name, editor_record) {
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_deposit');
+            if (ds_id) {
+                var deposit_record = $(ds_id).getCurrentRecord();
+                var is_refund_flag = deposit_record.get('is_refund_flag');
+                var is_deduction_flag = deposit_record.get('is_deduction_flag');
+                //保证金抵扣、退还
+                if (name == 'refund_amount') {
+                    if (is_refund_flag == 'Y') {
+                        record.getField('refund_amount').setReadOnly(false);
+                        record.getField('refund_amount').setRequired(true);
+
+                    } else {
+                        record.getField('refund_amount').setReadOnly(true);
+                        record.getField('refund_amount').setRequired(false);
+                    }
+                }
+                if (name == 'deduction_amount') {
+                    if (is_deduction_flag == 'Y') {
+                        record.getField('deduction_amount').setReadOnly(false);
+                        record.getField('deduction_amount').setRequired(true);
+
+                    } else {
+                        record.getField('deduction_amount').setReadOnly(true);
+                        record.getField('deduction_amount').setRequired(false);
+                    }
+                }
+            }
+        };
+
+
+        //保证金方案保存
+        window['${/parameter/@layout_code}_G_DEPOSIT_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var ds_id = '${/parameter/@layout_code}_G_DEPOSIT_prj_quotation_cashflow_ds';
+            if ($(ds_id).validate()) {
+                Leaf.Masker.mask(Ext.getBody(), '正在保存...');
+                var datas = $(ds_id).getJsonData();
+                Leaf.request({
+                    url: $('hls900_quotation_fee_save_link_id').getUrl(),
+                    type: "POST",
+                    para: datas,
+                    success: function (res) {
+                        $L.showInfoMessage("提示", "保存成功!", function () {
+                            all_query();
+                        });
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+        };
+
+        //保证金方案删除
+        window['${/parameter/@layout_code}_G_DEPOSIT_USER_BUTTON2_layout_dynamic_tab_click'] = function () {
+            var ds_id = '${/parameter/@layout_code}_G_DEPOSIT_prj_quotation_cashflow_ds';
+            Leaf.Masker.mask(Ext.getBody(), '正在删除...');
+            var datas = $(ds_id).getSelectedJson();
+            for (var i = 0; i < datas.length; i++) {
+                datas[i]['__status'] = 'delete';
+            }
+            Leaf.request({
+                url: $('hls900_quotation_fee_save_link_id').getUrl(),
+                type: "POST",
+                para: datas,
+                success: function (res) {
+                    $L.showInfoMessage("提示", "删除成功!", function () {
+                        all_query();
+                    });
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        };
+
+        //费用方案保存
+        window['${/parameter/@layout_code}_G_EXPENSE_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var ds_id = '${/parameter/@layout_code}_G_EXPENSE_prj_quotation_cashflow_ds';
+            if ($(ds_id).validate()) {
+                Leaf.Masker.mask(Ext.getBody(), '正在保存...');
+                var datas = $(ds_id).getJsonData();
+                Leaf.request({
+                    url: $('hls900_quotation_fee_save_link_id').getUrl(),
+                    type: "POST",
+                    para: datas,
+                    success: function (res) {
+                        $L.showInfoMessage("提示", "保存成功!", function () {
+                            all_query();
+                        });
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+        };
+        //费用方案删除
+        window['${/parameter/@layout_code}_G_EXPENSE_USER_BUTTON2_layout_dynamic_tab_click'] = function () {
+            var ds_id = '${/parameter/@layout_code}_G_EXPENSE_prj_quotation_cashflow_ds';
+            Leaf.Masker.mask(Ext.getBody(), '正在删除...');
+            var datas = $(ds_id).getSelectedJson();
+            for (var i = 0; i < datas.length; i++) {
+                datas[i]['__status'] = 'delete';
+            }
+            Leaf.request({
+                url: $('hls900_quotation_fee_save_link_id').getUrl(),
+                type: "POST",
+                para: datas,
+                success: function (res) {
+                    $L.showInfoMessage("提示", "删除成功!", function () {
+                        all_query();
+                    });
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+
+            if (ds.id == '${/parameter/@layout_code}_G_EXPENSE_prj_quotation_cashflow_ds') {
+                record.set('quotation_id', quotation_id);
+            }
+
+            if (ds.id == '${/parameter/@layout_code}_G_DEPOSIT_prj_quotation_cashflow_ds') {
+                record.set('quotation_id', quotation_id);
+            }
+
+        };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+
+

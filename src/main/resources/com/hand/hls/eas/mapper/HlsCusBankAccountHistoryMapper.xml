@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.eas.mapper.HlsCusBankAccountHistoryMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.eas.dto.HlsCusBankAccountHistory">
+        <result column="HISTORY_ID" property="historyId" jdbcType="DECIMAL" />
+        <result column="NUMBER_CODE" property="numberCode" jdbcType="VARCHAR" />
+        <result column="NAME" property="name" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_NUMBER" property="bankAccountNumber" jdbcType="VARCHAR" />
+        <result column="COMPANY" property="company" jdbcType="VARCHAR" />
+        <result column="BANK" property="bank" jdbcType="VARCHAR" />
+        <result column="IS_BY_CURRENCY" property="isByCurrency" jdbcType="VARCHAR" />
+        <result column="CURRENCY" property="currency" jdbcType="VARCHAR" />
+        <result column="ACCOUNT" property="account" jdbcType="VARCHAR" />
+        <result column="PROPERTY" property="property" jdbcType="VARCHAR" />
+        <result column="OPEN_DATE" property="openDate" jdbcType="VARCHAR" />
+        <result column="ACCOUNT_TYPE" property="accountType" jdbcType="VARCHAR" />
+        <result column="history_date" property="historyDate" jdbcType="VARCHAR" />
+        <result column="HISTORY_VERSION" property="historyVersion" jdbcType="DECIMAL" />
+    </resultMap>
+
+    <select id="insertBnakAccountHistroryData" parameterType="com.hand.hls.eas.dto.HlsCusBankAccountHistory" resultMap="BaseResultMap">
+  insert into eas_bank_account_history
+   (history_id,
+    number_code,
+    name,
+    bank_account_number,
+    company,
+    bank,
+    is_by_currency,
+    currency,
+    account,
+    property,
+    open_date,
+    account_type,
+    history_date,
+    history_version)
+   select eas_bank_account_history_s.nextval,
+          nvl(t2.ref_v05,'HX'||t2.bank_account_id) as number_code,
+          t2.bank_account_name as name,
+          t2.bank_account_num as bank_account_number,
+          (select fc.ws_com_code
+             from fnd_company fc
+            where fc.company_id = t2.company_id) company,
+           t2.ref_v04 as bank,
+          'true' as is_by_currency,
+          (select fc.eas_code from fnd_currency fc where fc.currency_code=t2.currency)currency,
+          t2.gld_account_code as account,
+          t2.bank_account_type as property,
+          t2.opening_date  open_date,
+          t2.ref_v02 as account_type,
+         sysdate  as history_date,
+          #{historyVersion}
+     from csh_bank t, csh_bank_account t2
+    where t.bank_id = t2.bank_id
+      and t.enabled_flag = 'Y'
+      and t2.enabled_flag = 'Y'
+      and nvl(t2.code,'null') not in ('200')
+    </select>
+
+
+
+    <select id="selectMaxHistoryVersion" parameterType="com.hand.hls.eas.dto.HlsCusBankAccountHistory" resultMap="BaseResultMap">
+     select nvl(max(t.history_version),0)+1 as history_version from eas_bank_account_history t
+    </select>
+
+
+    <select id="selectBankAccountData" parameterType="com.hand.hls.eas.dto.HlsCusBankAccountHistory" resultMap="BaseResultMap">
+       select * from
+        (select number_code,
+       name,
+       bank_account_number,
+       company,
+       bank,
+       is_by_currency,
+       currency,
+       account,
+       property,
+       open_date,
+       account_type
+  from eas_bank_account_history t
+ where
+ exists (select 1 from csh_bank_account cba where nvl(cba.ref_v05,'HX'||cba.bank_account_id)=t.number_code and cba.code='200')
+ and t.history_version = #{historyVersion}
+minus
+select number_code,
+       name,
+       bank_account_number,
+       company,
+       bank,
+       is_by_currency,
+       currency,
+       account,
+       property,
+       open_date,
+       account_type
+  from eas_bank_account_history t
+ where
+ exists (select 1 from csh_bank_account cba where nvl(cba.ref_v05,'HX'||cba.bank_account_id)=t.number_code and cba.code='200')
+ and t.history_version = #{historyVersion} - 1
+union all
+ select
+ number_code,
+       name,
+       bank_account_number,
+       company,
+       bank,
+       is_by_currency,
+       currency,
+       account,
+       property,
+       open_date,
+       account_type
+   from eas_bank_account_history t1
+  where exists (select 1
+           from csh_bank_account cba
+          where nvl(cba.ref_v05,'HX'||cba.bank_account_id) = t1.number_code
+            and nvl(cba.code, '1')  not in('200'))
+             and t1.history_version = #{historyVersion}) v
+    </select>
+</mapper>

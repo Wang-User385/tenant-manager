@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    页面布局规则定义
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function hls_layout_code_rule_query() {
+            $('hls_layout_code_rule_ds').query();
+        }
+        function hls_layout_code_rule_reset() {
+            $('hls_layout_code_rule_query_ds').reset();
+        }
+        function hls_layout_code_rule_quit() {
+            $('${/parameter/@winid}').close();
+        }
+        function onSubmitSuccess_hls_layout_code_rule_ds(ds) {
+            hls_layout_code_rule_query();
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="hls_layout_code_rule_query_ds"></a:dataSet>
+            <a:dataSet id="hls_layout_code_rule_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/fnd/layoutCodeRuleEngine/list/query"
+                       submitUrl="${/request/@context_path}/fnd/layoutCodeRuleEngine/list/submit"
+                       deleteUrl="${/request/@context_path}/fnd/layoutCodeRuleEngine/list/remove"
+                       queryDataSet="hls_layout_code_rule_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="function_code" title="选择功能" required="true" autoComplete="true" fetchRemote="false"
+                             lovWidth="500" lovHeight="450" lovGridHeight="300"
+                             lovService="/sys/function/query~hls.layout.dto.LovSysFunctionDto">
+                        <a:mapping>
+                            <a:map from="function_code" to="function_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="layout_code" title="页面布局代码选择" required="true" fetchRemote="false" editable="false"
+                             lovWidth="500" lovHeight="450" lovGridHeight="300"
+                             lovService="/hls/rule/engine/resultLov?ruleEngineId=161~hls.layout.dto.LovRuleEngineResultDto">
+                        <a:mapping>
+                            <a:map from="code" to="layout_code"/>
+                            <a:map from="name" to="layout_desc"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_hls_layout_code_rule_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="hls_layout_code_rule_query" text="HAP.QUERY"/>
+                <a:gridButton click="hls_layout_code_rule_reset" text="HAP.RESET"/>
+                <a:gridButton bind="hls_layout_code_rule_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="hls_layout_code_rule_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton bind="hls_layout_code_rule_ds_grid" text="HAP.SAVE" type="save"/>
+            </a:screenTopToolbar>
+            <a:form column="3" labelwidth="110" title="查询条件" labelWidth="100">
+                <a:textField name="function_code" bindTarget="hls_layout_code_rule_query_ds"
+                             prompt="功能代码" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="hls_layout_code_rule_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="layout_code" bindTarget="hls_layout_code_rule_query_ds"
+                             prompt="布局代码" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="hls_layout_code_rule_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="layout_desc" bindTarget="hls_layout_code_rule_query_ds"
+                             prompt="布局描述" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="hls_layout_code_rule_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="hls_layout_code_rule_ds_grid" bindTarget="hls_layout_code_rule_ds" marginHeight="150" marginWidth="30"
+                    navBar="true">
+                <a:columns>
+                    <a:column name="function_code" width="220" prompt="功能代码" editor="hls_layout_code_rule_ds_grid_lv"/>
+                    <a:column name="layout_code" width="200" prompt="页面布局代码" editor="hls_layout_code_rule_ds_grid_lv"/>
+                    <a:column name="layout_desc" width="200" prompt="页面布局描述"/>
+                    <a:column name="enabled_flag" width="220" prompt="启用" align="center" editor="hls_layout_code_rule_ds_grid_cb"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="hls_layout_code_rule_ds_grid_tf"/>
+                    <a:lov id="hls_layout_code_rule_ds_grid_lv"/>
+                    <a:checkBox id="hls_layout_code_rule_ds_grid_cb"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

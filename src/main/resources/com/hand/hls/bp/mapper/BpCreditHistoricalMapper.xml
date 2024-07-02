@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.BpCreditHistoricalMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.BpCreditHistorical">
+        <result column="CREDIT_HISTORICAL_ID" property="creditHistoricalId" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="FINANCING_SUB_NAME" property="financingSubName" jdbcType="VARCHAR" />
+        <result column="APPROVAL_DATE" property="approvalDate" jdbcType="DATE" />
+        <result column="APPROVAL_AMOUNT" property="approvalAmount" jdbcType="DECIMAL" />
+        <result column="RELEASE_AMOUNT" property="releaseAmount" jdbcType="DECIMAL" />
+        <result column="PRINCIPAL_BALANCE" property="principalBalance" jdbcType="DECIMAL" />
+        <result column="DUE_DATE" property="dueDate" jdbcType="DATE" />
+        <result column="NORMAL_REPAYMENT" property="normalRepayment" jdbcType="VARCHAR" />
+        <result column="NORMAL_REPAYMENT_N" property="normalRepaymentN" jdbcType="VARCHAR" />
+        <result column="CREDIT_MEASURES" property="creditMeasures" jdbcType="VARCHAR" />
+        <result column="financing_sub_id" property="financingSubId" jdbcType="DECIMAL" />
+        <result column="financing_sub_id_n" property="financingSubIdN" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryAll" parameterType="com.hand.hls.bp.dto.HlsCusBpAssetslistMovables" resultMap="BaseResultMap">
+        SELECT
+        bch.*,
+        (select hbm.bp_name
+        from hls_bp_master hbm
+        where hbm.bp_id = bch.financing_sub_id) financing_sub_id_n,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'SYS.YES_NO'
+        and sc.code_value = bch.NORMAL_REPAYMENT) NORMAL_REPAYMENT_N
+        FROM
+        HLS_BP_CREDIT_HISTORICAL  bch
+        <where>
+            <if test="bpId != null">
+                bch.bp_id = #{bpId}
+            </if>
+            <if test="creditHistoricalId != null">
+                bch.CREDIT_HISTORICAL_ID = #{creditHistoricalId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: huangtianyang
+    Date: 2019/02/19 16:37
+    Revision: 1.0 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="very_detail_id" url="${/request/@context_path}/modules/EFT/EFT100/very_detail.lview"/>
+        <a:link id="copy_detail_id" url="${/request/@context_path}/modules/EFT/EFT100/recvice_copy.lview"/>
+        <script><![CDATA[
+
+
+        // 超链接渲染 上传附件
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            var link_function = 'upload_file';
+            if (name === 'upload' && record.get('transfer_list_id')){
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('transfer_list_id') + '\');">附件</a>';
+            }
+            if (name === 'write_off_detail' && record.get('source_doc_id')){
+                return '<a href="javascript:window[\'' + 'write_off_link' + '\'](\'' + record.id + '\',\'' + record.get('source_doc_id') + '\',\''+ record.get('source_doc_category') + '\');">核销情况</a>';
+            }
+            if (name === 'detail' && record.get('transfer_id')){
+                return '<a href="javascript:window[\'' + 'approve_link' + '\'](\'' + record.id + '\',\'' + record.get('transfer_id') + '\');">审批明细</a>';
+            }
+            return value;
+        };
+
+        window['${/parameter/@layout_code}_G_CON_USER_BUTTON1_layout_dynamic_tab_click'] = function() {
+            var ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'eft_fund_transfer');
+            var record = $(ds).getAt(0);
+            var param = {};
+            param['business_type'] = record.get('business_type');
+            param['transfer_id'] = '${/parameter/@transfer_id}';
+            param['url_title'] = '资金调拨历史清单';
+            param['function_code'] = 'EFT102';
+            param['winid'] = 'copy_detail_winid';
+            param['screen_width'] = '1400';
+            param['screen_height'] = '400';
+            param['side'] = 'right';
+            hls_doc_get_layout_code(param, 'copy_detail_id', get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'eft_fund_transfer_list'), null);
+        }
+
+        window['approve_link'] = function(record_id,transfer_id){
+            Leaf.request({
+                url: "${/request/@context_path}/wfl/history/process/task/queryId?workFlowKey=TREASURY_DEPARTMENT_FUND_TRANSFER_WFL&businessKey="+'${/parameter/@transfer_id}',
+                success: function (r) {
+                    if(!r.result.record[0].process_instance_id){
+                        return;
+                    }
+                    new Leaf.Window({
+                        id: 'win_process_instance_info_detail',
+                        url: '${/request/@context_path}/modules/WFL/WFL003/process_instance_detail.lview',
+                        params: {
+                            id: r.result.record[0].process_instance_id,
+                            taskId: -1,
+                            winid:'win_process_instance_info_detail'
+                        },
+                        title: '资金调拨审批流程',
+                        fullScreen:true
+                    });
+                },
+                error: function () {
+                    Leaf.showMessage("提示", "初始化出错!", null);
+                },
+                scope: this
+            });
+
+
+        }
+
+        window['write_off_link'] = function(record_id,source_doc_id, source_doc_category){
+            var param = {};
+            param['source_doc_id'] = source_doc_id;
+            param['source_doc_category'] = source_doc_category;
+            param['url_title'] = '核销情况明细';
+            param['function_code'] = 'EFT103';
+            param['winid'] = 'very_detail_winid';
+            param['screen_width'] = '1000';
+            param['screen_height'] = '400';
+            param['side'] = 'right';
+            hls_doc_get_layout_code(param, 'very_detail_id', null, null);
+        }
+
+        window['upload_file'] = function(record_id,transfer_list_id){
+            var url;
+            if ('${/parameter/@function_usage}' === 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'fin002_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': transfer_list_id,
+                    'table_name': 'EFT_FUND_TRANSFER_LIST',
+                    winid: 'cont301_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+        }
+
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function (rollBack) {
+            var ds1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'eft_fund_transfer');
+            var ds2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'eft_fund_transfer_list');
+            if(!$(ds2).validate()){
+                return;
+            }
+            var all = $(ds2).getAll();
+            var array = [];
+            for(var i = 0; i < all.length; i++){
+                if(all[i].dirty){
+                    array.push(all[i].data);
+                }
+            }
+            var record = $(ds1).getAt(0);
+            $L.Masker.mask(document.body, "保存中..");
+            Leaf.request({
+                url: "${/request/@context_path}/eft/fund/transfer/submit",
+                para: {
+                    business_type: record.get('business_type'),
+                    transfer_id: record.get('transfer_id'),
+                    apply_number: record.get('apply_number'),
+                    finance_flag: record.get('finance_flag'),
+                    transfer_lists: array,
+                },
+                success: function (r) {
+                    $(ds2).query();
+                    $L.Masker.unmask(document.body);
+                    if(typeof rollBack === "function"){
+                        rollBack();
+                    }else{
+                        Leaf.showMessage("提示", "保存成功!", null);
+                    }
+                },
+                error: function () {
+                    $L.Masker.unmask(document.body);
+                    Leaf.showMessage("提示", "保存出错!", null);
+                },
+                scope: this
+            });
+        };
+
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'](function () {
+                $L.Masker.mask(document.body, "提交中..");
+                Leaf.request({
+                    url: "${/request/@context_path}/eft/fund/transfer/submitApproval",
+                    para: {transfer_id: '${/parameter/@transfer_id}'},
+                    success: function (r) {
+                        $L.Masker.unmask(document.body);
+                        $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                            $('${/parameter/@winid}').close();
+                        });
+                    },
+                    error: function () {
+                        $L.Masker.unmask(document.body);
+                        Leaf.showMessage("提示", "提交出错!", null);
+                    },
+                    scope: this
+                });
+            })
+        };
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+            var ds1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'eft_fund_transfer');
+            if($(ds1).getAt(0).get('business_type') === 'GAP'){
+                ds.getField('direct_flag_n').setRequired(true);
+            }else{
+                ds.getField('direct_flag_n').setReadOnly(true);
+            }
+
+        };
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value, bp_seq) {
+            var ds1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'eft_fund_transfer');
+            if($(ds1).getAt(0).get('business_type') === 'GAP'){
+                if(record.modified.hasOwnProperty('direct_flag') && record.get('direct_flag') === 'Y'){
+                    record.getField('in_bank_account_id_n').setRequired(false);
+                    record.getField('in_bank_account_id_n').setReadOnly(true);
+                    record.getField('in_bank_account_num').setReadOnly(true);
+                    record.getField('in_bank_branch_name').setReadOnly(true);
+                    record.set('in_bank_account_id_n', null);
+                    record.set('in_bank_account_id', null);
+                    record.set('in_bank_account_num', null);
+                    record.set('in_bank_branch_name', null);
+
+                }
+                if(record.modified.hasOwnProperty('direct_flag') && record.get('direct_flag') === 'N'){
+                    record.getField('in_bank_account_id_n').setRequired(true);
+                    record.getField('in_bank_account_id_n').setReadOnly(false);
+                    record.getField('in_bank_account_num').setReadOnly(false);
+                    record.getField('in_bank_branch_name').setReadOnly(false);
+                }
+            }
+
+
+        };
+
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+    
+    

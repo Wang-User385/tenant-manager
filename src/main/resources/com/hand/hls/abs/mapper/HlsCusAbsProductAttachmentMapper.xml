@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProductAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProductAttachment">
+        <result column="product_attachment_id" property="productAttachmentId" jdbcType="DECIMAL" />
+        <result column="product_id" property="productId" jdbcType="DECIMAL" />
+        <result column="product_attachment_category" property="productAttachmentCategory" jdbcType="VARCHAR" />
+        <result column="document_name" property="documentName" jdbcType="VARCHAR" />
+        <result column="source_id" property="sourceId" jdbcType="DECIMAL" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="wfl_upload" property="wflUpload" jdbcType="VARCHAR" />
+        <result column="final_print_flag" property="finalPrintFlag" jdbcType="VARCHAR" />
+        <result column="stamp_name" property="stampName" jdbcType="VARCHAR" />
+        <result column="company_seal" property="companySeal" jdbcType="VARCHAR" />
+        <result column="rep_seal" property="repSeal" jdbcType="VARCHAR" />
+        <result column="copies" property="copies" jdbcType="VARCHAR" />
+        <result column="print_comment" property="printComment" jdbcType="VARCHAR" />
+        <result column="attachment_code" property="attachmentCode" jdbcType="VARCHAR" />
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL" />
+        <result column="order_bigint" property="orderBigint" jdbcType="DECIMAL" />
+        <result column="file_names" property="fileNames" jdbcType="DECIMAL" />
+        <result column="creation_date" property="creationDate" jdbcType="DECIMAL" />
+    </resultMap>
+    <select id="selectAbsProductAtt" resultMap="BaseResultMap" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductAttachment">
+        SELECT
+        t.*,
+        (
+        SELECT
+        wm_concat( sa.FILE_NAME )
+        FROM
+        fnd_atm_attachment_multi sf,
+        fnd_atm_attachment sa
+        WHERE
+        sf.attachment_id = sa.attachment_id
+        AND upper( sf.table_name ) = 'ct_abs_product_attachment'
+        AND t.product_attachment_id = sf.table_pk_value
+        <if test="sourceType!= null">
+            AND sa.SOURCE_TYPE = #{sourceType}
+        </if>
+        ) file_names
+        FROM
+        ct_abs_product_attachment t
+        where t.product_id = #{productId,jdbcType=BIGINT}
+    </select>
+
+</mapper>

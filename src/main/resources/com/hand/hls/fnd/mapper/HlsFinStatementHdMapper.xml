@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hand.hls.fnd.mapper.HlsFinStatementHdMapper">
+    <resultMap id="resultMap" type="com.hand.hls.fnd.dto.HlsFinStatementHd">
+        <id column="fin_statement_hd_id" property="finStatementHdId" jdbcType="BIGINT"/>
+        <result column="fin_statement_templet_hd_id" property="finStatementTempletHdId" jdbcType="BIGINT"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
+        <result column="bp_id" property="bpId" jdbcType="BIGINT"/>
+        <result column="fiscal_year" property="fiscalYear" jdbcType="BIGINT"/>
+        <result column="fiscal_month" property="fiscalMonth" jdbcType="BIGINT"/>
+        <result column="currency_code" property="currencyCode" jdbcType="VARCHAR"/>
+        <result column="fin_statement_templet_name" property="finStatementTempletName"/>
+        <result column="CREATION_DATE" property="creationDate"/>
+        <result column="REPORT_YEAR" property="reportYear" jdbcType="VARCHAR"/>
+        <result column="REPORT_TYPE" property="reportType" jdbcType="VARCHAR"/>
+        <result column="IF_FINANCIAL_COMPANY" property="ifFinancialCompany" jdbcType="VARCHAR"/>
+        <result column="IF_AUDIT" property="ifAudit" jdbcType="VARCHAR"/>
+        <result column="AUDIT_INSTITUTION" property="auditInstitution" jdbcType="VARCHAR"/>
+        <result column="AUDIT_RESULTS" property="auditResults" jdbcType="VARCHAR"/>
+        <result column="IF_APPROVED_BRANCH" property="ifApprovedBranch" jdbcType="VARCHAR"/>
+        <result column="check_status" property="checkStatus" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="hdQuery" parameterType="com.hand.hls.fnd.dto.HlsFinStatementHd" resultMap="resultMap">
+        SELECT v.*
+        FROM
+        (SELECT a.fin_statement_hd_id,
+        a.fin_statement_templet_hd_id,
+        a.company_id,
+        a.bp_id,
+        a.fiscal_year,
+        a.fiscal_year year,
+        a.fiscal_month,
+        b.fin_statement_templet_name,
+        a.currency_code,
+        a.CREATION_DATE
+        FROM hls_fin_statement_hd a
+        LEFT JOIN hls_fin_statement_tmplt_hd b
+        ON a.fin_statement_templet_hd_id=b.fin_statement_templet_hd_id) v
+        <where>
+            <if test="bpId!=null">
+                v.bp_id=#{bpId}
+            </if>
+            <if test="fiscalYear!=null">
+                AND v.fiscal_year=#{fiscalYear}
+            </if>
+            <if test="fiscalMonth!=null">
+                AND v.fiscal_month=#{fiscalMonth}
+            </if>
+            <if test="projectId!=null and  bpType=='tenant'">
+                AND v.bp_id in (SELECT
+                ppt.tenant_bp_id
+                FROM
+                prj_project_tenant ppt
+                WHERE
+                ppt.project_id = #{projectId})
+            </if>
+            <if test="projectId!=null and  bpType=='guarantor'">
+                AND v.bp_id IN (
+                SELECT
+                ppg.guarantor_bp_id
+                FROM
+                prj_project_guarantor ppg
+                WHERE
+                ppg.project_id = #{projectId}
+                )
+            </if>
+        </where>
+        ORDER BY fin_statement_hd_id DESC
+    </select>
+
+    <select id="hdDistinctQuery" parameterType="com.hand.hls.fnd.dto.HlsFinStatementHd" resultMap="resultMap">
+        SELECT distinct max(a.fin_statement_hd_id) as fin_statement_hd_id,
+                        max(a.bp_id) as  bp_id,
+                        max(b.fin_statement_templet_name) as fin_statement_templet_name,
+                        max(a.CREATION_DATE) as  CREATION_DATE,
+                        a.fin_statement_templet_hd_id as fin_statement_templet_hd_id,
+                        max(a.check_status) as check_status
+
+        FROM hls_fin_statement_hd a
+        LEFT JOIN hls_fin_statement_tmplt_hd b
+            ON a.fin_statement_templet_hd_id = b.fin_statement_templet_hd_id
+        <where>
+            1=1
+            <if test="bpId!=null">
+              and  a.bp_id=#{bpId}
+            </if>
+        </where>
+        group by a.bp_id ,a.fin_statement_templet_hd_id , a.header_id
+    </select>
+
+
+    <select id="hdQueryByTime" parameterType="com.hand.hls.fnd.dto.HlsFinStatementHd" resultMap="resultMap">
+        SELECT *
+        FROM hls_fin_statement_hd hfsh
+        WHERE
+        hfsh.bp_id = #{bpId}
+        <where>
+            <if test="companyId!=null">
+                AND hfsh.company_id = #{companyId}
+            </if>
+        </where>
+        ORDER BY
+        hfsh.fiscal_year,hfsh.fiscal_month
+    </select>
+
+    <select id="hdYearQuery" parameterType="com.hand.hls.fnd.dto.HlsFinStatementHd" resultMap="resultMap">
+        SELECT
+        distinct a.fiscal_year year
+        FROM hls_fin_statement_hd a
+        LEFT JOIN hls_fin_statement_tmplt_hd b
+        ON a.fin_statement_templet_hd_id=b.fin_statement_templet_hd_id
+        <where>
+        1=1
+            <if test="bpId!=null">
+             and    a.bp_id=#{bpId}
+            </if>
+        </where>
+        ORDER BY fiscal_year DESC
+    </select>
+
+    <select id="hdQueryBasicBp" parameterType="com.hand.hls.fnd.dto.HlsFinStatementHd" resultMap="resultMap">
+        SELECT *
+        FROM hls_fin_statement_hd hfsh
+        <where>
+            1 = 1
+            and hfsh.fiscal_year is not null
+            <if test="headerId!=null">
+                AND hfsh.header_id = #{headerId}
+            </if>
+            <if test="bpId!=null">
+                and hfsh.bp_id = #{bpId}
+            </if>
+        </where>
+        ORDER BY
+        hfsh.fiscal_year
+    </select>
+
+
+    <select id="hdHeaderIdQuery" parameterType="com.hand.hls.fnd.mapper.HlsFinStatementHdMapper" resultType="java.lang.Long">
+        SELECT  max(distinct header_id) as header_id
+        FROM  hls_fin_statement_hd
+        <where>
+        1=1
+            <if test="bpId !=null">
+             and   bp_id= #{bpId}
+            </if>
+
+        </where>
+        group by bp_id
+    </select>
+
+    <update id="updateCheckStatus">
+        UPDATE
+            hls_fin_statement_hd a
+        SET
+            a.check_status = #{checkStatus}
+        WHERE
+            a.bp_id = #{bpId}
+        AND a.header_id=#{headerId}
+        and a.fin_statement_templet_hd_id = #{finStatementTempletHdId}
+
+    </update>
+    <update id="updateHeaderIdNull">
+        UPDATE
+            hls_fin_statement_hd a
+        SET
+            a.header_id = null
+        WHERE
+            a.bp_id = #{bpId}
+        AND a.header_id=#{headerId}
+        and a.fin_statement_templet_hd_id = #{finStatementTempletHdId}
+
+    </update>
+
+
+    <delete id="deleteBpHdInfo">
+        DELETE FROM
+              hls_fin_statement_hd
+        where bp_id = #{bpId}
+            and fin_statement_templet_hd_id = #{finStatementTempletHdId}
+            and header_id = #{headerId}
+
+    </delete>
+
+    <select id="hdReportYearQuery" parameterType="com.hand.hls.fnd.dto.HlsFinStatementHd" resultMap="resultMap">
+        SELECT
+         a.report_year  report_year
+        FROM hls_fin_statement_hd a ,hls_fin_statement_tmplt_hd b
+
+        <where>
+            a.fin_statement_templet_hd_id=b.fin_statement_templet_hd_id
+            <if test="bpId!=null">
+            and    a.bp_id=#{bpId}
+            </if>
+            <if test="headerId != null">
+            and    a.header_id = #{headerId}
+            </if>
+        </where>
+        ORDER BY fiscal_year
+    </select>
+
+</mapper>

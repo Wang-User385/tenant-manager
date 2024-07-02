@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sys.mapper.SysTemplateMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.sys.dto.SysTemplate">
+        <result column="TEMPLATE_ID" property="templateId" jdbcType="DECIMAL" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR" />
+        <result column="FILE_NAME" property="fileName" jdbcType="VARCHAR" />
+        <result column="ATTACHMENT_ID" property="attachmentId" jdbcType="VARCHAR" />
+        <result column="query_info" property="queryInfo" jdbcType="VARCHAR" />
+        <result column="template_code" property="templateCode" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryDetail" parameterType="com.hand.hls.sys.dto.SysTemplate" resultMap="BaseResultMap">
+        select t.* from (
+            select st.*,
+            (
+                SELECT wm_concat(fa.FILE_NAME)
+                from fnd_atm_attachment fa,fnd_atm_attachment_multi fam
+                WHERE fam.table_pk_value = to_char(st.template_id)
+                and fa.attachment_id = fam.attachment_id
+                AND upper(fam.table_name) = 'SYS_TEMPLATE'
+            ) file_name,
+            (
+                SELECT fa.attachment_id
+                from fnd_atm_attachment fa,fnd_atm_attachment_multi fam
+                WHERE fam.table_pk_value = to_char(st.template_id)
+                and fa.attachment_id = fam.attachment_id
+                AND upper(fam.table_name) = 'SYS_TEMPLATE'
+        and rownum=1
+            ) attachment_id
+            from SYS_TEMPLATE st
+        ) t
+        <where>
+            <if test="templateId != null">
+                AND  t.template_id = #{templateId}
+            </if>
+            <if test="description != null">
+                AND  t.description LIKE CONCAT(CONCAT('%',#{description}),'%')
+            </if>
+            <if test="fileName != null">
+                AND  t.file_name LIKE CONCAT(CONCAT('%',#{fileName}),'%')
+            </if>
+            <if test="templateCode != null">
+                AND t.template_code = #{templateCode}
+            </if>
+        </where>
+        order by t.last_update_date desc
+    </select>
+
+    <select id="queryFile" parameterType="com.hand.hls.sys.dto.SysTemplate" resultMap="BaseResultMap">
+        select t.* from (
+            select st.*,att.*
+            from SYS_TEMPLATE st
+            left join (
+                select fa.file_name,fam.table_pk_value,fam.attachment_id,fa.source_pk_value
+                from fnd_atm_attachment fa,fnd_atm_attachment_multi fam
+                where fa.attachment_id = fam.attachment_id
+                AND upper(fam.table_name) = 'SYS_TEMPLATE'
+            ) att on att.table_pk_value = st.template_id
+        ) t
+        <where>
+            t.enabled_flag='Y'
+            <if test="templateId != null">
+                AND  t.template_id = #{templateId}
+            </if>
+            <if test="description != null">
+                AND  t.description LIKE CONCAT(CONCAT('%',#{description}),'%')
+            </if>
+            <if test="fileName != null">
+                AND  t.file_name LIKE CONCAT(CONCAT('%',#{fileName}),'%')
+            </if>
+            <if test="queryInfo != null">
+                AND (
+                    t.description LIKE CONCAT(CONCAT('%',#{queryInfo}),'%')
+                    or
+                    t.file_name LIKE CONCAT(CONCAT('%',#{queryInfo}),'%')
+                )
+            </if>
+        </where>
+        order by t.last_update_date desc
+    </select>
+
+</mapper>

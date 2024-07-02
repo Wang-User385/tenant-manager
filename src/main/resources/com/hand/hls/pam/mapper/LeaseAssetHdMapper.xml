@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.pam.mapper.LeaseAssetHdMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.pam.dto.LeaseAssetHd">
+        <result column="ASSET_HD_ID" property="assetHdId" jdbcType="DECIMAL" />
+        <result column="ASSET_NUMBER" property="assetNumber" jdbcType="VARCHAR" />
+        <result column="MODIFY_DATE" property="modifyDate" jdbcType="DATE" />
+        <result column="MODIFY_PERSON_N" property="modifyPersonN" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="MODIFY_UNIT_N" property="modifyUnitN" jdbcType="VARCHAR" />
+        <result column="ASSET_STATUS_N" property="assetStatusN" jdbcType="VARCHAR" />
+        <result column="ASSET_STATUS" property="assetStatus" jdbcType="VARCHAR" />
+        <result column="PROCESS_INSTANCE_ID" property="processInstanceId" jdbcType="VARCHAR" />
+        <result column="AUTHORITY_RULE_STRING" property="authorityRuleString" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="selectLeaseAssetHd" resultMap="BaseResultMap">
+        select
+        (select fe.NAME
+        from fnd_employee fe
+        where fe.EMPLOYEE_ID = lah.MODIFY_PERSON) MODIFY_PERSON_N,
+
+        (select scvb.meaning as value_name
+        from sys_code_value_b scvb, sys_code_b scb
+        where scb.code = 'LEASE.ASSET_STATE'
+        and scb.code_id = scvb.code_id
+        and scvb.enabled_flag = 'Y'
+        and  scvb.value = lah.ASSET_STATUS
+        )ASSET_STATUS_N,
+
+        lah.*
+        from  lease_asset_hd lah
+        <where>
+            1=1
+            <if test="assetNumber!=null">
+                and lah.ASSET_NUMBER = #{assetNumber}
+            </if>
+
+            <if test="assetHdId != null">
+                and lah.ASSET_HD_ID = #{assetHdId}
+            </if>
+            <if test="modifyDateFrom != null and modifyDateTo!=null">
+                and lah.MODIFY_DATE between #{modifyDateFrom} and #{modifyDateTo}
+            </if>
+            <if test="description != null">
+                and lah.DESCRIPTION = #{description}
+            </if>
+        </where>
+        order by lah.ASSET_NUMBER desc
+    </select>
+
+    <select id="selectLeaseAssetHdDet" resultMap="BaseResultMap">
+        select
+        lah.ASSET_STATUS,
+        lah.*,
+        (select fe.NAME
+        from fnd_employee fe
+        where fe.EMPLOYEE_ID = lah.MODIFY_PERSON) MODIFY_PERSON_N,
+        (select fou.UNIT_NAME
+        from fnd_org_unit fou
+        where fou.UNIT_ID = lah.MODIFY_UNIT) MODIFY_UNIT_N
+        from  lease_asset_hd lah
+        <where>
+
+
+            lah.ASSET_HD_ID = #{assetHdId}
+
+            <if test="modifyDateFrom != null and modifyDateTo!=null">
+                and lah.MODIFY_DATE between #{modifyDateFrom} and #{modifyDateTo}
+            </if>
+            <if test="description != null">
+                and lah.DESCRIPTION = #{description}
+            </if>
+        </where>
+
+    </select>
+
+</mapper>

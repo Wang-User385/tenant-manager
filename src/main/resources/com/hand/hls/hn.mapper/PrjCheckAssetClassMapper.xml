@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hn.mapper.PrjCheckAssetClassMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hn.dto.PrjCheckAssetClass">
+        <result column="asset_class_id" property="assetClassId" jdbcType="BIGINT" />
+        <result column="check_id" property="checkId" jdbcType="BIGINT" />
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="remark" property="remark" jdbcType="VARCHAR" />
+        <result column="FINAL_ASSETS_CLASS_RESULT_N" property="finalAssetsClassResultN" jdbcType="VARCHAR" />
+        <result column="FC_ESTIMATE_ID" property="fcEstimateId" jdbcType="DECIMAL" />
+    </resultMap>
+
+    <select id="queryList" parameterType="com.hand.hls.hn.dto.PrjCheckAssetClass" resultMap="BaseResultMap">
+            select
+        (select pcc.asset_class_id
+        from prj_check_asset_class pcc
+        where pcc.CHECK_ID = #{checkId}) asset_class_id,
+        pc.CHECK_ID,
+        MAX(afe.FC_ESTIMATE_ID),
+        (SELECt c.contract_number FROM prj_check p,
+        prj_project c
+        WHERE
+        p.contract_id = c.project_id
+        and p.CHECK_ID = #{checkId}) contract_number,
+
+        CASE
+                WHEN (select
+                                 afe.FINAL_ASSETS_CLASS_RESULT
+                                 from ast_fc_estimate afe
+                                 where afe.CONTRACT_NUMBER = (SELECt c.contract_number FROM prj_check p,
+                                                                                        prj_project c
+                                                                                        WHERE
+                                                                                        p.contract_id = c.project_id
+                                                                                        and p.CHECK_ID = #{checkId})
+        and rownum=1
+                                 ORDER BY afe.FC_ESTIMATE_ID desc ) != '' THEN
+                (
+                SELECT v.meaning
+                FROM sys_code_value_b_v v
+                WHERE v.code = 'ASSET_CLASSIFICATION_RESULTS' AND (select
+                                                                 afe.FINAL_ASSETS_CLASS_RESULT
+                                                                 from ast_fc_estimate afe
+                                                                 where afe.CONTRACT_NUMBER = (SELECt c.contract_number FROM prj_check p,
+                                                                                            prj_project c
+                                                                                            WHERE
+                                                                                            p.contract_id = c.project_id
+                                                                                            and p.CHECK_ID = #{checkId})
+        and rownum=1
+                                                                 ORDER BY afe.FC_ESTIMATE_ID desc) = v.CODE_VALUE )
+                ELSE
+                (
+                SELECT v.meaning
+                FROM sys_code_value_b_v v
+                WHERE v.code = 'ASSET_CLASSIFICATION_RESULTS' AND (select afer.FIVE_CLASS_CODE_BY_SYSTEM from ast_fc_estimate_result afer where afer.FC_ESTIMATE_ID = (select
+                                                                                 afe.FC_ESTIMATE_ID
+                                                                                 from ast_fc_estimate afe
+                                                                                 where afe.CONTRACT_NUMBER = (SELECt c.contract_number FROM prj_check p,
+                                                                                                                prj_project c
+                                                                                                                WHERE
+                                                                                                                p.contract_id = c.project_id
+                                                                                                                and p.CHECK_ID = #{checkId})
+        and rownum=1
+                                                                                 ORDER BY afe.FC_ESTIMATE_ID desc )) = v.CODE_VALUE )
+
+                END FINAL_ASSETS_CLASS_RESULT_N,
+        (select pcc.remark
+        from prj_check_asset_class pcc
+        where pcc.CHECK_ID = #{checkId}) remark
+        from prj_check pc,ast_fc_estimate afe
+        <where>
+            afe.contract_number = (SELECt c.contract_number FROM prj_check p,
+            prj_project c
+            WHERE
+            p.contract_id = c.project_id
+            and p.CHECK_ID = #{checkId})
+            and pc.CHECK_ID = #{checkId}
+        </where>
+
+    </select>
+
+</mapper>

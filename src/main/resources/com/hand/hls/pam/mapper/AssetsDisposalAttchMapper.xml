@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.pam.mapper.AssetsDisposalAttchMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.pam.dto.AssetsDisposalAttch">
+        <result column="ASSETS_DISPOSAL_ATTCH_ID" property="assetsDisposalAttchId" jdbcType="DECIMAL" />
+        <result column="ASSETS_DISPOSAL_ID" property="assetsDisposalId" jdbcType="DECIMAL" />
+        <result column="FILE_NAME" property="fileName" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="ATTACHMENT_CATEGORY" property="attachmentCategory" jdbcType="VARCHAR" />
+        <result column="UPLOAD_DATE" property="uploadDate" jdbcType="DATE" />
+        <result column="UPLOAD_PERSON" property="uploadPerson" jdbcType="VARCHAR" />
+        <result column="UPLOAD_PERSON_N" property="uploadPersonN" jdbcType="VARCHAR" />
+        <result column="document_name" property="documentName" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="queryAssetsDisposalAttch" parameterType="com.hand.hls.pam.dto.AssetsDisposalAttch"
+            resultMap="BaseResultMap">
+        SELECT
+        hlia.DESCRIPTION,
+        hlia.document_name,
+        hlia.ASSETS_DISPOSAL_ID,
+        hlia.ASSETS_DISPOSAL_ATTCH_ID,
+        (select  wm_concat(fa.attachment_id)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name = 'assets_disposal_attch'
+        and hlia.ASSETS_DISPOSAL_ATTCH_ID = fam.table_pk_value) attachment_id,
+        (select  wm_concat(fa.file_name)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name = 'assets_disposal_attch'
+        and hlia.ASSETS_DISPOSAL_ATTCH_ID = fam.table_pk_value) FILE_NAME,
+        (select  max(fa.creation_date)
+        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name = 'assets_disposal_attch'
+        and hlia.ASSETS_DISPOSAL_ATTCH_ID = fam.table_pk_value) upload_date,
+        (select max(su.description)
+        from fnd_atm_attachment       fa,
+        fnd_atm_attachment_multi fam,
+        sys_user                 su
+        where fa.attachment_id = fam.attachment_id
+        and fam.table_name = 'assets_disposal_attch'
+        and hlia.ASSETS_DISPOSAL_ATTCH_ID = fam.table_pk_value
+        and su.user_id = fa.created_by) UPLOAD_PERSON_N
+        FROM assets_disposal_attch hlia
+        <where>
+            hlia.ASSETS_DISPOSAL_ID = #{assetsDisposalId}
+        </where>
+    </select>
+
+</mapper>

@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="abs003f8_release_confirm" url="${/request/@context_path}/ct/abs/product/release/confirm"/>
+        <a:link id="abs003f8_calculate" url="${/request/@context_path}/ct/abs/product/collection/cashCalculate"/>
+        <a:link id="abs003f8_confirm" url="${/request/@context_path}/ct/abs/product/collection/cashConfirm"/>
+        <script><![CDATA[
+
+        $L.onReady(function () {
+        });
+
+        //新增时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_detail');
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+            if(attachment_ds_id == ds.id){
+                record.set('source_category', 'ct_abs_product_cash_detail');
+                record.set('source_id', $(basic_ds_id).getCurrentRecord().get("cash_detail_id"));
+            }
+            if(ds.id == get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_feedback_detail')){
+                record.set('product_id', $(basic_ds_id).getCurrentRecord().get("product_id"));
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+            if(ds.id == attachment_ds_id){
+                var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_detail');
+                qpara['source_category'] = 'ct_abs_product_cash_detail';
+                qpara['source_id'] = $(basic_ds_id).getCurrentRecord().get("cash_detail_id");
+            }
+            //兑付反馈
+            if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_feedback_detail')) {
+                $(ds.id).fetchall = true;
+
+            }
+        };
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            //计算兑付总和
+            var ct_abs_product_cash_feedback_detail_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_feedback_detail');
+            if (ds.id === ct_abs_product_cash_feedback_detail_ds_id && ('${/parameter/@function_usage}' !== 'QUERY')) {
+                if (name === 'cash_principal' || name === 'cash_interest') {
+                    var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_detail');
+                    if(record.get("cash_principal") && record.get("cash_interest") && $(basic_ds_id).getCurrentRecord().get("cf_item_n") == '本息'){
+                        record.set("cash_amount_sum",plus(record.get("cash_principal"),record.get("cash_interest")));
+                    }
+                }
+                if (name === 'cash_amount_sum' || name === 'cash_principal' || name === 'cash_interest') {
+                    compute_cash_sum(ds.getAll());
+                }
+            }
+
+        };
+
+        //移除事件(grid,attach,gridbox,table)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_remove'] = function(ds, record, bp_seq) {
+            //计算兑付总和
+            var ct_abs_product_cash_feedback_detail_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_feedback_detail');
+            if (ds.id === ct_abs_product_cash_feedback_detail_ds_id && ('${/parameter/@function_usage}' !== 'QUERY')) {
+                compute_cash_sum(ds.getAll());
+            }
+        };
+
+
+        //计算兑付总和
+        function compute_cash_sum(records) {
+            var cashAmountSum = 0;
+            var cashPrincipalSum = 0;
+            var cashInterestSum = 0;
+            records.forEach(function (current, index, arr) {
+                cashAmountSum += current.get('cash_amount_sum')?current.get('cash_amount_sum'):0;
+                cashPrincipalSum += current.get('cash_principal')?current.get('cash_principal'):0;
+                cashInterestSum += current.get('cash_interest')?current.get('cash_interest'):0;
+            });
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_detail');
+            $(basic_ds_id).getCurrentRecord().set('cash_amount_sum', cashAmountSum);
+            $(basic_ds_id).getCurrentRecord().set('cash_principal_sum', cashPrincipalSum);
+            $(basic_ds_id).getCurrentRecord().set('cash_interest_sum', cashInterestSum);
+
+        }
+
+
+        //确认兑付按钮
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                Leaf.showConfirm("${l:HLS.PROMPT}", "确认兑付计划？", function () {
+                    var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_cash_detail');
+                    var cash_detail_id = $(basic_ds_id).getCurrentRecord().get("cash_detail_id");
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: '${/request/@context_path}/hls/cus/ct/abs/product/cash/confirm',
+                        para: {cash_detail_id:cash_detail_id},
+                        scope: this,
+                        success: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.showMessage('提示', '确认兑付成功！', function () {
+                                $('${/parameter/@winid}').close();
+                            });
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                });
+            });
+        };
+
+        //重算兑付计划按钮
+        /*window['${/parameter/@layout_code}_calculate_layout_dynamic_click'] = function () {
+            var collection_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_collection');
+            var collection_record = $(collection_ds_id).getCurrentRecord();
+            collection_record.data.data_class = 'TEMP';
+            collection_record.data.ABS003F8_G_CASH_ct_abs_product_cash_detail = null;
+            collection_record.data.ABS003F8_G_RELEASE_ct_abs_product_release = null;
+            Leaf.showConfirm("${l:HLS.PROMPT}", "确认重算兑付计划？", function () {
+                Leaf.request({
+                    url: $('abs003f8_calculate').getUrl(),
+                    para: collection_record.data,
+                    scope: this,
+                    success: function (res) {
+                        Leaf.showMessage('${l:HLS.PROMPT}', '重算成功');
+                    }
+                });
+            });
+        };
+
+        //确认兑付计划按钮
+        window['${/parameter/@layout_code}_calculate_confirm_layout_dynamic_click'] = function () {
+            var collection_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_collection');
+            var collection_record = $(collection_ds_id).getCurrentRecord();
+            collection_record.data.data_class = 'NORMAL';
+            collection_record.data.ABS003F8_G_CASH_ct_abs_product_cash_detail = null;
+            collection_record.data.ABS003F8_G_RELEASE_ct_abs_product_release = null;
+            Leaf.showConfirm("${l:HLS.PROMPT}", "确认兑付计划？", function () {
+                Leaf.request({
+                    url: $('abs003f8_calculate').getUrl(),
+                    para: collection_record.data,
+                    scope: this,
+                    success: function (res) {
+                        Leaf.showMessage('${l:HLS.PROMPT}', '计算成功');
+                    }
+                });
+            });
+        };
+
+
+
+        //确认释放按钮
+        window['${/parameter/@layout_code}_G_RELEASE_release_confirm_layout_dynamic_tab_click'] = function () {
+            var release_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_release');
+            var confirm_records = $(release_ds_id).getSelected();
+            var send_data = [];
+            confirm_records.forEach(function (current, index, arr) {
+                send_data.push(current.data);
+            });
+            Leaf.showConfirm('${l:HLS.PROMPT}', '确认释放？', function () {
+                Leaf.request({
+                    url: $('abs003f8_release_confirm').getUrl(),
+                    para: send_data,
+                    scope: this,
+                    success: function () {
+                        Leaf.showMessage('${l:HLS.PROMPT}', '释放成功');
+                        $(release_ds_id).query();
+                    }
+                });
+            });
+        };*/
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name === 'attach_link'&& !record.isNew) {
+                return '<a href="javascript:open_attach(\'' + record.get('attachment_id') + '\')">上传/下载</a>';
+            }
+            return value;
+        };
+
+        //打开附件窗口
+        function open_attach(id) {
+            if (typeof (id) === 'undefined' || 'undefined' === id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'ABS003F8_OPEN_ATTACHMENT_WINID',
+                url: url,
+                params: {
+                    header_id: id,
+                    table_name: 'jczl_common_attachment',
+                    winid: 'ABS003F8_OPEN_ATTACHMENT_WINID',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '附件',
+                width: 800,
+                height: 575
+            });
+
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+                $(ds_id).query();
+            });
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.HlsCusBillManagementMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.HlsCusBillManagement">
+        <result column="BILL_MANAGEMENT_ID" property="billManagementId" jdbcType="DECIMAL"/>
+        <result column="BANK_ID" property="bankId" jdbcType="DECIMAL"/>
+        <result column="BANK_ACCOUNT_ID" property="bankAccountId" jdbcType="DECIMAL"/>
+        <result column="ACCOUNT_NATURE" property="accountNature" jdbcType="VARCHAR"/>
+        <result column="TICKET_TYPE" property="ticketType" jdbcType="VARCHAR"/>
+        <result column="DRAWER" property="drawer" jdbcType="VARCHAR"/>
+        <result column="TICKET_COLLECTOR" property="ticketCollector" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL"/>
+        <result column="TICKET_NUMBER" property="ticketNumber" jdbcType="VARCHAR"/>
+        <result column="BILL_AMOUNT" property="billAmount" jdbcType="DECIMAL"/>
+        <result column="ISSUE_DATE" property="issueDate" jdbcType="VARCHAR"/>
+        <result column="EXPIRY_DATE" property="expiryDate" jdbcType="VARCHAR"/>
+        <result column="BILL_STATUS" property="billStatus" jdbcType="VARCHAR"/>
+        <result column="TRANSFERABLE_FLAG" property="transferableFlag" jdbcType="VARCHAR"/>
+        <result column="WFL_STATUS" property="wflStatus" jdbcType="VARCHAR"/>
+        <result column="BANK_NAME" property="bankName" jdbcType="VARCHAR"/>
+        <result column="BANK_NAME_N" property="bankNameN" jdbcType="VARCHAR"/>
+        <result column="BANK_ACCOUNT_NAME" property="bankAccountName" jdbcType="VARCHAR"/>
+        <result column="BANK_ACCOUNT_NUM" property="bankAccountNum" jdbcType="VARCHAR"/>
+        <result column="BANK_ACCOUNT_TYPE_DESC" property="bankAccountTypeDesc" jdbcType="VARCHAR"/>
+        <result column="BANK_ACCOUNT_TYPE_N" property="bankAccountTypeN" jdbcType="VARCHAR"/>
+        <result column="TICKET_TYPE_N" property="ticketTypeN" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_NAME" property="contractName" jdbcType="VARCHAR"/>
+        <result column="WFL_STATUS_DESC" property="wflStatusDesc" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="BILL_STATUS_N" property="billStatusN" jdbcType="VARCHAR"/>
+        <result column="TRANSFERABLE_FLAG_N" property="transferableFlagN" jdbcType="VARCHAR"/>
+        <result column="BILL_MANAGEMENT_BATCH_ID" property="billManagementBatchId" jdbcType="VARCHAR"/>
+        <result column="FILE_NAME" property="fileName" jdbcType="VARCHAR"/>
+        <result column="FILE_SIZE" property="fileSize" jdbcType="VARCHAR"/>
+        <result column="FILE_PATH" property="filePath" jdbcType="VARCHAR"/>
+        <result column="UPLOAD_DATE" property="uploadDate" jdbcType="VARCHAR"/>
+        <result column="UPLOAD_PERSON" property="uploadPerson" jdbcType="VARCHAR"/>
+        <result column="ATTACHMENT_ID" property="attachmentId" jdbcType="DECIMAL"/>
+        <result column="FILE_ID" property="fileId" jdbcType="VARCHAR"/>
+
+
+    </resultMap>
+
+    <select id="queryBillManagementList" parameterType="com.hand.hls.cont.dto.HlsCusBillManagement"
+            resultMap="BaseResultMap">
+        select t.*,
+        (select cb.BANK_NAME from csh_bank cb where cb.bank_id = t.bank_id) BANK_NAME_N,
+        (select cba.BANK_ACCOUNT_NAME
+        from csh_bank_account cba
+        where cba.BANK_ACCOUNT_ID = t.BANK_ACCOUNT_ID)BANK_ACCOUNT_NAME,
+        (select cba.BANK_ACCOUNT_NUM
+        from csh_bank_account cba
+        where cba.BANK_ACCOUNT_ID = t.BANK_ACCOUNT_ID)BANK_ACCOUNT_NUM,
+        (SELECT MEANING
+        FROM SYS_CODE_VALUE_B
+        WHERE CODE_ID = (SELECT CODE_ID FROM SYS_CODE_B WHERE CODE = 'CSH.BANK_ACCOUNT_TYPE')
+        AND VALUE = (select cba.BANK_ACCOUNT_TYPE
+        from csh_bank_account cba
+        where cba.BANK_ACCOUNT_ID = t.BANK_ACCOUNT_ID))BANK_ACCOUNT_TYPE_N,
+        (SELECT MEANING
+        FROM SYS_CODE_VALUE_B
+        WHERE CODE_ID = (SELECT CODE_ID FROM SYS_CODE_B WHERE CODE = 'CSH.BILL_TICKET_TYPE' AND VALUE =
+        t.TICKET_TYPE))TICKET_TYPE_N,
+
+        (select cc.contract_name from con_contract cc where cc.contract_id = t.contract_id)contract_name,
+        (select cc.contract_number from con_contract cc where cc.contract_id = t.contract_id)contract_number,
+        (SELECT MEANING FROM SYS_CODE_VALUE_B WHERE CODE_ID = (SELECT CODE_ID FROM SYS_CODE_B WHERE CODE =
+        'CON.BILL_STATUS') AND VALUE = t.bill_status)BILL_STATUS_N,
+        (SELECT MEANING FROM SYS_CODE_VALUE_B WHERE CODE_ID = (SELECT CODE_ID FROM SYS_CODE_B WHERE CODE =
+        'TRANSFER_FLAG') AND VALUE = t.TRANSFERABLE_FLAG)TRANSFERABLE_FLAG_N,
+        (case when t.wfl_status = 'APPROVED' then '审批通过' when t.wfl_status = 'APPROVED_RETURN' then '审批退回' when t.wfl_status = 'APPROVING' then '审批中' else '未提交' end)wfl_status_desc
+        from BILL_MANAGEMENT t
+        <where>
+            <if test="billManagementBatchId != null">
+                and t.BILL_MANAGEMENT_BATCH_ID = #{billManagementBatchId}
+            </if>
+        </where>
+    </select>
+    <select id="queryBillManagementTempSeq" parameterType="com.hand.hls.cont.dto.HlsCusBillManagement"
+            resultType="java.lang.Long">
+select BILL_MANAGEMENT_TEMP_S.nextval as bill_management_batch_id from dual
+    </select>
+    <select id="queryBillManagementListByBatchId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select t.BILL_MANAGEMENT_ID,t.WFL_STATUS from BILL_MANAGEMENT t where BILL_MANAGEMENT_BATCH_ID=#{batchId}
+    </select>
+    <select id="queryBillManagementAttachment" parameterType="com.hand.hls.cont.dto.HlsCusBillManagement"
+            resultMap="BaseResultMap">
+        select fa.file_size,
+        fa.file_name,
+        sa.attachment_id,
+        (select sy.user_name
+        from sys_user sy
+        where sy.user_id = fa.created_by) upload_person,
+        fa.creation_date uploaddate
+        from bill_management          bm,
+        sys_attachment           sa,
+        fnd_atm_attachment_multi fam,
+        fnd_atm_attachment       fa
+        <where>
+            bm.bill_management_id = sa.source_key
+            and sa.source_type = 'BILL_MANAGEMENT_ATTACHMENT'
+            and fam.table_pk_value = sa.attachment_id
+            and fam.table_name = 'SYS_ATTACHMENT'
+            and fa.attachment_id = fam.attachment_id
+
+            <if test="billManagementId != null and billManagementId != ''">
+                and bm.bill_management_id=#{billManagementId}
+            </if>
+
+        </where>
+    </select>
+</mapper>

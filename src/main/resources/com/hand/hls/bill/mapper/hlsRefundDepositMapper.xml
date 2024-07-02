@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bill.mapper.hlsRefundDepositMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bill.dto.hlsRefundDeposit">
+        <result column="refund_deposit_id" property="refundDepositId" jdbcType="DECIMAL" />
+        <result column="refund_deposit_date" property="refundDepositDate" jdbcType="DATE" />
+        <result column="refund_deposit_amount" property="refundDepositAmount" jdbcType="DECIMAL" />
+        <result column="bill_id" property="billId" jdbcType="DECIMAL" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="STATUS_N" property="statusN" jdbcType="VARCHAR" />
+
+    </resultMap>
+
+
+    <select id="queryHlsRefundDeposit" resultMap="BaseResultMap">
+        SELECT
+        hls.CREATED_BY,
+        hls.CREATION_DATE,
+        hls.LAST_UPDATED_BY,
+        hls.LAST_UPDATE_DATE,
+        hls.LAST_UPDATE_LOGIN,
+        hls.OBJECT_VERSION_NUMBER,
+        hls.PROGRAM_ID,
+        hls.REQUEST_ID,
+        hls.status,
+        hls.bill_id,
+        hls.refund_deposit_amount,
+        hls.refund_deposit_date,
+        hls.refund_deposit_id,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'STATUS' AND sc.CODE_VALUE = hls.status ) status_n
+
+        FROM
+        hls_refund_deposit hls
+        <where>
+            1=1
+            <if test="billId!=null">
+                and hls.bill_id = #{billId}
+            </if>
+            <if test="status!=null">
+                and hls.status = #{status}
+            </if>
+
+        </where>
+
+    </select>
+
+</mapper>

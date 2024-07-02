@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author:weimeng
+    $Date: 2018-12-27
+    $Revision: 1.0
+    $Purpose: 财务导入模板定义
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script type="text/javascript" src="${/request/@context_path}/hls_currency/query"></script>
+        <script><![CDATA[
+        function fnd_finance_model_screen_query() {
+            $('fnd_finance_model_ds').query();
+        }
+
+        function fnd_finance_model_screen_reset() {
+            $('fnd_finance_model_query_ds').reset();
+            $('fnd_finance_model_ds').query();
+        }
+
+        function business_parter_type_ds_grid_editFun(record, name) {
+            if (record.isNew) {
+                if (name == 'fin_statement_templet_code') {
+                    return 'fnd_finance_model_ds_grid_tf';
+                }
+            }
+            return '';
+        }
+
+        function company_parter_type_ds_grid_editFun(record, name) {
+            if (record.isNew) {
+                if (name == 'company_full_name') {
+                    return 'fnd_finance_model_ds_grid_lov';
+                }
+            }
+            return '';
+        }
+
+        <!--打开窗口：编辑-->
+        function winOpen_fnd_finance_model_edit(fin_statement_templet_hd_id,fin_statement_templet_name) {
+            new Leaf.Window({
+                id : "fnd_finance_model_edit",
+                url : "${/request/@context_path}/modules/FND/FND_BUS/FND207/fnd_finance_model_detail.lview",
+                title : fin_statement_templet_name + '编辑',
+                fullScreen : false,
+                params: {
+                    fin_statement_templet_hd_id: fin_statement_templet_hd_id,
+                    fin_statement_templet_name: fin_statement_templet_name,
+                    winId: "fnd_finance_model_edit"
+                },
+                draggable : true,
+                closeable : true,
+                side:'right',
+                width : 950,
+                height : 450
+            });
+        }
+
+        function render_fnd_finance_model_ds_grid(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'edit') {
+                    return '<a href="javascript:winOpen_fnd_finance_model_edit(\'' + record.get('fin_statement_templet_hd_id') + '\',\'' + record.get('fin_statement_templet_name') + '\');">编辑</a>';
+                }
+                return '';
+            }
+            return '';
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="currency_code_query_ds" autoQuery="true" queryUrl="${/request/@context_path}/hls_currency/query">
+                <a:fields>
+                    <a:field name="currency_name" />
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd_finance_model_query_ds">
+                <a:fields>
+                    <a:field name="fin_statement_templet_code"/>
+                    <a:field name="fin_statement_templet_name"/>
+                    <!--<a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>-->
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="fnd_finance_model_ds" autoPageSize="true" autoQuery="true" queryDataSet="fnd_finance_model_query_ds" selectable="true"
+                       queryUrl ="${/request/@context_path}/fnd/FinStatement/query"
+                       deleteUrl="${/request/@context_path}/fnd/FinStatement/delete"
+                       submitUrl="${/request/@context_path}/fnd/FinStatement/submit">
+                <a:fields>
+                    <a:field name="company_full_name"/>
+                    <a:field name="fin_statement_templet_hd_id"/>
+                    <a:field name="company_full_name" autoComplete="true" lovGridHeight="400" lovHeight="550"
+                             lovLabelWidth="100" lovService="/leaf/fnd/company/query~hls.layout.dto.LovParentCompanyDto" lovWidth="600"
+                             title="选择公司" required="true" requiredMessage="请输入公司名称">
+                        <a:mapping>
+                            <a:map from="company_full_name" to="company_full_name"/>
+                            <a:map from="company_id" to="company_id"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="fin_statement_templet_code" required="true" requiredMessage="请输入模板代码"/>
+                    <a:field name="fin_statement_templet_name" required="true" requiredMessage="请输入模板名称"/>
+                    <a:field name="currency_name"  options="currency_code_query_ds" displayField="currency_name" valueField="currency_code" returnField="currency_code"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="fnd_finance_model_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="fnd_finance_model_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton bind="fnd_finance_model_ds_grid" text="HAP.SAVE" type="save"/>
+                <a:gridButton click="fnd_finance_model_screen_query" text="HAP.QUERY"/>
+                <a:gridButton click="fnd_finance_model_screen_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="100">
+                <a:textField name="fin_statement_templet_code" bindTarget="fnd_finance_model_query_ds" prompt="模板代码" emptyText="模板代码" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd_finance_model_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="fin_statement_templet_name" bindTarget="fnd_finance_model_query_ds" prompt="模板名称" emptyText="模板名称" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="fnd_finance_model_screen_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="fnd_finance_model_ds_grid"  bindTarget="fnd_finance_model_ds"
+                    marginHeight="150" marginWidth="30" navBar="true">
+                <a:columns>
+                    <a:column width="200" name="company_full_name" editorFunction="company_parter_type_ds_grid_editFun"
+                              prompt="公司名称" align="center"/>
+                    <a:column width="200" name="fin_statement_templet_code"
+                              editorFunction="business_parter_type_ds_grid_editFun" prompt="模板代码" align="center"/>
+                    <a:column width="200" name="fin_statement_templet_name" editor="fnd_finance_model_ds_grid_tf"
+                              prompt="模板名称" align="center"/>
+                    <a:column width="200" name="currency_name" editor="fnd_finance_model_ds_grid_combo" prompt="币种"
+                              align="center"/>
+                    <a:column width="200" name="enabled_flag" editor="fnd_finance_model_ds_grid_check" prompt="启用"
+                              align="center"/>
+                    <a:column width="200" name="edit" renderer="render_fnd_finance_model_ds_grid" prompt="编辑"
+                              align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="fnd_finance_model_ds_grid_lov"/>
+                    <a:textField id="fnd_finance_model_ds_grid_tf"/>
+                    <a:checkBox id="fnd_finance_model_ds_grid_check"/>
+                    <a:comboBox id="fnd_finance_model_ds_grid_combo"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

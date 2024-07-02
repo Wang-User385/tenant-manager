@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure outputPath="/parameter">
+        <a:model-query model="$com.hand.hls.fnd.service.IHlsFndAttributeSequenceService.selectHeaderId"
+                       rootPath="header"/>
+        <a:import-excel header_id="${/model/header/record/@header_id}" separator=","
+                        status_field="/parameter/@ImportSuccess" template_code="PRJ_PROJECT"
+                        user_id="${/session/@user_id}"/>
+    </a:init-procedure>
+
+    <a:view>
+        <a:link id="review_level_excel_import_link" url="${/request/@context_path}/review/level/excel/import"/>
+
+        <script><![CDATA[
+
+        var classHeadId = '${/parameter/@classHeadId}'
+        var layoutCode = '${/parameter/@layoutCode}'
+
+        function prj316f1_prj_excel_import_error_close(datas){
+            parent.$L.Masker.unmask(parent.Ext.getBody());
+            prj316f1_prj_excel_import_close();
+        }
+
+        function prj316f1_prj_excel_import_close(){
+            parent._file_upload_window.close();
+        }
+
+        parent.Leaf.request({
+            url: $('review_level_excel_import_link').getUrl() + "?headerId=${/model/header/record/@header_id}&classHeadId="+classHeadId+"&layoutCode="+layoutCode,
+            para: {headerId:'${/model/header/record/@header_id}',classHeadId:classHeadId,layoutCode:layoutCode},
+            success: function (res) {
+                parent.$L.Masker.unmask(parent.Ext.getBody());
+                $L.Masker.unmask(Ext.getBody());
+
+                if(res.error.message == 'Y'){
+                    parent.$L.showConfirm("提示", "导入成功",function(){
+                        prj316f1_prj_excel_import_close();
+                    });
+                }else {
+
+                    var win = new Leaf.Window({
+                        id: 'prj316_excel_import_open_winid',
+                        params: {
+                            winid: 'project_import_error_message_win_id',
+                            funciton_code: 'PRJ316F10',
+                            layout_code: 'PRJ316F10',
+                            head_id: '${/model/header/record/@header_id}',
+                            function_usage: 'QUERY',
+                            document_category: 'PRJ_PROJECT'
+                        },
+                        url: '${/request/@context_path}/modules/AST/AST_MANAGE/AST020/review_level_excel_import_error_msg.lview',
+                        title: '导入异常信息',
+                        fullScreen: true
+                    });
+
+                    win.on('close', function () {
+                        prj316f1_prj_excel_import_close();
+                    });
+                }
+            },
+            failure: function (datas) {
+                prj316f1_prj_excel_import_error_close(datas);
+            },
+            error: function (datas) {
+                prj316f1_prj_excel_import_error_close(datas);
+            },
+            scope: this,
+            sync: true
+        });
+
+        ]]></script>
+        <a:screenBody>
+
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

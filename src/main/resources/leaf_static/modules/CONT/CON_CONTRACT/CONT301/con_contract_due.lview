@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: huangtianyang
+    Date: 2019/02/26 11:06
+    Revision: 1.0 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="con_contract_due_detail_id" url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_due_detail.lview"/>
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            ds.setQueryParameter('project_id', '${/parameter/@project_id}');
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'open_payment_detail_win';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'detail') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + '明细' + '</a>';
+            }
+        };
+
+        function open_payment_detail_win(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            var record = $(ds_id).findById(record_id);
+            Leaf.request({
+                url: "${/request/@context_path}/ct/csh/fine/info/attachment?contractId=" + record.get('contract_id'),
+                success: function (datas) {
+                    param['url_title'] = '罚息明细';
+                    param['function_code'] = 'CONT301F291';
+                    param['contract_id'] = record.get('contract_id');
+                    param['project_id'] = '${/parameter/@project_id}';
+                    param['winid'] = 'con_contract_due_detail_winid';
+                    var fineStatus = record.get('fine_status');
+                    if(fineStatus==="APPROVING"||fineStatus==="APPROVED"){
+                        param['hidden_button_code'] = ['save', 'submit_approval'];
+                        param['maintain_type'] = 'READONLY';
+                        param['function_usage'] = 'QUERY';
+                    }
+                    hls_doc_get_layout_code(param, 'con_contract_due_detail_id', ds_id, 'CONT301F29');
+                },
+                error: function () {
+                    Leaf.showMessage("提示", "初始化出错!", null);
+                },
+                scope: this
+            });
+
+
+
+        }
+
+
+
+
+
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>
+    
+    

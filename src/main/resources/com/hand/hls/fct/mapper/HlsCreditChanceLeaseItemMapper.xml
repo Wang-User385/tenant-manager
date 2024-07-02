@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fct.mapper.HlsCreditChanceLeaseItemMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsCreditChanceLeaseItem">
+        <result column="CHANCE_LEASE_ITEM_ID" property="chanceLeaseItemId" jdbcType="DECIMAL" />
+        <result column="CHANCE_ID" property="chanceId" jdbcType="DECIMAL" />
+        <result column="SEQ_NUMBER" property="seqNumber" jdbcType="DECIMAL" />
+        <result column="LEASE_ITEM_NAME" property="leaseItemName" jdbcType="VARCHAR" />
+        <result column="SERIAL_NUMBER" property="serialNumber" jdbcType="VARCHAR" />
+        <result column="PATTERN_SPECIFICATION" property="patternSpecification" jdbcType="VARCHAR" />
+        <result column="COLOUR" property="colour" jdbcType="VARCHAR" />
+        <result column="QUANTITY" property="quantity" jdbcType="DECIMAL" />
+        <result column="UOM" property="uom" jdbcType="VARCHAR" />
+        <result column="PRICE" property="price" jdbcType="DECIMAL" />
+        <result column="LEASE_ITEM_AMOUNT" property="leaseItemAmount" jdbcType="DECIMAL" />
+        <result column="CURRENCY" property="currency" jdbcType="VARCHAR" />
+        <result column="PREVIOUS_EVALUATION_VALUE" property="previousEvaluationValue" jdbcType="DECIMAL" />
+        <result column="EVALUATION_VALUE" property="evaluationValue" jdbcType="DECIMAL" />
+        <result column="EVALUATION_BP_ID" property="evaluationBpId" jdbcType="DECIMAL" />
+        <result column="VENDER_BP_ID" property="venderBpId" jdbcType="DECIMAL" />
+        <result column="LEASE_ITEM_LOCATION" property="leaseItemLocation" jdbcType="VARCHAR" />
+        <result column="MANUFACTURER" property="manufacturer" jdbcType="VARCHAR" />
+        <result column="ISREGISTE" property="isregiste" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="ITEM_TYPE" property="itemType" jdbcType="VARCHAR" />
+        <result column="MSN_NUMBER" property="msnNumber" jdbcType="VARCHAR" />
+        <result column="REGESTRY_NUMBER" property="regestryNumber" jdbcType="VARCHAR" />
+        <result column="OPERATOR" property="operator" jdbcType="VARCHAR" />
+        <result column="PRODUCT_DATE" property="productDate" jdbcType="DATE" />
+        <result column="FIXED_ASSETS_NUM" property="fixedAssetsNum" jdbcType="VARCHAR" />
+        <result column="TOTAL_PRICE" property="totalPrice" jdbcType="DECIMAL" />
+        <result column="ECONOMIC_LIFE" property="economicLife" jdbcType="VARCHAR" />
+        <result column="NATIONALITY" property="nationality" jdbcType="VARCHAR" />
+        <result column="TONNAGE" property="tonnage" jdbcType="DECIMAL" />
+        <result column="VESSEL_TYPE" property="vesselType" jdbcType="VARCHAR" />
+        <result column="ENGINE_MANUFACTURE" property="engineManufacture" jdbcType="VARCHAR" />
+        <result column="FLY_DISTANCE" property="flyDistance" jdbcType="VARCHAR" />
+        <result column="ENGINE_SPECIFICATION" property="engineSpecification" jdbcType="VARCHAR" />
+        <result column="ENGINE_SERIAL_NUMBER" property="engineSerialNumber" jdbcType="VARCHAR" />
+        <result column="INVOICE_NUMEBR" property="invoiceNumebr" jdbcType="VARCHAR" />
+        <result column="REGISTRY_NUMBER" property="registryNumber" jdbcType="VARCHAR" />
+        <result column="PLANE_NO" property="planeNo" jdbcType="VARCHAR" />
+        <result column="PROP_PERSON" property="propPerson" jdbcType="VARCHAR" />
+        <result column="LEASE_ITEM_ID" property="leaseItemId" jdbcType="DECIMAL" />
+        <result column="NET_ASSET_VALUE_TOTAL" property="netAssetValueTotal" jdbcType="DECIMAL" />
+        <result column="vender_id" property="venderId" jdbcType="DECIMAL" />
+
+        <result column="IDENTIFICATION_CITY" property="identificationCity" jdbcType="VARCHAR" />
+        <result column="VENDER_ID_N" property="venderIdN" jdbcType="VARCHAR" />
+        <result column="asset_status_n" property="assetStatusN" jdbcType="VARCHAR" />
+
+        <result column="LEASE_ITEM_ID_N" property="leaseItemIdN" jdbcType="VARCHAR" />
+
+        <result column="LEASE_ITEM_CODE" property="leaseItemCode" jdbcType="VARCHAR" />
+
+        <result column="BRAND" property="brand" jdbcType="VARCHAR" />
+        <result column="lease_item_type" property="leaseItemType" jdbcType="VARCHAR" />
+
+
+    </resultMap>
+
+    <select id="queryCreditChanceLeaseItem" resultMap="BaseResultMap" parameterType="com.hand.hls.fct.dto.HlsCreditChanceLeaseItem">
+       select
+        hcli.CHANCE_ID,
+        hli.lease_item_type,
+        hcli.LEASE_ITEM_ID ,
+        hcli.chance_lease_item_id,
+        hli.FULL_NAME as LEASE_ITEM_ID_N,
+        hli.LEASE_ITEM_CODE ,
+        hli.INSTALLATION_SITE as IDENTIFICATION_CITY,
+        hli.DESCRIPTION,
+        hli.vender_id,
+        hli.BRAND,
+        (
+        select
+        CASE
+            WHEN
+            ( SELECT max( lal.fair_value ) FROM lease_asset_ln lal WHERE lal.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID ) IS NULL THEN
+            sum( hlil.PRICE*hlil.QUANTITY ) ELSE ( SELECT max( lal.fair_value ) FROM lease_asset_ln lal WHERE lal.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID )
+            END AS ASSET_VALUE_TOTAL
+            from hls_lease_item_list hlil
+            where hli.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID
+        )NET_ASSET_VALUE_TOTAL,
+        (select  hbm.bp_name
+                            from hls_bp_master hbm
+                            where hbm.bp_id = hli.vender_id  ) VENDER_ID_N,
+        (select scv.MEANING
+        from sys_code_b sc,sys_code_value_b scv
+        where sc.CODE_ID = scv.CODE_ID
+        and sc.CODE = 'ASSET_STATUS'
+        and scv.value = hli.asset_status) asset_status_n
+        from hls_credit_chance_lease_item hcli,hls_lease_item hli
+
+
+        <where>
+            hli.LEASE_ITEM_ID = hcli.LEASE_ITEM_ID
+            and hli.enabled_flag = 'Y'
+            and hli.LEASE_ITEM_TYPE in ('LEASE')
+           and hcli.CHANCE_ID = #{chanceId}
+        </where>
+    </select>
+</mapper>

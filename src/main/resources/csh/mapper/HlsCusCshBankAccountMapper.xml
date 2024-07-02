@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hand.hls.csh.mapper.HlsCusCshBankAccountMapper">
+    <resultMap type="com.hand.hls.csh.dto.HlsCusCshBankAccount" id="CshBankAccount">
+        <id column="bank_account_id" property="bankAccountId"/>
+        <result column="company_id" property="companyId"/>
+        <result column="bank_id" property="bankId"/>
+        <result column="bp_id" property="bpId"/>
+        <result column="bank_branch_name" property="bankBranchName"/>
+        <result column="bank_account_num" property="bankAccountNum"/>
+        <result column="bank_account_name" property="bankAccountName"/>
+        <result column="bank_account_type" property="bankAccountType"/>
+        <result column="currency" property="currency"/>
+        <result column="enabled_flag" property="enabledFlag"/>
+        <result column="bank_name" property="bankName"/>
+        <result column="bank_code" property="bankCode"/>
+        <result column="bank_color" property="bankColor"/>
+        <result column="balance" property="balance"/>
+        <result column="gld_account_code" property="gldAccountCode"/>
+        <result column="financing_loan_flag" property="financingLoanFlag"/>
+        <result column="invoice_flag" property="invoiceFlag"/>
+        <result column="unit_bank_code" property="unitBankCode"/>
+         <result column="create_name" property="createName" jdbcType="VARCHAR"/>
+        <result column="last_update_name" property="lastUpdateName" jdbcType="VARCHAR"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="last_update_date" property="lastUpdateDate" jdbcType="DATE"/>
+        <result column="OPEN_DATE" property="openDate" jdbcType="DATE"/>
+        <result column="CANCELL_DATE" property="cancellDate" jdbcType="DATE"/>
+        <result column="created_by" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="last_updated_by" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+        <result column="manager_id" property="managerId" jdbcType="DECIMAL"/>
+        <result column="manager_name" property="managerName" jdbcType="VARCHAR"/>
+        <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="contact" property="contact" jdbcType="VARCHAR"/>
+        <result column="valid_flag" property="validFlag"/>
+        <result column="valid_start" property="validStart"/>
+        <result column="valid_end" property="validEnd"/>
+        <result column="bank_type_new_n" property="bankTypeNewN"/>
+        <result column="bank_type_new" property="bankTypeNew"/>
+    </resultMap>
+
+    <select id="selectCshBankAccountLov" resultMap="CshBankAccount"
+            parameterType="com.hand.hls.csh.dto.HlsCusCshBankAccount">
+        select
+        (select fc.currency_name from fnd_currency fc where fc.currency_code = c1.currency) currency,
+        (select scv.DESCRIPTION from sys_code_b scb, sys_code_value_b scv
+        where scb.CODE = 'CSH.BANK_ACCOUNT_TYPE'
+        AND scb.CODE_ID = scv.CODE_ID and scv.value = c1.bank_account_type) bank_account_type,
+        cb.bank_name ,
+        cb.bank_code ,
+        c1.bank_account_id,
+        c1.bank_account_name,
+        c1.bank_account_num,
+        c1.bank_branch_name,
+        c1.company_id,
+        c1.bank_color,
+        (select scv.DESCRIPTION from sys_code_b scb, sys_code_value_b scv
+        where scb.CODE = 'BANK_TYPE_NEW'
+        AND scb.CODE_ID = scv.CODE_ID and scv.value = c1.bank_type_new)bank_type_new_n
+        from csh_bank_account c1,csh_bank cb
+        <where>
+            c1.enabled_flag = 'Y' and c1.bank_id = cb.bank_id
+            <if test="bankAccountNum!=null">
+                AND c1.bank_account_num like concat('%',concat(#{bankAccountNum},'%'))
+            </if>
+            <if test="bankAccountName!=null">
+                AND c1.bank_account_name like concat('%',concat(#{bankAccountName},'%'))
+            </if>
+            <if test="bankBranchName!=null">
+                AND c1.bank_branch_name like concat('%',concat(#{bankBranchName},'%'))
+            </if>
+            <if test="bankName!=null">
+                AND cb.bank_name  like concat('%',concat(#{bankName},'%'))
+            </if>
+        </where>
+        <if test="companyId!=null">
+            AND c1.company_id = #{companyId}
+        </if>
+    </select>
+
+    <select id="selectOneData" resultMap="CshBankAccount">
+        SELECT * FROM CSH_BANK_ACCOUNT CBA INNER JOIN
+            FND_COMPANY FC on CBA.BANK_ACCOUNT_NAME = FC.COMPANY_FULL_NAME
+            AND CBA.ENABLED_FLAG ='Y' AND CBA.COMPANY_ID =#{companyId,jdbcType=BIGINT}
+            AND CBA.BANK_ACCOUNT_TYPE=#{bankAccountType,jdbcType=VARCHAR}
+    </select>
+</mapper>

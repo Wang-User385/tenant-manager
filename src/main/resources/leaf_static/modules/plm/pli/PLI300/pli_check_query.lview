@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="pli300_create_link_id" url="${/request/@context_path}/modules/plm/pli/PLI300/pli_check_create.lview"/>
+        <a:link id="pli300_detail_link_id" url="${/request/@context_path}/modules/plm/pli/PLI300/pli_check_detail.lview"/>
+        <script><![CDATA[
+
+        //检查报告打印
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+        };
+
+        //检查事项打印
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+
+        };
+
+        function open_create_win(isPlaneFlag){
+            var win = new Leaf.Window({
+                id: 'pli300_create_link_win_id',
+                url: $('pli300_create_link_id').getUrl(),
+                params: {
+                    isPlaneFlag:isPlaneFlag,
+                    winid: 'pli300_create_link_win_id',
+                },
+                title: '贷后检查创建页面',
+                width: 1100,
+                height:500
+            });
+            win.on('close',function () {
+                $('${/parameter/@layout_code}_G_PLI_LIST_plm_pli_upcoming_ds').query();
+                $('${/parameter/@layout_code}_G_PLI_DETAIL_plm_postloan_inspection_ds').query();
+            });
+        }
+
+        //新增
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+
+
+            $L.showConfirm("提示","是否创建飞机租赁贷后检查报告?",function(){
+                open_create_win(true);
+            },function(){
+                open_create_win(false);
+            });
+
+
+        };
+
+        function pli_check_query_open_detail(record_id,ds_id){
+
+            var datas = $(ds_id).getAll();
+            var record,isPlaneCheck,inspectionMethod,inspectionType,function_code;
+
+            for(var i = 0; i < datas.length; i++){
+                if(datas[i].id == record_id){
+                    record = datas[i];
+                }
+            }
+
+            isPlaneCheck = record.get('is_plane_check');
+            inspectionMethod = record.get('inspection_method');
+            inspectionType = record.get('inspection_type');
+
+            //打开对应的页面
+            if(isPlaneCheck == 'Y'){
+
+                //飞机（非现场）
+                if(inspectionType == 'OFF_SITE_INSPECT_PLAN'){
+                    function_code = 'LOAN_INSPECTION';
+                }
+
+                //飞机（不定期-现场）
+                if(inspectionMethod == 'IRREGULAR' && inspectionType == 'ON_SITE_INSPECT_PLANE'){
+                    function_code = 'LOAN_INSPECTION_SCENE';
+                }
+            }else{
+
+
+                if(inspectionType == 'ON_SITE_INSPECT'){
+
+                    //现场定期
+                    if(inspectionMethod == 'REGULAR') {
+                        function_code = 'LOAN_SCENE';
+                    }
+
+                    //现场不定期
+                    if(inspectionMethod == 'IRREGULAR') {
+                        function_code = 'LOAN_NOSCENE';
+                    }
+                }
+
+
+                if(inspectionType == 'OFF_SITE_INSPECT'){
+
+                    //非现场定期
+                    if(inspectionMethod == 'REGULAR') {
+                        function_code = 'LOAN_OFF_SCENE';
+                    }
+
+                    //非现场不定期
+                    if(inspectionMethod == 'IRREGULAR') {
+                        function_code = 'LOAN_OFF_NOSCENE';
+                    }
+                }
+
+            }
+            //打开动态页面
+            var param = record.data;
+            param['function_code'] = function_code;
+            param['url_title'] = '贷后检查明细';
+            if(param.status != 'NEW'){
+                param['maintain_type'] = 'READONLY';
+                param['function_usage'] = 'QUERY';
+            }
+            hls_doc_get_layout_code(param, 'pli300_detail_link_id', ds_id, function_code);
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            var link_function = 'pli_check_query_open_detail';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'detail') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">明细</a>';
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

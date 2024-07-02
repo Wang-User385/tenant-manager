@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author:zedong huang
+    $Date: 2019/1/15
+    $Revision: 1.0
+    $Purpose: 财务系统设置-科目表定义-入口页面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function subject_define_screen_query() {
+            $('subject_define_ds').query();
+        }
+
+        function subject_define_screen_reset() {
+            $('subject_define_query_ds').reset();
+            subject_define_screen_query();
+        }
+
+        function subject_define_screen_save() {
+            var ds = $('subject_define_ds');
+            if (ds.validate()) {
+                ds.setSubmitUrl("${/request/@context_path}/gld/account/set/submit");
+                ds.submit();
+            }
+        }
+
+        function subject_define_screen_del() {
+            var ds = $('subject_define_ds');
+            if (ds.validate()) {
+                ds.remove("${/request/@context_path}/gld/account/set/remove");
+                ds.submit();
+            }
+        }
+        <!--grid渲染-->
+        function subject_detail_window_ds_grid(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'subject_detail') {
+                    return '<a href="javascript:subject_detail_window_winOpen_access_component(\'' + record.get('account_set_id') + '\');">编辑</a>';
+                }
+                return '';
+            }
+            return '';
+        }
+        <!--打开窗口：科目明细-->
+        function subject_detail_window_winOpen_access_component(id) {
+            new Leaf.Window({
+                id: "subject_detail_window",
+                url: "${/request/@context_path}/modules/GLD/GLD_BASE/GLD002/subject_detail.lview",
+                title: '科目明细',
+                fullScreen: false,
+                params: {
+                    account_set_id: id,
+                    winId: "subject_detail_window",
+                },
+                draggable: true,
+                closeable: true,
+                side: 'right',
+                width: 1400
+            });
+        }
+        function editorFunctionInsert(record, name) {
+            if (record.isNew) {
+                if (name == 'account_set_code') {
+                    return 'subject_define_ds_grid_tf';
+                }
+                return '';
+            }
+            return '';
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="subject_define_query_ds">
+            </a:dataSet>
+            <!--grid数据源-->
+            <a:dataSet id="subject_define_ds" autoPageSize="false" autoQuery="true"
+                       queryDataSet="subject_define_query_ds" selectable="true"
+                       queryUrl="${/request/@context_path}/gld/account/set/query"
+                       submitUrl="${/request/@context_path}/gld/account/set/submit"
+                       deleteUrl="${/request/@context_path}/gld/account/set/remove">
+                <a:events>
+                    <a:event name="submitsuccess" handler="subject_define_screen_query"/>
+                </a:events>
+                <a:fields>
+                    <a:field name="account_set_code"/>
+                    <a:field name="account_set_name"/>
+                    <a:item name="enabled_flag" defaultValue="Y" type="boolean" checkedValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="subject_define_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="subject_define_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton click="subject_define_screen_save" text="HAP.SAVE"/>
+                <a:gridButton click="subject_define_screen_query" text="HAP.QUERY"/>
+                <a:gridButton click="subject_define_screen_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="100">
+                <a:textField name="account_set_code" bindTarget="subject_define_query_ds" prompt="科目表代码"
+                             emptyText="科目表代码" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="subject_define_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="account_set_name" bindTarget="subject_define_query_ds" prompt="科目表名称"
+                             emptyText="科目表名称" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="subject_define_screen_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="subject_define_ds_grid" bindTarget="subject_define_ds"
+                    marginHeight="150" marginWidth="30" navBar="true">
+                <a:columns>
+                    <a:column width="310" name="account_set_code" editor="subject_define_ds_grid_tf" prompt="科目表代码"
+                              align="center"/>
+                    <a:column width="310" name="account_set_name" editor="subject_define_ds_grid_tf" prompt="科目表名称"
+                              align="center"/>
+                    <a:column width="310" name="enabled_flag" editor="subject_define_ds_grid_check" prompt="启用"
+                              align="center"/>
+                    <a:column width="310" name="subject_detail" prompt="科目明细" renderer="subject_detail_window_ds_grid"
+                              align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="subject_define_ds_grid_lov"/>
+                    <a:textField id="subject_define_ds_grid_tf"/>
+                    <a:checkBox id="subject_define_ds_grid_check"/>
+                    <a:comboBox id="subject_define_ds_grid_combo"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

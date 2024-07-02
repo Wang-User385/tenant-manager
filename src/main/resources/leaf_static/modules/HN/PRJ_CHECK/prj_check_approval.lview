@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            body{
+                height:400px;
+                width:1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="check_approve_link_id"
+                url="${/request/@context_path}/modules/HN/PRJ_CHECK/prj_check_detail_wfl.lview"/>
+        <a:link id="check_modify_link_id"
+                url="${/request/@context_path}/modules/HN/PRJ_CHECK/prj_check_detail.lview"/>
+        <script><![CDATA[
+        var businessKey = '${/parameter/@businessKey}';
+        var instance_id=parent.currentTaskInfo.process_instance_id;
+        if (!businessKey) {
+            businessKey = parent.currentTaskInfo.process_instance.business_key;
+        }
+
+        var function_code = 'PRJ_CHECK_DETAIL_WFL';
+        var wfl_show_save_flag='N';
+        var current_activity_id = parent.currentTaskInfo.task_definition_key;
+        var risk_task_id='sid-1PVLv6UF-YPIg-4Re1-8Txq-CjYOqL7UcGMg';
+        if(current_activity_id == risk_task_id){
+            wfl_show_save_flag='Y';
+        }
+        // 风控秘书维护会议结论
+        var riskControlSecretary= 'sid-ED324378-CE9B-40E3-91B6-AAF9B075CE9B';
+        var isRiskControlSecretaryFlag = 'N';
+        debugger;
+        if(riskControlSecretary == current_activity_id){
+            wfl_show_save_flag='Y';
+            isRiskControlSecretaryFlag = 'Y';
+        }
+
+        var wfl_falg='${/parameter/@wflRuleControlFlag}';
+        var function_usage='QUERY';
+        if(wfl_falg != 'undefined' && wfl_falg != '' && wfl_falg != null){
+            function_usage='MODIFY';
+        }
+        var maintain_type='READONLY';
+        var wflUrl=$('check_approve_link_id').getUrl();
+
+        //退回经办人节点可以编辑
+        if(parent.currentTaskInfo.task_definition_key == "sid-rHAU6o6D-6QbN-4laU-89LQ-cSSMgkK3aMmb"  ){
+            maintain_type = 'UPDATE';
+            function_usage = 'MODIFY';
+            function_code = 'PRJ_CHECK_DETAIL';
+            wflUrl=$('check_modify_link_id').getUrl();
+        }
+
+        //项目协办节点可以编辑
+        if(parent.currentTaskInfo.task_definition_key == "sid-xR7WcP8C-0dJI-4pBo-81Eq-s0u1ZrvT7Rav"  ){
+            maintain_type = 'UPDATE';
+            function_usage = 'MODIFY';
+            function_code = 'PRJ_CHECK_DETAIL';
+            wflUrl=$('check_modify_link_id').getUrl();
+        }
+
+        //风控秘书节点可以编辑
+        if(parent.currentTaskInfo.task_definition_key == "sid-ED324378-CE9B-40E3-91B6-AAF9B075CE9B"  ){
+            maintain_type = 'UPDATE';
+            function_usage = 'MODIFY';
+            function_code = 'PRJ_CHECK_DETAIL';
+            wflUrl=$('check_modify_link_id').getUrl();
+        }
+
+        //风控秘书节点可以编辑
+        if(parent.currentTaskInfo.task_definition_key == "sid-1PVLv6UF-YPIg-4Re1-8Txq-CjYOqL7UcGMg"  ){
+            maintain_type = 'UPDATE';
+            function_usage = 'MODIFY';
+            function_code = 'PRJ_CHECK_DETAIL';
+            wflUrl=$('check_modify_link_id').getUrl();
+        }
+
+        var pageChooser = new PageChooser({
+            url: wflUrl,
+            function_code: function_code,
+            context_path: '${/request/@context_path}',
+            opt: {
+                check_id: businessKey,
+                maintain_type: maintain_type,
+                function_usage: function_usage,
+                function_code: function_code,
+                wfl_flag: "${/parameter/@wflRuleControlFlag}",
+                wfl_show_save_flag :wfl_show_save_flag,
+                instance_id : instance_id,
+                isRiskControlSecretaryFlag: isRiskControlSecretaryFlag
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+
+        ]]></script>
+    </a:view>
+</a:screen>
+

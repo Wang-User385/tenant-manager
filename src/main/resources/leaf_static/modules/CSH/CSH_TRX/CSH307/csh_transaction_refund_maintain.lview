@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: chenliangxian
+    $Date:2022年11月4日
+    $Revision: 1.0
+    $Purpose: 退款申请（二期功能，搬运越秀租赁的功能）
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application">
+    <a:view>
+        <a:link id="csh_transaction_refund_detail_link_id" url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH307/csh_transaction_refund_detail.lview"/>
+
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+
+        <a:link id="transaction_query_link"
+                        url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_query.lview"/>
+        <a:link id="transaction_modify_link"
+                        url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_modify.lview"/>
+
+        <script><![CDATA[
+        var refund_id;
+        function csh_transaction_refund_create_query() {
+            $('csh_transaction_refund_create_result_ds').query();
+            refund_id = undefined;
+        }
+
+        function csh_transaction_refund_create_reset() {
+            $('csh_transaction_refund_create_ds').reset();
+            $('csh_transaction_refund_create_result_ds').query();
+        }
+
+        function csh_transaction_refund_create() {
+            var records = $('csh_transaction_refund_create_result_ds').getSelected();
+            if(records.length === 0){
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', '未选中行', null, 250, 100);
+                return;
+            }
+            var deposit_count = 0;
+            var no_deposit_count = 0;
+            var deposit_flag = 'N';
+            var management_fee_count = 0;
+            var no_management_fee_count = 0;
+            var management_fee_flag = 'N';
+            var performance_bond_count = 0;
+            var no_performance_bond_count = 0;
+            var performance_bond_flag = 'N';
+            var transaction_ids = [];
+            var total_can_return_amount = 0;
+            var transaction_type;
+            //是否已还清
+            var is_terminate_count = 0;
+
+            for (var i = 0; i < records.length; i++) {
+                //if((records[i].get('transaction_type') === 'ADVANCE_RECEIPT') && (records[i].get('bank_account_id') !== bank_account_id)){
+                //    Leaf.showMessage('${l:PROMPT_MESSAGE}', '预收款的来源账号不同, 不可同时选择!', null, 250, 100);
+                //    return;
+                //}
+                // if((records[i].get('transaction_type') === 'DEPOSIT') && (records[i].get('payment_bp_id') !== payment_bp_id)){
+                //     Leaf.showMessage('${l:PROMPT_MESSAGE}', '保证金的付款对象不同, 不可同时选择!', null, 250, 100);
+                //     return;
+                // }
+                //字段“是否已还清”为“否”不可发起保证金退款申请创建，并提示“承租人下有应收款项未收到，不能发起保证金退款流程!”。
+                if (records[i].get('is_terminate') === 'N' && records[i].get('transaction_type') === 'DEPOSIT'){
+                    is_terminate_count += 1;
+                }
+                if(is_terminate_count > 0){
+                    Leaf.showMessage('${l:PROMPT_MESSAGE}', '承租人下有应收款项未收到，不能发起保证金退款流程!', null, 250, 100);
+                    return;
+                }
+
+                if((records[i].get('transaction_type') === 'DEPOSIT')){
+                    deposit_count += 1;
+                }else{
+                    no_deposit_count += 1;
+                }
+                if(deposit_count > 0 && no_deposit_count > 0){
+                    Leaf.showMessage('${l:PROMPT_MESSAGE}', '保证金不可与其他类型现金事务同时退款!', null, 250, 100);
+                    return;
+                }else if(deposit_count > 0){
+                    deposit_flag = 'Y';
+                }
+                if((records[i].get('transaction_type') === 'MANAGEMENT_FEE')){
+                    management_fee_count += 1;
+                }else{
+                    no_management_fee_count += 1;
+                }
+                if(management_fee_count > 0 && no_management_fee_count > 0){
+                    Leaf.showMessage('${l:PROMPT_MESSAGE}', '管理费不可与其他类型现金事务同时退款!', null, 250, 100);
+                    return;
+                }else if(management_fee_count > 0){
+                    management_fee_flag = 'Y';
+                }
+                if((records[i].get('transaction_type') === 'PERFORMANCE_BOND')){
+                    performance_bond_count += 1;
+                }else{
+                    no_performance_bond_count += 1;
+                }
+                if(performance_bond_count > 0 && no_performance_bond_count > 0){
+                    Leaf.showMessage('${l:PROMPT_MESSAGE}', '履约准备金不可与其他类型现金事务同时退款!', null, 250, 100);
+                    return;
+                }else if(performance_bond_count > 0){
+                    performance_bond_flag = 'Y';
+                }
+                var can_return_amount = records[i].get('can_return_amount');
+                if(!can_return_amount || can_return_amount <= 0){
+                    Leaf.showMessage('${l:PROMPT_MESSAGE}', '现金事务编号为'+records[i].get('transaction_num')+'的可退款金额不足!', null, 250, 100);
+                    return;
+                }
+                total_can_return_amount = plus(total_can_return_amount, can_return_amount);
+                transaction_ids.push(records[i].get('transaction_id'));
+            }
+
+            if(deposit_flag == 'Y'){
+                transaction_type = 'DEPOSIT';
+            }else if(management_fee_flag == 'Y'){
+                transaction_type = 'MANAGEMENT_FEE';
+            }else if(performance_bond_flag == 'Y'){
+                var payment_bp_id = records[0].get('payment_bp_id'),
+                    payment_bp_name = records[0].get('payment_bp_name'),
+                    bank_account_id = records[0].get('bank_account_id');
+                transaction_type = 'PERFORMANCE_BOND';
+            }else{
+                var payment_bp_id = records[0].get('payment_bp_id'),
+                    payment_bp_name = records[0].get('payment_bp_name'),
+                    bank_account_id = records[0].get('bank_account_id');
+                transaction_type = 'OTHERS';
+            }
+
+            //币种
+            var currency_code = records[0].get('currency_code');
+
+            var win = new Leaf.Window({
+                id: 'csh_transaction_refund_create_win_id',
+                url: $('csh_transaction_refund_detail_link_id').getUrl(),
+                params: {
+                    win_id: 'csh_transaction_refund_create_win_id',
+                    bp_id : payment_bp_id,
+                    bp_name : payment_bp_name,
+                    currency_code: currency_code,
+                    total_can_return_amount : total_can_return_amount,
+                    transaction_ids : transaction_ids.join(','),
+                    read_only : 'N',
+                    transaction_type : transaction_type,
+                    source_typ : 'CREATE'
+                },
+                title: '退款创建',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh_transaction_refund_create_query();
+                csh_transaction_refund_modify_query();
+            });
+        }
+
+        function csh_transaction_refund_modify_query() {
+            $('csh_transaction_refund_modify_home_grid_ds').query();
+            refund_id = undefined;
+        }
+
+        function csh_transaction_refund_modify_reset() {
+            $('csh_transaction_refund_modify_home_form_ds').reset();
+            $('csh_transaction_refund_modify_home_grid_ds').query();
+        }
+
+        function csh_transaction_refund_modify(){
+            var modify_ds = $('csh_transaction_refund_modify_home_grid_ds'),
+                selected_records = modify_ds.getSelected();
+            if(selected_records.length !== 1){
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', '必须且只能选择一行！', null, 250, 100);
+                return;
+            }
+            var record = selected_records[0],
+                read_only = 'N';
+            if(record.get('refund_status') === 'APPROVED' || record.get('refund_status') === 'APPROVING'){
+                read_only = 'Y';
+            }
+            var win = new Leaf.Window({
+                id: 'csh_transaction_refund_modify_win_id',
+                url: $('csh_transaction_refund_detail_link_id').getUrl(),
+                params: {
+                    win_id: 'csh_transaction_refund_modify_win_id',
+                    refund_id : record.get('refund_id'),
+                    read_only : read_only,
+                    source_type : 'MODIFY'
+                },
+                title: '退款明细',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh_transaction_refund_modify_query();
+            });
+        }
+
+        function refund_num_renderer(value, record, name){
+            if (name = 'refund_num') {
+                return '<a href="javascript:window[\'open_refund_modify_win\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        }
+
+        function open_refund_modify_win(id, dsid){
+            var record = $(dsid).findById(id),
+                read_only = 'N';
+            if(record.get('refund_status') === 'APPROVED' || record.get('refund_status') === 'APPROVING' || record.get('refund_status') === 'CANCEL'){
+                read_only = 'Y';
+            }
+            var win = new Leaf.Window({
+                id: 'csh_transaction_refund_modify_win_id',
+                url: $('csh_transaction_refund_detail_link_id').getUrl(),
+                params: {
+                    win_id: 'csh_transaction_refund_modify_win_id',
+                    refund_id : record.get('refund_id'),
+                    read_only : read_only,
+                    source_type : 'MODIFY'
+                },
+                title: '退款明细',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh_transaction_refund_modify_query();
+            });
+        }
+
+        function tab_before_select_event(tabpanel, index, tab){
+            if(index === 0){
+                csh_transaction_refund_create_query();
+            }else{
+                csh_transaction_refund_modify_query();
+            }
+        }
+
+        function receipt_add_update_renderer(value, record, name) {
+            var transaction_id = record.get('transaction_id');
+            var posted_flag = record.get('posted_flag');
+            var transaction_type = record.get('transaction_type');
+            if (transaction_id) {
+                if (posted_flag == 'Y') {
+                    return '<a href="javascript:receipt_add_query_window(\'' + transaction_id + '\',\'' + transaction_type + '\')">' + value + '</a>';
+                } else {
+                    return '<a href="javascript:receipt_add_update_window(\'' + transaction_id + '\',\'' + transaction_type + '\')">' + value + '</a>';
+                }
+            } else {
+                return '';
+            }
+        }
+        function receipt_add_update_window(transaction_id,transaction_type) {
+            var win = new Leaf.Window({
+                id: 'transaction_modify_winId',
+                url: $('transaction_modify_link').getUrl(),
+                params: {
+                    winId: 'transaction_modify_winId',
+                    transaction_id: transaction_id,
+                    transaction_type : transaction_type
+                },
+                title: '收款维护',
+                width: 800,
+                height: 450,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh_transaction_refund_create_query();
+            });
+        }
+
+        function receipt_add_query_window(transaction_id,transaction_type ) {
+            var win = new Leaf.Window({
+                id: 'transaction_query_winId',
+                url: $('transaction_query_link').getUrl(),
+                params: {
+                    winId: 'transaction_query_winId',
+                    transaction_id: transaction_id,
+                    transaction_type : transaction_type
+                },
+                title: '收款查询',
+                width: 800,
+                height: 450,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh_transaction_refund_create_query();
+            });
+        }
+
+        function csh_transaction_refund_cancel(){
+            var records_ds = $('csh_transaction_refund_modify_home_grid_ds');
+            var records = records_ds.getSelected();
+            if(records.length !== 1){
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', '必须且只能选择一行！', null, 250, 100);
+                return;
+            }
+            var record = records[0];
+            var refund_id = record.get('refund_id');
+            Leaf.Masker.mask(Ext.getBody(), '正在执行...');
+            Leaf.request({
+                url: '${/request/@context_path}/csh/transaction/refund/cancel?refundId='+refund_id,
+                para: {refund_id : refund_id},
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    if (res.success) {
+                        Leaf.showMessage('提示', '退款申请取消成功!');
+                        csh_transaction_refund_modify_query();
+                    }
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+        ]]></script>
+        <a:screenBody>
+            <a:dataSets>
+                <a:dataSet id="csh_transaction_type_ds" lookupCode="CSH301_TRANSACTION_TYPE"/>
+                <a:dataSet id="is_terminate_ds" lookupCode="SYS.YES_NO"/>
+                <a:dataSet id="refund_status_ds" lookupCode="HLS_WFL_STATUS"/>
+                <a:dataSet id="csh_transaction_refund_create_ds">
+                    <a:fields>
+                        <a:field name="contract_number"/>
+                        <a:field name="transaction_num"/>
+                        <a:field name="transaction_date_from"/>
+                        <a:field name="transaction_date_to"/>
+                        <a:field name="transaction_amount_from"/>
+                        <a:field name="transaction_amount_to"/>
+                        <a:field name="transaction_type_desc" returnField="transaction_type" valueField="code_value" displayField="code_value_name" prompt="现金事务类型" options="csh_transaction_type_ds"/>
+                        <a:field name="posted_flag"/>
+                        <a:field name="is_terminate_n" returnField="is_terminate" valueField="code_value" displayField="code_value_name" prompt="是否已还清" options="is_terminate_ds"/>
+                        <a:field name="bp_id_tenant_n"/>
+                        <a:field name="bp_id_vender_n"/>
+                        <a:field name="manufacturer_id_n" autoComplete="true" lovGridHeight="360" lovHeight="510"
+                                 lovLabelWidth="100" lovService="/hls/bp/master/manufacturer/query~com.hand.hls.prj.dto.BpManufacturerInfoLov"
+                                 lovWidth="600"
+                                 title="厂商/合作方">
+                            <a:mapping>
+                                <a:map from="bp_name" to="manufacturer_id_n"/>
+                            </a:mapping>
+                        </a:field>
+                        <a:field name="factory_id_n" autoComplete="true" lovGridHeight="360" lovHeight="600"
+                                 lovLabelWidth="100" lovService="/hls/bp/master/vender/query~com.hand.hls.prj.dto.BpVenderInfoLov"
+                                 lovWidth="600"
+                                 title="主机厂/合作方">
+                            <a:mapping>
+                                <a:map from="bp_name" to="factory_id_n"/>
+                            </a:mapping>
+                        </a:field>
+                    </a:fields>
+                </a:dataSet>
+                <a:dataSet id="csh_transaction_refund_create_result_ds" autoPageSize="true" autoQuery="false"
+                           queryDataSet="csh_transaction_refund_create_ds"
+                           queryUrl="${/request/@context_path}/csh/transaction/refund/create/query"
+                           selectable="true">
+                    <a:fields>
+                        <a:field name="transaction_date" datatype="date"/>
+                    </a:fields>
+                </a:dataSet>
+
+
+                <a:dataSet id="csh_transaction_refund_modify_home_form_ds">
+                    <a:fields>
+                        <a:field name="refund_num"/>
+                        <a:field name="transaction_num"/>
+                        <a:field name="refund_date_from"/>
+                        <a:field name="refund_date_to"/>
+                        <a:field name="refund_amount_from"/>
+                        <a:field name="refund_amount_to"/>
+                        <a:field name="bp_name"/>
+                        <a:field name="bp_id" />
+                        <a:field name="refund_status_desc" returnField="refund_status" valueField="code_value" displayField="code_value_name" prompt="单据状态" options="refund_status_ds"/>
+                    </a:fields>
+                </a:dataSet>
+                <a:dataSet id="csh_transaction_refund_modify_home_grid_ds" autoPageSize="true" autoQuery="false"
+                           queryDataSet="csh_transaction_refund_modify_home_form_ds"
+                           queryUrl="${/request/@context_path}/csh/transaction/refund/modify/home/query"
+                           selectable="true" selectionModel="single">
+                    <a:fields>
+                        <a:field name="refund_date" datatype="date"/>
+                    </a:fields>
+                </a:dataSet>
+            </a:dataSets>
+
+            <a:tabPanel id="csh_transaction_refund_tab" marginWidth="20" marginHeight="1">
+                <a:tabs>
+                    <a:tab prompt="退款申请创建" width="130" selected="true">
+                        <a:screenTopToolbar>
+                            <a:screenTitle/>
+                            <a:gridButton click="csh_transaction_refund_create_query" text="HAP.QUERY"/>
+                            <a:gridButton click="csh_transaction_refund_create_reset" text="HAP.RESET"/>
+                            <a:gridButton click="csh_transaction_refund_create" text="创建"/>
+                        </a:screenTopToolbar>
+                        <a:form column="4" labelWidth="100">
+                            <a:textField name="contract_number" bindTarget="csh_transaction_refund_create_ds"
+                                         prompt="合同编号" width="160"/>
+                            <a:textField name="transaction_num" bindTarget="csh_transaction_refund_create_ds"
+                                         prompt="现金事务编号" width="160"/>
+                            <a:datePicker name="transaction_date_from" bindTarget="csh_transaction_refund_create_ds"
+                                          prompt="付款日期从" width="160"/>
+                            <a:datePicker name="transaction_date_to" bindTarget="csh_transaction_refund_create_ds"
+                                          prompt="付款日期到" width="160"/>
+                            <a:comboBox name="transaction_type_desc" bindTarget="csh_transaction_refund_create_ds"
+                                        prompt="现金事物类型" width="160"/>
+                            <a:numberField name="transaction_amount_from" bindTarget="csh_transaction_refund_create_ds"
+                                           prompt="付款金额从" width="160"/>
+                            <a:numberField name="transaction_amount_to" bindTarget="csh_transaction_refund_create_ds"
+                                           prompt="付款金额到" width="160"/>
+                            <a:comboBox name="is_terminate_n" bindTarget="csh_transaction_refund_create_ds"
+                                        prompt="是否已还清" width="160"/>
+                            <a:textField name="bp_id_tenant_n" bindTarget="csh_transaction_refund_create_ds"
+                                         prompt="承租人" width="160"/>
+                            <a:textField name="bp_id_vender_n" bindTarget="csh_transaction_refund_create_ds"
+                                         prompt="经销商" width="160"/>
+                            <a:lov name="manufacturer_id_n" bindTarget="csh_transaction_refund_create_ds"
+                                   prompt="合作方" width="160"/>
+                            <a:lov name="factory_id_n" bindTarget="csh_transaction_refund_create_ds"
+                                   prompt="主机厂" width="160"/>
+                        </a:form>
+                        <a:grid bindTarget="csh_transaction_refund_create_result_ds" marginHeight="193" marginWidth="80"
+                                navBar="true">
+                            <a:columns>
+                                <a:column name="transaction_num" prompt="现金事务编号" width="120"
+                                          renderer="receipt_add_update_renderer"/>
+                                <a:column name="transaction_type_desc" prompt="现金事务类型" width="120"/>
+                                <a:column name="contract_number" prompt="合同编号" width="250"/>
+                                <a:column name="is_terminate_n" prompt="是否已还清" width="100"/>
+                                <a:column name="bp_id_tenant_n" prompt="承租人" width="250"/>
+                                <a:column name="manufacturer_id_n" prompt="厂商" width="250"/>
+                                <a:column name="bp_id_vender_n" prompt="经销商" width="250"/>
+                                <a:column name="factory_id_n" prompt="主机厂" width="250"/>
+                                <a:column name="payment_bp_name" prompt="付款对象" width="250"/>
+                                <a:column name="bank_account_num" prompt="来源账号" width="250"/>
+                                <a:column name="transaction_date" align="center" width="100"
+                                          renderer="Leaf.formatDate" prompt="付款日期"/>
+                                <a:column name="transaction_amount" align="right" width="100"
+                                          renderer="Leaf.formatMoney" prompt="付款金额"/>
+                                <a:column name="currency_code_desc" prompt="币种"/>
+                                <a:column name="write_off_amount" align="right" renderer="Leaf.formatMoney" width="120"
+                                          prompt="已核销金额"/>
+                                <a:column name="return_write_off_amount" align="right" renderer="Leaf.formatMoney" width="120"
+                                          prompt="已退款金额"/>
+                                <a:column name="block_amount" align="right" renderer="Leaf.formatMoney" width="120"
+                                          prompt="已冻结金额"/>
+                                <a:column name="can_return_amount" align="right" renderer="Leaf.formatMoney" width="120"
+                                          prompt="可退款金额"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="退款申请维护" width="130">
+                        <a:screenTopToolbar>
+                            <a:screenTitle/>
+                            <a:gridButton click="csh_transaction_refund_modify_query" text="HAP.QUERY"/>
+                            <a:gridButton click="csh_transaction_refund_modify_reset" text="HAP.RESET"/>
+                            <a:gridButton click="csh_transaction_refund_modify" text="维护"/>
+                            <!--<a:gridButton click="csh_transaction_refund_cancel" text="取消"/>-->
+                        </a:screenTopToolbar>
+                        <a:form column="4" labelWidth="100">
+                            <a:textField name="refund_num" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                         prompt="申请编号" width="160"/>
+                            <a:textField name="bp_name" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                         prompt="付款对象" width="160"/>
+                            <a:datePicker name="refund_date_from" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                          prompt="申请日期从" width="160"/>
+                            <a:datePicker name="refund_date_to" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                          prompt="申请日期到" width="160"/>
+                            <a:numberField name="refund_amount_from" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                           prompt="申请总金额从" width="160"/>
+                            <a:numberField name="refund_amount_to" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                           prompt="申请总金额到" width="160"/>
+                            <a:comboBox name="refund_status_desc" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                        prompt="单据状态" width="160"/>
+                        </a:form>
+                        <a:grid bindTarget="csh_transaction_refund_modify_home_grid_ds" marginHeight="193"
+                                marginWidth="80" navBar="true">
+                            <a:columns>
+                                <a:column name="refund_number" prompt="申请编号" width="150" renderer="refund_num_renderer"/>
+                                <a:column name="refund_date" prompt="申请日期" width="120" renderer="Leaf.formatDate"
+                                          align="center"/>
+                                <a:column name="bp_name" prompt="付款对象" width="300"/>
+                                <a:column name="bp_name_category" prompt="对象类别" width="120"/>
+                                <a:column name="bp_bank_account_name" prompt="付款对象账户" width="300"/>
+                                <a:column name="bp_bank_account_num" prompt="付款对象账号" width="200"/>
+                                <a:column name="bp_bank_name" prompt="付款对象银行" width="200"/>
+                                <a:column name="refund_amount" prompt="申请总金额" width="120" align="right"
+                                          renderer="Leaf.formatMoney"/>
+                                <a:column name="refund_status_desc" width="100" prompt="单据状态"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+                <a:events>
+                    <a:event name="beforeselect" handler="tab_before_select_event"/>
+                </a:events>
+            </a:tabPanel>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

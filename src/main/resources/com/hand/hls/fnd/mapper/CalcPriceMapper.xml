@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fnd.mapper.CalcPriceMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.CalcPrice">
+        <result column="FINANCE_ID" property="financeId" jdbcType="DECIMAL" />
+        <result column="PRICE_LIST" property="priceList" jdbcType="VARCHAR" />
+        <result column="CALC_NAME" property="calcName" jdbcType="VARCHAR" />
+        <result column="CALC_USER_ID" property="calcUserId" jdbcType="DECIMAL" />
+        <result column="DOCUMENT_CATEGORY" property="documentCategory" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_ID" property="documentId" jdbcType="VARCHAR" />
+        <result column="FINANCE_DESC" property="financeDesc" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <resultMap id="CalcPriceMap" type="map">
+        <result column="finance_id" property="finance_id"/>
+        <result column="price_list" property="price_list"/>
+        <result column="calc_name" property="calc_name"/>
+        <result column="calc_user_id" property="calc_user_id"/>
+        <result column="document_category" property="document_category"/>
+        <result column="document_id" property="document_id"/>
+        <result column="finance_desc" property="finance_desc"/>
+        <result column="price_list_n" property="price_list_n"/>
+        <result column="calc_user_id_n" property="calc_user_id_n"/>
+        <result column="quotation_id" property="quotation_id"/>
+    </resultMap>
+
+    <select id="selectCalcPrice" resultMap="CalcPriceMap">
+         select
+          f.finance_id,
+          f.price_list,
+          f.calc_name,
+          f.calc_user_id,
+          f.document_category,
+          f.document_id,
+          f.finance_desc,
+          (select h.description from hls_price_list h where h.price_list = f.price_list)price_list_n,
+          (select su.description from sys_user su where su.user_id = f.calc_user_id)calc_user_id_n,
+          pq.quotation_id
+         from finance_calc_price f left join prj_quotation pq on pq.source_document_category = 'FINANCE_CALC'
+         and pq.source_document_id = f.finance_id
+         <where>
+               f.calc_user_id = #{request.userId}
+             <if test="calcUserId != null">
+                 and f.calc_user_id = #{calcUserId}
+             </if>
+             <if test="calcName != null">
+                 and f.calc_name like concat(concat('%',#{calcName}),'%')
+             </if>
+             <if test="priceList != null">
+                 and f.price_list = #{priceList}
+             </if>
+
+         </where>
+        order by 1 desc
+    </select>
+
+    <resultMap id="PrjCalcPriceMap" type="map">
+        <result column="finance_id" property="finance_id"/>
+        <result column="price_list" property="price_list"/>
+        <result column="calc_name" property="calc_name"/>
+        <result column="calc_user_id" property="calc_user_id"/>
+        <result column="document_category" property="document_category"/>
+        <result column="document_category_n" property="document_category_n"/>
+        <result column="document_id_n" property="document_id_n"/>
+        <result column="finance_desc" property="finance_desc"/>
+        <result column="price_list_n" property="price_list_n"/>
+        <result column="calc_user_id_n" property="calc_user_id_n"/>
+        <result column="quotation_id" property="quotation_id"/>
+        <result column="source_document_category" property="source_document_category"/>
+        <result column="cf_count" property="cf_count"/>
+        <result column="calc_flag" property="calc_flag"/>
+    </resultMap>
+    <select id="selectPrjCalcPrice" resultMap="PrjCalcPriceMap">
+        select v.* from (select w.*,(case when w.cf_count > 0 then '是' else '否' end) calc_flag
+        from (select nvl(f.price_list,pq.price_list),
+        f.calc_name,
+        f.calc_user_id,
+        (select h.description
+        from hls_price_list h
+        where h.price_list = nvl(f.price_list,pq.price_list)) price_list_n,
+        (select su.description
+        from sys_user su
+        where su.user_id = f.calc_user_id) calc_user_id_n,
+        pq.quotation_id,
+        pq.source_document_category,
+        '测算报价' as document_category_n,
+        pq.source_document_id,
+        f.calc_name as document_id_n,
+        (select count(1) from prj_quotation_cashflow ccc where ccc.quotation_id = pq.quotation_id) cf_count
+        from finance_calc_price f, prj_quotation pq
+        where pq.source_document_category = 'FINANCE_CALC'
+        and pq.source_document_id = f.finance_id
+        --order by pq.creation_date desc
+        UNION ALL
+
+        select pq.price_list,
+        pq.calc_name,
+        pq.created_by calc_user_id,
+        (select h.description
+        from hls_price_list h
+        where h.price_list = pq.price_list) price_list_n,
+        (select su.description
+        from sys_user su
+        where su.user_id = pq.created_by) calc_user_id_n,
+        pq.quotation_id,
+        pq.source_document_category,
+        '项目报价' as document_category_n,
+        pq.source_document_id,
+        p.project_name as document_id_n,
+        (select count(1) from prj_quotation_cashflow ccc where ccc.quotation_id = pq.quotation_id) cf_count
+        from prj_quotation pq,prj_project p
+        where pq.source_document_id = p.project_id
+        and p.data_class = 'NORMAL'
+        and p.project_status = 'APPROVED'
+        and pq.source_document_category = 'PRJ_PROJECT'
+
+        ) w order by w.document_category_n, w.quotation_id desc) v
+
+
+        <where>
+            1=1
+            <if test="calcUserId != null">
+                and v.calc_user_id = #{calcUserId}
+            </if>
+            <if test="calcName != null">
+                and v.calc_name like concat(concat('%',#{calcName}),'%')
+            </if>
+            <if test="priceList != null">
+                and v.price_list = #{priceList}
+            </if>
+            <if test="createId != null">
+                and  v.calc_user_id = #{createId}
+            </if>
+            <if test="documentCategoryN != null">
+                and v.document_category_n like concat(concat('%',#{documentCategoryN}),'%')
+            </if>
+            <if test="documentIdN != null">
+                and v.document_id_n like concat(concat('%',#{documentIdN}),'%')
+            </if>
+        </where>
+    </select>
+
+
+    <resultMap id="QuotationAllMap" type="map">
+        <result column="document_category" property="document_category"/>
+        <result column="document_name" property="document_name"/>
+        <result column="quotation_id" property="quotation_id"/>
+        <result column="price_list" property="price_list"/>
+        <result column="price_list_n" property="price_list_n"/>
+        <result column="created_by_n" property="created_by_n"/>
+        <result column="creation_date" property="creation_date"/>
+        <result column="last_update_date" property="last_update_date"/>
+        <result column="last_updated_by_n" property="last_updated_by_n"/>
+        <result column="project_name" property="project_name"/>
+    </resultMap>
+
+    <select id="selectQuotationAllInfo" resultMap="QuotationAllMap">
+                select
+                  v.document_category,
+                  v.document_name,
+                  v.project_name,
+                  v.quotation_id,
+                  v.price_list,
+                  v.price_list_n,
+                  v.created_by,
+                  nvl(v.created_by_n,v.last_updated_by_n) created_by_n,
+                  v.creation_date,
+                  v.last_update_date,
+                  v.last_updated_by,
+                  v.last_updated_by_n
+                 from(
+        select '报价试算' document_category,
+               f.calc_name document_name,
+               ''  project_name,
+               pq.quotation_id,
+               pq.price_list,
+               (select h.description
+                  from hls_price_list h
+                 where h.price_list = pq.price_list) price_list_n,
+               pq.created_by,
+               (select su.description
+                  from sys_user su
+                 where su.user_id = nvl(pq.created_by,f.calc_user_id)) created_by_n,
+               pq.creation_date,
+               pq.last_update_date,
+               pq.last_updated_by,
+               (select su.description
+                  from sys_user su
+                 where su.user_id = pq.last_updated_by) last_updated_by_n
+          from prj_quotation pq, finance_calc_price f
+         where f.finance_id = pq.source_document_id
+           and pq.source_document_category = 'FINANCE_CALC'
+           and (
+           (
+               (select count(*) from sys_user_authority_rule s where s.document_category = 'PRJ_PROJECT' and s.allocation_id in
+               (select sua.allocation_id from sys_user_allocation sua where sua.user_id = #{request.userId})
+               ) = 0
+           ) or
+           (
+        (select count(*) from sys_user_authority_rule s where s.document_category = 'PRJ_PROJECT' and s.allocation_id in
+        (select sua.allocation_id from sys_user_allocation sua where sua.user_id = #{request.userId})
+        ) > 0 and nvl(pq.created_by,f.calc_user_id) = #{request.userId}
+            )
+        )
+
+        union
+
+        select '项目尽调' document_category,
+               pp.project_number document_name,
+               pp.project_name project_name,
+               pq.quotation_id,
+               pq.price_list,
+               (select h.description
+                  from hls_price_list h
+                 where h.price_list = pq.price_list) price_list_n,
+               pq.created_by,
+               (select su.description
+                  from sys_user su
+                 where su.user_id = pq.created_by) created_by_n,
+               pq.creation_date,
+               pq.last_update_date,
+               pq.last_updated_by,
+               (select su.description
+                  from sys_user su
+                 where su.user_id = pq.last_updated_by) last_updated_by_n
+          from prj_quotation pq, prj_project pp
+         where pp.project_id = pq.source_document_id
+           and pq.source_document_category = 'PRJ_PROJECT'
+           and pp.data_class in ('NORMAL')
+
+        union
+
+        select '合同管理' document_category,
+               pp.contract_number document_name,
+               pp.project_name project_name,
+               pq.quotation_id,
+               pq.price_list,
+               (select h.description
+                  from hls_price_list h
+                 where h.price_list = pq.price_list) price_list_n,
+               pq.created_by,
+               (select su.description
+                  from sys_user su
+                 where su.user_id = pq.created_by) created_by_n,
+               pq.creation_date,
+               pq.last_update_date,
+               pq.last_updated_by,
+               (select su.description
+                  from sys_user su
+                 where su.user_id = pq.last_updated_by) last_updated_by_n
+          from prj_quotation pq, prj_project pp
+         where pp.project_id = pq.source_document_id
+           and pq.source_document_category = 'PRJ_PROJECT'
+           and pp.data_class in ('VIRTUAL_CON')
+
+        union
+
+        select '支付表制作' document_category,
+               cc.contract_number document_name,
+               (select pp.project_name from prj_project pp where pp.project_id = cc.project_id)project_name,
+               pq.quotation_id,
+               pq.price_list,
+               (select h.description
+                  from hls_price_list h
+                 where h.price_list = pq.price_list) price_list_n,
+               pq.created_by,
+               (select su.description
+                  from sys_user su
+                 where su.user_id = pq.created_by) created_by_n,
+               pq.creation_date,
+               pq.last_update_date,
+               pq.last_updated_by,
+               (select su.description
+                  from sys_user su
+                 where su.user_id = pq.last_updated_by) last_updated_by_n
+          from prj_quotation pq, con_contract cc
+         where cc.contract_id = pq.source_document_id
+           and pq.source_document_category = 'CON_CONTRACT')v
+           <where>
+                <if test="documentCategory != null">
+                   and v.document_category like concat(concat('%',#{documentCategory}),'%')
+                </if>
+                <if test="documentName != null">
+                    and v.document_name like concat(concat('%',#{documentName}),'%')
+                </if>
+               <if test="projectName != null">
+                   and v.project_name like concat(concat('%',#{projectName}),'%')
+               </if>
+                <if test="priceListN != null">
+                   and v.price_list_n like concat(concat('%',#{priceListN}),'%')
+                </if>
+                <if test="createdByN != null">
+                    and created_by_n like concat(concat('%',#{createdByN}),'%')
+                </if>
+                <if test="lastUpdatedByN != null">
+                   and v.last_updated_by_n like concat(concat('%',#{lastUpdatedByN}),'%')
+                </if>
+                <if test="creationDateFrom != null">
+                    and v.creation_date &gt;= to_char(#{creationDateFrom},'yyyy/mm/dd')
+                </if>
+                <if test="creationDateTo != null">
+                    and v.creation_date &lt;= to_char(#{creationDateTo},'yyyy/mm/dd')
+                </if>
+                <if test="lastUpdateDateFrom != null">
+                   and v.last_update_date &gt;= to_char(#{lastUpdateDateFrom},'yyyy/mm/dd')
+                </if>
+                <if test="lastUpdateDateTo != null">
+                   and v.last_update_date &lt;= to_char(#{lastUpdateDateTo},'yyyy/mm/dd')
+                </if>
+           </where>
+           order by v.creation_date desc
+
+    </select>
+
+</mapper>

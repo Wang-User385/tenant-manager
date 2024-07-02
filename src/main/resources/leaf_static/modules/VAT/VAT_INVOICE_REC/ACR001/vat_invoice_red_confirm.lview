@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        function vat_invoice_rec_red(){debugger;
+            var para = [];
+            var red_record = $('vat_invoice_rec_info_ds').getCurrentRecord();
+            var records = $('vat_invoice_rec_ds').getSelected();
+            var red_invoice_code = red_record.get('red_invoice_code');
+            var red_invoice_number = red_record.get('red_invoice_number');
+            records[0].set('red_invoice_code',red_invoice_code);
+            records[0].set('red_invoice_number',red_invoice_number);
+            para.push(records[0].data);
+            Leaf.request({
+                url: '${/request/@context_path}/vat/acr/invoice/reverse',
+                para:para,
+                success: function (res) {
+                    $('acr_invoice_red_confirm_winid').close();
+                    $('vat_invoice_rec_ds').query();
+                    Leaf.SideBar.show({
+                        msg: '反冲成功',
+                        duration: 2000
+                    });
+
+                },
+                failure: function (res) {
+                    Leaf.showMessage('提示','红冲失败，请联系管理员');
+                }
+            });
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="vat_invoice_rec_info_ds">
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:form style="width:100%" >
+                <a:box column="2" labelWidth="150" >
+                    <a:textField name="red_invoice_code" bindTarget="vat_invoice_rec_info_ds" prompt="发票代码" width="170">
+                    </a:textField>
+                    <a:textField name="red_invoice_number" bindTarget="vat_invoice_rec_info_ds" prompt="发票编号" width="170">
+                    </a:textField>
+                </a:box>
+            </a:form>
+            <a:screenTopToolbar>
+                <a:gridButton click="vat_invoice_rec_red" text="确定反冲"/>
+            </a:screenTopToolbar>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

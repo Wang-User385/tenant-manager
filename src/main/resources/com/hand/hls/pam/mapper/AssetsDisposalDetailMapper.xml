@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.pam.mapper.AssetsDisposalDetailMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.pam.dto.AssetsDisposalDetail">
+        <result column="ASSETS_DISPOSAL_DETAIL_ID" property="assetsDisposalDetailId" jdbcType="DECIMAL" />
+        <result column="ASSETS_DISPOSAL_ID" property="assetsDisposalId" jdbcType="DECIMAL" />
+        <result column="LEASE_ITEM_ID" property="leaseItemId" jdbcType="DECIMAL" />
+        <result column="ASSETS_NUMBOR" property="assetsNumbor" jdbcType="VARCHAR" />
+        <result column="ASSETS_DISPOSAL_WAY" property="assetsDisposalWay" jdbcType="VARCHAR" />
+        <result column="ASSETS_DISPOSAL_MONEY" property="assetsDisposalMoney" jdbcType="DECIMAL" />
+        <result column="ASSETS_DISPOSAL_DATE" property="assetsDisposalDate" jdbcType="DATE" />
+        <result column="ASSETS_DISPOSAL_STAUTS" property="assetsDisposalStauts" jdbcType="VARCHAR" />
+
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="FULL_NAME" property="fullName" jdbcType="VARCHAR" />
+        <result column="LEASE_ITEM_TYPE" property="leaseItemType" jdbcType="VARCHAR" />
+        <result column="price" property="price" jdbcType="DECIMAL" />
+        <result column="quantity" property="quantity" jdbcType="DECIMAL" />
+        <result column="specification" property="specification" jdbcType="VARCHAR" />
+        <result column="vender_Id" property="venderId" jdbcType="DECIMAL" />
+        <result column="SERIAL_NUMBER" property="serialNumber" jdbcType="VARCHAR" />
+        <result column="INSTALLATION_SITE" property="installationSite" jdbcType="VARCHAR" />
+        <result column="MANUFACTURER" property="manufacturer" jdbcType="VARCHAR" />
+        <result column="ASSET_NUM" property="assetNum" jdbcType="VARCHAR" />
+        <result column="lease_item_type_n" property="leaseItemTypeN" jdbcType="VARCHAR" />
+        <result column="VENDER_ID_N" property="venderIdN" jdbcType="VARCHAR" />
+        <result column="INVOICE_NUM" property="invoiceNum" jdbcType="VARCHAR" />
+        <result column="ASSETS_DISPOSAL_STAUTS_N" property="assetsDisposalStautsN" jdbcType="VARCHAR" />
+        <result column="hls_lease_item_list_id" property="hlsLeaseItemListId" jdbcType="DECIMAL" />
+    </resultMap>
+    <select id="queryLeaseItemByProjectId" parameterType="Long"
+            resultMap="BaseResultMap">
+        SELECT
+        ppli.PROJECT_ID,
+        ppli.LEASE_ITEM_ID,
+            (select  h.LEASE_ITEM_CODE from hls_lease_item h where h.LEASE_ITEM_ID = ppli.LEASE_ITEM_ID) 	 LEASE_ITEM_CODE,
+
+            hl.ASSET_NAME FULL_NAME,
+        hl.hls_lease_item_list_id,
+        hl.PRICE,
+        hl.QUANTITY,
+        hl.SPECIFICATION,
+        hl.MANUFACTURER,
+        hl.ASSET_NUM,
+        hl.INSTALLATION_SITE,
+        hl.INVOICE_NUM
+
+        from hls_lease_item_list hl,prj_project_lease_item ppli
+        <where>
+            hl.LEASE_ITEM_ID=ppli.LEASE_ITEM_ID
+            and ppli.PROJECT_ID=#{projectId}
+            and hl.hls_lease_item_list_id NOT IN (SELECT DISTINCT ad.hls_lease_item_list_id FROM assets_disposal_detail ad WHERE ad.ASSETS_DISPOSAL_STAUTS IN ('DISPOSED'))
+
+        </where>
+    </select>
+
+
+
+    <select id="queryAssetsDisposalDetail" parameterType="com.hand.hls.pam.dto.AssetsDisposalDetail"
+            resultMap="BaseResultMap">
+        select
+        adl.ASSETS_DISPOSAL_DETAIL_ID,
+        ad.ASSETS_DISPOSAL_ID,
+        adl.FULL_NAME,
+        adl.PRICE,
+        adl.QUANTITY,
+        adl.ASSETS_DISPOSAL_STAUTS,
+        (SELECT meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'ASSETS_DISPOSAL_STATUS'
+        AND v.code_value = adl.ASSETS_DISPOSAL_STAUTS)ASSETS_DISPOSAL_STAUTS_N,
+        adl.*,
+        ad.*
+        from assets_disposal_detail adl,assets_disposal ad
+        <where>
+            adl.ASSETS_DISPOSAL_ID = ad.ASSETS_DISPOSAL_ID
+            and adl.ASSETS_DISPOSAL_ID = #{assetsDisposalId}
+
+        </where>
+
+    </select>
+
+
+   <!-- <select id="queryAssetsDisposalDetail" parameterType="com.hand.hls.pam.dto.AssetsDisposalDetail"
+            resultMap="BaseResultMap">
+        select
+    ad.ASSETS_DISPOSAL_ID,
+    ad.PROJECT_ID,
+    ad.CONTRACT_NUMBER,
+    v1.*,
+    v2.*
+    from assets_disposal ad,prj_project pp,(SELECT
+
+                                                                                ppli.PROJECT_ID,
+                                                                                ppli.LEASE_ITEM_ID,
+                                                                                    (select  h.LEASE_ITEM_CODE from hls_lease_item h where h.LEASE_ITEM_ID = ppli.LEASE_ITEM_ID) 	 LEASE_ITEM_CODE,
+                                                                                    (select  h.FULL_NAME from hls_lease_item h where h.LEASE_ITEM_ID = ppli.LEASE_ITEM_ID)FULL_NAME,
+                                                                                    hl.ASSET_NAME,
+                                                                                hl.PRICE,
+                                                                                hl.QUANTITY,
+                                                                                hl.SPECIFICATION,
+                                                                                hl.MANUFACTURER,
+                                                                                hl.ASSET_NUM,
+                                                                                hl.INSTALLATION_SITE
+
+                                                                                from hls_lease_item_list hl,prj_project_lease_item ppli
+                                                                                where hl.LEASE_ITEM_ID=ppli.LEASE_ITEM_ID
+                                                                                ) v1,(select adl.ASSETS_DISPOSAL_DETAIL_ID,
+                                                                                                                    adl.ASSETS_DISPOSAL_ID,
+                                                                                                                    adl.ASSETS_DISPOSAL_WAY,
+                                                                                                                adl.ASSETS_DISPOSAL_STAUTS
+                                                                                                            from assets_disposal_detail adl
+                                                                                                            where adl.ASSETS_DISPOSAL_ID = #{assetsDisposalId})v2
+    <where>
+        ad.PROJECT_ID = pp.PROJECT_ID
+        and v1.PROJECT_ID = ad.PROJECT_ID
+        and ad.ASSETS_DISPOSAL_ID = #{assetsDisposalId}
+        and v2.ASSETS_DISPOSAL_ID = ad.ASSETS_DISPOSAL_ID
+
+    </where>
+    </select>-->
+
+</mapper>

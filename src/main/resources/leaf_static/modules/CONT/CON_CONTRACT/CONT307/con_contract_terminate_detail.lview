@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: congweijing
+    Date: 2021/05/20 10:30
+    Revision: 1.0
+    Purpose: 合同结束审批页面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="${/parameter/@layout_code}_common_release_repurchase_window_id"
+                url="${/request/@context_path}/modules/HLS/HLS300/hls_duration_common_release_repurchase.lview"/>
+        <script><![CDATA[
+
+        //合同详情
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(basic_ds_id).getCurrentRecord().data;
+            var param = {};
+            param['url_title'] = '合同明细维护';
+            param['function_code'] = 'CONT301F1';
+            param['project_id'] = record.project_id;
+            param['winid'] = 'con_contract_detail_winid';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['function_code'] = 'CONT301F1';
+            hls_doc_get_layout_code(param, 'con_contract_detail_id', basic_ds_id, 'CONT301');
+        }
+
+        //存续期履约情况
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(basic_ds_id).getCurrentRecord().data;
+            var param = {};
+            param['url_title'] = '存续期履约情况';
+            param['function_code'] = 'HLS300CASHF1';
+            param['project_id'] = record.project_id;
+            param['winid'] = '${/parameter/@layout_code}_common_winid';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_common_release_repurchase_window_id', basic_ds_id, '${/parameter/@function_code}');
+        }
+
+        //新增时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq){
+            var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+
+            if(attachment_ds_id == ds.id){
+                record.set('source_category', 'prj_project_contract_terminate');
+                record.set('source_id', $(basic_ds_id).getCurrentRecord().get("project_id"));
+            }
+
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            //debugger;
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+            if(ds.id == attachment_ds_id){
+                var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                qpara['source_category'] = 'prj_project_contract_terminate';
+                qpara['source_id'] = $(basic_ds_id).getCurrentRecord().get("project_id");
+
+            }
+        };
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = '${/parameter/@layout_code}_attachment_detail';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'attach_link') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + name + '\');">' + "上传/下载" + '</a>';
+            }
+        }
+        //附件
+        window['${/parameter/@layout_code}_attachment_detail'] = function (record_id, name) {
+            var record = window['${/parameter/@layout_code}_hls_link_render_record'][record_id + '---' + name];
+            var header_id = record.get('attachment_id');
+            var table_name = "jczl_common_attachment";
+            if (header_id) {
+                var url;
+                if ('${/parameter/@function_usage}' == 'QUERY') {
+                    url = '${/request/@context_path}/downloadFile.lview';
+                } else {
+                    url = '${/request/@context_path}/uploadFile.lview';
+                }
+                var win = new Leaf.Window({
+                    id: '${/parameter/@layout_code}_open_attachment_winid',
+                    url: url,
+                    params: {
+                        header_id: header_id,
+                        table_name: table_name,
+                        winid: '${/parameter/@layout_code}_open_attachment_winid',
+                        function_usage: '${/parameter/@function_usage}'
+                    },
+                    title: '文件上传',
+                    width: 800,
+                    height: 575
+                });
+                win.on('close', function () {
+                    var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'jczl_common_attachment');
+                    var pageNum = $(attachment_ds_id).currentPage;
+                    $(attachment_ds_id).query(pageNum);
+                });
+            } else {
+                $L.showInfoMessage("提示", "请先保存!", null);
+            }
+
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Revision: 1.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+
+        <a:link id="prj100_prj_change_create_link_id" url="${/request/@context_path}/hls/cus/prj/project/change/req/submit"/>
+        <a:link id="prj100_prj_change_detail_link_id" url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_change_detail.lview"/>
+        <script><![CDATA[
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            qpara['chance_id'] = '${/parameter/@source_chance_id}';
+        };
+
+        //超链接渲染
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            var link_function = '${/parameter/@layout_code}_open_detail';
+            var desc_info_function = '${/parameter/@layout_code}_desc_info';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'edit') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">详情</a>';
+            }
+        };
+
+
+
+        window['${/parameter/@layout_code}_open_detail'] = function (record_id,ds_id) {
+            //根据状态打开变更页面
+            var datas = $(ds_id).getAll();
+            for(var i = 0; i < datas.length; i++){
+                if(datas[i].id == record_id){
+                    var record = datas[i];
+
+                    var param = record.data , function_code;
+                    //根据变更类型打开布局
+                    var x = record.get('change_type_n');
+                    if(record.get('change_type_code') == 'CHANCE_CREDIT_AMT_CHANGE'  ){
+                        function_code = 'PRJ003F1_CHANGE_AMT';
+                    }else if(record.get('change_type_code') == 'CHANCE_CREDIT_DATE_CHANGE'){
+                        function_code = 'PRJ003F1_CHANGE_DATE';
+                    }
+                    else if (record.get('change_type_code') == 'CHANCE_CREDIT_BP_CHANGE') {
+                        function_code = 'PRJ003F1_CHANGE3_BP';
+                    }else{
+                        function_code = 'PRJ001F1_CHANGE';
+                    }
+
+
+
+                    param['url_title'] = '项目变更明细';
+
+                    param['winid'] = 'prj100_chance_modify_winid';
+                    param['function_code'] = function_code;
+                    var status = record.get('status');
+                    if (status != 'NOTICE_HOLD' && status != 'NEW' && status != 'SUSPEND' && status != 'NOTICE_HOLD') {
+                        param['maintain_type'] = 'READONLY';
+                        param['function_usage'] = 'QUERY';
+                    }
+                    if(status == 'SUSPEND' && record.get('instance_end_flag') == 'N'){
+                        param['maintain_type'] = 'READONLY';
+                        param['function_usage'] = 'QUERY';
+                    }
+                    param['source_chance_id'] = '${/parameter/@source_chance_id}';
+                    //param['chance_id'] = '${/parameter/@source_chance_id}';
+                    hls_doc_get_layout_code(param, 'prj100_prj_change_detail_link_id', ds_id, function_code);
+
+                }
+            }
+        };
+
+        ]]></script>
+
+
+    </a:view>
+</a:screen>

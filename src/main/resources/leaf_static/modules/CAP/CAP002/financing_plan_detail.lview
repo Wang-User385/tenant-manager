@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        //新增时调用（grid）
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {debugger;
+            var ds_id = '${/parameter/@layout_code}_G_PLAN_cap_financing_plan_ln_ds';
+            if(ds.id == ds_id && ds.id){
+                record.set('finance_status','UNEXECUTED');
+                record.set('finance_status_n','未执行');
+            }
+            var parentRecord = $(get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_financing_plan')).getAt(0);
+            if (parentRecord.get('plan_id')) {
+                if(ds.id && ds.id == '${/parameter/@layout_code}_G_INVERT_PLAN_cap_capital_invest_plan_ln_ds'){
+                    var plan_id = parentRecord.get('plan_id');
+                    record.set('finance_plan_id',plan_id);
+                }
+            } else {
+                Leaf.showMessage("提示", "请先保存基本信息!", null);
+                return false;
+            }
+        };
+
+        //确认
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_financing_plan');
+            var records = $(ds_id).getCurrentRecord();
+            var plan_id = records.get('plan_id');
+            if(plan_id) {
+                new Leaf.showConfirm('${l:HLS.PROMPT}', '确认进行收入确认吗?', function okFun() {
+                    Leaf.request({
+                        url: "${/request/@context_path}/cap/financing/plan/confirm",
+                        async: false,
+                        para: {plan_id: plan_id},
+                        success: function (res) {
+
+                        },
+                        error: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                    });
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                });
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {debugger;
+            if(ds.id && '${/parameter/@layout_code}_G_INVERT_PLAN_cap_capital_invest_plan_ln_ds' == ds.id){
+                ds.setQueryParameter('finance_plan_id', '${/parameter/@finance_plan_id}');
+            }
+        };
+
+        //新增和加载时调用（form）
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {debugger;
+            if(ds && ds.id) {
+                record.set('company_name','${/session/@companyName}');
+                record.set('user_name','${/session/@userName}');
+                record.set('creation_date',new Date());
+            }
+        };
+
+        //保存前调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'cap_financing_plan');
+            var records = $(ds_id).getCurrentRecord();
+            var documentCategory = 'RZ_PLAN';
+            var documentType = 'RZ_PLAN';
+            var businessType = 'RZ_PLAN';
+            var companyId = '${/session/@companyId}';
+            var userId = '${/session/@userId}';
+            var unitId = '${/session/@unitId}';
+            records.set('company_id', companyId);
+            records.set('user_id', userId);
+            records.set('unit_id', unitId);
+            if (!records.get('plan_number')) {
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory + "&documentType=" + documentType + "&businessType=" + businessType,
+                    success: function (res) {
+                        records.set('plan_number', res.result.record[0]);
+                        check_flag = true;
+                    },
+                    error: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+            return check_flag;
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

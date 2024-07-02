@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.inv.mapper.HlsCusFinanceAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.inv.dto.HlsCusFinanceAttachment">
+        <result column="inv_attachment_id" property="invAttachmentId" jdbcType="DECIMAL" />
+        <result column="purchase_id" property="purchaseId" jdbcType="DECIMAL" />
+        <result column="inv_attachment_category" property="invAttachmentCategory" jdbcType="VARCHAR" />
+        <result column="document_name" property="documentName" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="make_up" property="makeUp" jdbcType="VARCHAR" />
+        <result column="status" property="status" jdbcType="VARCHAR" />
+        <result column="source_id" property="sourceId" jdbcType="DECIMAL" />
+
+        <result column="file_Id" property="fileId"/>
+        <result column="file_type" property="fileType"/>
+        <result column="source_type" property="sourceType"/>
+        <result column="source_key" property="sourceKey"/>
+        <result column="attachment_id" property="attachmentId" jdbcType="DECIMAL"/>
+
+        <result column="is_final_print" property="isFinalPrint" jdbcType="VARCHAR"/>
+        <result column="stamp_name" property="stampName" jdbcType="VARCHAR"/>
+        <result column="print_comment" property="printComment" jdbcType="VARCHAR"/>
+        <result column="copies" property="copies" jdbcType="VARCHAR"/>
+
+        <result column="org_stamp_name" property="orgStampName" jdbcType="VARCHAR"/>
+        <result column="np_stamp_name" property="npStampName" jdbcType="VARCHAR"/>
+
+        <result column="upload_person" property="uploadPerson" jdbcType="VARCHAR"/>
+        <result column="file_name" property="fileName" jdbcType="VARCHAR"/>
+        <result column="file_size" property="fileSize" jdbcType="DECIMAL"/>
+        <result column="upload_date" property="uploadDate" jdbcType="VARCHAR"/>
+        <result column="update_status" property="updateStatus" jdbcType="VARCHAR"/>
+
+    </resultMap>
+
+    <select id="queryAll" parameterType="com.hand.hls.inv.dto.HlsCusFinanceAttachment" resultMap="BaseResultMap">
+        SELECT ifa.* from inv_finance_attachment ifa
+        <where>
+            1=1
+            <if test="purchaseId">
+               AND ifa.purchase_id = #{purchaseId}
+            </if>
+            <if test="invAttachmentId">
+                AND ifa.inv_attachment_id = #{invAttachmentId}
+            </if>
+            <if test="makeUp">
+                AND ifa.make_up = #{makeUp}
+            </if>
+            <if test="status">
+                AND  ifa.status = #{status}
+            </if>
+
+        </where>
+
+    </select>
+    <resultMap id="attachmentResultMap" type="map">
+        <result column="attachment_id" property="attachment_id"/>
+        <result column="source_type_code" property="source_type_code"/>
+        <result column="source_pk_value" property="source_pk_value"/>
+        <result column="file_name" property="file_name"/>
+        <result column="file_size" property="file_size"/>
+        <result column="file_path" property="file_path"/>
+        <result column="status" property="status"/>
+        <result column="upload_date" property="upload_date"/>
+        <result column="upload_person" property="upload_person"/>
+    </resultMap>
+    <select id="invAttachmentDetailQuery"
+            resultMap="attachmentResultMap">
+        select
+        fa.attachment_id,
+        fa.source_type_code,
+        fa.source_pk_value,
+        fa.file_name,
+        fa.file_size,
+        fa.file_path,
+        1 status,
+        fa.creation_date upload_date,
+        (select su.description from sys_user su where su.user_id = fa.created_by) upload_person,
+        (select ifa.description from inv_finance_attachment ifa where ifa.purchase_id = fam.table_pk_value) description
+        from fnd_atm_attachment fa,fnd_atm_attachment_multi fam
+        where
+            fam.table_name = 'INV_PURCHASE_ATT'
+            and fam.table_pk_value = #{purchaseId}
+            and fa.attachment_id = fam.attachment_id
+    </select>
+
+</mapper>

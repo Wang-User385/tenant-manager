@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.HlsCusCommonAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.HlsCusCommonAttachment">
+        <result column="attachment_id" property="attachmentId" jdbcType="DECIMAL" />
+        <result column="document_name" property="documentName" jdbcType="VARCHAR" />
+        <result column="document_number" property="documentNumber" jdbcType="VARCHAR" />
+        <result column="source_id" property="sourceId" jdbcType="DECIMAL" />
+        <result column="source_category" property="sourceCategory" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="file_name" property="fileName" jdbcType="VARCHAR" />
+		<result column="document_type" property="documentType" jdbcType="VARCHAR" />
+		<result column="document_type_n" property="documentTypeN" jdbcType="VARCHAR" />
+		<result column="created_by_n" property="createdByN" jdbcType="VARCHAR" />
+		<result column="last_update_date" property="lastUpdateDate" jdbcType="DATE" />
+	</resultMap>
+    <select id="queryContractTariffAttachmentInfo" resultMap="BaseResultMap">
+        SELECT
+        ca.attachment_id,
+        ca.document_name,
+        ca.description,
+        (
+        SELECT
+        wm_concat( faa.file_name ) modelName
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.record_id = faa.source_pk_value
+        AND faam.table_pk_value = ca.attachment_id
+        AND faam.table_name = 'jczl_common_attachment'
+        ) file_name
+        FROM
+        jczl_common_attachment ca
+        <where>
+        ca.source_category = 'con_contract_tariff_info'
+            <if test="tariffId!=null">
+                and ca.source_id = #{tariffId}
+            </if>
+        </where>
+    </select>
+	<select id="queryCommonAttachmentInfo" resultMap="BaseResultMap">
+		SELECT
+		ca.attachment_id,
+		ca.document_name,
+		ca.description,
+		ca.document_type,
+		( SELECT meaning FROM sys_code_value_b_v WHERE CODE = 'CONT.DOCUMENT_TYPE' AND code_value = ca.document_type ) document_type_n,
+		( SELECT s.description FROM sys_user s WHERE s.user_id = ca.created_by ) AS created_by_n,
+		ca.last_update_date,
+		(
+		SELECT
+		wm_concat( faa.file_name ) modelName
+		FROM
+		fnd_atm_attachment faa,
+		fnd_atm_attachment_multi faam
+		WHERE
+		faam.record_id = faa.source_pk_value
+		AND faam.table_pk_value = ca.attachment_id
+		AND faam.table_name = 'jczl_common_attachment'
+		) file_name
+		FROM
+		jczl_common_attachment ca
+		<where>
+			1=1
+			<if test="sourceId!=null">
+				and ca.source_id = #{sourceId}
+			</if>
+			<if test="sourceCategory!=null">
+				and ca.source_category = #{sourceCategory}
+			</if>
+		</where>
+	</select>
+
+	<resultMap id="BaseResultMap1" type="java.util.Map">
+		<result column="cash_detail_id" property="cash_detail_id"/>
+		<result column="disclosure_id" property="disclosure_id"/>
+		<result column="attachment_id" property="attachment_id"/>
+		<result column="document_name" property="document_name"/>
+		<result column="description" property="description"/>
+		<result column="document_type" property="document_type"/>
+		<result column="document_type_n" property="document_type_n"/>
+		<result column="created_by_n" property="created_by_n"/>
+		<result column="last_update_date" property="last_update_date"/>
+		<result column="file_name" property="file_name"/>
+		<result column="check_id" property="check_id"/>
+
+	</resultMap>
+	<select id="queryCommonAttachmentInfoCash" resultMap="BaseResultMap1">
+		SELECT
+		ca.source_id as cash_detail_id,
+		ca.attachment_id,
+		ca.document_name,
+		ca.description,
+		ca.document_type,
+		( SELECT meaning FROM sys_code_value_b_v WHERE CODE = 'CONT.DOCUMENT_TYPE' AND code_value = ca.document_type ) document_type_n,
+		( SELECT s.description FROM sys_user s WHERE s.user_id = ca.created_by ) AS created_by_n,
+		ca.last_update_date,
+		(
+		SELECT
+		wm_concat( faa.file_name ) modelName
+		FROM
+		fnd_atm_attachment faa,
+		fnd_atm_attachment_multi faam
+		WHERE
+		faam.record_id = faa.source_pk_value
+		AND faam.table_pk_value = ca.attachment_id
+		AND faam.table_name = 'jczl_common_attachment'
+		) file_name
+		FROM
+		jczl_common_attachment ca
+		<where>
+			1=1
+			<if test="sourceId!=null">
+				and ca.source_id = #{sourceId}
+			</if>
+			<if test="sourceCategory!=null">
+				and ca.source_category = #{sourceCategory}
+			</if>
+		</where>
+	</select>
+
+	<select id="queryCommonAttachmentInfoDisclosure" resultMap="BaseResultMap1">
+		SELECT
+		ca.source_id as disclosure_id,
+		ca.attachment_id,
+		ca.document_name,
+		ca.description,
+		ca.document_type,
+		( SELECT meaning FROM sys_code_value_b_v WHERE CODE = 'CONT.DOCUMENT_TYPE' AND code_value = ca.document_type ) document_type_n,
+		( SELECT s.description FROM sys_user s WHERE s.user_id = ca.created_by ) AS created_by_n,
+		ca.last_update_date,
+		(
+		SELECT
+		wm_concat( faa.file_name ) modelName
+		FROM
+		fnd_atm_attachment faa,
+		fnd_atm_attachment_multi faam
+		WHERE
+		faam.record_id = faa.source_pk_value
+		AND faam.table_pk_value = ca.attachment_id
+		AND faam.table_name = 'jczl_common_attachment'
+		) file_name
+		FROM
+		jczl_common_attachment ca
+		<where>
+			1=1
+			<if test="sourceId!=null">
+				and ca.source_id = #{sourceId}
+			</if>
+			<if test="sourceCategory!=null">
+				and ca.source_category = #{sourceCategory}
+			</if>
+		</where>
+	</select>
+	<select id="queryCommonAttachmentInfoCheck" resultMap="BaseResultMap1">
+		SELECT
+		ca.source_id as check_id,
+		ca.attachment_id,
+		ca.document_name,
+		ca.description,
+		ca.document_type,
+		( SELECT meaning FROM sys_code_value_b_v WHERE CODE = 'CONT.DOCUMENT_TYPE' AND code_value = ca.document_type ) document_type_n,
+		(
+		SELECT
+		max( fat.last_update_date )
+		FROM
+		fnd_atm_attachment fat,
+		fnd_atm_attachment_multi faam
+		WHERE
+		fat.attachment_id = faam.attachment_id
+		AND faam.table_name = 'jczl_common_attachment'
+		AND faam.table_pk_value = ca.attachment_id
+		) last_update_date,
+		(
+		SELECT
+		max( su.description )
+		FROM
+		sys_user su,
+		fnd_atm_attachment fat,
+		fnd_atm_attachment_multi faam
+		WHERE
+		fat.attachment_id = faam.attachment_id
+		AND faam.table_name = 'jczl_common_attachment'
+		AND faam.table_pk_value = ca.attachment_id
+		AND su.user_id = fat.last_updated_by
+		) created_by_n,
+		(
+		SELECT
+		wm_concat( faa.file_name ) modelName
+		FROM
+		fnd_atm_attachment faa,
+		fnd_atm_attachment_multi faam
+		WHERE
+		faam.record_id = faa.source_pk_value
+		AND faam.table_pk_value = ca.attachment_id
+		AND faam.table_name = 'jczl_common_attachment'
+		) file_name
+		FROM
+		jczl_common_attachment ca
+		<where>
+			1=1
+			<if test="sourceId!=null">
+				and ca.source_id = #{sourceId}
+			</if>
+			<if test="sourceCategory!=null">
+				and ca.source_category = #{sourceCategory}
+			</if>
+		</where>
+	</select>
+
+
+    <select id="queryCshPaymentAttachmentInfo" resultMap="BaseResultMap">
+
+
+SELECT
+	tt.*,
+	concat_ws( '-', tt.PAYMENT_REQ_NUMBER, tt.bp_name, '放款资料清单' )  fileName
+FROM
+	(
+	SELECT
+		ppa.CSH_ATTCAHMENT_ID attachment_id,
+		ppa.PAYMENT_REQ_ID,
+		ppa.document_name,
+		ppa.description,
+		( SELECT hd.PAYMENT_REQ_NUMBER FROM csh_payment_req_hd hd WHERE hd.payment_Req_id = ppa.PAYMENT_REQ_ID ) PAYMENT_REQ_NUMBER,(
+		SELECT
+			hbm.bp_name
+		FROM
+			hls_bp_master hbm
+		WHERE
+			hbm.bp_id = (
+			SELECT
+				p.tenant_id
+			FROM
+				prj_project p
+			WHERE
+				p.project_id =(
+				SELECT
+					hd.SOURCE_DOC_ID
+				FROM
+					csh_payment_req_hd hd
+				WHERE
+					hd.payment_Req_id = ppa.PAYMENT_REQ_ID
+				))) bp_name,
+		(
+		SELECT
+			wm_concat( fa.file_name )
+		FROM
+			fnd_atm_attachment fa,
+			fnd_atm_attachment_multi fam
+		WHERE
+			fa.attachment_id = fam.attachment_id
+			AND fam.table_name = 'csh_payment_attachment'
+			AND ppa.csh_attcahment_id = fam.table_pk_value
+		) AS modelName
+	FROM
+		csh_payment_attachment ppa
+	WHERE
+		ppa.project_attachment_category = 'CON_PAYMENT'
+	AND ppa.PAYMENT_REQ_ID = #{paymentReqId}
+	) tt
+
+
+
+
+    </select>
+
+</mapper>

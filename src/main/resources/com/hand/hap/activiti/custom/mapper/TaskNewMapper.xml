@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hap.activiti.mapper.TaskNewMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hap.activiti.dto.TaskNew">
+        <result column="ID_" property="id" />
+        <result column="PROC_INST_ID_" property="process_instance_id" />
+        <result column="NAME_" property="name" jdbcType="VARCHAR"/>
+        <result column="START_USER_ID_" property="start_user_name" jdbcType="VARCHAR"/>
+        <result column="CREATE_TIME_" property="create_time" jdbcType="VARCHAR"/>
+        <result column="ASSIGNEE_" property="assignee" jdbcType="VARCHAR"/>
+        <result column="PROC_INST_ID_" property="procInstId" jdbcType="VARCHAR"/>
+        <result column="BUSINESS_KEY_" property="businessKey" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryTasketail" resultMap="BaseResultMap">
+        SELECT ail.*
+        FROM (select
+        t1.ID_,
+        t1.PROC_INST_ID_,
+        t1.ASSIGNEE_,
+        t2.NAME_ PROCESS_NAME,
+        t1.NAME_,
+        t3.START_USER_ID_,
+        t1.CREATE_TIME_
+        from act_ru_task t1,
+        act_re_procdef t2,
+        act_ru_execution t3
+        where t1.PROC_DEF_ID_ = t2.ID_
+        and t1.PROC_INST_ID_ = t3.PROC_INST_ID_
+        and t3.PARENT_ID_ is null) ail
+        <where>
+            <if test="process_instance_id!=null">
+                and ail.PROC_INST_ID_ = #{process_instance_id}
+            </if>
+            <if test="process_name!=null">
+                and ail.PROCESS_NAME like concat('%', concat(#{process_name,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="start_user_name!=null">
+                and ail.START_USER_ID_ like concat('%', concat(#{start_user_name,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="create_time_after != null">
+                and ail.CREATE_TIME_ > #{create_time_after}
+            </if>
+            <if test="create_time_before != null">
+                and ail.CREATE_TIME_ &lt; #{create_time_before}
+            </if>
+            <if test="assignee != null">
+                and ail.ASSIGNEE_ = #{assignee}
+            </if>
+        </where>
+        order by ail.CREATE_TIME_ desc
+    </select>
+
+    <select id="queryTaskByTaskId" resultMap="BaseResultMap">
+        select
+          t1.ID_,
+          t1.PROC_INST_ID_,
+          t1.ASSIGNEE_,
+          t2.NAME_ PROCESS_NAME,
+          t1.NAME_,
+          t3.START_USER_ID_,
+          t1.CREATE_TIME_
+        from act_ru_task t1,
+           act_re_procdef t2,
+           act_ru_execution t3
+        where t1.PROC_DEF_ID_ = t2.ID_
+        and t1.PROC_INST_ID_ = t3.PROC_INST_ID_
+        and t3.PARENT_ID_ is null
+        <if test="taskId != null">
+            and t1.ID_ = #{taskId}
+        </if>
+
+    </select>
+
+    <select id="queryDocumentName" resultType="java.lang.String">
+        select TEXT_
+        from act_hi_varinst
+        where PROC_INST_ID_=#{process_id} and NAME_='documentName'
+    </select>
+    <select id="queryDocumentNameNew" resultType="java.lang.String">
+        select TEXT_
+        from act_hi_varinst
+        where PROC_INST_ID_=#{process_id} and NAME_='documentName' and TEXT_ like concat(concat('%',#{document_name}),'%')
+    </select>
+    <select id="queryTasks" resultMap="BaseResultMap">
+        select ID_,PROC_INST_ID_,BUSINESS_KEY_ from act_ru_execution where PROC_INST_ID_=#{process_id}
+    </select>
+
+    <delete id="deleteParallel" >
+        delete act_ru_execution b where b.id_ in ( select   a1.id_ from act_ru_execution a1 ,act_hi_actinst a2 where a1.act_id_=a2.act_id_ and a1.proc_inst_id_=#{process_id}  and a2.act_type_='parallelGateway' and a1.id_=a2.execution_id_ and a1.is_mi_root_=0)
+
+    </delete>
+
+    <select id="queryTaskProcessName" resultType="java.lang.String">
+        select TEXT_ from act_ru_variable arv where arv.proc_inst_id_=#{process_id} and NAME_='pName'
+    </select>
+
+    <resultMap id="HistoryMap" type="Map">
+        <result column="id" property="id"/>
+        <result column="task_id" property="task_id"/>
+        <result column="start_time" property="start_time"/>
+        <result column="end_time" property="end_time"/>
+        <result column="start_user_name" property="start_user_name"/>
+        <result column="current_approver" property="current_approver"/>
+        <result column="last_approver" property="last_approver"/>
+        <result column="document_name" property="document_name"/>
+        <result column="document_number" property="document_number"/>
+        <result column="process_name" property="process_name"/>
+        <result column="process_code" property="process_code"/>
+        <result column="process_status" property="process_status"/>
+    </resultMap>
+
+    <select id="queryWflHistoryInfo" resultMap="HistoryMap" parameterType="Map">
+        SELECT ahp.proc_inst_id_ id,
+        (select art.id_
+        from act_ru_task art
+        where art.proc_inst_id_ = ahp.proc_inst_id_
+        and rownum = 1) task_id,
+        ahp.start_time_ start_time,
+        ahp.end_time_ end_time,
+        (select su.description
+        from sys_user su, sys_user_allocation sua
+        where su.user_id = sua.user_id
+        and sua.allocation_id = ahp.start_user_id_) start_user_name,
+        (select to_char(wm_concat(to_char(su.description)))
+        from act_ru_task art, sys_user su, sys_user_allocation sua
+        where art.proc_inst_id_ = ahp.proc_inst_id_
+        and sua.allocation_id = art.assignee_
+        and sua.enabled_flag = 'Y'
+        and sua.user_id = su.user_id) current_approver,
+        (SELECT su.description
+        FROM sys_user su, ACT_HI_COMMENT COMM, sys_user_allocation sua
+        where su.user_id = sua.user_id
+        and to_char(sua.allocation_id) = COMM.USER_ID_
+        and COMM.PROC_INST_ID_ = ahp.proc_inst_id_
+        and comm.type_ = 'action'
+        and rownum = 1
+        and comm.time_ =
+        (SELECT MAX(AHC.TIME_)
+        FROM ACT_HI_COMMENT AHC
+        WHERE AHC.TYPE_ = 'action'
+        AND AHC.PROC_INST_ID_= ahp.proc_inst_id_)
+        and not exists
+        (select 1
+        from act_ru_task art
+        where art.proc_inst_id_ = ahp.proc_inst_id_)) last_approver,
+        (select ahv.text_
+        from act_hi_varinst ahv
+        where ahv.proc_inst_id_ = ahp.proc_inst_id_
+        and ahv.name_ = 'documentName') document_name,
+        (select ahv.text_
+        from act_hi_varinst ahv
+        where ahv.proc_inst_id_ = ahp.proc_inst_id_
+        and ahv.name_ = 'documentNumber') document_number,
+        (select arm.name_
+        from ACT_RE_PROCDEF arp,act_re_model arm
+        where arp.id_ = ahp.proc_def_id_ and arp.key_ = arm.key_) process_name,
+        (select arp.key_
+        from ACT_RE_PROCDEF arp
+        where arp.id_ = ahp.proc_def_id_) process_code,
+        decode(ahp.end_time_, null, '运行中', '已结束') as process_status
+        FROM act_hi_procinst ahp
+        <where>
+            <choose>
+                <when test="involved == 'TRUE'">
+                    and ahp.start_user_id_ = (select sua.allocation_id
+                    from sys_user_allocation sua
+                    where sua.user_id = #{request.userId})
+                </when>
+                <when test="involved == 'FALSE'">
+                    and exists (select 1
+                    from act_hi_identitylink ahi,sys_user_allocation sua
+                    where ahi.proc_inst_id_ = ahp.proc_inst_id_
+                    and sua.user_id = #{request.userId}
+                    and to_char(sua.allocation_id) = ahi.user_id_)
+                </when>
+                <when test="involved == null">
+                    <if test="processIds == null">
+                        <if test="roleCode  != 'ADMIN'">
+                            exists (select 1
+                            from act_hi_identitylink ahi,sys_user_allocation sua
+                            where ahi.proc_inst_id_ = ahp.proc_inst_id_
+                            and sua.user_id = #{request.userId}
+                            and to_char(sua.allocation_id) = ahi.user_id_)
+
+                        </if>
+                    </if>
+                </when>
+            </choose>
+            <if test="started_after != null">
+                and to_date(#{started_after},'YYYY-MM-DD') &lt;= ahp.start_time_
+            </if>
+            <if test="started_before != null">
+                and to_date(#{started_before},'YYYY-MM-DD') >= ahp.start_time_
+            </if>
+            <if test="finished_after != null">
+                and to_date(#{finished_after},'YYYY-MM-DD') &lt;= ahp.end_time_
+            </if>
+            <if test="finished_before != null">
+                and to_date(#{finished_before},'YYYY-MM-DD') >= ahp.end_time_
+            </if>
+            <if test="document_name != null">
+                AND (select ahv.text_
+                from act_hi_varinst ahv
+                where ahv.proc_inst_id_ = ahp.proc_inst_id_
+                and ahv.name_ = 'documentName') LIKE CONCAT('%',CONCAT(#{document_name,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="document_number != null">
+                AND (select ahv.text_
+                from act_hi_varinst ahv
+                where ahv.proc_inst_id_ = ahp.proc_inst_id_
+                and ahv.name_ = 'documentNumber') LIKE CONCAT('%',CONCAT(#{document_number,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="process_name != null">
+                AND (select arm.name_
+                from ACT_RE_PROCDEF arp,act_re_model arm
+                where arp.id_ = ahp.proc_def_id_ and arp.key_ = arm.key_) LIKE CONCAT('%',CONCAT(#{process_name,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="process_instance_status == 'RUNNING'">
+                AND exists
+                (select 1
+                from act_ru_task art
+                where art.proc_inst_id_ = ahp.proc_inst_id_)
+            </if>
+            <if test="process_instance_status == 'ENDED'">
+                AND not exists
+                (select 1
+                from act_ru_task art
+                where art.proc_inst_id_ = ahp.proc_inst_id_)
+            </if>
+            <if test="process_id != null">
+                and ahp.proc_inst_id_ = #{process_id}
+            </if>
+            <if test="processIds != null">
+                and ahp.proc_inst_id_ in
+                <foreach collection="processIds" open="(" separator="," close=")" item="item" index="index">
+                    #{item,jdbcType=DECIMAL}
+                </foreach>
+            </if>
+            <if test="processIdNullFlag != null">
+                and 1!=1
+            </if>
+        </where>
+        order by to_number(ahp.id_) desc
+    </select>
+
+    <select id="getProcessIdsByprojectId" resultType="java.lang.String">
+        select yh_units_pkg.get_process_ids(p_project_id => #{projectId})
+        from dual
+    </select>
+</mapper>

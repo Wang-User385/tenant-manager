@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_entrance_change_detail_link_id" url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH1001/deposit_manage_hd_change_detail.lview"/>
+        <a:link id="${/parameter/@layout_code}_entrance_pay_detail_link_id" url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH1001/deposit_manage_hd_pay_detail.lview"/>
+        <a:link id="csh1001_con_change_create_link_id" url="${/request/@context_path}/csh/con/manage/change/req/submit"/>
+        <a:link id="csh1001_con_pay_check_link_id" url="${/request/@context_path}/csh/con/manage/change/req/check"/>
+        <script><![CDATA[
+
+        //生成权限字符串
+        window['${/parameter/@layout_code}_set_authority_rule_string'] = function () {
+            //debugger;
+            Leaf.request({
+                url: "${/request/@context_path}/hls/credit/line/chance/generateAuthorityString",
+                success: function (res) {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_manage_hd');
+                    $(ds_id).getCurrentRecord().set('authority_rule_string', res.result.record[0]);
+                },
+                sync: true,
+                scope: this
+            });
+        };
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+            debugger;
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_manage_hd');
+//            var hd_record = $(ds_id).getAt(0);
+            var ds = $(ds_id);
+            if (ds.validate()) {
+
+                //step1：生成hd数据
+
+                //step2：跳转到详细页面
+
+                var record = ds.getAt(0);//ds.getCurrentRecord();
+
+                debugger
+                if (record.get('handling_method') == '2' && record.get('deposit_deduction') == 'PERIOD_FINAL_RETURN') {
+                    Leaf.showMessage('提示','保证金处理方式一致，无法创建');
+                    return
+                }
+                if (record.get('handling_method') == '3' && (record.get('deposit_deduction') == 'PERIOD_FINAL_DEDUCTIBLE' || record.get('deposit_deduction_n') == 'PERIOD_FINAL_DECHARGE')) {
+                    Leaf.showMessage('提示','保证金处理方式一致，无法创建');
+                    return
+                }
+
+                var param= record.data,link_id='';
+                param['function_usage'] = 'CREATE';
+                param['winid'] = '${/parameter/@layout_code}_deposit_create_winid';
+                param['parent_winid'] = '${/parameter/@winid}';
+                param['default_value_dsid'] = ds.id;
+                param['url_title'] = '方案创建';
+
+                if (record.get('handling_method') == '0') {//保证金代付期中租金
+                    var data = $(ds_id).getJsonData()[0];
+                    Leaf.request({
+                        url: $('csh1001_con_pay_check_link_id').getUrl(),
+                        para: data,
+                        success: function (res) {
+                            $L.Masker.unmask(Ext.getBody());
+                            debugger
+                            param['function_code'] = 'CSH1001F2';
+                            link_id = '${/parameter/@layout_code}_entrance_pay_detail_link_id';
+                            hls_doc_get_layout_code(param, link_id, '${/parameter/@csh1001_dsid}', '${/parameter/@layout_code}',param['parent_winid'], 'Y');
+                        },
+                        failure: function () {
+                            $L.Masker.unmask(Ext.getBody());
+                        },
+                        error: function () {
+                            $L.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                } else if(record.get('handling_method') == '2' || record.get('handling_method') == '3') {//保证金处理方式变更
+                    param['function_code'] = 'CSH1001F3';
+                    link_id = '${/parameter/@layout_code}_entrance_change_detail_link_id';
+                    if(record.get('deposit_deduction') != 'PERIOD_FINAL_RETURN' && record.get('deposit_deduction') != 'PERIOD_FINAL_DEDUCTIBLE'){
+                        Leaf.showInfoMessage("提示", "合同保证金处理方式不是退还和抵扣，不能进行处理方式变更!", null);
+                        return;
+                    }
+
+                    $L.Masker.mask(Ext.getBody(),"变更创建中")
+
+                    var document_category = 'BZJ_TREATMENT';
+                    var document_type = 'BZJ_TREATMENT';
+                    var business_type = 'BZJ_TREATMENT';
+
+                    window['${/parameter/@layout_code}_set_authority_rule_string']();
+                    Leaf.request({
+                        url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type,
+                        success: function (res) {
+                            var data = $(ds_id).getJsonData()[0];
+                            data.manage_number = res.result.record[0];
+                            Leaf.request({
+                                url: $('csh1001_con_change_create_link_id').getUrl(),
+                                para: data,
+                                success: function (res) {
+                                    $L.Masker.unmask(Ext.getBody());
+                                    $L.showInfoMessage("提示","创建成功!",function () {
+                                        debugger
+
+                                        var rec = res.result.record[0];
+                                        var param_b = rec, function_code;
+                                        param_b['function_usage'] = 'CREATE';
+                                        param_b['winid'] = '${/parameter/@layout_code}_deposit_create_winid';
+                                        param_b['parent_winid'] = '${/parameter/@winid}';
+                                        param_b['default_value_dsid'] = ds.id;
+                                        param_b['url_title'] = '方案创建';
+                                        param_b['function_code'] = 'CSH1001F3';
+                                        hls_doc_get_layout_code(param_b, link_id, '${/parameter/@csh1001_dsid}', '${/parameter/@layout_code}',param['parent_winid'], 'Y');
+                                    });
+                                },
+                                failure: function () {
+                                    $L.Masker.unmask(Ext.getBody());
+                                },
+                                error: function () {
+                                    $L.Masker.unmask(Ext.getBody());
+                                },
+                                scope: this
+                            });
+                        },
+                        error: function (res) {
+                            $L.Masker.unmask(Ext.getBody());
+                        },
+                        failure: function (res) {
+                            $L.Masker.unmask(Ext.getBody());
+                        },
+                        sync: true,
+                        scope: this
+                    });
+
+                }else{
+                    Leaf.showInfoMessage("提示", "保证金处理方式错误，请重新选择!", null);
+                    return;
+                }
+            }
+        }
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value, bp_seq) {
+            debugger
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_manage_hd');
+            var record = $(ds_id).getCurrentRecord();
+            if (name === 'handling_method_n') {
+                if (record.get('handling_method_n') === '保证金代付期中租金') {
+                    record.getField('description').setRequired(true);
+                }else {
+                    record.getField('description').setRequired(false);
+                }
+            }
+
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

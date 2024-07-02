@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sys.mapper.SysRoleModuleMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.sys.dto.SysRoleModule">
+        <result column="ROLE_ID" property="roleId" jdbcType="DECIMAL"/>
+        <result column="MODULE_CODE" property="moduleCode" jdbcType="VARCHAR"/>
+        <result column="SEQUENCE" property="sequence" jdbcType="DECIMAL"/>
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR"/>
+    </resultMap>
+
+<!--    <resultMap id="SysRoleModuleMap" type="uncertain.composite.CompositeMap">-->
+<!--        <result column="SYS_ROLE_MODULE_ID" property="sysRoleModuleId"/>-->
+<!--        <result column="ROLE_ID" property="roleId"/>-->
+<!--        <result column="MODULE_CODE" property="moduleCode"/>-->
+<!--        <result column="URL" property="url"/>-->
+<!--        <result column="SEQUENCE" property="sequence"/>-->
+<!--        <result column="ENABLED_FLAG" property="enabledFlag"/>-->
+<!--        <result column="MODULE_FLAG" property="moduleFlag"/>-->
+<!--        <result column="FUNCTION_COUNT" property="functionCount"/>-->
+<!--        <result column="MENU_COUNT" property="menuCount"/>-->
+<!--        <result column="PARENT_MODULE_CODE" property="parentModuleCode"/>-->
+<!--        <result column="MODULE_NAME" property="moduleName"/>-->
+<!--        <result column="PARENT_MODULE_NAME" property="parentModuleName"/>-->
+<!--        <result column="SUB_MENU_COUNT" property="subMenuCount"/>-->
+
+<!--    </resultMap>-->
+
+    <resultMap id="SysRoleModuleResultMap" type="uncertain.composite.CompositeMap">
+        <result column="sys_role_module_id" property="sys_role_module_id"/>
+        <result column="role_id" property="role_id"/>
+        <result column="module_code" property="module_code"/>
+        <result column="url" property="url"/>
+        <result column="sequence" property="sequence"/>
+        <result column="enabled_flag" property="enabled_flag"/>
+        <result column="module_flag" property="module_flag"/>
+        <result column="function_count" property="function_count"/>
+        <result column="menu_count" property="menu_count"/>
+        <result column="parent_module_code" property="parent_module_code"/>
+        <result column="module_name" property="module_name"/>
+        <result column="parent_module_name" property="parent_module_name"/>
+        <result column="sub_menu_count" property="sub_menu_count"/>
+
+    </resultMap>
+
+    <select id="selectAllRoleModules" parameterType="com.hand.hls.sys.dto.SysRoleModule"
+            resultMap="SysRoleModuleResultMap">
+        SELECT
+            SYS_ROLE_MODULE_ID,ROLE_ID,MODULE_CODE
+        FROM
+            SYS_ROLE_MODULE
+        WHERE ENABLED_FLAG = 'Y'
+    </select>
+
+    <select id="selectRoleModulesMap" resultMap="SysRoleModuleResultMap" >
+        SELECT
+        srm.SYS_ROLE_MODULE_ID ,
+        srm.ROLE_ID ,
+        srm.MODULE_CODE ,
+        sm.MODULE_NAME ,
+        srb.URL url,
+        srm.SEQUENCE ,
+        srm.ENABLED_FLAG ,
+        (case when (select count(*) from sys_role_module_home_page srmw
+        where srmw.module_code = sm.module_code and srmw.role_id = srm.role_id and srmw.subject = #{request.subject}
+        ) > 0 then 'role_module'
+        when (select count(*) from sys_module_home_page smhp where smhp.MODULE_CODE = sm.module_code
+        and smhp.subject = #{request.subject}) > 0 then 'module'
+        else 'none' end
+        )module_Flag,
+        (select count(*) from sys_role_module srm2,sys_function_b sfb where srm2.PARENT_MODULE_CODE = srm.MODULE_CODE and srm2.ROLE_ID = srm.ROLE_ID
+        and sfb.MODULE_CODE = srm2.MODULE_CODE and not EXISTS (select * from sys_role_module_exclude_func srmef
+        where srmef.ROLE_ID = srm.ROLE_ID and srmef.FUNCTION_ID = sfb.function_id)
+        )function_Count,
+        (select count(*) from sys_role_module srm2 where srm2.PARENT_MODULE_CODE = srm.MODULE_CODE and srm2.ROLE_ID = srm.ROLE_ID
+        and srm2.enabled_flag = 'Y'
+        )menu_Count
+        FROM
+        sys_role_module srm,
+        sys_module sm
+        LEFT JOIN sys_resource_b srb ON sm.HOMEPAGE_RESOURCE_ID = srb.REQUEST_ID
+        WHERE
+        srm.MODULE_CODE = sm.MODULE_CODE
+        and sm.MODULE_CODE != 'UDEF'
+        <if test="roleId != null">
+            and srm.ROLE_ID = #{roleId}
+        </if>
+        and (srm.parent_module_code is null or srm.parent_module_code = '')
+        and srm.ENABLED_FLAG='Y'
+        and sm.ENABLED_FLAG='Y'
+        ORDER by srm.sequence asc
+    </select>
+
+    <select id="selectSubRoleModulesMap" resultMap="SysRoleModuleResultMap">
+        select * from
+        ((
+        SELECT
+        sfb.function_id sys_role_module_id,
+        srm.ROLE_ID role_id,
+        sfb.FUNCTION_CODE module_code,
+        srm.MODULE_CODE parent_module_code,
+        (select sm.MODULE_NAME from sys_module sm where sm.MODULE_CODE = srm.MODULE_CODE) parent_module_name,
+        sfb.FUNCTION_NAME module_name,
+        (select srb.URL from sys_resource_b srb where srb.RESOURCE_ID = sfb.RESOURCE_ID) url,
+        sfb.FUNCTION_SEQUENCE sequence,
+        sfb.ENABLED_FLAG enabled_flag,
+        'function' module_flag,
+        0 sub_menu_count
+        FROM
+        sys_role_module srm,
+        sys_function_b sfb
+        where
+        srm.MODULE_CODE = sfb.MODULE_CODE
+        and srm.PARENT_MODULE_CODE is null
+        and srm.ROLE_ID =  #{roleId}
+        and not EXISTS (select * from sys_role_module_exclude_func srmef
+        where srmef.ROLE_ID = srm.ROLE_ID and srmef.FUNCTION_ID = sfb.function_id)
+        )
+        union
+        (SELECT
+        srm.SYS_ROLE_MODULE_ID sys_role_module_id,
+        srm.ROLE_ID role_id,
+        srm.MODULE_CODE module_code,
+        srm.PARENT_MODULE_CODE parent_module_code,
+        'MAIN' parent_module_name,
+        sm.MODULE_NAME module_name,
+        srb.URL url,
+        srm.SEQUENCE sequence,
+        srm.ENABLED_FLAG enabled_flag,
+        (case when (select count(*) from sys_role_module_home_page srmw
+        where srmw.module_code = sm.module_code and srmw.role_id = srm.role_id and srmw.subject = #{request.subject}
+        ) > 0 then 'role_module'
+        when (select count(*) from sys_module_home_page smhp where smhp.MODULE_CODE = sm.module_code
+        and smhp.subject = #{request.subject}) > 0 then 'module'
+        else 'none' end
+        )module_flag,
+        (select count(*) from sys_function_b sfb,sys_resource_b srb  where sfb.MODULE_CODE = srm.MODULE_CODE and sfb.RESOURCE_ID = srb.RESOURCE_ID)sub_menu_count
+        FROM
+        sys_role_module srm,
+        sys_module sm
+        LEFT JOIN sys_resource_b srb ON sm.HOMEPAGE_RESOURCE_ID = srb.REQUEST_ID
+        WHERE
+        srm.MODULE_CODE = sm.MODULE_CODE
+        <if test="roleId != null">
+            and srm.ROLE_ID = #{roleId}
+        </if>
+        and (srm.parent_module_code is not null)
+        and srm.enabled_flag='Y'
+        ))t
+        order by t.sequence
+    </select>
+
+    <select id="selectRoleModules" resultType="com.hand.hls.sys.formbean.SysRoleModuleGrid">
+        SELECT
+        srm.SYS_ROLE_MODULE_ID sysRoleModuleId,
+        srm.ROLE_ID roleId,
+        srm.MODULE_CODE moduleCode,
+        sm.MODULE_NAME moduleName,
+        srb.URL url,
+        srm.sequence seq,
+        srm.enabled_flag enabledFlag,
+        srm.parent_module_code parentModuleCode
+        FROM
+        sys_role_module srm,
+        sys_module sm
+        LEFT JOIN sys_resource_b srb ON sm.HOMEPAGE_RESOURCE_ID = srb.RESOURCE_ID
+        WHERE
+        srm.MODULE_CODE = sm.MODULE_CODE
+        <if test="roleId != null">
+            and srm.ROLE_ID = #{roleId}
+        </if>
+        <if test="moduleCode != null">
+            and srm.MODULE_CODE = #{moduleCode}
+        </if>
+        order by seq asc
+    </select>
+</mapper>

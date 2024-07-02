@@ -1,0 +1,1050 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.DepositManageHdMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.DepositManageHd">
+        <result column="MANAGE_HD_ID" property="manageHdId" jdbcType="DECIMAL" />
+        <result column="MANAGE_NUMBER" property="manageNumber" jdbcType="VARCHAR" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="CHANGE_CONTRACT_ID" property="changeContractId" jdbcType="DECIMAL" />
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL" />
+        <result column="HANDLING_METHOD" property="handlingMethod" jdbcType="VARCHAR" />
+        <result column="EXECUTION_RESULT" property="executionResult" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="AFTER_CHANGE_WAY" property="afterChangeWay" jdbcType="VARCHAR" />
+
+        <result column="HANDLING_METHOD_N" property="handlingMethodN" jdbcType="VARCHAR" />
+        <result column="EXECUTION_RESULT_N" property="executionResultN" jdbcType="VARCHAR" />
+        <result column="CONTRACT_NAME" property="contractName" jdbcType="VARCHAR" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR" />
+        <result column="CREATE_DATE" property="createDate" jdbcType="DATE" />
+        <result column="DEPOSIT_AMOUNT" property="depositAmount" jdbcType="DECIMAL" />
+        <result column="PERFORM_AMOUNT" property="performAmount" jdbcType="DECIMAL" />
+        <result column="AFTERPERFORM_BALANCE" property="afterperformBalance" jdbcType="DECIMAL" />
+        <result column="AFTER_CHANGE_WAY_N" property="afterChangeWayN" jdbcType="VARCHAR" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="due_date" property="dueDate" jdbcType="DATE" />
+        <result column="due_amount" property="dueAmount" jdbcType="DECIMAL" />
+        <result column="received_amount" property="receivedAmount" jdbcType="DECIMAL" />
+        <result column="principal" property="principal" jdbcType="DECIMAL" />
+        <result column="net_principal" property="netPrincipal" jdbcType="DECIMAL" />
+        <result column="interest" property="interest" jdbcType="DECIMAL" />
+        <result column="lease_charge" property="leaseCharge" jdbcType="DECIMAL" />
+        <result column="deposit" property="deposit" jdbcType="DECIMAL" />
+        <result column="before_rent_total" property="beforeRentTotal" jdbcType="DECIMAL" />
+        <result column="down_payment" property="downPayment" jdbcType="DECIMAL" />
+
+
+        <result column="VERIFICATION_STATE" property="verificationState" jdbcType="VARCHAR" />
+        <result column="applicant" property="applicant" jdbcType="VARCHAR" />
+        <result column="deposit_deduction_n" property="depositDeductionN" jdbcType="VARCHAR" />
+        <result column="cf_item_n" property="cfItemN" jdbcType="VARCHAR"/>
+
+
+
+    </resultMap>
+    <select id="selectDepositManageByProject" parameterType="com.hand.hls.csh.dto.DepositManageHd" resultMap="BaseResultMap">
+        SELECT
+        c.contract_id,
+        h.CHANGE_CONTRACT_ID,
+        c.PROJECT_ID,
+        h.manage_number,
+        c.contract_number,
+        c.contract_name,
+        (
+        SELECT
+        HBM.BP_NAME
+        FROM
+        HLS_BP_MASTER HBM
+        WHERE
+        c.tenant_id = HBM.BP_ID
+        ) BP_NAME,
+        h.handling_method,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'CSH1001.HANDLING_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and h.handling_method = scvb.value) handling_method_n,
+        h.execution_result,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'CSH1001.EXECUTION_RESULT'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and h.execution_result = scvb.value) execution_result_n,
+        (select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW') deposit_amount,
+        decode(h.handling_method,'1',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '2',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '3',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),decode(h.execution_result,'WRITE_OFF',(select w.due_amount from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )),(select w.due_amount - nvl(w.received_amount,0) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )))) PERFORM_AMOUNT,
+        decode(h.handling_method,'1',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '2',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '3',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),((select sum(w.due_amount /*- nvl(w.received_amount,0)*/ ) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW') -
+        decode(h.execution_result,'WRITE_OFF',(select w.due_amount from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )),(select w.due_amount - nvl(w.received_amount,0) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )))
+        )) AFTERPERFORM_BALANCE,
+        h.creation_date as CREATE_DATE,
+        h.manage_hd_id,
+        h.AFTER_CHANGE_WAY,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = h.AFTER_CHANGE_WAY) AFTER_CHANGE_WAY_N,
+        (select decode(nvl(cc.write_off_flag,'NOT'),'NOT','未核销','PARTIAL','部分核销','全部核销') from con_contract_cashflow cc
+        where cc.cf_item = 1
+        AND cc.cf_status != 'BLOCK'
+        and cc.times = (select min(w.times) from con_contract_cashflow w
+        where w.contract_id = cc.contract_id
+        and w.cf_item = 1
+        and trunc(w.due_date) &gt;= trunc(sysdate))
+        and c.contract_id = cc.contract_id
+        and cc.cf_direction = 'INFLOW') VERIFICATION_STATE,
+        (select s.description from sys_user s where s.user_id = h.created_by) applicant,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = c.deposit_deduction) deposit_deduction_n,
+        (select cc.due_date from con_contract_cashflow cc
+        where cc.cf_item = 1
+        AND cc.cf_status != 'BLOCK'
+        and cc.times = (select min(w.times) from con_contract_cashflow w
+        where w.contract_id = cc.contract_id
+        and w.cf_item = 1
+        and trunc(w.due_date) >= trunc(sysdate))
+        and c.contract_id = cc.contract_id
+        and cc.cf_direction = 'INFLOW') due_date,
+        h.description
+        FROM
+        con_contract c left join CSH_DEPOSIT_manage_hd h on
+        c.contract_id = h.contract_id
+        <where>
+            1=1
+            and c.data_class = 'NORMAL'
+            <if test="contractNumber!=null">
+                and c.contract_number=#{contractNumber}
+            </if>
+            <if test="manageNumber!=null">
+                and h.manage_number = #{manageNumber}
+            </if>
+            <if test="contractName!=null">
+                and c.contract_name = #{contractName}
+            </if>
+            <if test="handlingMethod!=null">
+                and h.handling_method = #{handlingMethod}
+            </if>
+            <if test="executionResult!=null">
+                and h.execution_result = #{executionResult}
+            </if>
+            <if test="createDate!=null">
+                and trunc(h.creation_date) = trunc(#{createDate})
+            </if>
+            <if test="bpName!=null">
+                and (
+                SELECT
+                HBM.BP_NAME
+                FROM
+                HLS_BP_MASTER HBM
+                WHERE
+                c.tenant_id = HBM.BP_ID
+                ) like concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="manageHdId!=null">
+                and h.manage_hd_id=#{manageHdId}
+            </if>
+            <if test="projectId!=null">
+                and c.project_id = #{projectId}
+            </if>
+            <if test="contractId!=null">
+                and c.contract_id = #{contractId}
+            </if>
+        </where>
+        order by h.creation_date desc
+    </select>
+    <select id="selectDepositManageByField" parameterType="com.hand.hls.csh.dto.DepositManageHd" resultMap="BaseResultMap">
+        SELECT
+        c.contract_id,
+        h.CHANGE_CONTRACT_ID,
+        c.PROJECT_ID,
+        h.manage_number,
+        c.contract_number,
+        c.contract_name,
+        (
+        SELECT
+        HBM.BP_NAME
+        FROM
+        HLS_BP_MASTER HBM
+        WHERE
+        c.tenant_id = HBM.BP_ID
+        ) BP_NAME,
+        h.handling_method,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'CSH1001.HANDLING_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = (case when h.handling_method in('1','2','3') then '1'
+                            else '0' end)) handling_method_n,
+        h.execution_result,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'CSH1001.EXECUTION_RESULT'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and h.execution_result = scvb.value) execution_result_n,
+        (select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW') deposit_amount,
+        decode(h.handling_method,'1',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '2',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '3',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),decode(h.execution_result,'WRITE_OFF',(select w.due_amount from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )),(select w.due_amount - nvl(w.received_amount,0) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )))) PERFORM_AMOUNT,
+        decode(h.handling_method,'1',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '2',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '3',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),((select sum(w.due_amount /* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW') -
+        decode(h.execution_result,'WRITE_OFF',(select w.due_amount from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )),(select w.due_amount - nvl(w.received_amount,0) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )))
+        )) AFTERPERFORM_BALANCE,
+        h.creation_date as CREATE_DATE,
+        h.manage_hd_id,
+        h.AFTER_CHANGE_WAY,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = h.AFTER_CHANGE_WAY) AFTER_CHANGE_WAY_N,
+        (select decode(nvl(cc.write_off_flag,'NOT'),'NOT','未核销','PARTIAL','部分核销','全部核销') from con_contract_cashflow cc
+        where cc.cf_item = 1
+        AND cc.cf_status != 'BLOCK'
+        and cc.times = (select min(w.times) from con_contract_cashflow w
+        where w.contract_id = cc.contract_id
+        and w.cf_item = 1
+        and trunc(w.due_date) &gt;= trunc(sysdate))
+        and c.contract_id = cc.contract_id
+        and cc.cf_direction = 'INFLOW') VERIFICATION_STATE,
+        (select s.description from sys_user s where s.user_id = h.created_by) applicant,
+        -- 合同已复制则变更前的保证金处理方式从复制出来的合同取(这个在审批通过后不会改变), 未复制合同的变更仍从原始合同取变更前保证金处理方式
+        case when h.change_contract_id  is not null
+        then
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = (select c2.deposit_deduction from con_contract c2 where c2.contract_id = h.change_contract_id))
+        else
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = c.deposit_deduction)
+        end
+        as deposit_deduction_n,
+        h.description
+        FROM
+        con_contract c,CSH_DEPOSIT_manage_hd h
+        <where>
+            1=1
+            AND h.contract_id = c.contract_id
+            and c.data_class = 'NORMAL'
+            <if test="contractNumber!=null">
+                and c.contract_number LIKE CONCAT('%', CONCAT(#{contractNumber,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="manageNumber!=null">
+                and h.manage_number LIKE CONCAT('%', CONCAT(#{manageNumber,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="contractName!=null">
+                and c.contract_name  LIKE CONCAT('%', CONCAT(#{contractName,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="handlingMethod!=null">
+                and (case when h.handling_method in(1,2,3) then '1'
+                else '0' end) = #{handlingMethod}
+            </if>
+            <if test="executionResult!=null">
+                and h.execution_result = #{executionResult}
+            </if>
+            <if test="createDate!=null">
+                and trunc(h.creation_date) = trunc(#{createDate})
+            </if>
+            <if test="bpName!=null">
+                and (
+                SELECT
+                HBM.BP_NAME
+                FROM
+                HLS_BP_MASTER HBM
+                WHERE
+                c.tenant_id = HBM.BP_ID
+                ) like concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="manageHdId!=null">
+                and h.manage_hd_id=#{manageHdId}
+            </if>
+            <if test="projectId!=null">
+                and c.project_id = #{projectId}
+            </if>
+            <if test="contractId!=null">
+                and c.contract_id = #{contractId}
+            </if>
+        </where>
+        order by h.creation_date desc
+    </select>
+    <select id="selectDepositManageByFieldHistory" parameterType="com.hand.hls.csh.dto.DepositManageHd" resultMap="BaseResultMap">
+        SELECT
+        c.contract_id,
+        c.PROJECT_ID,
+        c.contract_number,
+        h.manage_hd_id,
+        c.contract_name,
+        (
+        SELECT
+        HBM.BP_NAME
+        FROM
+        HLS_BP_MASTER HBM
+        WHERE
+        c.tenant_id = HBM.BP_ID
+        ) BP_NAME,
+        h.manage_number,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = h.AFTER_CHANGE_WAY) AFTER_CHANGE_WAY_N,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = c.deposit_deduction) deposit_deduction_n,
+        h.description
+        FROM
+        con_contract c,CSH_DEPOSIT_manage_hd h
+        <where>
+            1=1
+            and h.contract_id = c.ref_contract_id
+            and h.handling_method = '1'
+            AND c.contract_id = (select max(ct.contract_id) from CSH_DEPOSIT_manage_hd hh,con_contract ct
+            where  hh.contract_id = ct.ref_contract_id
+            and hh.manage_hd_id = #{manageHdId}
+            and ct.data_class = 'HISTORY')
+        </where>
+    </select>
+    <select id="selectDepositManageByChangeField" parameterType="com.hand.hls.csh.dto.DepositManageHd" resultMap="BaseResultMap">
+        SELECT
+        c.contract_id,
+        h.CHANGE_CONTRACT_ID,
+        c.PROJECT_ID,
+        h.manage_number,
+        c.contract_number,
+        c.contract_name,
+        (
+        SELECT
+        HBM.BP_NAME
+        FROM
+        HLS_BP_MASTER HBM
+        WHERE
+        c.tenant_id = HBM.BP_ID
+        ) BP_NAME,
+        h.handling_method,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'CSH1001.HANDLING_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and h.handling_method = scvb.value) handling_method_n,
+        h.execution_result,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'CSH1001.EXECUTION_RESULT'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and h.execution_result = scvb.value) execution_result_n,
+        (select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW') deposit_amount,
+        decode(h.handling_method,'1',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '2',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '3',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),decode(h.execution_result,'WRITE_OFF',(select w.due_amount from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )),(select w.due_amount - nvl(w.received_amount,0) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )))) PERFORM_AMOUNT,
+        decode(h.handling_method,'1',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '2',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '3',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),((select sum(w.due_amount /* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW') -
+        decode(h.execution_result,'WRITE_OFF',(select w.due_amount from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )),(select w.due_amount - nvl(w.received_amount,0) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )))
+        )) AFTERPERFORM_BALANCE,
+        h.creation_date as CREATE_DATE,
+        h.manage_hd_id,
+        h.AFTER_CHANGE_WAY,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = h.AFTER_CHANGE_WAY) AFTER_CHANGE_WAY_N,
+        (select decode(nvl(cc.write_off_flag,'NOT'),'NOT','未核销','PARTIAL','部分核销','全部核销') from con_contract_cashflow cc
+        where cc.cf_item = 1
+        AND cc.cf_status != 'BLOCK'
+        and cc.times = (select min(w.times) from con_contract_cashflow w
+        where w.contract_id = cc.contract_id
+        and w.cf_item = 1
+        and trunc(w.due_date) &gt;= trunc(sysdate))
+        and c.contract_id = cc.contract_id
+        and cc.cf_direction = 'INFLOW') VERIFICATION_STATE,
+        (select s.description from sys_user s where s.user_id = h.created_by) applicant,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = c.deposit_deduction) deposit_deduction_n
+        FROM
+        CSH_DEPOSIT_manage_hd h,con_contract c
+        <where>
+            1=1
+            AND h.contract_id = c.contract_id
+            and c.data_class = 'NORMAL'
+            <if test="contractNumber!=null">
+                and c.contract_number=#{contractNumber}
+            </if>
+            <if test="manageNumber!=null">
+                and h.manage_number = #{manageNumber}
+            </if>
+            <if test="contractName!=null">
+                and c.contract_name = #{contractName}
+            </if>
+            <if test="handlingMethod!=null">
+                and h.handling_method = #{handlingMethod}
+            </if>
+            <if test="executionResult!=null">
+                and h.execution_result = #{executionResult}
+            </if>
+            <if test="createDate!=null">
+                and trunc(h.creation_date) = trunc(#{createDate})
+            </if>
+            <if test="bpName!=null">
+                and (
+                SELECT
+                HBM.BP_NAME
+                FROM
+                HLS_BP_MASTER HBM
+                WHERE
+                c.tenant_id = HBM.BP_ID
+                ) like concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="manageHdId!=null">
+                and h.manage_hd_id=#{manageHdId}
+            </if>
+            <if test="projectId!=null">
+                and c.project_id = #{projectId}
+            </if>
+        </where>
+        order by h.creation_date desc
+    </select>
+    <select id="selectManageHdById1" parameterType="com.hand.hls.csh.dto.DepositManageHd" resultMap="BaseResultMap">
+        SELECT
+        c.contract_id,
+        h.CHANGE_CONTRACT_ID,
+        c.PROJECT_ID,
+        h.manage_number,
+        c.contract_number,
+        c.contract_name,
+        (
+        SELECT
+        HBM.BP_NAME
+        FROM
+        HLS_BP_MASTER HBM
+        WHERE
+        c.tenant_id = HBM.BP_ID
+        ) BP_NAME,
+        h.handling_method,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'CSH1001.HANDLING_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and h.handling_method = scvb.value) handling_method_n,
+        h.execution_result,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'CSH1001.EXECUTION_RESULT'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and h.execution_result = scvb.value) execution_result_n,
+        (select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW') deposit_amount,
+        decode(h.handling_method,'1',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '2',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '3',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),decode(h.execution_result,'WRITE_OFF',(select w.due_amount from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )),(select w.due_amount - nvl(w.received_amount,0) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )))) PERFORM_AMOUNT,
+        decode(h.handling_method,'1',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '2',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),
+        '3',(select sum(w.due_amount/* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW'),((select sum(w.due_amount /* - nvl(w.received_amount,0)*/) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = 0
+        and w.cf_direction = 'INFLOW') -
+        decode(h.execution_result,'WRITE_OFF',(select w.due_amount from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 51
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )),(select w.due_amount - nvl(w.received_amount,0) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )))
+        )) AFTERPERFORM_BALANCE,
+        h.creation_date as CREATE_DATE,
+        h.manage_hd_id,
+        h.AFTER_CHANGE_WAY,
+        (Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = h.AFTER_CHANGE_WAY) AFTER_CHANGE_WAY_N,
+        (select w.due_date from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and w.cf_direction = 'INFLOW'
+        and w.times = (select min(cw.times) from con_contract_cashflow cw
+        where cw.contract_id = w.contract_id
+        and trunc(cw.due_date) >= trunc(sysdate)
+        and cw.cf_item = 1
+        )
+        ) due_date
+        FROM
+        CSH_DEPOSIT_manage_hd h,con_contract c
+        <where>
+            1=1
+            AND h.contract_id = c.contract_id
+            and c.data_class = 'NORMAL'
+            <if test="manageHdId != null">
+                and h.manage_hd_id = #{manageHdId,jdbcType=DECIMAL}
+            </if>
+            <if test="contractId != null">
+                and h.contract_id = #{contractId}
+            </if>
+        </where>
+
+    </select>
+    <select id="conRentCashQueryAll" parameterType="com.hand.hls.csh.dto.DepositManageHd"
+            resultMap="BaseResultMap">
+        SELECT
+        c.times,
+        c.due_date,
+        c.due_amount,
+        c.received_amount,
+        c.principal,
+        c.net_principal,
+        c.interest,
+        --手续费
+        t.contract_id,
+        c.cashflow_id,
+        (select q.lease_charge from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )lease_charge,
+        (select q.deposit from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )deposit,
+
+        (select q.before_rent_total from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )before_rent_total,
+        (select q.down_payment from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )down_payment
+
+        FROM
+        con_contract t,
+        con_contract_cashflow c
+        <where>
+        t.contract_id = c.contract_id
+        AND c.cf_item = 1
+        AND c.cf_status != 'BLOCK'
+        AND t.data_class = 'NORMAL'
+        /*and t.contract_status = 'INCEPT'*/
+        and c.times = (select min(w.times) from con_contract_cashflow w
+        where w.contract_id = c.contract_id
+        and w.cf_item = 1
+        and trunc(w.due_date) &gt;= trunc(sysdate))
+        and nvl(c.write_off_flag,'NOT') in('NOT','PARTIAL')
+        and c.cf_direction = 'INFLOW'
+        <if test="projectId != null">
+            and t.project_id = #{projectId}
+        </if>
+        <if test="contractId != null">
+            and t.contract_id = #{contractId}
+        </if>
+        </where>
+    </select>
+    <select id="conRentCashQueryOnlyAll" parameterType="com.hand.hls.csh.dto.DepositManageHd"
+            resultMap="BaseResultMap">
+        SELECT
+        c.times,
+        c.due_date,
+        c.due_amount,
+        c.received_amount,
+        c.principal,
+        c.net_principal,
+        c.interest,
+        --手续费
+        t.contract_id,
+        c.cashflow_id,
+        (select q.lease_charge from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )lease_charge,
+        (select q.deposit from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )deposit,
+
+        (select q.before_rent_total from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )before_rent_total,
+        (select q.down_payment from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )down_payment
+
+        FROM
+        con_contract t,
+        con_contract_cashflow c
+        <where>
+            t.contract_id = c.contract_id
+            AND c.cf_item = 1
+            AND c.cf_status != 'BLOCK'
+            AND t.data_class = 'NORMAL'
+            and c.times = (select min(w.times) from con_contract_cashflow w
+            where w.contract_id = c.contract_id
+            and w.cf_item = 51
+            and w.TIMES > 0)
+            and c.cf_direction = 'INFLOW'
+            <if test="projectId != null">
+                and t.project_id = #{projectId}
+            </if>
+            <if test="contractId != null">
+                and t.contract_id = #{contractId}
+            </if>
+        </where>
+    </select>
+    <select id="conRentCashQueryEnd" parameterType="com.hand.hls.csh.dto.DepositManageHd"
+            resultMap="BaseResultMap">
+        SELECT
+        c.times,
+        c.due_date,
+        c.due_amount,
+        c.received_amount,
+        c.principal,
+        c.net_principal,
+        c.interest,
+        --手续费
+        t.contract_id,
+        c.cashflow_id,
+        (select q.lease_charge from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )lease_charge,
+        (select q.deposit from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )deposit,
+
+        (select q.before_rent_total from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )before_rent_total,
+        (select q.down_payment from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )down_payment
+
+        FROM
+        con_contract t,
+        con_contract_cashflow c
+        <where>
+            t.contract_id = c.contract_id
+            AND c.cf_item = 1
+            AND c.cf_status != 'BLOCK'
+            AND t.data_class = 'NORMAL'
+            and c.times = (select min(w.times) from con_contract_cashflow w
+            where w.contract_id = c.contract_id
+            and w.cf_item = 1
+            and trunc(w.due_date) &gt;= trunc(sysdate))
+            and nvl(c.write_off_flag,'NOT') in('NOT','PARTIAL')
+            and c.cf_direction = 'INFLOW'
+            <if test="projectId != null">
+                and t.project_id = #{projectId}
+            </if>
+            <if test="contractId != null">
+                and t.contract_id = #{contractId}
+            </if>
+        </where>
+    </select>
+
+    <select id="conRentCashQueryNormal" parameterType="com.hand.hls.csh.dto.DepositManageHd"
+            resultMap="BaseResultMap">
+        SELECT
+        c.times,
+        (select hci.description from hls_cashflow_item hci where hci.cf_item = c.cf_item)cf_item_n,
+        c.due_date,
+        c.due_amount,
+        c.principal,
+        c.net_principal,
+        c.interest,
+        --手续费
+        t.contract_id,
+        c.cashflow_id,
+        (select q.lease_charge from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )lease_charge,
+        (select q.deposit from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )deposit,
+
+        (select q.before_rent_total from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )before_rent_total,
+        (select q.down_payment from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )down_payment,
+        decode(c.cf_item,52,(Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = t.deposit_deduction)) deposit_deduction_n
+
+        FROM
+        CSH_DEPOSIT_manage_hd h,con_contract t,
+        con_contract_cashflow c
+        <where>
+            t.contract_id = c.contract_id
+            AND c.cf_status != 'BLOCK'
+            AND t.data_class = 'NORMAL'
+            and h.contract_id = c.contract_id
+            and h.manage_hd_id = #{manageHdId,jdbcType=DECIMAL}
+        </where>
+        order by c.times
+    </select>
+
+    <select id="conRentCashQueryChange" parameterType="com.hand.hls.csh.dto.DepositManageHd"
+            resultMap="BaseResultMap">
+        SELECT
+        c.times,
+        (select hci.description from hls_cashflow_item hci where hci.cf_item = c.cf_item)cf_item_n,
+        c.due_date,
+        c.due_amount,
+        c.principal,
+        c.net_principal,
+        c.interest,
+        --手续费
+        t.contract_id,
+        c.cashflow_id,
+        (select q.lease_charge from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )lease_charge,
+        (select q.deposit from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )deposit,
+
+        (select q.before_rent_total from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )before_rent_total,
+        (select q.down_payment from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )down_payment,
+        decode(c.cf_item,52,(Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = h.AFTER_CHANGE_WAY)) AFTER_CHANGE_WAY_N
+
+        FROM
+        CSH_DEPOSIT_manage_hd h,con_contract t,
+        con_contract_cashflow c
+        <where>
+            t.contract_id = c.contract_id
+            AND c.cf_status != 'BLOCK'
+            AND t.data_class = 'CHANGE_REQ'
+            and h.change_contract_id = c.contract_id
+            and h.manage_hd_id = #{manageHdId,jdbcType=DECIMAL}
+        </where>
+        order by c.times
+    </select>
+
+    <select id="conRentCashQueryHistory" parameterType="com.hand.hls.csh.dto.DepositManageHd"
+            resultMap="BaseResultMap">
+        SELECT
+        c.times,
+        (select hci.description from hls_cashflow_item hci where hci.cf_item = c.cf_item)cf_item_n,
+        c.due_date,
+        c.due_amount,
+        c.principal,
+        c.net_principal,
+        c.interest,
+        --手续费
+        t.contract_id,
+        c.cashflow_id,
+        (select q.lease_charge from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )lease_charge,
+        (select q.deposit from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )deposit,
+
+        (select q.before_rent_total from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )before_rent_total,
+        (select q.down_payment from prj_quotation q
+        where q.quotation_id = c.quotation_id
+        )down_payment,
+        decode(c.cf_item,52,(Select scvb.meaning As value_name
+        From sys_code_value_b scvb, sys_code_b scb
+        Where scb.code = 'PRJ.MARGIN_PAYMENT_METHOD'
+        And scb.code_id = scvb.code_id
+        And scvb.enabled_flag = 'Y'
+        and scvb.value = t.deposit_deduction)) deposit_deduction_n
+
+        FROM
+        con_contract t,
+        con_contract_cashflow c
+        <where>
+            t.contract_id = c.contract_id
+            AND c.cf_status != 'BLOCK'
+            and t.contract_id = (select max(ct.contract_id) from CSH_DEPOSIT_manage_hd h,con_contract ct
+            where  h.contract_id = ct.ref_contract_id
+            and ct.data_class = 'HISTORY'
+            and h.manage_hd_id = #{manageHdId,jdbcType=DECIMAL})
+        </where>
+        order by c.times
+    </select>
+
+</mapper>

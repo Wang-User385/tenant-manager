@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" customizationEnabled="true"
+          dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="payment_details_select_link"
+                url="${/request/@context_path}/modules/FIN/FIN005/payback_create_detail_B.lview"/>
+        <script><![CDATA[
+
+        function open_detail(params) {
+            new Leaf.showConfirm('${l:HLS.PROMPT}', '是否进行还款确认?', function okFun() {
+                var param = params;
+                param['url_title'] = '收款明细';
+                param['function_code'] = 'FIN005S1';
+                param['winid'] = 'payment_select_detail_winid';
+                hls_doc_get_layout_code(param, 'payment_details_select_link', null, 'FIN005F1', null, null, null);
+            });
+        }
+
+        function have_payment_detail_open(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var confirm_flag = record.get('confirm_flag');
+            if(confirm_flag == 'Y') {
+                var param = record.data;
+                param['url_title'] = '还款账户';
+                param['function_code'] = 'FIN005S1';
+                param['contractId'] = '${/parameter/@contract_id}';
+                param['withdrawId'] = '${/parameter/@withdraw_id}';
+                param['function_usage'] = 'QUERY';
+                param['winid'] = 'have_payment_detail_open_winid';
+                hls_doc_get_layout_code(param, 'payment_details_select_link', null, 'FIN005F1', null, null, null);
+            }else{
+               Leaf.showMessage('提示','尚未进行还款确认,暂无还款账户明细信息');
+            }
+        }
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {debugger;
+            var account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract');
+            if(ds.id && ds.id == account_ds_id) {
+                Leaf.request({
+                    url: '${/request/@context_path}/hlsLon/contract/withdraw/formData',
+                    async: false,
+                    para: {
+                        contractId: '${/parameter/@contract_id}',
+                        withdrawId: '${/parameter/@withdraw_id}'
+                    },
+                    success: function (res) {
+                        record.set('contract_name',res.result.record[0].contract_name);
+                        record.set('major_contract_number',res.result.record[0].major_contract_number);
+                        record.set('contract_number',res.result.record[0].contract_number);
+                        record.set('credit_bp_name',res.result.record[0].credit_bp_name);
+                        record.set('document_type',res.result.record[0].document_type);
+                        record.set('document_type_n',res.result.record[0].document_type_n);
+                        record.set('finance_amount',res.result.record[0].finance_amount);
+                        record.set('used_withdraw_amount',res.result.record[0].used_withdraw_amount);
+                        record.set('rest_withdraw_amount',res.result.record[0].rest_withdraw_amount);
+                        record.set('rele_credit_flag',res.result.record[0].rele_credit_flag);
+                        record.set('rele_credit_flag_n',res.result.record[0].rele_credit_flag_n);
+                        record.set('credit_con_number_n',res.result.record[0].credit_con_number_n);
+                        record.set('credit_category_n',res.result.record[0].credit_category_n);
+                        record.set('credit_line_amt',res.result.record[0].credit_line_amt);
+                        record.set('withdraw_balance',res.result.record[0].withdraw_balance);
+                        record.set('open_to_buy',res.result.record[0].open_to_buy);
+                        record.set('credit_currency_code_n',res.result.record[0].credit_currency_code_n);
+                        record.set('document_type2_n',res.result.record[0].document_type2_n);
+                        record.set('withdraw_prequisite',res.result.record[0].withdraw_prequisite);
+                        record.set('loan_bp_id_n',res.result.record[0].loan_bp_id_n);
+                        record.set('loan_bp_id',res.result.record[0].loan_bp_id);
+                        record.set('post_loan_manage',res.result.record[0].post_loan_manage);
+                        record.set('description',res.result.record[0].description);
+                    }
+                });
+            }
+        };
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {debugger;
+            var account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_contract_bank_account');
+            if(ds.id && ds.id == account_ds_id){
+                ds.setQueryParameter('contract_id', '${/parameter/@contract_id}');
+            }
+            var repay_ds_id = '${/parameter/@layout_code}_G_REPAYMENT_INFO_lon_contract_repayment_ds';
+            var pay_ds_id = '${/parameter/@layout_code}_G_PAY_INFO_lon_contract_repayment_ds';
+            if(ds.id && ds.id == repay_ds_id) {
+                ds.setQueryParameter('contractId', '${/parameter/@contract_id}');
+                ds.setQueryParameter('interestFlag', 'Y');
+            }
+            if(ds.id && ds.id == pay_ds_id){
+                ds.setQueryParameter('contractId', '${/parameter/@contract_id}');
+                ds.setQueryParameter('interestFlag', 'N');
+            }
+        };
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var repay_ds_id = '${/parameter/@layout_code}_G_REPAYMENT_INFO_lon_contract_repayment_ds';
+            var pay_ds_id = '${/parameter/@layout_code}_G_PAY_INFO_lon_contract_repayment_ds';
+            var repaymentSelects = $(repay_ds_id).getSelected();
+            var paymentSelects = $(pay_ds_id).getSelected();
+            var bankAccountId='';
+            var bankAccountName='';
+            var bankBranchName='';
+            var bankAccountNum='';
+            var repaymentIdList;
+            if (repaymentSelects.length <= 0 && paymentSelects.length <= 0) {
+                Leaf.showMessage('提示', '请至少选择一条还款或一条付款');
+                return false;
+            }
+            if (repaymentSelects.length > 1 || paymentSelects.length > 1 || (repaymentSelects.length == 1 && paymentSelects.length == 1)) {
+                Leaf.showMessage('提示', '只能选择一条还款或一条付款');
+                return false;
+            }
+            if ((repaymentSelects.length > 0 && repaymentSelects[0].get('write_off_flag') === 'FULL') ||
+                (paymentSelects.length > 0 && paymentSelects[0].get('write_off_flag') === 'FULL')) {
+                Leaf.showMessage('提示', '该笔已完全还款');
+                return false;
+            }
+            for (var repayIndex = 0; repayIndex < repaymentSelects.length; repayIndex++) {
+                if (repaymentIdList != null) {
+                    repaymentIdList = repaymentIdList + ',' + repaymentSelects[repayIndex].get('repayment_id');
+                } else {
+                    repaymentIdList = repaymentSelects[repayIndex].get('repayment_id');
+                }
+            }
+            for (var payIndex = 0; payIndex < paymentSelects.length; payIndex++) {
+                if (repaymentIdList != null) {
+                    repaymentIdList = repaymentIdList + ',' + paymentSelects[payIndex].get('repayment_id');
+                } else {
+                    repaymentIdList = paymentSelects[payIndex].get('repayment_id');
+                }
+            }
+            /*默认还款账户信息查询*/
+            var cfItem = repaymentSelects.length !=0 ? repaymentSelects[0].get('cf_item') : paymentSelects[0].get('cf_item');
+            var cfItemParams={};
+            cfItemParams.contractId='${/parameter/@contract_id}';
+            switch(cfItem){
+                case 301:
+                    cfItemParams.bankAccountType='FINANCING_ACCOUNT';
+                    break;
+                case 302:
+                    cfItemParams.bankAccountType='FINANCING_INTEREST_ACCOUNT';
+                    break;
+                case 310:
+                    cfItemParams.bankAccountType='FINANCING_EXPENSE_ACCOUNT';
+                    break;
+                default:
+                    cfItemParams.bankAccountType='';
+            }
+            Leaf.request({
+                url: '${/request/@context_path}/hlsLon/contract/bankAccount/query',
+                para: cfItemParams,
+                // async: false, //设为同步
+                success: function (res) {
+                    if (res.result.record[0]){
+                        bankAccountId = res.result.record[0].bank_account_id;
+                        bankAccountName = res.result.record[0].bank_account_name;
+                        bankBranchName = res.result.record[0].bank_branch_name;
+                        bankAccountNum = res.result.record[0].bank_account_num;
+
+                    }
+                    var cnyDueAmount=repaymentSelects.length !=0 ?repaymentSelects[0].get('cn_due_amount'): paymentSelects[0].get('cn_due_amount');
+                    if(cnyDueAmount==null){
+                        cnyDueAmount=0;
+                    }
+                    var params = {
+                        "withdrawId": '${/parameter/@withdraw_id}',
+                        "contractId": '${/parameter/@contract_id}',
+                        "repaymentIdList": repaymentIdList,
+                        'times' : repaymentSelects.length != 0 ? repaymentSelects[0].get('times') : paymentSelects[0].get('times'),
+                        'cfItemDesc' : repaymentSelects.length != 0 ? repaymentSelects[0].get('cf_item_desc') : paymentSelects[0].get('cf_item_desc'),
+                        'cfItem' : repaymentSelects.length !=0 ? repaymentSelects[0].get('cf_item') : paymentSelects[0].get('cf_item'),
+                        'dueAmount' : repaymentSelects.length != 0 ? minus(repaymentSelects[0].get('cny_planned_due_amount'),cnyDueAmount) : minus(paymentSelects[0].get('cny_planned_due_amount'),cnyDueAmount),
+                        'dueDate': repaymentSelects.length != 0 ?  Leaf.formatDate(repaymentSelects[0].get('planned_due_date')) :  Leaf.formatDate(paymentSelects[0].get('planned_due_date')),
+                        'bankAccountId':bankAccountId,
+                        'bankAccountName':bankAccountName,
+                        'bankBranchName':bankBranchName,
+                        'bankAccountNum':bankAccountNum,
+                    };
+                    open_detail(params);
+                }
+            });
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'have_payment_detail_open';
+            if (name === 'detail') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">明细</a>';
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020-02-21
+    $Description: 工作流跳转页面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            body {
+                height: 400px;
+                width: 1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+
+        <a:link id="prj001f1_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail_wfl.lview"/>
+
+        <a:link id="prj001f1_link_id2"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_modify_detail.lview"/>
+
+        <a:link id="prj003f1_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_credit_modify_detail_wfl.lview"/>
+
+        <a:link id="prj003f1_link_id2"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_credit_modify_detail.lview"/>
+
+        <script id="scriptA"><![CDATA[
+        debugger;
+        var bp_hide_flag = 'Y';
+        var file_hide_flag = 'Y';
+        var comments_hide_flag = 'N';
+        var comments_readOnly_flag = 'N';
+        var businessKey = '${/parameter/@businessKey}';
+        var bk = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "businessKey";
+        });
+        var chance = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "chanceId";
+        });
+        var credit = parent.currentTaskInfo.execution_variables.filter(function (o) {
+            return o.name == "creditFlag";
+        });
+        if(!chanceId){
+            chanceId = businessKey;
+        }
+        var chanceId =  chance[0].value;
+        if(credit&&credit.length>0){
+            var credit_flag = credit[0].value;
+        }else{
+            var credit_flag = 'N';
+        }
+        if(!businessKey){
+            businessKey = bk[0].value;
+        }
+
+        var maintain_type = 'READONLY';
+        var function_usage = 'QUERY';
+        var function_code ='PRJ001F1WFL';
+        var wflurl = $('prj001f1_link_id').getUrl();
+        var risk_flag = 'N';
+        //退回经办人节点可以编辑
+        if(parent.currentTaskInfo.task_definition_key == "sid-rHAU6o6D-6QbN-4laU-89LQ-cSSMgkK3aMmb"||
+            parent.currentTaskInfo.task_definition_key == "sid-xR7WcP8C-0dJI-4pBo-81Eq-s0u1ZrvT7Rav"||
+            parent.currentTaskInfo.task_definition_key == "sid-Qj3J3j2a-8A8p-4my3-8JYa-nf1SbwQaYAVf"||
+            parent.currentTaskInfo.task_definition_key == "sid-UptQl2rJ-Y2PR-4riw-8mzZ-oGU63VsRDVmh"||
+            parent.currentTaskInfo.task_definition_key == "sid-3ei3Rxne-aBbh-4gZX-83UU-vzVKcBFUXDqf"||
+            parent.currentTaskInfo.task_definition_key == "sid-JEGO4Evy-JxKy-4Thf-8oWG-li5PbApdMZWP"||
+            parent.currentTaskInfo.task_definition_key == "sid-8ugJcSm2-fQEr-4Zlx-87YT-lkJ29WvugfWs"){
+            maintain_type = 'UPDATE';
+            function_usage = 'MODIFY';
+            if(credit_flag=='Y'){
+                wflurl = $('prj003f1_link_id2').getUrl()
+                function_code ='PRJ003F1';
+            }else{
+                wflurl = $('prj001f1_link_id2').getUrl()
+                function_code ='PRJ001F1';
+            }
+
+        // 风险岗，录入风险协办信息
+        }else if(parent.currentTaskInfo.task_definition_key == "sid-mvFFQ1wk-oWAP-4TTP-806Q-Nw1hagVoHD9y"||
+            parent.currentTaskInfo.task_definition_key == "sid-HEk7hA5q-S7Ps-4UMO-8LVQ-GDiE6WpDsChM"||
+            parent.currentTaskInfo.task_definition_key == "sid-XEbzYghF-iw9L-4Hlb-8Idd-jwOjNN3O4php"||
+            parent.currentTaskInfo.task_definition_key == "sid-d3lhvaUZ-Ms3f-4bft-85ne-twUlBHB2YyBq"){
+            maintain_type = 'UPDATE';
+            function_usage = 'MODIFY';
+            risk_flag = 'Y'
+            if(credit_flag=='Y'){
+                wflurl = $('prj003f1_link_id2').getUrl()
+                function_code ='PRJ003F1WFL_RISK';
+            }else{
+                wflurl = $('prj001f1_link_id2').getUrl()
+                function_code ='PRJ001F1WFL_RISK';
+            }
+        }
+        else{
+
+            if(credit_flag=='Y'){
+                wflurl = $('prj003f1_link_id').getUrl()
+                function_code ='PRJ003F1WFL';
+            }else{
+                wflurl = $('prj001f1_link_id').getUrl()
+                function_code ='PRJ001F1WFL';
+            }
+
+        }
+
+        var pageChooser = new PageChooser({
+            url: wflurl,
+            function_code: function_code,
+            context_path: '${/request/@context_path}',
+            opt: {
+                chance_id: chanceId,
+                maintain_type: maintain_type,
+                function_usage: function_usage,
+                function_code: function_code,
+                credit_flag : credit_flag,
+                wfl_bp_flag : '${/parameter/@wflRuleControlFlag}',
+                bp_hide_flag: bp_hide_flag,
+                file_hide_flag: file_hide_flag,
+                comments_hide_flag: comments_hide_flag,
+                comments_readOnly_flag:comments_readOnly_flag,
+                risk_flag: risk_flag
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+/*
+        function beforeSubmit(countiune) {
+            if(true){
+                $L.showInfoMessage("提示","请指定审批人!");
+                return;
+            }
+            countiune();
+        };*/
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

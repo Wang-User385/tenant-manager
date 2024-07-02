@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sys.mapper.FndOrgUnitMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.sys.dto.FndOrgUnit">
+        <result column="UNIT_ID" property="unitId" jdbcType="DECIMAL"/>
+        <result column="UNIT_CODE" property="unitCode" jdbcType="VARCHAR"/>
+        <result column="UNIT_NAME" property="unitName" jdbcType="VARCHAR"/>
+        <result column="UNIT_TYPE" property="unitType" jdbcType="VARCHAR"/>
+        <result column="PARENT_UNIT_ID" property="parentUnitId" jdbcType="DECIMAL"/>
+        <result column="CHIEF_POSITION_ID" property="chiefPositionId" jdbcType="DECIMAL"/>
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR"/>
+
+        <result column="COMPANY_ID" property="companyId"/>
+        <result column="eas_code" property="easCode"/>
+    </resultMap>
+
+    <select id="selectUnit" resultType="com.hand.hls.sys.dto.FndOrgUnit">
+        SELECT
+        HOUB.UNIT_ID unitId,
+        HOUB.UNIT_CODE unitCode,
+        HOUB.PARENT_unit_ID parentUnitId,
+        HOUB.unit_NAME unitName,
+        HOUB.ENABLED_FLAG enabledFlag,
+        HOUB.COMPANY_ID companyId,
+        (
+        SELECT
+        SCVT2.MEANING
+        FROM
+        SYS_CODE_VALUE_B SCVB2
+        INNER JOIN SYS_CODE_B SCB2 ON ( SCB2.CODE_ID = SCVB2.CODE_ID AND SCB2. CODE = 'FND.UNIT_TYPE' )
+        LEFT JOIN SYS_CODE_VALUE_TL SCVT2 ON ( SCVB2.CODE_VALUE_ID = SCVT2.CODE_VALUE_ID AND SCVT2.LANG =
+        #{request.locale,jdbcType=VARCHAR,javaType=java.lang.String})
+        WHERE
+        SCVB2.VALUE = HOUB.UNIT_TYPE
+        ) unitTypeName,
+        (
+        CASE
+        WHEN PARENT_UNIT_ID IS NULL
+        THEN ''
+        ELSE
+        (SELECT FOU.UNIT_NAME FROM FND_ORG_UNIT FOU WHERE FOU.UNIT_ID = HOUB.PARENT_UNIT_ID)
+        END
+        ) parentName,
+        (
+        CASE
+        WHEN HOUB.COMPANY_ID IS NULL
+        THEN ''
+        ELSE
+        (SELECT FC.COMPANY_FULL_NAME FROM FND_COMPANY FC WHERE FC.COMPANY_ID = HOUB.COMPANY_ID)
+        END
+        ) companyName
+        FROM FND_ORG_UNIT HOUB
+        <where>
+            <if test="unitCode !=null">
+                AND HOUB.UNIT_CODE LIKE CONCAT('%', CONCAT(#{unitCode,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="unitName!=null">
+                AND HOUB.UNIT_NAME LIKE CONCAT('%', CONCAT(#{unitName,jdbcType=VARCHAR}, '%'))
+            </if>
+            <if test="companyId!=null">
+                AND HOUB.COMPANY_ID = #{companyId}
+            </if>
+            <if test="unitId !=null">
+                AND HOUB.UNIT_ID = #{unitId}
+            </if>
+        </where>
+        ORDER BY HOUB.UNIT_ID ASC
+    </select>
+
+    <select id="selectByCompanyCode" parameterType="java.lang.String" resultMap="BaseResultMap">
+      select fou.*
+      from fnd_org_unit fou, fnd_company fc
+      where fou.company_id = fc.company_id
+            and fc.company_code = #{companyCode}
+
+    </select>
+
+    <select id="selectUnitMgr" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        u.unit_id,
+        u.unit_code,
+        u.unit_name,
+        mgr_a.employee_id      as mgrEmployeeId,
+        mgr_a.employee_name    as mgrEmployeeName
+        from fnd_org_unit u,
+        (<include refid="hls.core.sys.mapper.SysCodeValueMapper.queryFndEmployeeAssignsDetail"/>)
+        mgr_a
+        <where>
+            mgr_a.position_id = u.chief_position_id
+            <if test="leaseOrganization!=null">
+                AND u.unit_id = (
+                select unit_id
+                from hls_lease_org_assign t2
+                where t2.lease_organization=#{leaseOrganization}
+                and t2.unit_id=u.unit_id
+                )
+            </if>
+        </where>
+    </select>
+
+
+</mapper>

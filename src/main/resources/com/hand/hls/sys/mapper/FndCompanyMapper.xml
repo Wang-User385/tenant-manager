@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sys.mapper.FndCompanyMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.FndCompany">
+        <result column="company_id" property="companyId" jdbcType="DECIMAL"/>
+        <result column="company_code" property="companyCode" jdbcType="VARCHAR"/>
+        <result column="company_type" property="companyType" jdbcType="VARCHAR"/>
+        <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="company_level_id" property="companyLevelId" jdbcType="DECIMAL"/>
+        <result column="parent_company_id" property="parentCompanyId" jdbcType="DECIMAL"/>
+        <result column="chief_position_id" property="chiefPositionId" jdbcType="DECIMAL"/>
+        <result column="start_date_active" property="startDateActive" jdbcType="DATE"/>
+        <result column="end_date_active" property="endDateActive" jdbcType="DATE"/>
+        <result column="company_short_name" property="companyShortName" jdbcType="VARCHAR"/>
+        <result column="company_full_name" property="companyFullName" jdbcType="VARCHAR"/>
+        <result column="zipcode" property="zipcode" jdbcType="VARCHAR"/>
+        <result column="fax" property="fax" jdbcType="VARCHAR"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="contact_person" property="contactPerson" jdbcType="VARCHAR"/>
+        <result column="business_scope" property="businessScope" jdbcType="VARCHAR"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="enterprise_unified_credit_code" property="enterpriseUnifiedCreditCode" jdbcType="VARCHAR"/>
+        <result column="registered_capital" property="registeredCapital" jdbcType="VARCHAR"/>
+        <result column="legal_representative" property="legalRepresentative" jdbcType="VARCHAR"/>
+        <result column="establishment_date" property="establishmentDate" jdbcType="DATE"/>
+        <result column="operating_period_from" property="operatingPeriodFrom" jdbcType="DATE"/>
+        <result column="operating_period_to" property="operatingPeriodTo" jdbcType="DATE"/>
+        <result column="basic_account_bank" property="basicAccountBank" jdbcType="VARCHAR"/>
+        <result column="basic_account_number" property="basicAccountNumber" jdbcType="VARCHAR"/>
+        <result column="parent_company_name" 	property="parentCompanyName"	jdbcType="VARCHAR"/>
+        <result column="parent_company_name_n" 	property="parentCompanyNameN"	jdbcType="VARCHAR"/>
+        <result column="bank_account_id" 	property="bankAccountId"	jdbcType="VARCHAR"/>
+        <result column="bank_account_name" 	property="bankAccountName"	jdbcType="VARCHAR"/>
+        <result column="bank_account_num" 	property="bankAccountNum"	jdbcType="VARCHAR"/>
+        <result column="bank_branch_name" 	property="bankBranchName"	jdbcType="VARCHAR"/>
+        <result column="currency" 	property="currency"	jdbcType="VARCHAR"/>
+        <result column="currency_n" 	property="currencyN"	jdbcType="VARCHAR"/>
+        <result column="set_of_books_id" 	property="setOfBooksId"/>
+        <result column="set_of_books_id_n" 	property="setOfBooksIdN"/>
+        <result column="account_set_id_n" 	property="accountSetIdN"/>
+        <result column="functional_currency_n" 	property="functionalCurrencyN"/>
+        <result column="fin_company_name" property="finCompanyName"/>
+        <result column="ws_com_code" property="wsComCode"/>
+    </resultMap>
+    <select id="selectCompany" resultType="com.hand.hls.fnd.dto.FndCompany">
+        SELECT
+        COMPANY_ID COMPANYID,
+        COMPANY_CODE COMPANYCODE,
+        COMPANY_SHORT_NAME COMPANYSHORTNAME,
+        COMPANY_FULL_NAME COMPANYFULLNAME,
+        COMPANY_TYPE COMPANYTYPE,
+        (
+        SELECT
+        COMPANY_FULL_NAME
+        FROM
+        fnd_company FC2
+        WHERE
+        FC2.COMPANY_ID = FC.PARENT_COMPANY_ID
+        ) AS parentCompanyName,
+        ENABLED_FLAG enabledFlag
+        FROM
+        fnd_company FC
+        <where>
+            <if test="companyCode != null">
+                AND FC.COMPANY_CODE LIKE concat('%',concat(#{companyCode}, '%'))
+            </if>
+            <if test="companyShortName != null">
+                AND FC.COMPANY_SHORT_NAME LIKE concat('%',concat(#{companyShortName}, '%'))
+            </if>
+            <if test="companyFullName != null">
+                AND FC.COMPANY_FULL_NAME LIKE concat('%',concat(#{companyFullName}, '%'))
+            </if>
+            <if test="companyType != null">
+                AND FC.COMPANY_TYPE = companyType)
+            </if>
+            <if test="parentCompanyId !=null">
+                AND FC.PARENT_COMPANY_ID = #{parentCompanyId}
+            </if>
+        </where>
+    </select>
+    <select id="selectCompanyDetail" resultType="com.hand.hls.fnd.dto.FndCompany">
+        SELECT
+            COMPANY_ID companyId,
+            COMPANY_CODE companyCode,
+            COMPANY_SHORT_NAME companyShortName,
+            COMPANY_FULL_NAME companyFullName,
+            COMPANY_TYPE companyType,
+            ENTERPRISE_UNIFIED_CREDIT_CODE enterpriseUnifiedCreditCode,
+            REGISTERED_CAPITAL registeredCapital,
+            LEGAL_REPRESENTATIVE legalRepresentative,
+            ESTABLISHMENT_DATE establishmentDate,
+            OPERATING_PERIOD_FROM operatingPeriodFrom,
+            OPERATING_PERIOD_TO operatingPeriodTo,
+            BASIC_ACCOUNT_BANK basicAccountBank,
+            BASIC_ACCOUNT_NUMBER basicAccountNumber,
+            CONTACT_PERSON contactPerson,
+            PHONE,
+            FAX,
+            ADDRESS,
+            BUSINESS_SCOPE businessScope,
+            ZIPCODE,
+            (
+                SELECT
+                    COMPANY_FULL_NAME
+                FROM
+                    fnd_company FC2
+                WHERE
+                    FC2.COMPANY_ID = FC.PARENT_COMPANY_ID
+            ) AS parentCompanyName
+        FROM
+            fnd_company FC
+        WHERE
+            FC.COMPANY_ID = #{companyId}
+    </select>
+
+
+    <select id="queryAll" parameterType="com.hand.hls.fnd.dto.FndCompany" resultMap="BaseResultMap">
+        select fc.*,nvl(fca.authority_rule_flag,'N') as authorityRuleFlag,
+        (SELECT c.currency_name FROM  fnd_currency c where c.currency_code = fc.currency)currency_n,
+        (select fc1.company_full_name from fnd_company fc1 where fc1.company_id=fc.parent_company_id) parent_company_name_n,
+        (select fc1.company_full_name from fnd_company fc1 where fc1.company_id=fc.parent_company_id) parent_company_name,
+        cba.bank_branch_name,
+        cba.bank_account_num,
+        cba.bank_account_name,
+        (select gfa.set_of_books_id
+        from gld_financial_attribute gfa
+        where gfa.company_id = fc.company_id) set_of_books_id,
+        (select gsob.set_of_books_name
+        from gld_financial_attribute gfa, gld_set_of_books gsob
+        where gfa.company_id = fc.company_id
+        and gsob.set_of_books_id = gfa.set_of_books_id) set_of_books_id_n,
+        (select gas.account_set_name
+        from gld_financial_attribute gfa,
+        gld_set_of_books        gsob,
+        gld_account_set         gas
+        where gfa.company_id = fc.company_id
+        and gsob.set_of_books_id = gfa.set_of_books_id) account_set_id_n,
+        (select s.meaning
+        from gld_financial_attribute gfa,
+        gld_set_of_books        gsob,
+        sys_code_value_b_v      s
+        where gfa.company_id = fc.company_id
+        and gsob.set_of_books_id = gfa.set_of_books_id
+        and s.code = 'CHS.CURRENCY_TYPE'
+        and s.code_value = gsob.functional_currency) functional_currency_n
+
+        from fnd_company fc
+        left join fnd_company_attribute fca
+        on fc.company_id = fca.company_id
+        left join csh_bank_account cba
+        on cba.bank_account_id = fc.bank_account_id
+        <where>
+            <if test="companyId != null">
+                and fc.company_id = #{companyId}
+            </if>
+            <if test="companyCode != null and companyCode !=''">
+                and fc.company_code like concat(concat('%',#{companyCode} ),'%')
+            </if>
+            <if test="companyFullName != null and companyFullName !=''">
+                and fc.company_full_name like concat(concat('%',#{companyFullName} ),'%')
+            </if>
+            <if test="enabledFlag != null and enabledFlag !=''">
+                and fc.enabled_flag= #{enabledFlag}
+            </if>
+        </where>
+        order by fc.company_id
+    </select>
+
+
+    <select id="queryAllForLov" parameterType="com.hand.hls.fnd.dto.FndCompany" resultMap="BaseResultMap">
+        select fc.company_id,fc.company_code,fc.company_full_name,fc.enabled_flag,nvl(fca.authority_rule_flag,'N') as authorityRuleFlag
+        from fnd_company fc
+        left join fnd_company_attribute fca
+        on fc.company_id = fca.company_id
+        <where>
+                fc.ENABLED_FLAG = 'Y'
+            <if test="companyId != null">
+                and fc.company_id = #{companyId}
+            </if>
+            <if test="companyCode != null and companyCode !=''">
+                and fc.company_code like concat(concat('%',#{companyCode} ),'%')
+            </if>
+            <if test="companyFullName != null and companyFullName !=''">
+                and fc.company_full_name= #{companyFullName}
+            </if>
+            <if test="enabledFlag != null and enabledFlag !=''">
+                and fc.enabled_flag= #{enabledFlag}
+            </if>
+        </where>
+        order by fc.company_id
+    </select>
+</mapper>

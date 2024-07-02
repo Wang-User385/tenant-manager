@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yericong
+    $Date: 2022-11-22 上午11:48:56
+    $Revision: 1.0
+    $Purpose:抵押物维护（工程机械）
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true" trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        /*//查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            //debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage', 'G_MORTGAGOR_DETAIL');
+            if (ds.id === ds_id) {
+                qpara['contract_id'] = '${/parameter/@contract_id}';
+            }
+        };*/
+
+        //查询时调用(grid,fieldboxcolumn)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            //debugger;
+            var ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage', 'G_MORTGAGOR_DETAIL');
+            var record = $(ds_id2).getCurrentRecord();
+            qpara['contract_id'] = '${/parameter/@contract_id}';
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage_attach');
+            if (ds.id === ds_id) {
+                //qpara['mortgage_id1'] = '${/parameter/@mortgage_id}';
+                qpara['mortgage_id1'] = record.get('mortgage_id');
+            }
+        };
+
+        /*//加载时调用(form,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, qpara, bp_seq) {
+            //debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage', 'G_MORTGAGOR_DETAIL');
+            var record = $(ds_id).getCurrentRecord();
+            if (ds.id === ds_id) {
+                //qpara['contract_number'] = '${/parameter/@contract_number}';
+                //ds.setQueryParameter('contract_number', '${/parameter/@contract_number}');
+                record.set('contract_id', '${/parameter/@contract_id}');
+                record.set('contract_number', '${/parameter/@contract_number}');
+                record.set('mortgage_id', '${/parameter/@mortgage_id}');
+                record.set('mortgage_number', '${/parameter/@mortgage_number}');
+                record.set('manufacturer_id', '${/parameter/@manufacturer_id}');
+                record.set('manufacturer_id_n', '${/parameter/@manufacturer_id_n}');
+                record.set('factory_id', '${/parameter/@factory_id}');
+                record.set('factory_id_n', '${/parameter/@factory_id_n}');
+                record.set('lease_item_id', '${/parameter/@lease_item_id}');
+                record.set('full_name', '${/parameter/@full_name}');
+                //record.set('actual_province_code', '${/parameter/@actual_province_code}');
+                //record.set('actual_city_code', '${/parameter/@actual_city_code}');
+                //record.set('vehicle_regist_number', '${/parameter/@vehicle_regist_number}');
+                //record.set('vehicle_owner', '${/parameter/@vehicle_owner}');
+                record.set('mortgage_regist_number', '${/parameter/@mortgage_regist_number}');
+                //record.set('mortgagee_name', '${/parameter/@mortgagee_name}');
+                record.set('mortgage_regist_date', '${/parameter/@mortgage_regist_date}');
+                record.set('classify_id', '${/parameter/@classify_id}');
+                record.set('classify_id_n', '${/parameter/@classify_id_n}');
+                record.set('location', '${/parameter/@location}');
+                record.set('registration_authority', '${/parameter/@registration_authority}');
+                record.set('description', '${/parameter/@description}');
+            }
+        };*/
+
+        //保存前调用 (调用编码规则 生成编号)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            //debugger;
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage', 'G_MORTGAGOR_DETAIL');
+            var documentCategory = 'HLS_MORTGAGE';
+            var documentType = 'HLS_MORTGAGE';
+            var businessType = 'HLS_MORTGAGE';
+            var mortgage_number = $(ds_id).getCurrentRecord().get('mortgage_number');
+            if (mortgage_number == null) {
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory + "&documentType=" + documentType + "&businessType=" + businessType,
+                    success: function (res) {
+                        //$(ds_id).getCurrentRecord().set('mortgage_number', res.result.record[0]);
+                        var records = $(ds_id).getAll();
+                        for (var i = 0; i < records.length; i++) {
+                            records[i].set('mortgage_number', res.result.record[0]);
+                        }
+                        check_flag = true;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        check_flag = false;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+            return check_flag;
+        };
+        /*保存*/
+        /*window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            //window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                //debugger;
+                var basic_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage');
+                //var mortgage_number = $(basic_ds_id).getCurrentRecord().get('mortgage_number');
+                var project_id = $(basic_ds_id).getCurrentRecord().get('project_id');
+                var project_number = $(basic_ds_id).getCurrentRecord().get('project_number');
+                var location = $(basic_ds_id).getCurrentRecord().get('location');
+                var registration_authority = $(basic_ds_id).getCurrentRecord().get('registration_authority');
+                var mortgage_regist_number = $(basic_ds_id).getCurrentRecord().get('mortgage_regist_number');
+                var description = $(basic_ds_id).getCurrentRecord().get('description');
+                var mortgage_regist_date = $(basic_ds_id).getCurrentRecord().get('mortgage_regist_date');
+                //window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: '${/request/@context_path}/mort/save',
+                    para: {/!*mortgage_number:mortgage_number,*!/
+                        project_id:project_id,
+                        project_number:project_number,
+                        location:location,
+                        registration_authority:registration_authority,
+                        mortgage_regist_number:mortgage_regist_number,
+                        description:description,
+                        mortgage_regist_date:mortgage_regist_date
+                    },
+                    scope: this,
+                    success: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showMessage('提示', '保存成功！', function () {
+                            /!*$('${/parameter/@winid}').close();*!/
+                        });
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            };*/
+
+        /*附件上传下载*/
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            if(name == 'attachment_upload'){
+                return '<a href="javascript:open_attach(\'' + record.id + '\',\'' + record.get('mortgage_attachment_id') + '\',\'' + record.ds.id + '\')">附件上传</a>';
+            }
+            if (name == 'file_name' && value) {
+                var str = value.split(',');
+                var url = '';
+                for (var i = 0; i < str.length; i++) {
+                    var temp = record.get('attachment_id').split(',');
+                    url = url + '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + temp[i] + '">' + str[i] + ' ; </a>';
+                }
+                return url;
+            }
+            //return value;
+        };
+
+        //打开附件窗口
+        function open_attach(record_id, id, ds_id) {
+            // debugger
+            var record = $(ds_id).findById(record_id);
+            if (typeof (id) === 'undefined' || 'undefined' === id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'chance_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: id,
+                    table_name: 'HLS_LEASE_MORTGAGE_ATTACH',
+                    winid: 'chance_open_attachment_winid'
+                },
+                title: '附件',
+                width: 800,
+                height: 575
+            });
+
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage_attach');
+                $(ds_id).query();
+            });
+        }
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            // debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage_attach');
+            if (ds.id === ds_id) {
+                record.set('upload_person', '${/session/@user_id}');
+                record.set('upload_date', new Date());
+                record.set('attachment_category', 'HLS_MORTGAGE');
+                //record.set('mortgage_id', '${/parameter/@mortgage_id}');
+            }
+        }
+
+        window['${/parameter/@layout_code}_G_ATTACHMENT_USER_BUTTON1_layout_dynamic_tab_click'] = function() {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_lease_mortgage_attach', 'G_ATTACHMENT');
+            var records = $(ds_id).getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage("提示", "请选择需要导出的附件!", null);
+                return;
+            }
+
+            var exportList = [];
+
+            for (var i = 0; i < records.length; i++) {
+                debugger;
+                if(records[i].get('attachment_id') != null){
+                    for(var item of records[i].get('attachment_id').split(",")) {
+                        exportList.push(item);
+                    }
+                }
+            }
+
+            if(exportList.length == 0){
+                Leaf.showMessage("提示", "无附件可导出!", null);
+                return;
+            }
+
+            for (var i = 0; i < exportList.length; i++) {
+                //解决多次调用location.href时只能下载最后一次的文件问题
+                var a = document.createElement('a');
+                a.href = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + exportList[i];
+                a.download = 'filename';
+                a.click();
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

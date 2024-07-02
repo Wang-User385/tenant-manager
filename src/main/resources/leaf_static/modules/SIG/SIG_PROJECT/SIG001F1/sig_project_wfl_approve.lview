@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <style>
+            body{
+                height:2300px;
+                width:1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+        <a:link id="sig_project_wfl_approve_link_id"
+                url="${/request/@context_path}/modules/SIG/SIG_PROJECT/SIG001F1/sig_project_modify.lview"/>
+
+        <script><![CDATA[
+        debugger;
+        var list = parent.currentTaskInfo.execution_variables;
+        var division;
+        var work_flow;
+        var manufacturerId = '';
+        var nodeId = parent.currentTaskInfo.task_definition_key;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].name === 'DIVISION') {
+                division = list[i].value;
+            }else if(list[i].name === 'WORK_FLOW'){
+                work_flow = list[i].value;
+            }
+            if (list[i].name === 'leaseChannel') {
+                lease_channel = list[i].value;
+            }
+            if (list[i].name === 'manufacturerId') {
+                manufacturerId = list[i].value;
+            }
+            if (list[i].name === 'DIVISION') {
+                division = list[i].value;
+            }
+            if(list[i].name === 'WORK_FLOW'){
+                work_flow = list[i].value;
+            }
+            //由于存量流程没有加division，先这么判断下
+            if (!division && division !== 'undefined' && list[i].name === 'project') {
+                var jsonObj = JSON.parse(list[i].value)
+                division = jsonObj.division
+            }
+            if (!division && division !== 'undefined' && list[i].variable_name === 'project') {
+                var jsonObj = JSON.parse(list[i].value)
+                division = jsonObj.division
+            }
+        }
+
+        var pageChooser = new PageChooser({
+            url: $('sig_project_wfl_approve_link_id').getUrl()+'?function_code=SIG001F1&division=' + division,
+            function_code: 'SIG001F1',
+            context_path: '${/request/@context_path}',
+            opt: {
+                project_id: "${/parameter/@businessKey}",
+                maintain_type: 'READONLY',
+                function_usage: 'QUERY',
+                wfl_flag: 'Y',
+                node_id:nodeId,
+                manufacturer_id:manufacturerId,
+                work_flow:work_flow
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+
+
+        ]]></script>
+    </a:view>
+</a:screen>
+
+    

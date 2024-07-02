@@ -1,0 +1,561 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application"
+          trace="true" dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+
+
+        <script><![CDATA[
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            debugger;
+
+            Leaf.request({
+                url: '${/request/@context_path}/ct/abs/product/query',
+                para: {
+                    wflRuleControlFlag : 'Y',
+                    productId :'${/parameter/@product_id}'
+                },
+
+                success: function (datas) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product');
+                    var dsRecord = $(ds_id).getCurrentRecord();
+
+                    dsRecord.set('project_id', datas.result.record[0].project_id);
+                    dsRecord.set('project_number', datas.result.record[0].project_number);
+                    dsRecord.set('product_short_name', datas.result.record[0].product_short_name);
+                    dsRecord.set('product_number', datas.result.record[0].product_number);
+                    dsRecord.set('product_name', datas.result.record[0].product_name);
+                    dsRecord.set('business_type', datas.result.record[0].business_type);
+                    dsRecord.set('other_project_type', datas.result.record[0].other_project_type);
+                    dsRecord.set('project_english_type', datas.result.record[0].project_english_type);
+                    dsRecord.set('product_date', datas.result.record[0].product_date);
+                    dsRecord.set('pack_id', datas.result.record[0].pack_id);
+                    dsRecord.set('base_date', datas.result.record[0].base_date);
+                    dsRecord.set('base_asset_type', datas.result.record[0].base_asset_type);
+                    dsRecord.set('asset_contract_count', datas.result.record[0].asset_contract_count);
+                    dsRecord.set('asset_rent_count', datas.result.record[0].asset_rent_count);
+                    dsRecord.set('collected_due_amount', datas.result.record[0].collected_due_amount);
+                    dsRecord.set('collected_principal', datas.result.record[0].collected_principal);
+                    dsRecord.set('collected_interest', datas.result.record[0].collected_interest);
+
+
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+
+
+        };
+
+
+
+        //保存
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            debugger;
+
+            var hlsCusAbsProBankAccounts = [];
+            var hlsCusAbsProductOrganizations=[];
+            var hlsCusAbsProFeeInfos=[];
+            var hlsCusAbsProductPurposes=[];
+            var hlsCusAbsProductStructures=[];
+            // var hlsCusAbsProductReceipts=[];
+            var hlsCusAbsProductCollections=[];
+            //基本信息
+            var ct_abs_product_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product');
+
+            $(ct_abs_product_id).getCurrentRecord().set('company_id','${/session/@companyId}');
+            $(ct_abs_product_id).getCurrentRecord().set('user_id','${/session/@userId}');
+            $(ct_abs_product_id).getCurrentRecord().set('create_person','${/session/@userName}');
+            $(ct_abs_product_id).getCurrentRecord().set('product_id','${/parameter/@product_id}');
+            $(ct_abs_product_id).getCurrentRecord().set('source_key','${/parameter/@product_id}');
+            $(ct_abs_product_id).getCurrentRecord().set('source_type','ABS_PROJECT');
+            $(ct_abs_product_id).getCurrentRecord().set('calculate_export_flag','Y');
+            $(ct_abs_product_id).getCurrentRecord().set('in_balance_complement_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('on_balance_complement_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_buy_back_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_buy_back_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_other_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_other_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_nothing_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_nothing_flag','N');
+            var productRecord = $(ct_abs_product_id).getCurrentRecord().data;
+
+            //账户信息
+            var ct_abs_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_bank_account');
+            if($(ct_abs_bank_account_id).getCurrentRecord()!=null){
+                var accountRecord = $(ct_abs_bank_account_id).getCurrentRecord().data;
+                $(ct_abs_bank_account_id).getCurrentRecord().set('source_type','ABS_PROJECT');
+                hlsCusAbsProBankAccounts.push(accountRecord);
+            }
+
+            //机构信息
+            var ct_abs_project_organization_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_organization');
+            if($(ct_abs_project_organization_id).getCurrentRecord()!=null){
+                var organizationRecord = $(ct_abs_project_organization_id).getCurrentRecord().data;
+                hlsCusAbsProductOrganizations.push(organizationRecord);
+            }
+
+            //费用信息
+            var ct_abs_pro_fee_info_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_pro_fee_info');
+            if($(ct_abs_pro_fee_info_id).getCurrentRecord()!=null){
+                var feeRecord = $(ct_abs_pro_fee_info_id).getCurrentRecord().data;
+                hlsCusAbsProFeeInfos.push(feeRecord);
+            }
+
+
+            //资金用途
+            var ct_abs_product_purpose_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_purpose');
+            if($(ct_abs_product_purpose_id).getCurrentRecord()!=null){
+                var purposeRecord = $(ct_abs_product_purpose_id).getCurrentRecord().data;
+                hlsCusAbsProductPurposes.push(purposeRecord);
+            }
+
+            //分层结构
+            var ct_abs_product_structure_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_structure');
+            if($(ct_abs_product_structure_id).getCurrentRecord()!=null){
+                var structureRecord = $(ct_abs_product_structure_id).getCurrentRecord().data;
+                hlsCusAbsProductStructures.push(structureRecord);
+            }
+
+            //收款确认
+            // var ct_abs_product_receipt_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_receipt');
+            // if($(ct_abs_product_receipt_id).getCurrentRecord()!=null){
+            //     var receiptsRecord = $(ct_abs_product_receipt_id).getCurrentRecord().data;
+            //     hlsCusAbsProductReceipts.push(receiptsRecord);
+            // }
+
+            //归集转付
+            var ct_abs_product_collection_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_collection');
+            if($(ct_abs_product_collection_id).getCurrentRecord()!=null){
+                var collectionsRecord = $(ct_abs_product_collection_id).getCurrentRecord().data;
+                hlsCusAbsProductCollections.push(collectionsRecord);
+            }
+
+
+            //资产包信息
+            // var ct_abs_assets_package_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_package');
+            // var packRecord = $(ct_abs_assets_package_id).getCurrentRecord().data;
+
+
+            if($(ct_abs_product_id).validate()){
+                Leaf.showWarningMessage('提示','请输入必输信息');
+            }else{
+                Leaf.request({
+                    url: '${/request/@context_path}/ct/abs/product/update',
+                    para: {
+                        hlsCusAbsProduct: productRecord,
+                        hlsCusAbsProBankAccounts: hlsCusAbsProBankAccounts,
+                        hlsCusAbsProductOrganizations: hlsCusAbsProductOrganizations,
+                        hlsCusAbsProFeeInfos:hlsCusAbsProFeeInfos,
+                        hlsCusAbsProductPurposes:hlsCusAbsProductPurposes,
+                        hlsCusAbsProductStructures:hlsCusAbsProductStructures,
+                        // hlsCusAbsProductReceipts:hlsCusAbsProductReceipts,
+                        hlsCusAbsProductCollections:hlsCusAbsProductCollections
+                    },
+
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showMessage('提示', '成功');
+
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+
+            }
+
+
+        };
+
+        //提交审批
+        window['${/parameter/@layout_code}_user_button4_layout_dynamic_click'] = function () {
+
+            debugger;
+
+            var hlsCusAbsProBankAccounts = [];
+            var hlsCusAbsProductOrganizations=[];
+            var hlsCusAbsProFeeInfos=[];
+            var hlsCusAbsProductPurposes=[];
+            var hlsCusAbsProductStructures=[];
+            // var hlsCusAbsProductReceipts=[];
+            var hlsCusAbsProductCollections=[];
+            //基本信息
+            var ct_abs_product_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product');
+
+            $(ct_abs_product_id).getCurrentRecord().set('company_id','${/session/@companyId}');
+            $(ct_abs_product_id).getCurrentRecord().set('user_id','${/session/@userId}');
+            $(ct_abs_product_id).getCurrentRecord().set('create_person','${/session/@userName}');
+            $(ct_abs_product_id).getCurrentRecord().set('product_id','${/parameter/@product_id}');
+            $(ct_abs_product_id).getCurrentRecord().set('source_key','${/parameter/@product_id}');
+            $(ct_abs_product_id).getCurrentRecord().set('source_type','ABS_PROJECT');
+            $(ct_abs_product_id).getCurrentRecord().set('calculate_export_flag','Y');
+            $(ct_abs_product_id).getCurrentRecord().set('in_balance_complement_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('on_balance_complement_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_buy_back_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_buy_back_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_other_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_other_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_nothing_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_nothing_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('data_class','NORMAL');
+            $(ct_abs_product_id).getCurrentRecord().set('document_category','ABS_PRODUCT');
+            $(ct_abs_product_id).getCurrentRecord().set('document_type','ABS_PRODUCT');
+            var productRecord = $(ct_abs_product_id).getCurrentRecord().data;
+
+            //账户信息
+            var ct_abs_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_bank_account');
+            if($(ct_abs_bank_account_id).getCurrentRecord()!=null){
+                var accountRecord = $(ct_abs_bank_account_id).getCurrentRecord().data;
+                $(ct_abs_bank_account_id).getCurrentRecord().set('source_type','ABS_PROJECT');
+                hlsCusAbsProBankAccounts.push(accountRecord);
+            }
+
+            //机构信息
+            var ct_abs_project_organization_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_organization');
+            if($(ct_abs_project_organization_id).getCurrentRecord()!=null){
+                var organizationRecord = $(ct_abs_project_organization_id).getCurrentRecord().data;
+                hlsCusAbsProductOrganizations.push(organizationRecord);
+            }
+
+            //费用信息
+            var ct_abs_pro_fee_info_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_pro_fee_info');
+            if($(ct_abs_pro_fee_info_id).getCurrentRecord()!=null){
+                var feeRecord = $(ct_abs_pro_fee_info_id).getCurrentRecord().data;
+                hlsCusAbsProFeeInfos.push(feeRecord);
+            }
+
+
+            //资金用途
+            var ct_abs_product_purpose_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_purpose');
+            if($(ct_abs_product_purpose_id).getCurrentRecord()!=null){
+                var purposeRecord = $(ct_abs_product_purpose_id).getCurrentRecord().data;
+                hlsCusAbsProductPurposes.push(purposeRecord);
+            }
+
+            //分层结构
+            var ct_abs_product_structure_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_structure');
+            if($(ct_abs_product_structure_id).getCurrentRecord()!=null){
+                var structureRecord = $(ct_abs_product_structure_id).getCurrentRecord().data;
+                hlsCusAbsProductStructures.push(structureRecord);
+            }
+
+            //收款确认
+            // var ct_abs_product_receipt_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_receipt');
+            // if($(ct_abs_product_receipt_id).getCurrentRecord()!=null){
+            //     var receiptsRecord = $(ct_abs_product_receipt_id).getCurrentRecord().data;
+            //     hlsCusAbsProductReceipts.push(receiptsRecord);
+            // }
+
+            //归集转付
+            var ct_abs_product_collection_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_collection');
+            if($(ct_abs_product_collection_id).getCurrentRecord()!=null){
+                var collectionsRecord = $(ct_abs_product_collection_id).getCurrentRecord().data;
+                hlsCusAbsProductCollections.push(collectionsRecord);
+            }
+
+
+            //资产包信息
+            // var ct_abs_assets_package_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_package');
+            // var packRecord = $(ct_abs_assets_package_id).getCurrentRecord().data;
+
+
+            Leaf.request({
+                url: '${/request/@context_path}/ct/abs/product/submit',
+                para: {
+                    hlsCusAbsProduct: productRecord,
+                    hlsCusAbsProBankAccounts: hlsCusAbsProBankAccounts,
+                    hlsCusAbsProductOrganizations: hlsCusAbsProductOrganizations,
+                    hlsCusAbsProFeeInfos:hlsCusAbsProFeeInfos,
+                    hlsCusAbsProductPurposes:hlsCusAbsProductPurposes,
+                    hlsCusAbsProductStructures:hlsCusAbsProductStructures,
+                    // hlsCusAbsProductReceipts:hlsCusAbsProductReceipts,
+                    hlsCusAbsProductCollections:hlsCusAbsProductCollections
+                },
+
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示', '成功');
+
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+
+        };
+
+        //计算
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+
+            debugger;
+
+            var hlsCusAbsProBankAccounts = [];
+            var hlsCusAbsProductOrganizations=[];
+            var hlsCusAbsProFeeInfos=[];
+            var hlsCusAbsProductPurposes=[];
+            var hlsCusAbsProductStructures=[];
+            // var hlsCusAbsProductReceipts=[];
+            var hlsCusAbsProductCollections=[];
+            //基本信息
+            var ct_abs_product_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product');
+
+            $(ct_abs_product_id).getCurrentRecord().set('company_id','${/session/@companyId}');
+            $(ct_abs_product_id).getCurrentRecord().set('user_id','${/session/@userId}');
+            $(ct_abs_product_id).getCurrentRecord().set('create_person','${/session/@userName}');
+            $(ct_abs_product_id).getCurrentRecord().set('product_id','${/parameter/@product_id}');
+            $(ct_abs_product_id).getCurrentRecord().set('source_key','${/parameter/@product_id}');
+            $(ct_abs_product_id).getCurrentRecord().set('source_type','ABS_PROJECT');
+            $(ct_abs_product_id).getCurrentRecord().set('calculate_export_flag','Y');
+            $(ct_abs_product_id).getCurrentRecord().set('in_balance_complement_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('on_balance_complement_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_buy_back_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_buy_back_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_other_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_other_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_nothing_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_nothing_flag','N');
+            var productRecord = $(ct_abs_product_id).getCurrentRecord().data;
+            //交易信息
+
+
+            //账户信息
+            var ct_abs_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_bank_account');
+            if($(ct_abs_bank_account_id).getCurrentRecord()!=null){
+                var accountRecord = $(ct_abs_bank_account_id).getCurrentRecord().data;
+                $(ct_abs_bank_account_id).getCurrentRecord().set('source_type','ABS_PROJECT');
+                hlsCusAbsProBankAccounts.push(accountRecord);
+            }
+
+            //机构信息
+            var ct_abs_project_organization_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_organization');
+            if($(ct_abs_project_organization_id).getCurrentRecord()!=null){
+                var organizationRecord = $(ct_abs_project_organization_id).getCurrentRecord().data;
+                hlsCusAbsProductOrganizations.push(organizationRecord);
+            }
+
+            //费用信息
+            var ct_abs_pro_fee_info_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_pro_fee_info');
+            if($(ct_abs_pro_fee_info_id).getCurrentRecord()!=null){
+                var feeRecord = $(ct_abs_pro_fee_info_id).getCurrentRecord().data;
+                hlsCusAbsProFeeInfos.push(feeRecord);
+            }
+
+
+            //资金用途
+            var ct_abs_product_purpose_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_purpose');
+            if($(ct_abs_product_purpose_id).getCurrentRecord()!=null){
+                var purposeRecord = $(ct_abs_product_purpose_id).getCurrentRecord().data;
+                hlsCusAbsProductPurposes.push(purposeRecord);
+            }
+
+            //分层结构
+            var ct_abs_product_structure_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_structure');
+            if($(ct_abs_product_structure_id).getCurrentRecord()!=null){
+                var structureRecord = $(ct_abs_product_structure_id).getCurrentRecord().data;
+                hlsCusAbsProductStructures.push(structureRecord);
+            }
+
+            //收款确认
+            // var ct_abs_product_receipt_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_receipt');
+            // if($(ct_abs_product_receipt_id).getCurrentRecord()!=null){
+            //     var receiptsRecord = $(ct_abs_product_receipt_id).getCurrentRecord().data;
+            //     hlsCusAbsProductReceipts.push(receiptsRecord);
+            // }
+
+            //归集转付
+            var ct_abs_product_collection_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_collection');
+            if($(ct_abs_product_collection_id).getCurrentRecord()!=null){
+                var collectionsRecord = $(ct_abs_product_collection_id).getCurrentRecord().data;
+                hlsCusAbsProductCollections.push(collectionsRecord);
+            }
+
+
+            //资产包信息
+            // var ct_abs_assets_package_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_package');
+            // var packRecord = $(ct_abs_assets_package_id).getCurrentRecord().data;
+
+            if(productRecord.due_date_begin ==null || productRecord.base_date ==null || productRecord.first_cash_date ==null ||productRecord.first_rental_back_date == null){
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showWarningMessage("提示","请填写必输信息");
+
+                return ;
+
+            }else{
+
+
+                Leaf.request({
+                    url: '${/request/@context_path}/ct/abs/product/calculate',
+                    para: {
+                        hlsCusAbsProduct: productRecord,
+                        hlsCusAbsProBankAccounts: hlsCusAbsProBankAccounts,
+                        hlsCusAbsProductOrganizations: hlsCusAbsProductOrganizations,
+                        hlsCusAbsProFeeInfos:hlsCusAbsProFeeInfos,
+                        hlsCusAbsProductPurposes:hlsCusAbsProductPurposes,
+                        hlsCusAbsProductStructures:hlsCusAbsProductStructures,
+                        // hlsCusAbsProductReceipts:hlsCusAbsProductReceipts,
+                        hlsCusAbsProductCollections:hlsCusAbsProductCollections
+                    },
+
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showMessage('提示', '成功');
+
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+
+
+
+        };
+
+
+        //暂存
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+
+            debugger;
+
+            var hlsCusAbsProBankAccounts = [];
+            var hlsCusAbsProductOrganizations=[];
+            var hlsCusAbsProFeeInfos=[];
+            var hlsCusAbsProductPurposes=[];
+            var hlsCusAbsProductStructures=[];
+            // var hlsCusAbsProductReceipts=[];
+            var hlsCusAbsProductCollections=[];
+            //基本信息
+            var ct_abs_product_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product');
+
+            $(ct_abs_product_id).getCurrentRecord().set('company_id','${/session/@companyId}');
+            $(ct_abs_product_id).getCurrentRecord().set('user_id','${/session/@userId}');
+            $(ct_abs_product_id).getCurrentRecord().set('create_person','${/session/@userName}');
+            $(ct_abs_product_id).getCurrentRecord().set('product_id','${/parameter/@product_id}');
+            $(ct_abs_product_id).getCurrentRecord().set('source_key','${/parameter/@product_id}');
+            $(ct_abs_product_id).getCurrentRecord().set('source_type','ABS_PROJECT');
+            $(ct_abs_product_id).getCurrentRecord().set('calculate_export_flag','Y');
+            $(ct_abs_product_id).getCurrentRecord().set('in_balance_complement_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('on_balance_complement_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_buy_back_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_buy_back_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_other_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_other_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('in_nothing_flag','N');
+            $(ct_abs_product_id).getCurrentRecord().set('out_nothing_flag','N');
+            var productRecord = $(ct_abs_product_id).getCurrentRecord().data;
+
+            //账户信息
+            var ct_abs_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_bank_account');
+            if($(ct_abs_bank_account_id).getCurrentRecord()!=null){
+                var accountRecord = $(ct_abs_bank_account_id).getCurrentRecord().data;
+                $(ct_abs_bank_account_id).getCurrentRecord().set('source_type','ABS_PROJECT');
+                hlsCusAbsProBankAccounts.push(accountRecord);
+            }
+
+            //机构信息
+            var ct_abs_project_organization_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_organization');
+            if($(ct_abs_project_organization_id).getCurrentRecord()!=null){
+                var organizationRecord = $(ct_abs_project_organization_id).getCurrentRecord().data;
+                hlsCusAbsProductOrganizations.push(organizationRecord);
+            }
+
+            //费用信息
+            var ct_abs_pro_fee_info_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_pro_fee_info');
+            if($(ct_abs_pro_fee_info_id).getCurrentRecord()!=null){
+                var feeRecord = $(ct_abs_pro_fee_info_id).getCurrentRecord().data;
+                hlsCusAbsProFeeInfos.push(feeRecord);
+            }
+
+
+            //资金用途
+            var ct_abs_product_purpose_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_purpose');
+            if($(ct_abs_product_purpose_id).getCurrentRecord()!=null){
+                var purposeRecord = $(ct_abs_product_purpose_id).getCurrentRecord().data;
+                hlsCusAbsProductPurposes.push(purposeRecord);
+            }
+
+            //分层结构
+            var ct_abs_product_structure_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_structure');
+            if($(ct_abs_product_structure_id).getCurrentRecord()!=null){
+                var structureRecord = $(ct_abs_product_structure_id).getCurrentRecord().data;
+                hlsCusAbsProductStructures.push(structureRecord);
+            }
+
+            //收款确认
+            // var ct_abs_product_receipt_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_receipt');
+            // if($(ct_abs_product_receipt_id).getCurrentRecord()!=null){
+            //     var receiptsRecord = $(ct_abs_product_receipt_id).getCurrentRecord().data;
+            //     hlsCusAbsProductReceipts.push(receiptsRecord);
+            // }
+
+            //归集转付
+            var ct_abs_product_collection_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_product_collection');
+            if($(ct_abs_product_collection_id).getCurrentRecord()!=null){
+                var collectionsRecord = $(ct_abs_product_collection_id).getCurrentRecord().data;
+                hlsCusAbsProductCollections.push(collectionsRecord);
+            }
+
+
+            //资产包信息
+            // var ct_abs_assets_package_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_abs_assets_package');
+            // var packRecord = $(ct_abs_assets_package_id).getCurrentRecord().data;
+
+
+            Leaf.request({
+                url: '${/request/@context_path}/ct/abs/product/update',
+                para: {
+                    hlsCusAbsProduct: productRecord,
+                    hlsCusAbsProBankAccounts: hlsCusAbsProBankAccounts,
+                    hlsCusAbsProductOrganizations: hlsCusAbsProductOrganizations,
+                    hlsCusAbsProFeeInfos:hlsCusAbsProFeeInfos,
+                    hlsCusAbsProductPurposes:hlsCusAbsProductPurposes,
+                    hlsCusAbsProductStructures:hlsCusAbsProductStructures,
+                    // hlsCusAbsProductReceipts:hlsCusAbsProductReceipts,
+                    hlsCusAbsProductCollections:hlsCusAbsProductCollections
+                },
+
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示', '成功');
+
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+
+        };
+
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>

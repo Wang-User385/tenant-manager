@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hand.hls.fnd.mapper.PrjMeetingJudgeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.PrjMeetingJudge">
+        <id column="judge_id" property="judgeId" jdbcType="BIGINT"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
+        <result column="judge_type" property="judgeType" jdbcType="VARCHAR"/>
+        <result column="judge_user_allocation_id" property="judgeUserAllocationId"/>
+        <result column="judge_user_id" property="judgeUserId" jdbcType="BIGINT"/>
+        <result column="director_flag" property="directorFlag" jdbcType="VARCHAR"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName"/>
+        <result column="position_name" property="positionName" jdbcType="VARCHAR"/>
+        <result column="company_short_name" property="companyShortName"/>
+        <result column="employee_code" property="employeeCode"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectList" parameterType="com.hand.hls.fnd.dto.PrjMeetingJudge" resultMap="BaseResultMap">
+
+            SELECT pmj.*,
+                        (SELECT
+                            unit_name
+                        FROM
+                            fnd_org_unit fn
+                        WHERE
+                            fn.unit_id = fe.unit_id) as unit_name,
+                        (SELECT
+                             position_name
+                        FROM
+                             fnd_org_position fop
+                        WHERE
+                             fop.position_id = fe.position_id) as position_name,
+                        (SELECT
+                             company_short_name
+                        FROM
+                             fnd_company fc
+                        WHERE
+                             fc.company_id = fe.company_id) as company_short_name,
+                        (SELECT
+                             employee_code
+                        FROM
+                             fnd_employee fee
+                        WHERE
+                             fe.employee_id = fee.employee_id) as employee_code,
+                        (SELECT
+                                name
+                        FROM
+                             fnd_employee fee
+                        WHERE
+                             fe.employee_id = fee.employee_id) as name
+            FROM
+            prj_meeting_judge pmj,fnd_employee_assigns fe,sys_user_allocation sua
+            WHERE
+            sua.employee_assign_id = fe.employee_assign_id
+            and pmj.judge_user_allocation_id = sua.allocation_id
+            order BY judge_user_allocation_id desc
+
+
+    </select>
+
+    <select id="LovQuery" parameterType="com.hand.hls.fnd.dto.PrjMeetingJudge" resultMap="BaseResultMap">
+
+
+          select * from (
+          SELECT  fe.employee_assign_id,
+				   (select max(sua.allocation_id) from sys_user_allocation sua where sua.employee_assign_id = fe.employee_assign_id ) judge_user_allocation_id,
+                   (SELECT max(sua.user_id) from sys_user_allocation sua where sua.employee_assign_id = fe.employee_assign_id ) judge_user_id,
+                   (SELECT max(sua.company_id) from sys_user_allocation sua where sua.employee_assign_id = fe.employee_assign_id) company_id,
+                   (SELECT
+                        unit_name
+                    FROM
+                        fnd_org_unit fn
+                    WHERE
+                        fn.unit_id = fe.unit_id) as unit_name,
+                    (SELECT
+                         position_name
+                    FROM
+                         fnd_org_position fop
+                    WHERE
+                         fop.position_id = fe.position_id) as position_name,
+                    (SELECT
+                         company_short_name
+                    FROM
+                         fnd_company fc
+                    WHERE
+                         fc.company_id = fe.company_id) as company_short_name,
+                    (SELECT
+                         employee_code
+                    FROM
+                         fnd_employee fee
+                    WHERE
+                         fe.employee_id = fee.employee_id) as employee_code,
+                    (SELECT
+                            name
+                    FROM
+                         fnd_employee fee
+                    WHERE
+                         fe.employee_id = fee.employee_id) as name
+        FROM
+        fnd_employee_assigns fe ) v
+         where v.judge_user_allocation_id is not null
+
+
+
+
+    </select>
+
+    <update id="deleteQueue">
+                DELETE
+                FROM
+                    prj_meeting_judge
+                WHERE
+                judge_id = #{judgeId}
+    </update>
+
+
+</mapper>
+

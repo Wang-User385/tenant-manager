@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hls.mapper.HlsCusFundingPlanMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hls.dto.HlsCusFundingPlan">
+        <result column="FUNDING_PLAN_ID" property="fundingPlanId" jdbcType="DECIMAL" />
+        <result column="FUNDING_PLAN_NUMBER" property="fundingPlanNumber" jdbcType="VARCHAR" />
+        <result column="STATUS" property="status" jdbcType="VARCHAR" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="PROPOSED_LAUNCH_DATE" property="proposedLaunchDate" jdbcType="VARCHAR" />
+
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="contract_name" property="contractName" jdbcType="VARCHAR" />
+        <result column="project_number" property="projectNumber" jdbcType="VARCHAR" />
+        <result column="project_name" property="projectName" jdbcType="VARCHAR" />
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR" />
+        <result column="marketing_report_number" property="marketingReportNumber" jdbcType="VARCHAR" />
+        <result column="company_name" property="companyName" jdbcType="VARCHAR" />
+        <result column="project_manager" property="projectManager" jdbcType="VARCHAR" />
+        <result column="project_assistant_n" property="projectAssistantN" jdbcType="VARCHAR" />
+        <result column="loan_total_amount" property="loanTotalAmount" jdbcType="DECIMAL" />
+        <result column="loan_net_amount" property="loanNetAmount" jdbcType="DECIMAL" />
+        <result column="status_n" property="statusN" jdbcType="VARCHAR" />
+        <result column="unit_manager" property="unitManager" jdbcType="VARCHAR" />
+        <result column="marketing_report_id" property="marketingReportId" jdbcType="DECIMAL" />
+        <result column="unit_id" property="unitId" jdbcType="DECIMAL" />
+        <result column="assist_unit_id" property="assistUnitId" jdbcType="DECIMAL" />
+        <result column="payment_number" property="paymentNumber" jdbcType="DECIMAL" />
+        <result column="company_spv_n" property="companySpvN" jdbcType="VARCHAR" />
+        <result column="credit_effective_date" property="creditEffectiveDate" jdbcType="DATE" />
+        <result column="credit_expiry_date" property="creditExpiryDate" jdbcType="DATE" />
+        <result column="credit_period_from" property="creditPeriodFrom" jdbcType="DATE" />
+        <result column="credit_period_to" property="creditPeriodTo" jdbcType="DATE" />
+        <result column="project_id" property="projectId" jdbcType="DECIMAL" />
+        <result column="LEASE_PRICE_USE" property="leasePriceUse" jdbcType="DECIMAL" />
+        <result column="ref_project_id" property="refProjectId" jdbcType="DECIMAL" />
+
+    </resultMap>
+
+
+    <select id="queryForFundingPlan" parameterType="com.hand.hls.hls.dto.HlsCusFundingPlan" resultMap="BaseResultMap">
+        select t.* from (select hfp.funding_plan_id,hfp.funding_plan_number,hfp.status,pp.project_id,pp.ref_project_id,
+        (SELECT meaning
+        from sys_code_value_b_v
+        where code = 'HLS.WFL_FUNDING_STATUS'
+        and code_value = hfp.status) status_n,
+        (select hbm.bp_name from hls_bp_master hbm where hbm.bp_id=cc.tenant_id) as bp_name,
+        cc.contract_id,cc.contract_number as payment_number,
+        pp.contract_number as contract_number,
+        pp.contract_name as contract_name,
+        pp.project_number as project_number,
+        pp.project_name as project_name,
+        pp.host_project_manager,
+        (select s.description from sys_user s where s.user_id = pp.host_project_manager) PROJECT_MANAGER,
+        pp.host_unit_id,
+        (select fou.unit_name from fnd_org_unit fou where fou.unit_id = pp.host_unit_id) UNIT_MANAGER,
+
+        pp.assist_project_manager,
+        (select s.description from sys_user s where s.user_id = pp.assist_project_manager) assist_project_manager_n,
+        pp.assist_unit_id,
+        (select fou.unit_name from fnd_org_unit fou where fou.unit_id = pp.assist_unit_id) assist_unit_name,
+
+        (SELECT ppcn.credit_period_from
+        FROM prj_project_credit_notice ppcn
+        where ppcn.project_id = pp.ref_project_id
+        and ppcn.prj_notice_id =
+        (SELECT max(ppcn.prj_notice_id)
+        FROM prj_project_credit_notice ppcn
+        where ppcn.project_id = pp.ref_project_id
+        and ppcn.notice_create_date is not null)) as credit_period_from,
+        (SELECT ppcn.credit_period_to
+        FROM prj_project_credit_notice ppcn
+        where ppcn.project_id = pp.ref_project_id
+        and ppcn.prj_notice_id =
+        (SELECT max(ppcn.prj_notice_id)
+        FROM prj_project_credit_notice ppcn
+        where ppcn.project_id = pp.ref_project_id
+        and ppcn.notice_create_date is not null)) as credit_period_to,
+        hfp.PROPOSED_LAUNCH_DATE,
+        hfp.LOAN_TOTAL_AMOUNT,
+        hfp.LOAN_NET_AMOUNT
+        FROM CON_contract cc,prj_project pp ,HLS_FUNDING_PLAN hfp
+        where pp.project_id = cc.project_id
+        and hfp.contract_id = cc.contract_id) t
+        <where>
+            1=1
+            <if test="fundingPlanId !=null">
+                AND t.funding_plan_id = #{fundingPlanId}
+            </if>
+            <if test="projectId !=null">
+                AND t.project_id = #{projectId}
+            </if>
+            <if test="bpName !=null">
+                AND t.bp_name like concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="projectName !=null">
+                AND t.project_name like concat(concat('%',#{projectName}),'%')
+            </if>
+            <if test="contractNumber !=null">
+                AND t.contract_number like concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="contractName !=null">
+                AND t.contract_name like concat(concat('%',#{contractName}),'%')
+            </if>
+            <if test="status !=null">
+                AND t.status = #{status}
+            </if>
+            <if test="loanTimeFrom!=null">
+                and t.proposed_launch_date &gt;= #{loanTimeFrom}
+            </if>
+            <if test="loanTimeTo!=null">
+                and Ct.proposed_launch_date &lt;= #{loanTimeTo}
+            </if>
+        </where>
+    </select>
+    <select id="queryForFundingPlanDetail" parameterType="com.hand.hls.hls.dto.HlsCusFundingPlan" resultMap="BaseResultMap">
+        select hfp.FUNDING_PLAN_ID,hfp.funding_plan_number,hfp.STATUS,hfp.PROPOSED_LAUNCH_DATE,cc.contract_id,pp.marketing_report_id,
+        cc.contract_number as payment_number,
+        pp.contract_number as contract_number,
+        pp.contract_name as contract_name,
+        pp.project_number as project_number,
+        pp.project_id,
+        pp.LEASE_PRICE_USE,
+        pp.ref_project_id,
+        pp.project_name as project_name,
+        (select hbm.bp_name from hls_bp_master hbm where hbm.bp_id=cc.tenant_id) as bp_name,
+        (select hmr.marketing_report_number from HLS_MARKETING_REPORT hmr
+        where pp.marketing_report_id = hmr.marketing_report_id) marketing_report_number,
+        (select t.company_full_name from fnd_company t where t.company_id=pp.company_spv) company_spv_n,
+         pp.host_unit_id unit_id,
+        pp.assist_unit_id,
+        (select su.description from sys_user su where su.user_id=pp.host_project_manager) as project_manager,
+        (select su.description from sys_user su where su.user_id=pp.assist_project_manager) as project_assistant_n,
+        hfp.LOAN_TOTAL_AMOUNT,
+        (SELECT ppcn.credit_period_from
+        FROM prj_project_credit_notice ppcn
+        where ppcn.project_id = pp.ref_project_id
+        and ppcn.prj_notice_id =
+        (SELECT max(ppcn.prj_notice_id)
+        FROM prj_project_credit_notice ppcn
+        where ppcn.project_id = pp.ref_project_id
+        and ppcn.notice_create_date is not null)) as credit_period_from,
+        (SELECT ppcn.credit_period_to
+        FROM prj_project_credit_notice ppcn
+        where ppcn.project_id = pp.ref_project_id
+        and ppcn.prj_notice_id =
+        (SELECT max(ppcn.prj_notice_id)
+        FROM prj_project_credit_notice ppcn
+        where ppcn.project_id = pp.ref_project_id
+        and ppcn.notice_create_date is not null)) as credit_period_to,
+        hfp.LOAN_NET_AMOUNT
+        FROM CON_contract cc,prj_project pp,HLS_FUNDING_PLAN hfp
+        <where>
+            pp.project_id = cc.project_id
+            and hfp.contract_id = cc.contract_id
+            and hfp.funding_plan_id = #{fundingPlanId}
+
+        </where>
+    </select>
+
+
+
+
+    <select id="querFundByContracrId" parameterType="com.hand.hls.hls.dto.HlsCusFundingPlan" resultMap="BaseResultMap">
+     select hfp.*
+       from hls_funding_plan hfp
+     <where>
+         hfp.contract_id = #{contractId}
+     </where>
+
+    </select>
+
+
+</mapper>

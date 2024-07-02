@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020年2月12日
+    $Revision: 1.0
+    $Purpose: 多行核销明细(收付款维度)
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <a:link id="csh_detail_link_id"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH302/csh_write_off_detail.lview"/>
+        <script><![CDATA[
+        function csh_write_off_detail_ds_query(ds, para) {
+            para['transactionId'] = '${/parameter/@transaction_id}';
+        }
+
+        // 明细
+        function csh302_open_detail(write_off_id,write_off_doc_category) {
+            var url = $('csh_detail_link_id').getUrl();
+            win = new Leaf.Window({
+                id: 'csh302_open_detail_winid',
+                url: url,
+                params: {
+                    write_off_id: write_off_id,
+                    write_off_doc_category:write_off_doc_category,
+                    winId: 'csh302_open_detail_winid'
+                },
+                title: '单个核销明细扩展栏',
+                width: 800,
+                height: 425
+            });
+            win.on('close', function () {
+
+            });
+        }
+
+        function detail_renderer(value, record) {
+            return '<a href="javascript:csh302_open_detail(\'' + record.get('write_off_id') + '\',\'' +record.get('write_off_doc_category')+ '\')">明细</a>'
+        }
+
+        ]]>
+        </script>
+        <a:dataSets>
+            <a:dataSet id="csh_write_off_detail_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/write/off/all/Details">
+                <a:fields>
+                    <a:field name="write_off_date" datatype="date"/>
+                    <a:field name="transaction_amount"/>
+                    <a:field name="description"/>
+                    <a:field name="bank_slip_num"/>
+                    <a:field name="payment_method_name"/>
+                    <a:field name="cashflow_id"/>
+                    <a:field name="write_off_id"/>
+                    <a:field name="contract_number"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="csh_write_off_detail_ds_query"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="csh_write_off_details_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/write/off/all/Details">
+                <a:fields>
+                    <a:field name="write_off_date" datatype="date"/>
+                    <a:field name="transaction_amount"/>
+                    <a:field name="description"/>
+                    <a:field name="bank_slip_num"/>
+                    <a:field name="payment_method_name"/>
+                    <a:field name="cashflow_id"/>
+                    <a:field name="write_off_id"/>
+                    <a:field name="contract_number"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="csh_write_off_detail_ds_query"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:form column="4" labelWidth="100">
+            <a:datePicker name="write_off_date" bindTarget="csh_write_off_detail_ds" readOnly="true"
+                          prompt="付款日期" width="120"/>
+            <a:textField name="transaction_amount" bindTarget="csh_write_off_detail_ds" readOnly="true"
+                         prompt="付款金额" width="120"/>
+            <a:textField name="description" bindTarget="csh_write_off_detail_ds" readOnly="true"
+                         prompt="摘要" width="200"/>
+            <a:textField name="bank_slip_num" bindTarget="csh_write_off_detail_ds" readOnly="true"
+                         prompt="流水号" width="200"/>
+            <a:textField name="payment_method_name" bindTarget="csh_write_off_detail_ds" readOnly="true"
+                         prompt="付款方式" width="120"/>
+        </a:form>
+        <a:grid bindTarget="csh_write_off_details_ds" marginHeight="193" marginWidth="80">
+            <a:columns>
+                <a:column name="write_off_date" prompt="日期" width="100" renderer="Leaf.formatDate"/>
+                <a:column name="write_off_type_name" prompt="核销类型" width="100"/>
+                <a:column name="contract_number" prompt="核销对象" width="150"/>
+                <a:column name="times" prompt="期数" width="80"/>
+                <a:column name="cf_item_name" prompt="现金流类型" width="100"/>
+                <a:column name="transaction_amount" prompt="金额" width="120" align="right"
+                          renderer="Leaf.formatMoney"/>
+                <a:column name="write_off_principal" prompt="本金" width="120" align="right"
+                          renderer="Leaf.formatMoney"/>
+                <a:column name="write_off_interest" prompt="利息" width="120" align="right"
+                          renderer="Leaf.formatMoney"/>
+                <a:column name="detail" prompt="明细" width="120"
+                          renderer="detail_renderer"/>
+            </a:columns>
+        </a:grid>
+    </a:view>
+
+</a:screen>

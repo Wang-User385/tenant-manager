@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.prj.mapper.ProcessCancelDetailMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.prj.dto.ProcessCancelDetail">
+        <result column="DETAIL_ID" property="detailId" jdbcType="DECIMAL" />
+        <result column="DOCUMENT_ID" property="documentId" jdbcType="DECIMAL" />
+        <result column="DOCUMENT_TYPE" property="documentType" jdbcType="VARCHAR" />
+        <result column="CANCEL_TYPE" property="cancelType" jdbcType="VARCHAR" />
+        <result column="CANCEL_REASON" property="cancelReason" jdbcType="VARCHAR" />
+        <result column="CANCEL_EXPLANATION" property="cancelExplanation" jdbcType="VARCHAR" />
+        <result column="CANCEL_DATE" property="cancelDate" jdbcType="DATE" />
+        <result column="CHANGE_PROJECT_NUMBER_FLAG" property="changeProjectNumberFlag" jdbcType="VARCHAR" />
+    </resultMap>
+    <resultMap id="RptPrj410QueryMap" type="map">
+        <result column="sum_contract_charge" property="sum_contract_charge"/>
+        <result column="cancel_date" property="cancel_date"/>
+        <result column="cancel_reason_n" property="cancel_reason_n"/>
+        <result column="cancel_node_n" property="cancel_node_n"/>
+        <result column="tenant_name" property="tenant_name"/>
+        <result column="document_number" property="document_number"/>
+        <result column="manufacturer_id_n" property="manufacturer_id_n"/>
+        <result column="lease_channel_n" property="lease_channel_n"/>
+        <result column="created_by_n" property="created_by_n"/>
+        <result column="finance_amount" property="finance_amount"/>
+        <result column="deposit" property="deposit"/>
+        <result column="cf_b" property="cf_b"/>
+        <result column="cf_c" property="cf_c"/>
+        <result column="cf_a" property="cf_a"/>
+        <result column="cancel_explanation" property="cancel_explanation"/>
+    </resultMap>
+    <select id="RptPrj410Query" resultMap="RptPrj410QueryMap">
+        select t.*,
+               t.cf_a-t.cf_c+t.cf_b as sum_contract_charge
+        from
+            (select pcd.cancel_date,
+                    (Select meaning
+                     From sys_code_value_b_v
+                     Where code = 'PROCESS_CACEL_REASON'
+                       And code_value = pcd.cancel_reason) As cancel_reason_n,
+                    case pcd.document_type
+                        when 'PRJ' then '进件'
+                        when 'CONT' then '投放审查'
+                        when 'CSH' then '付款申请'
+                        else '未知节点'
+                        end cancel_node_n,
+                    case pcd.document_type
+                        when 'PRJ' then (select hm.bp_name from prj_project pp,hls_bp_master hm where hm.bp_id=pp.tenant_id and pp.project_id=pcd.document_id)
+                        when 'CONT' then (select hm.bp_name from prj_project pp,hls_bp_master hm where hm.bp_id=pp.tenant_id and pp.project_id=pcd.document_id)
+                        when 'CSH' then (select hm.bp_name from con_contract cc,hls_bp_master hm where hm.bp_id=cc.tenant_id and cc.contract_id=pcd.document_id)
+                        else (select hm.bp_name from prj_project pp,hls_bp_master hm where hm.bp_id=pp.tenant_id and pp.project_id=pcd.document_id)
+                        end tenant_name,
+                    case pcd.document_type
+                        when 'PRJ' then (select pp.project_number from prj_project pp where pp.project_id=pcd.document_id)
+                        when 'CONT' then (select pp.project_number from prj_project pp where pp.project_id=pcd.document_id)
+                        when 'CSH' then (select cc.contract_number from con_contract cc where cc.contract_id=pcd.document_id)
+                        else (select pp.project_number from prj_project pp where pp.project_id=pcd.document_id)
+                        end document_number,
+                    (select hm.bp_name from hls_bp_master hm where hm.bp_id=( case pcd.document_type
+                                                                                  when 'PRJ' then (select pp.manufacturer_id from prj_project pp where pp.project_id=pcd.document_id)
+                                                                                  when 'CONT' then (select pp.manufacturer_id from prj_project pp where pp.project_id=pcd.document_id)
+                                                                                  when 'CSH' then (select cc.manufacturer_id from con_contract cc where cc.contract_id=pcd.document_id)
+                                                                                  else (select pp.manufacturer_id from prj_project pp where pp.project_id=pcd.document_id)
+                        end )) as manufacturer_id_n,
+                    (SELECT t1.description
+                     FROM hls_lease_channel t1
+                     WHERE t1.enabled_flag = 'Y'
+                       and t1.lease_channel = (case pcd.document_type
+                                                   when 'PRJ' then (select pp.lease_channel from prj_project pp where pp.project_id=pcd.document_id)
+                                                   when 'CONT' then (select pp.lease_channel from prj_project pp where pp.project_id=pcd.document_id)
+                                                   when 'CSH' then (select cc.lease_channel from con_contract cc where cc.contract_id=pcd.document_id)
+                                                   else (select pp.lease_channel from prj_project pp where pp.project_id=pcd.document_id)
+                         end )) as lease_channel_n,
+                    (select su.description  from sys_user su where su.user_id=pcd.created_by) created_by_n,
+                    case pcd.document_type
+                        when 'PRJ' then (select pp.finance_amount from prj_project pp where pp.project_id=pcd.document_id)
+                        when 'CONT' then (select pp.finance_amount from prj_project pp where pp.project_id=pcd.document_id)
+                        when 'CSH' then (select cc.finance_amount from con_contract cc where cc.contract_id=pcd.document_id)
+                        else (select pp.finance_amount from prj_project pp where pp.project_id=pcd.document_id)
+                        end finance_amount,
+                    case pcd.document_type
+                        when 'PRJ' then (select pq.deposit from prj_quotation pq
+                                         where pq.source_document_id=pcd.document_id
+                                           and pq.source_document_category='PRJ_PROJECT')
+                        when 'CONT' then (select pq.deposit from prj_quotation pq
+                                          where pq.source_document_id=pcd.document_id
+                                            and pq.source_document_category='PRJ_PROJECT')
+                        when 'CSH' then (select cc.deposit from con_contract cc where cc.contract_id=pcd.document_id)
+                        else (select pq.deposit from prj_quotation pq
+                              where pq.source_document_id=pcd.document_id)
+                        end deposit,
+                    nvl(case pcd.document_type
+                            when 'PRJ' then  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                              where  pcd.document_id=pq.source_document_id
+                                                and pq.source_document_category='PRJ_PROJECT'
+                                                and pqc.quotation_id=pq.quotation_id
+                                                and pqc.cf_item=66)
+                            when 'CONT' then  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                               where  pcd.document_id=pq.source_document_id
+                                                 and pq.source_document_category='PRJ_PROJECT'
+                                                 and pqc.quotation_id=pq.quotation_id
+                                                 and pqc.cf_item=66)
+                            when 'CSH' then (select sum(ccc.due_amount) from csh_payment_req_ln cl,con_contract cc,con_contract_cashflow ccc
+                                             where  cl.payment_req_id=pcd.document_id
+                                               and cl.source_doc_id=cc.contract_id
+                                               and ccc.contract_id=cc.contract_id
+                                               and ccc.cf_item=66)
+                            else  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                   where  pcd.document_id=pq.source_document_id
+                                     and pq.source_document_category='PRJ_PROJECT'
+                                     and pqc.quotation_id=pq.quotation_id
+                                     and pqc.cf_item=66)
+                            end,0) cf_b,
+                    nvl(case pcd.document_type
+                            when 'PRJ' then  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                              where  pcd.document_id=pq.source_document_id
+                                                and pq.source_document_category='PRJ_PROJECT'
+                                                and pqc.quotation_id=pq.quotation_id
+                                                and pqc.cf_item=67)
+                            when 'CONT' then  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                               where  pcd.document_id=pq.source_document_id
+                                                 and pq.source_document_category='PRJ_PROJECT'
+                                                 and pqc.quotation_id=pq.quotation_id
+                                                 and pqc.cf_item=67)
+                            when 'CSH' then (select sum(ccc.due_amount) from csh_payment_req_ln cl,con_contract cc,con_contract_cashflow ccc
+                                             where  cl.payment_req_id=pcd.document_id
+                                               and cl.source_doc_id=cc.contract_id
+                                               and ccc.contract_id=cc.contract_id
+                                               and ccc.cf_item=67)
+                            else  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                   where  pcd.document_id=pq.source_document_id
+                                     and pq.source_document_category='PRJ_PROJECT'
+                                     and pqc.quotation_id=pq.quotation_id
+                                     and pqc.cf_item=67)
+                            end,0) cf_c,
+                    nvl(case pcd.document_type
+                            when 'PRJ' then  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                              where  pcd.document_id=pq.source_document_id
+                                                and pq.source_document_category='PRJ_PROJECT'
+                                                and pqc.quotation_id=pq.quotation_id
+                                                and pqc.cf_item=65)
+                            when 'CONT' then  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                               where  pcd.document_id=pq.source_document_id
+                                                 and pq.source_document_category='PRJ_PROJECT'
+                                                 and pqc.quotation_id=pq.quotation_id
+                                                 and pqc.cf_item=65)
+                            when 'CSH' then (select sum(ccc.due_amount) from csh_payment_req_ln cl,con_contract cc,con_contract_cashflow ccc
+                                             where  cl.payment_req_id=pcd.document_id
+                                               and cl.source_doc_id=cc.contract_id
+                                               and ccc.contract_id=cc.contract_id
+                                               and ccc.cf_item=65)
+                            else  (select sum(pqc.due_amount) from prj_quotation pq,prj_quotation_cashflow pqc
+                                   where  pcd.document_id=pq.source_document_id
+                                     and pq.source_document_category='PRJ_PROJECT'
+                                     and pqc.quotation_id=pq.quotation_id
+                                     and pqc.cf_item=65)
+                            end,0) cf_a,
+                    pcd.cancel_explanation
+             from prj_process_cancel_detail pcd
+             where pcd.cancel_type in ('CANCEL')
+               and pcd.document_type in ('PRJ','CONT','CSH')
+             order by pcd.creation_date desc ) t
+        <where>
+            1=1
+        <if test="cancelDateFrom!=null">
+            and trunc(t.cancel_date) >= to_date(#{cancelDateFrom},'YYYY-MM-DD')
+        </if>
+        <if test="cancelDateTo!=null">
+            and trunc(t.cancel_date)  &lt;= to_date(#{cancelDateTo},'YYYY-MM-DD')
+        </if>
+        <if test="manufacturerIdN!=null">
+            and t.manufacturer_id_n= #{manufacturerIdN}
+        </if>
+        <if test="cancelNodeN!=null">
+            and t.cancel_node_n= #{cancelNodeN}
+        </if>
+        <if test="leaseChannelN!=null">
+            and t.lease_channel_n= #{leaseChannelN}
+        </if>
+        <if test="createdByN!=null">
+            and t.created_by_n like concat(concat('%',#{createdByN}),'%')
+        </if>
+        <if test="cancelReasonN!=null">
+            and t.cancel_reason_n= #{cancelReasonN}
+        </if>
+        <if test="documentNumber!=null">
+            and t.document_number like concat(concat('%',#{documentNumber}),'%')
+        </if>
+
+        <if test="tenantName!=null">
+            and t.tenant_name  like concat(concat('%',#{tenantName}),'%')
+        </if>
+        </where>
+
+    </select>
+
+
+</mapper>

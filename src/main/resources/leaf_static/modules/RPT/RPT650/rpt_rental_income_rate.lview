@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function rental_income_rate_query() {
+            $('rental_income_rate_ds').query();
+        }
+
+        function rental_income_rate_reset() {
+            $('rental_income_rate_query_ds').reset();
+            $('rental_income_rate_ds').query();
+        }
+
+        function rental_income_rate_delete() {
+            $('rental_income_rate_grid_id').remove();
+        }
+
+        function rental_income_rate_import(){
+            new Leaf.Window({
+                id:'rental_income_rate_import_win_id',
+                params:{
+                    winid:'rental_income_rate_import_win_id'
+                },
+                url:'${/request/@context_path}/modules/RPT/RPT650/rpt_rental_income_rate_import.lview',
+                title:'租金回收明细导入',
+                fullScreen: false,
+                width:500,
+                height:300,
+                draggable: true
+            });
+        }
+
+        function rental_income_rate_template_download() {
+            var url = '${/request/@context_path}/uploadFile.lview' + '?table_name=rpt_rental_income_rate&header_id=1';
+            new Leaf.Window({
+                url: url,
+                title: '租金回收率导入模板下载',
+                id: 'csh_tplt__id',
+                width: 850,
+                height: 400
+            });
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="rental_income_rate_query_ds">
+                <a:fields>
+                    <a:field name="bp_name" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/hls/bp/queryBpMasterLov?~hls.layout.dto.LovHlsBpMasterDto" lovWidth="550"
+                             title="HLS.BP_TITLE" prompt="客户名称">
+                        <a:mapping>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                            <a:map from="bp_code" to="bp_code"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="business_unit" autoComplete="true" lovGridHeight="350"
+                             lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/csh/unit/query/lov~com.hand.hls.layout.dto.LovCshUnitDto"
+                             lovWidth="850"
+                             title="部门" prompt="部门">
+                        <a:mapping>
+                            <a:map from="unit_id" to="unit_id"/>
+                            <a:map from="unit_code" to="unit_code"/>
+                            <a:map from="unit_name" to="business_unit"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="currency_name" options="currency_ds"
+                             displayField="currency_name" valueField="currency_code" returnField="currency_code"/>
+                    <a:field name="cashflow_item_desc" options="fnd_cf_item_options_ds" displayField="description"
+                             valueField="cf_item" returnField="cashflow_item"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="rental_income_rate_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/rpt/rental/income/rate/query"
+                       deleteUrl="${/request/@context_path}/rpt/rental/income/rate/remove"
+                       queryDataSet="rental_income_rate_query_ds" selectable="true">
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="rental_income_rate_query" text="HAP.QUERY"/>
+                <a:gridButton click="rental_income_rate_reset" text="HAP.RESET"/>
+                <a:gridButton click="rental_income_rate_delete" text="已导入结果删除"/>
+                <a:gridButton click="rental_income_rate_import" text="导入新增"/>
+                <a:gridButton click="rental_income_rate_template_download" text="导入模板下载"/>
+            </a:screenTopToolbar>
+            <a:form title="查询条件" style="width:100%">
+                <a:box column="4" labelWidth="150">
+                    <a:lov name="bp_name" bindTarget="rental_income_rate_query_ds" prompt="客户名称" width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField name="contract_number" bindTarget="rental_income_rate_query_ds" prompt="支付表编号" width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:textField>
+                    <a:numberField name="times" bindTarget="rental_income_rate_query_ds"  prompt="期数"  width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:numberField>
+                    <a:comboBox name="cashflow_item_desc" bindTarget="rental_income_rate_query_ds" prompt="现金流项目"
+                                width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:comboBox>
+                </a:box>
+                <a:box column="4" labelWidth="150">
+                    <a:numberField name="due_amount_from" bindTarget="rental_income_rate_query_ds"  prompt="应收金额从"  width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:numberField>
+                    <a:numberField name="due_amount_to" bindTarget="rental_income_rate_query_ds"  prompt="应收金额到"  width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:numberField>
+                    <a:numberField name="outstanding_amount_from" bindTarget="rental_income_rate_query_ds"  prompt="未收金额从"  width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:numberField>
+                    <a:numberField name="outstanding_amount_to" bindTarget="rental_income_rate_query_ds"  prompt="未收金额到"  width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:numberField>
+                </a:box>
+                <a:box column="4" labelWidth="150">
+                    <a:comboBox name="currency_name" bindTarget="rental_income_rate_query_ds"  prompt="币种"  width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:comboBox>
+                    <a:lov name="business_unit" bindTarget="rental_income_rate_query_ds" prompt="业务部门" width="165">
+                        <a:events>
+                            <a:event name="enterdown" handler="rental_income_rate_query"/>
+                        </a:events>
+                    </a:lov>
+                </a:box>
+            </a:form>
+            <a:grid id="rental_income_rate_grid_id" bindTarget="rental_income_rate_ds" marginHeight="140"
+                    marginWidth="50" navBar="true">
+                <a:columns>
+                    <a:column name="bp_name" width="200" prompt="客户名称" align="center"/>
+                    <a:column name="contract_number" width="130" prompt="支付表编号" align="left"/>
+                    <a:column name="times" width="130" prompt="期数" align="right" />
+                    <a:column name="cashflow_item_desc" width="300" prompt="现金流项目" align="center"/>
+                    <a:column name="due_amount" width="260" prompt="应收金额" align="center" renderer="Leaf.formatMoney"/>
+                    <a:column name="received_amount" width="260" prompt="已收收金额" align="center" renderer="Leaf.formatMoney"/>
+                    <a:column name="outstanding_amount" width="260" prompt="未收金额" align="center" renderer="Leaf.formatMoney"/>
+                    <a:column name="due_date" width="260" prompt="应收日期" align="center" renderer="Leaf.formatDate"/>
+                    <a:column name="last_received_date" width="260" prompt="最后支付日" align="center" renderer="Leaf.formatDate"/>
+                    <a:column name="currency_name" width="300" prompt="币种" align="center"/>
+                    <a:column name="business_unit" width="260" prompt="业务部门" align="center"/>
+                    <a:column name="sources_flag_n" width="260" prompt="数据来源" align="center"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

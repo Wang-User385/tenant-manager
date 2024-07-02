@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+
+        var collection_status = '${/parameter/@collection_status}';
+        var contract_id = '${/parameter/@contract_id}';
+
+
+        function ast006_open_attach(rent_collection_id) {
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+
+            win = new Leaf.Window({
+                id: 'csh301_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: rent_collection_id,
+                    table_name: 'PLM_RENT_COLLECTION',
+                    winid: 's',
+                    function_usage: 'QUERY'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+        }
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+
+            var ds_id_contract = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+
+            if (ds.id = ds_id_contract) {
+                $(ds_id_contract).setQueryParameter('contract_id', contract_id);
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+
+            var ds_id_cashflow = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
+            var ds_id_collection = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'plm_rent_collection');
+
+
+            $(ds_id_cashflow).setQueryParameter('contract_id', contract_id);
+            $(ds_id_collection).setQueryParameter('contract_id', contract_id);
+            if (collection_status) {
+                $(ds_id_collection).setQueryParameter('collection_status', collection_status);
+            }
+
+        };
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+
+            return '<a href="javascript:ast006_open_attach(\'' + record.get('rent_collection_id') + '\')">附件</a>';
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

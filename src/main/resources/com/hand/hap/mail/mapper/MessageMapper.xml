@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hap.mail.mapper.MessageMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hap.mail.dto.Message" extends="com.hand.hap.mapper.StdMapper.STD">
+        <id column="MESSAGE_ID" property="messageId" jdbcType="DECIMAL"/>
+        <result column="MESSAGE_TYPE" property="messageType" jdbcType="VARCHAR"/>
+        <result column="MESSAGE_HOST" property="messageHost" jdbcType="VARCHAR"/>
+        <result column="MESSAGE_FROM" property="messageFrom" jdbcType="VARCHAR"/>
+        <result column="SUBJECT" property="subject" jdbcType="VARCHAR"/>
+        <result column="PRIORITY_LEVEL" property="priorityLevel" jdbcType="VARCHAR"/>
+        <result column="SEND_FLAG" property="sendFlag" jdbcType="VARCHAR"/>
+        <result column="MESSAGE_SOURCE" property="messageSource" jdbcType="VARCHAR"/>
+        <result column="CONTENT" property="content" jdbcType="VARCHAR"/>
+        <result column="CREATION_DATE" property="creationDate" jdbcType="TIMESTAMP"/>
+        <result column="LAST_UPDATE_DATE" property="lastUpdateDate" jdbcType="TIMESTAMP"/>
+
+        <result column="MOBILE_PHONE" property="mobilePhone" jdbcType="VARCHAR"/>
+        <result column="SEND_DATE" property="sendDate" jdbcType="TIMESTAMP"/>
+        <result column="TRANSACTION_MESSAGE" property="transactionMessage" jdbcType="VARCHAR"/>
+        <result column="ATTRIBUTE1" property="attribute1" jdbcType="VARCHAR"/>
+        <result column="batch_id" property="batchId" jdbcType="DECIMAL"/>
+        <result column="TEMPLATE_CODE" property="templateCode" jdbcType="VARCHAR"/>
+        <result column="SEND_ARGS" property="sendArgs" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectMessageContent" resultMap="BaseResultMap" parameterType="com.hand.hap.mail.dto.Message">
+        SELECT  SM.CONTENT
+        FROM SYS_MESSAGE SM
+        WHERE SM.MESSAGE_ID =#{messageId}
+    </select>
+
+    <select id="selectMessages" resultMap="BaseResultMap" parameterType="com.hand.hap.mail.dto.Message">
+        SELECT SM.MESSAGE_ID, SM.MESSAGE_TYPE, SM.MESSAGE_HOST, SM.MESSAGE_FROM, SM.SUBJECT, SM.PRIORITY_LEVEL,
+        SM.SEND_FLAG, SM.MESSAGE_SOURCE, SM.CREATION_DATE, SM.LAST_UPDATE_DATE
+        FROM SYS_MESSAGE SM
+        <where>
+            <if test="messageFrom != null">
+                AND SM.MESSAGE_FROM LIKE CONCAT('%',CONCAT(#{messageFrom,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="subject != null">
+                AND SM.SUBJECT LIKE CONCAT('%',CONCAT(#{subject,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="sendFlag != null">
+                AND SM.SEND_FLAG = #{sendFlag}
+            </if>
+        </where>
+        ORDER BY SM.CREATION_DATE DESC
+    </select>
+
+    <!-- 通过job发送的邮件-->
+    <select id="selectEmailSendByJob" resultMap="BaseResultMap">
+        SELECT *  FROM SYS_MESSAGE MSG
+        WHERE MSG.MESSAGE_TYPE = 'EMAIL' AND MSG.SEND_FLAG = 'N'
+        ORDER BY MSG.MESSAGE_ID ASC
+    </select>
+    <!-- 发送邮件 -->
+    <select id="selectEmailToSend" resultMap="BaseResultMap">
+        SELECT
+        MSG.*
+        FROM SYS_MESSAGE MSG
+        WHERE MSG.MESSAGE_TYPE = 'EMAIL'
+        AND (MSG.PRIORITY_LEVEL IS NULL OR MSG.PRIORITY_LEVEL = 'NORMAL')
+        AND MSG.SEND_FLAG NOT IN ('Y','F','P')
+        ORDER BY MSG.MESSAGE_ID
+    </select>
+    <!-- 发送邮件,VIP队列 -->
+    <select id="selectVipEmailToSend" resultMap="BaseResultMap">
+        SELECT MSG.*
+        FROM SYS_MESSAGE MSG
+        WHERE MSG.MESSAGE_TYPE = 'EMAIL'
+        AND MSG.PRIORITY_LEVEL = 'VIP'
+        AND MSG.SEND_FLAG NOT IN ('Y','F','P')
+        ORDER BY MSG.MESSAGE_ID
+    </select>
+    <!-- 发送站内信 -->
+    <select id="selectSiteToSend" resultMap="BaseResultMap">
+        SELECT MSG.*
+        FROM SYS_MESSAGE MSG
+        WHERE MSG.MESSAGE_TYPE = 'SITE'
+        AND (MSG.PRIORITY_LEVEL IS NULL OR MSG.PRIORITY_LEVEL = 'NORMAL')
+        AND MSG.SEND_FLAG NOT IN ('Y','F','P')
+        ORDER BY MSG.MESSAGE_ID
+    </select>
+    <!-- 发送邮件,VIP队列 -->
+    <select id="selectVipSiteToSend" resultMap="BaseResultMap">
+        SELECT
+        MSG.*
+        FROM SYS_MESSAGE MSG
+        WHERE MSG.MESSAGE_TYPE = 'SITE'
+        AND MSG.PRIORITY_LEVEL = 'VIP'
+        AND MSG.SEND_FLAG NOT IN ('Y','F','P')
+        ORDER BY MSG.MESSAGE_ID
+    </select>
+
+    <select id="selectMessagesBySubject" resultMap="BaseResultMap" parameterType="com.hand.hap.mail.dto.Message">
+        SELECT SM.MESSAGE_ID,
+        SM.MESSAGE_TYPE,
+        SM.MESSAGE_HOST,
+        SM.MESSAGE_FROM,
+        SM.SUBJECT,
+        SM.CONTENT,
+        SM.PRIORITY_LEVEL,
+        SM.SEND_FLAG,
+        SM.CREATION_DATE,
+        SM.LAST_UPDATE_DATE
+        FROM SYS_MESSAGE SM
+        <where>
+            <if test="subject != null">
+                AND SM.SUBJECT LIKE CONCAT('%',CONCAT(#{subject,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="messageFrom != null">
+                AND SM.MESSAGE_FROM LIKE CONCAT('%',CONCAT(#{messageFrom,jdbcType=VARCHAR},'%'))
+            </if>
+            <if test="sendFlag != null">
+                AND SM.SEND_FLAG = #{sendFlag}
+            </if>
+        </where>
+        ORDER BY SM.CREATION_DATE DESC
+    </select>
+
+    <select id="selectForLviewUnsended" resultMap="BaseResultMap">
+select sm.*,
+       (select smr.MESSAGE_ADDRESS
+          from sys_message_receiver smr
+         where smr.message_id = sm.message_id) as mobile_phone,
+       smt.last_update_date as send_date,
+        smt.transaction_message as transaction_message
+  from sys_message sm,sys_message_transaction smt
+ <where>
+     smt.transaction_id=(select max(smt2.transaction_id)
+     from sys_message_transaction smt2 where smt2.message_id=smt.message_id)
+     and sm.send_flag='0'
+     and smt.transaction_status  != 'S'
+     and sm.message_type = 'SMS'
+     and sm.message_id=smt.message_id
+        <if test="mobilePhone">
+            AND (select smr.MESSAGE_ADDRESS
+            from sys_message_receiver smr
+            where smr.message_id = sm.message_id) like concat('%',concat(#{mobilePhone},'%'))
+        </if>
+        <if test="sendedDateFrom != null">
+            and trunc(smt.last_update_date) >=to_date(#{sendedDateFrom},'yyyy-mm-dd')
+        </if>
+        <if test="sendedDateTo != null">
+            AND  to_date(#{sendedDateTo},'yyyy-mm-dd')>=trunc(smt.last_update_date)
+        </if>
+        <if test="submitDateTo != null">
+            AND  to_date(#{submitDateTo},'yyyy-mm-dd')>=trunc(sm.creation_date)
+        </if>
+        <if test="submitDateFrom != null">
+            AND  trunc(sm.creation_date)>=to_date(#{submitDateFrom},'yyyy-mm-dd')
+        </if>
+ </where>
+ order by 1 desc
+    </select>
+
+    <select id="selectForLviewSended" resultMap="BaseResultMap">
+        select sm.*,
+        (select smr.MESSAGE_ADDRESS
+        from sys_message_receiver smr
+        where smr.message_id = sm.message_id) as mobile_phone,
+        smt.last_update_date as send_date,
+        smt.transaction_message as transaction_message
+        from sys_message sm,sys_message_transaction smt
+        <where>
+            smt.transaction_id=(select max(smt2.transaction_id)
+            from sys_message_transaction smt2 where smt2.message_id=smt.message_id)
+            and sm.send_flag='1'
+            and smt.transaction_status  = 'S'
+            and sm.message_type = 'SMS'
+            and sm.message_id=smt.message_id
+            <if test="mobilePhone">
+                AND (select smr.MESSAGE_ADDRESS
+                from sys_message_receiver smr
+                where smr.message_id = sm.message_id) like concat('%',concat(#{mobilePhone},'%'))
+            </if>
+            <if test="sendedDateFrom != null">
+                and trunc(smt.last_update_date) >=to_date(#{sendedDateFrom},'yyyy-mm-dd')
+            </if>
+            <if test="sendedDateTo != null">
+                AND  to_date(#{sendedDateTo},'yyyy-mm-dd')>=trunc(smt.last_update_date)
+            </if>
+            <if test="submitDateTo != null">
+                AND  to_date(#{submitDateTo},'yyyy-mm-dd')>=trunc(sm.creation_date)
+            </if>
+            <if test="submitDateFrom != null">
+                AND  trunc(sm.creation_date)>=to_date(#{submitDateFrom},'yyyy-mm-dd')
+            </if>
+        </where>
+        order by 1 desc
+    </select>
+
+    <select id="selectForJobSend" resultMap="BaseResultMap">
+        select sm.content, smr.mobile_phone,sm.message_id,sm.attribute1
+          from sys_message             sm,
+               sys_message_receiver    smr
+         where sm.message_id = smr.message_id
+           and sm.message_type = 'SMS'
+           and sm.batch_id=#{batchId}
+    </select>
+
+    <select id="selectBylinkId" resultMap="BaseResultMap">
+        select sm.message_id,sm.batch_id from sys_message sm where sm.attribute2=#{linkId}
+    </select>
+
+</mapper>

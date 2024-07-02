@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020年2月12日
+    $Revision: 1.0
+    $Purpose: 收款管理
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <script><![CDATA[
+        function reverse() {
+            var transactionId = '${/parameter/@transaction_id}';
+            var contract_id = '${/parameter/@contract_id}';
+            var ppaymentDate = '${/parameter/@payment_date}';
+
+            var record = $('csh_reverse_ds').getCurrentRecord();
+            var reverse_date = record.get('reverse_date');
+            var remarks = record.get('remarks');
+            if (reverse_date === "" || reverse_date == null) {
+                Leaf.showErrorMessage({
+                    title: $l('提示'),
+                    message: "请选择反冲日期！"
+                });
+                return;
+
+            }
+            var preverse_date = new Date(reverse_date);
+            if (preverse_date < ppaymentDate) {
+                Leaf.showErrorDialog({
+                    title: $l('提示'),
+                    message: "反冲日期不能小于付款日期！"
+                });
+                return;
+            }
+
+            //执行反冲操作
+            if (transactionId) {
+                var informations = [];
+                informations.push({
+                    'csh_transaction_id': Number(transactionId),
+                    'reversed_date': reverse_date,
+                    'contract_id':contract_id,
+                    'remarks': remarks
+                });
+                var winId = '${/parameter/@winId}';
+                Leaf.Masker.mask($(winId).wrap, '执行中。。');
+                Leaf.request({
+                    url: '${/request/@context_path}/csh/write/off/paymentReversed/submit',
+                    type: "POST",
+                    dataType: "json",
+                    contentType: "application/json",
+                    para: informations[0],
+                    success: function (json) {
+                        Leaf.Masker.unmask($(winId).wrap);
+                        if (json.success) {
+                            $L.showInfoMessage("提示","反冲成功!",function(){
+                                $(winId).close();
+                            });
+                        } else {
+                            $L.showInfoMessage("提示","反冲失败，请您联系管理员!");
+                        }
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    }
+
+                });
+            }
+        }
+
+        ]]>
+        </script>
+        <a:dataSets>
+            <a:dataSet id="csh_reverse_ds">
+                <a:fields>
+                    <a:field name="reverse_date" required="true"/>
+                    <a:field name="remarks"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar style="margin-left:40px;">
+                <a:gridButton click="reverse" text="反冲"/>
+            </a:screenTopToolbar>
+            <a:form column="4" labelWidth="100">
+                <a:datePicker name="reverse_date" bindTarget="csh_reverse_ds"
+                              prompt="反冲日期" width="160"/>
+                <a:textField name="remarks" bindTarget="csh_reverse_ds"
+                             prompt="备注" width="300"/>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+
+</a:screen>

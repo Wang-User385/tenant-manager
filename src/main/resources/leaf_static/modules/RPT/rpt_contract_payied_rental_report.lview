@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+
+        <script><![CDATA[
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            ds.queryurl=ds.queryurl+'&wflRuleControlFlag=Y';
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
+            if(ds.id && ds.id == ds_id && '${/parameter/@contract_number}'){
+                ds.setQueryParameter('contract_number', '${/parameter/@contract_number}');
+            }
+        };
+
+        Leaf.onReady(function(){
+            if('${/parameter/@hide_query_flag}' == "Y"){
+                $jq("#PAYIED_RENTAL_CHART_F_QUERY_component_id").hide();
+            }
+        });
+
+        //《租金支付表》打印
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
+            var record = $(ds_id).getSelected()[0];
+            var template_code = "COLLECTION_BOOKS";
+            debugger;
+            if(record.get('project_id') && record.get('project_id') != null && record.get('project_id') != '' && (record.get('received_amount')<record.get('due_amount'))){
+                Leaf.Masker.mask(Ext.getBody(), '正在生成催收文件...');
+                Leaf.request({
+                    url: "${/request/@context_path}/prj/project/create/content",
+                    para: {project_id: record.get('project_id'),template_code,cashflow_id:record.get('cashflow_id')},
+                    success: function (res) {
+                        console.log(res);
+                        // var source_pk_value1 = res.result.record[0].source_pk_value1;
+                        // if (source_pk_value1 == 'undefined' || source_pk_value1 == '' || source_pk_value1 == null) {
+                        //     Leaf.Masker.unmask(Ext.getBody());
+                        //     Leaf.showInfoMessage('未找到催收文件模板!');
+                        //     return;
+                        // } else {
+                        //     Leaf.Masker.unmask(Ext.getBody());
+                        //     // Leaf.showInfoMessage('合同文本生成成功!');
+                        //     var ds_con = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                        //     // $(ds_con).query();
+                        //     editOffice(source_pk_value1);
+                        // }
+
+                        var attachment_id = res.result.record[0].attachment_id;
+                        var down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
+                        console.log(down_url);
+                        Leaf.Masker.unmask(Ext.getBody());
+                        // Leaf.showInfoMessage('合同文本生成成功!');
+                        window.location.href = down_url ;
+
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }else {
+                Leaf.SideBar.show({
+                    type:'warning',
+                    msg: '当前期数已还清！',
+                    duration: 1000
+
+                });
+            }
+        }
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

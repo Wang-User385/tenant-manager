@@ -1,0 +1,1051 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Revision: 1.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" xmlns:p="uncertain.proc" xmlns:c="leaf.application.action"
+          xmlns:s="leaf.plugin.script" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.prj.service.HlsCusPrjProjectService.selectPrjQuotationLoop"
+                       rootPath="project_change_quotation_path"/>
+    </a:init-procedure>
+
+    <a:view>
+        <a:link id="prj_change_bp_master_modify_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="lease_info_detaill_id"
+                url="${/request/@context_path}/modules/LEASE/LEASE001/lease_item_modify_detail.lview"/>
+        <a:link id="pledge_info_detaill_id"
+                url="${/request/@context_path}/modules/SW/SW001/hls_pledge_lease_detail.lview"/>
+        <style>
+            .prj_change_req_wfl_span{
+                background: #435FBF;
+                width: 8px;
+                height: 8px;
+                display: inline-block;
+                vertical-align: middle;
+                margin-right: 8px;
+                margin-left: 8px;
+                margin-bottom: 5px;
+            }
+            .prj_change_req_wfl_word{
+                display: inline-block;
+                vertical-align: middle;
+                margin-bottom: 5px;
+                color: #435FBF;
+            }
+            .prj_change_req_wfl_left{
+                width: 600px;
+                display: inline-block;
+            }
+            .prj_change_req_wfl_right{
+                width: 600px;
+                display: inline-block;
+                float: right;
+            }
+            .prj_change_req_contain{
+                margin-left: 50px;
+                margin-top: 20px;
+            }
+        </style>
+
+    <script><![CDATA[
+
+    function addQueryFilter(ds){
+        if(ds.queryurl.indexOf("?") == -1) {
+            if (ds.queryurl.indexOf('wflRuleControlFlag') == -1) {
+                ds.queryurl = ds.queryurl + '?wflRuleControlFlag=Y';
+            }
+        }else{
+            if (ds.queryurl.indexOf('wflRuleControlFlag') == -1) {
+                ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+            }
+        }
+    }
+
+    function prj110f1_prj_project_base_info_ds_query(ds,qpara){
+        qpara['project_id'] = '${/parameter/@project_id}';
+        addQueryFilter(ds);
+    }
+
+    function prj110f1_prj_project_base_change_info_ds_query(ds,qpara){
+        qpara['project_id'] = '${/parameter/@project_id}';
+        qpara['ref_project_id'] = '${/parameter/@ref_project_id}';
+        addQueryFilter(ds);
+    }
+
+    function prj110f1_prj_project_info_ds_query(ds,qpara){
+        qpara['project_id'] = '${/parameter/@ref_project_id}';
+        addQueryFilter(ds);
+    }
+
+    function prj110f1_prj_project_change_info_ds_query(ds,qpara){
+        qpara['project_id'] = '${/parameter/@project_id}';
+        addQueryFilter(ds);
+    }
+
+    function prj110f1_bp_prj_project_info_ds_query(ds,qpara){
+        qpara['project_id'] = '${/parameter/@ref_project_id}';
+        qpara['tenant_flag'] = 'Y';
+        addQueryFilter(ds);
+    }
+
+    function prj110f1_bp_prj_project_change_info_ds_query(ds,qpara){
+        qpara['project_id'] = '${/parameter/@project_id}';
+        qpara['tenant_flag'] = 'Y';
+        addQueryFilter(ds);
+    }
+
+    function prj110f1_g_bp_prj_project_info_ds_query(ds,qpara){
+        qpara['project_id'] = '${/parameter/@ref_project_id}';
+        qpara['bp_type'] = 'WARRANTOR';
+        addQueryFilter(ds);
+    }
+
+    function prj110f1_g_bp_prj_project_change_info_ds_query(ds,qpara){
+        qpara['project_id'] = '${/parameter/@project_id}';
+        qpara['bp_type'] = 'WARRANTOR'
+        addQueryFilter(ds);
+    }
+
+    function prj110f1_prj_project_base_info_ds_load(ds){
+        var changeData , baseData;
+        var datas = ds.getAll();
+        for(var i = 0 ; i < datas.length; i++){
+            if(datas[i].get('change_type') == '变更后'){
+                changeData = datas[i];
+            }else{
+                baseData = datas[i];
+            }
+        }
+
+        for(var v in changeData.data){
+
+        }
+    }
+
+    function lease_item_change_ds_grid_render(){
+        //debugger;
+        var datas = $('prj110f1_prj_project_lease_item_change_info_ds').getAll();
+        var sourceDatas = $('prj110f1_prj_project_lease_item_info_ds').getAll();
+        if(sourceDatas.length != datas.length){
+            $jq("#change_lease_item_contain").show();
+        }
+        if(datas.length != 0){
+            for(var i = 0; i < datas.length; i++){
+                var addFlag = true;
+                for(var j = 0; j < sourceDatas.length; j++){
+                    if(datas[i].get('lease_item_id') == sourceDatas[j].get('lease_item_id')){
+                        addFlag = false;
+                    }
+                }
+                if(addFlag){
+                    $jq("#change_lease_item_contain").show();
+                    
+                    var seq =  datas[i].id;
+                    (function(seq) {
+                        setTimeout(function () {
+                            $jq('tr[_row=' + seq + ']').css({
+                                "background": "#ff6633",
+                                "color": "white"
+                            });
+                        }, 1000)
+                    })(seq);
+                }
+            }
+        }
+    }
+
+    function tenant_change_ds_grid_render() {
+        var datas = $('prj110f1_prj_project_bp_change_info_ds').getAll();
+        var sourceDatas = $('prj110f1_prj_project_bp_info_ds').getAll();
+        if (sourceDatas.length != datas.length) {
+            $jq("#change_tenant_contain").show();
+        }
+        if (datas.length != 0) {
+            for (var i = 0; i < datas.length; i++) {
+                var addFlag = true;
+                for (var j = 0; j < sourceDatas.length; j++) {
+                    if (datas[i].get('bp_id') == sourceDatas[j].get('bp_id')) {
+                        addFlag = false;
+                    }
+                }
+                if (addFlag) {
+                    $jq("#change_tenant_contain").show();
+                    var seq = datas[i].id;
+                    (function (seq) {
+                        setTimeout(function () {
+                            $jq('tr[_row=' + seq + ']').css({
+                                "background": "#ff6633",
+                                "color": "white"
+                            });
+                        }, 1000)
+                    })(seq);
+                }
+            }
+        }
+    }
+
+    function g_change_ds_grid_render() {
+        var datas = $('prj110f1_prj_project_g_bp_change_info_ds').getAll();
+        var sourceDatas = $('prj110f1_prj_project_g_bp_info_ds').getAll();
+        if (sourceDatas.length != datas.length) {
+            $jq("#change_g_contain").show();
+        }
+        if (datas.length != 0) {
+            for (var i = 0; i < datas.length; i++) {
+                var addFlag = true;
+                for (var j = 0; j < sourceDatas.length; j++) {
+                    if (datas[i].get('bp_id') == sourceDatas[j].get('bp_id')) {
+                        addFlag = false;
+                    }
+                }
+                if (addFlag) {
+                    $jq("#change_g_contain").show();
+                    var seq = datas[i].id;
+                    (function (seq) {
+                        setTimeout(function () {
+                            $jq('tr[_row=' + seq + ']').css({
+                                "background": "#ff6633",
+                                "color": "white"
+                            });
+                        }, 1000)
+                    })(seq);
+                }
+            }
+        }
+    }
+
+    function payment_change_ds_grid_render(){
+        var datas = $('prj110f1_prj_project_payment_change_info_ds').getAll();
+        var sourceDatas = $('prj110f1_prj_project_payment_info_ds').getAll();
+        if(sourceDatas.length != datas.length){
+            $jq("#change_payment_contain").show();
+        }
+        if(datas.length != 0){
+            for(var i = 0; i < datas.length; i++){
+                var addFlag = true;
+                for(var j = 0; j < sourceDatas.length; j++){
+                    if(datas[i].get('condition') == sourceDatas[j].get('condition')){
+                        addFlag = false;
+                    }
+                    if(datas[i].get('ref_credit_condition_id') == sourceDatas[j].get('credit_condition_id')){
+                        if(datas[i].get('condition') != sourceDatas[j].get('condition')){
+                            addFlag = true;
+                        }
+                    }
+                }
+                if(addFlag){
+                    $jq("#change_payment_contain").show();
+                    var seq =  datas[i].id;
+                    (function(seq){
+                        setTimeout(function(){
+                            $jq('tr[_row='+seq+']').css({
+                                "background":"#ff6633",
+                                "color":"white"
+                            });
+                        },1000);
+                    })(seq);
+
+
+                }
+            }
+        }
+    }
+
+    function survive_require_change_ds_grid_render(grid_id){
+        var datas = $('prj110f1_prj_project_survive_require_change_ds').getAll();
+        var sourceDatas = $('prj110f1_prj_project_survive_require_ds').getAll();
+        if(sourceDatas.length != datas.length){
+            $jq("#change_survive_require_contain").show();
+        }
+        if(datas.length != 0){
+            for(var i = 0; i < datas.length; i++){
+                var addFlag = true;
+                for(var j = 0; j < sourceDatas.length; j++){
+                    if(datas[i].get('manage_requirements') == sourceDatas[j].get('manage_requirements')){
+                        addFlag = false;
+                    }
+                    if(datas[i].get('ref_prj_survive_id') == sourceDatas[j].get('prj_survive_id')){
+                        if(datas[i].get('manage_requirements') != sourceDatas[j].get('manage_requirements')){
+                            addFlag = true;
+                        }
+                    }
+                }
+                if(addFlag){
+                    $jq("#change_survive_require_contain").show();
+                    var seq =  datas[i].id;
+                    (function(seq){
+                        setTimeout(function(){
+                            $jq('tr[_row='+seq+']').css({
+                                "background":"#ff6633",
+                                "color":"white"
+                            });
+                        },1000);
+                    })(seq);
+                }
+            }
+        }
+    }
+
+    function pldge_change_ds_grid_render(){
+        var datas = $('prj110f1_prj_project_pldge_change_info_ds').getAll();
+        var sourceDatas = $('prj110f1_prj_project_pldge_info_ds').getAll();
+        if(sourceDatas.length != datas.length){
+            $jq("#change_pldge_contain").show();
+        }
+        if(datas.length != 0){
+            for(var i = 0; i < datas.length; i++){
+                var addFlag = true;
+                for(var j = 0; j < sourceDatas.length; j++){
+                    if(datas[i].get('lease_item_id') == sourceDatas[j].get('lease_item_id')){
+                        addFlag = false;
+                    }
+                }
+                if(addFlag){
+                    $jq("#change_pldge_contain").show();
+                    var seq =  datas[i].id;
+                    (function(seq) {
+                        setTimeout(function () {
+                            $jq('tr[_row=' + seq + ']').css({
+                                "background": "#ff6633",
+                                "color": "white"
+                            });
+                        }, 1000)
+                    })(seq);
+                }
+            }
+        }
+    }
+
+    function calc_ds_grid_render(grid_id){
+        var ds = grid_id.dataset;
+        var changeData , baseData;
+        var datas = ds.getAll();
+        for(var i = 0 ; i < datas.length; i++){
+            if(datas[i].get('change_type') == '变更后'){
+                changeData = datas[i];
+            }else{
+                baseData = datas[i];
+            }
+        }
+
+        if(changeData != null) {
+            for (var v in changeData.data) {
+                if (changeData.data[v] !== baseData.data[v] && v !== 'change_type' && v != '_r_o_w__i_d') {
+                    $jq("#"+grid_id.id).closest(".change_quotation_contain").show();
+                    $jq('#' + grid_id.id + '_' + v + '_' + changeData.id).css({
+                        "background-color": "#ff6633",
+                        "color": "white"
+                    });
+                }
+            }
+        }
+    }
+
+    function base_change_ds_grid_render(grid_id){//debugger;
+        var ds = grid_id.dataset;
+        var changeData , baseData;
+        var datas = ds.getAll();
+        for(var i = 0 ; i < datas.length; i++){
+            if(datas[i].get('change_type') == '变更后'){
+                changeData = datas[i];
+            }else{
+                baseData = datas[i];
+            }
+        }
+
+        if(changeData != null) {
+            for (var v in changeData.data) {
+                if (changeData.data[v] !== baseData.data[v] && v !== 'change_type' && v != '_r_o_w__i_d') {
+                    $jq("#"+grid_id.id).closest(".change_base_info_contain").show();
+                    $jq('#' + grid_id.id + '_' + v + '_' + changeData.id).css({
+                        "background-color": "#ff6633",
+                        "color": "white"
+                    });
+                }
+            }
+        }
+    }
+
+    function calc_prj_project_change_ds_grid_renderer(value, record, name){
+        if(name == 'bp_detail'){
+            return '<a href="javascript:calc_prj_project_bp_detail(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '客户信息详情' + '</a>';
+        }
+        if(name == 'lease_item_detail'){
+            return '<a href="javascript:calc_prj_project_lease_detail(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '租赁物清单详情' + '</a>';
+        }
+        if(name == 'pldge_detail'){
+            return '<a href="javascript:calc_prj_project_pldge_detail(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '抵押物清单详情' + '</a>';
+        }
+        if(name == 'lease_item_excel'){
+            return '<a href="javascript:calc_prj_project_lease_excel_detail(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '租赁物明细' + '</a>';
+        }
+
+        if(name == 'pldge_excel'){
+            return '<a href="javascript:calc_prj_project_lease_excel_detail(\'' + record.ds.id + '\',\'' + record.id + '\')">' + '抵押物明细' + '</a>';
+        }
+    }
+
+    window['calc_prj_project_pldge_excel'] = function(){
+        var lease_record = $(ds_id).findById(record_id).data;
+
+        var result_id = lease_record.result_id;
+        var excel_id = lease_record.excel_id;
+        if (result_id == null || result_id == '' || result_id == undefined) {
+            $L.showInfoMessage("提示", "请先导入抵质押物明细数据!");
+            return;
+        }
+        if (excel_id == null || excel_id == '' || excel_id == undefined) {
+            $L.showInfoMessage("提示", "模板有误!");
+            return;
+        }
+
+
+        var win = new Leaf.Window({
+            id: 'bp100_excel_detail_win_id',
+            params: {
+                result_id: result_id,
+                excel_id: excel_id,
+                source_document_category: 'MORTGAGE_PLEDGE_REPORT',
+                winid: 'bp100_excel_detail_win_id',
+                readOnly: 'Y'
+            },
+            url: '${/request/@context_path}/modules/HLS/HLS600/hls_web_excel_calc_iframe.lview',
+            title: '抵质押物报表明细',
+            fullScreen: true
+        });
+    };
+
+    window['calc_prj_project_lease_detail'] = function(ds_id,record_id){
+        var param = $(ds_id).findById(record_id).data;
+        param['url_title'] = '租赁物详细信息';
+        param['function_code'] = 'LEASE001F1';
+        param['winid'] = 'lease_item_detail_winid';
+        param['ds_id'] = ds_id;
+        param['function_usage'] = 'QUERY';
+        var link_id = 'lease_info_detaill_id';
+        hls_doc_get_layout_code(param, link_id, ds_id, 'LEASE001');
+    };
+
+    window['calc_prj_project_pldge_detail'] = function(ds_id,record_id){
+        var param = $(ds_id).findById(record_id).data;
+        param['url_title'] = '抵押物详细信息';
+        param['function_code'] = 'SW001F1';
+        param['winid'] = 'pldge_detail_winid';
+        param['ds_id'] = ds_id;
+        param['function_usage'] = 'QUERY';
+        var link_id = 'pledge_info_detaill_id';
+        hls_doc_get_layout_code(param, link_id, ds_id, 'SW001F1');
+    }
+
+    window['calc_prj_project_lease_excel_detail'] = function(ds_id,record_id){
+        var lease_record = $(ds_id).findById(record_id).data;
+
+        var result_id = lease_record.result_id;
+        var excel_id = lease_record.excel_id;
+        if (result_id == null || result_id == '' || result_id == undefined) {
+            $L.showInfoMessage("提示", "没有租赁物物明细数据!");
+            return;
+        }
+        if (excel_id == null || excel_id == '' || excel_id == undefined) {
+            $L.showInfoMessage("提示", "模板有误!");
+            return;
+        }
+
+        new Leaf.Window({
+            id: 'lease_excel_detail_win_id',
+            params: {
+                result_id: lease_record.result_id,
+                excel_id: lease_record.excel_id,
+                source_document_category: 'HLS_LEASE_ITEM_RENTAL',
+                source_document_id: lease_record.lease_item_id,
+                winid: 'lease_excel_detail_win_id',
+                readOnly: 'Y'
+            },
+            url: '${/request/@context_path}/modules/HLS/HLS600/hls_web_excel_calc_iframe.lview',
+            title: '租赁物明细',
+            fullScreen: true
+        });
+    };
+
+    window['calc_prj_project_bp_detail'] = function(ds_id,record_id){
+        var record = $(ds_id).findById(record_id);
+        var param = record.data;
+        param['url_title'] = '客户信息维护';
+        if (param['bp_class'] == 'ORG') {
+            param['function_code'] = 'BP100F1';
+        } else {
+            param['function_code'] = 'BP100F2';
+        }
+        param['function_usage'] = 'QUERY';
+        delete param['bp_seq'];
+        param['winid'] = 'prj_change_bp_master_modify_winid';
+
+        hls_doc_get_layout_code(param, 'prj_change_bp_master_modify_id', ds_id);
+    }
+
+    var tenant_count = 0;
+    function prj110f1_tenant_load(){
+        if(tenant_count == 1){
+            tenant_change_ds_grid_render();
+        }else{
+            tenant_count++;
+        }
+    }
+
+    var lease_item_count = 0;
+    function prj110f1_lease_item_load(){
+        if(lease_item_count == 1){
+            lease_item_change_ds_grid_render();
+        }else{
+            lease_item_count++;
+        }
+    }
+
+    var pldge_count = 0;
+    function prj110f1_pldge_load(){
+        if(pldge_count == 1){
+            pldge_change_ds_grid_render();
+        }else{
+            pldge_count++;
+        }
+    }
+
+    var g_bp_count = 0;
+    function prj110f1_g_bp_load(){
+        if(g_bp_count == 1){
+            g_change_ds_grid_render();
+        }else{
+            g_bp_count++;
+        }
+    }
+
+    var payment_count = 0;
+    function prj110f1_payment_load(){
+        if(payment_count == 1){
+            payment_change_ds_grid_render();
+        }else{
+            payment_count++;
+        }
+    }
+
+    var survive_require_count = 0;
+    function prj110f1_survive_require_load(){
+        if(survive_require_count == 1){
+            survive_require_change_ds_grid_render();
+        }else{
+            survive_require_count++;
+        }
+    }
+
+    //百分数格式化
+    function percentFormat(value,record,name){
+        if(name == 'deposit_ratio' || name == 'lease_charge_ratio'){
+            if (!isNaN(value)) {
+                return parseFloat(value * 100).toFixed(6) + '%';
+            } else {
+                return '';
+            }
+        }
+        if (!isNaN(value)) {
+            return parseFloat(value * 100).toFixed(2) + '%';
+        } else {
+            return '';
+        }
+    }
+
+    ]]></script>
+
+        <a:dataSets>
+            <a:dataSet id="prj110f1_prj_project_base_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/ct/prj/project/detail/query/second">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_prj_project_base_info_ds_query"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj110f1_prj_project_base_change_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/prj/base/change/info?project_id=${/parameter/@project_id}&amp;ref_project_id=${/parameter/@ref_project_id}">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_prj_project_base_change_info_ds_query"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj110f1_prj_project_bp_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/ct/prj/project/bp/query">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_bp_prj_project_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_tenant_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj110f1_prj_project_bp_change_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/ct/prj/project/bp/query">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_bp_prj_project_change_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_tenant_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <!--租赁物-->
+            <a:dataSet id="prj110f1_prj_project_lease_item_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/ct/prj/project/lease/item/query">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_prj_project_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_lease_item_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj110f1_prj_project_lease_item_change_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/ct/prj/project/lease/item/query">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_prj_project_change_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_lease_item_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <!--抵质押物-->
+            <a:dataSet id="prj110f1_prj_project_pldge_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/cus/pledge/mortgagor/query">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_prj_project_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_pldge_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj110f1_prj_project_pldge_change_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/cus/pledge/mortgagor/query">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_prj_project_change_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_pldge_load"/>
+                </a:events>
+            </a:dataSet>
+
+
+            <!-- 担保人-->
+            <a:dataSet id="prj110f1_prj_project_g_bp_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/ct/prj/project/bp/query">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_g_bp_prj_project_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_g_bp_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj110f1_prj_project_g_bp_change_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/ct/prj/project/bp/query">
+
+                <a:events>
+                    <a:event name="query" handler="prj110f1_g_bp_prj_project_change_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_g_bp_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <!-- 付款前提条件-->
+            <a:dataSet id="prj110f1_prj_project_payment_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/prj/approve/paymentcondition?projectId=${/parameter/@ref_project_id}">
+                <a:fields>
+                    <a:field name="condition" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="prj110f1_g_bp_prj_project_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_payment_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj110f1_prj_project_payment_change_info_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/prj/approve/paymentcondition?projectId=${/parameter/@project_id}">
+                <a:fields>
+                    <a:field name="condition" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="prj110f1_g_bp_prj_project_change_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_payment_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <!-- 存续期管理要求-->
+            <a:dataSet id="prj110f1_prj_project_survive_require_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/prj/approve/managerequire?projectId=${/parameter/@ref_project_id}">
+                <a:fields>
+                    <a:field name="manage_requirements" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="prj110f1_g_bp_prj_project_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_survive_require_load"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="prj110f1_prj_project_survive_require_change_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/prj/approve/managerequire?projectId=${/parameter/@project_id}">
+                <a:fields>
+                    <a:field name="manage_requirements" readOnly="true"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="prj110f1_g_bp_prj_project_change_info_ds_query"/>
+                    <a:event name="load" handler="prj110f1_survive_require_load"/>
+                </a:events>
+            </a:dataSet>
+
+        </a:dataSets>
+
+
+
+        <a:screenBody>
+            <a:form title="基本信息">
+                <a:hBox labelWidth="120">
+                    <a:textField width="425" name="project_name" readOnly="true" bindTarget="prj110f1_prj_project_base_info_ds" prompt="项目名称"/>
+                    <a:textField width="150" name="business_type_n" readOnly="true" bindTarget="prj110f1_prj_project_base_info_ds" prompt="业务种类"/>
+                    <a:textField width="150" name="company_id_n" readOnly="true" bindTarget="prj110f1_prj_project_base_info_ds" prompt="公司/spv"/>
+                </a:hBox>
+                <a:hBox labelWidth="120">
+                    <a:textField width="150" name="host_project_manager_n" readOnly="true" bindTarget="prj110f1_prj_project_base_info_ds" prompt="主办项目经理"/>
+                    <a:textField width="150" name="host_unit_name" readOnly="true" bindTarget="prj110f1_prj_project_base_info_ds" prompt="主办所属部门"/>
+                    <a:textField width="150" name="assist_project_manager_n" readOnly="true" bindTarget="prj110f1_prj_project_base_info_ds" prompt="协办项目经理"/>
+                    <a:textField width="150" name="assist_unit_name" readOnly="true" bindTarget="prj110f1_prj_project_base_info_ds" prompt="协办所属部门"/>
+                </a:hBox>
+            </a:form>
+
+            <div class="change_base_info_contain" style="display: none;">
+                <span class="prj_change_req_wfl_span"></span>
+                <span class="prj_change_req_wfl_word">基本信息变更列表</span>
+
+                <a:grid id="prj110f1_prj_project_base_change_info_ds_grid" bindTarget="prj110f1_prj_project_base_change_info_ds" height="200" marginWidth="30"
+                        navBar="true">
+                    <a:columns>
+                        <a:column name="change_type" width="80" editor="prj110f1_prj_project_base_change_info_ds_grid_tf" prompt="变更类型"/>
+                        <a:column name="used_cash_flow" width="400" editor="prj110f1_prj_project_base_change_info_ds_grid_textArea" prompt="资金用途"/>
+                        <a:column name="risk_mitigation_measures" width="400" editor="prj110f1_prj_project_base_change_info_ds_grid_textArea" prompt="风险缓释措施"/>
+                        <a:column name="other_thing" width="400" editor="prj110f1_prj_project_base_change_info_ds_grid_textArea" prompt="其他"/>
+                        <a:column name="price_note" width="400" editor="prj110f1_prj_project_base_change_info_ds_grid_textArea" prompt="价格备注"/>
+                        <a:column name="area_category" width="200" editor="prj110f1_prj_project_base_change_info_ds_grid_tf" prompt="区域类别"/>
+                        <a:column name="industry_category" width="200" editor="prj110f1_prj_project_base_change_info_ds_grid_tf" prompt="行业类别"/>
+                        <a:column name="assure_means" width="200" editor="prj110f1_prj_project_base_change_info_ds_grid_tf" prompt="担保方式"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:textField id="prj110f1_prj_project_base_change_info_ds_grid_tf" readOnly="true"/>
+                        <a:textArea id="prj110f1_prj_project_base_change_info_ds_grid_textArea" readOnly="true"/>
+                    </a:editors>
+                    <a:events>
+                        <a:event name="render" handler="base_change_ds_grid_render"/>
+                    </a:events>
+                </a:grid>
+            </div>
+
+            <a:placeHolder id="dynamicWflQuotationTreeNode_id"/>
+
+            <!--承租人信息-->
+            <div id="change_tenant_contain" style="display: none">
+                <span class="prj_change_req_wfl_span"></span>
+                <span class="prj_change_req_wfl_word">承租人和共同承租人信息</span>
+
+                <div class="prj_change_req_contain">
+                    <div class="prj_change_req_wfl_left">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更前</span>
+
+                        <a:grid id="calc_prj_project_bp_ds_grid" bindTarget="prj110f1_prj_project_bp_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="150" name="bp_code" prompt="客户编号"/>
+                                <a:column width="80" name="bp_type_n" prompt="客户类型"/>
+                                <a:column width="150" name="bp_name" prompt="客户名称"/>
+                                <a:column width="80" name="bp_class_n" prompt="客户分类"/>
+                                <a:column name="bp_detail" renderer="calc_prj_project_change_ds_grid_renderer" prompt="客户信息详情"/>
+                            </a:columns>
+                        </a:grid>
+
+                    </div>
+
+                    <div class="prj_change_req_wfl_right">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更后</span>
+
+                        <a:grid id="calc_prj_project_bp_change_ds_grid" bindTarget="prj110f1_prj_project_bp_change_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="150" name="bp_code" prompt="客户编号"/>
+                                <a:column width="80" name="bp_type_n" prompt="客户类型"/>
+                                <a:column width="150" name="bp_name" prompt="客户名称"/>
+                                <a:column width="80" name="bp_class_n" prompt="客户分类"/>
+                                <a:column name="bp_detail" renderer="calc_prj_project_change_ds_grid_renderer" prompt="客户信息详情"/>
+                            </a:columns>
+                        </a:grid>
+
+                    </div>
+                </div>
+            </div>
+
+            <!--租赁物-->
+            <div id="change_lease_item_contain" style="display: none;">
+                <span class="prj_change_req_wfl_span"></span>
+                <span class="prj_change_req_wfl_word">租赁物</span>
+
+                <div class="prj_change_req_contain">
+                    <div class="prj_change_req_wfl_left">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更前</span>
+
+                        <a:grid id="calc_prj_project_lease_item_ds_grid" bindTarget="prj110f1_prj_project_lease_item_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="250" align="center" name="lease_item_name" prompt="租赁物名称"/>
+                                <a:column width="150" renderer="calc_prj_project_change_ds_grid_renderer" name="lease_item_detail" prompt="租赁物清单详情"/>
+                                <a:column width="100" renderer="calc_prj_project_change_ds_grid_renderer" name="lease_item_excel" prompt="租赁物明细"/>
+                            </a:columns>
+                        </a:grid>
+
+                    </div>
+
+                    <div class="prj_change_req_wfl_right">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更后</span>
+
+                        <a:grid id="calc_prj_project_lease_item_change_ds_grid" bindTarget="prj110f1_prj_project_lease_item_change_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="250" align="center" name="lease_item_name" prompt="租赁物名称"/>
+                                <a:column width="150" renderer="calc_prj_project_change_ds_grid_renderer" name="lease_item_detail"  prompt="租赁物清单详情"/>
+                                <a:column width="100" renderer="calc_prj_project_change_ds_grid_renderer" name="lease_item_excel" prompt="租赁物明细"/>
+                            </a:columns>
+
+                        </a:grid>
+
+                    </div>
+                </div>
+            </div>
+
+            <!--抵质押物明细-->
+            <div id="change_pldge_contain" style="display: none;">
+                <span class="prj_change_req_wfl_span"></span>
+                <span class="prj_change_req_wfl_word">抵质押物信息</span>
+
+                <div class="prj_change_req_contain">
+                    <div class="prj_change_req_wfl_left">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更前</span>
+
+                        <a:grid id="calc_prj_project_pldge_ds_grid" bindTarget="prj110f1_prj_project_pldge_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="250" align="center" name="lease_item_id_n" prompt="抵质押物名称"/>
+                                <a:column width="150" renderer="calc_prj_project_change_ds_grid_renderer" name="pldge_detail" prompt="抵质押物清单详情"/>
+                                <a:column width="100" renderer="calc_prj_project_change_ds_grid_renderer" name="pldge_excel" prompt="抵质押物明细"/>
+                            </a:columns>
+                        </a:grid>
+
+                    </div>
+
+                    <div class="prj_change_req_wfl_right">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更后</span>
+
+                        <a:grid id="calc_prj_project_pldge_change_ds_grid" bindTarget="prj110f1_prj_project_pldge_change_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="250" align="center" name="lease_item_id_n" prompt="抵质押物名称"/>
+                                <a:column width="150" renderer="calc_prj_project_change_ds_grid_renderer" name="pldge_detail" prompt="抵质押物清单详情"/>
+                                <a:column width="100" renderer="calc_prj_project_change_ds_grid_renderer" name="pldge_excel" prompt="抵质押物明细"/>
+                            </a:columns>
+                        </a:grid>
+
+                    </div>
+                </div>
+            </div>
+
+            <!--担保人信息-->
+            <div id="change_g_contain" style="display: none;">
+                <span class="prj_change_req_wfl_span"></span>
+                <span class="prj_change_req_wfl_word">担保人信息</span>
+
+                <div class="prj_change_req_contain">
+                    <div class="prj_change_req_wfl_left">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更前</span>
+
+                        <a:grid id="calc_prj_project_g_bp_ds_grid" bindTarget="prj110f1_prj_project_g_bp_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="150" name="bp_code" prompt="客户编号"/>
+                                <a:column width="150" name="bp_name" prompt="客户名称"/>
+                                <a:column width="100" name="bp_class_n" prompt="客户类型"/>
+                                <a:column name="bp_detail" renderer="calc_prj_project_change_ds_grid_renderer" prompt="客户信息详情"/>
+                            </a:columns>
+                        </a:grid>
+
+                    </div>
+
+                    <div class="prj_change_req_wfl_right">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更后</span>
+
+                        <a:grid id="calc_prj_project_g_bp_change_ds_grid" bindTarget="prj110f1_prj_project_g_bp_change_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="150" name="bp_code" prompt="客户编号"/>
+                                <a:column width="150" name="bp_name" prompt="客户名称"/>
+                                <a:column width="100" name="bp_class_n" prompt="客户类型"/>
+                                <a:column name="bp_detail" renderer="calc_prj_project_change_ds_grid_renderer" prompt="客户信息详情"/>
+                            </a:columns>
+                        </a:grid>
+
+                    </div>
+                </div>
+            </div>
+
+            <!--付款前提条件-->
+            <div id="change_payment_contain" style="display: none;">
+                <span class="prj_change_req_wfl_span"></span>
+                <span class="prj_change_req_wfl_word">付款前提条件</span>
+
+                <div class="prj_change_req_contain">
+                    <div class="prj_change_req_wfl_left">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更前</span>
+
+                        <a:grid id="calc_prj_project_payment_ds_grid" bindTarget="prj110f1_prj_project_payment_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="50" name="row_seq" prompt="序号"/>
+                                <a:column width="450" name="condition" prompt="付款前提条件" editor="calc_prj_project_payment_ds_grid_textArea"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textArea id="calc_prj_project_payment_ds_grid_textArea"/>
+                            </a:editors>
+                        </a:grid>
+
+                    </div>
+
+                    <div class="prj_change_req_wfl_right">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更后</span>
+
+                        <a:grid id="calc_prj_project_payment_change_ds_grid" bindTarget="prj110f1_prj_project_payment_change_info_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="50" name="row_seq" prompt="序号"/>
+                                <a:column width="450" name="condition" prompt="付款前提条件" editor="calc_prj_project_payment_change_ds_grid_textArea"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textArea id="calc_prj_project_payment_change_ds_grid_textArea"/>
+                            </a:editors>
+                        </a:grid>
+
+                    </div>
+                </div>
+            </div>
+
+            <!--存续期管理要求-->
+            <div id="change_survive_require_contain" style="display: none;">
+                <span class="prj_change_req_wfl_span"></span>
+                <span class="prj_change_req_wfl_word">存续期管理要求</span>
+
+                <div class="prj_change_req_contain">
+                    <div class="prj_change_req_wfl_left">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更前</span>
+
+                        <a:grid id="calc_prj_project_survive_require_ds_grid" bindTarget="prj110f1_prj_project_survive_require_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="50" name="row_seq" prompt="序号"/>
+                                <a:column width="450" name="manage_requirements" prompt="租后管理要求" editor="calc_prj_project_survive_require_ds_grid_textArea"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textArea id="calc_prj_project_survive_require_ds_grid_textArea"/>
+                            </a:editors>
+                        </a:grid>
+
+                    </div>
+
+                    <div class="prj_change_req_wfl_right">
+                        <span class="prj_change_req_wfl_span"></span>
+                        <span class="prj_change_req_wfl_word">变更后</span>
+
+                        <a:grid id="calc_prj_project_survive_require_change_ds_grid" bindTarget="prj110f1_prj_project_survive_require_change_ds" height="200" width="500"
+                                navBar="true">
+                            <a:columns>
+                                <a:column width="50" name="row_seq" prompt="序号"/>
+                                <a:column width="450" name="manage_requirements" prompt="租后管理要求" editor="calc_prj_project_survive_require_change_ds_grid_textArea"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textArea id="calc_prj_project_survive_require_change_ds_grid_textArea"/>
+                            </a:editors>
+                        </a:grid>
+
+                    </div>
+                </div>
+            </div>
+
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+    <a:view-config>
+        <c:create-config targetId="dynamicWflQuotationTreeNode_id">
+            <p:loop source="/model/project_change_quotation_path">
+                <p:switch test="@quotation_id">
+                    <p:case value="*">
+                        <c:process-config>
+
+                            <div class="change_quotation_contain" style="display: none;">
+                                <span class="prj_change_req_wfl_span"></span>
+                                <span class="prj_change_req_wfl_word">送审方案(${@seq})</span>
+                                <a:dataSets>
+                                    <a:dataSet id="calc_${@quotation_id}_ds" autoQuery="true"
+                                               queryUrl="${/request/@context_path}/change/quotation/info?quotationId=${@quotation_id}">
+                                        <a:fields>
+                                            <a:field name="finance_amount" />
+                                        </a:fields>
+                                        <a:events>
+                                            <a:event name="load" handler="prj110f1_prj_project_base_info_ds_load"/>
+                                        </a:events>
+                                    </a:dataSet>
+                                </a:dataSets>
+                                <a:grid id="calc_${@quotation_id}_ds_grid" bindTarget="calc_${@quotation_id}_ds" height="200" marginWidth="30"
+                                        navBar="true">
+                                    <a:columns>
+                                        <a:column name="change_type" width="80" editor="calc_${@quotation_id}_ds_grid_tf" prompt="变更类型"/>
+                                        <a:column name="price_list" editor="calc_${@quotation_id}_ds_grid_tf" prompt="价目表"/>
+                                        <a:column name="business_type" editor="calc_${@quotation_id}_ds_grid_tf" prompt="业务类型"/>
+                                        <a:column name="finance_amount" renderer="Leaf.formatMoney" editor="calc_${@quotation_id}_ds_grid_nf" prompt="融资额"/>
+                                        <a:column name="currency_name" editor="calc_${@quotation_id}_ds_grid_tf" prompt="币种"/>
+                                        <a:column name="lease_term" editor="calc_${@quotation_id}_ds_grid_nf" prompt="租赁期限(月)"/>
+                                        <a:column name="int_rate" editor="calc_${@quotation_id}_ds_grid_pf" prompt="租赁利率" renderer="percentFormat"/>
+                                        <a:column name="deposit_ratio" editor="calc_${@quotation_id}_ds_grid_pf" prompt="保证金比例" renderer="percentFormat"/>
+                                        <a:column name="lease_charge_ratio" editor="calc_${@quotation_id}_ds_grid_pf" prompt="手续费比例" renderer="percentFormat"/>
+                                        <a:column name="residual_value" editor="calc_${@quotation_id}_ds_grid_nf" prompt="留购金" renderer="Leaf.formatMoney"/>
+                                        <a:column name="xirr" editor="calc_${@quotation_id}_ds_grid_nf" prompt="xirr" renderer="percentFormat"/>
+                                        <a:column name="renting_frequency" editor="calc_${@quotation_id}_ds_grid_tf" prompt="租金支付频率（月）"/>
+                                        <a:column name="int_rate_type" editor="calc_${@quotation_id}_ds_grid_tf" prompt="利率类型"/>
+                                        <a:column name="other_price" editor="calc_${@quotation_id}_ds_grid_nf" prompt="其他金额" renderer="Leaf.formatMoney"/>
+                                        <a:column name="subject_matter_introdution" editor="calc_${@quotation_id}_ds_grid_tf" prompt="租赁标的物"/>
+                                    </a:columns>
+                                    <a:editors>
+                                        <a:textField id="calc_${@quotation_id}_ds_grid_tf" readOnly="true"/>
+                                        <a:numberField id="calc_${@quotation_id}_ds_grid_nf" readOnly="true"/>
+                                        <a:percentField id="calc_${@quotation_id}_ds_grid_pf" readOnly="true"/>
+                                    </a:editors>
+                                    <a:events>
+                                        <a:event name="render" handler="calc_ds_grid_render"/>
+                                    </a:events>
+                                </a:grid>
+                            </div>
+
+                        </c:process-config>
+                    </p:case>
+                </p:switch>
+            </p:loop>
+
+        </c:create-config>
+    </a:view-config>
+</a:screen>

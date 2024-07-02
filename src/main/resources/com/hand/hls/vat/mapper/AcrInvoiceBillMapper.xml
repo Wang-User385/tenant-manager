@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.vat.mapper.AcrInvoiceBillMapper" >
+
+    <resultMap id="BaseResultMap" type="com.hand.hls.vat.dto.AcrInvoiceBill" >
+        <result column="bank_account_id" property="bankAccountId" jdbcType="BIGINT" />
+        <result column="contract_id" property="contractId" jdbcType="BIGINT" />
+        <result column="invoice_kind" property="invoiceKind" jdbcType="VARCHAR"/>
+        <result column="billing_way" property="billingWay" jdbcType="VARCHAR"/>
+        <result column="product_name" property="productName" jdbcType="VARCHAR"/>
+        <result column="bp_id" property="bpId" jdbcType="BIGINT"/>
+        <result column="bp_tax_registry_num" property="bpTaxRegistryNum" jdbcType="VARCHAR"/>
+        <result column="bp_address_phone_num" property="bpAddressPhoneNum" jdbcType="VARCHAR"/>
+        <result column="bp_bank_account" property="bpBankAccount" jdbcType="VARCHAR"/>
+        <result column="tax_type_rate" property="taxTypeRate" jdbcType="VARCHAR"/>
+        <result column="created_by" property="createdBy" jdbcType="VARCHAR"/>
+        <result column="last_updated_by" property="lastUpdatedBy" jdbcType="VARCHAR"/>
+        <result column="creation_date" property="creationDate" jdbcType="VARCHAR"/>
+        <result column="last_update_date" property="lastUpdateDate" jdbcType="VARCHAR"/>
+
+        <!--额外字段-->
+        <result column="host_project_manager" property="hostProjectManager" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="contract_name" property="contractName" jdbcType="VARCHAR"/>
+        <result column="host_project_manager_n" property="hostProjectManagerN" jdbcType="VARCHAR"/>
+        <result column="bp_id_n" property="bpIdN" jdbcType="VARCHAR"/>
+        <result column="taxpayer_type" property="taxpayerType" jdbcType="VARCHAR"/>
+        <result column="billing_status" property="billingStatus" jdbcType="VARCHAR"/>
+        <result column="invoice_kind_n" property="invoiceKindN" jdbcType="VARCHAR"/>
+        <result column="contract_amount" property="contractAmount" jdbcType="BIGINT"/>
+        <result column="due_amount" property="dueAmount" jdbcType="BIGINT"/>
+        <result column="cashflow_id" property="cashflowId" jdbcType="BIGINT"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
+        <result column="contract_status" property="contractStatus" jdbcType="VARCHAR"/>
+        <result column="due_date" property="dueDate" jdbcType="VARCHAR"/>
+        <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR"/>
+        <result column="tax_type_rate_n" property="taxTypeRateN" jdbcType="VARCHAR"/>
+        <result column="billing_way_n" property="billingWayN" jdbcType="VARCHAR"/>
+        <result column="write_off_flag" property="writeOffFlag" jdbcType="VARCHAR"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="document_type" property="documentType" jdbcType="VARCHAR"/>
+        <result column="business_type" property="businessType" jdbcType="VARCHAR"/>
+        <result column="currency" property="currency" jdbcType="VARCHAR"/>
+        <result column="billing_method" property="billingMethod" jdbcType="VARCHAR"/>
+        <result column="billing_amount" property="billingAmount" jdbcType="BIGINT"/>
+        <result column="total_amount" property="totalAmount" jdbcType="BIGINT"/>
+        <result column="project_id" property="projectId" jdbcType="BIGINT"/>
+        <result column="legal_contracT_number" property="legalContractNumber" jdbcType="VARCHAR"/>
+    </resultMap>
+
+
+    <select id="queryAcrInvoiceBillMaintenance" resultMap="BaseResultMap">
+        select v.*
+        from (
+        select
+        cc.contract_id,
+        cc.contract_number,
+        cc.legal_contracT_number,
+        cc.contract_name,
+        ccb.bank_account_id,
+        cc.project_id,
+        CASE
+        WHEN cc.BUSINESS_TYPE in
+        ('T+N_LEASE_FACTORING', 'T+0_LEASE_FACTORING') THEN
+        (SELECT  dbms_lob.substr(wm_concat(b.bp_name))
+        FROM hls_bp_master b, prj_project_bp hclcb
+        WHERE cc.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'ACCOUNTS_RECEIVABLE')
+        WHEN cc.BUSINESS_TYPE in
+        ('LEASE_WITHOUT_RECOURSE_IN',
+        'OPERATING_LEASE_WITHOUT_RECOURSE_IN') THEN
+        (SELECT dbms_lob.substr(wm_concat(b.bp_name))
+        FROM hls_bp_master b, prj_project_bp hclcb
+        WHERE cc.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'ASSET_TRANSFEROR')
+        ELSE
+        (SELECT dbms_lob.substr(wm_concat(b.bp_name))
+        FROM hls_bp_master b, prj_project_bp hclcb
+        WHERE cc.PROJECT_ID = hclcb.PROJECT_ID
+        and b.bp_id = hclcb.bp_id
+        and hclcb.bp_type = 'TENANT')
+        END AS tenant_id_n,
+
+        cc.contract_amount,
+        (SELECT a.description
+        FROM sys_user a
+        WHERE a.user_id = cc.host_project_manager) host_project_manager_n,
+        ccb.invoice_kind,
+        (select scvb.meaning
+        from sys_code_value_b scvb, sys_code_b scb
+        where scb.code = 'VAT.INVOICE_KIND'
+        and scb.code_id = scvb.code_id
+        and scvb.enabled_flag = 'Y'
+        and scvb.value in ('0', '2')
+        and scvb.value = ccb.invoice_kind) invoice_kind_n,
+        nvl(ccb.billing_way,1) billing_way,
+        (select scvb.meaning
+        from sys_code_value_b scvb, sys_code_b scb
+        where scb.code = 'VAT.BILLING_WAY'
+        and scb.code_id = scvb.code_id
+        and scvb.enabled_flag = 'Y'
+        and scvb.value = nvl(ccb.billing_way,1)) billing_way_n,
+        ccb.product_name,
+        ccb.bp_id,
+        (select sbm.bp_name
+        from hls_bp_master sbm
+        where sbm.bp_id = ccb.bp_id) as bp_id_n,
+        ccb.bp_tax_registry_num,
+        ccb.bp_address_phone_num,
+        ccb.bp_bank_account,
+        ccb.tax_type_rate,
+        (select scvb.meaning
+        from sys_code_value_b scvb, sys_code_b scb
+        where scb.code = 'ABS.ADD_TAX_RATE'
+        and scb.code_id = scvb.code_id
+        and scvb.enabled_flag = 'Y'
+        and scvb.value in('0.06','0.13')
+        and scvb.value = ccb.tax_type_rate) tax_type_rate_n
+
+        from con_contract cc
+        left join con_contract_bank_account ccb
+        on cc.contract_id = ccb.contract_id
+        ) v
+        <where>
+            <if test="contractNumber !=null">
+                and v.contract_number = #{contractNumber}
+            </if>
+            <if test="legalContractNumber !=null">
+                and v.legal_contract_number  LIKE concat('%',concat(#{legalContractNumber},'%') )
+            </if>
+            <if test="contractName !=null">
+                and v.contract_name = #{contractName}
+            </if>
+            <if test="bpName !=null">
+                and v.tenant_id_n = #{bpName}
+            </if>
+            <if test="employeeIdN !=null">
+                and v.host_project_manager_n = #{employeeIdN}
+            </if>
+        </where>
+
+    </select>
+
+    <select id="queryAcrInvoiceBill" resultMap="BaseResultMap">
+        select
+
+        t.contract_id,
+        t.cashflow_id,
+        t.invoice_kind,
+        t.bp_id,
+        t.billing_status,
+        (select hbm.bp_name
+        from hls_bp_master hbm
+        where hbm.bp_id = t.bp_id) as bp_name,
+        (select hbm.taxpayer_type
+        from hls_bp_master hbm
+        where hbm.bp_id = t.bp_id) as taxpayer_type,
+        a1.company_id,
+        a5.bp_tax_registry_num,
+        a5.bp_address_phone_num,
+        a5.bp_bank_account,
+        a5.tax_type_rate,
+        a5.billing_way,
+        a5.product_name,
+        t.write_off_flag,
+        t.due_date,
+        a1.contract_status,
+        a5.bank_account_id,
+
+        a1.document_category,
+        a1.document_type,
+        a1.business_type,
+        a1.currency,
+        a1.contract_number,
+        a1.billing_method,
+        nvl(t.billing_amount,0) as billing_amount,
+        nvl(t.due_amount,0) as due_amount,
+        (nvl(t.due_amount,0)  - nvl(t.billing_amount, 0)) as  total_amount
+
+        from con_contract_cashflow     t,
+        con_contract              a1,
+        con_contract_bank_account a5
+        where t.contract_id = a1.contract_id
+        and a5.contract_id = t.contract_id
+        and not exists (select 1
+        from acr_invoice_relationship a2
+        where A2.SOURCE_DOCUMENT_ID = T.CASHFLOW_ID)
+        and t.write_off_flag = 'FULL'
+        and t.billing_status in ('NOT', 'PARTIAL')
+        and t.due_date &lt; sysdate
+        and a1.contract_status != 'NEW'
+    </select>
+
+</mapper>

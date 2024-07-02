@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hap.activiti.mapper.ActHiTaskinstMapper">
+    <select id="queryFormKey" resultType="java.lang.String">
+          select t.FORM_KEY_ from act_hi_taskinst t where t.ID_ = #{taskId}
+    </select>
+
+    <select id="updateCopyMessage" parameterType="java.util.Map">
+        UPDATE act_hi_comment
+        SET MESSAGE_ = #{message},FULL_MSG_ =
+            #{messageBlob,jdbcType=BLOB}
+        WHERE
+            ID_ = #{commentId}
+    </select>
+
+    <select id="updateUserId" parameterType="java.util.Map">
+        UPDATE act_hi_comment
+        SET USER_ID_ = #{user_id}
+        WHERE
+            ID_ = #{commentId}
+    </select>
+
+    <select id="selectCopyMessage" parameterType="java.util.Map" resultType="java.lang.String">
+        select ahc.MESSAGE_ from act_hi_comment ahc where ahc.ID_ = #{commentId}
+    </select>
+
+    <select id="selectHistoryProcessInstanceIdList" resultType="string">
+        select PROC_INST_ID_
+        from act_hi_varinst
+        where PROC_INST_ID_ in
+              (select PROC_INST_ID_ from act_hi_varinst where NAME_ = 'workFlowType' and TEXT_ = #{workFlowType})
+          and NAME_ = 'BUSINESS_KEY'
+          and TEXT_ = #{businessKey}
+    </select>
+
+    <select id="selectLastApproveAction" parameterType="java.util.Map" resultType="java.lang.String">
+        select *
+                from (
+                       select a.MESSAGE_
+                       from act_hi_comment a
+                       where a.PROC_INST_ID_ = #{procInstId}
+                         and a.TYPE_ = 'action' order by a.TIME_ desc
+                     )
+                where rownum = 1
+    </select>
+
+
+    <select id="selectDumpApprove" parameterType="java.util.Map" resultType="java.lang.String">
+        SELECT b.MESSAGE_ FROM ACT_HI_COMMENT B WHERE B.TIME_>
+                                                      (select nvl(max(A.TIME_),to_date('1990-01-01','yyyy-mm-dd')) FROM ACT_HI_COMMENT A WHERE A.PROC_INST_ID_=B.PROC_INST_ID_  AND A.TYPE_='action' and A.message_='APPROVED_RETURN')
+                                                  AND B.TYPE_='action' and b.proc_inst_id_=#{procInstId} and b.user_id_=#{userId} and rownum=1
+
+    </select>
+
+</mapper>

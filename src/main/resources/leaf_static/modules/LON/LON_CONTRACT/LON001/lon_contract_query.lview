@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="fin003_lon_create_id"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON001/lon_contract_apply.lview"/>
+        <script><![CDATA[
+
+        //创建
+        window['${/parameter/@layout_code}_create_layout_dynamic_click'] = function () {
+            var ds_id = 'FIN003_G_RESULT_lon_contract_ds';
+            var param = {};
+            param['url_title'] = '融资合同新建';
+            param['function_code'] = 'FIN003F1';
+            param['function_usage'] = 'CREATE';
+            param['winid'] = 'lon_contract_create_winid';
+            hls_doc_get_layout_code(param, 'fin003_lon_create_id', ds_id, 'FIN003');
+        };
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+
+            if (name == 'contract_number') {
+                return '<a href="javascript:open_contract_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+            return value;
+        };
+
+        function open_contract_win(ds_id, record_id) {
+            // debugger;
+            var record2 = $(ds_id).findById(record_id);
+            var param = record2.data;
+            param['url_title'] = '融资合同查询';
+            var contract_status = record2.get('contract_status');
+
+
+                param['function_code'] = 'FIN003F1CQUERY';
+                param['maintain_type'] = 'QUERY';
+                param['function_usage'] = 'QUERY';
+
+            param['winid'] = 'lon_contract_modify_winid';
+            param['contract_id'] = record2.get('contract_id');
+            param['document_id'] = record2.get('contract_id');
+            param['company_id'] = '${/session/@companyId}';
+            // param['layout_debugger_flag'] = 'Y';
+           // console.log(param);
+
+            hls_doc_get_layout_code(param, 'fin003_lon_create_id', ds_id, 'FIN003');
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

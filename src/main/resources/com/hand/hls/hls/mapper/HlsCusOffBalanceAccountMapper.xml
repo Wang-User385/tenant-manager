@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hls.mapper.HlsCusOffBalanceAccountMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hls.dto.HlsCusOffBalanceAccount">
+        <result column="BALANCE_ACCOUNT_ID" property="balanceAccountId" jdbcType="DECIMAL" />
+        <result column="LEASE_ITEM_ID" property="leaseItemId" jdbcType="DECIMAL" />
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR" />
+        <result column="CHANGE_DATE" property="changeDate" jdbcType="DATE" />
+        <result column="CHANGE_AMOUNT" property="changeAmount" jdbcType="DECIMAL" />
+        <result column="BEFORE_CHANGE_AMOUNT" property="beforeChangeAmount" jdbcType="DECIMAL" />
+        <result column="PROJECT_ID" property="projectId" jdbcType="DECIMAL" />
+
+        <result column="full_name" property="fullName" jdbcType="VARCHAR" />
+        <result column="lease_item_type" property="leaseItemType" jdbcType="VARCHAR" />
+        <result column="lease_item_type_n" property="leaseItemTypeN" jdbcType="VARCHAR" />
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="unit_id" property="unitId" jdbcType="VARCHAR" />
+        <result column="unit_id_n" property="unitIdN" jdbcType="VARCHAR" />
+        <result column="contract_name" property="contractName" jdbcType="VARCHAR" />
+        <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR" />
+        <result column="evaluation_value" property="evaluationValue" jdbcType="VARCHAR" />
+        <result column="valuation_date" property="valuationDate" jdbcType="VARCHAR" />
+        <result column="INITIAL_MORTGAGE_PLEDGE_AMOUNT" property="initialMortgagePledgeAmount" jdbcType="VARCHAR" />
+        <result column="now_amount" property="nowAmount" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryOffBalanceAccount" resultMap="BaseResultMap" parameterType="com.hand.hls.hls.dto.HlsCusOffBalanceAccount">
+        select * from (select a.balance_account_id,a.project_id,a.lease_item_id,a.document_category,a.change_date,
+        a.change_amount,a.before_change_amount,hli.full_name,hli.lease_item_type,
+        abs( nvl(a.before_change_amount,0) -abs(nvl(a.change_amount,0)) ) now_amount,
+        (select meaning
+        from sys_code_value_b_v
+        where code = 'HLS.COLLATERAL_TYPE'
+        and code_value = hli.LEASE_ITEM_TYPE) lease_item_type_n,
+        pp.contract_number,
+        pp.unit_id,
+        (select fou.unit_name from fnd_org_unit fou where fou.unit_id=pp.unit_id) as unit_id_n,
+        pp.contract_name,
+        (select bp_name from hls_bp_master where bp_id=pp.tenant_id) as tenant_id_n,
+        (select sum(hlid.INITIAL_MORTGAGE_PLEDGE_AMOUNT) as EVALUATION_VALUE
+        from hls_lease_item_detail hlid where hlid.lease_item_id = hli.lease_item_id)INITIAL_MORTGAGE_PLEDGE_AMOUNT,
+        hli.valuation_date
+        from hls_off_balance_account a,hls_lease_item hli ,prj_project pp
+        where a.lease_item_id = hli.lease_item_id
+        and a.project_id = pp.project_id) t
+        <where>
+            1=1
+             <if test="contractNumber">
+                and t.contract_number = #{contractNumber}
+            </if>
+             <if test="contractName">
+                and t.contract_name like concat(concat('%',#{contractName}),'%')
+            </if>
+            <if test="changeDateFrom!=null">
+                and t.change_date &gt;= #{changeDateFrom}
+            </if>
+            <if test="changeDateTo!=null">
+                and t.change_date &lt;= #{changeDateTo}
+            </if>
+             <if test="tenantIdN">
+                and t.tenant_id_n like concat(concat('%',#{tenantIdN}),'%')
+            </if>
+             <if test="leaseItemType">
+                and t.lease_item_type = #{leaseItemType}
+            </if>
+             <if test="unitId">
+                and t.unit_id = #{unitId}
+            </if>
+            order by t.CHANGE_DATE desc
+        </where>
+    </select>
+    <select id="queryNewOffBalanceAccount" resultMap="BaseResultMap" parameterType="com.hand.hls.hls.dto.HlsCusOffBalanceAccount">
+        select * from (select a.balance_account_id,a.project_id,a.lease_item_id,a.document_category,a.change_date,
+        a.change_amount,a.before_change_amount,hli.full_name,hli.lease_item_type,
+        abs( nvl(a.before_change_amount,0) -abs(nvl(a.change_amount,0)) ) now_amount,
+        (select meaning
+        from sys_code_value_b_v
+        where code = 'HLS.COLLATERAL_TYPE'
+        and code_value = hli.LEASE_ITEM_TYPE) lease_item_type_n,
+        pp.contract_number,
+        pp.unit_id,
+        (select fou.unit_name from fnd_org_unit fou where fou.unit_id=pp.unit_id) as unit_id_n,
+        pp.contract_name,
+        (select bp_name from hls_bp_master where bp_id=pp.tenant_id) as tenant_id_n,
+        (select sum(hlid.INITIAL_MORTGAGE_PLEDGE_AMOUNT) as EVALUATION_VALUE
+        from hls_lease_item_detail hlid where hlid.lease_item_id = hli.lease_item_id)INITIAL_MORTGAGE_PLEDGE_AMOUNT,
+        hli.valuation_date
+        from hls_off_balance_account a,hls_lease_item hli ,prj_project pp
+        where a.lease_item_id = hli.lease_item_id
+        and a.project_id = pp.project_id
+        and a.creation_date =
+        (select max(b.creation_date) from hls_off_balance_account b where b.lease_item_id = a.lease_item_id)) t
+        <where>
+            1=1
+            <if test="contractNumber">
+                and t.contract_number = #{contractNumber}
+            </if>
+            <if test="contractName">
+                and t.contract_name like concat(concat('%',#{contractName}),'%')
+            </if>
+            <if test="changeDateFrom!=null">
+                and t.change_date &gt;= #{changeDateFrom}
+            </if>
+            <if test="changeDateTo!=null">
+                and t.change_date &lt;= #{changeDateTo}
+            </if>
+            <if test="tenantIdN">
+                and t.tenant_id_n like concat(concat('%',#{tenantIdN}),'%')
+            </if>
+            <if test="leaseItemType">
+                and t.lease_item_type = #{leaseItemType}
+            </if>
+            <if test="unitId">
+                and t.unit_id = #{unitId}
+            </if>
+            order by t.CHANGE_DATE desc
+
+        </where>
+    </select>
+
+</mapper>

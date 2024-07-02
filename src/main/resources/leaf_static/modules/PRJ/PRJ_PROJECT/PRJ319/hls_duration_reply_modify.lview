@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2020年5月27日
+            $Revision: 1.0
+            $Purpose: 存续期审批维护
+            -->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.sys.service.SysDefaultValueService.querySysDefaultValue"
+                       rootPath="default_value"/>
+    </a:init-procedure>
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+        <script><![CDATA[
+
+        var duration_type = '${/parameter/@duration_type}';
+        var project_id = '${/parameter/@project_id}';
+        var hd_id = '${/parameter/@hd_id}';
+        var data_class = '${/parameter/@data_class}';
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_attachment');
+            if (attachment_ds_id == ds.id) {
+                ds.setQueryParameter('attachment_category', 'REPLY');
+            }
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+        };
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            var approval_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_approval');
+            if (approval_ds_id == ds.id) {
+                qpara['data_class'] = '${/parameter/@data_class}';
+                qpara['project_id'] = project_id;
+                qpara['hd_id'] = hd_id;
+            }
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'download') {
+                return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + record.get('attachment_id') + '">下载</a>';
+            }
+            if (name === 'upload') {
+                return '<a href="javascript:window[\'' + 'upload_file' + '\'](\'' + record.id + '\',\'' + record.get('duration_attachment_id') + '\');">上传</a>';
+            }
+            if (name == 'file_name' && value) {
+
+            }
+        };
+
+        window['upload_file'] = function (record_id, duration_attachment_id) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var hd_record = $(ds_id).getCurrentRecord();
+            var hd_id = hd_record.get('hd_id');
+
+            if (hd_id == undefined || hd_id == 0) {
+                $L.showInfoMessage("提示", "请先保存项目信息再上传附件!");
+                return;
+            }
+            if (duration_attachment_id == 'undefined') {
+                $L.showInfoMessage("提示", "请先保存附件信息!");
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: '${/parameter/@layout_code}_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': duration_attachment_id,
+                    'table_name': 'HLS_DURATION_ATTACHMENT',
+                    winid: '${/parameter/@layout_code}_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 900,
+                height: 475
+            });
+            win.on('close', function () {
+                var document_list_ds_id = "${/parameter/@layout_code}_G_ATTACHMENT_INFO_hls_duration_attachment_ds";
+                $(document_list_ds_id).query();
+            });
+        }
+
+        //提交按钮
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var param = {};
+            param.hd_id = hd_id;
+            Leaf.request({
+                url: "${/request/@context_path}/hls/duration/reply/submit",
+                para: param,
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                        $('${/parameter/@parent_ds}').query();
+                        $('${/parameter/@winid}').close();
+                    });
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage("提示", "提交失败!", null);
+                },
+                scope: this
+            });
+        }
+
+
+        function all_query(hd_id) {
+            //保存后 form 框需要 刷新将 后台保存的值 返回到前台
+            var duration_hd_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd', 'F_BASE_INFO');
+            if (duration_hd_ds_id) {
+                $(duration_hd_ds_id).setQueryParameter('hd_id', hd_id);
+                $(duration_hd_ds_id).query();
+            }
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+
+

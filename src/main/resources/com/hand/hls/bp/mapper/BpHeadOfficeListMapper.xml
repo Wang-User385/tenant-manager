@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.BpHeadOfficeListMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.BpHeadOfficeList">
+        <result column="LIST_ID" property="listId" jdbcType="DECIMAL"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL"/>
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR"/>
+        <result column="BP_CODE" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="GROUP_NAME" property="groupName" jdbcType="VARCHAR"/>
+        <result column="GROUP_CODE" property="groupCode" jdbcType="VARCHAR"/>
+        <result column="LIST_TYPE" property="listType" jdbcType="VARCHAR"/>
+        <result column="LIST_TYPE_N" property="listTypeN" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="queryAll" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.BpHeadOfficeList">
+        SELECT
+        hol.*,
+        (select meaning
+        from sys_code_value_b_v v
+        where v.code = 'BP.LIST_TYPE'
+        and v.code_value = hol.LIST_TYPE) LIST_TYPE_N
+        FROM
+        HLS_BP_HEAD_OFFICE_LIST hol
+        <where>
+            <if test="bpName!= null">
+                hol.bp_name LIKE concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="groupName!= null">
+                hol.GROUP_NAME LIKE concat(concat('%',#{groupName}),'%')
+            </if>
+            <if test="listType!= null">
+                hol.LIST_TYPE = #{listType}
+            </if>
+        </where>
+    </select>
+</mapper>

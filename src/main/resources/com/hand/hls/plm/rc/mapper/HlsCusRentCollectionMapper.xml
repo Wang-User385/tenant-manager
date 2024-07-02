@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.plm.rc.mapper.HlsCusRentCollectionMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.plm.rc.dto.HlsCusRentCollection">
+        <result column="rent_collection_id" property="rentCollectionId" jdbcType="DECIMAL" />
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL" />
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="collection_time" property="collectionTime" jdbcType="DATE" />
+        <result column="collection_member" property="collectionMember" jdbcType="VARCHAR" />
+        <result column="collection_method" property="collectionMethod" jdbcType="VARCHAR" />
+        <result column="contact_person" property="contactPerson" jdbcType="VARCHAR" />
+        <result column="job" property="job" jdbcType="VARCHAR" />
+        <result column="collection_result" property="collectionResult" jdbcType="VARCHAR" />
+        <result column="collection_note" property="collectionNote" jdbcType="VARCHAR" />
+        <result column="telephone_number" property="telephoneNumber" jdbcType="VARCHAR" />
+        <result column="company_id" property="companyId" jdbcType="DECIMAL" />
+        <result column="proc_inst_id" property="procInstId" jdbcType="DECIMAL" />
+        <result column="collection_take" property="collectionTake" jdbcType="VARCHAR" />
+        <result column="next_time_pay_amount" property="nextTimePayAmount" jdbcType="DECIMAL" />
+        <result column="next_time_pay_date" property="nextTimePayDate" jdbcType="DATE" />
+        <result column="collection_status" property="collectionStatus" jdbcType="VARCHAR" />
+        <result column="creation_date" property="creationDate" jdbcType="DATE" />
+        <result column="collection_method_desc" property="collectionMethodDesc" jdbcType="VARCHAR" />
+        <result column="attachment_name" property="attachmentName" jdbcType="VARCHAR" />
+        <result column="collection_method_n" property="collectionMethodN" jdbcType="VARCHAR"/>
+
+    </resultMap>
+
+
+    <select id="queryAll" resultMap="BaseResultMap" parameterType="com.hand.hls.plm.rc.dto.HlsCusRentCollection">
+        SELECT prc.*,
+
+        (select s.meaning
+        from sys_code_value_b_v s
+        where s.code = 'PLI.INSPECTION_METHOD'
+        and s.code_value = prc.collection_method) collection_method_desc,
+        (select s.meaning
+        from sys_code_value_b_v s
+        where s.code = 'PLI.INSPECTION_METHOD'
+        and s.code_value = prc.collection_method) collection_method_n,
+
+        (select wm_concat(fat.file_name)
+        from fnd_atm_attachment fat, fnd_atm_attachment_multi faam
+        where fat.attachment_id = faam.attachment_id
+        and faam.table_name = 'PLM_RENT_COLLECTION'
+        and faam.table_pk_value = prc.rent_collection_id) attachment_name
+        FROM plm_rent_collection prc
+        where
+           1=1
+        <if test="contractId!=null">
+           and prc.contract_id = #{contractId}
+        </if>
+
+        <if test="collectionStatus!=null">
+            and prc.collection_status = #{collectionStatus}
+        </if>
+
+    </select>
+
+    <resultMap id="remindMap" type="java.util.Map">
+        <result column="contract_name" property="contractName" jdbcType="VARCHAR" />
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="company_id" property="companyId" jdbcType="DECIMAL" />
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR" />
+        <result column="cf_item_desc" property="cfItemDesc" jdbcType="VARCHAR" />
+        <result column="user_id" property="userId" jdbcType="DECIMAL" />
+        <result column="times" property="times" jdbcType="DECIMAL" />
+        <result column="due_amount" property="dueAmount" jdbcType="DECIMAL" />
+        <result column="principal" property="principal" jdbcType="DECIMAL" />
+        <result column="interest" property="interest" jdbcType="DECIMAL" />
+        <result column="due_date" property="dueDate" jdbcType="DATE" />
+
+    </resultMap>
+
+    <select id="getAdvancedRemindList" resultMap="remindMap">
+        SELECT
+            DISTINCT
+            cc.contract_name,
+            (select
+                 ci.description from hls_cashflow_item
+                                         ci where ci.cf_item = ccc.cf_item and ci.cf_type=ccc.cf_type) cf_item_desc,
+            sua.user_id,
+            ccc.times,
+            ccc.due_amount,
+            ccc.due_date
+        FROM
+            con_contract_cashflow ccc,
+            con_contract cc,
+            hls_penalty_profile_dtl pp ,
+            sys_user_allocation sua,
+            fnd_employee_assigns fea
+        WHERE
+            ccc.contract_id = cc.contract_id
+          AND pp.penalty_profile = cc.penalty_profile
+          AND pp.enabled_flag = 'Y'
+          AND cc.contract_status = 'INCEPT'
+          AND cc.data_class = 'NORMAL'
+          and ccc.write_off_flag not in ('FULL')
+          and sua.employee_assign_id = fea.employee_assign_id
+          and fea.employee_id = cc.employee_id
+          AND (TO_DAYS( ccc.due_date ) - TO_DAYS( now( ) ) ) IN (30,14,7)
+        union all
+        SELECT
+            distinct
+            fc.contract_name,
+            (select
+                 ci.description from hls_cashflow_item
+                                         ci where ci.cf_item = fqc.cf_item and ci.cf_type=fqc.cf_type) cf_item_desc,
+            sua.user_id,
+            fqc.times,
+            fqc.due_amount,
+            fqc.due_date
+        FROM
+            fct_quotation_cashflow fqc,
+            fct_contract fc,
+            ( SELECT cwo.cashflow_id, ct.penalty_calc_date FROM csh_write_off cwo, csh_transaction ct WHERE cwo.csh_transaction_id = ct.transaction_id ) t ,
+            sys_user_allocation sua,
+            fnd_employee_assigns fea
+        WHERE
+            fqc.contract_id = fc.contract_id
+          AND fc.contract_status = 'INCEPT'
+          AND fc.data_class = 'NORMAL'
+          AND fqc.cf_item IN ( 54, 55 )
+          AND ( t.cashflow_id = fqc.quotation_cashflow_id OR fqc.quotation_cashflow_id != t.cashflow_id )
+          AND fqc.write_off_flag != 'FULL'
+          and sua.employee_assign_id = fea.employee_assign_id
+          and fea.employee_id = fc.employee_id
+          AND ( TO_DAYS( fqc.due_date ) - TO_DAYS( now( ) ) ) IN ( 30, 14, 7 )
+        GROUP BY
+            fqc.quotation_cashflow_id
+    </select>
+
+    <select id="getAdvancedRemindMaliList" resultMap="remindMap" parameterType="java.util.Map">
+        SELECT
+        DISTINCT
+        cc.contract_name,
+        cc.contract_number,
+        (select
+        ci.description from hls_cashflow_item
+        ci where ci.cf_item = ccc.cf_item and ci.cf_type=ccc.cf_type) cf_item_desc,
+        ccc.times,
+        ccc.due_amount,
+        ccc.due_date,
+        ccc.principal,
+        ccc.interest,
+        hbm.bp_name,
+        cc.company_id
+        FROM
+        con_contract_cashflow ccc,
+        con_contract cc,
+        hls_penalty_profile_dtl pp ,
+        hls_bp_master hbm
+        WHERE
+        ccc.contract_id = cc.contract_id
+        AND pp.penalty_profile = cc.penalty_profile
+        AND pp.enabled_flag = 'Y'
+        AND cc.contract_status = 'INCEPT'
+        AND cc.data_class = 'NORMAL'
+        and ccc.write_off_flag not in ('FULL')
+        AND cc.tenant_id = hbm.bp_id
+        AND (TO_DAYS( ccc.due_date ) - TO_DAYS( now( ) ) ) &lt;=#{maxDays}
+        AND (TO_DAYS( ccc.due_date ) - TO_DAYS( now( ) ) ) &gt;=0
+        union all
+        SELECT
+        distinct
+        fc.contract_name,
+        fc.contract_number,
+        (select
+        ci.description from hls_cashflow_item
+        ci where ci.cf_item = fqc.cf_item and ci.cf_type=fqc.cf_type) cf_item_desc,
+        fqc.times,
+        fqc.due_amount,
+        fqc.due_date,
+        fqc.principal,
+        fqc.interest,
+        hbm.bp_name,
+        fc.company_id
+        FROM
+        fct_quotation_cashflow fqc,
+        fct_contract fc,
+        ( SELECT cwo.cashflow_id, ct.penalty_calc_date FROM csh_write_off cwo, csh_transaction ct WHERE cwo.csh_transaction_id = ct.transaction_id ) t ,
+        hls_bp_master hbm,
+        fct_project_bp fpb
+        WHERE
+        fqc.contract_id = fc.contract_id
+        AND fc.contract_status = 'INCEPT'
+        AND fc.data_class = 'NORMAL'
+        AND fqc.cf_item IN ( 54, 55 )
+        AND ( t.cashflow_id = fqc.quotation_cashflow_id OR fqc.quotation_cashflow_id != t.cashflow_id )
+        AND fqc.write_off_flag != 'FULL'
+        AND fc.project_id = fpb.project_id
+        AND fpb.bp_role_type = 'SELLER'
+        AND fpb.bp_id = hbm.bp_id
+        AND ( TO_DAYS( fqc.due_date ) - TO_DAYS( now( ) ) ) &lt;=#{maxDays}
+        AND ( TO_DAYS( fqc.due_date ) - TO_DAYS( now( ) ) ) &gt;=0
+
+        GROUP BY
+        fqc.quotation_cashflow_id
+    </select>
+
+    <update id="updateCollectionStatus">
+        update
+        plm_rent_collection prc
+        set
+        prc.collection_status=#{collectionStatus}
+        WHERE
+        prc.proc_inst_id=#{procInstId}
+    </update>
+</mapper>

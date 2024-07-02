@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2020年5月27日
+    $Revision: 1.0
+    $Purpose: 存续期审批-入口界面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_reply_modify_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ319/hls_duration_reply_modify.lview"/>
+        <script src="${/request/@context_path}/common/code?sysCodeData=HLS.DURATION_TYPE_NEW"
+                type="text/javascript"></script>
+        <script><![CDATA[
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var record = $(ds_id).getAt(0);
+            var param = {};
+            if ($(ds_id).validate()) {
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/duration/hd/reply/save',
+                    para: {
+                        project_id : record.get('project_id')
+                    },
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        var hd_id = res.result.record[0].hd_id;
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        param['url_title'] = '项目批复变更选择';
+                        param['function_code'] = 'PRJ319F2';
+                        param['project_id'] = record.get('project_id');
+                        param['apply_date'] = new Date();
+                        param['hd_id'] = hd_id;
+                        param['data_class'] = 'CHANGE';
+                        param['project_name'] = record.get('project_name'),
+                        param['function_usage'] = 'CREATE';
+                        param['winid'] = '${/parameter/@layout_code}_project_reply_winid';
+                        param['entrance_winid'] = '${/parameter/@winid}';
+                        hls_doc_get_layout_code(param, '${/parameter/@layout_code}_reply_modify_id', ds_id, 'PRJ319','${/parameter/@winid}','Y');
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+
+            }
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+
+

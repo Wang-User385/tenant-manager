@@ -1,0 +1,1405 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Purpose:数据建模
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <link rel="stylesheet" href="${/request/@context_path}/leafresources/css/METADATA/treeGraph.css"/>
+        <script type="text/javascript" src="${/request/@context_path}/leafresources/js/METADATA/treeGraph.js"></script>
+        <style>
+            #metadata_model_page_mian{
+                width: 100%;
+                height: calc( 100% - 10px );
+                margin-top: 10px;
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: -ms-flexbox;
+                display: flex;
+                -webkit-box-flex: 1;
+                -webkit-flex: 1;
+                -ms-flex: 1;
+                flex: 1;
+                background: #fff;
+                position: relative;
+            }
+            #metadata_model_page_mian .mainLeft{
+                box-sizing: border-box;
+                width: 450px;
+                height: 100%;
+                position: absolute;
+                left: 0;
+                top: 0;
+                padding: 0 10px 10px 0;
+                border-right: 1px solid #d3d3d3;
+                overflow: auto;
+                font-family: Monospaced Number,Chinese Quote,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Helvetica Neue,Helvetica,Arial,sans-serif;
+            }
+            #metadata_model_page_mian .mainRight{
+                -webkit-box-flex: 1;
+                -webkit-flex: 1;
+                -ms-flex: 1;
+                flex: 1;
+                margin-left: 450px;
+                overflow: hidden;
+                padding:10px;
+            }
+            #metadata_model_page_mian .mainLeft .btns{
+                box-sizing: border-box;
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 30px;
+                width: 100%;
+            }
+            #metadata_model_page_mian .mainLeft .btns select{
+                width: 200px;
+                height: 30px;
+                margin: 0 20px;
+                display: inline-block;
+                vertical-align: top;
+                line-height: 1;
+                box-sizing: border-box;
+                position: relative;
+                border: 1px solid rgba(0, 0, 0, 0.2);
+                font-size: inherit;
+                color: rgba(0,0,0,.54);
+                background-color: transparent;
+                background-image: none;
+                border-radius: 1px;
+                -webkit-transition: all .3s;
+                transition: all .3s;
+            }
+            #metadata_model_page_mian .mainLeft #metadata_model_tree_container{
+                position:relative;
+                box-sizing: border-box;
+                margin-top: 30px;
+                text-align: center;
+                height: calc(100% - 30px);
+                width: 100%;
+                display: table;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-wrapper{
+                box-sizing: border-box;
+                display: table-cell;
+                vertical-align: middle;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center{
+                display: inline-block;
+                text-align: left;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center *{
+                box-sizing: border-box;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner{
+                position: relative;
+                width: 200px;
+                height: 54px;
+                border: 1px solid rgba(0,0,0,.36);
+                border-radius: 2px;
+                padding: 8px 14px;
+                -webkit-transition: all .8s;
+                transition: all .8s;
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: -ms-flexbox;
+                display: flex;
+                cursor: pointer;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .primary-icon{
+                width: 36px;
+                margin-right: 10px;
+                padding: 4px;
+                -webkit-flex-shrink: 0;
+                -ms-flex-negative: 0;
+                flex-shrink: 0;
+                user-select: none;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .primary-icon .radius{
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                background: #3f51b5;
+                text-align: center;
+                line-height: 28px;
+                color: #fff;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .node-title{
+                overflow: hidden;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .node-title .title{
+                line-height: 36px;
+                font-size: 14px;
+                color: #000;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .graph-tools{
+                opacity: 0;
+                position: absolute;
+                bottom: -8px;
+                right: 10px;
+                -webkit-transition: opacity .8s;
+                transition: opacity .8s;
+                cursor: pointer;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner:hover .graph-tools{
+                opacity: 1;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .graph-tools .icon{
+                width:16px;
+                height:16px;
+                margin: 0 2px;
+                display:inline-block;
+                position: relative;
+                z-index: 2;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .graph-tools .icon img{
+                width:16px;
+                height:16px;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .icon-join{
+                position: absolute;
+                width: 9px;
+                height: 9px;
+                left: -25px;
+                top: 28px;
+                z-index: 1;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .inner-join{
+                background: #5266d4;
+                border: 1px solid #5266d4;
+                border-radius: 10px;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner .left-join{
+                background: #fff;
+                border: 1px solid #5266d4;
+                border-radius: 10px;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner-active{
+                background-color: rgba(140,158,255,.12);
+                -webkit-transition: background-color .8s;
+                transition: background-color .8s;
+                border-color: #5266d4;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-inner-active .node-title .title{
+                color:#303f9f;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-children{
+                padding-top:20px;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-children .tree-node{
+                position: relative;
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: -ms-flexbox;
+                display: flex;
+                -webkit-box-flex: 1;
+                -webkit-flex: 1;
+                -ms-flex: 1;
+                flex: 1;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-children .tree-node .tree-node-branch{
+                width: 40px;/*变量*/
+                height: 55px;
+                position: relative;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-center .tree-node-children .tree-node .tree-node-branch>div{
+                height: 55px;/*变量*/
+                width: 20px;
+                border-left: 1px solid #5266d4;
+                border-bottom: 1px solid #5266d4;
+                position: absolute;
+                right: 0;
+                bottom: 20px;
+            }
+
+            #metadata_model_page_mian .node-popup {
+                position: absolute;
+                left: 170px;
+                top: 70px;
+                width: 120px;
+                z-index: 5;
+                box-shadow: 0px 2px 8px rgba(0,0,0,.12);
+            }
+            #metadata_model_page_mian .node-popup .popup-li {
+                width: 120px;
+                min-height: 40px;
+                padding: 0 10px;
+                max-width: 120px;
+                line-height: 40px;
+                border-bottom: 1px solid #dddeec;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                white-space: nowrap;
+                z-index: 5;
+                cursor: pointer;
+                background-color: #EDEFFF;
+                color: #3f51b5;
+                transition: background-color .3s ease-in,padding .3s,height .3s;
+            }
+            #metadata_model_page_mian .node-popup .popup-msg{
+                width: 120px;
+                min-height: 40px;
+                padding: 0 10px;
+                max-width: 120px;
+                line-height: 40px;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                white-space: nowrap;
+                z-index: 5;
+                background-color: #F5F5F5;
+                color: #3f51b5;
+                transition: background-color .3s ease-in,padding .3s,height .3s;
+            }
+            #metadata_model_page_mian .node-popup .popup-li:only-child{
+                border:none;
+            }
+            #metadata_model_page_mian .node-popup .popup-li:last-child{
+                border:none;
+            }
+            #metadata_model_page_mian .node-popup .popup-li:hover{
+                background-color: #F5F5F5;
+            }
+
+            #metadata_model_page_mian #metadata_model_tree_container .tree-legend {
+                position: absolute;
+                right: 20px;
+                top: 30px;
+                text-align: left;
+                user-select: none;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-legend .legend {
+                height: 16px;
+                line-height: 16px;
+                vertical-align: middle;
+                position: relative;
+                cursor: pointer;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-legend .legend::before {
+                content: "";
+                position: absolute;
+                width: 9px;
+                height: 9px;
+                border: 1px solid #5266d4;
+                border-radius: 10px;
+                left: -15px;
+                top: 4px;
+                z-index: 1;
+                box-sizing: border-box;
+            }
+            #metadata_model_page_mian #metadata_model_tree_container .tree-legend .legend.inner-join::before {
+                background: #5266d4;
+            }
+
+            #metadata_model_page_mian .mainRight .content{
+                box-sizing: border-box;
+                display: block;
+                height: 100%;
+                overflow: auto;
+                min-width: 800px;
+            }
+            #metadata_model_page_mian .mainRight .content .item-tab-table,#metadata_model_page_mian .mainLeft .item-tab-table{
+                box-shadow: none;
+                width:100% !important;
+            }
+            #metadata_model_page_mian .tabs_bar{
+                box-sizing: border-box;
+                height: 48px;
+                outline: none;
+                position: relative;
+                -webkit-transition: padding .3s cubic-bezier(.645,.045,.355,1);
+                transition: padding .3s cubic-bezier(.645,.045,.355,1);
+                border-bottom: .01rem solid #e8e8e8;
+                margin-bottom: .16rem;
+            }
+            #metadata_model_page_mian .tabs_content{
+                box-sizing: border-box;
+                width: 100%;
+                height: calc(100% - 60px);
+                margin-left: -100%;
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: -ms-flexbox;
+                display: flex;
+                -webkit-box-orient: horizontal;
+                -webkit-box-direction: normal;
+                -webkit-flex-direction: row;
+                -ms-flex-direction: row;
+                flex-direction: row;
+                will-change: margin-left;
+                -webkit-transition: margin-left .3s cubic-bezier(.645,.045,.355,1);
+                transition: margin-left .3s cubic-bezier(.645,.045,.355,1);
+            }
+            #metadata_model_page_mian .tabPane{
+                box-sizing: border-box;
+                width: 100%;
+                height: 100%;
+                -webkit-flex-shrink: 0;
+                -ms-flex-negative: 0;
+                flex-shrink: 0;
+                -webkit-transition: opacity .45s;
+                transition: opacity .45s;
+                opacity: 1;
+            }
+            #metadata_model_page_mian .tabPane-inactive{
+                opacity: 0;
+                height: 0;
+                padding: 0!important;
+                pointer-events: none;
+            }
+        </style>
+        <script><![CDATA[
+        var metadataTreeGraph ;
+        var joinTypeArr = [
+            "inner-join",
+            "left-join"
+        ];
+
+        /*初始化*/
+        function onLoad_metadata_item_ds(ds){
+            metadata_edit_page_toggle_mask(true);
+
+            /*初始化tree 大字段数据*/
+            $jq("#metadata_relation_form").hide();
+            var record = ds.getAt(0);
+            if(!record){
+                ds.create({
+                    id:"${/parameter/@data_id}",
+                    metadata_id:"${/parameter/@metadata_id}",
+                    data:"{}"
+                });
+                record = ds.getCurrentRecord();
+            }
+            var jsonData = JSON.parse(record.get("data") || "{}"+ "");
+            if(Object.prototype.toString.call(jsonData).toLowerCase() == "[object array]"){
+                jsonData = jsonData[0];
+            }
+            var opt = {};
+            opt.data = jsonData;
+            opt.defaultJoinTypeIndex = 0;
+            opt.joinTypeArr = joinTypeArr;
+            opt.contextPath = "${/request/@context_path}";
+            opt.token = "${/session/@_csrf.token}";
+            opt.onChangeNodeHandler = onChangeNodeHandler;
+            opt.beforeChangeNodeHandler = beforeChangeNodeHandler;
+            opt.onChangeBaseTable = onChangeBaseTable;
+            opt.active_sql_tab = active_sql_tab;
+            metadataTreeGraph = new TreeGraph("metadata_model_tree_container",opt);
+
+            /*初始化右侧grid*/
+            if(metadataTreeGraph.originData.modelType == "tree"){
+                /*字段grid初始化*/
+                var fieldsDs = $("metadata_item_fields_ds");
+                if(!!metadataTreeGraph.originData.fields){
+                    fieldsDs.removeAll();
+                    var rows = metadataTreeGraph.originData.fields;
+                    rows.forEach(function(row,i){
+                        fieldsDs.create(row);
+                    });
+                }else{
+                    fieldsDs.removeAll();
+                }
+                /*查询参数grid初始化*/
+                var queryFieldsDs = $("metadata_item_queryFields_ds");
+                if(!!metadataTreeGraph.originData.fields){
+                    queryFieldsDs.removeAll();
+                    var rows = metadataTreeGraph.originData.queryFields;
+                    rows.forEach(function(row,i){
+                        queryFieldsDs.create(row);
+                    });
+                }else{
+                    queryFieldsDs.removeAll();
+                }
+            }else if(metadataTreeGraph.originData.modelType == "sql"){
+                /*sql相关grid初始化*/
+                var sqlDs = $("metadata_item_sql_ds");
+                var sqlFieldsDs = $("metadata_item_sqlFields_ds");
+                var encryptedSql = metadataTreeGraph.originData.encryptedSql;
+                if(!!encryptedSql){
+                    var manaulSql = encryptedSql;
+                    // 发请求获取解密sql
+                    // Leaf.request({
+                    //     url:"${/request/@context_path}/metadata/sql/decrypt",
+                    //     para:{
+                    //         sql:encryptedSql
+                    //     },
+                    //     sync:true,
+                    //     success:function(res){
+                    //         var manaulSql = res.data;
+                            sqlDs.removeAll();
+                            sqlDs.create({
+                                manual_sql:manaulSql,
+                                encrypted_sql:encryptedSql
+                            });
+                    //     },
+                    //     failure:function(){},
+                    //     error:function(){},
+                    //     scope:this
+                    // });
+
+                    if(metadataTreeGraph.originData.sqlFields){
+                        sqlFieldsDs.removeAll();
+                        var rows = metadataTreeGraph.originData.sqlFields;
+                        rows.forEach(function(row,i){
+                            sqlFieldsDs.create(row);
+                        });
+                    }
+                }else{
+                    sqlDs.removeAll();
+                    sqlFieldsDs.removeAll();
+                }
+            }
+
+            metadata_edit_page_toggle_mask();
+        }
+        function metadata_item_ds_exit(){
+            $("${/parameter/@winId}").close();
+        }
+        function onSubmitSuccess_metadata_item_ds(ds,res) {
+            metadataTreeGraph.init();
+            metadata_edit_page_toggle_mask();
+        }
+        function onSubmitFailed_metadata_item_ds(ds,res) {
+            Leaf.showErrorMessage("错误","保存失败")
+            metadata_edit_page_toggle_mask();
+        }
+
+        /*树相关*/
+        function beforeChangeNodeHandler(){
+            if(!validFilterRows()){
+                return false
+            }
+            return true
+        }
+        function validFilterRows(){
+            var filterRowsDs = $("metadata_item_filter_rows_ds");
+            if(filterRowsDs.validate()) {
+                return true;
+            }else{
+                metadata_edit_page_toggle_mask();
+                return false;
+            }
+        }
+        function onChangeBaseTable(){
+            $("metadata_item_filter_logic_ds").removeAll();
+            $("metadata_item_filter_rows_ds").removeAll();
+            $("metadata_item_fields_ds").removeAll();
+            $("metadata_item_queryFields_ds").removeAll();
+        }
+        function onChangeNodeHandler(tableObj){
+            var relationDs = $("metadata_relation_ds");
+            var filterLogicDs = $("metadata_item_filter_logic_ds");
+            var filterRowsDs = $("metadata_item_filter_rows_ds");
+
+            /*表关联*/
+            if(!!tableObj.masterTable){
+                $jq("#metadata_relation_form").show();
+
+                var relationStr = tableObj.masterTable + "."
+                    + tableObj.masterColumnName + " = "
+                    + tableObj.name + "."
+                    + tableObj.relationColumnName;
+                var joinType = tableObj.joinType;
+
+
+                if(!!relationDs.getAt(0)){
+                    relationDs.getAt(0).set("relation_str",relationStr);
+                    relationDs.getAt(0).set("join_type",joinType);
+                }else{
+                    relationDs.create({
+                        relation_str:relationStr,
+                        join_type:joinType
+                    });
+                }
+            }else{
+                relationDs.removeAll();
+                $jq("#metadata_relation_form").hide();
+            }
+
+            /*过滤条件*/
+            if(!!tableObj.filter){
+                filterLogicDs.removeAll();
+                filterLogicDs.create({
+                    filter_logic:tableObj.filter.logic || ''
+                });
+
+                filterRowsDs.removeAll();
+                var rows = tableObj.filter.rows;
+                rows.forEach(function(row,i){
+                    filterRowsDs.create({
+                        index:row.index || i+1,
+                        field1:row.field1 || "",
+                        operator:row.operator || "",
+                        operator_n:row.operator_n || "",
+                        field2_type:row.field2_type || "",
+                        field2_type_n:row.field2_type_n || "",
+                        field2:row.field2 || ""
+                    });
+                });
+            }else{
+                filterLogicDs.removeAll();
+                filterRowsDs.removeAll();
+            }
+        }
+        function change_baseTable(lov,record,lovRecord){
+            metadataTreeGraph.updateByBaseTable(record.get("metadata_table"));
+        }
+        function beforeSelect_metadata_right_tabPanel(tabPanel,index,curTab){
+            if(tabPanel.selected == 0 && index !== 0){
+                if(!validFilterRows()){
+                    return false;
+                }
+            }
+            return true
+        }
+        function metadata_item_ds_save(){
+            metadata_edit_page_toggle_mask(true);
+
+            if(!validFilterRows()){
+                return false;
+            }
+
+            //存字段
+            var fieldsDs = $("metadata_item_fields_ds");
+            if(fieldsDs.getAll().length < 1 ){
+                Leaf.showErrorMessage("错误","至少要添加一个字段",function(){
+                    $("metadata_right_tabPanel").selectTab(1);
+                });
+                metadata_edit_page_toggle_mask();
+                return
+            }
+            if(fieldsDs.validate()) {
+                var records = fieldsDs.getAll();
+                var arr = records.map(function (record) {
+                    return record.getObject();
+                });
+                metadataTreeGraph.updateFields(arr);
+            }else{
+                metadata_edit_page_toggle_mask();
+                return
+            }
+
+            //存查询参数
+            var queryFieldsDs = $("metadata_item_queryFields_ds");
+            if(queryFieldsDs.validate()) {
+                var records = queryFieldsDs.getAll();
+                var arr = records.map(function (record) {
+                    return record.getObject();
+                });
+                metadataTreeGraph.updateQueryFields(arr);
+            }else{
+                metadata_edit_page_toggle_mask();
+                return
+            }
+
+            var data = metadataTreeGraph.getTreeDataJson();
+            $("metadata_item_ds").getAt(0).set("data",JSON.stringify(data));
+            $("metadata_item_ds").submit();
+        }
+
+        /*自定义sql相关*/
+        function active_sql_tab(){
+            $("metadata_left_tabPanel").selectTab(1);
+            var rightPanel = $("metadata_right_tabPanel");
+            rightPanel.setDisabled(0);
+            rightPanel.setDisabled(1);
+            rightPanel.setDisabled(2);
+            rightPanel.setEnabled(3);
+            rightPanel.selectTab(3);
+        }
+        function onSelect_metadata_left_tabPanel(tabPanel,index,tab){
+            if(!!$L.CmpManager.get("metadata_right_tabPanel") && !!metadataTreeGraph){
+                var rightPanel = $("metadata_right_tabPanel");
+                if(index == 0){
+                    metadataTreeGraph.originData.modelType = "tree";
+                    rightPanel.setEnabled(0);
+                    rightPanel.setEnabled(1);
+                    rightPanel.setEnabled(2);
+                    rightPanel.setDisabled(3);
+                    rightPanel.selectTab(0);
+                }else{
+                    metadataTreeGraph.originData.modelType = "sql";
+                    rightPanel.setDisabled(0);
+                    rightPanel.setDisabled(1);
+                    rightPanel.setDisabled(2);
+                    rightPanel.setEnabled(3);
+                    rightPanel.selectTab(3);
+                }
+            }
+        }
+        function metadata_item_ds_generate_field() {
+            metadata_edit_page_toggle_mask(true);
+
+            var str = $("metadata_item_sql_ds").getAt(0).get("manual_sql");
+
+            // 发请求 sql 解析 sql字段
+            Leaf.request({
+                url:"${/request/@context_path}/metadata/sql/generate/field",
+                para:{
+                    sql:str
+                },
+                success:function(res){
+                    //转成record存到metadata_item_sqlFields_ds中
+                    var rows = res.result.record || [];
+                    var sqlFieldDs = $("metadata_item_sqlFields_ds");
+                    sqlFieldDs.removeAll();
+                    rows.forEach(function(data){
+                        sqlFieldDs.create({
+                            columnName:data.column_name,
+                            columnSize:data.column_size,
+                            typeName:data.type_name,
+                            tableName:data.table_name,
+                            name:tranformToCamelCase(data.column_name)
+                        });
+                    });
+                    metadata_edit_page_toggle_mask();
+                },
+                failure:function(){
+                    Leaf.showErrorMessage("错误","生成失败");
+                    metadata_edit_page_toggle_mask();
+                },
+                error:function(){
+                    Leaf.showErrorMessage("错误","生成失败");
+                    metadata_edit_page_toggle_mask();
+                },
+                scope:this
+            });
+
+        }
+
+        Leaf.onReady(function () {
+            function encodeData(data) {
+                if (!data) {
+                    return '';
+                }
+                var key  = CryptoJS.enc.Utf8.parse("handhandhandhand");
+                var iv   = CryptoJS.enc.Utf8.parse("handhandhandhand");
+                var encrypted =CryptoJS.AES.encrypt(data,key,{
+                    iv:iv,
+                    mode:CryptoJS.mode.CBC,
+                    padding:CryptoJS.pad.Pkcs7
+                });
+                //返回的是base64格式的密文
+                return encrypted.toString();
+            }
+
+            $("metadata_item_ds").on('beforesubmit',function (ds) {
+                var winId = 'metadata_model_page_mian';
+                var data = ds.getJsonData();
+                data = data.map(function (value) {
+                    var result = jQuery.extend(true, {}, value);
+                    result.data = encodeData(result.data);
+                    return result;
+                });
+                Leaf.Masker.mask(document.getElementById(winId));
+                Leaf.request({
+                    url: ds.submiturl,
+                    para: data,
+                    success: function (res) {
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        // csh_payment_req_create_return();
+                        Leaf.Masker.unmask(document.getElementById(winId));
+                        $('metadata_item_ds').query();
+                    },
+                    failure: function () {
+                        Leaf.Masker.unmask(document.getElementById(winId));
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask(document.getElementById(winId));
+                    },
+                    scope: this
+                });
+                return false;
+            })
+        })
+
+        function metadata_item_ds_sql_save() {
+            metadata_edit_page_toggle_mask(true);
+
+            //存sql字段
+            var sqlDs = $("metadata_item_sql_ds");
+            var sqlFieldsDs = $("metadata_item_sqlFields_ds");
+            if(sqlFieldsDs.getAll().length < 1 ){
+                Leaf.showErrorMessage("错误","请先生成sql字段，至少需要一个字段");
+                metadata_edit_page_toggle_mask();
+                return
+            }
+            if(sqlFieldsDs.validate() && sqlDs.validate()) {
+                var records = sqlFieldsDs.getAll();
+                var arr = records.map(function (record) {
+                    return record.getObject();
+                });
+                metadataTreeGraph.updateSqlFields(arr);
+
+                var manualSql = sqlDs.getAt(0).get("manual_sql")
+                var encryptedSql = manualSql;
+                // 发请求获取加密sql
+                // Leaf.request({
+                //     url:"${/request/@context_path}/metadata/sql/encrypt",
+                //     para:{
+                //         sql:manualSql
+                //     },
+                //     sync:true,
+                //     success:function(res){
+                //         var encryptedSql = res.data;
+                        sqlDs.getAt(0).set("encrypted_sql",encryptedSql);
+                        metadataTreeGraph.updateManualSql(encryptedSql);
+                        var data = metadataTreeGraph.getSqlDataJson();
+                        $("metadata_item_ds").getAt(0).set("data",JSON.stringify(data));
+                        $("metadata_item_ds").submit();
+                //     },
+                //     failure:function(){
+                //         Leaf.showErrorMessage("错误","保存失败");
+                //         metadata_edit_page_toggle_mask();
+                //     },
+                //     error:function(){
+                //         Leaf.showErrorMessage("错误","保存失败");
+                //         metadata_edit_page_toggle_mask();
+                //     },
+                //     scope:this
+                // });
+
+            }else{
+                metadata_edit_page_toggle_mask();
+                return
+            }
+
+        }
+
+        /*关联属性*/
+        function onChange_metadata_joinType(cmp,value,oldValue){
+            joinTypeArr.forEach(function(type,i){
+                if(value == type){
+                    metadataTreeGraph.updateCurrentNodeJoinType(i);
+                }
+            });
+        }
+
+        /*过滤条件*/
+        function filter_logic_validator(record,name,value){
+            var reg = /^[/(/)(AND)(OR)\d\s]*$/;
+            if(!reg.test(value) && !!value){
+                return '条件筛选逻辑只能包含 : AND,OR,小括号(),正整数,空格'
+            }else{
+                return true;
+            }
+        }
+        function filter_field2_validator(record,name,value){
+            var op = record.get("operator");
+            if(!(op == "isNull" || op == "notNull") && !value){
+                return "不能为空"
+            }
+            return true;
+        }
+        function onChange_filter_operator(cmp,val,dispVal){
+            var ds = cmp.binder.ds;
+            var record = cmp.record;
+            var name = cmp.binder.name;
+            if(name == "operator_n" && (record.get("operator") == "isNull" || record.get("operator") == "notNull")){
+                record.set("field2_type_n","");
+                record.set("field2_type","");
+                record.set("field2","");
+            }
+            if(name == "field2_type_n" && record.get("field2_type") == "field"){
+                record.set("field2","");
+            }
+            ds.fireEvent("update",ds,record,name,cmp.value,cmp.startValue);
+        }
+        function metadata_item_filter_rows_ds_grid_ef(record,name){
+            if(name == "field2_type_n"){
+                var op = record.get("operator");
+                if(op == "isNull" || op == "notNull"){
+                    return ''
+                }else{
+                    return "metadata_item_filter_rows_ds_grid_comb"
+                }
+            }
+            if(name == "field2"){
+                var op = record.get("operator");
+                var fieldType = record.get("field2_type");
+                if(op == "isNull" || op == "notNull" || !fieldType){
+                    return ''
+                }else if(fieldType == "para" || fieldType == "value"){
+                    return "metadata_item_filter_rows_ds_grid_tf"
+                }else if(fieldType == "field"){
+                    return "metadata_item_filter_rows_ds_grid_lov"
+                }else{
+                    return ''
+                }
+            }
+        }
+        function beforetriggerclick_filter_rows_field_lov(lov){
+            if(lov.binder.name == "field1" || lov.binder.name == "field2"){
+                if(!!metadataTreeGraph.getCurrentTableName()){
+                    lov.controller = "/metadata/column/queryByTableNames?tableNamesStr=" + encodeURIComponent(metadataTreeGraph.getCurrentTableName());
+                }else{
+                    Leaf.showErrorMessage("提示","请先选择主表");
+                    return false;
+                }
+            }
+        }
+        function onUpdate_metadata_item_filter_logic_ds(ds,record,name,val,oldVal){
+            var logicStr = val || '';
+            if(ds.validate()) {
+                metadataTreeGraph.updateCurrentNodeFilterLogic(logicStr);
+            }
+        }
+        function onUpdate_metadata_item_filter_rows_ds(ds,record){
+            if(ds.validate(null,false)) {
+                var records = ds.getAll();
+                records.forEach(function(record,i){
+                    record.set("index",i+1);
+                });
+                var arr = records.map(function (record) {
+                    return record.getObject();
+                });
+                metadataTreeGraph.updateCurrentNodeFilterRows(arr);
+            }
+        }
+
+        /*字段*/
+        function metadata_item_fields_ds_grid_multiLovEf(record,name){
+            if(!!record.get("name") || record.get("name") == 0){
+                return "metadata_item_fields_ds_grid_tf"
+            }else{
+                return "metadata_item_fields_ds_grid_mulLov"
+            }
+        }
+        function beforeClick_metadata_item_fields_ds_grid_mulLov(cmp){
+            var arr = metadataTreeGraph.getAllTableName();
+            if(!!arr && arr.length>0){
+                var tableNamesStr = arr.join(",");
+                cmp.controller="/metadata/column/queryByTableNames?tableNamesStr=" + encodeURIComponent(tableNamesStr);
+            }else{
+                Leaf.showErrorMessage("提示","请先选择主表");
+                return false;
+            }
+        }
+        function metadata_item_fields_ds_grid_addFields(){
+            var params = {
+                url : "${/request/@context_path}/metadata/column/queryByTableNames",
+                servcie : "/metadata/column/queryByTableName~hls.layout.dto.LovMetaTableColumnDto",
+                dto : "hls.layout.dto.LovMetaTableColumnDto",
+                showCode : "column_name",
+                lovid : "metadata_item_fields_ds_grid_mulLov",
+                gridheight : "390",
+                innerwidth : "1170",
+                innergridwidth : "555",
+                lovautoquery : "true",
+                lovlabelwidth : "90"
+            };
+            var arr = metadataTreeGraph.getAllTableName();
+            if(!!arr && arr.length>0){
+                var tableNamesStr = arr.join(",");
+                params.url="${/request/@context_path}/metadata/column/queryByTableNames?tableNamesStr=" + encodeURIComponent(tableNamesStr);
+            }else{
+                Leaf.showErrorMessage("提示","请先选择主表");
+                return false;
+            }
+            var url = "${/request/@context_path}/sys_multiLov.lview";
+            $(params.lovid).record = $("metadata_item_fields_ds").create();
+            $(params.lovid).displayfield = "column_name";
+            $(params.lovid).valuefield = "column_name";
+            $(params.lovid).binder = {
+                name:"name",
+                ds:$("metadata_item_fields_ds")
+            }
+            $(params.lovid).win = new $L.Window({
+                title: '添加字段',
+                url: urlAppendPara(url,params),
+                height: 550,
+                width: 1200
+            });
+
+        }
+
+        /* 查询参数 */
+        function metadata_item_queryFields_ds_grid_multiLovEf(record,name){
+            if(!!record.get("name") || record.get("name") == 0){
+                return "metadata_item_queryFields_ds_grid_tf"
+            }else{
+                return "metadata_item_queryFields_ds_grid_mulLov"
+            }
+        }
+        function beforeClick_metadata_item_queryFields_ds_grid_mulLov(cmp) {
+            var arr = metadataTreeGraph.getAllTableName();
+            if(!!arr && arr.length>0){
+                var tableNamesStr = arr.join(",");
+                cmp.controller="/metadata/column/queryByTableNames?tableNamesStr=" + encodeURIComponent(tableNamesStr);
+            }else{
+                Leaf.showErrorMessage("提示","请先选择主表");
+                return false;
+            }
+        }
+        function metadata_item_queryFields_ds_grid_addFields(){
+            var params = {
+                url : "${/request/@context_path}/metadata/column/queryByTableNames",
+                servcie : "/metadata/column/queryByTableName~hls.layout.dto.LovMetaTableColumnDto",
+                dto : "hls.layout.dto.LovMetaTableColumnDto",
+                showCode : "column_name",
+                lovid : "metadata_item_queryFields_ds_grid_mulLov",
+                gridheight : "390",
+                innerwidth : "1170",
+                innergridwidth : "555",
+                lovautoquery : "true",
+                lovlabelwidth : "90"
+            };
+            var arr = metadataTreeGraph.getAllTableName();
+            if(!!arr && arr.length>0){
+                var tableNamesStr = arr.join(",");
+                params.url="${/request/@context_path}/metadata/column/queryByTableNames?tableNamesStr=" + encodeURIComponent(tableNamesStr);
+            }else{
+                Leaf.showErrorMessage("提示","请先选择主表");
+                return false;
+            }
+            var url = "${/request/@context_path}/sys_multiLov.lview";
+            $(params.lovid).record = $("metadata_item_queryFields_ds").create();
+            $(params.lovid).displayfield = "column_name";
+            $(params.lovid).valuefield = "column_name";
+            $(params.lovid).binder = {
+                name:"name",
+                ds:$("metadata_item_queryFields_ds")
+            }
+            $(params.lovid).win = new $L.Window({
+                title: '添加参数',
+                url: urlAppendPara(url,params),
+                height: 550,
+                width: 1200
+            });
+        }
+
+        /*转驼峰*/
+        function tranformToCamelCase(str){
+            var strArr=str.toLowerCase().split('_');
+            for(var i=1;i<strArr.length;i++){
+                strArr[i]=strArr[i].charAt(0).toUpperCase()+strArr[i].substring(1);
+            }
+            return strArr.join('');
+        }
+        /*转下划线*/
+        function tranformToLineCase(str){
+            if(str.indexOf("_")>=0 || !/^.*(([A-Z]+.*[a-z]+)|([a-z]+.*[A-Z]+)).*$/.test(str)){
+                return str.toLowerCase();
+            }
+            return str.replace(/([A-Z])/g,"_$1").toLowerCase();
+        }
+        /*页面遮罩*/
+        function metadata_edit_page_toggle_mask(flag){
+            var winId = "${/parameter/@winId}";
+            var target = winId ? $(winId).wrap : Ext.getBody();
+            if(flag){
+                Leaf.Masker.mask(target, '正在处理......');
+            }else{
+                Leaf.Masker.unmask(target);
+            }
+        }
+        function urlAppendPara(url,para){
+            var i=0;
+            for(key in para){
+                url += (url.indexOf("?")<0 && i==0 ? "?" : "&");
+                url += (key+"="+para[key]);
+            }
+            return url;
+        }
+
+        function metadata_item_fields_ds_grid_fieldsToCamel() {
+            var ds = $("metadata_item_fields_ds");
+            _transform_ds_camel_line(ds,"columnName","name","camel");
+        }
+        function metadata_item_fields_ds_grid_fieldsToLine() {
+            var ds = $("metadata_item_fields_ds");
+            var records = ds.getAll();
+            _transform_ds_camel_line(ds,"columnName","name","line");
+        }
+        function metadata_item_queryFields_ds_grid_fieldsToCamel() {
+            var ds = $("metadata_item_queryFields_ds");
+            _transform_ds_camel_line(ds,"columnName","name","camel");
+        }
+        function metadata_item_queryFields_ds_grid_fieldsToLine() {
+            var ds = $("metadata_item_queryFields_ds");
+            _transform_ds_camel_line(ds,"columnName","name","line");
+        }
+        function _transform_ds_camel_line(ds,sField,tField,type){
+            var records;
+            !!ds && (records = ds.getAll());
+            if(records.length>0 && !!tField && !!type){
+                records.forEach(function(record){
+                    var source = record.get(sField || tField);
+                    if(type == "camel"){
+                        record.set(tField,tranformToCamelCase(source),true);
+                        // record.data[tField] = tranformToCamelCase(source);
+                    }else if(type == "line"){
+                        record.set(tField,tranformToLineCase(source),true);
+                        // record.data[tField] = tranformToLineCase(source);
+                    }else if(type == "lower"){
+                        record.set(tField,source.toLowerCase(),true);
+                        // record.data[field] = tranformToLineCase(source);
+                    }
+                });
+            }
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="metadata_filter_operator_type_ds" lookupCode="META.METADATA_FILTER_OPRATOR" loadData="true"/>
+            <a:dataSet id="sql_operator_ds" lookupCode="META.SQL_OPERATOR" loadData="true"/>
+            <a:dataSet id="metadata_filter_field_type_ds" lookupCode="META.METADATA_FILTER_FIELDTYPE" loadData="true"/>
+            <a:dataSet id="metadata_column_type_ds" lookupCode="META.METADATA_COLUMN_TYPE" loadData="true"/>
+            <a:dataSet id="metadata_item_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="item_id" defaultValue="${/parameter/@data_id}"/>
+                    <a:field name="metadata_id" defaultValue="${/parameter/@metadata_id}"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="metadata_item_ds" autoPageSize="true" selectable="true"
+                       autoQuery="true" queryDataSet="metadata_item_query_ds"
+                       queryUrl="${/request/@context_path}/metadata/item/query"
+                       submitUrl="${/request/@context_path}/metadata/item/submit" >
+                <a:fields>
+                    <a:field name="item_id"/>
+                    <a:field name="metadata_id"/>
+                    <a:field name="data"/>
+                    <a:field name="metadata_table" autoComplete="true" lovGridHeight="300" lovHeight="400"
+                             lovLabelWidth="100" lovService="/metadata/relation/listKey~hls.layout.dto.LovSysTableDto" lovWidth="500"
+                             title="选择主表名" fetchRemote="false" prompt="">
+                        <a:mapping>
+                            <a:map from="master_table" to="metadata_table"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="onLoad_metadata_item_ds"/>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_metadata_item_ds"/>
+                    <a:event name="submitfailed" handler="onSubmitFailed_metadata_item_ds"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="metadata_relation_ds">
+                <a:fields>
+                    <a:field name="join_type"/>
+                    <a:field name="relation_str"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="metadata_item_filter_logic_ds">
+                <a:fields>
+                    <a:field name="filter_logic" validator="filter_logic_validator"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdate_metadata_item_filter_logic_ds"/>
+                    <a:event name="remove" handler="onUpdate_metadata_item_filter_logic_ds"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="metadata_item_filter_rows_ds" selectable="true">
+                <a:fields>
+                    <a:field name="index" prompt="序号"/>
+                    <a:field name="tableName" prompt="表名"/>
+                    <a:field name="field1" autoComplete="false" editable="false" lovGridHeight="300" lovHeight="450"
+                             required="true" lovLabelWidth="100" lovWidth="300" pagesize="1000"
+                             lovService="/metadata/column/queryByTableNames~hls.layout.dto.LovMetaTableColumnDto"
+                             title="选择字段1" fetchRemote="false" prompt="字段1">
+                        <a:mapping>
+                            <a:map from="column_name" to="field1"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="operator" required="true" prompt="比较符"/>
+                    <a:field name="operator_n" returnField="operator" options="metadata_filter_operator_type_ds"
+                             displayField="code_value_name" valueField="code_value" prompt="比较符"/>
+                    <a:field name="field2_type" validator="filter_field2_validator" prompt="字段2类型"/>
+                    <a:field name="field2_type_n" returnField="field2_type" options="metadata_filter_field_type_ds" prompt="字段2类型"
+                             displayField="code_value_name" valueField="code_value" validator="filter_field2_validator"/>
+                    <a:field name="field2" autoComplete="false" lovGridHeight="300" lovHeight="450" pagesize="1000"
+                             lovLabelWidth="100" lovWidth="300" validator="filter_field2_validator"
+                             lovService="/metadata/column/queryByTableNames~hls.layout.dto.LovMetaTableColumnDto"
+                             title="选择字段2" fetchRemote="false" prompt="字段2">
+                        <a:mapping>
+                            <a:map from="column_name" to="field2"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdate_metadata_item_filter_rows_ds"/>
+                    <a:event name="remove" handler="onUpdate_metadata_item_filter_rows_ds"/>
+                </a:events>
+            </a:dataSet>
+            <a:dataSet id="metadata_item_fields_ds" selectable="true">
+                <a:fields>
+                    <a:field name="id"/>
+                    <a:field name="columnName"/>
+                    <a:field name="columnSize"/>
+                    <a:field name="multiLanguage"/>
+                    <a:field name="nullable"/>
+                    <a:field name="tableName"/>
+                    <a:field name="typeName"/>
+                    <a:field name="typeNameCn" options="metadata_column_type_ds" returnField="typeName"
+                             displayField="code_value_name" valueField="code_value"/>
+                    <!--以上字段来源 metadata_column-->
+                    <a:field name="name" autoComplete="true" required="true"
+                             lovLabelWidth="90" lovWidth="1200" lovGridHeight="450" lovHeight="550" innerGridWidth="300"
+                             lovService="/metadata/column/queryByTableName~hls.layout.dto.LovMetaTableColumnDto" pagesize="1000"
+                             title="HLS.TABLE_COLUMN" prompt="选择字段" displayField="column_name" valueField="column_name">
+                        <a:mapping>
+                            <a:map from="id" to="id"/>
+                            <a:map from="column_name" to="columnName"/>
+                            <a:map from="column_name" to="name"/>
+                            <a:map from="column_size" to="columnSize"/>
+                            <a:map from="description" to="label"/>
+                            <a:map from="multi_language" to="multiLanguage"/>
+                            <a:map from="nullable" to="nullable"/>
+                            <a:map from="table_name" to="tableName"/>
+                            <a:map from="type_name" to="typeName"/>
+                        </a:mapping>
+                    </a:field><!--column_name的驼峰格式-->
+                    <a:field name="required" checkedValue="Y" unCheckedValue="N" defaultValue="N"/>
+                    <a:field name="label" required="true" prompt="字段描述"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="metadata_item_queryFields_ds" selectable="true">
+                <a:fields>
+                    <a:field name="id"/>
+                    <a:field name="columnName"/>
+                    <a:field name="columnSize"/>
+                    <a:field name="multiLanguage"/>
+                    <a:field name="nullable"/>
+                    <a:field name="tableName"/>
+                    <a:field name="typeName"/>
+                    <a:field name="typeNameCn" options="metadata_column_type_ds" returnField="typeName"
+                             displayField="code_value_name" valueField="code_value"/>
+                    <!--以上字段来源 metadata_column-->
+                    <a:field name="name" autoComplete="true" required="true"
+                             lovLabelWidth="90" lovWidth="1200" lovGridHeight="450" lovHeight="550" innerGridWidth="300"
+                             lovService="/metadata/column/queryByTableName~hls.layout.dto.LovMetaTableColumnDto" pagesize="1000"
+                             title="HLS.TABLE_COLUMN" prompt="选择字段" displayField="column_name" valueField="column_name">
+                        <a:mapping>
+                            <a:map from="id" to="id"/>
+                            <a:map from="column_name" to="columnName"/>
+                            <a:map from="column_name" to="name"/>
+                            <a:map from="column_size" to="columnSize"/>
+                            <a:map from="description" to="label"/>
+                            <a:map from="multi_language" to="multiLanguage"/>
+                            <a:map from="nullable" to="nullable"/>
+                            <a:map from="table_name" to="tableName"/>
+                            <a:map from="type_name" to="typeName"/>
+                        </a:mapping>
+                    </a:field><!--column_name的驼峰格式-->
+                    <a:field name="sqlOperator" required="true" defaultValue="contain" prompt="后端操作符"/><!--默认模糊查询-->
+                    <a:field name="sqlOperatorCn" options="sql_operator_ds" returnField="sqlOperator"
+                             displayField="code_value_name" valueField="code_value" required="true" defaultValue="包含"/>
+                    <a:field name="required" checkedValue="Y" unCheckedValue="N" defaultValue="N"/>
+                    <a:field name="label" required="true" prompt="参数描述"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="metadata_item_sql_ds">
+                <a:fields>
+                    <a:field name="manual_sql" required="true"/>
+                    <a:field name="encrypted_sql"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="metadata_item_sqlFields_ds" selectable="true">
+                <a:fields>
+                    <a:field name="id"/>
+                    <a:field name="columnName"/>
+                    <a:field name="columnSize"/>
+                    <a:field name="multiLanguage"/>
+                    <a:field name="nullable"/>
+                    <a:field name="tableName"/>
+                    <a:field name="typeName"/>
+                    <a:field name="typeNameCn" options="metadata_column_type_ds" returnField="typeName"
+                             displayField="code_value_name" valueField="code_value"/>
+                    <!--以上字段来源 metadata_column-->
+                    <a:field name="name" autoComplete="true" required="true"
+                             lovLabelWidth="90" lovWidth="1200" lovGridHeight="450" lovHeight="550" innerGridWidth="300"
+                             lovService="/metadata/column/queryByTableName~hls.layout.dto.LovMetaTableColumnDto" pagesize="1000"
+                             title="HLS.TABLE_COLUMN" prompt="选择字段" displayField="column_name" valueField="column_name">
+                        <a:mapping>
+                            <a:map from="id" to="id"/>
+                            <a:map from="column_name" to="columnName"/>
+                            <a:map from="column_size" to="columnSize"/>
+                            <a:map from="description" to="label"/>
+                            <a:map from="multi_language" to="multiLanguage"/>
+                            <a:map from="nullable" to="nullable"/>
+                            <a:map from="table_name" to="tableName"/>
+                            <a:map from="type_name" to="typeName"/>
+                        </a:mapping>
+                    </a:field><!--column_name的驼峰格式-->
+                    <a:field name="required" checkedValue="Y" unCheckedValue="N" defaultValue="N"/>
+                    <a:field name="label" required="true" prompt="字段描述"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody style="width:100%;height:100%;margin:0;box-sizing:border-box;">
+            <div id="metadata_model_page_mian">
+                <div class="mainLeft">
+                    <a:tabPanel id="metadata_left_tabPanel" width="420" height="450" style="width:100%;height:100%">
+                        <a:tabs>
+                            <a:tab prompt="可视化建模" width="100">
+                                <div class="btns">
+                                    <a:box column="4">
+                                        <a:lov name="metadata_table" bindTarget="metadata_item_ds"
+                                               prompt="选择主表" emptyText="选择主表" width="200" editable="false">
+                                            <a:events>
+                                                <a:event name="commit" handler="change_baseTable"/>
+                                            </a:events>
+                                        </a:lov>
+                                        <a:toolbarButton click="metadata_item_ds_save" text="保存"/>
+                                        <a:toolbarButton click="metadata_item_ds_exit" text="退出"/>
+                                    </a:box>
+                                </div>
+                                <div class="content" id="metadata_model_tree_container">
+
+                                </div>
+                            </a:tab>
+                            <a:tab prompt="自定义sql建模" width="100" >
+                                <a:textArea name="manual_sql" bindTarget="metadata_item_sql_ds" id="metadata_item_sql_ta"
+                                            width="410" height="300" emptyText="输入自定义sql" style="margin:10px;"></a:textArea>
+                                <a:box column="4">
+                                    <a:box width="200"/>
+                                    <a:toolbarButton click="metadata_item_ds_generate_field" text="生成字段"/>
+                                    <a:toolbarButton click="metadata_item_ds_sql_save" text="保存"/>
+                                    <a:toolbarButton click="metadata_item_ds_exit" text="退出"/>
+                                </a:box>
+                            </a:tab>
+                        </a:tabs>
+                        <a:events>
+                            <a:event name="select" handler="onSelect_metadata_left_tabPanel"/>
+                        </a:events>
+                    </a:tabPanel>
+                </div>
+                <div class="mainRight">
+                    <div class="content">
+                        <a:tabPanel id="metadata_right_tabPanel" width="800" height="450" style="width:100%;height:100%">
+                            <a:tabs>
+                                <a:tab prompt="关联" width="80">
+                                    <a:form title="关联属性" id="metadata_relation_form">
+                                        <a:radio bindTarget="metadata_relation_ds" width="150" name="join_type" prompt="关联方式">
+                                            <a:items>
+                                                <a:item label="inner-join" value="inner-join"/>
+                                                <a:item label="left-join" value="left-join"/>
+                                            </a:items>
+                                            <a:events>
+                                                <a:event name="change" handler="onChange_metadata_joinType"/>
+                                            </a:events>
+                                        </a:radio>
+                                        <a:label bindTarget="metadata_relation_ds" renderer="metadata_relation_str_render"
+                                                 name="relation_str" prompt="关联关系" width="500"/>
+                                    </a:form>
+                                    <a:form title="过滤条件" id="metadata_filter_form" column="1" padding="0" cellSpacing="0" cellPadding="0" wrapperAdjust="true">
+                                        <a:textField name="filter_logic" bindTarget="metadata_item_filter_logic_ds" width="600" typeCase="upper"
+                                                     prompt="筛选逻辑" emptyText="使用 AND 和 OR 合并、连接条件行号。示例： (1 AND 2) OR 3。(默认使用AND连接)"/>
+                                    </a:form>
+                                    <a:grid id="metadata_item_filter_rows_ds_grid" bindTarget="metadata_item_filter_rows_ds"
+                                            width="700" height="250" showRowNumber="true">
+                                        <a:toolBar>
+                                            <a:button type="add" text="新增条件"/>
+                                            <a:button type="delete" text="删除"/>
+                                        </a:toolBar>
+                                        <a:columns>
+                                            <a:column width="200" name="field1" prompt="字段1" editor="metadata_item_filter_rows_ds_grid_lov"/>
+                                            <a:column width="100" name="operator_n" prompt="比较符" editor="metadata_item_filter_rows_ds_grid_comb"/>
+                                            <a:column width="100" name="field2_type_n" prompt="字段2类型" editorFunction="metadata_item_filter_rows_ds_grid_ef"/>
+                                            <a:column width="200" name="field2" prompt="字段2" editorFunction="metadata_item_filter_rows_ds_grid_ef"/>
+                                        </a:columns>
+                                        <a:editors>
+                                            <a:comboBox id="metadata_item_filter_rows_ds_grid_comb">
+                                                <a:events>
+                                                    <a:event name="select" handler="onChange_filter_operator"/>
+                                                </a:events>
+                                            </a:comboBox>
+                                            <a:textField id="metadata_item_filter_rows_ds_grid_tf"/>
+                                            <a:lov id="metadata_item_filter_rows_ds_grid_lov" editable="false">
+                                                <a:events>
+                                                    <a:event name="beforetriggerclick" handler="beforetriggerclick_filter_rows_field_lov"/>
+                                                </a:events>
+                                            </a:lov>
+                                        </a:editors>
+                                    </a:grid>
+                                </a:tab>
+                                <a:tab prompt="字段" width="80" >
+                                    <a:grid id="metadata_item_fields_ds_grid" bindTarget="metadata_item_fields_ds"
+                                            width="900" height="400" navBar="false" navBarType="complex">
+                                        <a:toolBar>
+<!--                                            <a:button type="add" text="新增字段"/>-->
+                                            <a:button click="metadata_item_fields_ds_grid_addFields" text="新增字段"/>
+                                            <a:button type="delete" text="删除" />
+                                            <a:button click="metadata_item_fields_ds_grid_fieldsToCamel" text="字段名转驼峰"/>
+                                            <a:button click="metadata_item_fields_ds_grid_fieldsToLine" text="字段名转下划线"/>
+                                        </a:toolBar>
+                                        <a:columns>
+                                            <a:column width="120" name="name" prompt="字段名" editorFunction="metadata_item_fields_ds_grid_multiLovEf"/>
+                                            <a:column width="200" name="tableName" prompt="表名" align="center"/>
+                                            <a:column width="200" name="columnName" prompt="列名" align="center"/>
+                                            <a:column width="100" name="typeNameCn" prompt="字段类型" align="center"/>
+                                            <a:column width="100" name="label" prompt="字段描述" editor="metadata_item_fields_ds_grid_tf"/>
+                                            <a:column width="80" name="required" prompt="是否必选" editor="metadata_item_fields_ds_grid_cb"/>
+                                        </a:columns>
+                                        <a:editors>
+                                            <a:textField id="metadata_item_fields_ds_grid_tf"/>
+                                            <a:checkBox id="metadata_item_fields_ds_grid_cb"/>
+                                            <a:multiLov id="metadata_item_fields_ds_grid_mulLov">
+                                                <a:events>
+                                                    <a:event name="beforetriggerclick" handler="beforeClick_metadata_item_fields_ds_grid_mulLov"/>
+                                                </a:events>
+                                            </a:multiLov>
+                                        </a:editors>
+                                    </a:grid>
+                                </a:tab>
+                                <a:tab prompt="查询参数" width="80" >
+                                    <a:grid id="metadata_item_queryFields_ds_grid" bindTarget="metadata_item_queryFields_ds"
+                                            width="900" height="400" navBar="false">
+                                        <a:toolBar>
+                                            <a:button click="metadata_item_queryFields_ds_grid_addFields" text="新增参数"/>
+                                            <a:button type="delete" text="删除"/>
+                                            <a:button click="metadata_item_queryFields_ds_grid_fieldsToCamel" text="字段名转驼峰"/>
+                                            <a:button click="metadata_item_queryFields_ds_grid_fieldsToLine" text="字段名转下划线"/>
+                                        </a:toolBar>
+                                        <a:columns>
+                                            <a:column width="100" name="sqlOperatorCn" prompt="后端操作符" editor="metadata_item_queryFields_ds_grid_comb"/>
+                                            <a:column width="120" name="name" prompt="字段名" editorFunction="metadata_item_queryFields_ds_grid_multiLovEf"/>
+                                            <a:column width="150" name="tableName" prompt="表名" align="center"/>
+                                            <a:column width="150" name="columnName" prompt="列名" align="center"/>
+                                            <a:column width="100" name="typeNameCn" prompt="字段类型" align="center"/>
+                                            <a:column width="100" name="label" prompt="字段描述" editor="metadata_item_queryFields_ds_grid_tf"/>
+                                            <a:column width="80" name="required" prompt="是否必选" editor="metadata_item_queryFields_ds_grid_cb"/>
+                                        </a:columns>
+                                        <a:editors>
+                                            <a:textField id="metadata_item_queryFields_ds_grid_tf"/>
+                                            <a:checkBox id="metadata_item_queryFields_ds_grid_cb"/>
+                                            <a:comboBox id="metadata_item_queryFields_ds_grid_comb"/>
+                                            <a:multiLov id="metadata_item_queryFields_ds_grid_mulLov">
+                                                <a:events>
+                                                    <a:event name="beforetriggerclick" handler="beforeClick_metadata_item_queryFields_ds_grid_mulLov"/>
+                                                </a:events>
+                                            </a:multiLov>
+                                        </a:editors>
+                                    </a:grid>
+                                </a:tab>
+                                <a:tab prompt="sql字段" width="80" disabled="true">
+                                    <a:grid id="metadata_item_sqlFields_ds_grid" bindTarget="metadata_item_sqlFields_ds"
+                                            width="900" height="400" navBar="false" navBarType="complex">
+                                        <a:columns>
+                                            <a:column width="120" name="name" prompt="字段名" editor="metadata_item_sqlFields_ds_grid_mulLov"/>
+                                            <a:column width="200" name="tableName" prompt="表名" align="center"/>
+                                            <a:column width="200" name="columnName" prompt="列名" align="center"/>
+                                            <a:column width="100" name="typeNameCn" prompt="字段类型" editor="metadata_item_sqlFields_ds_grid_cmb" align="center"/>
+                                            <a:column width="100" name="label" prompt="字段描述" editor="metadata_item_sqlFields_ds_grid_tf"/>
+                                            <a:column width="80" name="required" prompt="是否必选" editor="metadata_item_sqlFields_ds_grid_cb"/>
+                                        </a:columns>
+                                        <a:editors>
+                                            <a:textField id="metadata_item_sqlFields_ds_grid_tf"/>
+                                            <a:checkBox id="metadata_item_sqlFields_ds_grid_cb"/>
+                                            <a:comboBox id="metadata_item_sqlFields_ds_grid_cmb"/>
+                                        </a:editors>
+                                    </a:grid>
+                                </a:tab>
+                            </a:tabs>
+                            <a:events>
+                                <a:event name="beforeselect" handler="beforeSelect_metadata_right_tabPanel"/>
+                            </a:events>
+                        </a:tabPanel>
+                    </div>
+                </div>
+            </div>
+        </a:screenBody>
+    </a:view>
+</a:screen>

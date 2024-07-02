@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.HlsCusDepositDeductionMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.HlsCusDepositDeduction">
+        <result column="DEPOSIT_DEDUCTION_ID" property="depositDeductionId" jdbcType="DECIMAL" />
+        <result column="DEPOSIT_DEDUCTION_HD_ID" property="depositDeductionHdId" jdbcType="DECIMAL" />
+        <result column="DEDUCTION_TYPE" property="deductionType" jdbcType="VARCHAR" />
+        <result column="DEDUCTION_DATE" property="deductionDate" jdbcType="DATE" />
+        <result column="DEDUCTION_AMOUNT" property="deductionAmount" jdbcType="DECIMAL" />
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="CF_ITEM" property="cfItem" jdbcType="DECIMAL" />
+        <result column="CF_TYPE" property="cfType" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="TRANSACTION_ID" property="transactionId" jdbcType="DECIMAL" />
+        <result column="DEDUCTION_PRINCIPAL" property="deductionPrincipal" jdbcType="DECIMAL" />
+        <result column="DEDUCTION_INTEREST" property="deductionInterest" jdbcType="DECIMAL" />
+        <result column="DEPOSIT_STATUS" property="depositStatus" jdbcType="VARCHAR" />
+        <result column="DEDUCTION_DOC_CATEGORY" property="deductionDocCategory" jdbcType="VARCHAR" />
+        <result column="CREATION_DATE" property="creationDate" jdbcType="TIMESTAMP"/>
+        <result column="CREATED_BY" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="LAST_UPDATED_BY" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+        <result column="LAST_UPDATE_DATE" property="lastUpdateDate" jdbcType="TIMESTAMP"/>
+        <result column="LAST_UPDATE_LOGIN" property="lastUpdateLogin" jdbcType="DECIMAL"/>
+        <result column="CF_ITEM_DESC" property="cfItemDesc" jdbcType="VARCHAR" />
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL" />
+        <result column="SURPLUS_AMOUNT" property="surplusAmount" jdbcType="DECIMAL" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_CATEGORY" property="documentCategory" jdbcType="VARCHAR" />
+        <result column="DUE_DATE" property="dueDate" jdbcType="DATE" />
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <select id="selectDepositDedctionData" parameterType="com.hand.hls.csh.dto.HlsCusDepositDeduction" resultMap="BaseResultMap">
+       SELECT
+            CDD.DEPOSIT_DEDUCTION_ID,
+            CDD.DEPOSIT_DEDUCTION_HD_ID,
+            CDD.DEDUCTION_TYPE,
+            CDD.DEDUCTION_DATE,
+            CDD.DEDUCTION_AMOUNT,
+            CDD.CASHFLOW_ID,
+            CDD.CONTRACT_ID,
+            CDD.TIMES,
+            CDD.CF_ITEM,
+            CDD.CF_TYPE,
+            CDD.DEDUCTION_PRINCIPAL,
+            CDD.DEDUCTION_INTEREST,
+            CDD.DEPOSIT_STATUS,
+            CDD.DEDUCTION_DOC_CATEGORY,
+            CDD.DESCRIPTION,
+            CDD.BP_ID,
+            CDD.OBJECT_VERSION_NUMBER,
+            CDD.TRANSACTION_ID,
+            HBM.BP_NAME,
+            CONTRACT.PROJECT_ID,
+            CONTRACT.DUE_AMOUNT,
+            CONTRACT.DUE_AMOUNT_FORMAT,
+            CONTRACT.CONTRACT_NUMBER,
+            CONTRACT.DOCUMENT_CATEGORY,
+            CONTRACT.DUE_DATE,
+            CONTRACT.SURPLUS_AMOUNT,
+            HCI.DESCRIPTION CF_ITEM_DESC
+        FROM
+            CSH_DEPOSIT_DEDUCTION CDD
+        LEFT JOIN
+            (
+            (
+                SELECT
+                    CON.CONTRACT_ID,
+                    CON.PROJECT_ID,
+                    CON.CONTRACT_NUMBER,
+                    CON.DOCUMENT_CATEGORY,
+                    CON_FLOW.TIMES,
+                    CON_FLOW.DUE_DATE,
+                     CON_FLOW.DUE_DATE  AS DUE_DATE_DESC,
+                    CON_FLOW.DUE_AMOUNT,
+                    round( CON_FLOW.DUE_AMOUNT,2) DUE_AMOUNT_FORMAT,
+                    CON_FLOW.CF_ITEM,
+                    CON_FLOW.CF_TYPE,
+                    CON_FLOW.CASHFLOW_ID,
+                    nvl(CON_FLOW.DUE_AMOUNT,0)-nvl(CON_FLOW.RECEIVED_AMOUNT,0) SURPLUS_AMOUNT,
+                    round((nvl(CON_FLOW.DUE_AMOUNT,0)-nvl(CON_FLOW.RECEIVED_AMOUNT,0) ),2)
+                                                                                 SURPLUS_AMOUNT_FORMAT,
+                    nvl(CON_FLOW.PRINCIPAL,0)-nvl(CON_FLOW.RECEIVED_PRINCIPAL,0) PRINCIPAL,
+                    round(( nvl(CON_FLOW.PRINCIPAL,0)-nvl(CON_FLOW.RECEIVED_PRINCIPAL,0)),2)
+                                                                               PRINCIPAL_FORMAT,
+                    nvl(CON_FLOW.INTEREST,0)-nvl(CON_FLOW.RECEIVED_INTEREST,0)              INTEREST,
+                    round(( nvl(CON_FLOW.INTEREST,0)-nvl(CON_FLOW.RECEIVED_INTEREST,0)),2) INTEREST_FORMAT,
+                    'CON_CONTRACT' DEDUCTION_DOC_CATEGORY
+                FROM
+                    CON_CONTRACT CON
+                JOIN
+                    CON_CONTRACT_CASHFLOW CON_FLOW
+                ON
+                    CON.CONTRACT_ID=CON_FLOW.CONTRACT_ID)
+        UNION
+            (
+                SELECT
+                    CON.CONTRACT_ID,
+                    CON.PROJECT_ID,
+                    CON.CONTRACT_NUMBER,
+                    CON.DOCUMENT_CATEGORY,
+                    CON_FLOW.TIMES,
+                    CON_FLOW.DUE_DATE,
+                     CON_FLOW.DUE_DATE  AS DUE_DATE_DESC,
+                    CON_FLOW.DUE_AMOUNT,
+                    round( CON_FLOW.DUE_AMOUNT,2) DUE_AMOUNT_FORMAT,
+                    CON_FLOW.CF_ITEM,
+                    CON_FLOW.CF_TYPE,
+                    CON_FLOW.QUOTATION_CASHFLOW_ID                             CASHFLOW_ID,
+                    nvl(CON_FLOW.DUE_AMOUNT,0)-nvl(CON_FLOW.RECEIVED_AMOUNT,0) SURPLUS_AMOUNT,
+                    round((nvl(CON_FLOW.DUE_AMOUNT,0)-nvl(CON_FLOW.RECEIVED_AMOUNT,0) ),2)
+                                                                                 SURPLUS_AMOUNT_FORMAT,
+                    nvl(CON_FLOW.PRINCIPAL,0)-nvl(CON_FLOW.RECEIVED_PRINCIPAL,0) PRINCIPAL,
+                    round(( nvl(CON_FLOW.PRINCIPAL,0)-nvl(CON_FLOW.RECEIVED_PRINCIPAL,0)),2)
+                                                                               PRINCIPAL_FORMAT,
+                    nvl(CON_FLOW.INTEREST,0)-nvl(CON_FLOW.RECEIVED_INTEREST,0)              INTEREST,
+                    round(( nvl(CON_FLOW.INTEREST,0)-nvl(CON_FLOW.RECEIVED_INTEREST,0)),2) INTEREST_FORMAT,
+                    'FCT_CONTRACT' DEDUCTION_DOC_CATEGORY
+                FROM
+                    FCT_CONTRACT CON
+                JOIN
+                    FCT_QUOTATION_CASHFLOW CON_FLOW
+                ON
+                    CON.CONTRACT_ID=CON_FLOW.CONTRACT_ID) ) CONTRACT
+        ON
+            CDD.CASHFLOW_ID=CONTRACT.CASHFLOW_ID
+        AND CDD.DEDUCTION_DOC_CATEGORY=CONTRACT.DEDUCTION_DOC_CATEGORY
+        LEFT JOIN
+            HLS_BP_MASTER HBM
+         ON
+            HBM.BP_ID=CDD.BP_ID
+        LEFT JOIN
+            HLS_CASHFLOW_ITEM HCI
+        ON
+            CDD.CF_ITEM=HCI.CF_ITEM
+        WHERE
+            CDD.DEPOSIT_DEDUCTION_HD_ID=#{depositDeductionHdId}
+    </select>
+
+    <select id="selectNewDectionAmountSum"  parameterType="com.hand.hls.csh.dto.HlsCusDepositDeduction" resultType="java.lang.Double">
+         SELECT
+            nvl(SUM(CDD.DEDUCTION_AMOUNT),0) DEDUCTION_AMOUNT_SUM
+          FROM
+                CSH_DEPOSIT_DEDUCTION CDD
+          JOIN
+                CSH_DEPOSIT_DEDUCTION_HD CDDH
+            ON
+                CDD.DEPOSIT_DEDUCTION_HD_ID=CDDH.DEPOSIT_DEDUCTION_HD_ID
+           WHERE
+               CDD.TRANSACTION_ID=#{transactionId}
+            AND
+               CDDH.DEPOSIT_STATUS IN ('NEW','APPROVED_RETURN','APPROVING','REJECTED')
+    </select>
+
+    <select id="selectCashFlowCount"  parameterType="com.hand.hls.csh.dto.HlsCusDepositDeduction" resultType="java.lang.Integer">
+    SELECT
+          COUNT(1)
+    FROM
+        (
+            SELECT
+                COUNT(1) NUM,
+                CDD.CASHFLOW_ID
+            FROM
+                CSH_DEPOSIT_DEDUCTION CDD
+            WHERE
+                 CDD.DEPOSIT_DEDUCTION_HD_ID=#{depositDeductionHdId}
+            GROUP BY
+                CDD.CASHFLOW_ID
+            HAVING COUNT(1)>1
+            )
+    </select>
+</mapper>

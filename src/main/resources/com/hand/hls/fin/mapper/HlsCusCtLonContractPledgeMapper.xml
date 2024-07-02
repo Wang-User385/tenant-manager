@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fin.mapper.HlsCusCtLonContractPledgeMapper">
+
+    <resultMap id="BaseResultMap" type="com.hand.hls.fin.dto.HlsCusCtLonContractPledge">
+        <id column="pledge_id" property="pledgeId" jdbcType="BIGINT"/>
+        <result column="contract_id" property="contractId" jdbcType="BIGINT"/>
+        <result column="pledge_name" property="pledgeName" jdbcType="VARCHAR"/>
+        <result column="pledge_bp_name" property="pledgeBpName" jdbcType="VARCHAR"/>
+        <result column="pledge_type" property="pledgeType" jdbcType="VARCHAR"/>
+        <result column="amount" property="amount" jdbcType="DOUBLE"/>
+        <result column="pledge_date_from" property="pledgeDateFrom" jdbcType="TIMESTAMP"/>
+        <result column="pledge_date_to" property="pledgeDateTo" jdbcType="TIMESTAMP"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_DOC_CATEGORY" property="pledgeDocCategory" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_DOC_ID" property="pledgeDocId" jdbcType="DECIMAL"/>
+        <result column="PLEDGE_TIMES_FROM" property="pledgeTimesFrom" jdbcType="TIMESTAMP"/>
+        <result column="PLEDGE_TIMES_TO" property="pledgeTimesTo" jdbcType="TIMESTAMP"/>
+        <result column="PLEDGE_DOC_NAME" property="pledgeDocName" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_DOC_NUMBER" property="pledgeDocNumber" jdbcType="VARCHAR"/>
+        <result column="SURPLUS_AMOUNT" property="surplusAmount" jdbcType="DECIMAL"/>
+        <result column="PLEDGE_CONTRACT_NUMBER" property="pledgeContractNumber" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_CONTRACT_NAME" property="pledgeContractName" jdbcType="VARCHAR"/>
+        <result column="TIMES" property="times" jdbcType="DECIMAL"/>
+        <result column="DUE_DATE" property="dueDate" jdbcType="DATE"/>
+        <result column="DUE_DATE_FORMAT" property="dueDateFormat" jdbcType="VARCHAR"/>
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL"/>
+        <result column="RECEIVED_AMOUNT" property="receivedAmount" jdbcType="DECIMAL"/>
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL"/>
+        <result column="CF_ITEM_DESC" property="cfItemDesc" jdbcType="VARCHAR"/>
+        <result column="PRINCIPAL" property="principal" jdbcType="DECIMAL"/>
+        <result column="INTEREST" property="interest" jdbcType="DECIMAL"/>
+        <result column="PRINCIPAL_FORMAT" property="principalFormat" jdbcType="VARCHAR"/>
+        <result column="INTEREST_FORMAT" property="interestFormat" jdbcType="VARCHAR"/>
+        <result column="DUE_AMOUNT_FORMAT" property="dueAmountFormat" jdbcType="DECIMAL"/>
+        <result column="RECEIVED_AMOUNT_FORMAT" property="receivedAmountFormat" jdbcType="VARCHAR"/>
+        <result column="SURPLUS_AMOUNT_FORMAT" property="surplusAmountFormat" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_RELEASE_FLAG" property="pledgeReleaseFlag" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_DOC_NUMBER_N" property="pledgeDocNumberN" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_RELEASE_FLAG_N" property="pledgeReleaseFlagN" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_TIMES_FROM_N" property="pledgeTimesFromN" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_TIMES_TO_N" property="pledgeTimesToN" jdbcType="VARCHAR"/>
+        <result column="PLEDGE_CONTRACT_NUMBER_n" property="pledgeContractNumberN" jdbcType="VARCHAR"/>
+
+    </resultMap>
+
+    <select id="selectLonContractPledge" parameterType="com.hand.hls.fin.dto.HlsCusCtLonContractPledge" resultMap="BaseResultMap">
+        SELECT
+        clcp.pledge_times_from as pledge_times_from_n,
+        clcp.pledge_times_to as pledge_times_to_n,
+            CLCP.*,
+            CON.CONTRACT_NAME   PLEDGE_DOC_NAME,
+            CON.APPROVAL_NUMBER PLEDGE_DOC_NUMBER,
+            CON.DUE_AMOUNT,
+            CON.SURPLUS_AMOUNT,
+            CON.APPROVAL_NUMBER PLEDGE_DOC_NUMBER_N,
+            (select scv.MEANING
+                from sys_code_b sc,sys_code_value_b scv
+                where sc.CODE_ID = scv.CODE_ID
+                and sc.CODE = 'SYS.YES_NO'
+                and scv.value = CLCP.PLEDGE_RELEASE_FLAG) PLEDGE_RELEASE_FLAG_N
+        FROM
+            CT_LON_CONTRACT_PLEDGE CLCP
+        JOIN
+        (
+        SELECT
+            CLCP.PLEDGE_ID,
+            CONTRACT.CONTRACT_ID,
+            CONTRACT.CONTRACT_NAME,
+            CONTRACT.CONTRACT_NUMBER,
+            CONTRACT.APPROVAL_NUMBER,
+            nvl(SUM(
+                    CASE
+                    WHEN (CLCP.PLEDGE_TIMES_FROM &lt;= CONTRACT.TIMES
+                    AND CLCP.PLEDGE_TIMES_TO &gt;= CONTRACT.TIMES )
+                    THEN CONTRACT.DUE_AMOUNT
+                    ELSE 0 END),0) DUE_AMOUNT,
+            nvl(SUM(
+                    CASE
+                    WHEN (CLCP.PLEDGE_TIMES_FROM &lt;= CONTRACT.TIMES
+                    AND CLCP.PLEDGE_TIMES_TO &gt;= CONTRACT.TIMES )
+                    THEN CONTRACT.DUE_AMOUNT
+                    ELSE 0 END),0)
+            -nvl(SUM(
+                    CASE
+                    WHEN (CLCP.PLEDGE_TIMES_FROM &lt;= CONTRACT.TIMES
+                    AND CLCP.PLEDGE_TIMES_TO &gt;= CONTRACT.TIMES )
+                    THEN CONTRACT.RECEIVED_AMOUNT
+                    ELSE 0 END),0)
+            SURPLUS_AMOUNT
+        FROM
+            CT_LON_CONTRACT_PLEDGE CLCP
+        LEFT JOIN
+        (
+        (
+        SELECT
+            CON.CONTRACT_ID,
+            CON.CONTRACT_NAME,
+            CON.CONTRACT_NUMBER,
+            PP.APPROVAL_NUMBER,
+            CON_FLOW.DUE_AMOUNT,
+            CON_FLOW.RECEIVED_AMOUNT,
+            CON_FLOW.TIMES,
+            'CON_CONTRACT' DOC_CATEGORY
+        FROM
+            CON_CONTRACT CON
+       JOIN
+            PRJ_PROJECT PP
+         ON
+            PP.PROJECT_ID=CON.PROJECT_ID
+        JOIN
+            CON_CONTRACT_CASHFLOW CON_FLOW
+        ON
+            CON.CONTRACT_ID = CON_FLOW.CONTRACT_ID
+        WHERE
+            CON.DATA_CLASS = 'NORMAL'
+        AND CON_FLOW.CF_STATUS = 'RELEASE'
+        AND CON_FLOW.CF_DIRECTION = 'INFLOW'
+        AND  CON_FLOW.CF_ITEM =1)
+        UNION
+        (
+            SELECT
+                CON.CONTRACT_ID,
+                CON.CONTRACT_NAME,
+                CON.CONTRACT_NUMBER,
+                CON.APPROVAL_NUMBER,
+                CON_FLOW.DUE_AMOUNT,
+                CON_FLOW.RECEIVED_AMOUNT,
+                CON_FLOW.      TIMES,
+                'FCT_CONTRACT' DOC_CATEGORY
+            FROM
+                FCT_CONTRACT CON
+            JOIN
+                FCT_QUOTATION_CASHFLOW CON_FLOW
+            ON
+                CON.CONTRACT_ID = CON_FLOW.CONTRACT_ID
+            WHERE
+                CON.DATA_CLASS = 'NORMAL'
+            AND CON_FLOW.CF_STATUS = 'RELEASE'
+            AND CON_FLOW.CF_DIRECTION = 'INFLOW'
+            AND  CON_FLOW.CF_ITEM IN(54,55)
+            ) ) CONTRACT
+        ON
+            CLCP.PLEDGE_DOC_ID = CONTRACT.CONTRACT_ID
+        AND CLCP.PLEDGE_DOC_CATEGORY = CONTRACT.DOC_CATEGORY
+        WHERE
+             1 = 1
+        GROUP BY
+            CLCP.PLEDGE_ID,
+            CONTRACT.CONTRACT_NAME,
+            CONTRACT.CONTRACT_NUMBER,
+            CONTRACT.APPROVAL_NUMBER,
+            CONTRACT.CONTRACT_ID ) CON
+        ON
+            CLCP.PLEDGE_ID = CON.PLEDGE_ID
+        WHERE
+        1 = 1
+        <if test="contractId != null">
+            AND CLCP.CONTRACT_ID =#{contractId}
+        </if>
+
+    </select>
+    <select id="selectLonContractPledgeNew" parameterType="com.hand.hls.fin.dto.HlsCusCtLonContractPledge" resultMap="BaseResultMap">
+        select v.*,v.PLEDGE_CONTRACT_NUMBER
+        PLEDGE_CONTRACT_NUMBER_n,
+        to_char(V.PLEDGE_TIMES_TO,'YYYY-MM-DD')  PLEDGE_TIMES_TO_N,
+        to_char(V.PLEDGE_TIMES_FROM,'YYYY-MM-DD')  PLEDGE_TIMES_FROM_N
+
+        from ct_lon_contract_pledge  v
+        WHERE
+        1 = 1
+        <if test="contractId != null">
+            AND v.CONTRACT_ID =#{contractId}
+        </if>
+
+    </select>
+    <select id="queryForAmount" resultType="java.lang.Double">
+
+
+SELECT
+	sum( ccc.due_amount )   amount
+FROM
+	con_contract_cashflow ccc
+WHERE
+ ccc.cf_item in (1 ,3)
+	and ccc.CF_DIRECTION ='INFLOW'
+	AND ccc.write_off_flag = 'NOT'
+	and  ccc.contract_id=#{contractId}
+	and  to_char(ccc.due_date,'YYYY-MM-DD') &lt;= to_char(#{pledgeTimesTo},'YYYY-MM-DD')
+	and  to_char(ccc.due_date,'YYYY-MM-DD') &gt;= to_char(#{pledgeTimesFrom},'YYYY-MM-DD')
+
+    </select>
+
+    <select id="selectContractSurpusAmount" parameterType="com.hand.hls.fin.dto.HlsCusCtLonContractPledge" resultMap="BaseResultMap">
+        SELECT
+            CONTRACT.CONTRACT_ID  PLEDGE_DOC_ID,
+            CONTRACT.CONTRACT_NAME PLEDGE_DOC_NAME,
+            CONTRACT.APPROVAL_NUMBER PLEDGE_DOC_NUMBER,
+            CONTRACT.DOC_CATEGORY PLEDGE_DOC_CATEGORY,
+            SUM(CONTRACT.DUE_AMOUNT) DUE_AMOUNT,
+            nvl(SUM(CONTRACT.DUE_AMOUNT),0) -nvl(SUM(CONTRACT.RECEIVED_AMOUNT),0) SURPLUS_AMOUNT
+        FROM
+            (
+            (
+                SELECT
+                    CON.CONTRACT_ID,
+                    CON.CONTRACT_NAME,
+                    CON.CONTRACT_NUMBER,
+                    PP.APPROVAL_NUMBER,
+                    CON.COMPANY_ID,
+                    CON_FLOW.DUE_AMOUNT,
+                    CON_FLOW.RECEIVED_AMOUNT,
+                    CON_FLOW.TIMES,
+                    CON_FLOW.WRITE_OFF_FLAG,
+                    'CON_CONTRACT' DOC_CATEGORY
+                FROM
+                    CON_CONTRACT CON
+                JOIN
+                    PRJ_PROJECT PP
+                  ON
+                    PP.PROJECT_ID=CON.PROJECT_ID
+                JOIN
+                    CON_CONTRACT_CASHFLOW CON_FLOW
+                ON
+                    CON.CONTRACT_ID=CON_FLOW.CONTRACT_ID
+                WHERE
+                    CON.DATA_CLASS='NORMAL'
+                AND (CON.CONTRACT_STATUS = 'INCEPT'
+                    OR (CON.CONTRACT_STATUS='PENDING' AND
+                     (
+                     SELECT
+                            COUNT(1)
+                       FROM
+                       CON_CONTRACT FT
+                      WHERE FT.DATA_CLASS='CHANGE_REQ'
+                        AND FT.CONTRACT_STATUS='INCEPT'
+                        AND FT.REF_CONTRACT_ID=CON.CONTRACT_ID
+                    ) >0))
+                AND CON_FLOW.CF_STATUS='RELEASE'
+                AND CON_FLOW.CF_DIRECTION='INFLOW'
+               <if test="pledgeWithdrawFlag!=null">
+                AND (CON.PLEDGE_FLAG='N' OR CON.PLEDGE_FLAG IS NULL)
+               </if>
+                AND  CON_FLOW.CF_ITEM =1
+         )
+        UNION
+            (
+                SELECT
+                    CON.CONTRACT_ID,
+                    CON.CONTRACT_NAME,
+                    CON.CONTRACT_NUMBER,
+                    CON.APPROVAL_NUMBER,
+                    CON.COMPANY_ID,
+                    CON_FLOW.DUE_AMOUNT,
+                    CON_FLOW.RECEIVED_AMOUNT,
+                    CON_FLOW.TIMES,
+                    CON_FLOW.WRITE_OFF_FLAG,
+                    'FCT_CONTRACT' DOC_CATEGORY
+                FROM
+                    FCT_CONTRACT CON
+                JOIN
+                    FCT_QUOTATION_CASHFLOW CON_FLOW
+                ON
+                    CON.CONTRACT_ID=CON_FLOW.CONTRACT_ID
+                WHERE
+                    CON.DATA_CLASS='NORMAL'
+                AND (CON.CONTRACT_STATUS = 'INCEPT'
+                        OR (CON.CONTRACT_STATUS='PENDING' AND
+                         (
+                         SELECT
+                                COUNT(1)
+                           FROM
+                           FCT_CONTRACT FT
+                          WHERE FT.DATA_CLASS='CHANGE_REQ'
+                            AND FT.CONTRACT_STATUS='INCEPT'
+                            AND FT.REF_CONTRACT_ID=CON.CONTRACT_ID
+                        ) >0))
+                AND CON_FLOW.CF_STATUS='RELEASE'
+                AND CON_FLOW.CF_DIRECTION='INFLOW'
+               <if test="pledgeWithdrawFlag!=null">
+                AND (CON.PLEDGE_FLAG='N' OR CON.PLEDGE_FLAG IS NULL)
+               </if>
+                AND  CON_FLOW.CF_ITEM IN(54,55)
+              ) ) CONTRACT
+        WHERE
+            1=1
+           AND CONTRACT.COMPANY_ID=#{companyId}
+            <if test="pledgeDocId!=null">
+                AND CONTRACT.CONTRACT_ID=#{pledgeDocId}
+            </if>
+            <if test="pledgeDocCategory!=null">
+                 AND CONTRACT.DOC_CATEGORY=#{pledgeDocCategory}
+            </if>
+            <if test="pledgeTimesFrom!=null">
+               AND #{pledgeTimesFrom}&lt;=CONTRACT.TIMES
+            </if>
+            <if test="pledgeTimesTo!=null">
+               AND #{pledgeTimesTo}   &gt;=CONTRACT.TIMES
+            </if>
+          <if test="pledgeDocNumber!=null">
+                AND CONTRACT.APPROVAL_NUMBER LIKE CONCAT(CONCAT('%',#{pledgeDocNumber}),'%')
+            </if>
+            <if test="pledgeDocName!=null">
+                AND CONTRACT.CONTRACT_NAME LIKE CONCAT(CONCAT('%',#{pledgeDocName}),'%')
+            </if>
+        GROUP BY
+            CONTRACT.CONTRACT_NAME,
+            CONTRACT.CONTRACT_NUMBER,
+            CONTRACT.APPROVAL_NUMBER,
+            CONTRACT.CONTRACT_ID,
+            CONTRACT.DOC_CATEGORY
+    </select>
+
+
+    <select id="selectContractCashFlow"   parameterType="com.hand.hls.fin.dto.HlsCusCtLonContractPledge" resultMap="BaseResultMap">
+         SELECT
+                CONTRACT.CONTRACT_ID     PLEDGE_DOC_ID,
+                CONTRACT.CONTRACT_NAME   PLEDGE_DOC_NAME,
+                CONTRACT.APPROVAL_NUMBER PLEDGE_DOC_NUMBER,
+                CONTRACT.DOC_CATEGORY    PLEDGE_DOC_CATEGORY,
+                CONTRACT.TIMES,
+                CONTRACT.DUE_DATE,
+                CONTRACT.DUE_DATE DUE_DATE_FORMAT,
+                SUM(CONTRACT.DUE_AMOUNT)                DUE_AMOUNT,
+                nvl(SUM(CONTRACT.RECEIVED_AMOUNT),0)                                  RECEIVED_AMOUNT,
+                nvl(SUM(CONTRACT.DUE_AMOUNT),0) -nvl(SUM(CONTRACT.RECEIVED_AMOUNT),0) SURPLUS_AMOUNT,
+                CASE
+                    WHEN CONTRACT.DOC_CATEGORY='CON_CONTRACT'
+                    THEN nvl(SUM(CONTRACT.INTEREST),0)
+                    ELSE ( nvl(SUM(
+                            CASE
+                                WHEN CONTRACT.CF_ITEM=55
+                                THEN CONTRACT.DUE_AMOUNT
+                                ELSE 0
+                            END) ,0))
+                END INTEREST,
+                CASE
+                    WHEN CONTRACT.DOC_CATEGORY='CON_CONTRACT'
+                    THEN nvl(SUM(CONTRACT.PRINCIPAL),0)
+                    ELSE ( nvl(SUM(
+                            CASE
+                                WHEN CONTRACT.CF_ITEM=54
+                                THEN CONTRACT.DUE_AMOUNT
+                                ELSE 0
+                            END) ,0))
+                END PRINCIPAL
+            FROM
+                (
+                (
+                    SELECT
+                        CON.CONTRACT_ID,
+                        CON.CONTRACT_NAME,
+                        CON.CONTRACT_NUMBER,
+                        PP.APPROVAL_NUMBER,
+                        CON.COMPANY_ID,
+                        CON_FLOW.CASHFLOW_ID,
+                        CON_FLOW.DUE_DATE,
+                        CON_FLOW.DUE_AMOUNT,
+                        CON_FLOW.RECEIVED_AMOUNT,
+                        CON_FLOW.TIMES,
+                        CON_FLOW.WRITE_OFF_FLAG,
+                        CON_FLOW.CF_ITEM,
+                        CON_FLOW.CF_TYPE,
+                        nvl(CON_FLOW.PRINCIPAL,0) PRINCIPAL,
+                        nvl(CON_FLOW.INTEREST,0)  INTEREST,
+                        'CON_CONTRACT'            DOC_CATEGORY
+                    FROM
+                        CON_CONTRACT CON
+                    JOIN
+                        PRJ_PROJECT PP
+                      ON
+                        PP.PROJECT_ID=CON.PROJECT_ID
+                    JOIN
+                        CON_CONTRACT_CASHFLOW CON_FLOW
+                    ON
+                        CON.CONTRACT_ID=CON_FLOW.CONTRACT_ID
+                    WHERE
+                        CON.DATA_CLASS='NORMAL'
+                    AND CON_FLOW.CF_STATUS='RELEASE'
+                    AND CON_FLOW.CF_DIRECTION='INFLOW'
+                    AND CON_FLOW.CF_ITEM =1
+                    <if test="pledgeWithdrawFlag!=null">
+                      AND (CON.CONTRACT_STATUS = 'INCEPT'
+                    OR (CON.CONTRACT_STATUS='PENDING' AND
+                     (
+                     SELECT
+                            COUNT(1)
+                       FROM
+                       CON_CONTRACT FT
+                      WHERE FT.DATA_CLASS='CHANGE_REQ'
+                        AND FT.CONTRACT_STATUS='INCEPT'
+                        AND FT.REF_CONTRACT_ID=CON.CONTRACT_ID
+                    ) >0))
+                    </if>
+                    )
+            UNION
+                (
+                    SELECT
+                        CON.CONTRACT_ID,
+                        CON.CONTRACT_NAME,
+                        CON.CONTRACT_NUMBER,
+                        CON.APPROVAL_NUMBER,
+                        CON.COMPANY_ID,
+                        CON_FLOW.QUOTATION_CASHFLOW_ID CASHFLOW_ID,
+                        CON_FLOW.DUE_DATE,
+                        CON_FLOW.DUE_AMOUNT,
+                        CON_FLOW.RECEIVED_AMOUNT,
+                        CON_FLOW.TIMES,
+                        CON_FLOW.WRITE_OFF_FLAG,
+                        CON_FLOW.CF_ITEM,
+                        CON_FLOW.CF_TYPE,
+                        nvl(CON_FLOW.PRINCIPAL,0) PRINCIPAL,
+                        nvl(CON_FLOW.INTEREST,0)  INTEREST,
+                        'FCT_CONTRACT'            DOC_CATEGORY
+                    FROM
+                        FCT_CONTRACT CON
+                    JOIN
+                        FCT_QUOTATION_CASHFLOW CON_FLOW
+                    ON
+                        CON.CONTRACT_ID=CON_FLOW.CONTRACT_ID
+                    WHERE
+                        CON.DATA_CLASS='NORMAL'
+                    AND CON_FLOW.CF_STATUS='RELEASE'
+                    AND CON_FLOW.CF_DIRECTION='INFLOW'
+                    AND CON_FLOW.CF_ITEM IN(54,55)
+                   <if test="pledgeWithdrawFlag!=null">
+                     AND (CON.CONTRACT_STATUS = 'INCEPT'
+                        OR (CON.CONTRACT_STATUS='PENDING' AND
+                         (
+                         SELECT
+                                COUNT(1)
+                           FROM
+                           FCT_CONTRACT FT
+                          WHERE FT.DATA_CLASS='CHANGE_REQ'
+                            AND FT.CONTRACT_STATUS='INCEPT'
+                            AND FT.REF_CONTRACT_ID=CON.CONTRACT_ID
+                        ) >0))
+                   </if> ) ) CONTRACT
+            WHERE
+                1=1
+            <if test="pledgeDocId!=null">
+                AND CONTRACT.CONTRACT_ID=#{pledgeDocId}
+            </if>
+            <if test="pledgeDocCategory!=null">
+                 AND CONTRACT.DOC_CATEGORY=#{pledgeDocCategory}
+            </if>
+            <if test="times!=null">
+                AND  CONTRACT.TIMES=#{times}
+            </if>
+            <if test="pledgeTimesFrom!=null">
+               AND #{pledgeTimesFrom}&lt;=CONTRACT.TIMES
+            </if>
+            <if test="pledgeTimesTo!=null">
+               AND #{pledgeTimesTo}   &gt;=CONTRACT.TIMES
+            </if>
+       GROUP BY
+            CONTRACT.CONTRACT_ID,
+            CONTRACT.CONTRACT_NAME ,
+            CONTRACT.CONTRACT_NUMBER ,
+            CONTRACT.APPROVAL_NUMBER,
+            CONTRACT.DOC_CATEGORY ,
+            CONTRACT.TIMES,
+            CONTRACT.DUE_DATE
+        ORDER BY
+            CONTRACT.TIMES
+    </select>
+
+    <update id="updateFctContractPledgeFlag">
+       UPDATE
+            FCT_CONTRACT CON
+        SET
+            CON.PLEDGE_FLAG='N'
+        WHERE
+              CON.PLEDGE_FLAG='Y'
+          AND CON.CONTRACT_ID IN
+            (
+                SELECT
+                      LCP.PLEDGE_DOC_ID
+                FROM
+                    LON_CONTRACT LC
+                JOIN
+                    CT_LON_CONTRACT_PLEDGE LCP
+                ON
+                    LC.CONTRACT_ID=LCP.CONTRACT_ID
+                WHERE
+                    LCP.PLEDGE_DOC_CATEGORY='FCT_CONTRACT'
+                AND LCP.PLEDGE_RELEASE_FLAG='Y'
+                AND LC.SETTLE_STATUS='CLEARED'
+            )
+    </update>
+
+    <update id="updateConContractPledgeFlag">
+        UPDATE
+            CON_CONTRACT CON
+        SET
+            CON.PLEDGE_FLAG='N'
+        WHERE
+            CON.PLEDGE_FLAG='Y'
+        AND CON.CONTRACT_ID IN
+            (
+                SELECT
+                    LCP.PLEDGE_DOC_ID
+                FROM
+                    LON_CONTRACT LC
+                JOIN
+                    CT_LON_CONTRACT_PLEDGE LCP
+                ON
+                    LC.CONTRACT_ID=LCP.CONTRACT_ID
+                WHERE
+                    LCP.PLEDGE_DOC_CATEGORY='CON_CONTRACT'
+                AND LCP.PLEDGE_RELEASE_FLAG='Y'
+                AND LC.SETTLE_STATUS='CLEARED'
+               )
+    </update>
+
+
+    <update id="updatePledgeReleaseFlag">
+        UPDATE
+            CT_LON_CONTRACT_PLEDGE LCP
+        SET
+            LCP.PLEDGE_RELEASE_FLAG='N'
+        WHERE
+            LCP.PLEDGE_RELEASE_FLAG='Y'
+        AND LCP.CONTRACT_ID IN
+            (
+                SELECT
+                    LC.CONTRACT_ID
+                FROM
+                    LON_CONTRACT LC
+                WHERE
+                    LC.CONTRACT_ID=LCP.CONTRACT_ID
+                AND LC.SETTLE_STATUS='CLEARED')
+    </update>
+
+    <select id="selectPledgeMaxAndMinTimes" resultType="java.util.Map">
+      SELECT
+             MAX(CPI.PLEDGE_TIMES) "pledgeTimesMax",
+             MIN(CPI.PLEDGE_TIMES) "pledgeTimesMin"
+        FROM
+            CT_LON_CONTRACT_PLEDGE_INFO CPI
+        WHERE
+            CPI.PLEDGE_ID = #{pledgeId}
+    </select>
+    <select id="selectByContractNumber" resultType="com.hand.hls.fin.dto.HlsCusCtLonContractPledge" resultMap="BaseResultMap">
+        select
+            *
+        from
+             ct_lon_contract_pledge clcp
+        where
+            clcp.pledge_contract_number = #{contractNumber}
+    </select>
+</mapper>

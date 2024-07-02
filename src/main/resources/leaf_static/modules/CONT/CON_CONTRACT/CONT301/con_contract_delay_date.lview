@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+<!--        <a:model-query model="$com.hand.hls.sys.service.SysDefaultValueService.querySysDefaultValue"-->
+<!--                       rootPath="default_value"/>-->
+    </a:init-procedure>
+    <a:view>
+
+        <script><![CDATA[
+        function con_contract_delay_return() {
+            $('CONT301F33_G_RESULT_con_contract_ds').query();
+            $('${/parameter/@winId}').close();
+        }
+
+        function con_contract_delay_detail() {
+            debugger;
+            if ($('con_contract_date_ds').validate()) {
+                var records = $('CONT301F33_G_RESULT_con_contract_ds').getSelected();
+                var head_record = $('con_contract_date_ds').getAt(0);
+
+                var winId = '${/parameter/@winId}';
+                Leaf.Masker.mask($(winId).wrap, '延后起租中。。');
+
+
+                var contractRecord = [];
+                var records = $('CONT301F33_G_RESULT_con_contract_ds').getSelected();
+                for (var i = 0; i < records.length; i++) {
+                    records[i].set('lease_account_date_delay', head_record.get('lease_account_date_delay'));
+                    contractRecord.push(records[i].data);
+                }
+                // var lease_account_date = '${/parameter/@lease_account_date}';
+                // var lease_account_date_delay = head_record.get('lease_account_date_delay');
+                //校验是否可以延后起租
+                Leaf.request({
+                    url: "${/request/@context_path}/contract/incept/delaycheck/finance",
+                    async: false,
+                    para: contractRecord,
+                    success: function (res) {
+                        debugger;
+                        Leaf.Masker.unmask($(winId).wrap);
+
+                        var data = res.result.record[0];
+                        if (data === "true") {
+                            //延后调整
+                            Leaf.request({
+                                url: "${/request/@context_path}/contract/incept/delaylease/finance",
+                                async: false,
+                                para: contractRecord,
+                                success: function (res) {
+                                    Leaf.Masker.unmask($(winId).wrap);
+                                    Leaf.SideBar.show({
+                                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                        duration: 2000
+                                    });
+                                    con_contract_delay_return();
+                                },
+                                error: function (res) {
+                                    Leaf.Masker.unmask($(winId).wrap);
+                                },
+                                failure: function (res) {
+                                    Leaf.Masker.unmask($(winId).wrap);
+                                },
+                                scope: this
+                            });
+
+                        } else if (data === "writefalse" ) {
+                            Leaf.showConfirm("提示", "原起租日到调整后起租日之间存在核销记录,不能调整延后起租日！") ;
+                            return;
+                        } else if (data === "incomefalse") {
+                            Leaf.showInfoMessage("提示", "财务起租日所在月份月结已结束,不能调整延后起租日！");
+                            return;
+                        }else if(data === "gldfalse"){
+                            Leaf.showInfoMessage("提示", "请在【凭证管理】功能中生成起租凭证！");
+                            return;
+                        }else if(data === "gldconfirmfalse"){
+                            Leaf.showInfoMessage("提示", "请先将该合同的起租凭证确认！");
+                            return;
+                        }
+
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask($(winId).wrap);
+                    },
+                    scope: this
+                });
+
+            }
+        }
+
+
+        Leaf.onReady(function () {
+            debugger;
+            var head_record = $('con_contract_date_ds').getAt(0);
+       /*     var lease_account_date = '${/parameter/@lease_account_date}';
+            head_record.set('lease_account_date_delay',lease_account_date);*/
+            if (Ext.isEmpty(head_record.get('description'))) {
+                head_record.set('description', '${l:HLS.REVERSE}');
+            }
+        });
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="con_contract_date_ds" autoCreate="true">
+                <a:fields>
+
+                    <a:field name="lease_account_date_delay" prompt="财务起租核算日" required="true"/>
+                </a:fields>
+
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                  <a:gridButton click="con_contract_delay_detail" text="确认延后"/>
+                  <a:gridButton click="con_contract_delay_return" text="HLS.RETURN"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:box column="2" labelWidth="130">
+                    <a:datePicker name="lease_account_date_delay" bindTarget="con_contract_date_ds"/>
+                </a:box>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+
+</a:screen>

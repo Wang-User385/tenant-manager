@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        var winid = "lease_item_confirm_id";
+        function saveClick() {
+            if (document.getElementById('importFile').value) {
+                var fileName = document.getElementById('importFile').value;
+                var fileType = fileName.substr(fileName.lastIndexOf("."));
+                if (fileType != '.xls' && fileType != '.xlsx') {
+                    alert('${l:SELECT_CORRECT_IMPORT_FILE}');
+                } else {
+                    _input_window = new $L.Window({
+                        title: '${l:HLS.IMPORT}',
+                        width: 1650,
+                        height: 700
+                    });
+                    new Ext.Template('<iframe id ="_input_window" name="_input_window" border="0" frameborder="0" height="100%"  width="100%"  style="border:none;padding:0px;margin:0px;"></iframe>').insertFirst(_input_window.body.dom, {}, true);
+                    //document.getElementById('importForm').submit();
+                    var form = document.getElementById('importForm');
+                    var url = '${/request/@context_path}/modules/LEASE/LEASE001/lease_item_import_detail.lview?lease_item_id=${/parameter/@lease_item_id}&_csrf=${/session/@_csrf.token}&winid=${/parameter/@winid}';
+                    form.action = url;
+                    form.submit();
+                }
+            }
+        }
+
+        function downfile() {
+            //debugger;
+            Leaf.request({
+                url: "${/request/@context_path}/sys/template/query",
+                para: {template_code : 'LEASE_ITEM_TEMPLATE' },
+                success: function (res) {
+                    $L.Masker.unmask(document.body);
+                    //console.log(res);
+                    var attachment_id = res.result.record[0].attachment_id;
+                    if(attachment_id == 'undefined'  || attachment_id == '' || attachment_id == null){
+                        Leaf.showInfoMessage('未找到模板!');
+                        return ;
+                    }else{
+                        var down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
+                        location.href = down_url;
+                    }
+                },
+                error: function (res) {
+                    $L.Masker.unmask(document.body);
+                },
+                failure: function (res) {
+                    $L.Masker.unmask(document.body);
+                },
+                scope: this
+            });
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="label_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="label2" defaultValue="${l:STRICT_IMPORTED_TEMPLATE_DATA}"/>
+                    <a:field name="label3" defaultValue="${l:PRODUCT_MASTER_DATA_IMPORT}"/>
+                    <a:field name="label4" defaultValue="${l:IMPORTER_ONLY_SUPPORTS}"/>
+                    <a:field name="label5" defaultValue="${l:READ_THE_ABOVE_CAREFULLY}"/>
+                    <a:field name="label6" defaultValue="${l:THE_IMPORT_IS_COMPLETE}"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:fieldSet style="margin-left:10px;margin-top:10px;" title="IMPORT_CONSIDERATIONS" width="400">
+            <a:label name="label2" bindTarget="label_ds" style="margin-left:10px;" width="380"/>
+            <a:label name="label3" bindTarget="label_ds" style="margin-left:10px;" width="380"/>
+            <a:label name="label4" bindTarget="label_ds" style="margin-left:10px;" width="380"/>
+            <a:label name="label5" bindTarget="label_ds" style="color:#055A78;font-weight:bold;margin-left:10px;"
+                     width="380"/>
+            <a:label name="label6" bindTarget="label_ds" style="color:#055A78;font-weight:bold;margin-left:10px;"
+                     width="380"/>
+        </a:fieldSet>
+        <a:fieldSet style="margin-left:10px;margin-top:10px;" title="TMPLT_IMPORT_FILE" width="400">
+            <form name="upload" id="importForm"
+                  action="${/request/@context_path}/modules/LEASE/LEASE001/lease_item_import_detail.lview?lease_item_id=${/parameter/@lease_item_id}&amp;_csrf=${/session/@_csrf.token}&amp;winid=${/parameter/@winid}"
+                  enctype="multipart/form-data" method="post" target="_input_window">
+                <label style="margin-left:10px;margin-top:10px;font-size:13px"><![CDATA[${l:PLEASE_SELECT_A_FILE}]]></label>
+                <input name="CONTENT" id="importFile" style="font-size:15px" type="file"/>
+                <input onclick="saveClick()" style="margin-left:10px;margin-top:10px;width:60px;height:23px"
+                       type="button" value="${l:TMPLT_IMPORT}"/>
+            </form>
+        </a:fieldSet>
+        <a:fieldSet style="margin-left:10px;margin-top:10px;" title="模板下载" width="400">
+            <input onclick="downfile()" style="margin-left:10px;width:60px;height:23px"
+                   type="button" value="下载"/>
+        </a:fieldSet>-
+    </a:view>
+</a:screen>

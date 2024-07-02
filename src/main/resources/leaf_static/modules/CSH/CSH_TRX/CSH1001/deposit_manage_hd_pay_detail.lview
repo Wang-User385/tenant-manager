@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: sys
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        //生成权限字符串
+        window['${/parameter/@layout_code}_set_authority_rule_string'] = function () {
+            //debugger;
+            Leaf.request({
+                url: "${/request/@context_path}/hls/credit/line/chance/generateAuthorityString",
+                success: function (res) {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_manage_hd');
+                    $(ds_id).getCurrentRecord().set('authority_rule_string', res.result.record[0]);
+                },
+                sync: true,
+                scope: this
+            });
+        };
+
+
+        //保存前调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            var check_flag = true;
+            // debugger;
+            var chance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_manage_hd', 'DFZJ0001');
+            var chance_record = $(chance_ds_id).getCurrentRecord();
+
+            var manage_number = chance_record.get("manage_number");
+
+            if (manage_number == null && check_flag) {
+                var document_category = 'BZJ_TREATMENT';
+                var document_type = 'BZJ_TREATMENT';
+                var business_type = 'BZJ_TREATMENT';
+
+                window['${/parameter/@layout_code}_set_authority_rule_string']();
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type,
+                    success: function (res) {
+                        chance_record.set('manage_number', res.result.record[0]);
+                        check_flag = true;
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        check_flag = false;
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            return check_flag;
+        };
+
+
+        // 提交审批
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_not_ignore_required_flag'] = true;
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+
+debugger
+                var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'DFZJ00020');
+                var prj_project_record = $(prj_project_ds_id).getCurrentRecord();
+                if(!(prj_project_record.get("deposit_amount") >= prj_project_record.get("perform_amount"))){
+                    $L.showInfoMessage("提示", "只有当执行金额小于等于保证金金额时，才可以进行代付!", null);
+                    return;
+                }
+
+                var con_contract_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract', 'DFZJ000202');
+                var records = $(con_contract_ds_id).getAll();
+                if (records.length == 0) {
+                    Leaf.showMessage('提示！', '不存在需要进行代付的现金流！');
+                    return;
+                }
+
+
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_manage_hd', 'DFZJ0001');
+                var chance_record = $(ds_id).getCurrentRecord();
+
+                var manage_hd_id = chance_record.get("manage_hd_id");
+//                alert(manage_hd_id);
+//                return;
+
+                // debugger;
+                if ($(ds_id).validate()) {
+                    var record = $(ds_id).getCurrentRecord();
+
+                    // debugger;
+                    if (manage_hd_id != null) {
+                        var depositManageHd = {manageHdId: manage_hd_id};
+                        new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                            Leaf.request({
+                                url: '${/request/@context_path}/csh/deposit/manage/hd/submitApproval',
+                                jsonData: depositManageHd,
+                                success: function (res) {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                    if (res.success) {
+                                        Leaf.showSuccessMessage('${HLS.SUBMIT_SUCCESS}', '申请提交成功', function () {
+                                            if ('${/parameter/@winid}') {
+                                                $("${/parameter/@winid}").close();
+                                            } else {
+                                                location.href = '${/request/@context_path}/user_role_home_page.lview';
+                                                parent.shMenu('show');
+                                            }
+                                        });
+                                    } else {
+                                        Leaf.showErrorMessage('提示', res.message);
+                                    }
+                                },
+                                failure: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                },
+                                error: function () {
+                                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                },
+                                scope: this
+                            });
+                        }, function cancel() {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        }, 200, 100);
+
+                    } else {
+                        $L.showInfoMessage("提示", "请先保存!", null);
+                    }
+                }
+            })
+
+        }
+
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+            //debugger;
+
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_manage_hd');
+//            var hd_record = $(ds_id).getAt(0);
+            var ds = $('ds_id');
+            if (ds.validate()) {
+
+                //step1：生成hd数据
+
+                //step2：跳转到详细页面
+
+                var record = ds.getAt(0);//ds.getCurrentRecord();
+                var param= record.data;
+                param['function_usage'] = 'CREATE';
+                param['winid'] = '${/parameter/@layout_code}_deposit_create_winid';
+                param['parent_winid'] = '${/parameter/@winid}';
+                param['default_value_dsid'] = ds.id;
+                param['url_title'] = '客户信息创建';
+
+                if (record.get('handling_method') == '0') {//保证金代付期中租金
+                    param['function_code'] = 'CSH1001F2';
+                } else if(record.get('handling_method') == '1' ||record.get('handling_method') == '2'||record.get('handling_method') == '3') {//保证金处理方式变更
+                    param['function_code'] = 'CSH1001F3';
+                }else{
+                    Leaf.showInfoMessage("提示", "保证金处理方式错误，请重新选择!", null);
+                    return;
+                }
+                hls_doc_get_layout_code(param, 'bp100_bp_master_create_id', 'hls_bp_create_ds', 'BP100',param['parent_winid'], 'Y');
+            }
+        }
+        //创建加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq){
+
+            debugger;
+
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_manage_hd');
+            var detail_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+
+            var check_flag = true;
+            if(pledge_ds_id!="" && $(pledge_ds_id).getCurrentRecord()!=null && '${/parameter/@function_usage}' != 'QUERY'){
+                //MODIFY_PERSON  new Date() MODIFY_DATE ASSET_STATUS
+                $(pledge_ds_id).getCurrentRecord().set('applicant', '${/session/@employeeName}');
+                $(pledge_ds_id).getCurrentRecord().set('create_date', new Date());
+                $(pledge_ds_id).getCurrentRecord().set('description', '${/parameter/@description}');
+            }
+            if (detail_ds_id!="" && $(detail_ds_id).getCurrentRecord()!=null && '${/parameter/@function_usage}' != 'QUERY'){
+                $(detail_ds_id).getCurrentRecord().set('description', '${/parameter/@description}')
+            }
+            /*debugger
+            var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var prj_project_record = $(prj_project_ds_id).getAt(0);
+            if(prj_project_record.get('afterperform_balance')<0){
+                prj_project_record.set('afterperform_balance', 0);
+            }*/
+
+            /*
+                            /!* if(typeof ($(pledge_ds_id).getCurrentRecord().get('asset_status'))=='undefined'|| 'undefined' == ($(pledge_ds_id).getCurrentRecord().get('asset_status'))){
+
+                             }*!/
+                            $(pledge_ds_id).getCurrentRecord().set('status', 'NEW');
+                            $(pledge_ds_id).getCurrentRecord().set('status_n', '新建');
+                            if(typeof ($(pledge_ds_id).getCurrentRecord().get('modify_date'))=='undefined'|| 'undefined' == ($(pledge_ds_id).getCurrentRecord().get('modify_date'))){
+                                $(pledge_ds_id).getCurrentRecord().set('application_date', new Date());
+                            }
+
+                            console.log('${/session/@unitId}')
+                            $(pledge_ds_id).getCurrentRecord().set('unit_id', '${/session/@unitId}');
+
+                            if(!transfer_application_number){
+                                Leaf.request({
+                                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type,
+                                    success: function (res) {
+                                        $(pledge_ds_id).getCurrentRecord().set('transfer_application_number', res.result.record[0]);
+                                        $(pledge_ds_id).getCurrentRecord().set('transfer_application_number_n', res.result.record[0]);
+                                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        check_flag = true;
+                                        //$('${/parameter/@winid}').close();
+                                        //$(pledge_ds_id).query();
+
+                                    },
+                                    error: function (res) {
+                                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        check_flag = false;
+                                        //$('${/parameter/@winid}').close();
+                                        //$(pledge_ds_id).query();
+                                    },
+                                    failure: function (res) {
+                                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        check_flag = false;
+                                        //$('${/parameter/@winid}').close();
+
+                                    },
+                                    sync: true,
+                                    scope: this
+                                });
+                            }*/
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            return check_flag;
+        }
+
+        /*附件超链接渲染*/
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function;
+            console.log(name)
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'upload') {
+                link_function = '${/parameter/@layout_code}_attachment_detail';
+
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + name + '\');">' + config_record.get('prompt') + '</a>';
+            }
+        };
+
+        /*附件上传超链接函数*/
+        window['${/parameter/@layout_code}_attachment_detail'] = function (record_id, name) {
+
+            var record = window['${/parameter/@layout_code}_hls_link_render_record'][record_id + '---' + name];
+
+            if (record.get('deposit_attachment_id')) {
+                var url;
+                if ('${/parameter/@function_usage}' == 'QUERY') {
+
+                    url = '${/request/@context_path}/downloadFile.lview';
+                } else {
+                    url = '${/request/@context_path}/uploadFile.lview';
+
+                }
+                var win = new Leaf.Window({
+                    id: '${/parameter/@layout_code}_open_attachment_winid',
+                    url: url,
+                    params: {
+                        header_id: record.get('deposit_attachment_id'),
+                        table_name: 'csh_deposit_attachment',
+                        winid: '${/parameter/@layout_code}_open_attachment_winid',
+                        function_usage: '${/parameter/@function_usage}'
+                    },
+                    title: '文件上传',
+                    width: 800,
+                    height: 575
+                });
+                win.on('close', function () {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_deposit_attachment');
+                    $(ds_id).query();
+                });
+            } else {
+                $L.showInfoMessage("提示", "请先保存!", null);
+            }
+
+        }
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

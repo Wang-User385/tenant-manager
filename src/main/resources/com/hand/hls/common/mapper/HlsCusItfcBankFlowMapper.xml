@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.common.mapper.HlsCusItfcBankFlowMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.common.dto.HlsCusItfcBankFlow">
+        <result column="RECORD_ID" property="recordId" jdbcType="DECIMAL" />
+        <result column="FLOW_ID" property="flowId" jdbcType="VARCHAR" />
+        <result column="CURRENCY_TYPE" property="currencyType" jdbcType="VARCHAR" />
+        <result column="FLOW_TIME" property="flowTime" jdbcType="DATE" />
+        <result column="IN_OUT" property="inOut" jdbcType="VARCHAR" />
+        <result column="IO_CODE" property="ioCode" jdbcType="VARCHAR" />
+        <result column="IO_NAME" property="ioName" jdbcType="VARCHAR" />
+        <result column="REMARK" property="remark" jdbcType="VARCHAR" />
+        <result column="OWN_ACCOUNT_ID" property="ownAccountId" jdbcType="DECIMAL" />
+        <result column="OWN_ACCOUNT_NO" property="ownAccountNo" jdbcType="VARCHAR" />
+        <result column="OWN_ACCOUNT_NAME" property="ownAccountName" jdbcType="VARCHAR" />
+        <result column="RIVAL_ACCOUNT_ID" property="rivalAccountId" jdbcType="DECIMAL" />
+        <result column="RIVAL_ACCOUNT_NO" property="rivalAccountNo" jdbcType="VARCHAR" />
+        <result column="RIVAL_ACCOUNT_NAME" property="rivalAccountName" jdbcType="VARCHAR" />
+        <result column="PURPOSE" property="purpose" jdbcType="VARCHAR" />
+        <result column="TRADE_NO" property="tradeNo" jdbcType="VARCHAR" />
+        <result column="OUT_BALANCE_AMT" property="outBalanceAmt" jdbcType="DECIMAL" />
+        <result column="IN_BALACNCE_AMT" property="inBalacnceAmt" jdbcType="DECIMAL" />
+        <result column="INCOME_AMT" property="incomeAmt" jdbcType="DECIMAL" />
+        <result column="PAY_AMT" property="payAmt" jdbcType="DECIMAL" />
+        <result column="TRANS_AMOUNT" property="transAmount" jdbcType="DECIMAL" />
+        <result column="DEAL_STATUS" property="dealStatus" jdbcType="VARCHAR" />
+        <result column="DEAL_STATUS_N" property="dealStatusN" jdbcType="VARCHAR" />
+        <result column="DEAL_DATE" property="dealDate" jdbcType="DATE" />
+        <result column="DEAL_MSG" property="dealMsg" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_TABLE" property="documentTable" jdbcType="VARCHAR" />
+        <result column="DOCUMENT_NUMBER" property="documentNumber" jdbcType="DECIMAL" />
+        <result column="pk_ebank_dzd" property="pkEbankDzd" jdbcType="VARCHAR" />
+        <result column="cf_direction_desc" property="cfDirectionDesc" jdbcType="VARCHAR" />
+        <result column="document_num" property="documentNum" jdbcType="VARCHAR" />
+        <result column="creation_date" property="creationDate"/>
+        <result column="bp_id" property="bpId"/>
+        <result column="bp_id_n" property="bpIdN"/>
+        <result column="bp_name" property="bpName"/>
+    </resultMap>
+
+    <select id="queryBankFlowInfo" parameterType="com.hand.hls.common.dto.HlsCusItfcBankFlow" resultMap="BaseResultMap">
+        select
+        f.*,
+        ( SELECT sc.meaning
+        FROM sys_code_value_b_v sc
+        WHERE sc.CODE = 'ITFC_FLOW_DEAL_STATUS'
+          AND sc.CODE_VALUE =f.DEAL_STATUS ) AS DEAL_STATUS_n,
+        case
+            when f.io_code='AL001' then '流出'
+            else '流入'
+            end AS cf_direction_desc,
+        case
+            when f.deal_status='Y' and f.document_table='CSH_TRANSACTION'
+            then (select ct.TRANSACTION_NUM from CSH_TRANSACTION ct where to_char(ct.transaction_id)=to_char(f.DOCUMENT_NUMBER))
+            else ''
+            end AS document_num,
+        case
+        when f.deal_status='Y' and f.document_table='CSH_TRANSACTION'
+        then (select CT.BP_ID from CSH_TRANSACTION ct
+        where to_char(ct.transaction_id)=to_char(f.DOCUMENT_NUMBER))
+        else ''
+        end AS bp_id,
+        case
+        when f.deal_status='Y' and f.document_table='CSH_TRANSACTION'
+        then (select M.BP_NAME from CSH_TRANSACTION ct,HLS_BP_MASTER M
+        where to_char(ct.transaction_id)=to_char(f.DOCUMENT_NUMBER)
+        AND M.BP_ID=CT.BP_ID)
+        else ''
+        end AS bp_id_n,
+        case
+            when f.deal_status='Y' and f.document_table='CSH_TRANSACTION'
+            then (select M.BP_NAME from CSH_TRANSACTION ct,HLS_BP_MASTER M
+                where to_char(ct.transaction_id)=to_char(f.DOCUMENT_NUMBER)
+                AND M.BP_ID=CT.BP_ID)
+            else ''
+        end AS bp_name
+        from HLS_ITFC_BANK_FLOW f
+        <where>
+            1=1
+            <if test="flowId != null">
+                and f.flow_id like concat(concat('%',#{flowId}),'%')
+            </if>
+            <if test="ioCode != null">
+                and f.io_code = #{ioCode}
+            </if>
+            <if test="dealStatus != null">
+                and f.deal_status = #{dealStatus}
+            </if>
+            <if test="ownAccountNo != null">
+                and f.own_account_no like concat(concat('%',#{ownAccountNo}),'%')
+            </if>
+            <if test="ownAccountName != null">
+                and f.own_account_name like concat(concat('%',#{ownAccountName}),'%')
+            </if>
+            <if test="rivalAccountNo != null">
+                and f.rival_account_no like concat(concat('%',#{rivalAccountNo}),'%')
+            </if>
+            <if test="rivalAccountName != null">
+                and f.rival_account_name like concat(concat('%',#{rivalAccountName}),'%')
+            </if>
+            <if test="flowTimeFrom != null">
+                and to_char(f.flow_time,'yyyy-mm-dd') &gt;= #{flowTimeFrom}
+            </if>
+            <if test="flowTimeTo != null">
+                and to_char(f.flow_time,'yyyy-mm-dd') &lt;= #{flowTimeTo}
+            </if>
+            <if test="creationDate != null">
+                and trunc(f.creation_date) = trunc(#{creationDate})
+            </if>
+            <if test="creationDateFrom != null">
+                and to_char(f.creation_date,'yyyy-mm-dd') &gt;= #{creationDateFrom}
+            </if>
+            <if test="creationDateTo != null">
+                and to_char(f.creation_date,'yyyy-mm-dd') &lt;= #{creationDateTo}
+            </if>
+        </where>
+
+    </select>
+</mapper>

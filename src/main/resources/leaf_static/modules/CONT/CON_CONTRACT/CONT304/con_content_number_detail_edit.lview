@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Revision: 1.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true" dynamiccreateenabled="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+
+        <a:link id="cont304f1_create_document_number_link_id" url="${/request/@context_path}/content/create/doc/number/create"/>
+        <a:link id="cont304f1_submit_document_wfl_link_id" url="${/request/@context_path}/con/content/number/head/submit/wfl"/>
+
+
+        <script><![CDATA[
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+
+            if(ds.id === '${/parameter/@layout_code}_F_BASIN_INFO_con_content_number_head_ds'){
+                if(record.get('head_id') == null){
+                    record.set('req_date',new Date());
+                    record.set('req_user','${/session/@user_id}');
+                    record.set('user_name','${/session/@employeeName}');
+
+                }
+            }
+
+
+        }
+        Leaf.onReady(function () {
+            var line_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_content_number_line');
+            if('${/parameter/@create_flag}'== 'Y'){
+                $(line_ds_id).create();
+                $(line_ds_id).getCurrentRecord().set('content_type','LON_CONTENT');
+                $(line_ds_id).getCurrentRecord().set('content_type_n','主融资租赁合同');
+            }
+        })
+
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value, bp_seq) {
+
+            if(ds.id === '${/parameter/@layout_code}_G_LINE_INFO_con_content_number_line_ds'){
+                if(name === 'content_type') {
+                    var datas = ds.getAll();
+                    var num = 0;
+                    for (var i = 0; i < datas.length; i++) {
+                        if (datas[i].get('content_type') === 'LON_CONTENT') {
+                            num += num + 1;
+                        }
+                    }
+                    if(num > 1){
+                        $L.showInfoMessage("提示","融资合同类型的编号只能存在一个");
+                        record.set('content_type',null);
+                        record.set('content_type_n',null);
+                    }
+                }
+            }
+            //加字段存business_type 的具体值
+            if(ds.id === '${/parameter/@layout_code}_F_BASIN_INFO_con_content_number_head_ds'){
+                if(name === 'apply_business_type') {
+                    if (value == 'ZL1010101' || value == 'ZL1010201' || value == 'ZL1010301' || value == 'ZL1020101' || value == 'ZL1020201' ) {
+                        record.set('business_type' , 'LEASE');
+                    } else  if(value == 'ZL1010102' || value == 'ZL1010302' || value == 'ZL1020102' ) {
+                        record.set('business_type' , 'LEASEBACK');
+                    }else{
+                        record.set('business_type' , '');
+                    }
+                }
+            }
+
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_content_number_line');
+            if (ds_id === ds.id) {
+                var records = $(ds_id).getAll();
+                record.set('order_number',records.length);
+            }
+        };
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+            $('${/parameter/@layout_code}_F_BASIN_INFO_con_content_number_head_ds').setQueryParameter('head_id',record.get('${/parameter/@layout_code}_F_BASIN_INFO_con_content_number_head').data[0].get('head_id'));
+            $('${/parameter/@layout_code}_F_BASIN_INFO_con_content_number_head_ds').query();
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        };
+
+        //生成编号
+        // window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+        //
+        //     var ds_id= '${/parameter/@layout_code}_G_LINE_INFO_con_content_number_line_ds';
+        //
+        //     var datas = $(ds_id).getSelectedJson();
+        //     if(datas.length == 0){
+        //         $L.showInfoMessage("提示","请选择要生成编号的合同!");
+        //         return;
+        //     }
+        //
+        //     window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function(){
+        //         window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+        //
+        //
+        //         var ds_id= '${/parameter/@layout_code}_G_LINE_INFO_con_content_number_line_ds';
+        //
+        //         var datas = $(ds_id).getSelectedJson();
+        //         if(datas.length == 0){
+        //             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        //             $L.showInfoMessage("提示","请选择要生成编号的合同!");
+        //             return;
+        //         }
+        //
+        //         Leaf.request({
+        //             url: $('cont304f1_create_document_number_link_id').getUrl(),
+        //             para: datas,
+        //             success: function (res) {
+        //                 window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        //                 $L.showInfoMessage("提示","生成成功!",function(){
+        //                     $(ds_id).query();
+        //                 });
+        //             },
+        //             error: function (res) {
+        //                 $L.showInfoMessage("提示","生成编号失败,请联系管理员!");
+        //                 window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        //             },
+        //             failure: function (res) {
+        //                 $L.showInfoMessage("提示","生成编号失败,请联系管理员!");
+        //                 window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        //             },
+        //             scope: this
+        //         });
+        //     });
+        //
+        //
+        // };
+
+        //提交审批
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+
+            $L.showConfirm("提示","确认提交工作流审批吗?",function(){
+
+                var businessRecord = $('${/parameter/@layout_code}_F_BASIN_INFO_con_content_number_head_ds').getCurrentRecord();
+                var apply_business_type = businessRecord.get('apply_business_type');
+
+                if(apply_business_type == 'ZL1030302' || apply_business_type =='ZL1030101' || apply_business_type =='ZL1030102'
+                    || apply_business_type == 'ZL1030201'  || apply_business_type == 'ZL1030202' || apply_business_type == 'ZL1030301' || apply_business_type == '' ){
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showInfoMessage("提示" , "该业务种类暂不支持提交审批！");
+                    return ;
+                }
+
+                window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function(){
+
+                    var record = $('${/parameter/@layout_code}_F_BASIN_INFO_con_content_number_head_ds').getCurrentRecord();
+
+                    var head_id = record.get('head_id');
+
+                    var apply_business_type = record.get('apply_business_type');
+
+                    if(apply_business_type == 'ZL1030302' || apply_business_type =='ZL1030101' || apply_business_type =='ZL1030102'
+                        || apply_business_type == 'ZL1030201'  || apply_business_type == 'ZL1030202' || apply_business_type == 'ZL1030301' || apply_business_type == '' ){
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showInfoMessage("提示" , "该业务种类暂不支持提交审批！");
+                        return ;
+                    }
+
+                    Leaf.request({
+                        url: $('cont304f1_submit_document_wfl_link_id').getUrl(),
+                        para: {
+                            head_id:head_id
+                        },
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示","提交审批成功!",function(){
+                                $('${/parameter/@winid}').close();
+                            });
+                        },
+                        error: function (res) {
+                            $L.showInfoMessage("提示","提交审批失败,请联系管理员!");
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function (res) {
+                            $L.showInfoMessage("提示","提交审批失败,请联系管理员!");
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                });
+            });
+        }
+
+
+
+    ]]></script>
+
+    </a:view>
+</a:screen>

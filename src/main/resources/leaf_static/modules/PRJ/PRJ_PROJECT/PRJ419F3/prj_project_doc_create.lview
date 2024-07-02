@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lrd
+    $Revision: 1.0
+    $Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" dynamiccreateenabled="true" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="prj316f3_create_docx_link_id" url="${/request/@context_path}/prj/project/create/docx"/>
+        <a:link id="prj316f3_sign_offline_docx_link_id" url="${/request/@context_path}/prj/project/sign/docx"/>
+        <a:link id="prj316f3_sign_online_link_id" url="${/request/@context_path}/prj/project/sign/online"/>
+        <a:link id="prj_create_party_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419F7/prj_party_create.lview"/>
+        <script><![CDATA[
+
+            function prj316f3_create_docx(){
+                debugger
+                var docx_flag = '${/parameter/@docx_flag}';
+                var division = '${/parameter/@division}';
+                var lease_channel = '${/parameter/@lease_channel}';
+                if(docx_flag != 'Y'){
+                    return;
+                }
+                $L.Masker.mask(Ext.getBody(),"正在生成合同文本");
+                var projectId = '${/parameter/@project_id}';
+                //TODO 2023-02-22 规则引擎值的确定
+                //var templateType = 'CONTRACT_ATTACHMENT'; //厂商租赁合同规则引擎
+                var templateType = 'YH_CONTTRACT_FILE'; //应用规则树的规则引擎类型名称
+
+                // if (division === 'PHOTOVOLTAIC_DEVICES') { //光伏设备业务线
+                //     templateType = 'VOLT_CONTRACT_TEXT';
+                // } else if(parent_layout_code === 'PRJ316F4'){
+                //     templateType = 'CAR_CONTRACT_FILE'; //汽车租赁合同规则引擎
+                // }
+                // if (lease_channel === '40') {
+                //     templateType = 'OL_CONTRACT_TEXT'
+                // }
+                Leaf.request({
+                    url: $('prj316f3_create_docx_link_id').getUrl() + "?projectId="+projectId+'&templateType='+templateType,
+                    scope: this,
+                    success: function (res) {
+                        if(res.success) {
+                            $L.Masker.unmask(Ext.getBody());
+                            $L.showInfoMessage("提示", "合同文本生成成功!");
+                            $("${/parameter/@layout_code}_T_GRID_prj_project_attachment_ds").query();
+                        }else{
+                            $L.Masker.unmask(Ext.getBody());
+                            $L.showInfoMessage("提示", "合同文本生成失败!");
+                            $("${/parameter/@layout_code}_T_GRID_prj_project_attachment_ds").query();
+                        }
+                    },
+                    failure: function () {
+                        $L.Masker.unmask(Ext.getBody());
+                    },
+                    error: function () {
+                        $L.Masker.unmask(Ext.getBody());
+                    }
+                });
+            }
+
+            function prj316f3_sign_offline_docx() {
+                debugger
+                var isOnline = '${/parameter/@isOnline}';
+                var projectId = '${/parameter/@project_id}';
+                Leaf.request({
+                    url: $('prj316f3_sign_offline_docx_link_id').getUrl() + "?projectId="+projectId,
+                    scope: this,
+                    success: function (res) {
+                        if(res.success) {
+                            $L.Masker.unmask(Ext.getBody());
+                            $L.showInfoMessage("提示", "合同文本签约成功!");
+                            $("${/parameter/@layout_code}_T_GRID_prj_project_attachment_ds").query();
+                        }
+                    }
+                });
+            }
+
+            function prj316f3_sign_online_docx() {
+                var projectId = '${/parameter/@project_id}';
+                var manufacturerCode = '${/parameter/@manufacturer_code}';
+                var projectAttachmentCategory = 'HLS_PRJ_PROJECT_DOCX4';
+                Leaf.request({
+                    url: $('prj316f3_sign_online_link_id').getUrl()+ "?projectId="+projectId+"&manufacturerCode="
+                        +manufacturerCode+"&projectAttachmentCategory="+projectAttachmentCategory,
+                    scope: this,
+                    success: function (res) {
+                        if(res.success) {
+                            $L.Masker.unmask(Ext.getBody());
+                            $L.showInfoMessage("提示", "合同文本签约发起成功!");
+                            $("${/parameter/@layout_code}_T_GRID_prj_project_attachment_ds").query();
+                        }
+                    }
+                });
+            }
+
+            function prj316f3_zip_download(){
+                debugger
+                var prj_project_attachment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment');
+                var  prj_project_attachment_ds_record=$(prj_project_attachment_ds_id).getAll();
+                var attachmentIds = '';
+                for (let i = 0; i < prj_project_attachment_ds_record.length; i++) {
+                    attachmentIds += prj_project_attachment_ds_record[i].data.attachment_id + ',';
+                }
+                var down_url;
+                down_url = "${/request/@context_path}/contract/archive/attachment/downloadFile?attachment_id=" + attachmentIds;
+                location.href = down_url;
+            }
+            //新增和加载时调用(form)
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+                //设置进件编号
+                var project_number = '${/parameter/@project_number}';
+                var project_id = '${/parameter/@project_id}';
+                record.set("project_number",project_number);
+                record.set("project_id",project_id);
+            };
+
+            //查询时调用(grid,table,gridBox)
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+                qpara['project_id'] = '${/parameter/@project_id}';
+                qpara['manufacturer_code'] = '${/parameter/@manufacturer_code}';
+                qpara['project_attachment_category'] = 'HLS_PRJ_PROJECT_DOCX4';
+
+            };
+            //超链接渲染
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+                debugger
+                var link_function = '';
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+                if (name == 'download') {
+                    // return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id='+record.get("attachment_id")+'">' + config_record.get('prompt') + '</a>';
+                    var table_name = 'HLS_PRJ_PROJECT_DOCX4';
+                    var document_name  = record.get("document_name");
+                    return '<a href="javascript:PRJ419_open_attach(\'' + record.get('project_attachment_id') + '\',\''+table_name + '\',\''+ document_name +'\')">上传/下载</a>';
+                }
+                if (name == 'party') {
+                    return '<a href="javascript:win_open_party(\'' + record.id + '\',\'' + record.ds.id + '\');">签约方明细 </a>';
+                }
+            };
+
+        function win_open_party(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '签约方明细';
+            param['function_usage'] = 'MODIFY';
+            param['function_code'] = 'PRJ419F7';
+            param['winid'] = 'bp_master_modify_winid11';
+            param['project_attachment_id'] = record.get('project_attachment_id');
+            hls_doc_get_layout_code(param, 'prj_create_party_link_id', ds_id, 'PRJ419F7');
+        }
+
+        //附件
+        var win;
+
+        function PRJ419_open_attach(project_attachment_id, table_name,document_name,th_back_flag) {
+            debugger
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            var parent_layout_code = '${/parameter/@parent_layout_code}';
+            // if (function_usage === 'QUERY'&&('${/parameter/@sign_status}'!='REJECTED'&&'${/parameter/@sign_status}'!='NEW')) {
+            //     url = '${/request/@context_path}/downloadFile.lview';
+            // } else {
+            //     url = '${/request/@context_path}/uploadFile.lview';
+            // }
+            url = '${/request/@context_path}/uploadFile.lview';
+            win = new Leaf.Window({
+                id: 'PRJ419_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': project_attachment_id,
+                    'table_name': table_name,
+                    winid: 'PRJ419_open_attachment_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                debugger
+                var ds_id;
+                ds_id = "${/parameter/@layout_code}_T_GRID_prj_project_attachment_ds";
+                $(ds_id).query();
+            });
+        }
+            Leaf.onReady(function(){
+                debugger
+                var docx_flag = '${/parameter/@docx_flag}';
+                var isOnline = '${/parameter/@isOnline}';
+                if(docx_flag != 'Y'){
+                    $jq("#prj316f3_create_docx").css({
+                        "background": "#eee",
+                        "color":"#000"
+                    })
+                }
+                if(isOnline=='true'){
+                    jQuery('#prj316f3_sign_offline_docx').hide();
+                }else{
+                    jQuery('#prj316f3_sign_online_docx').hide();
+                }
+            });
+        ]]></script>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton id="prj316f3_create_docx" text="生成合同文本" click="prj316f3_create_docx"/>
+                <a:gridButton text="打包下载" click="prj316f3_zip_download"/>
+                <a:gridButton id="prj316f3_sign_offline_docx" text="确认签约" click="prj316f3_sign_offline_docx"/>
+                <a:gridButton id="prj316f3_sign_online_docx" text="发起签约" click="prj316f3_sign_online_docx"/>
+            </a:screenTopToolbar>
+        </a:screenBody>
+    </a:view>
+</a:screen>

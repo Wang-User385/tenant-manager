@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.BpMasterAgreementMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.BpMasterAgreement">
+        <result column="AGREEMENT_ID" property="agreementId" jdbcType="DECIMAL"/>
+        <result column="AGREEMENT_NUM" property="agreementNum" jdbcType="VARCHAR"/>
+        <result column="UPLOAD_USER_ID" property="uploadUserId" jdbcType="DECIMAL"/>
+        <result column="UPLOAD_DATE" property="uploadDate" jdbcType="DATE"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="ENABLED_FLAG" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="upload_user_id_n" property="uploadUserIdN" jdbcType="VARCHAR"/>
+        <result column="upload_date_n" property="uploadDateN" jdbcType="VARCHAR"/>
+        <result column="file_names" property="fileNames" jdbcType="VARCHAR"/>
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL"/>
+        <result column="assure_manner" property="assureManner" jdbcType="VARCHAR"/>
+        <result column="valid_from" property="validFrom" jdbcType="DATE"/>
+        <result column="valid_to" property="validTo" jdbcType="DATE"/>
+    </resultMap>
+
+    <select id="queryBpMasterAgreementDetail" resultMap="BaseResultMap">
+       SELECT
+	hbm.agreement_id,
+	hbm.agreement_num,
+	(SELECT (SELECT DISTINCT (fe. NAME)
+        FROM sys_user_allocation  sua,
+        fnd_employee_assigns fea,
+        fnd_employee         fe
+        WHERE fa.created_by = sua.user_id
+        AND sua.employee_assign_id = fea.EMPLOYEE_ASSIGN_ID
+        AND fe.EMPLOYEE_ID = fea.EMPLOYEE_ID) upload_person
+        FROM fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        WHERE to_char(hbm.AGREEMENT_ID) = fam.table_pk_value
+        AND fam.table_name = 'HLS_BP_MASTER_AGREEMENT'
+        and fa.attachment_id = fam.attachment_id
+        and rownum=1) UPLOAD_USER_ID_N,
+				(SELECT fa.creation_date
+        FROM fnd_atm_attachment fa, fnd_atm_attachment_multi fam
+        WHERE to_char(hbm.AGREEMENT_ID) = fam.table_pk_value
+        AND fam.table_name = 'HLS_BP_MASTER_AGREEMENT'
+        and fa.attachment_id = fam.attachment_id
+        and rownum=1) UPLOAD_DATE_N,
+	(
+SELECT
+	wm_concat ( sf.FILE_NAME )
+FROM
+	fnd_atm_attachment sf,
+	fnd_atm_attachment_multi sa
+WHERE
+	sa.ATTACHMENT_ID = sf.ATTACHMENT_ID
+	AND to_char( hbm.agreement_id )  = sa.table_pk_value
+	AND upper( sa.table_name ) = 'HLS_BP_MASTER_AGREEMENT'
+	) file_names,
+	hbm.description,
+	hbm.enabled_flag,
+	hbm.assure_manner,
+	hbm.valid_from,
+	hbm.valid_to
+FROM
+	hls_bp_master_agreement hbm
+ where hbm.bp_id = #{bpId}
+</select>
+
+    <select id="queryBpMasterAgreementDetail1" resultMap="BaseResultMap">
+        select hbm.agreement_id,
+               hbm.agreement_num,
+               hbm.upload_user_id,
+               hbm.description,
+               hbm.enabled_flag,
+               hbm.assure_manner,
+               hbm.valid_from,
+               hbm.valid_to
+        from hls_bp_master_agreement hbm
+        where hbm.bp_id = #{bpId}
+    </select>
+
+</mapper>

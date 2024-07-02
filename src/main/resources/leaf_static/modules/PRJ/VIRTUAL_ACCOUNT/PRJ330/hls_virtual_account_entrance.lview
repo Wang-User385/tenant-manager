@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="hls_virtual_account_check_before_submit_link" url="${/request/@context_path}/hls/virtual/account/check/before/submit"/>
+        <a:link id="hls_virtual_account_contract_update_link" url="${/request/@context_path}/hls/virtual/account/contract/update"/>
+        <script><![CDATA[
+
+        var changeList = [];
+
+        //保存前调用获取编码
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_virtual_account');
+            var records = $(ds_id).getAll();
+            var checkList = new Array();
+            var n = 0;
+            for(var i=0;i<records.length;i++){
+                if(records[i].dirty){
+                    checkList[n] = records[i];
+                    n += 1;
+                    changeList.push(records[i].data);
+                }else if(records[i].isNew){
+                    checkList[n] = records[i];
+                    n += 1;
+                    changeList.push(records[i].data);
+                }
+            }
+
+            if(ds_id){
+                if(checkList.length > 0){
+                    var ids = [];
+                    for (var i = 0; i < checkList.length; i++) {
+                        var record = checkList[i];
+                        ids[i] = checkList[i].get('contract_id');
+                    }
+                    for (var i = 0; i < ids.length - 1; i++){
+                        for(var j = i + 1;j < ids.length;j++){
+                            if(ids[i] == ids[j]){
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                Leaf.showMessage("提示", "合同号"+ checkList[i].get('contract_id_n') +"重复！请检查！", null);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            var checkData = [];
+
+            for (var i = 0; i < checkList.length; i++) {
+                checkData.push(checkList[i].data);
+            }
+
+            var check_flag = true;
+
+            Leaf.request({
+                url: $('hls_virtual_account_check_before_submit_link').getUrl(),
+                scope: this,
+                para: {checkData: checkData},
+                success: function (res) {
+                    var result = res.result.record[0];
+                    if(result != 'NONE'){
+                        if(result == 'NEW'){
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.showMessage("提示", "新增记录重复！请检查！", null);
+                            check_flag = false;
+                        }else{
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.showMessage("提示", "记录"+ result +"重复！请检查！", null);
+                            check_flag = false;
+                        }
+                    }
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage("提示", "记录重复校验失败！请联系系统管理员！", null);
+                    check_flag = false;
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage("提示", "记录重复校验失败！请联系系统管理员！", null);
+                    check_flag = false;
+                },
+                scope: this,
+                sync: true
+            });
+            return check_flag;
+        }
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_virtual_account');
+            $(ds_id).query();
+            Leaf.Masker.unmask(Ext.getBody());
+            Leaf.request({
+                url: $('hls_virtual_account_contract_update_link').getUrl(),
+                scope: this,
+                para: {changeList: changeList},
+                success: function (res) {
+                    changeList = [];
+                },
+                failure: function () {
+                    changeList = [];
+                },
+                error: function () {
+                    changeList = [];
+                },
+                scope: this
+            });
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            record.getField("contract_id_n").setRequired(true);
+        };
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_virtual_account');
+            if (ds.id == ds_id) {
+                if(record){
+                    var account_record = record;
+                    if(account_record.get('account_name')){
+                        account_record.getField("account_name").setReadOnly(true);
+                    }
+                    if(account_record.get('account_full_name')){
+                        account_record.getField("account_full_name").setReadOnly(true);
+                    }
+                    if(account_record.get('account_num')){
+                        account_record.getField("account_num").setReadOnly(true);
+                    }
+                    if(account_record.get('contract_id_n')){
+                        account_record.getField("contract_id_n").setReadOnly(true);
+                    }
+                    if(account_record.get('bank_code_n')){
+                        account_record.getField("bank_code_n").setReadOnly(true);
+                    }
+                }
+            }
+        }
+
+
+            //批量导入
+            window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+                new Leaf.Window({
+                    id: 'prj330_excel_import_winid',
+                    params: {
+                        winid: 'prj330_excel_import_winid'
+                    },
+                    url: '${/request/@context_path}/modules/PRJ/VIRTUAL_ACCOUNT/PRJ330/virtual_account_excel_import.lview',
+                    title: '虚拟账号批量导入',
+                    width: 430,
+                    height: 360
+                });
+
+            }
+
+        //批量删除
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            debugger
+            var ds = $('PRJ440_G_RESULT_hls_virtual_account_ds');
+            var records = ds.getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '请选择一条记录！');
+                return;
+            }
+            new Leaf.showConfirm('${l:HLS.PROMPT}', '是否确认删除所勾选的' + records.length + '条虚拟账户信息？', function okFun() {
+               debugger
+                const recordList = []
+                for (var i = 0; i < records.length; i++) {
+                    recordList.push(records[i].data)
+                }
+
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/virtual/account/delete',
+                    para: recordList,
+                    success: function (res) {
+                        if (res) {
+                            Leaf.showMessage('提示', '删除成功!');
+                            ds.query();
+                        } else {
+                            Leaf.showMessage('提示', '删除失败!');
+                        }
+
+                    },
+                    failure: function () {
+                        Leaf.showMessage('提示', '删除失败!');
+                    },
+                    error: function () {
+                        Leaf.showMessage('提示', '删除失败!');
+                    }
+                })
+
+            })
+
+        }
+
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.HlsCusDepositRefundMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.HlsCusDepositRefund">
+        <result column="DEPOSIT_REFUND_ID" property="depositRefundId" jdbcType="DECIMAL" />
+        <result column="TRANSACTION_ID" property="transactionId" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="REFUND_DATE" property="refundDate" jdbcType="DATE" />
+        <result column="REFUND_TYPE" property="refundType" jdbcType="VARCHAR" />
+        <result column="REFUND_STATUS" property="refundStatus" jdbcType="VARCHAR" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="REFUND_DOC_CATEGORY" property="refundDocCategory" jdbcType="VARCHAR" />
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="CF_ITEM" property="cfItem" jdbcType="DECIMAL" />
+        <result column="CF_TYPE" property="cfType" jdbcType="DECIMAL" />
+        <result column="REFUND_AMOUNT" property="refundAmount" jdbcType="DECIMAL" />
+        <result column="REFUND_METHOD" property="refundMethod" jdbcType="VARCHAR" />
+        <result column="BANK_SLIP_NUM" property="bankSlipNum" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_ID" property="bankAccountId" jdbcType="DECIMAL" />
+        <result column="BP_BANK_ACCOUNT_ID" property="bpBankAccountId" jdbcType="DECIMAL" />
+        <result column="BP_BANK_NAME" property="bpBankName" jdbcType="VARCHAR" />
+        <result column="BP_BANK_BRANCH_NAME" property="bpBankBranchName" jdbcType="VARCHAR" />
+        <result column="BP_BANK_ACCOUNT_NUM" property="bpBankAccountNum" jdbcType="VARCHAR" />
+        <result column="BP_BANK_ACCOUNT_NAME" property="bpBankAccountName" jdbcType="VARCHAR" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="TRANSACTION_AMOUNT" property="transactionAmount" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_AMOUNT" property="writeOffAmount" jdbcType="DECIMAL" />
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR" />
+        <result column="BANK_NAME" property="bankName" jdbcType="VARCHAR" />
+        <result column="BANK_BRANCH_NAME" property="bankBranchName" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_NUM" property="bankAccountNum" jdbcType="VARCHAR" />
+        <result column="BANK_ACCOUNT_NAME" property="bankAccountName" jdbcType="VARCHAR" />
+        <result column="APPROVAL_NUMBER" property="approvalNumber" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_NAME" property="contractName" jdbcType="VARCHAR"/>
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="COMPANY_ID" property="companyId" jdbcType="DECIMAL" />
+    </resultMap>
+
+
+    <select id="selectDepositRefundData" parameterType="com.hand.hls.csh.dto.HlsCusDepositRefund" resultMap="BaseResultMap">
+       SELECT
+            CDR.DEPOSIT_REFUND_ID,
+            CDR.TRANSACTION_ID,
+            CDR.BP_ID,
+            CDR.REFUND_DATE,
+            CDR.REFUND_TYPE,
+            CDR.REFUND_STATUS,
+            CDR.CONTRACT_ID,
+            CDR.REFUND_DOC_CATEGORY,
+            CDR.CASHFLOW_ID,
+            CDR.TIMES,
+            CDR.CF_ITEM,
+            CDR.CF_TYPE,
+            CDR.REFUND_AMOUNT,
+            CDR.REFUND_METHOD,
+            CDR.BANK_SLIP_NUM,
+            CDR.BANK_ACCOUNT_ID,
+            CB.BANK_ID,
+            CB.BANK_NAME,
+            CBA.BANK_ACCOUNT_NAME,
+            CBA.BANK_ACCOUNT_NUM,
+            CBA.BANK_BRANCH_NAME,
+            CDR.BP_BANK_ACCOUNT_ID,
+            CDR.BP_BANK_NAME,
+            CDR.BP_BANK_BRANCH_NAME,
+            CDR.BP_BANK_ACCOUNT_NUM,
+            CDR.BP_BANK_ACCOUNT_NAME,
+            CDR.DESCRIPTION,
+            CT.COMPANY_ID,
+            CT.TRANSACTION_AMOUNT,
+            nvl(CT.WRITE_OFF_AMOUNT,0) WRITE_OFF_AMOUNT,
+            HBM.BP_NAME,
+            CON.APPROVAL_NUMBER,
+            CON.CONTRACT_NAME,
+            CON.CONTRACT_NUMBER
+        FROM
+            CSH_DEPOSIT_REFUND CDR
+        LEFT JOIN
+            CSH_BANK_ACCOUNT CBA
+        ON
+            CBA.BANK_ACCOUNT_ID=CDR.BANK_ACCOUNT_ID
+        LEFT JOIN
+            CSH_BANK CB
+        ON
+            CB.BANK_ID=CBA.BANK_ID
+        JOIN
+            CSH_TRANSACTION CT
+        ON
+            CT.TRANSACTION_ID=CDR.TRANSACTION_ID
+        LEFT JOIN
+            HLS_BP_MASTER HBM
+        ON
+            HBM.BP_ID=CDR.BP_ID
+        LEFT JOIN
+            (
+                SELECT
+                    FC.CONTRACT_ID,
+                    'FCT_CONTRACT' CON_CATEGORY,
+                    FC.APPROVAL_NUMBER,
+                    FC.CONTRACT_NAME,
+                    FC.CONTRACT_NUMBER
+                FROM
+                    FCT_CONTRACT FC
+                UNION
+                SELECT
+                    CC.CONTRACT_ID,
+                    'CON_CONTRACT' CON_CATEGORY,
+                    PP.APPROVAL_NUMBER,
+                    CC.CONTRACT_NAME,
+                    CC.CONTRACT_NUMBER
+                FROM
+                    CON_CONTRACT CC
+                JOIN PRJ_PROJECT PP
+                  ON PP.PROJECT_ID=CC.PROJECT_ID
+             ) CON
+        ON
+            CDR.REFUND_DOC_CATEGORY=CON.CON_CATEGORY
+        AND CDR.CONTRACT_ID=CON.CONTRACT_ID
+        WHERE
+             1=1
+        <if test="transactionId !=null">
+		  AND CDR.TRANSACTION_ID=#{transactionId}
+        </if>
+        <if test="depositRefundId !=null">
+		  AND CDR.DEPOSIT_REFUND_ID=#{depositRefundId}
+        </if>
+
+    </select>
+</mapper>

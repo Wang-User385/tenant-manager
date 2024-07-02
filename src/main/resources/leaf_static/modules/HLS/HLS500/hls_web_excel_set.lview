@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+        function hls_web_excel_set_query() {
+            $('hls_web_excel_set_ds').query();
+        }
+
+        function hls_web_excel_set_reset() {
+            $('hls_web_excel_set_query_ds').reset();
+            $('hls_web_excel_set_ds').query();
+        }
+
+        function hls_web_excel_set_add() {
+            $('hls_web_excel_set_ds').create();
+        }
+
+        function hls_web_excel_set_save() {
+            var ds = $('hls_web_excel_set_ds');
+            if (ds.validate()) {
+                ds.submit();
+            }
+        }
+
+        function hls_web_excel_set_export_confirm(){
+            if($('hls_web_excel_set_ds').getSelected().length==0){
+                Leaf.showErrorMessage( '提示', '请选择记录！',null, 200, 100 );
+                return ;
+            }
+            Leaf.showConfirm('提示', '确定导出？', hls_web_excel_set_export, null, 200, 100 );
+
+        }
+        function hls_web_excel_set_export() {
+            var ds = $('hls_web_excel_set_ds');
+            var records = ds.getSelected();
+            var export_list;
+            for (var i = 0; i < records.length; i++) {
+                if(export_list){
+                    export_list = export_list + "," + records[i].data.excel_code;
+                }else{
+                    export_list = records[i].data.excel_code;
+                }
+            }
+            location.href = "${/request/@context_path}/hls/calcConfig/export?idlist=" + export_list;
+        }
+
+        function hls_web_excel_set_import() {
+            jQuery("#file").click();
+        }
+
+        function hls_upload_file(){
+            var file = jQuery("#file")[0].files[0];
+            if(file == undefined){
+                return ;
+            }
+            var formData = new FormData();
+            formData.append("file",file);
+            formData.append("_csrf","${/session/@_csrf.token}");
+            Leaf.Masker.mask(Ext.getBody(), '上传中。。');
+            jQuery.ajax({
+                url:'${/request/@context_path}/hls/calcConfig/import',
+                type:'post',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success:function(res){
+                   Leaf.Masker.unmask(Ext.getBody());
+                    if (res.success) {
+                        Leaf.showMessage("提示", res.message || "导入成功", null);
+                    } else{
+                        Leaf.showErrorMessage("提示", res.message || res.error.message || "导入失败", null);
+                    }
+
+                },
+            })
+            document.getElementById('file').value = null;
+        }
+
+        function onSubmitSuccess_hls_web_excel_set_ds(ds) {
+            hls_web_excel_set_query();
+        }
+
+        function excel_code_edit_function(record, name) {
+            if (name === 'excel_code') {
+                if (record.isNew) {
+                    return 'hls_web_excel_set_ds_grid_tf';
+                }
+                return '';
+            }
+            return '';
+        }
+
+        function hls500_hls_excel_prop(value, record, name) {
+            if (record.isNew == true) {
+                return "";
+            } else {
+                return '<a href="javascript:winOpen_hls_price_prop(\'' + record.get('excel_id') + '\',\'' + record.get('excel_code') + '\',\'' + record.get('excel_name') + '\');">字段属性</a>';
+            }
+        }
+
+        function hls500_hls_web_excel_set_config(value, record, name) {
+            if (record.isNew == true) {
+                return "";
+            } else {
+                return '<a href="javascript:winOpen_hls_web_excel_set_config(\'' + record.get('excel_id') + '\');">价目表配置</a>';
+            }
+        }
+
+        function winOpen_hls_price_prop(excel_id,excel_code,excel_name) {
+            new Leaf.Window({
+                id: 'hls_price_prop_winid',
+                url: '${/request/@context_path}/modules/HLS/HLS500/hls_web_excel_field_set.lview',
+                params: {
+                    excel_id: excel_id,
+                    excel_code: excel_code,
+                    excel_name: excel_name,
+                    winId: 'hls_excel_prop_winid'
+                },
+                title: '字段属性',
+                fullScreen: true
+            });
+        }
+
+        function winOpen_hls_web_excel_set_config(excel_id) {
+            new Leaf.Window({
+                id: 'hls_web_excel_set_config_winid',
+                url: '${/request/@context_path}/modules/HLS/HLS500/hls_web_excel_template_iframe.lview?excel_id='+excel_id,
+                // params: {
+                //     excel_code: excel_code,
+                //     winid: 'hls_fin_cal_detail_winid'
+                // },
+                title: 'webexcel配置',
+                fullScreen:true
+            });
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="hls_web_excel_set_query_ds">
+            </a:dataSet>
+            <a:dataSet id="hls_web_excel_type_combox_ds" lookupCode="HLS500.EXCEL_TYPE">
+            </a:dataSet>
+            <a:dataSet id="hls_web_excel_set_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/hls/web/excel/query"
+                       submitUrl="${/request/@context_path}/hls/web/excel/submit"
+                       queryDataSet="hls_web_excel_set_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="excel_code" required="true"/>
+                    <a:field name="excel_name" required="true"/>
+                    <a:field name="excel_type"/>
+                    <a:field name="excel_type_n" required="true" displayField="code_value_name" returnField="excel_type" valueField="code_value" options="hls_web_excel_type_combox_ds"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_hls_web_excel_set_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="hls_web_excel_set_query" text="HAP.QUERY"/>
+                <a:gridButton click="hls_web_excel_set_reset" text="HAP.RESET"/>
+                <a:gridButton click="hls_web_excel_set_add" text="HAP.NEW"/>
+                <a:gridButton click="hls_web_excel_set_save" text="HAP.SAVE"/>
+            </a:screenTopToolbar>
+            <a:form column="3" labelwidth="100" title="查询条件">
+                <a:textField name="excel_code" bindTarget="hls_web_excel_set_query_ds" prompt="webexcel代码" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="hls_web_excel_set_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="excel_name" bindTarget="hls_web_excel_set_query_ds" prompt="webexcel名称" width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="hls_web_excel_set_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="hls_web_excel_set_ds_grid" bindTarget="hls_web_excel_set_ds" marginHeight="150" marginWidth="30"
+                    navBar="true">
+                <a:columns>
+                    <a:column name="excel_code" width="290" prompt="webexcel编码" editorFunction="excel_code_edit_function" align="center"/>
+                    <a:column name="excel_name" width="290" prompt="webexcel名称" editor="hls_web_excel_set_ds_grid_tf" align="center"/>
+                    <a:column name="excel_type_n" width="150" prompt="webexcel类型" align="center" editor="hls_web_excel_set_ds_grid_comboBox"/>
+                    <a:column width="290" prompt="webexcel配置" renderer="hls500_hls_web_excel_set_config" align="center"/>
+                    <a:column width="290" prompt="webexcel字段配置" align="center"
+                              renderer="hls500_hls_excel_prop"/>
+                    
+                    <a:column name="enabled_flag" width="80" prompt="启用" editor="hls_web_excel_set_ds_grid_check"/>
+                </a:columns>
+                <a:editors>
+                    <a:textField id="hls_web_excel_set_ds_grid_tf"/>
+                    <a:checkBox id="hls_web_excel_set_ds_grid_check"/>
+                    <a:comboBox id="hls_web_excel_set_ds_grid_comboBox"/>
+                </a:editors>
+            </a:grid>
+            <input type="file" name="file" id="file" value="" onChange="hls_upload_file()" style="display:none"/>
+        </a:screenBody>
+    </a:view>
+</a:screen>

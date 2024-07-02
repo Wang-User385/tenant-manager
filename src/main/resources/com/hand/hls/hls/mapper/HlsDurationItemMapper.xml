@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hls.mapper.HlsDurationItemMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hls.dto.HlsDurationItem">
+        <id column="SOURCE_ID" property="sourceId" jdbcType="DECIMAL" />
+        <result column="SOURCE_TYPE" property="sourceType" jdbcType="VARCHAR" />
+        <result column="HD_ID" property="hdId" jdbcType="DECIMAL" />
+        <result column="project_id" property="projectId" jdbcType="DECIMAL" />
+        <result column="pledge_proportion" property="pledgeProportion" jdbcType="DECIMAL" />
+        <result column="LEASE_ITEM_ID" property="leaseItemId" jdbcType="DECIMAL" />
+        <result column="EXECUTE_STATUS" property="executeStatus" jdbcType="VARCHAR" />
+        <result column="PROCESS_INSTANCE_ID" property="processInstanceId" jdbcType="DECIMAL" />
+
+
+
+        <result column="pledge_amount" property="pledgeAmount"/>
+        <result column="lease_item_code" property="leaseItemCode"/>
+        <result column="full_name" property="fullName"/>
+        <result column="lease_item_type_n" property="leaseItemTypeN"/>
+        <result column="pattern_n" property="patternN"/>
+        <result column="pledge_state_n" property="pledgeStateN"/>
+        <result column="mortgage_date_to" property="mortgageDateTo"/>
+        <result column="pledge_proportion" property="pledgeProportion"/>
+        <result column="mortgage_amount_total" property="mortgageAmountTotal"/>
+        <result column="release_amt" property="releaseAmt"/>
+        <result column="lease_full_name" property="leaseFullName"/>
+        <result column="quantity" property="quantity"/>
+        <result column="release_flag_n" property="releaseFlagN"/>
+        <result column="residual_quantity" property="residualQuantity"/>
+        <result column="mortgage_pledge_amount" property="mortgagePledgeAmount"/>
+        <result column="release_amount" property="releaseAmount" jdbcType="DECIMAL" />
+
+        <!--租赁物抵质押物-->
+        <result column="lease_item_id_n" property="leaseItemIdN"/>
+        <result column="lease_item_type" property="leaseItemType"/>
+        <result column="mortgagor_n" property="mortgagorN"/>
+        <result column="asset_value_total" property="assetValueTotal"/>
+        <result column="original_asset_value_total" property="originalAssetValueTotal"/>
+        <result column="identification_city" property="identificationCity"/>
+        <result column="vender_id" property="venderId"/>
+        <result column="BRAND" property="brand"/>
+        <result column="vender_id_n" property="venderIdN"/>
+        <result column="asset_status_n" property="assetStatusN"/>
+        <result column="pattern" property="pattern"/>
+        <result column="mortgagor" property="mortgagor"/>
+        <result column="pledge_state" property="pledgeState"/>
+        <result column="description" property="description"/>
+        <result column="net_asset_value_total" property="netAssetValueTotal"/>
+
+
+    </resultMap>
+
+    <select id="hlsDurationItemPledgorMortgagorQuery" parameterType="com.hand.hls.hls.dto.HlsDurationItem" resultMap="BaseResultMap">
+        SELECT t1.*,
+        (t1.pledge_proportion * t1.mortgage_amount_total) pledge_amount,
+        (t1.mortgage_amount_total -
+        nvl(t1.release_amount, t1.mortgage_amount_total)) release_amt
+        FROM (SELECT t.project_id,
+            i.lease_item_id,
+            i.lease_item_code,
+            i.full_name,
+            t.hd_id,
+            (SELECT v.MEANING
+            FROM sys_code_value_b_v v
+            WHERE v.code = 'HLS.COLLATERAL_TYPE'
+            AND v.code_value = i.lease_item_type) lease_item_type_n,
+            (SELECT v.MEANING
+            FROM sys_code_value_b_v v
+            WHERE v.code = (CASE
+            WHEN i.lease_item_type = 'MORTGAGE' THEN
+            'HLS.MORTGAGE_TYPE'
+            ELSE
+            'HLS.PLEDGE_TYPE'
+            END)
+            AND v.code_value = i.pattern) pattern_n,
+            (SELECT meaning
+            FROM sys_code_value_b_v
+            WHERE code = 'PLEDGE_STATE'
+            AND code_value = i.pledge_state) pledge_state_n,
+            i.mortgage_date_to,
+            nvl(t.pledge_proportion, 0) pledge_proportion,
+            nvl((SELECT SUM(nvl(d.mortgage_pledge_amount, 0))
+            FROM hls_lease_item_detail d
+            WHERE d.lease_item_id = i.lease_item_id),
+            0) mortgage_amount_total,
+            (SELECT SUM(nvl(ln.release_amount, 0))
+            FROM hls_duration_ln ln, hls_lease_item_detail d
+            WHERE ln.source_type = 'RELEASE'
+            AND ln.hd_id = #{hdId}
+            AND ln.lease_item_detail_id = d.lease_item_detail_id
+            AND d.lease_item_id = i.lease_item_id) release_amount
+            FROM hls_duration_item t, hls_lease_item i
+            WHERE t.source_type = 'PLEDGOR_MORTGAGOR'
+            AND t.lease_item_id = i.lease_item_id) t1
+        <where>
+            t1.hd_id = #{hdId}
+        </where>
+        order by t1.lease_item_code
+    </select>
+
+    <select id="hlsDurationItemPledgorMortgagorQueryNew" parameterType="com.hand.hls.hls.dto.HlsDurationItem" resultMap="BaseResultMap">
+        SELECT
+        pp.project_id,
+        pp.LEASE_ITEM_ID,
+        pp.hd_id,
+        pp.source_id,
+        hli.FULL_NAME AS LEASE_ITEM_ID_N,
+        hli.LEASE_ITEM_CODE,
+        hli.LEASE_ITEM_TYPE,
+        (
+        SELECT
+        meaning
+        FROM
+        sys_code_value_b_v
+        WHERE
+        CODE = 'HLS.COLLATERAL_TYPE'
+        AND code_value = hli.LEASE_ITEM_TYPE
+        ) LEASE_ITEM_TYPE_N,
+        hli.PATTERN,
+        (
+        SELECT
+        meaning
+        FROM
+        sys_code_value_b_v
+        WHERE
+        CODE = 'HLS.PATTERN'
+        AND code_value = hli.PATTERN
+        ) PATTERN_N,
+        hli.MORTGAGOR,
+        (
+        SELECT
+        hbm.bp_name
+        FROM
+        hls_bp_master hbm
+        WHERE
+        hbm.bp_id = hli.MORTGAGOR
+        ) MORTGAGOR_N,
+        hli.PLEDGE_STATE,
+        (
+        SELECT
+        meaning
+        FROM
+        sys_code_value_b_v
+        WHERE
+        CODE = 'PLEDGE_STATE0'
+        AND code_value = hli.PLEDGE_STATE
+        ) PLEDGE_STATE_N,
+        (
+        SELECT
+        a.EVALUATION_VALUE
+        FROM
+        (
+        SELECT
+        hlid.lease_item_id,
+        sum(hlid.EVALUATION_VALUE) AS EVALUATION_VALUE
+        FROM
+        hls_lease_item_detail hlid
+        GROUP BY
+        hlid.lease_item_id
+        ) a
+        WHERE
+        a.lease_item_id = hli.lease_item_id
+        ) ASSET_VALUE_TOTAL,
+        (
+        SELECT
+        sum(a.v1 + a.v2)
+        FROM
+        (
+        SELECT
+        hlid.lease_item_id,
+        sum(hlid.purchase_price) AS v1,
+        sum(hlid.pledge_asset_value) AS v2
+        FROM
+        hls_lease_item_detail hlid
+        GROUP BY
+        hlid.lease_item_id
+        ) a
+        WHERE
+        a.lease_item_id = hli.lease_item_id
+        ) ORIGINAL_ASSET_VALUE_TOTAL
+        FROM
+        hls_duration_item pp,
+        hls_lease_item hli
+        <where>
+            hli.LEASE_ITEM_ID = pp.LEASE_ITEM_ID
+            AND hli.enabled_flag = 'Y'
+            AND hli.LEASE_ITEM_TYPE IN ('MORTGAGE', 'PLEDGE')
+            AND pp.source_type = 'PLEDGOR_MORTGAGORS'
+            and pp.hd_id = #{hdId}
+        </where>
+    </select>
+
+    <select id="hlsDurationItemLeaseItemQueryNew" parameterType="com.hand.hls.hls.dto.HlsDurationLn" resultMap="BaseResultMap">
+        SELECT
+            hcli.project_id,
+            hcli.LEASE_ITEM_ID,
+            hcli.hd_id,
+            hcli.source_id,
+            hli.FULL_NAME AS LEASE_ITEM_ID_N,
+            hli.LEASE_ITEM_CODE,
+            hli.INSTALLATION_SITE AS IDENTIFICATION_CITY,
+            hli.DESCRIPTION,
+            hli.vender_id,
+            hli.BRAND,
+            hli.LEASE_ITEM_TYPE,
+            (
+            SELECT
+            CASE
+            WHEN (
+            SELECT
+            max(lal.fair_value)
+            FROM
+            lease_asset_ln lal
+            WHERE
+            lal.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID
+            ) IS NULL THEN
+            sum(hlil.PRICE * hlil.QUANTITY)
+            ELSE
+            (
+            SELECT
+            max(lal.fair_value)
+            FROM
+            lease_asset_ln lal
+            WHERE
+            lal.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID
+            )
+            END AS ASSET_VALUE_TOTAL
+            FROM
+            hls_lease_item_list hlil
+            WHERE
+            hli.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID
+            ) NET_ASSET_VALUE_TOTAL,
+            (
+            SELECT
+            hbm.bp_name
+            FROM
+            hls_bp_master hbm
+            WHERE
+            hbm.bp_id = hli.vender_id
+            ) VENDER_ID_N,
+            (
+            SELECT
+            scv.MEANING
+            FROM
+            sys_code_b sc,
+            sys_code_value_b scv
+            WHERE
+            sc.CODE_ID = scv.CODE_ID
+            AND sc.CODE = 'ASSET_STATUS'
+            AND scv.VALUE = hli.asset_status
+            ) asset_status_n
+        FROM
+        hls_duration_item hcli,
+        hls_lease_item hli
+        <where>
+                hli.LEASE_ITEM_ID = hcli.LEASE_ITEM_ID
+            AND hli.enabled_flag = 'Y'
+            AND hli.LEASE_ITEM_TYPE = 'LEASE'
+            AND hcli.source_type = 'LEASE_ITEMS'
+            and hcli.hd_id = #{hdId}
+        </where>
+    </select>
+
+    <select id="hlsDurationItemLeaseItemQuery" parameterType="com.hand.hls.hls.dto.HlsDurationLn" resultMap="BaseResultMap">
+        SELECT t1.*,
+        (t1.net_asset_value_total_now -
+        nvl(t1.release_amount, t1.net_asset_value_total_now)) release_amt
+        FROM (SELECT t.project_id,
+        i.lease_item_id,
+        i.lease_item_code,
+        i.full_name,
+        t.hd_id,
+        (SELECT hbt.description
+        FROM hls_business_type hbt
+        WHERE hbt.document_category = 'ASSET_TYPES'
+        AND hbt.business_type = i.asset_types) asset_types_n,
+        (SELECT hdt.description
+        FROM hls_document_type hdt
+        WHERE hdt.document_category = 'ASSET_TYPES'
+        AND hdt.business_type = i.asset_types
+        AND hdt.document_type = i.asset_types_sub) asset_types_sub_n,
+        (SELECT fc.currency_name
+        FROM fnd_currency fc
+        WHERE fc.currency_code = i.currency) currency_n,
+        (SELECT nvl(SUM(hlid.net_asset_value), 0)
+        FROM hls_lease_item_detail hlid
+        WHERE hlid.lease_item_id = i.lease_item_id) net_asset_value_total,
+        0 net_asset_value_total_now,
+        (SELECT SUM(nvl(ln.release_amount, 0))
+        FROM hls_duration_ln ln, hls_lease_item_detail d
+        WHERE ln.source_type = 'REPURCHASE'
+        AND ln.hd_id = #{hdId}
+        AND ln.lease_item_detail_id = d.lease_item_detail_id
+        AND d.lease_item_id = i.lease_item_id) release_amount
+        FROM hls_duration_item t, hls_lease_item i
+        WHERE t.source_type = 'LEASE_ITEM'
+        AND t.lease_item_id = i.lease_item_id) t1
+        <where>
+            t1.hd_id = #{hdId}
+        </where>
+        order by t1.lease_item_code
+    </select>
+
+</mapper>

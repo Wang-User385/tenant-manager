@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sys.mapper.SysUserAllocationMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.sys.dto.SysUserAllocation">
+        <id column="allocation_id" property="allocationId" jdbcType="BIGINT"/>
+        <result column="role_id" property="roleId" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
+        <result column="employee_assign_id" property="employeeAssignId" jdbcType="BIGINT"/>
+        <result column="Valid_date_from" property="validDateFrom" jdbcType="TIMESTAMP"/>
+        <result column="Valid_date_to" property="validDateTo" jdbcType="TIMESTAMP"/>
+        <result column="company_code" property="companyCode" jdbcType="VARCHAR"/>
+        <result column="company_full_name" property="companyFullName" jdbcType="VARCHAR"/>
+        <result column="company_short_name" property="companyShortName" jdbcType="VARCHAR"/>
+        <result column="unit_id" property="unitId" jdbcType="VARCHAR"/>
+        <result column="unit_code" property="unitCode" jdbcType="VARCHAR"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+        <result column="position_id" property="positionId" jdbcType="VARCHAR"/>
+        <result column="position_code" property="positionCode" jdbcType="VARCHAR"/>
+        <result column="position_name" property="positionName" jdbcType="VARCHAR"/>
+        <result column="employee_id" property="employeeId" jdbcType="VARCHAR"/>
+        <result column="employee_code" property="employeeCode" jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="role_code" property="roleCode" jdbcType="VARCHAR"/>
+        <result column="role_name" property="roleName" jdbcType="VARCHAR"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="sysdate" property="sysDate" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="assignQuery" resultMap="BaseResultMap">
+SELECT e.*,fou.unit_id,fe.employee_id,fop.position_id
+FROM
+( 	SELECT
+	t.employee_assign_id,
+	t1.employee_code,
+	t1. NAME,
+	(
+		SELECT
+			fop.position_code
+		FROM
+			FND_ORG_POSITION fop
+		WHERE
+			fop.position_id = t.position_id
+	) position_code,
+	(
+		SELECT
+			fop.position_name
+		FROM
+			FND_ORG_POSITION fop
+		WHERE
+			fop.position_id = t.position_id
+	) position_name,
+	(
+		SELECT
+			fou.unit_code
+		FROM
+			fnd_org_unit fou
+		WHERE
+			fou.unit_id = t.unit_id
+	) unit_code,
+	(
+		SELECT
+			fou.unit_name
+		FROM
+			fnd_org_unit fou
+		WHERE
+			fou.unit_id = t.unit_id
+	) unit_name,
+	fc.company_code,
+	fc.company_full_name,
+  fc.company_id
+FROM
+	fnd_employee t1,
+	fnd_employee_assigns t,
+	FND_COMPANY fc
+WHERE
+	t.enabled_flag = 'Y'
+AND t1.employee_id = t.employee_id
+AND fc.company_id = t1.company_id
+AND fc.company_id = t.company_id
+
+
+) e,fnd_org_unit fou,fnd_employee fe,FND_ORG_POSITION fop
+WHERE e.company_id = fou.company_id and e.unit_code = fou.unit_code and fe.employee_code = e.employee_code and fe.company_id = e.company_id
+and fop.position_code = e.position_code and fop.unit_id = fou.unit_id
+order by e.employee_code
+ </select>
+
+    <select id="editQuery" resultMap="BaseResultMap" parameterType="java.lang.Long">
+SELECT * FROM
+(
+SELECT
+	tab.*, sua.role_id,sua.company_id,
+	 (select
+			fc.company_full_name
+	 from
+			FND_COMPANY fc
+	 where sua.company_id=fc.company_id
+	)company_full_name,
+	(
+		SELECT
+			srb.ROLE_CODE
+		FROM
+			sys_role_b srb
+		WHERE
+			srb.ROLE_ID = sua.role_id
+	) ROLE_CODE,
+	(
+		SELECT
+			srb.ROLE_NAME
+		FROM
+			sys_role_b srb
+		WHERE
+			srb.ROLE_ID = sua.role_id
+	) ROLE_NAME,
+	sua.allocation_id,
+	sua.enabled_flag,
+    sua.user_id,
+    sysdate  as "sysdate"
+FROM
+	(
+		SELECT
+			t.employee_id,
+			t.employee_assign_id,
+			t1.employee_code,
+			t1. NAME,
+			t.position_id,
+			t1.email,
+			(
+				SELECT
+					fop.position_code
+				FROM
+					FND_ORG_POSITION fop
+				WHERE
+					fop.position_id = t.position_id
+			) position_code,
+			(
+				SELECT
+					fop.position_name
+				FROM
+					FND_ORG_POSITION fop
+				WHERE
+					fop.position_id = t.position_id
+			) position_name,
+			t.unit_id,
+			(
+				SELECT
+					fou.unit_code
+				FROM
+					fnd_org_unit fou
+				WHERE
+					fou.unit_id = t.unit_id
+			) unit_code,
+			(
+				SELECT
+					fou.unit_name
+				FROM
+					fnd_org_unit fou
+				WHERE
+					fou.unit_id = t.unit_id
+			) unit_name,
+			fc.company_code,
+-- 			fc.company_full_name,
+			fc.company_short_name
+		FROM
+			fnd_employee_assigns t,
+			fnd_employee t1,
+			FND_COMPANY fc
+		WHERE
+			t.enabled_flag = 'Y' AND
+			t1.employee_id = t.employee_id
+		AND fc.company_id = t.company_id
+
+	) tab
+right JOIN (SELECT
+	 *
+	 FROM
+	 sys_user_allocation sa
+	 WHERE
+	 EXISTS (
+	 SELECT
+	 1
+	 FROM
+	 sys_role_b sr
+	 WHERE
+	 sr.ROLE_ID = 	sa.role_id
+	 AND nvl(
+	 sr.END_ACTIVE_DATE,
+	 to_date('2099-01-01', 'YYYY-MM-DD')
+	 ) > sysdate
+	 AND nvl(
+	 sr.START_ACTIVE_DATE,
+	 to_date('2000-01-01', 'YYYY-MM-DD')
+	 ) &lt; sysdate)) sua ON sua.employee_assign_id = tab.employee_assign_id
+)tab2
+ where ((tab2.user_id = #{userId,jdbcType=BIGINT} and #{allocationId,jdbcType=BIGINT} is null) or tab2.allocation_id= #{allocationId,jdbcType=BIGINT})
+ </select>
+
+    <select id="selectEmployeeAssignId" resultType="java.lang.Long">
+        select t.employee_assign_id
+        from fnd_employee_assigns t
+
+        <where>
+            <if test="companyId!=null">
+                t.company_id =#{companyId,jdbcType=BIGINT}
+            </if>
+            <if test="employeeId!=null">
+                and t.employee_id =#{employeeId,jdbcType=BIGINT}
+            </if>
+            <if test="unitId!=null">
+                and t.unit_id =#{unitId,jdbcType=BIGINT}
+            </if>
+            <if test="positionId!=null">
+                and t.position_id = #{positionId,jdbcType=BIGINT}
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteChild" parameterType="java.lang.Long">
+ 	delete from sys_user_allocation  where user_id = #{userId,jdbcType=BIGINT}
+ </delete>
+
+    <select id="selectUserNameByAllocationId" resultType="java.lang.String" parameterType="java.lang.String">
+	select su.user_name
+	from
+	sys_user su,sys_user_allocation sua
+	where
+	su.user_id = sua.user_id
+	and sua.allocation_id = #{allocationId}
+</select>
+
+    <select id="selectUserIdByAllocationId" resultType="java.lang.Long">
+        select sua.user_id
+        from sys_user_allocation sua
+        where 1=1
+        <if test="allocationId != null">
+            and sua.allocation_id = #{allocationId}
+        </if>
+    </select>
+
+    <select id="selectAllocationIdOfAdmin" resultType="string">
+		SELECT
+			sua.allocation_id
+		FROM
+			sys_user_allocation sua,
+			sys_role_b srb,
+			sys_user su,
+			fnd_employee_assigns fea,
+			fnd_employee fe
+		WHERE
+			srb.role_code = 'ADMIN'
+		AND srb.role_id = sua.role_id
+		AND sua.enabled_flag = 'Y'
+		AND su.user_id = sua.user_id
+		AND fea.employee_assign_id = sua.employee_assign_id
+		AND fea.enabled_flag = 'Y'
+		AND fe.employee_id = fea.employee_id
+		AND fe.enabled_flag = 'Y'
+		AND sua.company_id = #{companyId}
+	</select>
+    <select id="selectUserInfo" resultMap="BaseResultMap">
+        SELECT
+			t.employee_id,
+			t.employee_assign_id,
+			t1.employee_code,
+			t1. NAME,
+			t.position_id,
+			t1.email,
+			s.user_id,
+            s.role_id,
+			(
+				SELECT
+					fop.position_code
+				FROM
+					FND_ORG_POSITION fop
+				WHERE
+					fop.position_id = t.position_id
+			) position_code,
+			(
+				SELECT
+					fop.position_name
+				FROM
+					FND_ORG_POSITION fop
+				WHERE
+					fop.position_id = t.position_id
+			) position_name,
+			t.unit_id,
+			(
+				SELECT
+					fou.unit_code
+				FROM
+					fnd_org_unit fou
+				WHERE
+					fou.unit_id = t.unit_id
+			) unit_code,
+			(
+				SELECT
+					fou.unit_name
+				FROM
+					fnd_org_unit fou
+				WHERE
+					fou.unit_id = t.unit_id
+			) unit_name
+		FROM
+			fnd_employee_assigns t,
+      sys_user_allocation s,
+			fnd_employee t1
+		WHERE
+      t.employee_assign_id = s.employee_assign_id
+    AND t1.employee_id = t.employee_id
+    AND s.allocation_id = #{allocationId}
+    AND t.enabled_flag = 'Y'
+    </select>
+</mapper>

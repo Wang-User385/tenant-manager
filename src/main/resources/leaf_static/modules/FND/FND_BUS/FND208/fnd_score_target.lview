@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author:wj
+    $Date: 2018-12-25
+    $Revision: 1.0
+    $Purpose: 评分指标定义
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script src="${/request/@context_path}/common/code?sysCodeData=HLS.SCORE_TARGET_VALUE_TYPE"
+                type="text/javascript"></script>
+        <script><![CDATA[
+        <!--获取resource type中英文映射数组，存入Map-->
+
+        var resourceTypeECMap = {};
+        sysCodeData.forEach(function (i) {
+            resourceTypeECMap[i.value] = i.meaning;
+        });
+
+        <!--将type中英文存入对应的ds-->
+        $L.onReady(function () {
+            sysCodeData.forEach(function (i) {
+                $("resource_type_ds").create({"target_value_type": i.value, "target_value_type_desc": i.meaning});
+            });
+        });
+
+        function sys_resource_screen_query() {
+            $('sys_resource_ds').query();
+        }
+
+        function sys_resource_screen_reset() {
+            $('sys_resource_query_ds').reset();
+            $('sys_resource_ds').query();
+        }
+
+        <!--打开窗口：指标细节  fnd_file_template_definition-->
+        function winOpen_details(id) {
+            new Leaf.Window({
+                id: "sys_resource_details",
+                url: "${/request/@context_path}/modules/FND/FND_BUS/FND208/target_details.lview",
+                title: '指标细节',
+                params: {
+                    score_target_id: id,
+                    winId: "sys_resource_details"
+                },
+                fullScreen: false,
+                draggable: true,
+                closeable: true,
+                side:'right',
+                width: 850,
+                height: 450
+            });
+        }
+
+
+        <!--打开窗口：指标细节  fnd_file_template_definition-->
+        function winOpen_qujian_data(score_target_id,score_target_name) {
+            new Leaf.Window({
+                id: "sys_qujian_data",
+                url: "${/request/@context_path}/modules/FND/FND_BUS/FND208/qujian_data_source.lview",
+                title: '区间取值源',
+                params: {
+                    score_target_id: score_target_id,
+                    score_target_name: score_target_name,
+                    winId: "sys_qujian_data"
+                },
+                fullScreen: true,
+                draggable: true,
+                closeable: true,
+                width: 1000,
+                height: 600
+            });
+        }
+
+
+        /**/
+        function render_sys_resource_ds_grid(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'details' && !!record.get('score_target_id')) {
+
+                    return '<a href="javascript:winOpen_details(\'' + record.get('score_target_id') + '\');">编辑</a>';
+                }
+            } else {
+                return '';
+            }
+        }
+
+
+        /**
+         *
+         * */
+        function render_qujian_data(value, record, name) {
+            if (!record.isNew) {
+                if (name == 'details' && !!record.get('score_target_id')) {
+                    return '<a href="javascript:winOpen_qujian_data(\'' + record.get('score_target_id') + '\',\'' + record.get('score_target_name') + '\');">编辑</a>';
+
+                }
+            } else {
+                return '';
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="resource_type_ds">
+                <a:fields>
+                    <a:field name="target_value_type_desc"/>
+                    <a:field name="target_value_type"/>
+                </a:fields>
+            </a:dataSet>
+            <!--查询fields-->
+            <a:dataSet id="sys_resource_query_ds">
+                <a:fields>
+                    <a:field name="score_target_code"/>
+                    <a:field name="target_value_type_desc" options="resource_type_ds"
+                             displayField="target_value_type_desc" valueField="target_value_type"
+                             returnField="target_value_type"/>
+                    <a:field name="score_target_name"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="sys_resource_ds" autoPageSize="true" autoQuery="true" queryDataSet="sys_resource_query_ds"
+                       selectable="true"
+                       queryUrl="${/request/@context_path}/hls/score/target/query"
+                       deleteUrl="${/request/@context_path}/hls/score/target/remove"
+                       submitUrl="${/request/@context_path}/hls/score/target/submit">
+                <a:fields>
+                    <a:field name="score_target_id"/>
+                    <a:field name="score_target_code"/>
+                    <a:field name="score_target_name" required="true"/>
+                    <a:field name="target_value_type"/>
+
+                    <a:field name="target_value_type_desc" options="resource_type_ds" displayField="target_value_type_desc"
+                             valueField="target_value_type" returnField="target_value_type"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="sys_resource_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="sys_resource_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton bind="sys_resource_ds_grid" text="HAP.SAVE" type="save"/>
+                <a:gridButton click="sys_resource_screen_query" text="HAP.QUERY"/>
+                <a:gridButton click="sys_resource_screen_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="100">
+                <a:textField name="score_target_code" bindTarget="sys_resource_query_ds" prompt="指标代码" emptyText="指标代码"
+                             width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="sys_resource_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:comboBox name="target_value_type_desc" bindTarget="sys_resource_query_ds" prompt="指标类型" emptyText="指标类型"
+                             width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="sys_resource_screen_query"/>
+                    </a:events>
+                </a:comboBox>
+                <a:textField name="score_target_name" bindTarget="sys_resource_query_ds" prompt="指标名称" emptyText="指标名称"
+                             width="165">
+                    <a:events>
+                        <a:event name="enterdown" handler="sys_resource_screen_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="sys_resource_ds_grid" bindTarget="sys_resource_ds"
+                    marginHeight="150" marginWidth="30" navBar="true">
+                <a:columns>
+                    <a:column width="225" name="score_target_code" editor="sys_resource_ds_grid_tf" prompt="指标代码" align="center"/>
+                    <a:column width="260" name="score_target_name" editor="sys_resource_ds_grid_tf" prompt="指标名称" align="center"/>
+                    <a:column width="260" name="target_value_type_desc" editor="sys_resource_ds_grid_combo" align="center"
+                              prompt="指标类型"/>
+                    <a:column width="260" name="details" renderer="render_sys_resource_ds_grid" prompt="指标明细"
+                              align="center"/>
+
+                    <a:column width="260" name="details" renderer="render_qujian_data" prompt="区间取值源"
+                              align="center"/>
+
+                    <a:column width="260" name="enabled_flag" editor="sys_resource_ds_grid_check" prompt="启用"
+                              align="center"/>
+
+                </a:columns>
+                <a:editors>
+                    <a:lov id="sys_resource_ds_grid_lov"/>
+                    <a:textField id="sys_resource_ds_grid_tf"/>
+                    <a:checkBox id="sys_resource_ds_grid_check"/>
+                    <a:comboBox id="sys_resource_ds_grid_combo"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

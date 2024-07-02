@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hand.hls.meta.mapper.MetadataItemMapper">
+  <resultMap id="BaseResultMap" type="com.hand.hls.meta.dto.MetadataItem">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="ITEM_ID" jdbcType="VARCHAR" property="itemId" />
+    <result column="METADATA_ID" jdbcType="VARCHAR" property="metadataId" />
+    <result column="DATA_VERSION" jdbcType="BIGINT" property="dataVersion" />
+    <result column="OBJECT_VERSION_NUMBER" jdbcType="BIGINT" property="objectVersionNumber" />
+    <result column="REQUEST_ID" jdbcType="BIGINT" property="requestId" />
+    <result column="PROGRAM_ID" jdbcType="BIGINT" property="programId" />
+    <result column="CREATED_BY" jdbcType="BIGINT" property="createdBy" />
+    <result column="CREATION_DATE" jdbcType="TIMESTAMP" property="creationDate" />
+    <result column="LAST_UPDATED_BY" jdbcType="BIGINT" property="lastUpdatedBy" />
+    <result column="LAST_UPDATE_DATE" jdbcType="TIMESTAMP" property="lastUpdateDate" />
+    <result column="LAST_UPDATE_LOGIN" jdbcType="BIGINT" property="lastUpdateLogin" />
+    <result column="DATA" jdbcType="CLOB" javaType="java.lang.String" property="data"/>
+      <result column="data_name" property="dataName"/>
+      <result column="metadata_id" property="metadataId"/>
+      <result column="rule_line_id" property="ruleLineId"/>
+  </resultMap>
+
+    <select id="selectWidgetField" parameterType="com.hand.hls.meta.dto.MetadataItem" resultMap="BaseResultMap">
+        SELECT
+            mi.*,swrl.*,
+            (select m.name from metadata m where mi.METADATA_ID = m.ID) data_name
+        FROM
+            metadata_item mi,
+            sys_widgets_rule_line swrl
+        where
+         swrl.metadata_id = mi.METADATA_ID
+        and swrl.rule_id = #{ruleId}
+    </select>
+
+    <select id="selectMetadataField" parameterType="com.hand.hls.meta.dto.MetadataItem" resultMap="BaseResultMap">
+        SELECT
+            *,
+            (select m.name from metadata m where mi.METADATA_ID = m.ID) data_name
+        FROM
+            metadata_item mi
+        where
+            mi.METADATA_ID = #{metadataId}
+    </select>
+
+  <select id="selectList" resultMap="BaseResultMap" parameterType="com.hand.hls.meta.dto.MetadataItem">
+        SELECT t1.*
+        FROM metadata_item t1
+        <where>
+         t1.metadata_id in (
+            select METADATA_ID
+            from metadata t2
+            )
+            <if test="metadataId!=null">
+                and t1.metadata_id=#{metadataId}
+            </if>
+            <if test="itemId!=null">
+                and t1.item_id=#{itemId}
+            </if>
+        </where>
+        ORDER BY last_update_date DESC
+    </select>
+
+    <resultMap id="metadataIdOrderResultMap" type="map">
+        <result column="itemId" property="itemId"/>
+        <result column="metadataId" property="metadataId"/>
+        <result column="dataVersion" property="dataVersion"/>
+        <result column="lastUpdateDate" property="lastUpdateDate"/>
+    </resultMap>
+
+    <select id="selectByMetadataIdOrderByUpdateDate" resultMap="metadataIdOrderResultMap">
+        SELECT item_id, metadata_id AS metadataId, data, data_version AS dataVersion, last_update_date AS lastUpdateDate
+        FROM metadata_item WHERE metadata_id=#{metadataId}
+        ORDER BY last_update_date DESC
+    </select>
+</mapper>

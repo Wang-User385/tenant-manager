@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.plm.mapper.PlmRiskFeedbackMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.plm.dto.PlmRiskFeedback">
+        <result column="FEEDBACK_ID" property="feedbackId" jdbcType="DECIMAL"/>
+        <result column="RISK_WARNING_ID" property="riskWarningId" jdbcType="DECIMAL"/>
+        <result column="PLM_ATTACHMENT_ID" property="plmAttachmentId" jdbcType="DECIMAL"/>
+        <result column="FEEDBACK_DATE" property="feedbackDate" jdbcType="DATE"/>
+        <result column="RISK_LEVEL" property="riskLevel" jdbcType="VARCHAR"/>
+        <result column="RISK_INFO" property="riskInfo" jdbcType="VARCHAR"/>
+        <result column="FEEDBACK_INFO" property="feedbackInfo" jdbcType="VARCHAR"/>
+        <result column="FEEDBACK_OPINION" property="feedbackOpinion" jdbcType="VARCHAR"/>
+
+        <result column="document_name" property="documentName" jdbcType="VARCHAR"/>
+        <result column="plm_source_type" property="plmSourceType" jdbcType="VARCHAR"/>
+        <result column="plm_id" property="plmId" jdbcType="DECIMAL"/>
+        <result column="file_name" property="fileName" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="plm_attachment_category" property="plmAttachmentCategory" jdbcType="VARCHAR"/>
+        <result column="source_type" property="sourceType" jdbcType="VARCHAR"/>
+        <result column="plm_type" property="plmType" jdbcType="VARCHAR"/>
+        <result column="change_iq" property="changeIq" jdbcType="VARCHAR"/>
+
+    </resultMap>
+
+    <select id="plmRiskFeedbackQuery" parameterType="com.hand.hls.plm.dto.PlmRiskFeedback"
+            resultMap="BaseResultMap">
+        select
+        PRF.FEEDBACK_ID,
+        PRF.RISK_WARNING_ID,
+        PRF.FEEDBACK_DATE,
+        PRF.RISK_LEVEL,
+        PRF.RISK_INFO,
+        PRF.FEEDBACK_INFO,
+        PRF.FEEDBACK_OPINION,
+        hba.plm_attachment_id,
+        hba.document_name,
+        hba.plm_source_type,
+        hba.plm_id,
+        (
+        SELECT
+        wm_concat(sf.file_name)
+        FROM
+        sys_attachment sa,
+        sys_file sf
+        WHERE
+        hba.plm_attachment_id = sa.source_key
+        AND sa.source_type = hba.plm_source_type
+        AND sa.attachment_id = sf.attachment_id
+        ) file_name,
+        hba.description
+        from PLM_RISK_FEEDBACK PRF
+        LEFT JOIN plm_attachment hba
+        ON hba.plm_attachment_id = PRF.plm_attachment_id
+        where
+        PRF.RISK_WARNING_ID = #{riskWarningId}
+        order by PRF.last_update_date asc
+    </select>
+
+    <select id="plmRiskFeedbackFilesQuery" parameterType="com.hand.hls.plm.dto.PlmRiskFeedback"
+            resultMap="BaseResultMap">
+        select
+        ( SELECT sf.file_path FROM
+        sys_attachment sa, sys_file sf
+        WHERE hba.plm_attachment_id = sa.source_key
+        AND sa.source_type = hba.plm_source_type
+        AND sa.attachment_id = sf.attachment_id
+        ) file_path,
+        ( SELECT sf.file_id FROM sys_attachment sa, sys_file sf
+        WHERE hba.plm_attachment_id = sa.source_key
+        AND sa.source_type = hba.plm_source_type
+        AND sa.attachment_id = sf.attachment_id
+        ) file_id,
+        ( SELECT wm_concat(sf.file_name || sf.file_suffix) FROM
+        sys_attachment sa, sys_file sf
+        WHERE hba.plm_attachment_id = sa.source_key
+        AND sa.source_type = hba.plm_source_type
+        AND sa.attachment_id = sf.attachment_id
+        ) file_name,
+        hba.description
+        from PLM_RISK_FEEDBACK PRF
+        LEFT JOIN plm_attachment hba
+        ON hba.plm_attachment_id = PRF.plm_attachment_id
+        where
+        PRF.RISK_WARNING_ID = #{riskWarningId}
+        order by PRF.last_update_date asc
+    </select>
+
+</mapper>

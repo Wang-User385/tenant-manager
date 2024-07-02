@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fnd.mapper.HlsProductDefDealerMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.HlsProductDefDealer">
+        <result column="record_id" property="recordId" jdbcType="DECIMAL"/>
+        <result column="definition_id" property="definitionId" jdbcType="DECIMAL"/>
+        <result column="manufacturer_id" property="manufacturerId" jdbcType="DECIMAL"/>
+        <result column="dealer_id" property="dealerId" jdbcType="DECIMAL"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="created_by" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="last_updated_by" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+        <result column="last_update_date" property="lastUpdateDate" jdbcType="DATE"/>
+
+        <result column="definition_id_n" property="definitionIdN" jdbcType="VARCHAR"/>
+        <result column="manufacturer_id_n" property="manufacturerIdN" jdbcType="VARCHAR"/>
+        <result column="dealer_id_n" property="dealerIdN" jdbcType="VARCHAR"/>
+        <result column="enabled_flag_n" property="enabledFlagN" jdbcType="VARCHAR"/>
+        <result column="create_date" property="createDate" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="hlsProductDefDealerQuery" resultMap="BaseResultMap">
+        select v.*
+        from (select t.record_id,
+        t.definition_id,
+        (select pd.definition_name
+        from hls_product_definition pd
+        where pd.definition_id = t.definition_id) definition_id_n,
+        t.manufacturer_id,
+        (select hm.bp_name
+        from hls_bp_master hm
+        where hm.bp_id = t.manufacturer_id) manufacturer_id_n,
+        t.dealer_id,
+        (select hm.bp_name
+        from hls_bp_master hm
+        where hm.bp_id = t.dealer_id) dealer_id_n,
+        t.enabled_flag,
+        to_char(t.creation_date, 'yyyy-mm-dd') create_date
+        from hls_product_def_dealer t) v
+        <where>
+            <if test="enabledFlag!=null">
+                and nvl(v.enabled_flag,'N') = #{enabledFlag}
+            </if>
+            <if test="definitionId!=null">
+                and v.definition_id = #{definitionId}
+            </if>
+        </where>
+        order by v.dealer_id
+    </select>
+
+    <delete id="deleteProductDefDealerByDefinitionId">
+        delete from hls_product_def_dealer t where t.definition_id = #{definitionId}
+    </delete>
+</mapper>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.pam.mapper.JcInsurancePlanMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.pam.dto.JcInsurancePlan">
+        <result column="PLAN_ID" property="planId" jdbcType="DECIMAL"/>
+        <result column="LEASE_ITEM_ID" property="leaseItemId" jdbcType="DECIMAL"/>
+        <result column="PLAN_NUMBER" property="planNumber" jdbcType="VARCHAR"/>
+        <result column="PLAN_PURCHASE_DATE" property="planPurchaseDate" jdbcType="DATE"/>
+        <result column="NOTE" property="note" jdbcType="VARCHAR"/>
+        <result column="allocation_id" property="allocationId"/>
+        <result column="full_name" property="fullName"/>
+        <result column="user_id" property="userId"/>
+    </resultMap>
+
+    <select id="selectJcInsurancePlan" resultMap="BaseResultMap">
+        select jip.*
+        from jc_insurance_plan jip
+        <where>
+            1=1
+            <if test="leaseItemId != null">
+                and jip.lease_item_id = #{leaseItemId}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectMes" resultMap="BaseResultMap">
+        SELECT
+            p.*,p.CREATED_BY as user_id, (
+                SELECT
+                    a.ALLOCATION_ID
+                FROM
+                    sys_user_allocation a
+                WHERE
+                    a.user_id = p.CREATED_BY
+            ) allocation_id,
+            (select h.full_name from hls_lease_item h where h.lease_item_id = p.lease_item_id)full_name
+        FROM
+            jc_insurance_plan p
+        WHERE
+            NOT EXISTS (
+                SELECT
+                    1
+                FROM
+                    prj_project_insure i
+                WHERE
+                    i.plan_id = p.plan_id
+            )
+        AND to_char(
+            p.PLAN_PURCHASE_DATE,
+            'yyyy/mm/dd'
+        ) =  to_char(DATE_ADD(sysdate,INTERVAL 10 DAY ), 'yyyymmdd')
+    </select>
+
+</mapper>

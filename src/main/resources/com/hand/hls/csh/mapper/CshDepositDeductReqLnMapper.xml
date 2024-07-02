@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.csh.mapper.CshDepositDeductReqLnMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.csh.dto.CshDepositDeductReqLn">
+        <result column="REQ_LN_ID" property="reqLnId" jdbcType="DECIMAL" />
+        <result column="REQ_HD_ID" property="reqHdId" jdbcType="DECIMAL" />
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL" />
+		<result column="SURPLUS_AMOUNT" property="surplusAmount" jdbcType="DECIMAL" />
+		<result column="SURPLUS_PRINCIPAL" property="surplusPrincipal" jdbcType="DECIMAL" />
+		<result column="SURPLUS_INTEREST" property="surplusInterest" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_DUE_AMOUNT" property="writeOffDueAmount" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_PRINCIPAL" property="writeOffPrincipal" jdbcType="DECIMAL" />
+        <result column="WRITE_OFF_INTEREST" property="writeOffInterest" jdbcType="DECIMAL" />
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL" />
+        <result column="CONTRACT_NUMBER" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="TIMES" property="times" jdbcType="DECIMAL" />
+        <result column="BP_NAME" property="bpName" jdbcType="VARCHAR" />
+        <result column="DUE_DATE" property="dueDate" jdbcType="DATE" />
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL" />
+		<result column="RECEIVED_AMOUNT" property="receivedAmount" jdbcType="DECIMAL" />
+        <result column="CF_ITEM" property="cfItem" jdbcType="DECIMAL" />
+        <result column="CF_ITEM_N" property="cfItemN" jdbcType="VARCHAR" />
+        <result column="CF_TYPE" property="cfType" jdbcType="DECIMAL" />
+		<result column="SOURCE_INFO_ID" property="sourceInfoId" jdbcType="DECIMAL" />
+		<result column="INFO_ID_BATCH" property="infoIdBatch" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="selectCshDepositDeductReqLnList" resultMap="BaseResultMap">
+        SELECT cddrl.req_ln_id,
+			 cddrl.req_hd_id,
+			 cddrl.cashflow_id,
+			 nvl(cddrl.surplus_amount,0) as surplus_amount,
+			 nvl(cddrl.surplus_principal,0) as surplus_principal,
+			 nvl(cddrl.surplus_interest,0) as surplus_interest,
+			 nvl(cddrl.write_off_due_amount,0) as write_off_due_amount,
+			 nvl(cddrl.write_off_principal,0) as write_off_principal,
+			 nvl(cddrl.write_off_interest,0) as write_off_interest,
+			 cddrl.object_version_number,
+			 cddrl.request_id,
+			 cddrl.program_id,
+			 cddrl.created_by,
+			 cddrl.creation_date,
+			 cddrl.last_updated_by,
+			 cddrl.last_update_date,
+			 cddrl.last_update_login,
+			 cc.contract_id,
+			 cc.contract_number,
+			 ccc.times,
+			 hbm.bp_name,
+			 ccc.due_date,
+			 nvl(ccc.due_amount,0) as due_amount,
+			 nvl(ccc.received_amount,0) as received_amount,
+			 ccc.cf_item,
+			 hci.description cf_item_n,
+			 ccc.cf_type,
+			 cddrl.source_info_id,
+			 cddrl.info_id_batch
+	  FROM csh_deposit_deduct_req_ln cddrl,
+			 con_contract_cashflow     ccc,
+			 con_contract              cc,
+			 hls_bp_master             hbm,
+			 hls_cashflow_item         hci
+     WHERE ccc.cashflow_id = cddrl.cashflow_id
+         AND cc.contract_id = ccc.contract_id
+         AND hbm.bp_id = cc.tenant_id
+         AND hci.cf_item = ccc.cf_item
+         AND cddrl.req_hd_id = #{reqHdId}
+     ORDER BY cddrl.req_ln_id
+    </select>
+
+	<select id="selectUnDeductCashflowMaxTimes" resultType="java.lang.Long">
+		SELECT nvl(MAX(ccc.times), -1)
+		FROM con_contract_cashflow     ccc,
+		csh_deposit_deduct_req_hd cddrh,
+		csh_transaction           ct
+		WHERE ct.transaction_id = cddrh.transaction_id
+		AND ccc.contract_id = ct.contract_id
+		AND ccc.cf_direction = 'INFLOW'
+		AND ccc.write_off_flag != 'FULL'
+		AND NOT EXISTS (SELECT 1
+		FROM csh_deposit_deduct_req_ln cddrl
+		WHERE cddrl.cashflow_id = ccc.cashflow_id
+		AND cddrl.req_hd_id = cddrh.req_hd_id)
+		AND cddrh.req_hd_id = #{reqHdId}
+	</select>
+
+	<select id="queryNextPkValue" resultType="long">
+		select CSH_DEPOSIT_DEDUCT_REQ_LN_S.nextval from dual
+	</select>
+
+	<select id="queryReqLnId" resultType="java.lang.Long" parameterType="java.lang.Long" >
+		SELECT t.REQ_LN_ID from csh_deposit_deduct_req_ln t where t.req_hd_id = #{reqHdId}
+	</select>
+
+	<select id="selectOtherSourceInfoIdSuccess"  resultType="java.lang.String">
+	    select h.REQ_NUMBER from csh_deposit_deduct_req_hd h,csh_deposit_deduct_req_ln l
+		where h.req_hd_id = l.req_hd_id
+		  and l.source_info_id = #{sourceInfoId}
+		  and h.req_status = 'APPROVED'
+		  and nvl(h.deduct_status,'BACK') = 'SUCCESS'
+		  and h.req_hd_id != #{reqHdId}
+		  and l.info_id_batch = #{infoIdBatch}
+	</select>
+
+	<select id="selectOtherSourceInfoIdNotSuccess"  resultType="java.lang.String">
+		select h.REQ_NUMBER from csh_deposit_deduct_req_hd h,csh_deposit_deduct_req_ln l
+		where h.req_hd_id = l.req_hd_id
+		  and l.source_info_id = #{sourceInfoId}
+		  and h.req_status = 'APPROVED'
+		  and nvl(h.deduct_status,'BACK') != 'SUCCESS'
+		  and h.req_hd_id != #{reqHdId}
+		  and l.info_id_batch = #{infoIdBatch}
+	</select>
+
+	<select id="selectOtherSourceInfoIdBack"  resultType="java.lang.String">
+		select h.REQ_NUMBER from csh_deposit_deduct_req_hd h,csh_deposit_deduct_req_ln l
+		where h.req_hd_id = l.req_hd_id
+		  and l.source_info_id = #{sourceInfoId}
+		  and h.req_status = 'APPROVED'
+		  and nvl(h.deduct_status,'BACK') = 'BACK'
+		  and h.req_hd_id != #{reqHdId}
+		  and l.info_id_batch = #{infoIdBatch}
+	</select>
+
+	<select id="selectOtherSourceInfoId"  resultType="java.lang.String">
+		select h.REQ_NUMBER from csh_deposit_deduct_req_hd h,csh_deposit_deduct_req_ln l
+		where h.req_hd_id = l.req_hd_id
+		  and l.source_info_id = #{sourceInfoId}
+		  and h.req_status = 'APPROVED'
+		  and nvl(h.deduct_status,'BACK') != 'BACK'
+		  and h.req_hd_id != #{reqHdId}
+		  and l.info_id_batch = #{infoIdBatch}
+	</select>
+</mapper>

@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author:weimeng
+    $Date: 2019-1-29
+    $Revision: 1.0
+    $Purpose: 上会评审定义
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        var employeeCodes = [];
+        var flag = true;
+
+        // function prj_metting_judge_ds_grid_editFun(record, name) {
+        //     if (record.isNew) {
+        //         if (name == 'director_flag') {
+        //             return 'prj_metting_judge_ds_grid_check';
+        //         }
+        //     }
+        //     return '';
+        // }
+
+        function prj_metting_judge_ds_load_handler() {
+            employeeCodes = [];
+            // var datas = $('prj_metting_judge_ds').data;
+            // for (var i = 0; i < datas.length; i++) {
+            //     employeeCodes.push(datas[i].data.employee_code);
+            // }
+        }
+
+        function prj_metting_judge_ds_grid_lov_commit(lov,value,oldvalue) {
+            // var employeeCode = value.data.employee_code;
+            // if(employeeCodes.indexOf(employeeCode) != -1){
+            //     flag = false;
+            //     //错误提示
+            //     Leaf.showMessage('${l:HLS.PROMPT}', '请选择不同的员工！');
+            // }else{
+            //     employeeCodes.push(employeeCode);
+            //     flag = true;
+            // }
+        }
+        
+        function prj_metting_judge_ds_grid_save() {
+            flag = true;
+            var ds = $('prj_metting_judge_ds');
+            var data = ds.data;
+            for (var i = 0; i < data.length; i++) {
+                var record = data[i].data;
+                var employee_code = record.employee_code;
+                if(employeeCodes.indexOf(employee_code) != -1){
+                    flag = false;
+                    break;
+                }else {
+                    employeeCodes.push(employee_code);
+                }
+            }
+            if(flag){
+                ds.submit();
+            }else{
+                Leaf.showMessage('${l:HLS.PROMPT}', '请选择不同的员工！');
+                employeeCodes = [];
+            }
+        }
+
+        function prj_metting_judge_ds_submitsuccess() {
+            $('prj_metting_judge_ds').query();
+        }
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="judge_type_ds" lookupCode="PRJ.MEETING_JUDGE_TYPE"/>
+            <a:dataSet id="prj_metting_judge_query_ds">
+            </a:dataSet>
+            <a:dataSet id="prj_metting_judge_ds" autoPageSize="true" autoQuery="true" queryDataSet="prj_metting_judge_query_ds" selectable="true"
+                       queryUrl ="${/request/@context_path}/fnd/prjmeetingjudge/query"
+                       deleteUrl="${/request/@context_path}/fnd/prjmeetingjudge/delete"
+                       submitUrl="${/request/@context_path}/fnd/prjmeetingjudge/submit">
+                <a:fields>
+                    <a:field name="judge_user_allocation_id"/>
+                    <a:field name="judge_type" required="true"/>
+                    <a:field name="judge_type_cn" options="judge_type_ds" displayField="code_value_name" valueField="code_value" returnField="judge_type"/>
+                    <!--<a:field name="metting_type" />-->
+                    <a:field name="employee_code"
+                             lovGridHeight="300" lovHeight="450"
+                             lovLabelWidth="100"
+                             lovService="/fnd/employee/prj_metting_judge/queryForLov?~com.hand.hls.sys.dto.LovFndEmployeeForPrjMettingJudge"
+                             lovWidth="600"
+                             title="Lov">
+                        <a:mapping>
+                            <a:map from="employee_code" to="employee_code"/>
+                            <a:map from="name" to="name"/>
+                            <a:map from="unit_name" to="unit_name"/>
+                            <a:map from="position_name" to="position_name"/>
+                            <a:map from="company_short_name" to="company_short_name"/>
+                            <a:map from="allocation_id" to="judge_user_allocation_id"/>
+                            <a:map from="company_id" to="company_id"/>
+
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="name" />
+                    <a:field name="unit_name" />
+                    <a:field name="position_name" />
+                    <a:field name="company_short_name" />
+                    <a:field name="director_flag" checkedValue="Y" defaultValue="N" uncheckedValue="N"/>
+                    <a:field name="enabled_flag" checkedValue="Y" defaultValue="Y" uncheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="load" handler="prj_metting_judge_ds_load_handler"/>
+                    <a:event name="submitsuccess" handler="prj_metting_judge_ds_submitsuccess"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton bind="prj_metting_judge_ds_grid" text="HAP.NEW" type="add"/>
+                <a:gridButton bind="prj_metting_judge_ds_grid" text="HAP.DELETE" type="delete"/>
+                <a:gridButton click="prj_metting_judge_ds_grid_save" text="HAP.SAVE" type="save"/>
+            </a:screenTopToolbar>
+            <a:grid id="prj_metting_judge_ds_grid" bindTarget="prj_metting_judge_ds"
+                    marginHeight="60" marginWidth="30" navBar="true">
+                <a:columns>
+                    <a:column width="160" name="judge_type_cn" prompt="评委类型" editor="prj_metting_judge_ds_grid_combo"/>
+                    <a:column width="160" name="employee_code" prompt="员工代码" editor="prj_metting_judge_ds_grid_lov"/>
+                    <a:column width="160" name="name" prompt="员工名称"/>
+<!--                    <a:column width="160" name="unit_name" prompt="部门名称"/>-->
+                    <a:column width="160" name="position_name" prompt="岗位名称"/>
+                    <a:column width="160" name="company_short_name" prompt="公司简称"/>
+                    <!--<a:column width="150" name="director_flag" prompt="评委主任" editorFunction="prj_metting_judge_ds_grid_editFun" align="center"/>-->
+                    <a:column width="150" name="enabled_flag" prompt="启用"  editor="prj_metting_judge_ds_grid_check" align="center"/>
+                </a:columns>
+                <a:editors>
+                    <a:lov id="prj_metting_judge_ds_grid_lov">
+                        <a:events>
+                            <a:event name="commit" handler="prj_metting_judge_ds_grid_lov_commit"/>
+                        </a:events>
+                    </a:lov>
+                    <a:textField id="prj_metting_judge_ds_grid_tf"/>
+                    <a:checkBox id="prj_metting_judge_ds_grid_check"/>
+                    <a:comboBox id="prj_metting_judge_ds_grid_combo"/>
+                </a:editors>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

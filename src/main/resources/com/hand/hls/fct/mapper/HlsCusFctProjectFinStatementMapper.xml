@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fct.mapper.HlsCusFctProjectFinStatementMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsCusFctProjectFinStatement">
+        <result column="fin_statement_id" property="finStatementId" jdbcType="DECIMAL"/>
+        <result column="project_id" property="projectId" jdbcType="DECIMAL"/>
+        <result column="rpt_date" property="rptDate" jdbcType="DATE"/>
+        <result column="rpt_date_n" property="rptDateN" jdbcType="VARCHAR"/>
+        <result column="rpt_date_string" property="rptDateString" jdbcType="VARCHAR"/>
+        <result column="total_assets" property="totalAssets" jdbcType="DECIMAL"/>
+        <result column="total_liabilities" property="totalLiabilities" jdbcType="DECIMAL"/>
+        <result column="net_assets" property="netAssets" jdbcType="DECIMAL"/>
+        <result column="fixed_assets" property="fixedAssets" jdbcType="DECIMAL"/>
+        <result column="registered_capital" property="registeredCapital" jdbcType="DECIMAL"/>
+        <result column="business_income" property="businessIncome" jdbcType="DECIMAL"/>
+        <result column="net_profit" property="netProfit" jdbcType="DECIMAL"/>
+        <result column="net_operating_cashflow" property="netOperatingCashflow" jdbcType="DECIMAL"/>
+        <result column="invest_operating_cashflow" property="investOperatingCashflow" jdbcType="DECIMAL"/>
+        <result column="fund_operating_cashflow" property="fundOperatingCashflow" jdbcType="DECIMAL"/>
+        <result column="net_cashflow" property="netCashflow" jdbcType="DECIMAL"/>
+        <result column="bank_loans" property="bankLoans" jdbcType="DECIMAL"/>
+        <result column="operating_profit" property="operatingProfit" jdbcType="DECIMAL"/>
+
+        <result column="accounts_receivable" property="accountsReceivable" jdbcType="DECIMAL"/>
+        <result column="accounts_payable" property="accountsPayable" jdbcType="DECIMAL"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="currency_code" property="currencyCode" jdbcType="VARCHAR"/>
+        <result column="currency_code_n" property="currencyCodeN" jdbcType="VARCHAR"/>
+
+        <result column="chance_id" property="chanceId" jdbcType="DECIMAL"/>
+        <result column="credit_line_id" property="creditLineId" jdbcType="DECIMAL"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="currency_code" property="currencyCode" jdbcType="VARCHAR"/>
+        <result column="currency_name" property="currencyName" jdbcType="VARCHAR"/>
+
+        <result column="assets_liabilities" property="assetsLiabilities" jdbcType="DECIMAL"/>
+        <result column="ol" property="ol" jdbcType="DECIMAL"/>
+        <result column="roa" property="roa" jdbcType="DECIMAL"/>
+        <result column="roe" property="roe" jdbcType="DECIMAL"/>
+        <result column="sales_growth_rate" property="salesGrowthRate" jdbcType="DECIMAL"/>
+        <result column="repayment_ratio" property="repaymentRatio" jdbcType="DECIMAL"/>
+
+        <result column="currency_finance" property="currencyFinance"/>
+        <result column="long_due_amount" property="longDueAmount"/>
+        <result column="principal_income" property="principalIncome" jdbcType="DECIMAL"/>
+        <result column="flow_rate" property="flowRate" jdbcType="DECIMAL"/>
+        <result column="service_income" property="serviceIncome"/>
+        <result column="operating_cost" property="operatingCost"/>
+        <result column="income" property="income"/>
+        <result column="business_cost" property="businessCost"/>
+        <result column="fin_statement_hd_id" property="finStatementHdId"/>
+
+    </resultMap>
+
+    <select id="queryFinStatementByBpId" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLine" resultMap="BaseResultMap">
+        SELECT
+            h.currency_code,
+            (SELECT CURRENCY_NAME FROM fnd_currency WHERE CURRENCY_CODE =h.currency_code )AS currency_code_n,
+            (SELECT CURRENCY_NAME FROM fnd_currency WHERE CURRENCY_CODE =h.currency_code )AS currency_name,
+            h.report_year as rpt_date,
+            (select concat(concat(concat(h.fiscal_year,'-'),h.fiscal_month),'-01') from dual) as rpt_date_n,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'BALANCE_SHEET' AND l.account_code LIKE '%G9130%'),0) AS total_assets,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'BALANCE_SHEET' AND l.account_code LIKE '%G9117%'),0) AS fixed_assets,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'BALANCE_SHEET' AND l.account_code LIKE '%G9161%'),0) AS net_assets,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'BALANCE_SHEET' AND l.account_code LIKE '%G9153%'),0) AS total_liabilities,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'BALANCE_SHEET' AND l.account_code LIKE '%G9100%'),0) AS currency_finance,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'BALANCE_SHEET' AND l.account_code LIKE '%G9115%'),0) AS long_due_amount,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A147%'),0) AS principal_income,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A146%'),0) AS flow_rate,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A148%'),0) AS service_income,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'PROFIT_STATEMENT' AND l.account_code LIKE '%H9171%'),0) AS operating_cost,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'PROFIT_STATEMENT' AND l.account_code LIKE '%H9170%'),0) AS income,
+            nvl((SELECT sum(nvl(l.final_amount, 0)) FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'PROFIT_STATEMENT' AND l.account_code in ('H9174', 'H9175', 'H9176')),0) AS business_cost,
+
+
+
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'PROFIT_STATEMENT' AND l.account_code LIKE '%H9186%'),0) AS net_profit,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'CASH_FLOW_STATEMENT' AND l.account_code LIKE '%H9208%'),0) AS net_operating_cashflow,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'CASH_FLOW_STATEMENT' AND l.account_code LIKE '%H9220%'),0) AS invest_operating_cashflow,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'CASH_FLOW_STATEMENT' AND l.account_code LIKE '%H9231%'),0) AS fund_operating_cashflow,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'CASH_FLOW_STATEMENT' AND l.account_code LIKE '%H9254%'),0) AS net_cashflow,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'BALANCE_SHEET' AND l.account_code LIKE '%G9154%'),0) AS registered_capital,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'PROFIT_STATEMENT' AND l.account_code LIKE '%H9170%'),0) AS business_income,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A145%'),0) AS assets_liabilities,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A153%'),0) AS ol,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A155%'),0) AS roa,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A156%'),0) AS roe,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A157%'),0) AS sales_growth_rate,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'INCOME_STATEMENT' AND l.account_code LIKE '%H9180%'),0) AS operating_profit,
+            nvl((SELECT l.final_amount FROM hls_fin_statement_ln l WHERE l.fin_statement_hd_id = h.fin_statement_hd_id AND l.line_type = 'FINANCIAL_INDEX' AND l.account_code LIKE '%A163%'),0) AS repayment_ratio,
+            h.fin_statement_hd_id
+        FROM
+            hls_fin_statement_hd  h
+        <where>
+           h.fiscal_year is not null
+          <if test="bpId != null">
+          and  h.bp_id = #{bpId}
+          </if>
+          <if test="finStatementHdId != null">
+           and   h.fin_statement_hd_id = #{finStatementHdId}
+          </if>
+        </where>
+    </select>
+
+</mapper>

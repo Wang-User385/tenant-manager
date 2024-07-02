@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: congweijing
+    Date: 2021/04/22 16:37
+    Revision: 1.0
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_rent_payment_confirm_detail_link_id" url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_rent_payment_confirm_detail.lview"/>
+
+        <script><![CDATA[
+
+        //支付表确认新建
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_rent_payment_confirm');
+            if($(ds_id).validate()){
+                $L.showConfirm("提示", "您确定执行此操作吗?", function () {
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: "${/request/@context_path}/save/contract/confirm",
+                        para: $(ds_id).getCurrentRecord().data,
+                        success: function (res) {
+                            var param = {};
+                            param['payment_confirm_id'] = res.result.record[0].payment_confirm_id;
+                            param['url_title'] = '支付表确认详情';
+                            param['function_code'] = 'CONT306F2';
+                            param['winid'] = 'rent_payment_winid';
+                            param['parent_refresh_id'] = 'RPTM100_G_RESULTS_prj_project_ds';
+                            param['project_id'] = res.result.record[0].project_id;
+                            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_rent_payment_confirm_detail_link_id', ds_id, 'CONT306');
+                            $('${/parameter/@winid}').on('close',function(){
+                                $("RPTM100_G_RESULTS_prj_project_ds").query();
+                            });
+                            $('${/parameter/@winid}').close();
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                }, function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                });
+            }
+        };
+
+        //更新时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_rent_payment_confirm');
+            if(ds.id == ds_id){
+                if (name == 'payment_number') {
+                    record.getField('payment_discharge_id').setLovPara('contract_id', record.get("contract_id"));
+                }
+            }
+
+        }
+
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

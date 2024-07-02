@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: huangtianyang
+    Date: 2019/02/26 11:06
+    Revision: 1.0 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="con_contract_detail_id_read"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            if (ds.bindname === "CONT301F8_G_CONTEMPLATE_prj_project_attachment") {
+                ds.setQueryParameter('project_attachment_category', 'CON_CONTRACT_SIGN');
+            }
+        }
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            //租前息
+            if (ds.bindname === "CONT301F8_G_CONTEMPLATE_prj_project_attachment") {
+                record.set('project_attachment_category', 'CON_CONTRACT_SIGN');
+            }
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+
+            var link_function = 'upload_file';
+            if (name == 'upload' && record.get('project_attachment_id')){
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.get('project_attachment_id') + '\');">附件</a>';
+            }
+
+            return value;
+        };
+
+        window['upload_file'] = function(record_id,project_attachment_id){
+            var url;
+            if ('${/parameter/@function_usage}' === 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var tableName = 'PRJ_PROJECT_ATTACHMENT';
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var project_record = $(ds_id).getCurrentRecord();
+            var project_id = project_record.get('project_id');
+            if(project_id == null){
+                $L.showInfoMessage("提示","请先保存项目信息再上传附件!");
+                return;
+            }
+            if(project_attachment_id == null){
+                $L.showInfoMessage("提示","请先保存附件信息!");
+                return;
+            }
+            var win = new Leaf.Window({
+                id: 'cont301_signHlsCusPrjProjectAttachmentMapper_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': project_attachment_id,
+                    'table_name': tableName,
+                    winid: 'cont301_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                $('${/parameter/@layout_code}_G_CONTEMPLATE_prj_project_attachment_ds').query();
+            });
+        }
+
+
+
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                var record = $(ds_id).getCurrentRecord();
+                if(record.get('contract_status')=='APPROVED'){
+                    // 添加确认提示
+                    new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                        Leaf.request({
+                            url: '${/request/@context_path}/hls/cus/prj/contract/sign/wfl',
+                            para: { project_id: record.get('project_id')},
+                            success: function (res) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                if (res.success) {
+                                    //Leaf.showInfoMessage('提示', '提交审批成功');
+                                    Leaf.showSuccessMessage('${HLS.SUBMIT_SUCCESS}', '提交审批成功', function () {
+                                        if ('${/parameter/@winid}') {
+                                            //$('${/parameter/@winid}').close();
+                                            $('con_contract_sign_winid').close();
+                                            $('con_contract_detail_winid').close();
+                                        } else {
+                                            location.href = '${/request/@context_path}/user_role_home_page.lview';
+                                            parent.shMenu('show');
+                                        }
+                                    });
+                                } else {
+                                    Leaf.showErrorMessage('提示', res.message);
+                                }
+                            },
+                            failure: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            error: function () {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            },
+                            scope: this
+                        });
+                    })
+                }
+
+        };
+
+
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>
+    
+    

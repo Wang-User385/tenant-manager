@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2019年4月29日
+    $Revision: 1.0  
+    $Purpose: 匹配结果查询
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+
+
+        <script type="text/javascript"><![CDATA[
+
+
+        function csh301_transaction_allocation_detail_return() {
+            $('${/parameter/@winId}').close();
+        }
+
+        function csh301_transaction_allocation_detail_query() {
+            $('csh_transaction_receipt_allocation_detail_result_ds').query();
+        }
+
+        function csh301_transaction_allocation_detail_reset() {
+            $('csh_transaction_receipt_allocation_detail_query_ds').reset();
+        }
+
+        function open_receipt_allocation_detail_renderer(value, record, name) {
+            var allocation_id = record.get('allocation_id');
+            var allocation_status = record.get('allocation_status');
+            return '<a  href="#' + Math.random() + '" onclick="open_receipt_allocation_detail_window(\'' + allocation_id + '\',\'' + allocation_status + '\')">' + value + '</a>';
+        }
+
+        function open_receipt_allocation_detail_window(allocation_id, allocation_status) {
+            if (allocation_status == 'N') {
+                var win = new Leaf.Window({
+                    id: 'transaction_manual_allocation_modify_winId',
+                    url: $('transaction_manual_allocation_modify_finance_link').getUrl(),
+                    params: {
+                        allocation_id: allocation_id,
+                        winId: 'transaction_manual_allocation_modify_winId'
+                    },
+                    title: '收款分配',
+                    fullScreen: true,
+                    draggable: true
+                });
+                win.on('close', function () {
+                    csh301_transaction_allocation_detail_query();
+                });
+            } else {
+                var win = new Leaf.Window({
+                    id: 'transaction_manual_allocation_query_winId',
+                    url: $('transaction_manual_allocation_query_link').getUrl(),
+                    params: {
+                        allocation_id: allocation_id,
+                        winId: 'transaction_manual_allocation_query_winId'
+                    },
+                    title: '收款分配查询',
+                    fullScreen: true,
+                    draggable: true
+                });
+                win.on('close', function () {
+                    csh301_transaction_allocation_detail_query();
+                });
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+
+            <a:dataSet id="csh_transaction_receipt_allocation_detail_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="allocation_id_str" defaultValue="${/parameter/@allocation_id_str}"/>
+                    <a:field name="allocation_number"/>
+                    <a:field name="transaction_num"/>
+                </a:fields>
+
+            </a:dataSet>
+            <a:dataSet id="csh_transaction_receipt_allocation_detail_result_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/allocation/query"
+                       queryDataSet="csh_transaction_receipt_allocation_detail_query_ds"
+                       selectable="true">
+                <a:fields>
+                    <a:field name="allocation_date" datatype="date"/>
+                </a:fields>
+            </a:dataSet>
+
+        </a:dataSets>
+        <a:screenBody>
+            <a:form bindTarget="csh_transaction_receipt_allocation_detail_query_ds" labelWidth="100" width="800"
+                    height="175">
+                <a:screenTopToolbar>
+                    <a:screenTitle/>
+                    <a:gridButton click="csh301_transaction_allocation_detail_return" text="HLS.RETURN"/>
+                    <a:gridButton click="csh301_transaction_allocation_detail_query" text="HLS.QUERY"/>
+                    <a:gridButton click="csh301_transaction_allocation_detail_reset" text="HLS.RESET"/>
+                </a:screenTopToolbar>
+                <a:fieldSet column="2" labelWidth="100" title="HLS.QUERY_TITLE">
+                    <a:textField name="allocation_number"
+                                 bindTarget="csh_transaction_receipt_allocation_detail_query_ds"
+                                 prompt="匹配编号"/>
+                    <a:textField name="transaction_num"
+                                 bindTarget="csh_transaction_receipt_allocation_detail_query_ds"
+                                 prompt="收款编号"/>
+                </a:fieldSet>
+            </a:form>
+
+            <a:grid id="csh_transaction_receipt_allocation_detail_grid_ds"
+                    bindTarget="csh_transaction_receipt_allocation_detail_result_ds" height="500"
+                    marginWidth="50"
+                    navBar="true">
+                <a:toolBar>
+                    <a:button type="excel"/>
+                </a:toolBar>
+                <a:columns>
+                    <a:column name="allocation_number" prompt="匹配编号" width="150"
+                              renderer="open_receipt_allocation_detail_renderer"/>
+                    <a:column name="total_amount" prompt="收款金额汇总" renderer="Leaf.formatMoney" width="150"
+                              align="right"/>
+                    <a:column name="bp_name" prompt="收款对象" width="300"/>
+                    <a:column name="allocation_status_desc" prompt="是否确认" width="100"/>
+                    <a:column name="allocation_source_desc" prompt="匹配来源" width="100"/>
+                    <a:column name="allocation_date" prompt="创建时间" align="center" renderer="Leaf.formatDate"
+                              width="100"/>
+                    <a:column name="created_by_name" prompt="创建人" width="100"/>
+                </a:columns>
+            </a:grid>
+
+        </a:screenBody>
+    </a:view>
+</a:screen>
+

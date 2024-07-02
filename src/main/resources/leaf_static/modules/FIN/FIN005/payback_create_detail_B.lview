@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" customizationEnabled="true"
+          dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment_ln');
+            if(ds.id && ds.id == ds_id){
+                record.set('times','${/parameter/@times}');
+                record.set('cf_item_desc','${/parameter/@cfItemDesc}');
+                record.set('prev_due_amount','${/parameter/@dueAmount}');
+                record.set('cny_planned_due_amount','${/parameter/@dueAmount}');
+                record.set('cny_due_amount','${/parameter/@dueAmount}');
+                record.set('due_date','${/parameter/@dueDate}');
+                record.set('bank_account_id','${/parameter/@bankAccountId}');
+                record.set('bank_account_name','${/parameter/@bankAccountName}');
+                record.set('bank_branch_name','${/parameter/@bankBranchName}');
+                record.set('bank_account_num','${/parameter/@bankAccountNum}');
+            }
+        };
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment_ln');
+            var records = $(ds_id).getSelected();
+
+            var params = [];
+            var totalAmount = 0;
+            var flag = false;
+            if(records.length == 0){
+                Leaf.showMessage('提示', '请选择还款计划！');
+                return false;
+            }
+
+            for(var i = 0;i<records.length;i++){
+                if(records[i].get('ln_id') == undefined || records[i].get('ln_id') == null || records[i].get('ln_id') == ''){
+                    records[i].set('contract_id','${/parameter/@contractId}');
+                    records[i].set('withdraw_id','${/parameter/@withdrawId}');
+                    records[i].set('repayment_id_list','${/parameter/@repaymentIdList}');
+                    params[i] = records[i].data;
+                }
+                totalAmount = plus(totalAmount,parseFloat(records[i].get('cny_due_amount')));
+                if(records[i].get('bank_account_id') == undefined || records[i].get('bank_account_id') == null || records[i].get('bank_account_id') == ''){
+                    Leaf.showMessage('提示','请选择对应的还款账户');
+                    flag = true;
+                    return false;
+                }
+                if(records[i].get('due_date') == undefined || records[i].get('due_date') == null || records[i].get('due_date') == ''){
+                    Leaf.showMessage('提示','请输入还款日期');
+                    flag = true;
+                    return false;
+                }
+            }
+            if(flag) return false;
+            if(parseFloat(totalAmount) > parseFloat('${/parameter/@dueAmount}')){
+                Leaf.showMessage('提示','实际还款金额大于计划还款金额');
+                return false;
+            }
+            new Leaf.showConfirm('${l:HLS.PROMPT}', '是否确认还款?', function okFun() {
+                Leaf.request({
+                    type: 'POST',
+                    url: '${/request/@context_path}/hlsLon/contract/repayment/confirm',
+                    para: params,
+                    contentType: 'application/json; charset=UTF-8',
+                    async: false, //设为同步
+                    success: function (res) {
+                        if(res.success){
+                            Leaf.SideBar.show({
+                                msg: '确认成功',
+                                duration: 1000
+                            });
+                        }else{
+                            Leaf.showMessage('提示',datas.message);
+                        }
+                    },
+                    failure: function (data) {
+                        Leaf.showMessage('提示',datas.message);
+
+                    },
+                    error: function (data) {
+                        Leaf.showMessage('提示',datas.message);
+
+                    },
+                });
+            })
+        };
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {debugger;
+            var account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment_ln');
+            if(ds.id && ds.id == account_ds_id){
+                ds.setQueryParameter('repayment_id', '${/parameter/@repaymentIdList}');
+            }
+
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

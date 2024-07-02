@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.YhFactoryDelayTermMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.YhFactoryDelayTerm">
+        <result column="term_id" property="termId" jdbcType="DECIMAL"/>
+        <result column="manufacturer_id" property="manufacturerId" jdbcType="DECIMAL"/>
+        <result column="factory_id" property="factoryId" jdbcType="DECIMAL"/>
+        <result column="max_term" property="maxTerm" jdbcType="DECIMAL"/>
+        <result column="note" property="note" jdbcType="VARCHAR"/>
+        <result column="manufacturer_id_n" property="manufacturerIdN" jdbcType="VARCHAR"/>
+        <result column="factory_id_n" property="factoryIdN" jdbcType="VARCHAR"/>
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="created_by" property="createdBy" jdbcType="DECIMAL"/>
+        <result column="last_update_date" property="lastUpdateDate" jdbcType="DATE"/>
+        <result column="last_updated_by" property="lastUpdatedBy" jdbcType="DECIMAL"/>
+    </resultMap>
+
+    <select id="yhFactoryDelayTermQuery" resultMap="BaseResultMap">
+        select v.*
+        from (select hm.bp_id manufacturer_id,
+        hm.bp_name manufacturer_id_n,
+        hbm.bp_id factory_id,
+        hbm.bp_name factory_id_n,
+        (select yt.max_term
+        from yh_factory_delay_term yt
+        where yt.manufacturer_id = hm.bp_id
+        and yt.factory_id = hbm.bp_id) max_term,
+        (select yt.note
+        from yh_factory_delay_term yt
+        where yt.manufacturer_id = hm.bp_id
+        and yt.factory_id = hbm.bp_id) note,
+        (select yt.term_id
+        from yh_factory_delay_term yt
+        where yt.manufacturer_id = hm.bp_id
+        and yt.factory_id = hbm.bp_id) term_id
+        from hls_bp_master          hm,
+        hls_bp_master_relation hbr,
+        hls_bp_master          hbm
+        where exists (select *
+        from hls_bp_master_role hr
+        where hr.bp_id = hm.bp_id
+        and hr.bp_category in ('MANUFACTURER','PARTNER'))
+        and hm.bp_id = hbr.related_bp_id
+        and hbr.relation_type = 'MANUFACTURER'
+        and hbr.bp_id = hbm.bp_id
+        and exists (select *
+        from hls_bp_master_role hr
+        where hr.bp_id = hbm.bp_id
+        and hr.bp_category = 'VENDER')
+        union
+        select hm.bp_id manufacturer_id,
+        hm.bp_name manufacturer_id_n,
+        null factory_id,
+        null factory_id_n,
+        (select yt.max_term
+        from yh_factory_delay_term yt
+        where yt.manufacturer_id = hm.bp_id) max_term,
+        (select yt.note
+        from yh_factory_delay_term yt
+        where yt.manufacturer_id = hm.bp_id) note,
+        (select yt.term_id
+        from yh_factory_delay_term yt
+        where yt.manufacturer_id = hm.bp_id) term_id
+        from hls_bp_master hm
+        where exists (select *
+        from hls_bp_master_role hr
+        where hr.bp_id = hm.bp_id
+        and hr.bp_category in ('MANUFACTURER','PARTNER'))
+        and not exists
+        (select *
+        from hls_bp_master_relation hbr, hls_bp_master hbm
+        where hbr.related_bp_id = hm.bp_id
+        and hbr.relation_type = 'MANUFACTURER'
+        and hbr.bp_id = hbm.bp_id
+        and exists (select *
+        from hls_bp_master_role hr
+        where hr.bp_id = hbm.bp_id
+        and hr.bp_category = 'VENDER'))) v
+        <where>
+            <if test="manufacturerIdN!=null">
+                and  v.manufacturer_id_n like concat(concat('%',#{manufacturerIdN}),'%')
+            </if>
+            <if test="factoryIdN!=null">
+                and  v.factory_id_n like concat(concat('%',#{factoryIdN}),'%')
+            </if>
+            <if test="manufacturerId!=null">
+                and  v.manufacturer_id = #{manufacturerId}
+            </if>
+            <if test="factoryId!=null">
+                and  v.factory_id = #{factoryId}
+            </if>
+        </where>
+        order by v.manufacturer_id,v.factory_id
+    </select>
+</mapper>

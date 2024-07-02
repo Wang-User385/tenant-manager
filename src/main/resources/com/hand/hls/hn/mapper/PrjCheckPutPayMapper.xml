@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hn.mapper.PrjCheckPutPayMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hn.dto.PrjCheckPutPay">
+        <result column="put_pay_id" property="putPayId" jdbcType="BIGINT" />
+        <result column="check_id" property="checkId" jdbcType="BIGINT" />
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="remark" property="remark" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="selectPrjCheckPutPay" parameterType="com.hand.hls.hn.dto.PrjCheckPutPay" resultMap="BaseResultMap">
+        select * from
+        (SELECT
+        (select pcc.put_pay_id
+        from PRJ_CHECK_PUT_PAY pcc
+        where pcc.CHECK_ID = #{checkId}) put_pay_id,
+        (select pcc.remark
+        from PRJ_CHECK_PUT_PAY pcc
+        where pcc.CHECK_ID = #{checkId}) remark,
+        p.check_id,
+        c.project_id,
+        c.contract_number
+        FROM
+        prj_check p,
+        prj_project c
+        WHERE
+        p.contract_id = c.project_id) t
+        <where>
+            1=1
+            <if test="checkId!=null">
+                and t.CHECK_ID = #{checkId}
+            </if>
+        </where>
+
+
+    </select>
+
+</mapper>

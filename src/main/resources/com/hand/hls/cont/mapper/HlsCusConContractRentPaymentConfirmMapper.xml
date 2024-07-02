@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.cont.mapper.HlsCusConContractRentPaymentConfirmMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.cont.dto.HlsCusConContractRentPaymentConfirm">
+        <result column="payment_confirm_id" property="paymentConfirmId" jdbcType="DECIMAL"/>
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL"/>
+        <result column="project_id" property="projectId" jdbcType="DECIMAL"/>
+        <result column="quotation_id" property="quotationId" jdbcType="DECIMAL"/>
+        <result column="payment_discharge_id" property="paymentDischargeId" jdbcType="DATE"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="description" property="description" jdbcType="VARCHAR"/>
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR"/>
+        <result column="process_instance_id" property="processInstanceId" jdbcType="DECIMAL"/>
+    </resultMap>
+    <select id="queryConContractRentPaymentConfirm" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.cont.dto.HlsCusConContractRentPaymentConfirm">
+        select * from con_rent_payment_confirm rpc
+        <where>
+            rpc.contract_id = #{contractId}
+            <if test="paymentDischargeId!=null and paymentDischargeId!=''">
+                and rpc.payment_discharge_id = #{paymentDischargeId}
+            </if>
+            <if test="paymentDischargeId == null">
+                and rpc.payment_discharge_id is null
+            </if>
+        </where>
+    </select>
+    <select id="queryCheckConfirm" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.cont.dto.HlsCusConContractRentPaymentConfirm">
+        SELECT
+        substr(t.contract_number,-2)contract_number
+        FROM
+        con_rent_payment_confirm cc,
+        con_contract t
+        WHERE
+        cc.contract_id = t.contract_id
+        AND EXISTS (
+        SELECT
+        1
+        FROM
+        prj_quotation_cashflow q
+        <where>
+            q.quotation_id = cc.quotation_id
+            AND q.cf_item = 8
+            AND q.due_amount > 0
+            )
+            and cc.payment_confirm_id = #{paymentConfirmId};
+        </where>
+    </select>
+
+
+</mapper>

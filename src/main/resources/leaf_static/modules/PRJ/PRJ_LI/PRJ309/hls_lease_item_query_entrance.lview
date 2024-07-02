@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    租赁物维护
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="con_lease_item_insurance_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_LI/PRJ308/hls_lease_item_insurance_modify.lview"/>
+        <a:link id="PRJ419_open_insurance_info_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419F5/lease_item_insurance.lview"/>
+        <a:link id="PRJ419_project_modify_new_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_modify_new.lview"/>
+        <a:link id="con_contract_detail_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_detail.lview"/>
+        <a:link id="con_contract_detail_frame_id"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301/con_contract_frame_detail.lview"/>
+        <a:link id="prj_credit_contract_detail"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ350/prj_credit_contract_detail.lview"/>
+        <script><![CDATA[
+
+        var page = null ;
+        var pageSize  = null;
+        var index = null;
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_lease_item');
+            /*pageSize = $(ds_id).pagesize;
+            page = $(ds_id).currentPage;
+            index = $(ds_id).currentIndex;*/
+            var record = $(ds_id).getSelected()[0];
+            var params = {};
+            params['winId'] = 'con_lease_item_insurance_winId';
+            params['layout_code'] = "PRJ308F1";
+            params['function_code'] = "PRJ308F1";
+            /*params['winid'] = 'PRJ419_open_insurance_information_winid';
+            params['layout_code'] = "PRJ419F5";
+            params['function_code'] = "PRJ419F5";*/
+            params['function_usage'] = 'QUERY';
+            params['url_title'] = '保险信息查询';
+            params['screen_width'] = '1100';
+            params['screen_height'] = '450';
+            params['contract_lease_item_id'] = record.get('contract_lease_item_id');
+            //params['project_lease_item_id'] = record.get('project_lease_item_id');
+            hls_doc_get_layout_code(params, 'con_lease_item_insurance_link_id', ds_id, 'PRJ309');
+        }
+
+        function open_insurance_win(ds_id, record_id){
+            /*pageSize = $(ds_id).pagesize;
+            page = $(ds_id).currentPage;
+            index = $(ds_id).currentIndex;*/
+            var params = $(ds_id).findById(record_id).data;
+            params['winId'] = 'con_lease_item_insurance_winId';
+            params['layout_code'] = "PRJ308F1";
+            params['function_code'] = "PRJ308F1";
+            /*params['winid'] = 'PRJ419_open_insurance_information_winid';
+            params['layout_code'] = "PRJ419F5";
+            params['function_code'] = "PRJ419F5";*/
+            params['function_usage'] = 'QUERY';
+            params['url_title'] = '保险信息维护';
+            params['screen_width'] = '1100';
+            params['screen_height'] = '450';
+            params['contract_lease_item_id'] = params.contract_lease_item_id;
+            hls_doc_get_layout_code(params, 'con_lease_item_insurance_link_id', ds_id, 'PRJ309');
+            //params['project_lease_item_id'] = params.project_lease_item_id;
+            //hls_doc_get_layout_code(params, 'PRJ419_open_insurance_info_link_id', ds_id, 'PRJ309');
+        }
+
+        /*//项目维护
+        function open_project_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '项目明细';
+            param['function_code'] = 'PRJ419F2';
+            param['winid'] = 'project_modify_winid';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['submit_hide'] = true;
+            hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_link_id', ds_id, 'PRJ309');
+        }*/
+
+        function open_contract_detail_win(ds_id, record_id) {
+            debugger
+            var param = $(ds_id).findById(record_id).data;
+            if (param['business_type'] == null && param['credit_flag'] == 'Y') {
+                param['url_title'] = '合同协议维护';
+                param['function_code'] = 'PRJ350F1';
+                param['winid'] = 'prj_credit_contract_create_win_id';
+                if (param['contract_status'] == 'NEW') {
+                    param['maintain_type'] = 'MODIFY';
+                    param['function_usage'] = 'MODIFY';
+                }else {
+                    param['maintain_type'] = 'READONLY';
+                    param['function_usage'] = 'QUERY';
+                }
+                hls_doc_get_layout_code(param, 'prj_credit_contract_detail', ds_id, 'PRJ350F1');
+            }else {
+                param['url_title'] = '合同明细维护';
+                param['function_code'] = 'CONT301F1';
+                param['winid'] = 'con_contract_detail_winid';
+                //param['layout_debugger_flag'] = 'Y';
+                // debugger;
+                if (param['purchase_frame'] == 'Y') {
+                    if (('${/parameter/@function_code}' == 'CONT301F15') || (param['contract_status'] !== 'NEW' && param['contract_status'] !== 'APPROVED_RETURN' && param['contract_status'] !== 'REJECTED')) {
+                        param['maintain_type'] = 'READONLY';
+                        param['function_usage'] = 'QUERY';
+                        param['function_code'] = 'CONT301F1K';
+
+
+                    } else {
+                        param['maintain_type'] = 'MODIFY';
+                        param['function_usage'] = 'MODIFY';
+                        param['function_code'] = 'CONT301F1K';
+                    }
+                    hls_doc_get_layout_code(param, 'con_contract_detail_frame_id', ds_id, 'CONT301');
+
+                } else {
+                    debugger;
+                    if (('${/parameter/@function_code}' == 'CONT301F15') || (param['contract_status'] !== 'NEW' && param['contract_status'] !== 'APPROVED_RETURN' && param['contract_status'] !== 'REJECTED')) {
+
+                        param['hidden_button_code'] = ['save', 'submit_approval', 'create', 'calc', 'quotation_calc'];
+
+
+                        param['maintain_type'] = 'READONLY';
+                        param['function_usage'] = 'QUERY';
+                        param['function_code'] = 'CONT301F1';
+                    } else {
+                        param['maintain_type'] = 'MODIFY';
+                        param['function_usage'] = 'MODIFY';
+                        param['function_code'] = 'CONT301F1';
+                    }
+                    hls_doc_get_layout_code(param, 'con_contract_detail_id', ds_id, 'CONT301');
+
+                }
+            }
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'insurance') {
+                return '<a href="javascript:open_insurance_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + config_record.get('prompt') + '</a>';
+            }
+            if (name == 'contract_number' && value) {
+                return '<a href="javascript:open_contract_detail_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_lease_item', 'G_LEASING_PHOTOVOLTAIC');
+            var ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_lease_item', 'G_LEASING_MACHINE');
+            var ds_id3 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_lease_item', 'G_LEASING_VEHICLE');
+            if (ds === $(ds_id)){
+                //详情页返回 需要定位到之前的行
+                if(pageSize != null && page!= null && index != null) {
+                    $(ds_id).pagesize = pageSize;
+                    $(ds_id).goPage(page);
+                    $(ds_id).locate(index);
+                    page = null;
+                    pageSize = null;
+                    index = null ;
+                }
+            }else if (ds === $(ds_id2)){
+                if(pageSize != null && page!= null && index != null) {
+                    $(ds_id2).pagesize = pageSize;
+                    $(ds_id2).goPage(page);
+                    $(ds_id2).locate(index);
+                    page = null;
+                    pageSize = null;
+                    index = null ;
+                }
+            }else if (ds === $(ds_id3)){
+                if(pageSize != null && page!= null && index != null) {
+                    $(ds_id3).pagesize = pageSize;
+                    $(ds_id3).goPage(page);
+                    $(ds_id3).locate(index);
+                    page = null;
+                    pageSize = null;
+                    index = null ;
+                }
+            }
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

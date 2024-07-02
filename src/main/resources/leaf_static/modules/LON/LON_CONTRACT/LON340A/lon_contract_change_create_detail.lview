@@ -1,0 +1,1401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_fin003_lon_create_id"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON001/lon_contract_apply.lview"/>
+        <a:link id="fin003_change_detail_plan_back_link_id"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_withdraw_change_home.lview"/>
+        <script><![CDATA[
+        var query_flag = 'Y';
+        var query_flag2 = 'Y';
+        var query_flag3 = 'Y';
+        var withdraw_id = '${/parameter/@withdraw_id}';
+
+        function setValue(record, data) {
+            for (var i in data) {
+                if (data[i] != null) {
+                    record.set(i, data[i]);
+                }
+            }
+        }
+
+        function assignValue(record, data) {
+            for (var i in data) {
+                if (data[i] != null) {
+                    record[i] = data[i];
+                }
+            }
+        }
+
+        function getMonthsBetween(start, end) {
+            /*var months = minus(end.getMonth(),start.getMonth());
+            var yesrs = minus(end.getFullYear(),start.getFullYear());
+            months = plus(plus(mul(yesrs,12),months),1);*/
+
+            //除以1000 除以3600 除以24 得到天，除以365 乘以12 得到月份(向上取整)
+            var months = Math.ceil(div(div(div(div(mul(minus(end.getTime(), start.getTime()), 12), 3600), 1000), 24), 365));
+
+
+            return months;
+        }
+
+        //加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+
+
+            var contract_id = '${/parameter/@contract_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+
+            var old_contract_id = '${/parameter/@old_contract_id}';
+            var old_withdraw_id = '${/parameter/@old_withdraw_id}';
+
+            if (ds.id == '${/parameter/@bp_seq}${/parameter/@layout_code}_F_QUOTATION_INFO_BEFORE_lon_contract_quotation_ds') {
+                ds.setQueryParameter('contract_id', old_contract_id);
+                ds.setQueryParameter('withdraw_id', old_withdraw_id);
+                if (query_flag2 == 'Y') {
+                    query_flag2 = 'N';
+                    ds.query();
+                }
+
+            }
+
+            if (ds.id == '${/parameter/@bp_seq}${/parameter/@layout_code}_F_QUOTATION_INFO_AFTER_lon_contract_quotation_ds') {
+                ds.setQueryParameter('contract_id', contract_id);
+                ds.setQueryParameter('withdraw_id', contract_id);
+                if (query_flag2 == 'Y') {
+                    query_flag2 = 'N';
+                    ds.query();
+                }
+
+            }
+
+
+            var quotation_ds_id = '${/parameter/@layout_code}_F_QUOTATION_INFO_AFTER_lon_contract_quotation_ds';
+            if (ds.id === quotation_ds_id && ('${/parameter/@function_usage}' !== 'QUERY')) {
+                //测算类型为手工测算，还款方式只读
+                var measure_type = $(quotation_ds_id).getCurrentRecord().get('measure_type');
+                /*if (measure_type == 'SYSTEM_ESTIMATION') {
+                    $(quotation_ds_id).getCurrentRecord().getField('price_list').setReadOnly(false);
+                    $(quotation_ds_id).getCurrentRecord().getField('price_list_n').setReadOnly(false);
+                    $(quotation_ds_id).getCurrentRecord().getField('price_list').setRequired(true);
+                    $(quotation_ds_id).getCurrentRecord().getField('price_list_n').setRequired(true);
+                    $(quotation_ds_id).getCurrentRecord().getField('interest_cycle').setReadOnly(false);
+                    $(quotation_ds_id).getCurrentRecord().getField('interest_cycle_n').setReadOnly(false);
+                    $(quotation_ds_id).getCurrentRecord().getField('interest_cycle').setRequired(true);
+                    $(quotation_ds_id).getCurrentRecord().getField('interest_cycle_n').setRequired(true);
+
+                } else if (measure_type == 'HAND_ESTIMATION') {
+                    $(quotation_ds_id).getCurrentRecord().getField('price_list').setRequired(false);
+                    $(quotation_ds_id).getCurrentRecord().getField('price_list_n').setRequired(false);
+                    $(quotation_ds_id).getCurrentRecord().getField('price_list').setReadOnly(true);
+                    $(quotation_ds_id).getCurrentRecord().getField('price_list_n').setReadOnly(true);
+                    $(quotation_ds_id).getCurrentRecord().set('price_list','PAY_BY_NO_RULE');
+                    $(quotation_ds_id).getCurrentRecord().set('price_list_n','不规则还款');
+                    $(quotation_ds_id).getCurrentRecord().getField('interest_cycle').setRequired(false);
+                    $(quotation_ds_id).getCurrentRecord().getField('interest_cycle_n').setRequired(false);
+                    $(quotation_ds_id).getCurrentRecord().getField('interest_cycle').setReadOnly(true);
+                    $(quotation_ds_id).getCurrentRecord().getField('interest_cycle_n').setReadOnly(true);
+                }*/
+            }
+            /*if(ds.id == '${/parameter/@layout_code}_F_QUOTATION_INFO_AFTER_lon_contract_quotation_ds'){
+                if(record != null && record != ''){
+                debugger;
+                    if('${/parameter/@function_usage}' != 'QUERY' && (record.get('change_type') == 'AI')){
+                        record.getField('rate_change_date').setRequired(true);
+
+                    }else{
+                        record.getField('rate_change_date').setRequired(false);
+
+                    }
+                }
+
+            }*/
+
+            var quotation_ds_id = '${/parameter/@layout_code}_F_QUOTATION_INFO_AFTER_lon_contract_quotation_ds';
+
+            var int_rate_type = $(quotation_ds_id).getCurrentRecord().get('int_rate_type');
+            debugger;
+            if (int_rate_type == 'FIXED') {
+                var record = $(quotation_ds_id).getCurrentRecord();
+                record.getField('base_rate').setReadOnly(true);
+                record.getField('base_rate').setRequired(false);
+                record.getField('base_rate_type').setReadOnly(true);
+                record.getField('base_rate_type').setRequired(false);
+                record.getField('base_rate_type_n').setReadOnly(true);
+                record.getField('base_rate_type_n').setRequired(false);
+                /*
+                                record.getField('floating_way_n').setReadOnly(true);
+                */
+                record.getField('floating_way_range').setReadOnly(true);
+                record.getField('floating_way_range').setRequired(false);
+
+                /*record.getField('floating_range_method').setReadOnly(true);
+                record.getField('floating_range_method_n').setReadOnly(true);*/
+
+            } else if ('${/parameter/@function_usage}' !== 'QUERY') {
+                var record = $(quotation_ds_id).getCurrentRecord();
+                record.getField('base_rate').setReadOnly(false);
+                record.getField('base_rate').setRequired(true);
+                record.getField('base_rate_type').setReadOnly(false);
+                record.getField('base_rate_type').setRequired(true);
+                record.getField('base_rate_type_n').setReadOnly(false);
+                record.getField('base_rate_type_n').setRequired(true);
+                /*
+                                record.getField('floating_way_n').setReadOnly(false);
+                */
+                record.getField('floating_way_range').setReadOnly(false);
+                record.getField('floating_way_range').setRequired(true);
+
+
+                /*  record.getField('floating_range_method').setReadOnly(false);
+                  record.getField('floating_range_method_n').setReadOnly(false);*/
+            }
+
+        };
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+            if (ds.id == '${/parameter/@layout_code}_G_REPAYMENT_FIN_INFO_lon_contract_repayment_ds') {
+                debugger;
+                if (record != null && record != '') {
+                    if ('${/parameter/@function_usage}' != 'QUERY' && (record.get('write_off_flag') == 'FULL' || record.get('write_off_flag') == 'PARTIAL')) {
+                        record.getField('times').setReadOnly(true);
+                        record.getField('cf_item').setReadOnly(true);
+                        record.getField('cf_item_n').setReadOnly(true);
+                        record.getField('planned_due_date').setReadOnly(true);
+                        record.getField('payment_method').setReadOnly(true);
+                        record.getField('payment_method_n').setReadOnly(true);
+                        record.getField('proce_tax_rate').setReadOnly(true);
+                        record.getField('planned_due_amount').setReadOnly(true);
+                        record.getField('currency').setReadOnly(true);
+                        record.getField('currency_n').setReadOnly(true);
+
+                        record.getField('proportion').setReadOnly(true);
+                        record.getField('currency_n').setReadOnly(true);
+
+                        record.getField('proportion').setReadOnly(true);
+                        record.getField('amortization_method').setReadOnly(true);
+                        record.getField('amortization_method_n').setReadOnly(true);
+                    }
+                }
+
+            }
+
+            if (ds.id == '${/parameter/@layout_code}_G_REPAYMENT_INFO_lon_contract_repayment_ds') {
+                if (record != null && record != '') {
+                    if ('${/parameter/@function_usage}' != 'QUERY' && (record.get('write_off_flag') == 'FULL' || record.get('write_off_flag') == 'PARTIAL')) {
+                        record.getField('times').setReadOnly(true);
+                        record.getField('cf_item').setReadOnly(true);
+                        record.getField('cf_item_n').setReadOnly(true);
+                        record.getField('planned_calc_date').setReadOnly(true);
+                        record.getField('planned_due_date').setReadOnly(true);
+                        record.getField('payment_method').setReadOnly(true);
+                        record.getField('payment_method_n').setReadOnly(true);
+                        record.getField('planned_due_amount').setReadOnly(true);
+                        record.getField('interest_accrual_balance').setReadOnly(true);
+                        record.getField('int_rate').setReadOnly(true);
+                        record.getField('amortization_method').setReadOnly(true);
+                        record.getField('amortization_method_n').setReadOnly(true);
+                    }
+                }
+
+            }
+
+
+            if (ds.id == '${/parameter/@layout_code}_G_BANK_INFO_AFTER_ct_lon_contract_bank_account_ds') {
+                if (record != null && record != '') {
+                    var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw');
+
+                    var base_record = $(base_ds_id).getCurrentRecord();
+                    record.set('bp_id', base_record.get("credit_bp_id"));
+
+
+                }
+
+            }
+
+
+        };
+
+        function onchange_base_rate_type(cb, value, old_value) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation', 'F_QUOTATION_INFO_AFTER');
+            var quotation_result_ds = $(ds_id);
+            var record = quotation_result_ds.getAt(0);
+            var baseRateType = '';
+            baseRate = getBaseRate(record.get('base_rate_type'), record.get("rate_change_date"));
+            record.set('base_rate', baseRate);
+            changeTerm = getChangeTerm(record.get("rate_change_date"), '${/parameter/@withdraw_id}');
+            record.set('change_term', changeTerm);
+        }
+
+        function getBaseRate(base_rate_type, due_date) {
+            var baseRate = null;
+            Leaf.request({
+                url: '${/request/@context_path}/fnd/baserateset/queryForFinanceQuotation',
+                para: {
+                    baseRatetype: base_rate_type,
+                    due_date: due_date
+                },
+                sync: true,
+                success: function (datas) {
+                    if (datas.result.record.length > 0) {
+                        baseRate = datas.result.record[0];
+                    }
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                scope: this
+            });
+            return baseRate;
+        }
+
+        function getChangeTerm(rate_change_date, withdraw_id) {
+            var changeTerm = null;
+            Leaf.request({
+                url: '${/request/@context_path}/hls/cus/lon/queryForFinanceQuotationTime',
+                para: {
+                    rate_change_date: rate_change_date,
+                    withdraw_id: withdraw_id
+                },
+                sync: true,
+                success: function (datas) {
+                    if (datas.result.record.length > 0) {
+                        changeTerm = datas.result.record[0];
+                    }
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                scope: this
+            });
+            return changeTerm;
+        }
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            var quotation_ds_id = '${/parameter/@layout_code}_F_QUOTATION_INFO_AFTER_lon_contract_quotation_ds';
+            if (ds.id == '${/parameter/@layout_code}_G_REPAYMENT_FIN_INFO_lon_contract_repayment_ds') {
+                //debugger;
+                if (name == 'exchange_rate') {
+                    if (record.get('planned_due_amount') != null && record.get('planned_due_amount') != '' && record.get('exchange_rate') != null && record.get('exchange_rate') != '') {
+                        var cny_due_amount = mul(record.get('planned_due_amount'), record.get('exchange_rate'));
+                        record.set('cny_due_amount', cny_due_amount);
+                    }
+                }
+
+                if (name == 'planned_due_amount') {
+                    if (record.get('planned_due_amount') != null && record.get('planned_due_amount') != '' && record.get('exchange_rate') != null && record.get('exchange_rate') != '') {
+                        var cny_due_amount = mul(record.get('planned_due_amount'), record.get('exchange_rate'));
+                        record.set('cny_due_amount', cny_due_amount);
+                    }
+                }
+
+
+                if (record.data.withdraw_due_amount != 'undefined' && record.data.withdraw_due_amount != '' && record.data.withdraw_due_amount != null) {
+                    if (record.data.proce_tax_rate != 'undefined' && record.data.proce_tax_rate != '' && record.data.proce_tax_rate != null) {
+                        var planned_due_amount = mul(record.data.withdraw_due_amount, record.data.proce_tax_rate);
+                        record.set('planned_due_amount', planned_due_amount);
+                    }
+                }
+
+                if (name == 'planned_calc_date' && (record.get('planned_due_date') == '' || record.get('planned_due_date') == null
+                    || record.get('planned_due_date') == undefined || record.isNew == true)) {
+                    record.set('planned_calc_date', record.get('planned_due_date'));
+                }
+
+            }
+
+            if (ds.id == '${/parameter/@layout_code}_G_REPAYMENT_INFO_lon_contract_repayment_ds') {
+                if (name == 'planned_calc_date') {
+                    record.set('planned_due_date', record.get('planned_calc_date'));
+                }
+            }
+
+            if (name === 'rate_change_date' && record.get('change_type') == 'AI' && record.get('int_rate_type') == 'FLOATING') {
+                onchange_base_rate_type();
+            } else if (name == 'rate_change_date') {
+                changeTerm = getChangeTerm(record.get("rate_change_date"), '${/parameter/@withdraw_id}');
+                record.set('change_term', changeTerm);
+            }
+
+            if (name == 'floating_way_range') {
+                if (record.get('base_rate') != null && record.get('base_rate') != '' && record.get('floating_way_range') != null && record.get('floating_way_range') != '') {
+                    var int_rate = plus(record.get('base_rate'), div(record.get('floating_way_range'), 10000));
+                    record.set('int_rate', int_rate);
+                } else {
+                    record.set('int_rate', '');
+                }
+            }
+
+            if (name == 'base_rate') {
+                if (record.get('base_rate') != null && record.get('base_rate') != '' && record.get('floating_way_range') != null && record.get('floating_way_range') != '') {
+                    var int_rate = plus(record.get('base_rate'), div(record.get('floating_way_range'), 10000));
+                    record.set('int_rate', int_rate);
+                } else {
+                    record.set('int_rate', '');
+                }
+            }
+            if (name == 'due_date') {
+                if (record.get('withdraw_end_date') != null && record.get('due_date') != null) {
+                    var month = getMonthsBetween(record.get('due_date'), record.get('withdraw_end_date'));
+                    if (record.get('withdraw_end_date') > record.get('due_date')) {
+                        record.set('loan_term', month);
+                    } else {
+                        Leaf.showMessage('提示', '计划到期日必须大于提款起始日！');
+                    }
+                } else {
+                    record.set('loan_term', 0);
+                }
+                if (record.get('due_date') != null) {
+                    record.set('withdraw_date_actual', record.get('due_date'));
+
+                }
+            }
+
+            if (name == 'withdraw_end_date') {
+                record.set('initial_withdraw_end_date', record.get('withdraw_end_date'));
+                if (record.get('withdraw_end_date') != null && record.get('due_date') != null) {
+                    var month = getMonthsBetween(record.get('due_date'), record.get('withdraw_end_date'));
+                    if (record.get('withdraw_end_date') > record.get('due_date')) {
+                        record.set('loan_term', month);
+                    } else {
+                        Leaf.showMessage('提示', '计划到期日必须大于提款起始日！');
+                    }
+
+                } else {
+                    record.set('loan_term', null);
+                }
+            }
+            if (ds.id == get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO')) {
+                var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation');
+
+                if ($(quotation_ds_id).getCurrentRecord().get("due_amount") && record.get('proportion')) {
+                    record.set('planned_due_amount', $(quotation_ds_id).getCurrentRecord().get("due_amount") * record.get('proportion'));
+                }
+            }
+            if (name === 'int_rate_type') {
+                if (value == 'FIXED') {
+
+                    record.getField('base_rate').setReadOnly(true);
+                    record.getField('base_rate').setRequired(false);
+                    record.getField('base_rate_type').setReadOnly(true);
+                    record.getField('base_rate_type').setRequired(false);
+                    record.getField('base_rate_type_n').setReadOnly(true);
+                    record.getField('base_rate_type_n').setRequired(false);
+
+                    record.getField('floating_way_range').setReadOnly(true);
+                    record.getField('floating_way_range').setRequired(false);
+
+
+                    record.set('base_rate', null);
+                    record.set('base_rate_type', null);
+                    record.set('base_rate_type_n', null);
+                    record.set('floating_way_range', null);
+
+
+                } else {
+                    record.getField('base_rate').setReadOnly(false);
+                    record.getField('base_rate').setRequired(true);
+                    record.getField('base_rate_type').setReadOnly(false);
+                    record.getField('base_rate_type').setRequired(true);
+                    record.getField('base_rate_type_n').setReadOnly(false);
+                    record.getField('base_rate_type_n').setRequired(true);
+
+                    record.getField('floating_way_range').setReadOnly(false);
+                    record.getField('floating_way_range').setRequired(true);
+
+                }
+            }
+
+
+        };
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            var contract_id = '${/parameter/@contract_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw', 'F_BASE');
+            var base_record = $(base_ds_id).getCurrentRecord();
+            if (ds.id == get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_contract_bank_account', 'G_BANK_INFO_AFTER')) {
+                record.set('bp_id',base_record.get("credit_bp_id"));
+            }
+            var lon_contract_repayment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+            if (ds.id == lon_contract_repayment_id) {
+                record.set('contract_id', contract_id);
+                record.set('withdraw_id', withdraw_id);
+                record.set('cf_status', 'RELEASE');
+                record.set('write_off_flag', 'NOT');
+            }
+
+            //交易信息
+
+
+            var base_info_ds = '${/parameter/@layout_code}_F_BASE_lon_contract_withdraw_ds';
+            var quotation_ds = '${/parameter/@layout_code}_F_QUOTATION_INFO_AFTER_lon_contract_quotation_ds';
+            var account_ds_id = '${/parameter/@layout_code}_G_BANK_INFO_ct_lon_contract_bank_account_ds';
+            var base_record = $(base_info_ds).getCurrentRecord();
+            var quotation_record = $(quotation_ds).getCurrentRecord();
+            if (ds.id == '${/parameter/@layout_code}_G_REPAYMENT_FIN_INFO_lon_contract_repayment_ds') {
+                record.set('tax_rate', 0.06);
+                record.set('currency', quotation_record.get('currency'));
+                record.set('currency_n', quotation_record.get('currency_n'));
+                record.set('exchange_rate', base_record.get('con_exchange_rate'));
+
+                if ($(base_info_ds).getCurrentRecord().get('contract_document_type') == 'F3' || $(base_info_ds).getCurrentRecord().get('contract_document_type') == 'F11') {
+                    record.set('payment_method', 'DEDUCT');
+                    record.set('payment_method_n', '委扣');
+                } else {
+                    record.set('payment_method', 'ONE_TIME_PAYMENT');
+                    record.set('payment_method_n', '一次性支付');
+                }
+
+                /*     record.set('amortization_method','BALANCE');
+                     record.set('amortization_method_n','直线法');*/
+                var withdraw_ds_id = '${/parameter/@layout_code}_F_BASE_lon_contract_withdraw_ds';
+                var withdraw_record = $(withdraw_ds_id).getCurrentRecord();
+                record.set('withdraw_due_amount', withdraw_record.get('due_amount'));
+            }
+
+            if (ds.id == '${/parameter/@layout_code}_G_REPAYMENT_INFO_lon_contract_repayment_ds') {
+                record.set('currency', quotation_record.get('currency'));
+                record.set('currency_n', quotation_record.get('currency_n'));
+                record.set('exchange_rate', base_record.get('con_exchange_rate'));
+            }
+
+            if (ds.id == account_ds_id) {
+                if ($(base_info_ds).getCurrentRecord().get('bp_id') != '' && $(base_info_ds).getCurrentRecord().get('bp_id') != 'undefined') {
+                    record.set('bp_id', $(base_info_ds).getCurrentRecord().get('bp_id'));
+                }
+            }
+
+        };
+
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            //debugger;
+            var repayment_fin_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO');
+            var repayment_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+            var old_repayment_fin_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO_BEFORE');
+            var old_repayment_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO_BEFORE');
+            var contract_id = '${/parameter/@contract_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+            var old_contract_id = '${/parameter/@old_contract_id}';
+            var old_withdraw_id = '${/parameter/@old_withdraw_id}';
+
+            if (ds.id == repayment_fin_info_ds_id) {
+                ds.setQueryParameter('contract_id', contract_id);
+                ds.setQueryParameter('withdraw_id', withdraw_id);
+                ds.setQueryParameter('interest_flag', 'Y');
+            }
+            if (ds.id == repayment_info_ds_id) {
+                ds.setQueryParameter('contract_id', contract_id);
+                ds.setQueryParameter('withdraw_id', withdraw_id);
+                ds.setQueryParameter('interest_flag', 'Y');
+            }
+            if (ds.id == old_repayment_fin_info_ds_id) {
+                ds.setQueryParameter('contract_id', old_contract_id);
+                ds.setQueryParameter('withdraw_id', old_withdraw_id);
+                ds.setQueryParameter('interest_flag', 'Y');
+            }
+            if (ds.id == old_repayment_info_ds_id) {
+                ds.setQueryParameter('contract_id', old_contract_id);
+                ds.setQueryParameter('withdraw_id', old_withdraw_id);
+                ds.setQueryParameter('interest_flag', 'Y');
+            }
+            /*if (withdraw_id != '' && withdraw_id != 'undefined' && withdraw_id != null) {
+                if (ds.id === '${/parameter/@layout_code}_G_PURPOSE_INFO_lon_contract_purpose_ds') {
+                    ds.setQueryParameter('withdraw_id', withdraw_id);
+                }
+            }*/
+
+            var ct_lon_contract_bank_account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_contract_bank_account', 'G_BANK_INFO_AFTER');
+            if (ds.id == ct_lon_contract_bank_account_ds_id) {
+                ds.setQueryParameter('contract_id', contract_id);
+                ds.setQueryParameter('withdraw_id', withdraw_id);
+                ds.setQueryParameter('interest_flag', 'Y');
+            }
+
+            var old_ct_lon_contract_bank_account_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_contract_bank_account', 'G_BANK_INFO_BEFORE');
+            if (ds.id == old_ct_lon_contract_bank_account_ds_id) {
+                ds.setQueryParameter('contract_id', old_contract_id);
+                ds.setQueryParameter('withdraw_id', old_withdraw_id);
+                ds.setQueryParameter('interest_flag', 'Y');
+            }
+
+            if (ds.id === '${/parameter/@layout_code}_G_ATTACHMENT_lon_contract_attachment_ds') {
+                ds.setQueryParameter('withdraw_id', withdraw_id);
+            }
+
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+
+        };
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+
+            if (ds.id == '${/parameter/@layout_code}_F_BASE_lon_contract_withdraw_ds') {
+                qpara['withdraw_id'] = '${/parameter/@withdraw_id}';
+            }
+            if (ds.id == '${/parameter/@layout_code}_F_QUOTATION_INFO_AFTER_lon_contract_quotation_ds') {
+                qpara['withdraw_id'] = '${/parameter/@withdraw_id}';
+                qpara['contract_id'] = '${/parameter/@contract_id}';
+
+            }
+
+            if (ds.id == '${/parameter/@layout_code}_F_QUOTATION_INFO_BEFORE_lon_contract_quotation_ds') {
+                qpara['withdraw_id'] = '${/parameter/@old_withdraw_id}';
+                qpara['contract_id'] = '${/parameter/@old_contract_id}';
+
+            }
+
+
+            ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+
+        };
+
+        //按钮1 计算
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            //上个页面传的contract_id和withdraw_id
+            var contract_id = '${/parameter/@contract_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+            var withdraw_status = '${/parameter/@withdraw_status}';
+
+            var changeType = null;
+
+            //基本信息
+            var lon_contract_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw');
+            /*if($(lon_contract_id).getCurrentRecord().data.change_type=='TE'){
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                Leaf.showMessage('提示！', '只有调息的类型才可计算！');
+                return false;
+
+            };*/
+            var lonContractRecord = {};
+            lonContractRecord['contract_id'] = contract_id;
+            lonContractRecord['withdraw_id'] = withdraw_id;
+            lonContractRecord['withdraw_status'] = withdraw_status;
+            lonContractRecord['old_withdraw_id'] = '${/parameter/@old_withdraw_id}';
+            lonContractRecord['change_reason'] = $(lon_contract_id).getCurrentRecord().data.change_reason;
+            lonContractRecord['change_time'] = $(lon_contract_id).getCurrentRecord().data.change_time;
+            lonContractRecord['auto_write'] = $(lon_contract_id).getCurrentRecord().data.auto_write;
+            changeType = $(lon_contract_id).data[0].data.change_type;
+
+            //账户信息
+            lonContractRecord['lon_contract_bank_accounts'] = null;
+            var ct_lon_contract_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_contract_bank_account', 'G_BANK_INFO_AFTER');
+            if ($(ct_lon_contract_bank_account_id).getAll().length != 0) {
+                var lonContractBankAccount_records = $(ct_lon_contract_bank_account_id).getAll();
+                var ct_lon_contract_bank_accounts = [];
+                lonContractRecord['lon_contract_bank_accounts'] = [];
+                for (var i = 0; i < lonContractBankAccount_records.length; i++) {
+                    ct_lon_contract_bank_accounts[i] = {};
+                    lonContractBankAccount_records[i].data['enabled_flag'] = 'Y';
+                    lonContractBankAccount_records[i].data['withdraw_id'] = withdraw_id;
+                    lonContractBankAccount_records[i].data['contract_id'] = contract_id;
+                    assignValue(ct_lon_contract_bank_accounts[i], lonContractBankAccount_records[i].data);
+                    ct_lon_contract_bank_accounts['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['lon_contract_bank_accounts'].push(ct_lon_contract_bank_accounts[i]);
+                }
+            }
+
+            //本息还款计划
+
+            lonContractRecord['hls_cus_lon_contract_repayment_list'] = null;
+            var lon_contract_repayment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+            if ($(lon_contract_repayment_id).getAll().length != 0) {
+                var lon_contract_repayment_id_records = $(lon_contract_repayment_id).getAll();
+                var hlsCusLonContractRepaymentList = [];
+                lonContractRecord['hls_cus_lon_contract_repayment_list'] = [];
+                for (var i = 0; i < lon_contract_repayment_id_records.length; i++) {
+                    hlsCusLonContractRepaymentList[i] = {};
+                    // lon_contract_repayment_id_records[i].data['enabled_flag'] = 'Y';
+                    lon_contract_repayment_id_records[i].data['withdraw_id'] = withdraw_id;
+                    lon_contract_repayment_id_records[i].data['contract_id'] = contract_id;
+                    assignValue(hlsCusLonContractRepaymentList[i], lon_contract_repayment_id_records[i].data);
+                    hlsCusLonContractRepaymentList['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['hls_cus_lon_contract_repayment_list'].push(hlsCusLonContractRepaymentList[i]);
+                }
+            }
+
+
+            //付款计划
+            lonContractRecord['hls_cus_lon_contract_payment_list'] = null;
+            var lon_contract_payment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO');
+            if ($(lon_contract_payment_id).getAll().length != 0) {
+                var lon_contract_payment_id_records = $(lon_contract_payment_id).getAll();
+                var hlsCusLonContractPaymentList = [];
+                lonContractRecord['hls_cus_lon_contract_payment_list'] = [];
+                for (var i = 0; i < lon_contract_payment_id_records.length; i++) {
+                    hlsCusLonContractPaymentList[i] = {};
+                    // lon_contract_payment_id_records[i].data['enabled_flag'] = 'Y';
+                    lon_contract_payment_id_records[i].data['withdraw_id'] = withdraw_id;
+                    lon_contract_payment_id_records[i].data['contract_id'] = contract_id;
+                    assignValue(hlsCusLonContractPaymentList[i], lon_contract_payment_id_records[i].data);
+                    hlsCusLonContractPaymentList['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['hls_cus_lon_contract_payment_list'].push(hlsCusLonContractPaymentList[i]);
+                }
+            }
+
+            //交易信息
+            //debugger;
+            var rateChangeDate = null;
+            var rateChangeAfter = null;
+            var dueDate = null;
+            var withdrawEndDate = null;
+            var measureType = null;
+            var interestCalcMethod = null;
+            var lon_contract_quotation_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation', 'F_QUOTATION_INFO_AFTER');
+
+            if ($(lon_contract_quotation_id).getCurrentRecord() != null) {
+                var lon_contract_quotation_record = $(lon_contract_quotation_id).data[0].data;
+                if (lon_contract_quotation_record.measure_type == 'HAND_ESTIMATION') {
+                    Leaf.showMessage('提示！', '只有系统测算类型才可计算！');
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    return false;
+
+                }
+                ;
+                lon_contract_quotation_record['withdraw_id'] = withdraw_id;
+                lon_contract_quotation_record['contract_id'] = contract_id;
+                rateChangeDate = lon_contract_quotation_record.rate_change_date;
+                rateChangeAfter = lon_contract_quotation_record.int_rate;
+                dueDate = lon_contract_quotation_record.due_date;
+                measureType = lon_contract_quotation_record.measure_type;
+                priceList = lon_contract_quotation_record.price_list;
+
+                withdrawEndDate = lon_contract_quotation_record.withdraw_end_date;
+
+                assignValue(lonContractRecord, lon_contract_quotation_record);
+            }
+            if (rateChangeDate != null && rateChangeAfter == null) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showWarningMessage('提示', '输入变更起始日之后一定要输入变更利率！');
+                return;
+            }
+            if (rateChangeDate != null && rateChangeAfter != null) {
+                if (rateChangeDate > dueDate && rateChangeDate < withdrawEndDate) {
+
+                } else {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showWarningMessage('提示', '变更起始日需要介于提款起始日和计划到期日之间！');
+                    return;
+                }
+
+
+            }
+
+            //附件信息
+            lonContractRecord['lon_contract_attachments'] = null;
+            var lon_contract_attachment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_attachment');
+            //附件信息 List<HlsCusLonContractAttachment> lonContractAttachments;  hlsCusPrjProjectAttachments
+            if ($(lon_contract_attachment_id).getAll().length != 0) {
+                var lon_contract_attachment_id_records = $(lon_contract_attachment_id).getAll();
+                var lonContractAttachments = [];
+                lonContractRecord['lon_contract_attachments'] = [];
+                for (var i = 0; i < lon_contract_attachment_id_records.length; i++) {
+                    lonContractAttachments[i] = {};
+                    lon_contract_attachment_id_records[i].data['source_id'] = withdraw_id;
+                    lon_contract_attachment_id_records[i].data['contract_id'] = contract_id;
+                    lon_contract_attachment_id_records[i].data['source_type'] = 'LON_CONTRACT_WITHDRAW';
+                    // lon_contract_attachment_id_records[i].data['project_attachment_category'] = 'LOAN_CONTRACT_WITHDRAW';
+                    assignValue(lonContractAttachments[i], lon_contract_attachment_id_records[i].data);
+                    lonContractRecord['lon_contract_attachments'].push(lonContractAttachments[i]);
+                }
+            }
+
+            var f_change_info_id = '${/parameter/@layout_code}_F_CHANGE_INFO__ds';
+            var old_repayment_fin_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO_BEFORE');
+            var old_repayment_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO_BEFORE');
+            var old_ct_lon_contract_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_contract_bank_account', 'G_BANK_INFO_BEFORE');
+
+            //把其他属性去掉，避免栈溢出
+            lonContractRecord[ct_lon_contract_bank_account_id.replace('_ds', '')] = undefined;
+            lonContractRecord[old_ct_lon_contract_bank_account_id.replace('_ds', '')] = undefined;
+
+            //lonContractRecord[lon_contract_purpose_id.replace('_ds','')]=undefined;
+            lonContractRecord[lon_contract_repayment_id.replace('_ds', '')] = undefined;
+            lonContractRecord[lon_contract_payment_id.replace('_ds', '')] = undefined;
+            lonContractRecord[lon_contract_quotation_id.replace('_ds', '')] = undefined;
+            lonContractRecord[old_repayment_fin_info_ds_id.replace('_ds', '')] = undefined;
+            lonContractRecord[old_repayment_info_ds_id.replace('_ds', '')] = undefined;
+            //附件
+            lonContractRecord[lon_contract_attachment_id.replace('_ds', '')] = undefined;
+            lonContractRecord[f_change_info_id.replace('_ds', '')] = undefined;
+            lonContractRecord['change_flag'] = 'Y';
+
+            if (!$(lon_contract_quotation_id).validate()) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showWarningMessage('提示', '请将必填的交易信息输入完整');
+
+            } else if (!$(lon_contract_id).validate()) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showWarningMessage('提示', '请将必填的基本信息输入完整');
+            } else {
+                //计算前保存
+                Leaf.request({
+                    url: '${/request/@context_path}/hlsLon/contract/withdraw/save',
+                    para: lonContractRecord,
+
+                    success: function (res) {
+                        //保存成功后计算
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                        quotation_calc();
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+
+            }
+        };
+
+        // 报价计算
+        function quotation_calc() {
+            var function_usage = '${/parameter/@function_usage}';
+            var maintain_type = '${/parameter/@maintain_type}';
+            var readOnly;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw', 'F_BASE');
+            var quotation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation', 'F_QUOTATION_INFO_AFTER');
+            var repayment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+            var priceList = $(quotation_ds_id).getAll();
+            var withdraw_status = $(ds_id).getCurrentRecord().get('withdraw_status');
+            var data_class = $(ds_id).getCurrentRecord().get('data_class');
+            var change_status = $(ds_id).getCurrentRecord().get('change_status');
+
+            var url;
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: "${/request/@context_path}/lon/contract/quotation/withdraw/create",
+                para: {
+                    withdrawId: withdraw_id,
+                    priceList: priceList[0].get('price_list')
+                },
+                success: function (res) {
+                    //debugger;
+                    var quotation_id = res.result.record[0].quotation_id;
+                    var price_list = priceList[0].get('price_list');
+                    if (data_class == 'CHANGE_REQ' && change_status == 'NEW') {
+                        url = '${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_calculate.lview?quotationId=' + quotation_id + '&readOnly=N&priceList=' + price_list;
+                    } else {
+                        url = '${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_calculate.lview?quotationId=' + quotation_id + '&readOnly=Y&priceList=' + price_list;
+                    }
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    var win = new Leaf.Window({
+                        id: 'con_open_price_modify_winid',
+                        url: url,
+                        title: '报价明细',
+                        fullScreen: true
+                    });
+                    win.on('close', function () {
+                        $(repayment_ds_id).query();
+                        $(quotation_ds_id).query();
+                        $(ds_id).query();
+                    });
+                },
+                failure: function () {
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        }
+
+        //按钮2 保存
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            //debugger;
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            //上个页面传的contract_id和withdraw_id
+            var contract_id = '${/parameter/@contract_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+            var withdraw_status = '${/parameter/@withdraw_status}';
+
+            if ('${/parameter/@withdrawStatus}' != null || '${/parameter/@withdrawStatus}' != '') {
+                var withdraw_status = '${/parameter/@withdrawStatus}';
+            } else {
+                var withdraw_status = 'NEW';
+            }
+
+            //基本信息
+            var lon_contract_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw', 'F_BASE');
+            var lonContractRecord = {};
+            lonContractRecord['contract_id'] = contract_id;
+            lonContractRecord['withdraw_id'] = withdraw_id;
+            lonContractRecord['withdraw_status'] = withdraw_status;
+            lonContractRecord['change_reason'] = $(lon_contract_id).getCurrentRecord().data.change_reason;
+            lonContractRecord['change_time'] = $(lon_contract_id).getCurrentRecord().data.change_time;
+            lonContractRecord['auto_write'] = $(lon_contract_id).getCurrentRecord().data.auto_write;
+
+            //debugger;
+            //账户信息
+            lonContractRecord['lon_contract_bank_accounts'] = null;
+            var ct_lon_contract_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_contract_bank_account', 'G_BANK_INFO_AFTER');
+            if (ct_lon_contract_bank_account_id) {
+                var lonContractBankAccount_records = $(ct_lon_contract_bank_account_id).getAll();
+                var ct_lon_contract_bank_accounts = [];
+                lonContractRecord['lon_contract_bank_accounts'] = [];
+                for (var i = 0; i < lonContractBankAccount_records.length; i++) {
+                    ct_lon_contract_bank_accounts[i] = {};
+                    lonContractBankAccount_records[i].data['enabled_flag'] = 'Y';
+                    lonContractBankAccount_records[i].data['withdraw_id'] = withdraw_id;
+                    lonContractBankAccount_records[i].data['contract_id'] = contract_id;
+                    assignValue(ct_lon_contract_bank_accounts[i], lonContractBankAccount_records[i].data);
+                    ct_lon_contract_bank_accounts['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['lon_contract_bank_accounts'].push(ct_lon_contract_bank_accounts[i]);
+                }
+            }
+            //本息还款计划
+            lonContractRecord['hls_cus_lon_contract_repayment_list'] = null;
+            var lon_contract_repayment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+            if (lon_contract_repayment_id) {
+                var lon_contract_repayment_id_records = $(lon_contract_repayment_id).getAll();
+                var hlsCusLonContractRepaymentList = [];
+                lonContractRecord['hls_cus_lon_contract_repayment_list'] = [];
+                for (var i = 0; i < lon_contract_repayment_id_records.length; i++) {
+                    hlsCusLonContractRepaymentList[i] = {};
+                    // lon_contract_repayment_id_records[i].data['enabled_flag'] = 'Y';
+                    lon_contract_repayment_id_records[i].data['withdraw_id'] = withdraw_id;
+                    lon_contract_repayment_id_records[i].data['contract_id'] = contract_id;
+                    assignValue(hlsCusLonContractRepaymentList[i], lon_contract_repayment_id_records[i].data);
+                    hlsCusLonContractRepaymentList['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['hls_cus_lon_contract_repayment_list'].push(hlsCusLonContractRepaymentList[i]);
+                }
+            }
+
+            //付款计划
+            lonContractRecord['hls_cus_lon_contract_payment_list'] = null;
+            var lon_contract_payment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO');
+            if (lon_contract_repayment_id) {
+                var lon_contract_payment_id_records = $(lon_contract_payment_id).getAll();
+                var hlsCusLonContractPaymentList = [];
+                lonContractRecord['hls_cus_lon_contract_payment_list'] = [];
+                for (var i = 0; i < lon_contract_payment_id_records.length; i++) {
+                    hlsCusLonContractPaymentList[i] = {};
+                    // lon_contract_payment_id_records[i].data['enabled_flag'] = 'Y';
+                    lon_contract_payment_id_records[i].data['withdraw_id'] = withdraw_id;
+                    lon_contract_payment_id_records[i].data['contract_id'] = contract_id;
+                    assignValue(hlsCusLonContractPaymentList[i], lon_contract_payment_id_records[i].data);
+                    hlsCusLonContractPaymentList['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['hls_cus_lon_contract_payment_list'].push(hlsCusLonContractPaymentList[i]);
+                }
+            }
+
+
+            //交易信息
+            var lon_contract_quotation_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation', 'F_QUOTATION_INFO_AFTER');
+            if (lon_contract_quotation_id) {
+                var lon_contract_quotation_record = $(lon_contract_quotation_id).data[0].data;
+                assignValue(lonContractRecord, lon_contract_quotation_record);
+            }
+
+            //附件信息
+            lonContractRecord['lon_contract_attachments'] = null;
+            var lon_contract_attachment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_attachment');
+            //附件信息 List<HlsCusLonContractAttachment> lonContractAttachments;  hlsCusPrjProjectAttachments
+            if ($(lon_contract_attachment_id).getAll().length != 0) {
+                var lon_contract_attachment_id_records = $(lon_contract_attachment_id).getAll();
+                var lonContractAttachments = [];
+                lonContractRecord['lon_contract_attachments'] = [];
+                for (var i = 0; i < lon_contract_attachment_id_records.length; i++) {
+                    lonContractAttachments[i] = {};
+                    lon_contract_attachment_id_records[i].data['source_id'] = withdraw_id;
+                    lon_contract_attachment_id_records[i].data['contract_id'] = contract_id;
+                    lon_contract_attachment_id_records[i].data['source_type'] = 'LON_CONTRACT_WITHDRAW';
+                    // lon_contract_attachment_id_records[i].data['project_attachment_category'] = 'LON_CONTRACT_WITHDRAW';
+                    assignValue(lonContractAttachments[i], lon_contract_attachment_id_records[i].data);
+                    lonContractRecord['lon_contract_attachments'].push(lonContractAttachments[i]);
+                }
+            }
+
+            var old_repayment_fin_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO_BEFORE');
+            var old_repayment_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO_BEFORE');
+            //把其他属性去掉，避免栈溢出
+
+            var old_lon_contract_quotation_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation', 'F_QUOTATION_INFO_BEFORE');
+
+            lonContractRecord[ct_lon_contract_bank_account_id.replace('_ds', '')] = undefined;
+
+            lonContractRecord[lon_contract_quotation_id.replace('_ds', '')] = undefined;
+            lonContractRecord[old_lon_contract_quotation_id.replace('_ds', '')] = undefined;
+
+
+            //lonContractRecord[lon_contract_purpose_id.replace('_ds','')]=undefined;
+            lonContractRecord[lon_contract_repayment_id.replace('_ds', '')] = undefined;
+            /*
+                        lonContractRecord[lon_contract_quotation_id.replace('_ds','')]=undefined;
+            */
+            lonContractRecord[old_repayment_fin_info_ds_id.replace('_ds', '')] = undefined;
+            lonContractRecord[old_repayment_info_ds_id.replace('_ds', '')] = undefined;
+            //附件
+            lonContractRecord[lon_contract_attachment_id.replace('_ds', '')] = undefined;
+            //debugger;
+            Leaf.request({
+                url: '${/request/@context_path}/hlsLon/contract/withdraw/save',
+                para: lonContractRecord,
+
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    //Leaf.showMessage('提示', '成功');
+                    Leaf.SideBar.show({
+                        msg: '保存成功',
+                        duration: 2000
+                    });
+
+                    $(lon_contract_id).query();
+                    $(lon_contract_repayment_id).query();
+
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+
+        };
+
+        //按钮3 确认
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            //上个页面传的contract_id和withdraw_id
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+
+            var contract_id = '${/parameter/@contract_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+            var withdraw_status = '${/parameter/@withdraw_status}';
+            //基本信息
+            var lon_contract_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw');
+            var lonContractRecord = {};
+            lonContractRecord['contract_id'] = contract_id;
+            lonContractRecord['withdraw_id'] = withdraw_id;
+            lonContractRecord['withdraw_status'] = withdraw_status;
+            lonContractRecord['old_withdraw_id'] = '${/parameter/@old_withdraw_id}';
+            lonContractRecord['old_contract_id'] = '${/parameter/@old_contract_id}';
+
+            lonContractRecord['change_reason'] = $(lon_contract_id).getCurrentRecord().data.change_reason;
+            lonContractRecord['change_time'] = $(lon_contract_id).getCurrentRecord().data.change_time;
+            //账户信息
+            lonContractRecord['lon_contract_bank_accounts'] = null;
+            var ct_lon_contract_bank_account_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'ct_lon_contract_bank_account', 'G_BANK_INFO_AFTER');
+            if ($(ct_lon_contract_bank_account_id).getAll().length != 0) {
+                var lonContractBankAccount_records = $(ct_lon_contract_bank_account_id).getAll();
+                var ct_lon_contract_bank_accounts = [];
+                lonContractRecord['lon_contract_bank_accounts'] = [];
+                for (var i = 0; i < lonContractBankAccount_records.length; i++) {
+                    ct_lon_contract_bank_accounts[i] = {};
+                    lonContractBankAccount_records[i].data['enabled_flag'] = 'Y';
+                    lonContractBankAccount_records[i].data['withdraw_id'] = withdraw_id;
+                    lonContractBankAccount_records[i].data['contract_id'] = contract_id;
+                    assignValue(ct_lon_contract_bank_accounts[i], lonContractBankAccount_records[i].data);
+                    ct_lon_contract_bank_accounts['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['lon_contract_bank_accounts'].push(ct_lon_contract_bank_accounts[i]);
+                }
+            }
+
+
+            /* //贷款用途
+             var lon_contract_purpose_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_purpose');
+             if($(lon_contract_purpose_id).getAll().length != 0){
+                 var  lon_contract_purpose_id_records =$(lon_contract_purpose_id).getAll();
+                 var hlsCusLonContractPurposeList = [];
+                 lonContractRecord['hls_cus_lon_contract_purpose_list']=[];
+                 for(var i=0;i<lon_contract_purpose_id_records.length;i++){
+                     hlsCusLonContractPurposeList[i] = {};
+                     // lon_contract_purpose_id_records[i].data['enabled_flag'] = 'Y';
+                     lon_contract_purpose_id_records[i].data['withdraw_id'] = withdraw_id;
+                     lon_contract_purpose_id_records[i].data['contract_id'] = contract_id;
+                     assignValue(hlsCusLonContractPurposeList[i],lon_contract_purpose_id_records[i].data);
+                     hlsCusLonContractPurposeList['company_id']='${/session/@companyId}';
+                     lonContractRecord['hls_cus_lon_contract_purpose_list'].push(hlsCusLonContractPurposeList[i]);
+                 }
+             }*/
+
+
+            //本息还款计划
+            lonContractRecord['hls_cus_lon_contract_repayment_list'] = null;
+            var lon_contract_repayment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+            if ($(lon_contract_repayment_id).getAll().length != 0) {
+                var lon_contract_repayment_id_records = $(lon_contract_repayment_id).getAll();
+                var hlsCusLonContractRepaymentList = [];
+                lonContractRecord['hls_cus_lon_contract_repayment_list'] = [];
+                for (var i = 0; i < lon_contract_repayment_id_records.length; i++) {
+                    hlsCusLonContractRepaymentList[i] = {};
+                    // lon_contract_repayment_id_records[i].data['enabled_flag'] = 'Y';
+                    lon_contract_repayment_id_records[i].data['withdraw_id'] = withdraw_id;
+                    lon_contract_repayment_id_records[i].data['contract_id'] = contract_id;
+                    assignValue(hlsCusLonContractRepaymentList[i], lon_contract_repayment_id_records[i].data);
+                    hlsCusLonContractRepaymentList['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['hls_cus_lon_contract_repayment_list'].push(hlsCusLonContractRepaymentList[i]);
+                }
+            }
+
+            //付款计划
+            lonContractRecord['hls_cus_lon_contract_payment_list'] = null;
+            var lon_contract_payment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO');
+            if ($(lon_contract_payment_id).getAll().length != 0) {
+                var lon_contract_payment_id_records = $(lon_contract_payment_id).getAll();
+                var hlsCusLonContractPaymentList = [];
+                lonContractRecord['hls_cus_lon_contract_payment_list'] = [];
+                for (var i = 0; i < lon_contract_payment_id_records.length; i++) {
+                    hlsCusLonContractPaymentList[i] = {};
+                    // lon_contract_payment_id_records[i].data['enabled_flag'] = 'Y';
+                    lon_contract_payment_id_records[i].data['withdraw_id'] = withdraw_id;
+                    lon_contract_payment_id_records[i].data['contract_id'] = contract_id;
+                    assignValue(hlsCusLonContractPaymentList[i], lon_contract_payment_id_records[i].data);
+                    hlsCusLonContractPaymentList['company_id'] = '${/session/@companyId}';
+                    lonContractRecord['hls_cus_lon_contract_payment_list'].push(hlsCusLonContractPaymentList[i]);
+                }
+            }
+
+
+            //交易信息
+            var lon_contract_quotation_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation');
+            if ($(lon_contract_quotation_id).getCurrentRecord() != null) {
+                var lon_contract_quotation_record = $(lon_contract_quotation_id).data[0].data;
+                assignValue(lonContractRecord, lon_contract_quotation_record);
+            }
+
+            //附件信息
+            lonContractRecord['lon_contract_attachments'] = null;
+            var lon_contract_attachment_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_attachment');
+            //附件信息 List<HlsCusLonContractAttachment> lonContractAttachments;  hlsCusPrjProjectAttachments
+            if ($(lon_contract_attachment_id).getAll().length != 0) {
+                var lon_contract_attachment_id_records = $(lon_contract_attachment_id).getAll();
+                var lonContractAttachments = [];
+                lonContractRecord['lon_contract_attachments'] = [];
+                for (var i = 0; i < lon_contract_attachment_id_records.length; i++) {
+                    lonContractAttachments[i] = {};
+                    lon_contract_attachment_id_records[i].data['source_id'] = withdraw_id;
+                    lon_contract_attachment_id_records[i].data['contract_id'] = contract_id;
+                    lon_contract_attachment_id_records[i].data['source_type'] = 'LON_CONTRACT_WITHDRAW';
+                    // lon_contract_attachment_id_records[i].data['project_attachment_category'] = 'LON_CONTRACT_WITHDRAW';
+                    assignValue(lonContractAttachments[i], lon_contract_attachment_id_records[i].data);
+                    lonContractRecord['lon_contract_attachments'].push(lonContractAttachments[i]);
+                }
+            }
+
+            var old_repayment_fin_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO_BEFORE');
+            var old_repayment_info_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO_BEFORE');
+            //把其他属性去掉，避免栈溢出
+            var old_lon_contract_quotation_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation', 'F_QUOTATION_INFO_BEFORE');
+
+            lonContractRecord[ct_lon_contract_bank_account_id.replace('_ds', '')] = undefined;
+            //lonContractRecord[lon_contract_purpose_id.replace('_ds','')]=undefined;
+            lonContractRecord[lon_contract_repayment_id.replace('_ds', '')] = undefined;
+            lonContractRecord[lon_contract_payment_id.replace('_ds', '')] = undefined;
+            lonContractRecord[lon_contract_quotation_id.replace('_ds', '')] = undefined;
+            lonContractRecord[old_lon_contract_quotation_id.replace('_ds', '')] = undefined;
+            lonContractRecord[old_repayment_fin_info_ds_id.replace('_ds', '')] = undefined;
+            lonContractRecord[old_repayment_info_ds_id.replace('_ds', '')] = undefined;
+            //附件
+            lonContractRecord[lon_contract_attachment_id.replace('_ds', '')] = undefined;
+
+
+            if (!$(lon_contract_quotation_id).validate()) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showWarningMessage('提示', '请将必填的交易信息输入完整');
+            } else if (!$(lon_contract_id).validate()) {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                Leaf.showWarningMessage('提示', '请将必填的基本信息输入完整');
+            } else {
+                Leaf.request({
+                    url: '${/request/@context_path}/hlsLon/contract/withdraw/submitApproval',
+                    para: lonContractRecord,
+
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                        Leaf.showSuccessMessage('提示', '提交成功', function () {
+                            if ('${/parameter/@winid}') {
+                                window.location.href = $('fin003_change_detail_plan_back_link_id').getUrl() + location.search;
+                            }
+                        });
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }
+        };
+        //按钮4 取消变更
+        window['${/parameter/@layout_code}_user_button4_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            //上个页面传的contract_id和withdraw_id
+            //debugger;
+            var contract_id = '${/parameter/@contract_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+
+            if ('${/parameter/@withdraw_status}' != null || '${/parameter/@withdraw_status}' != '') {
+                var withdraw_status = '${/parameter/@withdraw_status}';
+            } else {
+                var withdraw_status = 'NEW';
+            }
+
+            //基本信息
+            var lon_contract_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw');
+            var lonContractRecord = $(lon_contract_id).getCurrentRecord();
+            //debugger;
+            Leaf.request({
+                url: '${/request/@context_path}/hlsLon/contract/withdraw/cancelChangeReq',
+                para: {
+                    withdraw_id: lonContractRecord.get('withdraw_id')
+                },
+
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage('提示', '成功', function () {
+                        $('${/parameter/@winid}').close();
+                    });
+
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            })
+        };
+
+
+        //附件上传
+        window['${/parameter/@layout_code}_G_ATTACHMENT_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            //debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_quotation');
+            var dsRecord = $(ds_id).getCurrentRecord();
+            // var withdraw_id = dsRecord.get('withdraw_id');
+
+            var contract_id = '${/parameter/@contract_id}';
+            var withdraw_id = '${/parameter/@withdraw_id}';
+
+            if (withdraw_id == null || withdraw_id == '' || withdraw_id == undefined) {
+                $L.showInfoMessage("提示", "请先保存信息再上传附件!");
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                $L.showInfoMessage("提示", "当前无法编辑页面!");
+                return;
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'prj316_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': withdraw_id,
+                    'table_name': 'LON_CONTRACT_WITHDRAW',
+
+                    winid: 'prj316_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+
+            win.on('close', function () {
+                var document_list_ds_id = "${/parameter/@layout_code}_G_ATTACHMENT_lon_contract_attachment_ds";
+                $(document_list_ds_id).query();
+            });
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'fin003t2_download_detail';
+            if (name == 'download') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.ds.id + '\',\'' + record.id + '\');">' + '上传/下载' + '</a>';
+            }
+        };
+
+        function fin003t2_download_detail(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var withdraw_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw');
+            var withdraw_record = $(withdraw_ds_id).getCurrentRecord();
+            var withdraw_id = withdraw_record.get('withdraw_id');
+
+            var contract_attachment_id = record.get('contract_attachment_id');
+            if (withdraw_id == null || withdraw_id == '' || withdraw_id == undefined) {
+                $L.showInfoMessage("提示", "请先保存信息再上传附件!");
+                return;
+            }
+            if (contract_attachment_id == null || contract_attachment_id == '' || contract_attachment_id == undefined) {
+                $L.showInfoMessage("提示", "请先保存信息再上传附件!");
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'lon340a_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': contract_attachment_id,
+                    'table_name': 'LON_CONTRACT_ATTACHMENT',
+
+                    winid: 'lon340a_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var document_list_ds_id = "${/parameter/@layout_code}_G_ATTACHMENT_lon_contract_attachment_ds";
+                $(document_list_ds_id).query();
+            });
+        }
+
+
+        //grid的渲染，设置编辑模式
+        window['${/parameter/@layout_code}_renderer_model'] = function (temp_value, record, name, editor_record) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+
+            if (record.ds.id == ds_id) {
+                if ('${/parameter/@function_usage}' != 'QUERY') {
+                    var write_off_flag = record.get("write_off_flag");
+                    if (write_off_flag == 'NOT') {
+                        record.getField('cf_item').setReadOnly(false);
+                        record.getField('cf_item_n').setReadOnly(false);
+                        record.getField('planned_calc_date').setReadOnly(false);
+                        record.getField('planned_due_date').setReadOnly(false);
+                        record.getField('planned_due_amount').setReadOnly(false);
+                        record.getField('cny_planned_due_amount').setReadOnly(false);
+                        record.getField('int_rate').setReadOnly(false);
+                        record.getField('amortization_method').setReadOnly(false);
+                        record.getField('amortization_method_n').setReadOnly(false);
+                    } else {
+                        record.getField('cf_item').setReadOnly(true);
+                        record.getField('cf_item_n').setReadOnly(true);
+                        record.getField('planned_calc_date').setReadOnly(true);
+                        record.getField('planned_due_date').setReadOnly(true);
+                        record.getField('planned_due_amount').setReadOnly(true);
+                        record.getField('cny_planned_due_amount').setReadOnly(true);
+                        record.getField('int_rate').setReadOnly(true);
+                        record.getField('amortization_method').setReadOnly(true);
+                        record.getField('amortization_method_n').setReadOnly(true);
+
+                    }
+                }
+            }
+        };
+
+
+        //支付表导入
+        window['${/parameter/@layout_code}_G_REPAYMENT_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw');
+            var repayment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+            var base_record = $(base_ds_id).getCurrentRecord();
+            var withdraw_id = base_record.get('withdraw_id');
+            var contract_id = base_record.get('contract_id');
+            if (withdraw_id == '' || withdraw_id == 'undefined' || withdraw_id == null) {
+                Leaf.showInfoMessage("提示", "请先保存再进行导入操作！");
+                return;
+            }
+            var win = new Leaf.Window({
+                id: 'lon_contract_repayment_import_win_id',
+                params: {
+                    winid: 'lon_contract_repayment_import_win_id'
+                },
+                url: '${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_repayment_import.lview?withdraw_id=' + withdraw_id + '&contract_id=' + contract_id,
+                title: '本息还款计划导入',
+                fullScreen: false,
+                width: 500,
+                height: 400,
+                draggable: true
+            });
+            win.on('close', function () {
+                $(repayment_ds_id).query();
+            });
+        }
+        //合同信息
+        window['${/parameter/@layout_code}_user_button5_layout_dynamic_click'] = function () {
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_withdraw');
+            var contract_id = $(base_ds_id).getCurrentRecord().get('contract_id');
+            var param = {};
+            param['url_title'] = '融资合同维护';
+            param['function_code'] = 'FIN003F1';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['hidden_button_code'] = ['save', 'submit_approval'];
+            param['contract_id'] = contract_id;
+            param['document_id'] = contract_id;
+            param['withdraw_flag'] = 'Y';
+            param['company_id'] = '${/session/@companyId}';
+            // param['layout_debugger_flag'] = 'Y';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_fin003_lon_create_id', base_ds_id, 'FIN003S3');
+
+        }
+
+        //移除前事件(grid,attach,gridbox,table)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_brfore_remove'] = function (ds, record, bp_seq) {
+            //debugger;
+            if (ds.id == '${/parameter/@layout_code}_G_REPAYMENT_INFO_lon_contract_repayment_ds') {
+                for (var i = 0; i < record.length; i++) {
+                    if (record[i].get('write_off_flag') == 'FULL' || record[i].get('write_off_flag') == 'PARTIAL') {
+                        Leaf.showMessage('提示', '该现金流已发生核销，不允许删除！');
+                        return false;
+                    }
+                }
+            }
+            if (ds.id == '${/parameter/@layout_code}_G_REPAYMENT_FIN_INFO_lon_contract_repayment_ds') {
+                for (var i = 0; i < record.length; i++) {
+                    if (record[i].get('write_off_flag') == 'FULL' || record[i].get('write_off_flag') == 'PARTIAL') {
+                        Leaf.showMessage('提示', '该现金流已发生核销，不允许删除！');
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+        //移除前事件(grid,attach,gridbox,table)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_brfore_remove'] = function (ds, record, bp_seq) {
+            var repayment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_INFO');
+            if (ds.id === repayment_ds_id) {
+                for (var i = 0; i < record.length; i++) {
+                    var write_off_flag = record[i].get('write_off_flag');
+                    if (write_off_flag == 'PARTIAL' || write_off_flag == 'FULL') {
+                        $L.showMessage('提示', '部分核销以及完全核销不允许删除！');
+                        return false;
+                    }
+                }
+            }
+
+            var repayment_ds_fin_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment', 'G_REPAYMENT_FIN_INFO');
+            if (ds.id === repayment_ds_fin_id) {
+                for (var i = 0; i < record.length; i++) {
+                    var write_off_flag = record[i].get('write_off_flag');
+                    if (write_off_flag == 'PARTIAL' || write_off_flag == 'FULL') {
+                        $L.showMessage('提示', '部分核销以及完全核销不允许删除！');
+                        return false;
+                    }
+                }
+            }
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

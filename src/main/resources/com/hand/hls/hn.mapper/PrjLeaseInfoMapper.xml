@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hn.mapper.PrjLeaseInfoMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hn.dto.PrjLeaseInfo">
+        <result column="LEASE_INFO_ID" property="leaseInfoId" jdbcType="DECIMAL" />
+        <result column="PRJ_LEASE_ID" property="prjLeaseId" jdbcType="DECIMAL" />
+        <result column="WORK_HOURS" property="workHours" jdbcType="DECIMAL" />
+        <result column="WORKER_NUM" property="workerNum" jdbcType="DATE" />
+        <result column="WORK_TYPE" property="workType" jdbcType="VARCHAR" />
+        <result column="PRODUCE_DESC" property="produceDesc" jdbcType="VARCHAR" />
+        <result column="LEASE_QUALITY_DESC" property="leaseQualityDesc" jdbcType="VARCHAR" />
+        <result column="LEASE_EXCEPT_FLAG" property="leaseExceptFlag" jdbcType="VARCHAR" />
+        <result column="EXCEPT_DESC" property="exceptDesc" jdbcType="VARCHAR" />
+        <result column="MAINTAIN_FREQUENCY_CONTENT" property="maintainFrequencyContent" jdbcType="VARCHAR" />
+        <result column="CHECK_FREQUENCY_CONTENT" property="checkFrequencyContent" jdbcType="VARCHAR" />
+        <result column="MAINTAIN_WORKER" property="maintainWorker" jdbcType="VARCHAR" />
+        <result column="PRACTICE_QUALIFY" property="practiceQualify" jdbcType="VARCHAR" />
+        <result column="SYSTEM_MADE_FLAG" property="systemMadeFlag" jdbcType="VARCHAR" />
+        <result column="LEASE_IN_PLACE" property="leaseInPlace" jdbcType="VARCHAR" />
+        <result column="EQUIP_SAFE_FLAG" property="equipSafeFlag" jdbcType="VARCHAR" />
+        <result column="STOP_FREQUENCY_CONTENT" property="stopFrequencyContent" jdbcType="VARCHAR" />
+        <result column="PRODUCER_SAFE_EQUIP" property="producerSafeEquip" jdbcType="VARCHAR" />
+        <result column="CONCLUSION_SUGGEST" property="conclusionSuggest" jdbcType="VARCHAR" />
+
+        <result column="ASSET_NAME" property="assetName" jdbcType="VARCHAR" />
+        <result column="SPECIFICATION" property="specification" jdbcType="VARCHAR" />
+        <result column="MANUFACTURER" property="manufacturer" jdbcType="VARCHAR" />
+        <result column="ASSET_NUM" property="assetNum" jdbcType="VARCHAR" />
+        <result column="INSTALLATION_SITE" property="installationSite" jdbcType="VARCHAR" />
+        <result column="VENDER_ID_N" property="venderIdN" jdbcType="VARCHAR" />
+        <result column="LEASE_CONTRACT_SAME_FLAG_N" property="leaseContractSameFlagN" jdbcType="VARCHAR" />
+        <result column="CHECK_STATUS" property="checkStatus" jdbcType="VARCHAR" />
+        <result column="CHECK_STATUS_N" property="checkStatusN" jdbcType="VARCHAR" />
+        <result column="LEASE_CONTRACT_SAME_FLAG" property="leaseContractSameFlag" jdbcType="VARCHAR" />
+
+        <result column="ACTUAL_PHOTO_FLAG" property="actualPhotoFlag" jdbcType="VARCHAR" />
+        <result column="ACTUAL_PHOTO_FLAG_N" property="actualPhotoFlagN" jdbcType="VARCHAR" />
+        <result column="DIFFERENT_DESC" property="differentDesc" jdbcType="VARCHAR" />
+        <result column="INSURE_REASON" property="insureReason" jdbcType="VARCHAR" />
+
+        <result column="LEASE_ITEM_ID" property="leaseItemId" jdbcType="DECIMAL" />
+        <result column="LEASE_ITEM_CODE" property="leaseItemCode" jdbcType="VARCHAR" />
+    </resultMap>
+
+
+    <select id="selectPrjLeaseInfo" parameterType="com.hand.hls.hn.dto.PrjLeaseInfo" resultMap="BaseResultMap">
+        select
+        pli.ACTUAL_PHOTO_FLAG,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.CODE = 'PRJ.LEASE_SAME'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE= pli.ACTUAL_PHOTO_FLAG
+        ) ACTUAL_PHOTO_FLAG_N,
+
+        pli.CHECK_STATUS,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.CODE = 'PRJ.LEASE_STATUS'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE= pli.CHECK_STATUS
+        ) CHECK_STATUS_N,
+
+        pli.LEASE_CONTRACT_SAME_FLAG,
+        (
+        SELECT
+        scvb.meaning AS value_name
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.CODE = 'PRJ.LEASE_TSAMPLE'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND scvb.VALUE= pli.LEASE_CONTRACT_SAME_FLAG
+        ) LEASE_CONTRACT_SAME_FLAG_N,
+        pli.*
+        from
+        prj_lease_info pli
+        <where>
+            1=1
+            <if test="prjLeaseId !=null">
+                AND pli.prj_lease_id = #{prjLeaseId}
+            </if>
+
+
+        </where>
+    </select>
+    <select id="selectLeaseItemByProjectId" resultMap="BaseResultMap" parameterType="Long">
+        SELECT
+            hcli.project_id,
+            hcli.LEASE_ITEM_ID,
+            hli.FULL_NAME as ASSET_NAME,
+            hli.LEASE_ITEM_CODE,
+            hli.INSTALLATION_SITE,
+            hli.vender_id,
+            hli.SERIAL_NUMBER as ASSET_NUM,
+            hli.BRAND,
+            hli.SPECIFICATION,
+            ( SELECT hbm.bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hli.vender_id ) AS VENDER_ID_N
+
+        FROM
+            prj_project_lease_item hcli,
+            hls_lease_item hli
+        <where>
+            hli.LEASE_ITEM_ID = hcli.LEASE_ITEM_ID
+            AND hli.enabled_flag = 'Y'
+            AND hli.LEASE_ITEM_TYPE IN ( 'LEASE' )
+            AND hcli.project_id = #{projectId}
+        </where>
+
+    </select>
+
+    <select id="selectLeaseInfoCount" resultMap="BaseResultMap" parameterType="com.hand.hls.hn.dto.PrjLeaseInspect">
+        SELECT
+        p.*
+        FROM
+        prj_lease_inspect p
+         <where>
+             DATE_ADD(P.lease_inspect_date,INTERVAL 90 DAY)  &gt;= #{leaseInspectDate}
+            AND p.project_id = #{projectId}
+        </where>
+
+    </select>
+</mapper>

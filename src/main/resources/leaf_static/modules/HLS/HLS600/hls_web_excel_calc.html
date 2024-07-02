@@ -1,0 +1,258 @@
+<#-- * description: 租金计算器 * version: 1.0 *
+        author:yang.gao01@hand-china.com * -->
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>GDH</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+        <meta name="format-detection" content="telephone=no"/>
+        <meta name="_csrf" content="${_csrf.token}"/>
+        <meta name="_csrf_header" content="X-CSRF-TOKEN" />
+        <script src="${base.contextPath}/lib/kendoui/js/jquery.min.js"></script>
+        <script src="${base.contextPath}/lib/kendoui/js/kendo.all.js"></script>
+        <link href="${base.contextPath}/lib/bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+
+        <link href="${base.contextPath}/lib/kendoui/styles/kendo.bootstrap.min.css" rel="stylesheet" type="text/css"/>
+        <link href="${base.contextPath}/lib/kendoui/styles/kendo.common.min.css" rel="stylesheet" type="text/css"/>
+        <link href="${base.contextPath}/lib/kendoui/styles/kendo.rtl.min.css" rel="stylesheet" type="text/css"/>
+
+        <!--<link href="${base.contextPath}/lib/kendoui/styles/kendo.common-${base.getTheme().getName()}.min.css?v=20170911" rel="stylesheet" type="text/css"/>
+        <link href="${base.contextPath}/lib/kendoui/styles/kendo.${base.getTheme().getName()}.min.css?v=20170911" rel="stylesheet" type="text/css"/>-->
+        <link href="${base.contextPath}/lib/kendoui/styles/kendo.hap.css?v=20170911" rel="stylesheet" type="text/css"/>
+        <script src="${base.contextPath}/lib/kendoui/js/cultures/kendo.culture.${base.locale.toString()?replace('_','-')}.js?v=20170911"></script>
+        <script src="${base.contextPath}/lib/kendoui/js/messages/kendo.messages.${base.locale.toString()?replace('_','-')}.js?v=20170911"></script>
+        <script src="${base.contextPath}/lib/kendoui/js/kendo.hap.js?v=20170911"></script>
+        <script src="${base.contextPath}/common/prompts"></script>
+        <script src="${base.contextPath}/lib/assets/global/plugins/jquery.blockui.min.js"></script>
+        <script src="${base.contextPath}/leafresources/hls/hlsMask/javascript/jquery.mloading.js"
+                type="text/javascript"></script>
+        <link href="${base.contextPath}/leafresources/hls/hlsMask/css/jquery.mloading.css" rel="stylesheet"
+              type="text/css"/>
+        <script src="${base.contextPath}/leafresources/hls/zip/pako.min.js"
+                type="text/javascript"></script>
+        <script>
+            _basePath = '${base.contextPath}', _locale = '${base.locale}';
+            kendo.culture("${base.locale.toString()?replace('_','-')}");
+            _currentFunctionCode = '${RequestParameters.functionCode!}';
+            window.accessConfig = ${accessService.accessData()};
+        </script>
+    </head>
+    <script src="${base.contextPath}/lib/kendoui/js/jszip.min.js"></script>
+    <script src="${base.contextPath}/resources/js/KENDO-PLUGIN/number-plugin.js"></script>
+    <script src="${base.contextPath}/lib/kendoui/js/kendo.spreadsheet.js"></script>
+    <style>
+        html, body {
+            height: 100%
+        }
+        .k-popup {
+            -webkit-box-shadow: 0 5px 10px rgba(0,0,0,.2);
+            box-shadow: 0 5px 10px rgba(0,0,0,.2);
+            min-width: 150px;
+            text-align: center;
+        }
+        .k-sprite.k-icon.k-font-icon.k-i-checkmark{
+            background: rgb(156, 204, 0);
+            color: #fff;
+        }
+        /*.k-i-checkmark:before {
+            content: "保存";
+            font-size: 12px;
+        }
+        .k-spreadsheet-toolbar>a:first-child{
+            width: 100px !important;
+        }*/
+
+    </style>
+    <body>
+    <div id="savesuccess"></div>
+    <div id="spreadsheet" style="width: 98%; height: 90%"></div>
+    <script>
+        var excelId = '${RequestParameters.excelId!}';
+        var sourceDocumentId = '${RequestParameters.sourceDocumentId!}';
+        var sourceDocumentCategory = '${RequestParameters.sourceDocumentCategory!}';
+        var resultId = '${RequestParameters.resultId!}';
+        var readOnly = '${RequestParameters.readOnly!"N"}';
+        var finStatementName = '${RequestParameters.finStatementName!}';
+
+        function fullScreen(){
+            if(document.isFullScreen || document.mozIsFullScreen || document.webkitIsFullScreen){
+                exitScreen();
+            }
+            var el = document.documentElement;
+            var rfs = el.requestFullScreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullScreen;
+
+            if (rfs) {
+                rfs.call(el);
+            }else if (typeof window.ActiveXObject !== "undefined") {
+                //for IE，这里其实就是模拟了按下键盘的F11，使浏览器全屏
+                var wscript = new ActiveXObject("WScript.Shell");
+                if (wscript != null) {
+                    wscript.SendKeys("{F11}");
+                }
+            }
+        }
+
+        function exitScreen(){
+            var el = document;
+            var cfs = el.cancelFullScreen || el.webkitCancelFullScreen || el.mozCancelFullScreen || el.exitFullScreen;
+
+            if (cfs) {
+                cfs.call(el);
+            }
+            else if (typeof window.ActiveXObject !== "undefined") {
+                var wscript = new ActiveXObject("WScript.Shell");
+                if (wscript != null) {
+                    wscript.SendKeys("{F11}");
+                }
+            }
+        }
+
+        function zip_str(strData) {
+            return btoa(pako.gzip(encodeURIComponent(strData), {to: 'string'}));
+        }
+
+        function unzip_str(b64Data){
+            var strData   = atob(b64Data);
+            var charData  = strData.split('').map(function(x){return x.charCodeAt(0);});
+            var binData   = new Uint8Array(charData);
+            var data    = pako.inflate(binData);
+            array = new Uint16Array(data)
+            var res = '';
+            var chunk = 8 * 1024;
+            var i;
+            for (i = 0; i < array.length / chunk; i++) {
+                res += String.fromCharCode.apply(null, array.slice(i * chunk, (i + 1) * chunk));
+            }
+            res += String.fromCharCode.apply(null, array.slice(i * chunk));
+
+            strData = res
+            return decodeURIComponent(strData);
+        }
+
+
+        var
+         saveObj = {
+             type: "button",
+             text: "保存",
+             showText: "both",
+            spriteCssClass: "k-icon k-font-icon  k-i-checkmark",
+            click: function (e) {
+                var mask = jQuery("body").mLoading({
+                    text:"正在计算。。。"
+                });
+                setTimeout(function(){
+                    var spreadsheet = $("#spreadsheet").data('kendoSpreadsheet');
+                    var sheets = kendo.stringify(spreadsheet.toJSON().sheets);
+                    sheets=zip_str(sheets);
+                    $.ajax({
+                        type: 'post',
+                        url: '${base.contextPath}/hls/web/excel/calc/sheets/submit?resultId='+ resultId + '&excelId=' + excelId + '&sourceDocumentId='+sourceDocumentId+'&sourceDocumentCategory='+sourceDocumentCategory + '&finStatementName='+finStatementName,
+                        contentType: "text/plain; charset=utf-8",
+                        data: sheets,
+                        success: function (datas) {
+                            mask.destroy();
+                            if (datas.success) {
+                                resultId = datas.rows[0].resultId;
+                                kendo.ui.showInfoDialog({
+                                    message: '保存成功！'
+                                });
+                            } else {
+                                kendo.ui.showInfoDialog({
+                                    message: datas.message
+                                });
+                            }
+                        }
+                    });
+                },200);
+            }
+        };
+        var defaultTools = {
+            home : [
+                saveObj,
+                'open',
+                'exportAs',
+                [ 'cut', 'copy', 'paste' ],
+                [ 'bold', 'italic', 'underline' ],
+                {
+                    type : "button",
+                    text : "Custom",
+                    spriteCssClass : "k-icon k-font-icon k-i-deny",
+                    click : function(e) {
+                        $.each(getSelectionBlock('#spreadsheet'),function (index,item) {
+                            if(item.enable()){
+                                item.enable(false);
+                            }else{
+                                item.enable(true);
+                            }
+                        });
+
+                    }
+                }, 'hyperlink', 'backgroundColor', 'textColor', 'borders',
+                'fontSize', 'fontFamily', 'alignment', 'textWrap',
+                [ 'formatDecreaseDecimal', 'formatIncreaseDecimal' ],
+                'format',
+                {
+                    type : "button",
+                    text : "Custom",
+                    spriteCssClass : "k-icon k-font-icon k-i-deny",
+                    click : function(e) {
+                        $.each(getSelectionBlock('#spreadsheet'),function (index,item) {
+                            if( item.format().toString().indexOf('mm') != -1 ){
+                                item.format('yyyy/m/d');
+                            }
+                        });
+                    }
+                }, 'merge', 'freeze', 'filter', 'toggleGridlines',
+                {
+                    type: "button",
+                    text: "Custom",
+                    icon: "k-icon k-i-windows",
+                    click: function (e) {
+                        fullScreen();
+                    }
+                }
+            ]
+        };
+
+        if (readOnly == 'Y') {
+            defaultTools = {
+                home: [
+                    {
+                        type: "button",
+                        text: "Custom",
+                        spriteCssClass: "k-icon k-font-icon k-i-refresh",
+                        click: function (e) {
+                            loadSpreadSheet(true);
+                        }
+                    },
+                    'open',
+                    'exportAs'
+                ]
+            }
+        }
+        $.ajax({
+            type : 'post',
+            url : '${base.contextPath}/hls/web/excel/calc/result/sheets/query?resultId='+ resultId + '&excelId=' + excelId + '&sourceDocumentId='+sourceDocumentId+'&sourceDocumentCategory='+sourceDocumentCategory + '&finStatementName='+finStatementName,
+            dataType:'text',
+            async: false,
+            success : function(datas) {
+                if(datas){
+                    $("#spreadsheet").kendoSpreadsheet(
+                        {
+                            toolbar :defaultTools,
+                            sheets: JSON.parse(unzip_str(datas))
+                        });
+                }else{
+                    $("#spreadsheet").kendoSpreadsheet(
+                        {
+                            toolbar :defaultTools
+                        });
+                }
+            }
+        });
+
+    </script>
+    </div>
+    </body>
+    </html>

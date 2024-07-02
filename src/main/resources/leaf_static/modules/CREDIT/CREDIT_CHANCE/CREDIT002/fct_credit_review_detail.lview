@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020-02-17
+    $Description: 授信管理 - 授信评审
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var fin_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment');
+            if (ds.id === fin_id) {
+                qpara['projectId'] = '${/parameter/@credit_line_id}';
+                qpara['projectAttachmentCategory'] = 'HLS_CREDIT_LINE_DETAIL_ATT';
+            }
+        };
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+
+        };
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            var fin_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_fin_statement_hd');
+            if (ds.id === fin_id) {
+                if($(fin_id).getCurrentRecord()) {
+                    $(fin_id).getCurrentRecord().set('bp_id', '${/parameter/@bp_id}');
+                }
+            }
+        };
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value, bp_seq) {
+            var fin_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_fin_statement_hd');
+
+            if(ds.id === '${/parameter/@layout_code}_F_BASIC_hls_credit_line_ds'){
+                if (name == 'bp_id') {
+                    if($(fin_id).getCurrentRecord()) {
+                        $(fin_id).getCurrentRecord().set('bp_id', value);
+                    }
+                }
+            }
+
+        };
+
+        function attachment_action(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id),
+                project_attachment_id = record.get('project_attachment_id');
+            if (!project_attachment_id) {
+                Leaf.showErrorMessage('提示', '请先保存再上传附件！', null, 200, 100);
+                return;
+            }
+            new Leaf.Window({
+                id: 'open_attachment_win_id',
+                url: '${/request/@context_path}/uploadFile.lview',
+                params: {
+                    header_id: record.get('project_attachment_id'),
+                    table_name: 'PRJ_PROJECT_ATTACHMENT',
+                    winid: 'open_attachment_win_id'
+                },
+                title: '附件上传',
+                width: 900,
+                height: 475
+            });
+        }
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name === 'attachment_detail') {
+                return '<a href="javascript:window[\'' + 'attachment_action' + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">上传/下载</a>';
+            }
+        };
+
+        // 取出每条记录的data组成数组传到后台
+        function records_handle(record) {
+            var new_record = [];
+            record.forEach(function (e) {
+                new_record.push(e.data);
+            });
+            return new_record
+        }
+
+        // 将hls_credit_line数据源中的对象数据去除，否则会栈溢出
+        function hls_credit_line_data_handle() {
+            var line_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line');
+            var line_record = $(line_id).getAt(0);
+            var line_data = line_record.data;
+            var guarantor_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_guarantor');
+            var mortgage_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_mortgage');
+            var pledge_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_pledge');
+            var fin_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_fin_statement_hd');
+            var att_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment');
+            line_data[guarantor_id.replace('_ds', '')] = undefined;
+            line_data[pledge_id.replace('_ds', '')] = undefined;
+            line_data[mortgage_id.replace('_ds', '')] = undefined;
+            line_data[fin_id.replace('_ds', '')] = undefined;
+            line_data[att_id.replace('_ds', '')] = undefined;
+            return line_data
+        }
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var line_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line');
+            var line_record = $(line_id).getAt(0);
+            var line_data = line_record.data;
+            var guarantor_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_guarantor');
+            var guarantor_records = $(guarantor_id).getAll();
+            var mortgage_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_mortgage');
+            var mortgage_records = $(mortgage_id).getAll();
+            var pledge_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_pledge');
+            var pledge_records = $(pledge_id).getAll();
+            var fin_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_fin_statement_hd');
+            var att_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment');
+            var att_records = $(att_id).getAll();
+            line_data[guarantor_id.replace('_ds', '')] = undefined;
+            line_data[pledge_id.replace('_ds', '')] = undefined;
+            line_data[mortgage_id.replace('_ds', '')] = undefined;
+            line_data[fin_id.replace('_ds', '')] = undefined;
+            line_data[att_id.replace('_ds', '')] = undefined;
+            Leaf.request({
+                url: '${/request/@context_path}/hls/credit/line/info/save',
+                para: {
+                    hlsCusHlsCreditLine: line_data,
+                    hlsCreditLineGuarantors: records_handle(guarantor_records),
+                    hlsCusHlsCreditLineMortgages: records_handle(mortgage_records),
+                    hlsCusHlsCreditLinePledges: records_handle(pledge_records),
+                    hlsCusPrjProjectAttachmentList: records_handle(att_records)
+                },
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showSuccessMessage('提示', '保存成功', function () {
+                        $('${/parameter/@ds}').query();
+                        $('${/parameter/@layout_code}_F_BASIC_hls_credit_line_ds').query()
+                    });
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        };
+
+        function check_records(record) {
+            return record.some(function (ele) {
+                return !!ele.dirty;
+            })
+        }
+
+        // 校验页面是否保存
+        function checkDirty() {
+            var line_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line');
+            var line_record = $(line_id).getAt(0);
+            var guarantor_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_guarantor');
+            var guarantor_records = $(guarantor_id).getAll();
+            var mortgage_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_mortgage');
+            var mortgage_records = $(mortgage_id).getAll();
+            var pledge_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_pledge');
+            var pledge_records = $(pledge_id).getAll();
+            var fin_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_fin_statement_hd');
+            var fin_records = $(fin_id).getAll();
+            var att_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment');
+            var att_records = $(att_id).getAll();
+            return line_record.dirty || check_records(guarantor_records) || check_records(mortgage_records) || check_records(pledge_records)
+                /*|| check_records(fin_records)*/ || check_records(att_records);
+        }
+
+        function submit() {
+            var line_data = hls_credit_line_data_handle();
+            line_data['reviewType'] = 'RISK';
+            Leaf.request({
+                url: '${/request/@context_path}/hls/credit/line/info/submit',
+                para: {
+                    hlsCusHlsCreditLine: line_data
+                },
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showSuccessMessage('提示', '提交成功', function () {
+                        $('${/parameter/@ds}').query();
+                        $('${/parameter/@winid}').close();
+                    });
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        }
+
+        //提交审批按钮
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            // 校验是否保存
+            if (checkDirty()) {
+                Leaf.showInfoMessage("提示", "请先保存");
+                return false;
+            }
+            Leaf.showOkCancelWindow("确认", "确认提交？", function () {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                submit();
+            }, function () {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }, 200, 200);
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

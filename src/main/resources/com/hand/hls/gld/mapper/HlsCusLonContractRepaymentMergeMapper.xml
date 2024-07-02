@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.gld.mapper.HlsCusLonContractRepaymentMergeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.gld.dto.HlsCusLonContractRepaymentMerge">
+        <result column="gld_payment_id" property="gldPaymentId" jdbcType="DECIMAL" />
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL" />
+        <result column="withdraw_id" property="withdrawId" jdbcType="DECIMAL" />
+        <result column="planned_due_date" property="plannedDueDate" jdbcType="DATE" />
+        <result column="planned_due_amount" property="plannedDueAmount" jdbcType="DECIMAL" />
+        <result column="profit" property="profit" jdbcType="DECIMAL" />
+        <result column="reduction" property="reduction" jdbcType="DECIMAL" />
+        <result column="current_net_amount" property="currentNetAmount" jdbcType="DECIMAL" />
+        <result column="times" property="times" jdbcType="DECIMAL" />
+    </resultMap>
+
+    <!--<select id="queryMergeRepayment" parameterType="java.lang.Long" resultMap="BaseResultMap">-->
+        <!--select * from (select lcw.due_date as planned_due_date, -(lcw.due_amount-(select nvl(sum(lcr1.planned_due_amount),0) from lon_contract_repayment lcr1 where lcr1.planned_due_date = lcw.due_date and AMORTIZATION_METHOD != 'ONCE' and lcr1.withdraw_id = lcw.withdraw_id and cf_item in (303,304))) as planned_due_amount,NULL AS profit  from lon_contract_withdraw lcw where lcw.withdraw_id = #{withdrawId}-->
+        <!--union all-->
+        <!--select lcr.planned_due_date,(select nvl(sum(lcr1.planned_due_amount),0) from lon_contract_repayment lcr1 where lcr1.planned_due_date = lcr.planned_due_date and AMORTIZATION_METHOD != 'ONCE' and lcr1.withdraw_id = lcr.withdraw_id),case when (SELECT count(0) FROM lon_contract_repayment lcr1 WHERE AMORTIZATION_METHOD = 'BALANCE' AND lcr1.withdraw_id = lcr.withdraw_id AND cf_item IN ( 303, 304 ) ) = 0 then lcr.planned_due_amount else null end AS profit from lon_contract_repayment lcr where lcr.withdraw_id =  #{withdrawId} and cf_item = 302 ) t-->
+        <!--order by t.planned_due_date-->
+    <!--</select>-->
+    <select id="queryMergeRepayment" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select * from (select  0 as times,lcw.due_date as planned_due_date, -(lcw.due_amount) as planned_due_amount,NULL AS profit,lcw.due_amount current_net_amount  from lon_contract_withdraw lcw where lcw.withdraw_id = #{withdrawId}
+        union all
+        select lcr.times , lcr.planned_due_date,(select nvl(sum(lcr1.planned_due_amount),0) from lon_contract_repayment lcr1 where lcr1.planned_due_date = lcr.planned_due_date and lcr1.AMORTIZATION_METHOD != 'ONCE' AND lcr1.cf_item in (301,302) and lcr1.withdraw_id = lcr.withdraw_id),case when (SELECT count(0) FROM lon_contract_repayment lcr1 WHERE AMORTIZATION_METHOD = 'BALANCE' AND lcr1.withdraw_id = lcr.withdraw_id AND cf_item IN ( 303, 304 ) ) = 0 then lcr.planned_due_amount else null end AS profit,
+        (select nvl(sum(lcr2.due_amount),0) from lon_contract_repayment lcr2 where lcr2.withdraw_id=lcr.withdraw_id and lcr2.cf_item=301 and lcr2.due_date>lcr.due_date)   current_net_amount
+        from lon_contract_repayment lcr where lcr.withdraw_id =  #{withdrawId} and cf_item = 302 ) t
+        order by t.planned_due_date
+    </select>
+
+    <select id="queryAmortizationMethod" resultType="java.lang.String">
+        select amortization_method from lon_contract_repayment where withdraw_id = #{withdrawId} and cf_item = #{cfItem}  and  rownum=1
+    </select>
+
+    <select id="queryMergeRepaymentLast" resultMap="BaseResultMap">
+      select * from gld_lon_repayment_merge  m
+        <where>
+            m.withdraw_id = #{withdrawId}
+            <if test="times!=null">
+                AND m.times = #{times}
+            </if>
+            order by planned_due_date
+        </where>
+    </select>
+
+    <select id="queryChangeTermRepayment" parameterType="java.lang.Long" resultType="java.lang.Long">
+        SELECT
+            min( gcc.times )
+        FROM
+            gld_lon_repayment_merge gcc
+        WHERE
+            gcc.planned_due_date > (
+            SELECT
+                max( fi.end_date )
+            FROM
+                gld_lon_contract_fin_cost fi
+            WHERE
+                fi.post_flag = 'Y'
+                AND fi.withdraw_id = #{withdrawId} )
+
+            AND gcc.withdraw_id = #{withdrawId}
+    </select>
+
+
+</mapper>

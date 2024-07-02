@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zhangdan
+    $Date: 2022年12月
+    $Revision: 1.0
+    $Purpose: 保证金抵扣申请
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:view>
+        <a:link id="transaction_query_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_query.lview"/>
+        <a:link id="transaction_writeoff_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH308/csh_transaction_receipt_writeoff_detail_query.lview"/>
+        <a:link id="transaction_refund_detail_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH308/csh_transaction_receipt_refund_detail_query.lview"/>
+        <a:link id="csh_deduct_req_maintain_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH308/csh_deposit_deduction.lview"/>
+        <a:link id="csh_deduct_req_readonly_link"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH308/csh_deposit_deduction_readonly.lview"/>
+        <a:link id="csh_deposit_deduct_delete_link" url="${/request/@context_path}/csh/deposit/deduct/req/hd/delete"/>
+
+        <script type="text/javascript"><![CDATA[
+
+        var index_select = 'DEPOSIT_DEDUCT_REQ_CREATE';
+
+        function before_select_event(tabPanel, index, tab) {debugger;
+            if (index === 0) {
+                index_select = 'DEPOSIT_DEDUCT_REQ_CREATE';
+                $("csh308_deposit_deduct_btn").show();
+                $("csh308_deduct_method_save_btn").hide();
+                $("csh308_deduct_cancel_btn").hide();
+            } else if (index === 1) {
+                index_select = 'DEPOSIT_DEDUCT_REQ_UPDATE';
+                $("csh308_deposit_deduct_btn").hide();
+                $("csh308_deduct_method_save_btn").hide();
+                $("csh308_deduct_cancel_btn").show();
+            } else if (index === 2) {
+                index_select = 'DEPOSIT_DEDUCT_METHOD_UPDATE';
+                $("csh308_deposit_deduct_btn").hide();
+                $("csh308_deduct_method_save_btn").show();
+                $("csh308_deduct_cancel_btn").hide();
+            }
+            csh308_deposit_reset();
+        }
+
+        function csh308_deposit_query() {
+            if (index_select === 'DEPOSIT_DEDUCT_REQ_CREATE') {
+                $('csh_deposit_result_ds').query();
+            } else if (index_select === 'DEPOSIT_DEDUCT_REQ_UPDATE') {
+                $('csh_deposit_deduct_req_ds').query();
+            } else if (index_select === 'DEPOSIT_DEDUCT_METHOD_UPDATE') {
+                $('csh_deposit_deduct_method_ds').query();
+            }
+        }
+
+        function csh308_deposit_reset() {
+            if (index_select === 'DEPOSIT_DEDUCT_REQ_CREATE') {
+                $('csh_deposit_query_ds').reset();
+                $('csh_deposit_result_ds').query();
+            } else if (index_select === 'DEPOSIT_DEDUCT_REQ_UPDATE') {
+                $('csh_deposit_deduct_req_query_ds').reset();
+                $('csh_deposit_deduct_req_ds').query();
+            } else if (index_select === 'DEPOSIT_DEDUCT_METHOD_UPDATE') {
+                $('csh_deposit_deduct_method_query_ds').reset();
+                $('csh_deposit_deduct_method_ds').query();
+            }
+        }
+
+        function deposit_deduct_method_cl(grid, row, name, record) {
+            if (record.get('modify_flag') === 'Y'){
+                record.getField('deposit_deduct_method_n').setReadOnly(false);
+            }
+        }
+
+        function csh308_deposit_deduct() {
+            var result_ds = $('csh_deposit_result_ds'),
+                selected_records = result_ds.getSelected();
+            if(selected_records.length !== 1){
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', '必须且只能选择一行！', null, 250, 100);
+                return;
+            }
+            if(selected_records[0].get('can_return_amount') === 0){
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', '可抵扣金额为0！', null, 250, 100);
+                return;
+            }
+
+            var win = new Leaf.Window({
+                id: 'csh_deduct_req_maintain_winId',
+                url: $('csh_deduct_req_maintain_link').getUrl(),
+                params: {
+                    winId: 'csh_deduct_req_maintain_winId',
+                    transaction_id: selected_records[0].get('transaction_id'),
+                    contract_id: selected_records[0].get('contract_id'),
+                    write_off_type: 'DEPOSIT_CREDIT',
+                    contract_seq_num: selected_records[0].get('contract_seq_num')
+                },
+                title: '保证金抵扣申请创建',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh308_deposit_query();
+            });
+        }
+
+        function csh308_deduct_cancel() {
+            var result_ds = $('csh_deposit_deduct_req_ds'),
+                selected_records = result_ds.getSelected();
+            if(selected_records.length !== 1){
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', '必须且只能选择一行！', null, 250, 100);
+                return;
+            }
+            if(selected_records[0].get('req_status') !== 'NEW'){
+                Leaf.showMessage('${l:PROMPT_MESSAGE}', '仅新建单据可以取消！', null, 250, 100);
+                return;
+            }
+            Leaf.showConfirm('取消申请', '是否取消该保证金抵扣申请？', function(){
+                Leaf.request({
+                    url: $('csh_deposit_deduct_delete_link').getUrl(),
+                    para: {req_hd_id: selected_records[0].get('req_hd_id')},
+                    success: function (res) {
+                        if(res.success){
+                            Leaf.showMessage('提示', '已取消');
+                        }else{
+                            Leaf.showMessage('提示', '取消失败!');
+                        }
+                        result_ds.query();
+                    },
+                    failure: function () {
+                        Leaf.showMessage('提示', '取消失败!');
+                        result_ds.query();
+                    },
+                    error: function () {
+                        Leaf.showMessage('提示', '取消失败!');
+                        result_ds.query();
+                    },
+                    scope: this
+                });
+            }, null, 250, 100);
+        }
+        //保存抵扣方式
+        function csh308_deduct_method_save() {
+            var saveData = [];
+            var result_ds = $('csh_deposit_deduct_method_ds').getAll();
+            for (var i = 0; i < result_ds.length; i++) {
+                if (result_ds[i].dirty === true)
+                saveData.push(result_ds[i].data);
+            }
+            Leaf.request({
+                url: '${/request/@context_path}/csh/deposit/deduct/method/save',
+                para: {
+                    transactionList : saveData
+                },
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    if (res.success) {
+                        Leaf.showMessage('提示', '保存成功!');
+                        $('csh_deposit_deduct_method_ds').query();
+                    }
+                },
+                error: function () {
+                    Leaf.showMessage('提示', '保存失败!');
+                    Leaf.Masker.unmask(Ext.getBody());
+                    $('csh_deposit_deduct_method_ds').query();
+                },
+                scope: this
+            });
+        }
+
+        function transaction_num_renderer(value, record, name) {
+            var transaction_id = record.get('transaction_id');
+            if (transaction_id) {
+                return '<a href="javascript:recepit_query_window(' + transaction_id + ')">' + value + '</a>';
+            } else {
+                return '';
+            }
+        }
+
+        function recepit_query_window(transaction_id) {
+            var win = new Leaf.Window({
+                id: 'transaction_query_winId',
+                url: $('transaction_query_link').getUrl(),
+                params: {
+                    winId: 'transaction_query_winId',
+                    transaction_id: transaction_id
+                },
+                title: '收款查询',
+                width: 800,
+                height: 450,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh308_deposit_query();
+            });
+        }
+
+        function write_off_detail_renderer(value, record, name) {
+            var transaction_id = record.get('transaction_id');
+            return '<a  href="#' + Math.random() + '" onclick="open_write_off_detail_window(' + transaction_id + ')">' + Leaf.formatMoney(value) + '</a>';
+        }
+
+        function open_write_off_detail_window(transaction_id) {
+            var win = new Leaf.Window({
+                id: 'transaction_writeoff_detail_winId',
+                url: $('transaction_writeoff_detail_link').getUrl(),
+                params: {
+                    winId: 'transaction_writeoff_detail_winId',
+                    transaction_id: transaction_id
+                },
+                title: '核销明细',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh308_deposit_query();
+            });
+        }
+
+        function refund_detail_renderer(value, record, name) {
+            var transaction_id = record.get('transaction_id');
+            return '<a  href="#' + Math.random() + '" onclick="open_refund_detail_window(' + transaction_id + ')">' + Leaf.formatMoney(value) + '</a>';
+        }
+
+        function open_refund_detail_window(transaction_id) {
+            var win = new Leaf.Window({
+                id: 'transaction_refund_detail_winId',
+                url: $('transaction_refund_detail_link').getUrl(),
+                params: {
+                    winId: 'transaction_refund_detail_winId',
+                    source_transaction_id: transaction_id
+                },
+                title: '退款明细',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh308_deposit_query();
+            });
+        }
+
+        function req_number_renderer(value, record, name) {
+            var req_hd_id = record.get('req_hd_id');
+            var req_status = record.get('req_status');
+            var contract_id = record.get('contract_id');
+            var contract_seq_num = record.get('contract_seq_num');
+            if (req_hd_id) {
+                return '<a href="javascript:open_deduct_req_window(' + req_hd_id + ',\'' + req_status + '\',' + contract_id  + ',\'' + contract_seq_num +'\')">' + value + '</a>';
+            } else {
+                return '';
+            }
+        }
+
+        function open_deduct_req_window(req_hd_id, req_status, contract_id, contract_seq_num) {
+            var url = $('csh_deduct_req_maintain_link').getUrl();
+            if (req_status == 'APPROVING' || req_status == 'APPROVED') {
+                url = $('csh_deduct_req_readonly_link').getUrl();
+            }
+            var win = new Leaf.Window({
+                id: 'csh_deduct_req_maintain_winId',
+                url: url,
+                params: {
+                    winId: 'csh_deduct_req_maintain_winId',
+                    req_hd_id: req_hd_id,
+                    contract_id: contract_id,
+                    write_off_type: 'DEPOSIT_CREDIT',
+                    contract_seq_num: contract_seq_num
+                },
+                title: '保证金抵扣申请',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh308_deposit_query();
+            });
+        }
+
+        //抵扣方式批量导入
+        function csh308_import_deduct_method() {
+            var win = new Leaf.Window({
+                id: 'csh308_excel_import_open_winid',
+                params: {
+                    winid: 'csh308_excel_import_open_winid'
+                },
+                url: '${/request/@context_path}/modules/CSH/CSH_TRX/CSH308/csh_deposit_excel_import_file.lview',
+                title: '抵扣方式批量导入',
+                width: 430,
+                height: 360
+                });
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="deduct_method_ds" loadData="true" lookupCode="DEPOSIT_DEDUCT_METHOD"/>
+            <a:dataSet id="req_status_ds" lookupCode="CSH.DEPOSIT_DEDUCT_REQ_STATUS"/>
+            <a:dataSet id="create_deduct_method_ds" lookupCode="CREATE_DEDUCT_METHOD"/>
+            <a:dataSet id="csh_deposit_query_ds">
+                <a:fields>
+                    <a:field name="reversed_flag" defaultValue="N"/>
+                    <a:field name="transaction_type" defaultValue="DEPOSIT"/>
+                    <a:field name="in_deduct_flag" defaultValue="N"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_deposit_result_ds" autoPageSize="true" autoQuery="true" selectable="true" selectionModel="single"
+                       queryUrl="${/request/@context_path}/csh/transaction/deductQuery" queryDataSet="csh_deposit_query_ds">
+                <a:fields>
+                    <a:field name="transaction_date" datatype="date"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_deposit_deduct_req_query_ds">
+                <a:fields>
+                    <a:field name="req_status_n" returnField="req_status" valueField="code_value"
+                             displayField="code_value_name" prompt="申请状态" options="req_status_ds"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_deposit_deduct_req_ds" autoPageSize="true" autoQuery="false" selectable="true"
+                       queryUrl="${/request/@context_path}/csh/deposit/deduct/req/hd/query"
+                       queryDataSet="csh_deposit_deduct_req_query_ds">
+                <a:fields>
+                    <a:field name="deduct_date" datatype="date"/>
+                    <a:field name="create_deduct_method_n" returnField="create_deduct_method" valueField="code_value"
+                             displayField="code_value_name" prompt="申请来源" options="create_deduct_method_ds"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_deposit_deduct_method_query_ds">
+                <a:fields>
+                    <a:field name="reversed_flag" defaultValue="N"/>
+                    <a:field name="transaction_type" defaultValue="DEPOSIT"/>
+                    <a:field name="in_deduct_flag" defaultValue="N"/>
+                    <a:field name="manufacturer_id_n" autoComplete="true" lovGridHeight="360" lovHeight="510" lovWidth="600" title="厂商/合作方"
+                             lovLabelWidth="100" lovService="/hls/bp/master/manufacturer/query~com.hand.hls.prj.dto.BpManufacturerInfoLov">
+                        <a:mapping>
+                            <a:map from="bp_name" to="manufacturer_id_n"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="factory_id_n" autoComplete="true" lovGridHeight="360" lovHeight="600" lovWidth="600" title="主机厂/合作方"
+                             lovLabelWidth="100" lovService="/hls/bp/master/vender/query~com.hand.hls.prj.dto.BpVenderInfoLov">
+                        <a:mapping>
+                            <a:map from="bp_name" to="factory_id_n"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="bp_id_vender_n" autoComplete="true" lovGridHeight="360" lovHeight="600" lovWidth="600" title="经销商"
+                             lovLabelWidth="100" lovService="/hls/bp/master/dealer/query~com.hand.hls.prj.dto.BpDealerInfoLov">
+                        <a:mapping>
+                            <a:map from="bp_name" to="bp_id_vender_n"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="csh_deposit_deduct_method_ds" autoPageSize="true" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/deposit/deduct/method/query"
+                       queryDataSet="csh_deposit_deduct_method_query_ds"
+                       selectable="true" selectionModel="single">
+                <a:fields>
+                    <a:field name="transaction_date" datatype="date"/>
+                    <a:field name="rent_due_date" datatype="date"/>
+                    <a:field name="deposit_deduct_method_n" options="deduct_method_ds"  prompt="抵扣方式" readOnly="true"
+                             displayField="code_value_name" returnField="deposit_deduct_method" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="csh308_deposit_query" text="HLS.QUERY"/>
+                <a:gridButton click="csh308_deposit_reset" text="HLS.RESET"/>
+                <a:gridButton id="csh308_deposit_deduct_btn" click="csh308_deposit_deduct" text="抵扣"/>
+                <a:gridButton id="csh308_deduct_method_save_btn" click="csh308_deduct_method_save" text="保存"/>
+                <a:gridButton id="csh308_deduct_cancel_btn" click="csh308_deduct_cancel" text="取消申请"/>
+                <!--<a:gridButton click="csh308_import_deduct_method" text="批量导入"/>-->
+            </a:screenTopToolbar>
+            <a:tabPanel marginWidth="20" marginHeight="25">
+                <a:tabs>
+                    <a:tab prompt="保证金抵扣申请创建" width="180" selected="true">
+                        <a:form column="4" labelWidth="100">
+                            <a:textField name="deposit_contract_number" bindTarget="csh_deposit_query_ds" prompt="合同编号" width="160"/>
+                            <a:textField name="bp_name_tenant" bindTarget="csh_deposit_query_ds" prompt="承租人名称" width="160"/>
+                            <a:datePicker name="transaction_date_from" bindTarget="csh_deposit_query_ds" prompt="收款日期从" width="160"/>
+                            <a:datePicker name="transaction_date_to" bindTarget="csh_deposit_query_ds" prompt="收款日期到" width="160"/>
+                            <a:numberField name="transaction_amount_from" bindTarget="csh_deposit_query_ds" prompt="收款金额从" width="160"/>
+                            <a:numberField name="transaction_amount_to" bindTarget="csh_deposit_query_ds" prompt="收款金额到" width="160"/>
+                        </a:form>
+                        <a:grid id="csh_deposit_grid_id"
+                                bindTarget="csh_deposit_result_ds" marginHeight="170" marginWidth="50"
+                                navBar="true">
+                            <a:toolBar>
+                                <a:button type="excel"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="tenant_id_n" prompt="承租人名称" width="200"/>
+                                <a:column name="deposit_contract_number" prompt="合同编号" width="250"/>
+                                <a:column name="transaction_num" prompt="现金事务编号" width="120" renderer="transaction_num_renderer"/>
+                                <a:column name="transaction_date" align="center" prompt="收款日期" width="100" renderer="Leaf.formatDate"/>
+                                <a:column name="transaction_amount" prompt="收款金额" renderer="Leaf.formatMoney" align="right" width="130"/>
+                                <a:column name="currency_n" prompt="币种" width="80"/>
+                                <a:column name="sum_write_off_amount" prompt="已抵扣金额" renderer="write_off_detail_renderer" align="right" width="130"/>
+                                <a:column name="return_write_off_amount" prompt="已退款金额" renderer="refund_detail_renderer" align="right" width="130"/>
+                                <a:column name="can_return_amount" prompt="保证金余额" renderer="Leaf.formatMoney" align="right" width="130"/>
+                                <a:column name="can_deduct_amount" prompt="拟抵扣金额" renderer="Leaf.formatMoney" align="right" width="130"/>
+                                <a:column name="auto_deduct_flag_n" prompt="期末是否自动抵扣" width="130"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="保证金抵扣申请维护" width="180">
+                        <a:form column="5" labelWidth="100">
+                            <a:textField name="req_number" bindTarget="csh_deposit_deduct_req_query_ds" prompt="抵扣申请编号"/>
+                            <a:textField name="transaction_num" bindTarget="csh_deposit_deduct_req_query_ds" prompt="现金事务编号"/>
+                            <a:textField name="contract_number" bindTarget="csh_deposit_deduct_req_query_ds" prompt="合同编号"/>
+                            <a:datePicker name="deduct_date_from" bindTarget="csh_deposit_deduct_req_query_ds" prompt="抵扣日期从"/>
+                            <a:datePicker name="deduct_date_to" bindTarget="csh_deposit_deduct_req_query_ds" prompt="抵扣日期到"/>
+                            <a:comboBox name="req_status_n" bindTarget="csh_deposit_deduct_req_query_ds" prompt="申请状态"/>
+                        </a:form>
+                        <a:grid id="csh_deposit_deduct_req_grid"
+                                bindTarget="csh_deposit_deduct_req_ds" marginHeight="170" marginWidth="50"
+                                navBar="true">
+                            <a:toolBar>
+                                <a:button type="excel"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="req_number" prompt="抵扣申请编号" renderer="req_number_renderer" width="120"/>
+                                <a:column name="transaction_num" prompt="现金事务编号" width="120" renderer="transaction_num_renderer"/>
+                                <a:column name="contract_number" prompt="合同编号" width="240"/>
+                                <a:column name="deduct_date" align="center" prompt="抵扣日期" width="100" renderer="Leaf.formatDate"/>
+                                <a:column name="req_status_n" prompt="申请状态" width="120"/>
+                                <a:column name="deduct_status_desc" prompt="抵扣状态" width="200"/>
+                                <a:column name="remarks" prompt="说明" width="400"/>
+                                <a:column name="create_deduct_method_n" prompt="抵扣来源" width="100"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="保证金抵扣方式维护" width="180">
+                        <a:form column="4" labelWidth="100">
+                            <a:textField name="contract_number" bindTarget="csh_deposit_deduct_method_query_ds" prompt="合同编号" width="160"/>
+                            <a:textField name="tenant_id_n" bindTarget="csh_deposit_deduct_method_query_ds" prompt="承租人名称" width="160"/>
+                            <a:lov name="manufacturer_id_n" bindTarget="csh_deposit_deduct_method_query_ds" prompt="厂商/合作方" width="160">
+                            </a:lov>
+                            <a:lov name="factory_id_n" bindTarget="csh_deposit_deduct_method_query_ds" prompt="主机厂/合作方" width="160">
+                            </a:lov>
+                            <a:lov name="bp_id_vender_n" bindTarget="csh_deposit_deduct_method_query_ds" prompt="经销商" width="160">
+                            </a:lov>
+                            <a:datePicker name="order_start_date" prompt="租金到期日从" width="160" bindTarget="csh_deposit_deduct_method_query_ds" />
+                            <a:datePicker name="order_end_date" prompt="租金到期日至" width="160" bindTarget="csh_deposit_deduct_method_query_ds" />
+                        </a:form>
+                        <a:grid id="csh_deposit_deduct_method_grid_id" bindTarget="csh_deposit_deduct_method_ds" marginHeight="170" marginWidth="50" navBar="true">
+                            <a:toolBar>
+                                <a:button type="excel"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="tenant_id_n" prompt="承租人名称" width="200"/>
+                                <a:column name="manufacturer_id_n" prompt="厂商/合作方" width="250"/>
+                                <a:column name="factory_id_n" prompt="主机厂/合作方" width="250"/>
+                                <a:column name="bp_id_vender_n" prompt="经销商" width="250"/>
+                                <a:column name="contract_number" prompt="合同编号" width="250"/>
+                                <a:column name="rent_due_date" align="center" prompt="租金到期日" width="160" renderer="Leaf.formatDate"/>
+                                <a:column name="transaction_amount_sum" prompt="保证金总额" renderer="Leaf.formatMoney" align="right" width="130"/>
+                                <a:column name="can_deduct_amount_sum" prompt="拟抵扣金额" renderer="Leaf.formatMoney" align="right" width="130"/>
+                                <a:column name="can_return_amount_sum" prompt="拟抵扣后金额" renderer="Leaf.formatMoney" align="right" width="130"/>
+                                <a:column name="deposit_deduct_method_n" width="100" prompt="抵扣方式" editor="deposit_deduct_method_comboBox"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:comboBox id="deposit_deduct_method_comboBox"/>
+                            </a:editors>
+                            <a:events>
+                                <a:event name="cellclick" handler="deposit_deduct_method_cl"/>
+                            </a:events>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+                <a:events>
+                    <a:event name="beforeselect" handler="before_select_event"/>
+                </a:events>
+            </a:tabPanel>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="bp100_bp_master_modify_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="V100_bp_visit_modify_id"
+                url="${/request/@context_path}/modules/visit/V100/jc_bp_visit_interview.lview"/>
+        <a:link id="V100_bp_change_modify_id"
+                url="${/request/@context_path}/modules/visit/V100/jc_bp_change_interview.lview"/>
+        <a:link id="bp100_bp_master_ecif_signal_query_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_ecif_signal_query.lview"/>
+        <script><![CDATA[
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            switch (ds.id) {
+                case get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master'):
+                    qpara['created_by'] = '${/session/@user_id}';
+                    break;
+
+            }
+        }
+        // var ds_create_id;
+        // var record_create_id;
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function (ds_id,record) {
+            debugger
+            var personFlag;
+            Leaf.request({
+                url: '${/request/@context_path}/hls/defalut/para/query',
+                success: function (res) {
+                    debugger
+                    if (res.result.record[0]!=null){
+                        personFlag = res.result.record[0].ref_v02;
+                    }
+                },
+                sync: true
+            });
+            debugger
+            if(personFlag=='MANAGEMENT_COMPANY'||personFlag=='VENDER'||personFlag=='DEALER'){
+                var win = new Leaf.Window({
+                    id: 'bp100_bp_create_win_id',
+                    url: "${/request/@context_path}/modules/BP/BP100/bp_master_select1.lview",
+                    params: {
+                        parent_winid: 'bp100_bp_create_win_id'
+                    },
+                    title: '商业伙伴信息创建',
+                    fullScreen: true
+                });
+                win.on('close', function () {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+                    $(ds_id).query();
+                });
+            }else{
+                var win = new Leaf.Window({
+                    id: 'bp100_bp_create_win_id',
+                    url: "${/request/@context_path}/modules/BP/BP100/bp_master_select.lview",
+                    params: {
+                        parent_winid: 'bp100_bp_create_win_id'
+                    },
+                    title: '商业伙伴信息创建',
+                    fullScreen: true
+                });
+                win.on('close', function () {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+                    $(ds_id).query();
+                });
+            }
+
+        };
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            // debugger
+            if (name == 'bp_name' && value) {
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            }else if (name == 'visit_information' && value) {
+                return '<a href="javascript:open_visit_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">拜访明细</a>';
+            }else if(name == 'change_record' && value){
+                return '<a href="javascript:open_change_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">变更记录</a>';
+            }
+            return value;
+        };
+
+        function open_bp_modify_win(ds_id, record_id) {
+            debugger
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '客户信息维护';
+            Leaf.request({
+                url: '${/request/@context_path}/prj/creditLine/query',
+                para: param,
+                success: function (res) {
+                    debugger
+                    if (res.result.record[0]!=null){
+                        param['function_usage'] = 'QUERY';
+                    }
+                },
+                sync: true
+            });
+            if (param['bp_class'] == 'ORG') {
+                if(param['bp_type']=='MANUFACTURER'||param['bp_type']=='TENANT'){
+                    if(param['bp_type']=='TENANT'){
+                        param['function_code'] = 'BP100F1'
+                    }else{
+                        param['function_code'] = 'BP100F4'
+                    }
+                    // param['function_usage'] = 'QUERY';
+
+                }else {
+                    if(param['bp_type']!='TENANT'&&param['bp_type']!='MANAGEMENT_COMPANY'){
+                        param['function_usage'] = 'QUERY';
+                    }
+                    if(param['bp_type']=='VENDER' || param['bp_type']=='DEALER'){
+                        param['function_code'] = 'PRJ320_LS_F1';
+                    }else{
+                    param['function_code'] = 'BP100F1';}
+                }
+            } else {
+                param['function_code'] = 'BP100F2';
+            }
+            param['winid'] = 'bp_master_modify_winid';
+
+            hls_doc_get_layout_code(param, 'bp100_bp_master_modify_id', ds_id, 'BP100');
+        }
+
+        //拜访明细 维护入口
+        function open_visit_modify_win(ds_id, record_id) {
+            debugger
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '拜访明细';
+            param['function_code'] = 'BP100V1';
+
+            // param['function_usage'] = 'QUERY';
+            param['winid'] = 'bp_visit_modify_winid';
+
+            hls_doc_get_layout_code(param, 'V100_bp_visit_modify_id', ds_id, 'BP100');
+        }
+
+        //变更记录 维护入口
+        function open_change_modify_win(ds_id, record_id) {
+            debugger
+            pageSize = $(ds_id).pagesize;
+            page = $(ds_id).currentPage;
+            index = $(ds_id).currentIndex;
+            var record = $(ds_id).findById(record_id);
+
+
+             if ((record.get('bp_type') === 'MANAGEMENT_COMPANY' || record.get('bp_type') === 'GUARANTOR') && record.get('bp_class') == 'NP') {
+                Leaf.showMessage("提示", "该商业伙伴信息修改无需发起变更流程!", null);
+                return;
+            }else if ((record.get('bp_type') === 'MANAGEMENT_COMPANY' || record.get('bp_category') === 'GUARANTOR') && record.get('bp_class') == 'ORG') {
+                Leaf.showMessage("提示", "该商业伙伴信息修改无需发起变更流程!", null);
+                return;
+            }
+            var param = record.data;
+            param['url_title'] = '变更记录';
+            param['function_code'] = 'BP100V2';
+            param['function_usage'] = 'MODIFY';
+            // param['function_usage'] = 'QUERY';
+            param['winid'] = 'bp_change_modify_winid';
+
+            hls_doc_get_layout_code(param, 'V100_bp_change_modify_id', ds_id, 'BP100');
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

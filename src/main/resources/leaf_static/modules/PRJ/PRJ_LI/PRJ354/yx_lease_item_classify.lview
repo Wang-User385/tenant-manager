@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="yx_lease_item_log_create_link" url="${/request/@context_path}/yx/lease/item/log/create"/>
+        <a:link id="yx_lease_item_check_before_submit_link" url="${/request/@context_path}/yx/lease/item/check/before/submit"/>
+        <a:link id="yx_lease_item_update_advanced_equipment_flag_link" url="${/request/@context_path}/yx/lease/item/update/advanced/equipment/flag"/>
+        <a:link id="yx_lease_item_update_permission_check" url="${/request/@context_path}/yx/lease/item/update/permission/check"/>
+        <script><![CDATA[
+        var changeList = [];
+        let permission = false;
+        var position_code = "${/session/@positionCode}";
+
+        /*$L.onReady(function () {
+            Leaf.request({
+                url: $('yx_lease_item_update_permission_check').getUrl(),
+                success:function (res) {
+                    if (res.error.message !== '') {
+                        //没有权限
+                        permission = true;
+                    }
+
+                },
+                failure:function (res) {
+
+                }
+            });
+        });*/
+        //查询时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            debugger;
+            switch (ds.id) {
+                case get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'yx_lease_item_classify'):
+                    qpara['created_by'] = '${/session/@user_id}';
+                    break;
+            }
+        }
+        /*//新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {
+            if (permission === true) {
+                record.getField("durable_years").setReadOnly(true);
+                record.getField("residuals_rate").setReadOnly(true);
+            }
+            if(position_code != 'DEPT0220_POSITION023'&&position_code != 'DEPT0211_shencha'){
+                record.getField('advanced_equipment_flag').setReadOnly(true);
+            }
+        };*/
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'yx_lease_item_classify');
+            if(ds.id === ds_id){
+                if(name === 'advanced_equipment_flag1'){
+                    Leaf.Masker.mask(Ext.getBody(), '执行中。。');
+                    //更新高端装备标志
+                    Leaf.request({
+                        url: $('yx_lease_item_update_advanced_equipment_flag_link').getUrl(),
+                        para: {
+                            classifyId: record.get('classify_id'),
+                            advancedEquipmentFlag: record.get('advanced_equipment_flag')
+                        },
+                        success: function (res) {
+                            Leaf.SideBar.show({
+                                msg: '${l:HLS.SUBMIT_SUCCESS}',
+                                duration: 2000
+                            });
+                            $(ds.id).query();
+                            Leaf.Masker.unmask(Ext.getBody());
+                        },
+                        failure: function () {
+                            Leaf.Masker.unmask(Ext.getBody());
+                        },
+                        error: function () {
+                            Leaf.Masker.unmask(Ext.getBody());
+                        },
+                        scope: this
+                    });
+                }
+            }
+        };
+        //加载时调用(grid,table,gridBox)
+        // window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+        //     var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'yx_lease_item_classify');
+        //     if (ds.id == ds_id) {
+        //         if(record){
+        //             var classify_record = record;
+        //             if(classify_record.get('superior_classify_id')){
+        //                 classify_record.getField("superior_classify_id").setReadOnly(true);
+        //                 classify_record.getField("superior_classify_id_n").setReadOnly(true);
+        //             }
+        //         }
+        //     }
+        // }
+        // window['${/parameter/@layout_code}_save_layout_dynamic_click'] = function () {
+        //     window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+        //     var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+        //     $(ds_id).setSubmitUrl('${/request/@context_path}/con/contract/change/request/submit');
+        //     $(ds_id).submit();
+        // };
+        //保存前调用获取编码
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'yx_lease_item_classify');
+            var records = $(ds_id).getAll();
+            var changeInfo = "";
+            var checkList = new Array();
+            var n = 0;
+            for(var i=0;i<records.length;i++){
+                if(records[i].dirty){
+                    checkList[n] = records[i];
+                    n += 1;
+                    var modifiedJson  = records[i].modified;
+                    var dataJson = records[i].data;
+                    for(var k in modifiedJson){
+                        changeInfo += k + "从" + modifiedJson[k] + "变更为" + dataJson[k] + ";\n";
+                    }
+                    records[i].data["changeInfo"] = changeInfo;
+                    records[i].data["creation_date"] = records[i].data["create_date"];
+                    records[i].data["created_by"] = records[i].data["create_user_id"];
+                    changeList.push(records[i].data);
+                    changeInfo = "";
+                }else if(records[i].isNew){
+                    checkList[n] = records[i];
+                    n += 1;
+                }
+            }
+            var requestUrl = '${/request/@context_path}/common/coding/getCodeValue';
+            requestUrl = requestUrl + "?documentCategory=" + "LEASE_ITEM_CLASSIFY";
+            requestUrl = requestUrl + "&documentType=" + "LEASE_ITEM_CLASSIFY";
+            requestUrl = requestUrl + "&businessType=" + "LEASE_ITEM_CLASSIFY";
+            if(ds_id){
+                if(checkList.length > 0){
+                    var ids = [];
+                    var ids2 = [];
+                    var ids3 = [];
+                    var ids4 = [];
+                    var ids5 = [];
+                    for (var i = 0; i < checkList.length; i++) {
+                        var record = checkList[i];
+                        ids[i] = checkList[i].get('label');
+                        ids2[i] = checkList[i].get('attribute');
+                        ids3[i] = checkList[i].get('attribute_value');
+                        ids4[i] = checkList[i].get('manufacturer_id');
+                        ids5[i] = checkList[i].get('superior_classify_id');
+                    }
+                    for (var i = 0; i < ids.length - 1; i++){
+                        for(var j = i + 1;j < ids.length;j++){
+                            if(ids[i] == ids[j]&&ids2[i] == ids2[j]&&ids3[i] == ids3[j]&&ids4[i] == ids4[j]&&ids5[i] == ids5[j]){
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                Leaf.showMessage("提示", "记录"+ checkList[i].get('classify_code') +"重复！请检查！", null);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            var checkData = [];
+            for (var i = 0; i < checkList.length; i++) {
+                checkData.push(checkList[i].data);
+            }
+            var check_flag = true;
+            Leaf.request({
+                url: $('yx_lease_item_check_before_submit_link').getUrl(),
+                scope: this,
+                para: {checkData: checkData},
+                success: function (res) {
+                    var classify_code = res.result.record[0];
+                    if(classify_code != 'NONE'){
+                        if(classify_code == 'NEW'){
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.showMessage("提示", "新增记录重复！请检查！", null);
+                            check_flag = false;
+                        }else{
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.showMessage("提示", "记录"+ classify_code +"重复！请检查！", null);
+                            check_flag = false;
+                        }
+                    }else{
+                        for(var i=0;i<records.length;i++){
+                            if(records[i].isNew){
+                                Leaf.request({
+                                    url: requestUrl,
+                                    success: function (res) {
+                                        records[i].set('classify_code', res.result.record[0]);
+                                    },
+                                    error: function (res) {
+                                        $L.showInfoMessage("提示", "编号生成失败，请联系管理员!");
+                                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        check_flag = false;
+                                    },
+                                    failure: function (res) {
+                                        $L.showInfoMessage("提示", "编号生成失败，请联系管理员!");
+                                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                        check_flag = false;
+                                    },
+                                    sync: true,
+                                    scope: this
+                                });
+                            }
+                        }
+                    }
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage("提示", "记录重复校验失败！请联系系统管理员！", null);
+                    check_flag = false;
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage("提示", "记录重复校验失败！请联系系统管理员！", null);
+                    check_flag = false;
+                },
+                scope: this,
+                sync: true
+            });
+            return check_flag;
+        }
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'yx_lease_item_classify');
+            $(ds_id).query();
+            Leaf.Masker.unmask(Ext.getBody());
+            Leaf.request({
+                url: $('yx_lease_item_log_create_link').getUrl(),
+                scope: this,
+                para: {logType: 'classify',changeList: changeList},
+                success: function (res) {
+                    changeList = [];
+                },
+                failure: function () {
+                    changeList = [];
+                },
+                error: function () {
+                    changeList = [];
+                },
+                scope: this
+            });
+        };
+        //批量导入
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function() {
+            new Leaf.Window({
+                id: 'prj354_excel_import_open_winid',
+                params: {
+                    winid: 'prj354_excel_import_open_winid'
+                },
+                url: '${/request/@context_path}/modules/PRJ/PRJ_LI/PRJ354/yx_lease_item_excel_import_file.lview',
+                title: '租赁物产品批量导入',
+                width: 430,
+                height: 360
+            });
+        }
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+
+    <a:view>
+
+        <script><![CDATA[
+
+        function toHump(name) {
+            return name.replace(/\_(\w)/g, function(all, letter){
+                return letter.toUpperCase();
+            });
+        }
+
+        //保存
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            $L.Masker.mask(Ext.getBody(),"正在提交数据...");
+            var datas = $('${/parameter/@layout_code}_G_GRID_con_contract_ds').getSelectedJson();
+
+            $jq.each(datas, function (i, n) {
+                for(var v in n){
+                    n[toHump(v)] = n[v];
+                }
+                n.__status = 'insert';
+                n.postloanInspectionId = '${/parameter/@postloan_inspection_id}';
+                n.company = '${/session/@companyId}';
+                n.isPlaneCheck = '${/parameter/@is_plane_check}';
+                n.attribute1= '${/parameter/@postloan_inspection_id}';
+            });
+
+            var url = '${/request/@context_path}/plm/pli/contract/submit';
+
+            $jq.ajax({
+                url: url,
+                type: "POST",
+                contentType: "application/json",
+                dataType: "json",
+                headers: {
+                    'X-CSRF-TOKEN': "${/session/@_csrf.token}"
+                },
+                data: JSON.stringify(datas),
+                success: function (data) {
+
+                    $L.Masker.unmask(Ext.getBody());
+
+                    if (data.success) {
+                        $L.showInfoMessage("提示","保存成功!",function () {
+                            $('${/parameter/@parent_layout_code}_G_CONTRACT_01_plm_pli_contract_ds').query();
+                            $('${/parameter/@parent_layout_code}_G_MANAGEMENT_plm_pli_contract_ds').query();
+                            //飞机的没有船舶所以要单独判断
+                            var isPlane = '${/parameter/@is_plane_check}';
+                            if (isPlane === 'N'){
+                                $('${/parameter/@parent_layout_code}_G_SHIP_plm_ships_ds').query();
+                            }
+                            $('${/parameter/@winid}').close();
+                        });
+
+                    }else{
+                        $L.showInfoMessage("提示","保存失败，请联系管理员!");
+                    }
+                }
+            });
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            qpara['bp_id'] = '${/parameter/@bp_id}';
+            qpara['postloan_inspection_id'] = '${/parameter/@postloan_inspection_id}';
+        };
+
+        ]]></script>
+
+
+
+    </a:view>
+</a:screen>

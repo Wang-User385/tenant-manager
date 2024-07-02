@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: zedong huang
+    $Date: 2019-2-13 上午16:09:00
+    $Revision: 4.2
+    $Purpose: 新建-额度占用申请维护
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="prj314_project_create_id" url="${/request/@context_path}/modules/PRJ/PRJ_QUOTA/PRJ314/prj_project_modify.lview"/>
+        <script><![CDATA[
+
+        Leaf.onReady(function () {
+            // debugger;
+            var userName;
+            Leaf.request({
+                url: "${/request/@context_path}/hls/marketing/report/querySession",
+                para: {
+                    host_project_manager: '${/session/@userId}'
+                },
+                success: function (res) {
+                    userName = res.result.record[0].host_project_manager_n;
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+                    var ds_record = $(ds_id).getCurrentRecord();
+                    ds_record.set('host_project_manager_n', userName);
+                    ds_record.set('host_project_manager', '${/session/@userId}');
+                    ds_record.set('unit_id', '${/session/@unitId}');
+                    ds_record.set('unit_id_n', '${/session/@unitName}');
+                },
+                error: function () {
+                    $L.Masker.unmask(document.body);
+                    Leaf.showMessage("提示", "保存出错!", null);
+                },
+                sync: true,
+                scope: this
+            });
+        });
+
+        function PRJ314F3_CLOSE(){
+            $('${/parameter/@winid}').close();
+        }
+
+        function PRJ314F3_SURE(){
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            if ($(ds_id).validate()) {
+                var record = $(ds_id).getCurrentRecord();
+
+                if(record.get('host_project_manager') == record.get('assist_project_manager')){
+                    Leaf.showErrorMessage('提示', '项目协办不能与主办相同！');
+                    return;
+                }
+                var param = record.data;
+                Leaf.request({
+                    url: "${/request/@context_path}/prj/project/creditProjectGenerate",
+                    para: {
+                        'chance_id' : record.get('chance_id'),
+                        'tenant_id' : record.get('tenant_id'),
+                        'business_type' : record.get('business_type'),
+                        'host_project_manager' : record.get('host_project_manager'),
+                        'assist_project_manager' : record.get('assist_project_manager'),
+                        'unit_id' : record.get('unit_id'),
+                        'industry' : record.get('industry'),
+                        'industry_type' : record.get('industry_type'),
+                        'company_id' : record.get('company_id'),
+                        'credit_chance_bp_id' : record.get('credit_chance_bp_id')
+                    },
+                    success: function (res) {
+                        console.log(res);
+                        var project_id = res.result.record[0].project_id;
+                        if (project_id == 'undefined' || project_id == '' || project_id == null) {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            Leaf.showInfoMessage('创建失败!');
+                            return;
+                        } else {
+                            Leaf.Masker.unmask(Ext.getBody());
+                            param['project_id'] = project_id;
+                            param['credit_flag'] = 'N';
+                            param['function_code'] = 'PRJ314F1';
+                            param['winid'] = 'prj314_project_create_winid';
+                            param['entrance_winid'] = '${/parameter/@winid}';
+                            param['url_title'] = '额度占用';
+                            param['ds_id'] = '${/parameter/@ds_id}';
+                            param['function_usage'] = 'CREATE';
+                            var link_id = 'prj314_project_create_id';
+                            hls_doc_get_layout_code(param, link_id, ds_id, 'PRJ314', '${/parameter/@winid}', 'Y');
+                        }
+                    },
+                    error: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+        };
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="PRJ314F3_CLOSE" text="退出"/>
+                <a:gridButton click="PRJ314F3_SURE" text="创建"/>
+            </a:screenTopToolbar>
+        </a:screenBody>
+    </a:view>
+</a:screen>

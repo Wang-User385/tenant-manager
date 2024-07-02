@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: jianfeng.fang
+    $Date: 2020年03月10日
+    $Revision: 1.0
+    $Purpose: 风险预警变更创建
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+
+    <a:view>
+
+        <script><![CDATA[
+        function submit() {
+            var json = $('rw_change_create_result_ds').getJsonData()[0];
+            Leaf.request({
+                url: '${/request/@context_path}/plm/risk/warning/createChange',
+                para: json,
+                success: function (res) {
+                    Leaf.showMessage('提示', '成功');
+                    window.location.href = '${/request/@context_path}/modules/RW/RW100A/rw_risk_warning_new_wfl.lview?risk_warning_id=${/parameter/@risk_warning_id}';
+
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                scope: this
+            });
+        }
+
+
+        ]]></script>
+
+        <a:dataSets>
+            <!-- 客户信息dataset-->
+            <a:dataSet id="rw_change_create_result_ds" autoPageSize="true"  autoCreate="true"
+                       queryUrl="${/request/@context_path}/plm/risk/warning/query?risk_warning_id=-1"
+                       selectable="true">
+                <a:fields>
+                    <a:field name="bp_name" defaultValue="${/parameter/@bp_name}"/>
+                    <a:field name="bp_code" defaultValue="${/parameter/@bp_code}"/>
+                    <a:field name="risk_warning_id" defaultValue="${/parameter/@risk_warning_id}"/>
+                    <a:field name="ref_risk_warning_id" defaultValue="${/parameter/@risk_warning_id}"/>
+                    <a:field name="data_class" defaultValue="CHANGE_REQ"/>
+                    <a:field name="apply_user_name" defaultValue="${/session/@userName}"/>
+                </a:fields>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton text="创建" click="submit"/>
+            </a:screenTopToolbar>
+            <a:form column="4" labelWidth="100" title="客户信息">
+                <a:lov name="bp_name" bindTarget="rw_change_create_result_ds"
+                       prompt="客户名称" width="160"/>
+                <a:textField name="bp_code" bindTarget="rw_change_create_result_ds"
+                             prompt="客户编码" width="160" readOnly="true"/>
+                <a:datePicker name="apply_date" bindTarget="rw_change_create_result_ds"
+                              prompt="调整/解除申请日期" width="160" />
+                <a:textArea name="change_apply_desc" bindTarget="rw_change_create_result_ds"
+                            prompt="调整/解除申请原因" width="160"/>
+                <a:textField hidden="true" name="ref_risk_warning_id" bindTarget="rw_change_create_result_ds"
+                              width="160" readOnly="true"/>
+                <a:textField hidden="true" name="data_class" bindTarget="rw_change_create_result_ds"
+                             width="160" readOnly="true"/>
+            </a:form>
+        </a:screenBody>
+    </a:view>
+</a:screen>

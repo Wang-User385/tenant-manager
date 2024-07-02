@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    $Date: 2018-10-15
+    $Revision: 1.0
+    $Purpose: 我的待办
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <link href="${/request/@context_path}/leafresources/font-awesome-4.7.0/css/font-awesome.min.css" rel="stylesheet"/>
+        <style type="text/css">
+            .priority-low, .priority-median, .priority-high {
+                display:inline-block;
+                width: 80%;
+                height: 30px;
+                box-shadow: 0 0 3px #947575;
+                text-align: center;
+                line-height: 30px;
+                color: white;
+                background: #00AA00;
+            }
+            .priority-median {
+                background: #FFA500;
+            }
+            .priority-high {
+                background: #DD0000;
+            }
+        </style>
+        <script><![CDATA[
+        var priorityArr = [
+            {min:null,max:33},
+            {min:34,max:66},
+            {min:67,max:null}
+        ];
+
+        $L.onReady(function(){
+            var ds = $("my_task_priority_ds");
+            ds.create({priority: "高",priority_index: 2});
+            ds.create({priority: "中",priority_index: 1});
+            ds.create({priority: "低",priority_index: 0});
+        });
+
+        function my_task_screen_query() {
+            var query_ds = $("my_task_query_ds").data[0];
+            if(!!query_ds.data["priority"] && (!!query_ds.data["priority_index"] || query_ds.data["priority_index"] ===0 )){
+                var priority_index = query_ds.data["priority_index"];
+                query_ds.set("maximumPriority",priorityArr[priority_index]["max"]);
+                query_ds.set("minimumPriority",priorityArr[priority_index]["min"]);
+            }else if(!query_ds.data["priority"]){
+                query_ds.set("maximumPriority",null);
+                query_ds.set("minimumPriority",null);
+            }
+            $('my_task_ds').query();
+        }
+
+        function my_task_screen_reset() {
+            $('my_task_query_ds').reset();
+            $('my_task_ds').query();
+        }
+
+        <!--提交成功-->
+        function onSubmitSuccess_my_task_ds(){
+            $('my_task_ds').query();
+        }
+
+        function my_task_ds_grid_renderer(value, record, name) {
+            if (name === 'operate' && !record.isNew && !!record.get("id") && !!record.get("name")) {
+                var str = '';
+                str += '<a href="javascript:winOpen_task_detail(\''
+                    + record.get('id') + '\',\''
+                    + record.get('process_instance_id') + '\',\''
+                    + record.get("name") + '\');">';
+                str += '办理</a>';
+                return str
+            }else if(!!value && name === "process_name"){
+                var str = value;
+                str += '<a href="javascript:winOpen_task_runTime(\''+ record.get("process_instance_id") + '\');">';
+                str += '<span class="fa fa-eye" style="float:right;position:relative;top:10px;right:5px;" title="查看流程运行状态"></span></a>';
+                return str;
+            }else if(!!value && name === "create_time"){
+                return Leaf.dateFormat.format(new Date(value),'isoDateTime').replace(/T/,"  ") || '';
+            }else if(!!value && name === "priority"){
+                var timeDescr = "无限定时间";
+                if(record.data.dueDate != null && record.data.dueTime != null){
+                    timeDescr = "剩余时间:";
+                    if(record.data.dueTime < 0 ){
+                        timeDescr = "已超时:"
+                    }
+                    var dueTime = Math.abs(record.data.dueTime);
+                    var days=parseInt(record.data/86400);
+                    var hours = parseInt(dueTime/3600%24);
+                    var minutes=parseInt(dueTime/60%60);
+                    if(days > 0 )
+                        timeDescr = timeDescr + days +"天";
+                    if(hours >0 )
+                        timeDescr = timeDescr + hours + "小时";
+                    if(minutes >0){
+                        timeDescr = timeDescr + minutes + "分钟"
+                    }
+                }
+                if (record.data.priority < 33){
+                    return "<div class='priority-low'>"+timeDescr+"</div>";
+                }
+                if (record.data.priority < 66){
+                    return "<div class='priority-median'>"+timeDescr+"</div>";
+                }
+                return "<div class='priority-high'>"+timeDescr+"</div>";
+            }
+            return value;
+        }
+
+        <!--打开窗口：待办详细-->
+        function winOpen_task_detail(task_id,process_instance_id,name) {
+           var openWin =  new Leaf.Window({
+                id: 'task_detail_win',
+                url: '${/request/@context_path}/modules/MYWFL/MYWFL001/task_detail.lview',
+                params:{
+                    taskId:task_id,
+                    isAdmin:false,
+                    processInstanceId: process_instance_id,
+                    winId: 'task_detail_win'
+                },
+                title: "待办办理：" + name,
+                fullScreen:true
+            });
+            openWin.on('close', function () {
+                // query_zjwfl5110_toDoDs();
+                $("my_task_ds").query()
+            });
+        }
+
+        <!--打开窗口：待办运行状态-->
+        function winOpen_task_runTime(id) {
+            new Leaf.Window({
+                id: 'import_model_win',
+                url: '${/request/@context_path}/modules/WFL/WFL003/process_instance.lview',
+                params:{
+                    processInstanceId:id
+                },
+                title: '流程运行状态',
+                side:'right',
+                width:1000,
+                height:400
+            });
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="my_task_priority_ds">
+                <a:fields>
+                    <a:field name="priority"/>
+                    <a:field name="priority_index"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="my_task_query_ds">
+                <a:fields>
+                    <a:field name="process_instance_id"/>
+                    <a:field name="nameLike"/>
+                    <!--<a:field name="ownerLike"/>-->
+                    <a:field name="started_by_name" autoComplete="true" lovGridHeight="300" lovHeight="450"
+                             lovLabelWidth="100" lovWidth="600"
+                             lovService="/fnd/employee/queryEmployeesForLov~com.hand.hap.activiti.dto.AllocationEmployeeLov"
+                             title="选择发起人">
+                        <a:mapping>
+                            <a:map from="name" to="started_by_name"/>
+                            <a:map from="allocation_id" to="ownerLike"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="priority" options="my_task_priority_ds" displayField="priority" valueField="priority_index" returnField="priority_index"/>
+                    <a:field name="priority_index"/>
+                    <a:field name="maximumPriority"/>
+                    <a:field name="minimumPriority"/>
+                    <a:field name="createdAfter"/>
+                    <a:field name="createdBefore"/>
+                </a:fields>
+            </a:dataSet>
+            <a:dataSet id="my_task_ds" autoQuery="true" autoPageSize="true"
+                       queryUrl ="${/request/@context_path}/wfl/leaf/query/tasks"
+                       queryDataSet="my_task_query_ds">
+                <a:fields>
+                    <a:field name="id" /><!--task_id-->
+                    <a:field name="process_instance_id" />
+                    <a:field name="process_instance_url" />
+                    <a:field name="process_name" />
+                    <a:field name="name" /><!--审批环节-->
+                    <a:field name="start_user_name"/>
+                    <a:field name="start_user_id"/>
+                    <a:field name="create_time" />
+                    <a:field name="priority" />
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_my_task_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="my_task_screen_query" text="HAP.QUERY"/>
+                <a:gridButton click="my_task_screen_reset" text="HAP.RESET"/>
+            </a:screenTopToolbar>
+            <a:form column="3" title="查询条件" labelwidth="100" style="width:100%">
+                <a:textField name="process_instance_id" bindTarget="my_task_query_ds" prompt="流程ID" emptyText="流程ID" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="my_task_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="nameLike" bindTarget="my_task_query_ds" prompt="流程名称" emptyText="流程名称" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="my_task_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:textField name="document_name" bindTarget="my_task_query_ds" prompt="单据名称" emptyText="单据名称" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="my_task_screen_query"/>
+                    </a:events>
+                </a:textField>
+                <a:lov name="started_by_name" bindTarget="my_task_query_ds" prompt="申请人" emptyText="申请人" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="my_task_screen_query"/>
+                    </a:events>
+                </a:lov>
+                <a:comboBox name="priority" bindTarget="my_task_query_ds" prompt="优先级" emptyText="优先级" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="my_task_screen_query"/>
+                    </a:events>
+                </a:comboBox>
+                <a:datePicker name="createdAfter" bindTarget="my_task_query_ds" prompt="创建日期从" emptyText="创建日期从" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="my_task_screen_query"/>
+                    </a:events>
+                </a:datePicker>
+                <a:datePicker name="createdBefore" bindTarget="my_task_query_ds" prompt="创建日期至" emptyText="创建日期至" width="140">
+                    <a:events>
+                        <a:event name="enterdown" handler="my_task_screen_query"/>
+                    </a:events>
+                </a:datePicker>
+                <a:textField name="ownerLike" bindTarget="my_task_query_ds" width="200" hidden="true">
+                    <a:events>
+                        <a:event name="enterdown" handler="my_task_screen_query"/>
+                    </a:events>
+                </a:textField>
+            </a:form>
+            <a:grid id="my_task_ds_grid" bindTarget="my_task_ds" marginWidth="30" marginHeight="170" navBar="true">
+                <a:columns>
+                    <a:column width="120" name="process_instance_id" prompt="流程ID" align="center"/>
+                    <a:column width="120" name="operate" renderer="my_task_ds_grid_renderer" prompt="操作" align="center"/>
+                    <a:column width="360" name="process_name" renderer="my_task_ds_grid_renderer" prompt="流程名称"/>
+                    <a:column width="240" name="name" prompt="审批环节" align="center"/>
+                    <a:column width="240" name="document_name" prompt="单据名称" align="center"/>
+                    <a:column width="180" name="start_user_name" prompt="提交人" align="center"/>
+                    <a:column width="180" name="create_time" renderer="my_task_ds_grid_renderer" prompt="创建时间" align="center"/>
+                    <a:column width="180" name="priority" renderer="my_task_ds_grid_renderer" prompt="优先级" align="center" hidden="true"/>
+                </a:columns>
+            </a:grid>
+        </a:screenBody>
+    </a:view>
+</a:screen>

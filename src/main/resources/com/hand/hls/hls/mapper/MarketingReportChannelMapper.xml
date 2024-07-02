@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.hls.mapper.MarketingReportChannelMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.hls.dto.MarketingReportChannel">
+        <result column="MARKETING_CHANNEL_ID" property="marketingChannelId" jdbcType="DECIMAL" />
+        <result column="MARKETING_REPORT_ID" property="marketingReportId" jdbcType="DECIMAL" />
+        <result column="MARKETING_CHANNEL" property="marketingChannel" jdbcType="VARCHAR" />
+        <result column="XY_BRANCH_BANK" property="xyBranchBank" jdbcType="DECIMAL" />
+        <result column="SOURCE_MARKETING_CHANNEL" property="sourceMarketingChannel" jdbcType="VARCHAR" />
+
+        <result column="MARKETING_CHANNEL_N" property="marketingChannelN" jdbcType="VARCHAR" />
+        <result column="XY_BRANCH_BANK_N" property="xyBranchBankN" jdbcType="VARCHAR" />
+        <result column="INTERNAL_INDUSTRY" property="internalIndustry" jdbcType="VARCHAR" />
+        <result column="INTERNAL_INDUSTRY_N" property="internalIndustryN" jdbcType="VARCHAR" />
+        <result column="inner_region" property="innerRegion" jdbcType="VARCHAR" />
+        <result column="inner_region_n" property="innerRegionN" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="queryReportChannel" resultMap="BaseResultMap" parameterType="com.hand.hls.hls.dto.MarketingReportChannel">
+        select hmrc.*,
+        (
+        SELECT
+        meaning
+        FROM
+        sys_code_value_b_v
+        WHERE
+        CODE = 'HLS.MARKETING_CHANNEL'
+        AND code_value = hmrc.MARKETING_CHANNEL
+        ) MARKETING_CHANNEL_N,
+        (
+        SELECT
+        meaning
+        FROM
+        sys_code_value_b_v
+        WHERE
+        CODE = 'HLS.BRANCH_BANK'
+        AND code_value = hmrc.XY_BRANCH_BANK
+        ) XY_BRANCH_BANK_N,
+        (select t.description from hls_stat_class t where hmrc.INTERNAL_INDUSTRY = t.class_id)INTERNAL_INDUSTRY_N,
+        (
+        SELECT
+        meaning
+        FROM
+        sys_code_value_b_v
+        WHERE
+        CODE = 'HLS.INNER_REGION'
+        AND code_value = hmrc.inner_region
+        ) inner_region_n
+        from hls_marketing_report_channel hmrc
+        <where>
+             hmrc.marketing_report_id = #{marketingReportId}
+
+        </where>
+    </select>
+    <resultMap id="industryTreeResultMap" type="map">
+        <result column="class_code" property="class_code"/>
+        <result column="tree_node_id" property="tree_node_id"/>
+        <result column="value_code" property="value_code"/>
+        <result column="value_name" property="value_name"/>
+        <result column="parent_tree_node_id" property="parent_tree_node_id"/>
+        <result column="expand_flag" property="expand_flag"/>
+        <result column="order_seq" property="order_seq"/>
+        <result column="tree_node_desc" property="tree_node_desc"/>
+    </resultMap>
+
+    <select id="industryTree" parameterType="java.util.Map" resultMap="industryTreeResultMap">
+        select t.class_code,
+        t.class_id        tree_node_id,
+        t.class_id        value_code,
+        t.description     value_name,
+        t.parent_class_id parent_tree_node_id,
+        t.expand_flag,
+        t.order_seq,
+        t.description     tree_node_desc
+        from hls_stat_class t
+        <where>
+            t.class_usage = 'INTERNAL_INDUSTRY'
+            and enabled_flag = 'Y'
+            <if test="treeNodeDesc!=null">
+                and t.description like concat('%',concat(#{treeNodeDesc},'%'))
+            </if>
+            <if test="tree_node_desc!=null">
+                and t.description like concat('%',concat(#{tree_node_desc},'%'))
+            </if>
+        </where>
+    </select>
+
+</mapper>

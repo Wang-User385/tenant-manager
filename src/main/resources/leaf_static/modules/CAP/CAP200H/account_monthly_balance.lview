@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="cap_account_detail_id"
+                url="${/request/@context_path}/modules/CAP/CAP200H/account_monthly_balance_detail.lview"/>
+        <script><![CDATA[
+
+        Leaf.onReady(function() {debugger;
+            var ds_id = '${/parameter/@layout_code}_F_QUERY_cap_account_monthly_balance_ds';
+            var dsRecord = $(ds_id).getCurrentRecord();
+            dsRecord.set('balance_date',new Date());
+            dsRecord.getField('balance_date').setRequired(true);
+
+        });
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'cap_account_detail_open';
+            if (name === 'detail') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">明细</a>';
+            }
+        };
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var ds_id = '${/parameter/@layout_code}_F_QUERY_cap_account_monthly_balance_ds';
+            debugger
+            var dsRecord = $(ds_id).getCurrentRecord();
+            var balance_date = dsRecord.get('balance_date');
+            if(balance_date == null) {
+                ds.setQueryParameter('balance_date', new Date());
+            }else{
+                ds.setQueryParameter('balance_date', balance_date);
+            }
+        };
+
+        function cap_account_detail_open(record_id, ds_id) {debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '资金账户收付期间明细';
+            param['function_code'] = 'CAP200F1';
+            param['winid'] = 'cap_account_detail_open_id';
+            // param['bank_id'] = record.get('bank_id');
+            hls_doc_get_layout_code(param, 'cap_account_detail_id', null, 'CAP200H', null, null, null);
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

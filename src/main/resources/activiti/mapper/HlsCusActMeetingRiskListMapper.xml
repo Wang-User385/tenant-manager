@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.activiti.mapper.HlsCusActMeetingRiskListMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.activiti.dto.HlsCusActMeetingRiskList">
+        <id column="meeting_risk_list_id" property="meetingRiskListId" jdbcType="BIGINT"/>
+        <result column="meeting_risk_category" property="meetingRiskCategory" jdbcType="VARCHAR"/>
+        <result column="meeting_risk_type" property="meetingRiskType" jdbcType="VARCHAR"/>
+        <result column="meeting_risk_description" property="meetingRiskDescription" jdbcType="VARCHAR"/>
+        <result column="process_instance_id" property="processInstanceId" jdbcType="BIGINT"/>
+        <result column="selected_flag" property="selectedFlag" jdbcType="VARCHAR"/>
+        <result column="seq_number" property="seqNumber" jdbcType="BIGINT"/>
+        <result column="document_id" property="documentId" jdbcType="BIGINT"/>
+        <result column="meeting_risk_category_desc" property="meetingRiskCategoryDesc" jdbcType="VARCHAR"/>
+        <result column="last_updated_date" property="lastUpdatedDate"/>
+        <result column="last_updated_person" property="lastUpdatedPerson"/>
+        <result column="risk_status" property="riskStatus"/>
+        <result column="status_desc" property="statusDesc"/>
+    </resultMap>
+
+    <select id="queryRiskListByProcessInstanceId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select amrl.*,
+        (
+        select scvb.meaning
+        from sys_code_b svb,sys_code_value_b scvb
+        where svb.code_id = scvb.code_id
+        and svb.code = 'FND.MEETING_RISK_TYPE'
+        and scvb.value = amrl.meeting_risk_category
+        ) as meeting_risk_category_desc,
+
+        (case when amrl.risk_status = 'DELETED' then '已删除' else '未删除' end)status_desc,
+        amrl.last_update_date last_updated_date,
+        (select su.description from sys_user su where su.user_id=amrl.last_updated_by)last_updated_person
+
+        from act_meeting_risk_list amrl
+        where
+        1 = 1
+        <if test="processInstanceId != null and processInstanceId != ''">
+            and process_instance_id = #{processInstanceId}
+        </if>
+        order by creation_date
+    </select>
+
+    <select id="queryRiskListSelectedByProcessInstanceId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        select *
+        from act_meeting_risk_list
+        where
+        1 = 1
+        AND selected_flag = 'Y'
+        <if test="processInstanceId != null and processInstanceId != ''">
+            and process_instance_id = #{processInstanceId}
+        </if>
+        order by seq_number
+    </select>
+
+
+    <select id="queryPaymentPt" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+        amrl.*
+        FROM
+        ACT_MEETING_RISK_LIST amrl
+        WHERE
+        amrl.PROCESS_INSTANCE_ID IN (
+        SELECT
+        AM.PROCESS_INSTANCE_ID
+        FROM
+        ACT_MEETING am
+        WHERE
+        AM.DOCUMENT_CATEGORY = 'FCT_PROJECT'
+        AND DOCUMENT_ID = #{documentId}
+        )
+        and AMRL.MEETING_RISK_CATEGORY='PAYMENT'
+    </select>
+
+    <select id="queryConPaymentPt" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+        amrl.*
+        FROM
+        ACT_MEETING_RISK_LIST amrl
+        WHERE
+        amrl.PROCESS_INSTANCE_ID IN (
+        SELECT
+        AM.PROCESS_INSTANCE_ID
+        FROM
+        ACT_MEETING am
+        WHERE
+        AM.DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+        AND DOCUMENT_ID = #{documentId}
+        )
+        and AMRL.MEETING_RISK_CATEGORY='PAYMENT'
+    </select>
+</mapper>

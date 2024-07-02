@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" customizationEnabled="true"
+          dynamiccreateenabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="lon_con_payment_batch_detail_link"
+                url="${/request/@context_path}/modules/FIN/FIN006/lon_con_repayment_batch_detail.lview"/>
+        <a:link id="fin006_tikuan_lon_detail_id"
+                url="${/request/@context_path}/modules/LON/LON_CONTRACT/LON340A/lon_contract_withdraw_detail.lview"/>
+        <script><![CDATA[
+
+        //批量创建
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var lon_contract_repayment_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment');
+            var batch_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_con_repayment_batch', 'G_REPAYMENT_BATCH');
+            var repayment_records = $(lon_contract_repayment_ds).getSelected();
+            var records = [];
+            var check_flag = 'Y';
+            var creditBpid = 'Y';
+            var plannedCalcDate = 'Y';
+            var lonCompanyId = 'Y';
+            for (var i = 0; i < repayment_records.length; i++) {
+                var credit_bp_id = repayment_records[0].get('credit_bp_id');
+                var planned_calc_date = repayment_records[0].get('planned_calc_date');
+                var with_bank_account_id = repayment_records[0].get('with_bank_account_id');
+                var currency = repayment_records[0].get('currency');
+                var lon_company_id = repayment_records[0].get('lon_company_id');
+                if(repayment_records[i].get('credit_bp_id') != credit_bp_id){
+                    creditBpid = 'N_CREDIT_BP_ID';
+                    break;
+                }
+
+                if(repayment_records[i].get('planned_calc_date').getTime() != planned_calc_date.getTime()){
+                    plannedCalcDate = 'N_PLANNED_CALC_DATE';
+                    break;
+                }
+                /*if(repayment_records[i].get('with_bank_account_id') != with_bank_account_id){
+                    check_flag = 'N_WITH_BANK_ACCOUNT_ID';
+                    break;
+                }*/
+                if (repayment_records[i].get('currency') != currency) {
+                    check_flag = 'N_CURRENCY';
+                    break;
+                }
+                if(repayment_records[i].get('lon_company_id') != lon_company_id){
+                    lonCompanyId = 'N_LON_COMPANY_ID';
+                    break;
+                }
+                records.push(repayment_records[i].data);
+            }
+            if(creditBpid == 'N_CREDIT_BP_ID'){
+                Leaf.showMessage('提示','所选现金流融资机构不同，无法创建还款！');
+                return false;
+            }
+            if(plannedCalcDate == 'N_PLANNED_CALC_DATE'){
+                Leaf.showMessage('提示','所选现金流应付日期不同，无法创建还款！');
+                return false;
+            }
+            /*if(check_flag == 'N_WITH_BANK_ACCOUNT_ID'){
+                Leaf.showMessage('提示','所选现金流提款账户不同，无法创建还款！');
+                return false;
+            }*/
+            if (check_flag == 'N_CURRENCY') {
+                Leaf.showMessage('提示', '不允许跨币种核销！');
+                return false;
+            }
+            if(lonCompanyId == 'N_LON_COMPANY_ID'){
+                Leaf.showMessage('提示','所选现金流融资主体不同，无法创建还款！');
+                return false;
+            }
+            if (repayment_records.length > 0) {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: '${/request/@context_path}/lon/con/repayment/batch/create',
+                    para: records,
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showMessage('提示', '成功！', function () {
+                            $(batch_ds_id).query();
+                            $(lon_contract_repayment_ds).query();
+                            var batch_id = res.result.record[0].batch_id;
+                            if (batch_id != null) {
+                                var param = {
+                                    batch_id: batch_id,
+                                    lon_company_id: repayment_records[0].get('lon_company_id'),
+                                    lon_company_id_n: repayment_records[0].get('lon_company_id_n'),
+                                    credit_bp_id: repayment_records[0].get('credit_bp_id'),
+                                    credit_bp_name: repayment_records[0].get('credit_bp_name'),
+                                    url_title: '融资还款明细',
+                                    function_code: 'FIN006F1',
+                                    function_usage: 'MODIFY',
+                                    winid: 'lon_con_payment_batch_detail_open_winid'
+                                };
+                                hls_doc_get_layout_code(param, 'lon_con_payment_batch_detail_link', batch_ds_id, 'FIN006F1');
+                            } else {
+                                Leaf.showMessage('提示', '未获取到正确的批次号！');
+                            }
+                        });
+
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            } else {
+                Leaf.showMessage('提示', '请选择现金流再创建还款！');
+            }
+        };
+
+        //删除
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            debugger;
+            var batch_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_con_repayment_batch', 'G_REPAYMENT_BATCH');
+            var lon_contract_repayment_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_contract_repayment');
+            var batch_records = $(batch_ds_id).getSelected();
+            if (batch_records.length != 1) {
+                Leaf.showMessage('提示', '请选择一行记录删除！');
+            } else if (batch_records[0].get('batch_status') != 'NEW' && batch_records[0].get('batch_status') != 'REJECTED') {
+                Leaf.showMessage('提示', '请选择新建的单据删除！');
+            } else {
+                Leaf.showOkCancelWindow('提示', '确认删除已创建单据吗？', function () {
+                    var records = [];
+                    records.push(batch_records[0].data);
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: '${/request/@context_path}/lon/con/repayment/batch/remove',
+                        para: records,
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.showMessage('提示', '成功！');
+                            $(batch_ds_id).query();
+                            $(lon_contract_repayment_ds).query();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        scope: this
+                    });
+                });
+
+            }
+
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'lon_con_repayment_batch_detail';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'batch_number' && value) {
+                link_function = 'lon_con_repayment_batch_detail';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.ds.id + '\',\'' + record.id + '\');">' + value + '</a>';
+            }
+            if (name == 'batch_number_seq' && value) {
+                link_function = 'lon_con_repayment_batch_detail';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.ds.id + '\',\'' + record.id + '\');">' + value + '</a>';
+            }
+            if (name == 'withdraw_number' && value) {
+                link_function = 'lon_contract_withdraw_detail';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.ds.id + '\',\'' + record.id + '\');">' + value + '</a>';
+            }
+        };
+
+        function lon_con_repayment_batch_detail(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            if (record.get('batch_id') != null) {
+                var param = record.data;
+                param['url_title'] = '融资还款明细';
+                if ('${/parameter/@function_code}' == 'FIN006COPY') {
+                    param['function_code'] = 'FIN006F2';
+                } else {
+                    param['function_code'] = 'FIN006F1';
+                }
+                param['function_usage'] = 'MODIFY';
+                if (record.get('batch_status') == 'APPROVING' || record.get('batch_status') == 'APPROVED' || record.get('batch_status') == 'CLOSED') {
+                    param['function_usage'] = 'QUERY';
+                }
+                param['winid'] = 'lon_con_payment_batch_detail_open_winid';
+                hls_doc_get_layout_code(param, 'lon_con_payment_batch_detail_link', ds_id, 'FIN006F1');
+            } else {
+                Leaf.showMessage('提示', '未获取到正确的批次号！');
+            }
+        }
+
+        function lon_contract_withdraw_detail(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var editFlag = 'Y';
+            var changeFlag = 'N';
+            if (record.get('withdraw_id') != null) {
+                var param = {};
+                param['withdrawId'] = record.get('withdraw_id');
+                param['function_code'] = 'FIN003S3';
+                param['function_usage'] = 'QUERY';
+                param['editFlag'] = editFlag;
+                param['changeFlag'] = changeFlag;
+                param['url_title'] = '融资提款详细信息';
+                hls_doc_get_layout_code(param, 'fin006_tikuan_lon_detail_id', ds_id, 'FIN003S1');
+            }
+        }
+
+        //资金调拨单
+        window['${/parameter/@layout_code}_user_button4_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lon_con_repayment_batch');
+            var records = $(ds_id).getSelected();
+            if (records.length != 1) {
+                Leaf.showMessage('提示', '请选择一条单据！');
+            } else {
+                var batch_id = records[0].get('batch_id');
+                //模板类型代码
+                var code = "FIN_FOUND_ALLOCATION_A";
+                var url = "${/request/@context_path}/lon/con/repayment/batch/simple/doc/gen?code=" + code + "&batchId=" + batch_id;
+
+                Leaf.Masker.mask(Ext.getBody());
+                Leaf.request({
+                    url: url,
+                    success: function (res) {
+                        Leaf.Masker.unmask(Ext.getBody());
+                        var attachment_id = res.result.record[0].attachment_id;
+                        down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
+                        location.href = down_url;
+                        Leaf.SideBar.show({
+                            msg: '生成成功',
+                            duration: 2000
+                        });
+                    },
+                    error: function () {
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    scope: this
+                });
+            }
+
+        };
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

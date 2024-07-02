@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: yy.chen
+    $Date: 2020-02-08
+    $Description: 立项首页
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="prj_chance_detail_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ002/prj_chance_query_detail.lview"/>
+        <a:link id="prj_chance_new_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_chance_add.lview"/>
+        <a:link id="prj_credit_detail_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_credit_modify_detail.lview"/>
+        <script><![CDATA[
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            if (ds.queryurl.indexOf('history_flag') === -1) {
+                ds.queryurl = ds.queryurl + "&document_history_flag=N";
+            }
+        };
+
+        function prj001_detail_open(record_id, ds_id) {
+            var param = $(ds_id).findById(record_id).data;
+            var status = param.credit_line_status;
+            var type = 'QUERY';
+            param['url_title'] = '立项明细';
+            var record = $(ds_id).findById(record_id);
+            if(record.get("credit_flag")=='Y'){
+                param['function_code'] = 'PRJ003F1';
+                var link_id = 'prj_credit_detail_id';
+            }else{
+                param['function_code'] = 'PRJ001F1';
+                var link_id = 'prj_chance_detail_id';
+            }
+            param['function_usage'] = type;
+            param['maintain_type'] = 'READONLY';
+            param['winid'] = 'prj_chance_detail_winid';
+            param['ds_id'] = ds_id;
+            var link_id = link_id;
+            hls_doc_get_layout_code(param, link_id, ds_id, 'PRJ001');
+        }
+
+
+
+
+        // 超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            debugger;
+            var link_function = 'prj001_detail_open';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'credit_line_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        var hlsCusHlsCreditLineChances=[];
+
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

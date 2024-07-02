@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.wfl.mapper.HlsCusWflAppointApproverMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.wfl.dto.HlsCusWflAppointApprover">
+        <result column="APPROVER_ID" property="approverId" jdbcType="DECIMAL" />
+        <result column="PROCESS_INSTANCE_ID" property="processInstanceId" jdbcType="DECIMAL" />
+        <result column="USER_ID" property="userId" jdbcType="DECIMAL" />
+        <result column="USER_ALLOCATION_ID" property="userAllocationId" jdbcType="DECIMAL" />
+        <result column="SOURCE_ID" property="sourceId" jdbcType="VARCHAR" />
+        <result column="SOURCE_TABLE" property="sourceTable" jdbcType="VARCHAR" />
+        <result column="SID_CODE" property="sidCode" jdbcType="VARCHAR" />
+        <result column="USER_ALLOCATION_ID_N" jdbcType="VARCHAR" property="userAllocationIdN"/>
+
+    </resultMap>
+
+
+    <select id="selectAppointApprover" resultType="java.lang.String">
+        select
+        ca.user_allocation_id
+        from
+        wfl_appoint_approver ca
+        where 1=1
+
+        <if test="processInstanceId!=null">
+            and   ca.process_instance_id = #{processInstanceId}
+
+        </if>
+        <if test="sidCode!=null">
+            and   ca.sid_code = #{sidCode}
+        </if>
+    </select>
+
+    <select id="selectAppointApproverBySourceId" resultType="java.lang.String">
+        select
+        ca.user_allocation_id
+        from
+        wfl_appoint_approver ca
+        <where>
+            1=1
+            <if test="processInstanceId!=null">
+                and   ca.process_instance_id = #{processInstanceId}
+            </if>
+            <if test="sidCode!=null">
+                and   ca.sid_code = #{sidCode}
+            </if>
+            <if test="sourceId!=null">
+                and   ca.SOURCE_ID = #{sourceId}
+            </if>
+            <if test="sourceTable!=null">
+                and   ca.source_table = #{sourceTable}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="queryAppointApprover" parameterType="com.hand.hls.wfl.dto.HlsCusWflAppointApprover"   resultMap="BaseResultMap">
+        select  ca.APPROVER_ID,
+        ca.SOURCE_ID,
+        ca.USER_ALLOCATION_ID,
+        t.name as USER_ALLOCATION_ID_N,
+        ca.SOURCE_TABLE,
+        ca.SID_CODE,
+        ca.USER_ID,
+        ca.PROCESS_INSTANCE_ID
+        from
+        wfl_appoint_approver ca
+        LEFT JOIN
+        (SELECT
+        sua.allocation_id,
+        fee.name,
+        fc.company_short_name,
+        fn.unit_name,
+        fop.position_name
+        FROM
+        fnd_employee_assigns fea,
+        fnd_employee fee,
+        fnd_org_unit fn,
+        fnd_org_position fop,
+        fnd_company fc,
+        sys_user_allocation sua
+        WHERE fea.employee_id = fee.employee_id
+        AND fn.unit_id = fea.unit_id
+        AND fop.position_id = fea.position_id
+        AND fc.company_id = fea.company_id
+        AND sua.employee_assign_id = fea.employee_assign_id
+        AND sua.allocation_id IS NOT NULL
+        ) t
+        ON ca.USER_ALLOCATION_ID = t.allocation_id
+        where 1=1
+
+        <if test="processInstanceId!=null">
+            and  ca.PROCESS_INSTANCE_ID = #{processInstanceId}
+        </if>
+        <if test="sidCode!=null">
+            and   ca.sid_code = #{sidCode}
+        </if>
+        <if test="sourceId!=null">
+            and ca.SOURCE_ID = #{sourceId}
+        </if>
+        <if test="sourceTable!=null">
+            and   ca.source_table = #{sourceTable}
+        </if>
+    </select>
+</mapper>

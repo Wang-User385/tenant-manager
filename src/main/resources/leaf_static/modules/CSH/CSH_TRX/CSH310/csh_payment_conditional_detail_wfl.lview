@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <script><![CDATA[
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            if (record != null && record != '') {
+                record.getField('condition').setReadOnly(true);
+            }
+
+        };
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            debugger;
+            var ds_id = '${/parameter/@layout_code}_F_CHOOSE_INFO_prj_project_credit_condition_ds';
+            var prj_ds_id = '${/parameter/@layout_code}_F_BASIC_INFO_prj_project_ds';
+            if (ds_id == ds.id && ds_id) {
+                if (name == 'end_task_node_id') {
+                    if (old_value != value) {
+                        Leaf.request({
+                            url: '${/request/@context_path}/csh/condition/exempt/node/save',
+                            para:{
+                                creditConditionIds:'${/parameter/@list}',
+                                endTaskNodeId: value
+                            },
+                            success: function (res) {
+                            },
+                            failure: function () {
+                            },
+                            error: function () {
+                            },
+                            scope: this
+                        });
+                    }
+                }
+            }
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, record, config_records, bp_seq) {
+            //debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_credit_condition');
+            // if(ds.id && ds_id == ds.id){
+            //     var list = '${/parameter/@list}';
+            //     var array = list.split(",");
+            //     ds.setQueryParameter('list',array);
+            // }
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

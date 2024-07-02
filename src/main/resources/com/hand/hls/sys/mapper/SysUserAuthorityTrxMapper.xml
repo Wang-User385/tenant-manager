@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.sys.mapper.SysUserAuthorityTrxMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.sys.dto.SysUserAuthorityTrx">
+        <result column="authority_trx_id" property="authorityTrxId" jdbcType="DECIMAL"/>
+        <result column="document_category" property="documentCategory" jdbcType="VARCHAR"/>
+        <result column="document_id" property="documentId" jdbcType="DECIMAL"/>
+        <result column="user_id" property="userId" jdbcType="DECIMAL"/>
+        <result column="authority_source_type" property="authoritySourceType" jdbcType="VARCHAR"/>
+        <result column="authority_source_id" property="authoritySourceId" jdbcType="DECIMAL"/>
+        <result column="position_code" property="positionCode" jdbcType="VARCHAR"/>
+        <result column="unit_code" property="unitCode" jdbcType="VARCHAR"/>
+        <result column="company_code" property="companyCode" jdbcType="VARCHAR"/>
+
+
+        <result column="company_full_name" property="companyFullName"/>
+        <result column="unit_name" property="unitName"/>
+        <result column="position_name" property="positionName"/>
+        <result column="user_name" property="userName"/>
+        <result column="authority_source_name" property="authoritySourceName"/>
+        <result column="document_name" property="documentName"/>
+        <result column="document_code" property="documentCode"/>
+        <result column="document_type_desc" property="documentTypeDesc"/>
+    </resultMap>
+
+    <select id="selectAuthorityTrxList" parameterType="com.hand.hls.sys.dto.SysUserAuthorityTrx"
+            resultMap="BaseResultMap">
+        SELECT M.* FROM(
+        SELECT
+        suat.authority_trx_id,
+        suat.document_category,
+        suat.document_id,
+        suat.user_id,
+        suat.authority_source_id,
+        suat.authority_source_type,
+        suat.company_code,
+        suat.unit_code,
+        suat.position_code,
+        (
+        SELECT DISTINCT
+        fc.company_full_name
+        FROM
+        fnd_company fc
+        WHERE
+        fc.company_code = suat.company_code
+        ) AS company_full_name,
+        (
+        SELECT DISTINCT
+        fou.unit_name
+        FROM
+        fnd_org_unit fou
+        WHERE
+        fou.unit_code = suat.unit_code
+        ) AS unit_name,
+        (
+        SELECT DISTINCT
+        fop.position_name
+        FROM
+        fnd_org_position fop
+        WHERE
+        fop.position_code = suat.position_code  -- positionCode可以重复，根据unit_code+position_code确定唯一岗位
+        and fop.unit_id = (
+        select unit_id
+        from fnd_org_unit
+        where unit_code = suat.unit_code
+        )
+        ) AS position_name,
+        (
+        SELECT
+        su.description
+        FROM
+        sys_user su
+        WHERE
+        su.user_id = suat.user_id
+        ) AS user_name,
+        (
+        SELECT
+        su.description
+        FROM
+        sys_user su
+        WHERE
+        su.user_id = suat.authority_source_id
+        ) AS authority_source_name,
+        CASE SUAT.DOCUMENT_CATEGORY
+        WHEN 'HLS_BP_MASTER' THEN
+        (
+        SELECT
+        BP.BP_NAME
+        FROM
+        HLS_BP_MASTER bp
+        WHERE
+        bp.bp_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'PRJ_CHANCE' THEN '商机'
+        WHEN 'CON_CONTRACT' THEN
+        (
+        SELECT
+        con.contract_name
+        FROM
+        CON_CONTRACT con
+        WHERE
+        CON.contract_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'PRJ_PROJECT' THEN
+        (
+        SELECT
+        prj.PROJECT_NAME
+        FROM
+        PRJ_PROJECT prj
+        WHERE
+        PRJ.PROJECT_ID = SUAT.DOCUMENT_ID
+        )
+        WHEN 'HLS_CREDIT_LINE' THEN
+        (
+        SELECT
+        hcl.credit_line_NAME
+        FROM
+        HLS_CREDIT_LINE hcl
+        WHERE
+        hcl.credit_line_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'FCT_PROJECT' THEN
+        (
+        SELECT
+        fp.project_name
+        FROM
+        fct_project fp
+        WHERE
+        fp.project_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'FCT_CONTRACT' THEN
+        (
+        SELECT
+        fc.contract_name
+        FROM
+        fct_contract fc
+        WHERE
+        fc.contract_id = SUAT.DOCUMENT_ID
+        )
+        END AS DOCUMENT_NAME,
+        CASE SUAT.DOCUMENT_CATEGORY
+        WHEN 'HLS_BP_MASTER' THEN
+        (
+        SELECT
+        BP.bp_code
+        FROM
+        HLS_BP_MASTER bp
+        WHERE
+        bp.bp_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'PRJ_CHANCE' THEN
+        (
+        SELECT
+        pc.chance_number
+        FROM
+        prj_chance pc
+        WHERE
+        pc.chance_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'CON_CONTRACT' THEN
+        (
+        SELECT
+        con.contract_number
+        FROM
+        CON_CONTRACT con
+        WHERE
+        CON.contract_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'PRJ_PROJECT' THEN
+        (
+        SELECT
+        prj.project_number
+        FROM
+        PRJ_PROJECT prj
+        WHERE
+        PRJ.PROJECT_ID = SUAT.DOCUMENT_ID
+        )
+        WHEN 'HLS_CREDIT_LINE' THEN
+        (
+        SELECT
+        hcl.credit_line_number
+        FROM
+        HLS_CREDIT_LINE hcl
+        WHERE
+        hcl.credit_line_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'FCT_PROJECT' THEN
+        (
+        SELECT
+        fp.project_number
+        FROM
+        fct_project fp
+        WHERE
+        fp.project_id = SUAT.DOCUMENT_ID
+        )
+        WHEN 'FCT_CONTRACT' THEN
+        (
+        SELECT
+        fc.contract_number
+        FROM
+        fct_contract fc
+        WHERE
+        fc.contract_id = SUAT.DOCUMENT_ID
+        )
+        END AS DOCUMENT_CODE
+        FROM
+        sys_user_authority_trx suat
+        <where>
+            <if test="documentCategory!=null">
+                AND suat.document_category = #{documentCategory}
+            </if>
+            <if test="documentId!=null">
+                AND suat.document_id = #{documentId}
+            </if>
+            <if test="companyCode!=null">
+                AND suat.company_code = #{companyCode}
+            </if>
+            <if test="userId!=null">
+                AND suat.user_id = #{userId}
+            </if>
+            <if test="authoritySourceId!=null">
+                AND
+                (suat.authority_source_id = #{authoritySourceId}
+                or #{authoritySourceId} in (
+                SELECT
+                SUA2.user_id
+                FROM
+                sys_user_allocation sua2
+                INNER JOIN fnd_employee_assigns fea2 ON sua2.employee_assign_id = FEA2.EMPLOYEE_ASSIGN_ID
+                INNER JOIN fnd_org_position fop2 ON fea2.position_id = fop2.position_id
+                WHERE
+                fop2.chief_position_flag = 'Y'
+                AND fop2.unit_id =
+                (
+                SELECT
+                unit_id
+                FROM
+                FND_EMPLOYEE_ASSIGNS fea3
+                INNER JOIN SYS_USER_ALLOCATION sua3 ON fea3.EMPLOYEE_ASSIGN_ID = SUA3.EMPLOYEE_ASSIGN_ID
+                WHERE
+                SUA3.user_id = suat.authority_source_id
+                )
+                )
+                )
+            </if>
+        </where>
+        ORDER BY suat.creation_date DESC
+        ) M
+    </select>
+
+
+    <select id="selectDocumentList" parameterType="com.hand.hls.sys.dto.SysUserAuthorityTrx"
+            resultMap="BaseResultMap">
+        SELECT M.* FROM(
+        SELECT
+        'PRJ_CHANCE' AS document_category,
+        pc.chance_id AS document_id,
+        pc.chance_number AS document_code,
+        '商机' document_name,
+        '商机' AS document_type_desc
+        FROM
+        prj_chance pc
+        WHERE
+        pc.CREATED_BY = #{authoritySourceId}
+        OR #{authoritySourceId} IN (
+        SELECT
+        SUA2.user_id
+        FROM
+        sys_user_allocation sua2
+        INNER JOIN fnd_employee_assigns fea2 ON sua2.employee_assign_id = FEA2.EMPLOYEE_ASSIGN_ID
+        INNER JOIN fnd_org_position fop2 ON fea2.position_id = fop2.position_id
+        WHERE
+        fop2.chief_position_flag = 'Y'
+        AND fop2.unit_id in (
+        SELECT
+        unit_id
+        FROM
+        FND_EMPLOYEE_ASSIGNS fea3
+        INNER JOIN SYS_USER_ALLOCATION sua3 ON fea3.EMPLOYEE_ASSIGN_ID = SUA3.EMPLOYEE_ASSIGN_ID
+        WHERE
+        SUA3.user_id = pc.CREATED_BY
+        )
+        )
+        UNION ALL
+        SELECT
+        'HLS_BP_MASTER' AS document_category,
+        bm.bp_id AS document_id,
+        bm.bp_code AS document_code,
+        bm.BP_NAME AS document_name,
+        (SELECT wm_concat(bt.description)
+        from HLS_BP_MASTER_ROLE bmr
+        INNER JOIN HLS_BP_TYPE bt ON bmr.bp_type = bt.bp_type
+        WHERE bm.bp_id=bmr.bp_id
+        AND bmr.enabled_flag = 'Y'
+        ) AS document_type_desc
+        FROM
+        hls_bp_master bm
+        WHERE bm.CREATED_BY = #{authoritySourceId}
+        or #{authoritySourceId} in (
+        SELECT
+        SUA2.user_id
+        FROM
+        sys_user_allocation sua2
+        INNER JOIN fnd_employee_assigns fea2 ON sua2.employee_assign_id = FEA2.EMPLOYEE_ASSIGN_ID
+        INNER JOIN fnd_org_position fop2 ON fea2.position_id = fop2.position_id
+        WHERE
+        fop2.chief_position_flag = 'Y'
+        AND fop2.unit_id in
+        (
+        SELECT
+        unit_id
+        FROM
+        FND_EMPLOYEE_ASSIGNS fea3
+        INNER JOIN SYS_USER_ALLOCATION sua3 ON fea3.EMPLOYEE_ASSIGN_ID = SUA3.EMPLOYEE_ASSIGN_ID
+        WHERE
+        SUA3.user_id = bm.CREATED_BY
+        )
+        )
+        UNION ALL
+        SELECT
+        'CON_CONTRACT' AS document_category,
+        contract_id AS document_id,
+        contract_number AS document_code,
+        CONTRACT_NAME AS document_name,
+        '合同' AS document_type_desc
+        FROM
+        CON_CONTRACT
+        WHERE EMPLOYEE_ID IN (
+        SELECT
+        fea.employee_id
+        FROM
+        fnd_employee_assigns fea
+        INNER JOIN sys_user_allocation sua ON fea.employee_assign_id = sua.employee_assign_id
+        WHERE
+        sua.user_id = #{authoritySourceId}
+        or #{authoritySourceId} in (
+        SELECT
+        SUA2.user_id
+        FROM
+        sys_user_allocation sua2
+        INNER JOIN fnd_employee_assigns fea2 ON sua2.employee_assign_id = FEA2.EMPLOYEE_ASSIGN_ID
+        INNER JOIN fnd_org_position fop2 ON fea2.position_id = fop2.position_id
+        WHERE
+        fop2.chief_position_flag = 'Y'
+        AND fop2.unit_id in
+        (
+        SELECT
+        unit_id
+        FROM
+        FND_EMPLOYEE_ASSIGNS fea3
+        INNER JOIN SYS_USER_ALLOCATION sua3 ON fea3.EMPLOYEE_ASSIGN_ID = SUA3.EMPLOYEE_ASSIGN_ID
+        WHERE
+        SUA3.user_id = sua.user_id
+        )
+        )
+        )
+        UNION ALL
+        SELECT
+        'PRJ_PROJECT' AS document_category,
+        project_id AS document_id,
+        project_number AS document_code,
+        project_name AS document_name,
+        '项目' AS document_type_desc
+        FROM
+        PRJ_PROJECT
+        WHERE EMPLOYEE_ID IN (
+        SELECT
+        fea.employee_id
+        FROM
+        fnd_employee_assigns fea
+        INNER JOIN sys_user_allocation sua ON fea.employee_assign_id = sua.employee_assign_id
+        WHERE
+        sua.user_id = #{authoritySourceId}
+        or #{authoritySourceId} in (
+        SELECT
+        SUA2.user_id
+        FROM
+        sys_user_allocation sua2
+        INNER JOIN fnd_employee_assigns fea2 ON sua2.employee_assign_id = FEA2.EMPLOYEE_ASSIGN_ID
+        INNER JOIN fnd_org_position fop2 ON fea2.position_id = fop2.position_id
+        WHERE
+        fop2.chief_position_flag = 'Y'
+        AND fop2.unit_id in
+        (
+        SELECT
+        unit_id
+        FROM
+        FND_EMPLOYEE_ASSIGNS fea3
+        INNER JOIN SYS_USER_ALLOCATION sua3 ON fea3.EMPLOYEE_ASSIGN_ID = SUA3.EMPLOYEE_ASSIGN_ID
+        WHERE
+        SUA3.user_id = sua.user_id
+        )
+        )
+        )
+        union all
+        select
+            'HLS_CREDIT_LINE' AS document_category,
+            hcl.credit_line_id AS document_id,
+            hcl.credit_line_number AS document_code,
+            hcl.credit_line_name AS document_name,
+            '综合授信' AS document_type_desc
+        FROM hls_credit_line hcl
+        where hcl.business_type='CREDIT_LINE'
+        and hcl.CREATED_BY = #{authoritySourceId}
+        or #{authoritySourceId} in (
+            SELECT
+            SUA2.user_id
+            FROM
+            sys_user_allocation sua2
+            INNER JOIN fnd_employee_assigns fea2 ON sua2.employee_assign_id = FEA2.EMPLOYEE_ASSIGN_ID
+            INNER JOIN fnd_org_position fop2 ON fea2.position_id = fop2.position_id
+            WHERE
+            fop2.chief_position_flag = 'Y'
+            AND fop2.unit_id in
+            (
+            SELECT
+            unit_id
+            FROM
+            FND_EMPLOYEE_ASSIGNS fea3
+            INNER JOIN SYS_USER_ALLOCATION sua3 ON fea3.EMPLOYEE_ASSIGN_ID = SUA3.EMPLOYEE_ASSIGN_ID
+            WHERE
+            SUA3.user_id = hcl.CREATED_BY
+            )
+        )
+        ) M
+        <where>
+            <if test="documentCategory!=null and documentCategory!=''">
+                AND M.document_category = #{documentCategory,jdbcType=VARCHAR,javaType=String}
+            </if>
+            <if test="documentId!=null and documentId!=''">
+                AND M.document_id = #{documentId}
+            </if>
+            <if test="documentCode!=null and documentCode!=''">
+                AND M.document_code like CONCAT('%', CONCAT(#{documentCode}, '%'))
+            </if>
+            <if test="documentName!=null and documentName!=''">
+                AND M.document_name LIKE CONCAT('%', CONCAT(#{documentName}, '%'))
+            </if>
+            <if test="documentTypeDesc!=null and documentTypeDesc!=''">
+                AND M.document_type_desc LIKE CONCAT('%', CONCAT(#{documentTypeDesc}, '%'))
+            </if>
+        </where>
+        ORDER BY M.document_id DESC
+    </select>
+
+    <resultMap id="UserMap" type="java.util.Map">
+        <result column="company_code" property="companyCode" javaType="String"/>
+        <result column="unit_code" property="unitCode" javaType="String"/>
+        <result column="position_code" property="positionCode" javaType="String"/>
+        <result column="user_id" property="userId" javaType="String"/>
+    </resultMap>
+
+    <select id="selectUsers" parameterType="com.hand.hls.sys.dto.SysUserAuthorityTrx"
+            resultMap="UserMap">
+        select
+        fc.COMPANY_CODE as COMPANY_CODE,
+        fou.unit_code as unit_code,
+        fop.position_code as position_code,
+        sua.user_id as user_id
+        from
+        fnd_employee_assigns fea
+        INNER JOIN FND_COMPANY fc on fea.COMPANY_ID = fc.COMPANY_ID
+        INNER JOIN FND_ORG_UNIT fou on fea.unit_id = fou.unit_id
+        INNER JOIN FND_ORG_POSITION fop on fea.position_id = fop.position_id
+        INNER JOIN SYS_USER_ALLOCATION sua on fea.employee_assign_id = sua.employee_assign_id
+        <where>
+            <if test="companyCode!=null">
+                and fc.company_code=#{companyCode}
+            </if>
+            <if test="unitCode!=null">
+                and fou.unit_code=#{unitCode}
+            </if>
+            <if test="positionCode!=null">
+                and fop.position_code=#{positionCode}
+            </if>
+            <if test="userId!=null">
+                and sua.user_id=#{userId}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectMultiAuthority" parameterType="com.hand.hls.sys.dto.SysUserAuthorityTrx"
+            resultMap="BaseResultMap">
+      SELECT
+	  *
+      FROM
+	  sys_user_authority_trx
+      WHERE
+  	  DOCUMENT_CATEGORY = #{documentCategory}
+      AND AUTHORITY_SOURCE_ID = #{authoritySourceId}
+      AND DOCUMENT_ID IS NULL
+    </select>
+    <select id="queryByDetailJudgeAuthority" parameterType="com.hand.hls.sys.dto.SysUserAuthorityTrx"
+            resultMap="BaseResultMap">
+        select suat.authority_trx_id
+        FROM sys_user_authority_trx suat
+        where document_category = #{documentCategory}
+        and user_id = #{userId}
+        and document_id = #{documentId}
+    </select>
+
+    <select id="queryByDocumentIdAndDocumentCategory" parameterType="com.hand.hls.sys.dto.SysUserAuthorityTrx"
+            resultMap="BaseResultMap">
+        select suat.authority_trx_id,
+        suat.document_category,
+        suat.document_id,
+        suat.authority_source_type,
+        suat.authority_source_id,
+        suat.user_id
+        FROM sys_user_authority_trx suat
+        where document_category = #{documentCategory}
+        and document_id = #{documentId}
+        and user_id = #{userId}
+    </select>
+</mapper>

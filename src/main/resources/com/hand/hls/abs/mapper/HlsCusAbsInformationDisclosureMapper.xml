@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsInformationDisclosureMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsInformationDisclosure">
+        <result column="disclosure_id" property="disclosureId" jdbcType="DECIMAL" />
+        <result column="disclosure_number" property="disclosureNumber" jdbcType="VARCHAR" />
+        <result column="apply_date" property="applyDate" jdbcType="DATE" />
+        <result column="unit_id" property="unitId" jdbcType="DECIMAL" />
+        <result column="unit_id_n" property="unitIdN" jdbcType="VARCHAR" />
+        <result column="created_by_n" property="createdByN" jdbcType="VARCHAR" />
+        <result column="approval_status" property="approvalStatus" jdbcType="VARCHAR" />
+        <result column="approval_status_n" property="approvalStatusN" jdbcType="VARCHAR" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="selectAbsInformationDisclosureData" parameterType="com.hand.hls.abs.dto.HlsCusAbsInformationDisclosure" resultMap="BaseResultMap">
+        SELECT
+            id.disclosure_id,
+            id.disclosure_number,
+            id.apply_date,
+            id.description,
+            id.approval_status,
+            su.description AS created_by_n,
+            fou.unit_name AS unit_id_n,
+            ( SELECT meaning FROM sys_code_value_b_v v WHERE v.CODE = 'ABS.PRODUCT_STATUS' AND v.code_value = id.approval_status ) APPROVAL_STATUS_N
+        FROM
+            ct_abs_information_disclosure id
+            LEFT JOIN sys_user su ON id.created_by = su.user_id
+            LEFT JOIN fnd_org_unit fou ON id.unit_id = fou.unit_id
+        where 1=1
+        <if test="disclosureId != null">
+            and id.disclosure_id = #{disclosureId}
+        </if>
+        <if test="disclosureNumber != null">
+            and id.disclosure_number LIKE CONCAT('%',CONCAT(#{disclosureNumber},'%'))
+        </if>
+        <if test="applyDate != null">
+            and id.apply_date = #{applyDate}
+        </if>
+        <if test="createdByN != null">
+            and su.description LIKE CONCAT('%',CONCAT(#{createdByN},'%'))
+        </if>
+        <if test="unitIdN != null">
+            and fou.unit_name LIKE CONCAT('%',CONCAT(#{unitIdN},'%'))
+        </if>
+        <if test="approvalStatus != null">
+            and id.approval_status = #{approvalStatus}
+        </if>
+    </select>
+
+
+</mapper>

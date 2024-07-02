@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_gld_month_manager_history_dtl_link_id" url="${/request/@context_path}/modules/GLD/GLD_MANAGE_M/GLD401/gld_month_manager_history_dtl.lview"/>
+
+        <script><![CDATA[
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            if(ds.id == '${/parameter/@layout_code}_G_GRID_contract_finance_income_h_ds'){
+                //qpara['source_finance_income_id'] = '${/parameter/@source_finance_income_id}';
+            }
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            var link_function = '';
+            if (name == 'detail') {
+                link_function = 'gld_history_detail';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + config_record.get('prompt') + '</a>';
+            }
+        };
+
+        window['gld_history_detail'] = function (record_id, ds_id) {
+            var gld_history_record = $(ds_id).findById(record_id);
+            var param = {};
+            param['function_code'] = 'GLD401F2';
+            param['url_title'] = '预月结历史明细查询';
+            param['batch'] = gld_history_record.get('batch');
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_gld_month_manager_history_dtl_link_id', ds_id, 'GLD401F2');
+
+        }
+
+        Leaf.onReady(function(){
+            var ds_id = '${/parameter/@layout_code}_F_FORM__ds';
+            $(ds_id).getCurrentRecord().set('cf_item','${/parameter/@cf_item}');
+            $(ds_id).getCurrentRecord().set('period_name','${/parameter/@period_name}');
+            $(ds_id).getCurrentRecord().set('period_name_n','${/parameter/@period_name}');
+        });
+
+        ]]></script>
+
+
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+
+    </a:view>
+</a:screen>

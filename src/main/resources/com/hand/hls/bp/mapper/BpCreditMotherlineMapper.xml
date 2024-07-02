@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.BpCreditMotherlineMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.BpCreditMotherline">
+        <result column="CREDIT_MOTHERLINE_ID" property="creditMotherlineId" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="CREDIT_TIME" property="creditTime" jdbcType="DATE" />
+        <result column="CREDIT_SUBJECT" property="creditSubject" jdbcType="VARCHAR" />
+        <result column="EXAMINATION_AUTHO" property="examinationAutho" jdbcType="VARCHAR" />
+        <result column="EXAMINATION_AUTHO_N" property="examinationAuthoN" jdbcType="VARCHAR" />
+        <result column="LINE_TYPE" property="lineType" jdbcType="VARCHAR" />
+        <result column="LINE_TYPE_N" property="lineTypeN" jdbcType="VARCHAR" />
+        <result column="CREDIT_AMOUNT" property="creditAmount" jdbcType="DECIMAL" />
+        <result column="TERM" property="term" jdbcType="DECIMAL" />
+        <result column="OPEN_BALANCE" property="openBalance" jdbcType="DECIMAL" />
+        <result column="CREDIT_ENHANCEMENT" property="creditEnhancement" jdbcType="VARCHAR" />
+        <result column="OPEN_AMOUNT" property="openAmount" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryAll" parameterType="com.hand.hls.bp.dto.HlsCusBpAssetslistMovables" resultMap="BaseResultMap">
+        SELECT
+        bcm.*,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'HLS.EXAMINATION_AUTHO'
+        and sc.code_value = bcm.EXAMINATION_AUTHO) EXAMINATION_AUTHO_N,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'HLS.LINE_TYPE'
+        and sc.code_value = bcm.LINE_TYPE) LINE_TYPE_N
+        FROM
+        HLS_BP_CREDIT_MOTHERLINE  bcm
+        <where>
+            <if test="bpId != null">
+                bcm.bp_id = #{bpId}
+            </if>
+            <if test="creditMotherlineId != null">
+                bcm.CREDIT_MOTHERLINE_ID = #{creditMotherlineId}
+            </if>
+        </where>
+    </select>
+</mapper>

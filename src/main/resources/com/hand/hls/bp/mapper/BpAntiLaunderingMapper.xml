@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.BpAntiLaunderingMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.BpAntiLaundering">
+        <result column="ANTI_LAUNDERING_ID" property="antiLaunderingId" jdbcType="DECIMAL" />
+        <result column="BP_ID" property="bpId" jdbcType="DECIMAL" />
+        <result column="RELATION_SHIP" property="relationShip" jdbcType="VARCHAR" />
+        <result column="RELATION_SHIP_N" property="relationShipN" jdbcType="VARCHAR" />
+        <result column="RELATIVE_ENT_NAME" property="relativeEntName" jdbcType="VARCHAR" />
+        <result column="REGISTER_TYPE" property="registerType" jdbcType="VARCHAR" />
+        <result column="REGISTER_TYPE_N" property="registerTypeN" jdbcType="VARCHAR" />
+        <result column="REGISTER_NUM" property="registerNum" jdbcType="VARCHAR" />
+        <result column="VALID" property="valid" jdbcType="VARCHAR" />
+        <result column="MONEY_LAUNDERING_RI_LEV" property="moneyLaunderingRiLev" jdbcType="VARCHAR" />
+        <result column="MONEY_LAUNDERING_RI_LEV_N" property="moneyLaunderingRiLevN" jdbcType="VARCHAR" />
+        <result column="VALUATION_DATE" property="valuationDate" jdbcType="DATE" />
+        <result column="EXPIRY_DATE" property="expiryDate" jdbcType="DATE" />
+        <result column="REVIEW_RESULTS_PERIOD" property="reviewResultsPeriod" jdbcType="VARCHAR" />
+        <result column="REVIEW_RESULTS_PERIOD_N" property="reviewResultsPeriodN" jdbcType="VARCHAR" />
+        <result column="REGULAR_REVIEW_DATE" property="regularReviewDate" jdbcType="DATE" />
+        <result column="EXPIRY_DATE_R" property="expiryDateR" jdbcType="DATE" />
+    </resultMap>
+
+    <select id="queryAll" parameterType="com.hand.hls.bp.dto.BpAntiLaundering" resultMap="BaseResultMap">
+        SELECT
+        bal.*,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND_RELATIONSHIP'
+        and sc.code_value = bal.RELATION_SHIP) RELATION_SHIP_N,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND.SHAREHOLDER_CERT_TYPE'
+        and sc.code_value = bal.REGISTER_TYPE) REGISTER_TYPE_N,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'HLS.MONEY_LAUNDERING_RI_LEV'
+        and sc.code_value = bal.REVIEW_RESULTS_PERIOD) REVIEW_RESULTS_PERIOD_N,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'HLS.MONEY_LAUNDERING_RI_LEV'
+        and sc.code_value = bal.money_laundering_ri_lev) MONEY_LAUNDERING_RI_LEV_N
+        FROM
+        HLS_BP_ANTI_LAUNDERING  bal
+        <where>
+            <if test="bpId != null">
+                bal.bp_id = #{bpId}
+            </if>
+            <if test="antiLaunderingId != null">
+                bal.ANTI_LAUNDERING_ID = #{antiLaunderingId}
+            </if>
+        </where>
+    </select>
+</mapper>

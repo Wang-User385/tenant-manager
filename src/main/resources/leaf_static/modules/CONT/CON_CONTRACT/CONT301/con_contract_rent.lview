@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Author: huangtianyang
+    Date: 2019/02/26 11:06
+    Revision: 1.0 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="rptm001_calc_price_quotation_common_link_id" url="${/request/@context_path}/modules/FND/HLS_COMMON/HLS900/quotation_calc_common.lview"/>
+
+        <script><![CDATA[
+
+        var saveFlag = 'N';
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function(ds, record, config_records, bp_seq) {
+
+            if(ds.id === '${/parameter/@layout_code}_G_PAYMENT_PLAN_con_contract_payment_plan_ds'){
+                var contracts = $('${/parameter/@layout_code}_G_RENT_PAYMENT_con_contract_ds').getCurrentRecord();
+                record.set('contract_number',contracts.get('contract_number'));
+                record.set('seq_num',ds.getAll().length);
+                record.set('contract_id',contracts.get('contract_id'));
+            }
+
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            // debugger;
+            if(ds.id && '${/parameter/@layout_code}_G_RENT_PAYMENT_con_contract_ds' == ds.id){
+                ds.setQueryParameter('contract_id', '${/parameter/@contract_id}');
+            }
+        };
+
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'] = {};
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function(value, record, name, config_record, bp_seq) {
+            var link_function = 'rent_payment_make_quotation';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+         /*   if (name == 'price_list') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.get('edit_flag') + '\',\'' + record.get('quotation_id') + '\');">报价</a>';
+            }*/
+            if (name == 'price_list') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + name + '\');">报价</a>';
+            }
+
+            if(name == 'upload'){
+                return '<a href="javascript:open_attach(\'' + record.get('contract_id') + '\')">附件上传</a>';
+            }
+
+            if (name == 'file_name' && value) {
+                var str = value.split(',');
+                var url = '' ;
+                for(var i = 0;i < str.length;i++){
+                    var temp = record.get('attachment_id').split(',');
+                    url = url + '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + temp[i] +'">' + str[i] +' ; </a>';
+                }
+                return url;
+            }
+
+        };
+
+        //打开附件窗口
+        function open_attach(id) {
+            if (typeof (id) === 'undefined' || 'undefined' === id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                $L.showInfoMessage("提示","当前无法上传文件!");
+                return;
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'rent_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: id,
+                    table_name: 'CON_CONTRACT_RENT',
+                    winid: 'rent_open_attachment_winid'
+                },
+                title: '附件',
+                width: 800,
+                height: 575
+            });
+
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract' , 'G_RENT_PAYMENT');
+                $(ds_id).query();
+            });
+        }
+
+        //报价链接
+        window['rent_payment_make_quotation'] = function(record_id,name){
+            var record = window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record_id + '---' + name];
+            var edit_flag = record.get('edit_flag');
+            var quotationId = record.get('quotation_id');
+
+
+
+            if (quotationId != null) {
+
+                var finance_amount = record.get('finance_amount');
+                var price_list = record.get('price_list');
+
+                //打开报价窗口
+                var param = {};
+                param['quotationId'] = quotationId;
+                param['quotation_id'] = quotationId;
+                param['priceList'] = price_list;
+                param['function_code'] = "HLS900";
+                param['layout_code'] = "CALC_QUOTATUON";
+                param['url_title'] = '报价计算';
+                if(edit_flag == 'Y'){
+                    param['maintain_type'] = 'READONLY';
+                    param['function_usage'] = 'QUERY';
+                }
+                hls_doc_get_layout_code(param, 'rptm001_calc_price_quotation_common_link_id', '${/parameter/@layout_code}_G_CASHFLOW_INFO_con_contract_cashflow_ds', "HLS900");
+
+
+            } else {
+                Leaf.showMessage("提示", "报价未计算成功，无法查看!", null);
+                return false;
+            }
+        };
+
+
+
+        window['${/parameter/@layout_code}_save_button_layout_dynamic_click'] = function () {
+            //debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract' , 'G_RENT_PAYMENT');
+            var con_contract_cashflow_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow' , 'G_PAYMENT_PLAN');
+            var prj_quotation_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation' , 'F_FINANCE_CON');
+            var cashflow_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow' , 'G_CASHFLOW_INFO');
+
+
+
+            var dsRecord = $(ds_id).getAll();
+            if(dsRecord.length == 1){
+                var contractRecord= dsRecord[0].data;
+
+                //避免栈溢出
+                contractRecord[con_contract_cashflow_id.replace('_ds','')]=undefined;
+                contractRecord[prj_quotation_id.replace('_ds','')]=undefined;
+                contractRecord[cashflow_id.replace('_ds','')]=undefined;
+                var lease_start_date = dsRecord[0].data.lease_start_date;
+
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/cus/con/contract/incept/save",
+                    para: contractRecord,
+                    success: function (r) {
+                        $L.Masker.unmask(document.body);
+                        $L.showInfoMessage("提示","保存成功!");
+                        $('${/parameter/@layout_code}_G_RENT_PAYMENT_con_contract_ds').query();
+                        // saveFlag = 'Y';
+                    },
+                    error: function (r) {
+                        $L.Masker.unmask(document.body);
+                        Leaf.showMessage("提示", r.error.message, null);
+                    },
+                    scope: this
+                });
+            }
+
+
+        };
+
+
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            //debugger;
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract' , 'G_RENT_PAYMENT');
+            var con_contract_cashflow_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow' , 'G_PAYMENT_PLAN');
+            var prj_quotation_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation' , 'F_FINANCE_CON');
+            var cashflow_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow' , 'G_CASHFLOW_INFO');
+
+            var dsRecord = $(ds_id).getAll();
+            if(dsRecord.length == 1){
+                var contractRecord= dsRecord[0].data;
+
+                //避免栈溢出
+                contractRecord[con_contract_cashflow_id.replace('_ds','')]=undefined;
+                contractRecord[prj_quotation_id.replace('_ds','')]=undefined;
+                contractRecord[cashflow_id.replace('_ds','')]=undefined;
+                var lease_start_date = dsRecord[0].data.lease_start_date;
+
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/cus/con/contract/incept/save",
+                    para: contractRecord,
+                    success: function (r) {
+                        $L.Masker.unmask(document.body);
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        $('${/parameter/@layout_code}_G_RENT_PAYMENT_con_contract_ds').query();
+                        //debugger;
+                        var param = {};
+                        param.contract_id = '${/parameter/@contract_id}';
+                        var dsRecord = $(ds_id).getAll();
+                        if(dsRecord.length == 1){
+                            var contractRecord= dsRecord[0].data;
+
+                            //避免栈溢出
+                            contractRecord[con_contract_cashflow_id.replace('_ds','')]=undefined;
+                            contractRecord[prj_quotation_id.replace('_ds','')]=undefined;
+                            contractRecord[cashflow_id.replace('_ds','')]=undefined;
+                            var lease_start_date = dsRecord[0].data.lease_start_date;
+                            var lease_date_adjust = dsRecord[0].data.lease_date_adjust;
+                            param.lease_start_date = lease_start_date;
+                            param.lease_date_adjust = lease_date_adjust;
+                        }
+
+                        Leaf.request({
+                            url: "${/request/@context_path}/hls/cus/con/contract/incept/sumbit",
+                            para: param,
+                            success: function (r) {
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                                    $('${/parameter/@winid}').close();
+                                    if ("${/parameter/@parent_winid}") {
+                                        $("${/parameter/@parent_winid}").close();
+                                    }
+                                });
+                            },
+                            error: function (r) {
+                                // $L.Masker.unmask(document.body);
+                                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                                // Leaf.showMessage("提示", r.error.message, null);
+                            },
+                            scope: this
+                        });
+
+                    },
+                    error: function (r) {
+                        // $L.Masker.unmask(document.body);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        // Leaf.showMessage("提示", r.error.message, null);
+                    },
+                    scope: this
+                });
+            }
+
+
+
+        };
+
+
+        //indexchange事件(grid,attach,gridbox,table)
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_indexchange'] = function(ds, record, bp_seq) {
+            if(ds.id === '${/parameter/@layout_code}_G_RENT_PAYMENT_con_contract_ds'){
+                var quotation_id = record.get('quotation_id');
+                var prj_quotation_ds = $('${/parameter/@layout_code}_F_FINANCE_CON_prj_quotation_ds');
+                prj_quotation_ds.setQueryParameter('quotation_id',quotation_id);
+                prj_quotation_ds.query();
+            }
+        };
+
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+
+</a:screen>
+    
+    

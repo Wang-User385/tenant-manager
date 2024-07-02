@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2019年4月27日
+    $Revision: 1.0  
+    $Purpose: 收款分配界面 查询界面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure>
+        <a:model-query model="$com.hand.hls.sys.service.SysDefaultValueService.querySysDefaultValue"
+                       rootPath="default_value"/>
+    </a:init-procedure>
+    <a:view>
+        <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+
+        <a:link id="csh301_transaction_receipt_allocation_confirm_link"
+                url="${/request/@context_path}/csh/write/off/allocation/confirm"/>
+
+        <script type="text/javascript"><![CDATA[
+
+
+        function csh301_transaction_receipt_allocation_back() {
+            $('${/parameter/@winId}').close();
+        }
+
+        function csh301_transaction_receipt_allocation_add() {
+            $('csh_transaction_allocation_credit_grid_id').showEditorByRecord($('csh_transaction_allocation_credit_ds').create());
+        }
+
+        function csh301_transaction_receipt_allocation_delete() {
+            //释放剩余可核销金额
+            var ds = $('csh_transaction_allocation_credit_ds');
+            var head_ds = $('csh_transaction_allocation_ds');
+
+            var hd_record = head_ds.getCurrentRecord();
+            var record = ds.getCurrentRecord();
+
+            var can_write_off_amount = hd_record.get("can_write_off_amount") || 0;
+            can_write_off_amount = minus(can_write_off_amount, record.get("surplus_amount") || 0);
+
+            hd_record.set("can_write_off_amount", can_write_off_amount);
+            $('csh_transaction_allocation_credit_grid_id').clear();
+        }
+
+        //核销匹配确认
+        function csh301_transaction_receipt_allocation_confirm() {
+            //债权
+            var credit_ds = $('csh_transaction_allocation_credit_ds');
+
+            var records = credit_ds.getAll();
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '至少有一条待核销债权！');
+                return;
+            }
+
+            var saveData = [];
+            for (var i = 0; i < records.length; i++) {
+                records[i].set('transaction_id_str', '${/parameter/@transaction_id_str}');
+                records[i].set('un_write_off_amount', '${/parameter/@un_write_off_amount}');
+                records[i].set('write_off_order', i);
+                records[i].set('write_off_doc_category', 'CON_CONTRACT');
+                records[i].set('allocation_source', 'MANUAL');
+                saveData.push(records[i].data);
+            }
+
+            var winId = '${/parameter/@winId}';
+            Leaf.Masker.mask($(winId).wrap, '提交中。。');
+            Leaf.request({
+                url: $('csh301_transaction_receipt_allocation_confirm_link').getUrl(),
+                para: saveData,
+                success: function (res) {
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                    Leaf.Masker.unmask($(winId).wrap);
+                    csh301_transaction_receipt_allocation_back();
+                },
+                failure: function () {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                error: function () {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                scope: this
+            });
+        }
+
+        function credit_contract_number_lov_before_event(lov) {
+            var ds = $('csh_transaction_allocation_credit_ds');
+            var records = ds.getAll();
+            var record = ds.getCurrentRecord();
+            var not_cashflow_ids_str = '';
+            var can_write_off_amount = 0;
+
+            if (records.length >= 1) {
+                for (var i = 0; i < records.length; i++) {
+                    if (i == 0) {
+                        not_cashflow_ids_str = records[i].get("cashflow_id")
+                    } else {
+                        not_cashflow_ids_str = not_cashflow_ids_str + ',' + records[i].get("cashflow_id");
+                    }
+                    can_write_off_amount = plus(can_write_off_amount, records[i].get("surplus_amount") || 0);
+                }
+            }
+            var contract_number = record.getMeta().getField('contract_number');
+            //排除掉之前选择的现金流
+            contract_number.setLovPara('notCashflowIdsStr', not_cashflow_ids_str);
+            contract_number.setLovPara('nCfType', '5');
+            contract_number.setLovPara('cfStatus', 'RELEASE');
+            contract_number.setLovPara('cfDirection', 'INFLOW');
+            contract_number.setLovPara('SurplusAmountFlag', 'Y');
+
+            var head_ds = $('csh_transaction_allocation_ds');
+            var hd_record = head_ds.getCurrentRecord();
+            hd_record.set("can_write_off_amount", can_write_off_amount);
+        }
+
+
+        function credit_contract_number_lov_commit_event(lov, r1, r2) {
+            //金额判断
+            var head_ds = $('csh_transaction_allocation_ds');
+            var hd_record = head_ds.getCurrentRecord();
+            var surplus_amount = r1.get('surplus_amount') || 0;
+            var can_write_off_amount = hd_record.get("can_write_off_amount") || 0;
+            hd_record.set("can_write_off_amount", plus(can_write_off_amount, surplus_amount));
+        }
+
+
+        function allocation_credit_ds_update_event(ds, record, name, value, oldValue) {
+            var write_off_due_amount = record.get('write_off_due_amount') || 0;
+
+            //更新剩余可核销金额
+            if (name == 'write_off_due_amount') {
+                var surplus_amount = record.get('surplus_amount') || 0;
+                var surplus_principal = record.get('surplus_principal') || 0;
+                var surplus_interest = record.get('surplus_interest') || 0;
+
+                if (minus(value, surplus_amount) > 0) {
+                    Leaf.showErrorMessage('提示', '金额超过剩余金额！', null, 200, 100);
+                    return;
+                } else if (minus(value, surplus_amount) <= 0 && minus(value, surplus_interest) <= 0) {
+                    record.set('write_off_principal', 0);
+                    record.set('write_off_interest', value || 0);
+                } else if (minus(value, surplus_amount) <= 0 && minus(value, surplus_interest) >= 0) {
+                    record.set('write_off_principal', minus(value, surplus_interest));
+                    record.set('write_off_interest', surplus_interest);
+                }
+            } else if (name == 'write_off_principal') {
+                record.set('write_off_interest', minus(write_off_due_amount, value));
+
+            } else if (name == 'write_off_interest') {
+                record.set('write_off_principal', minus(write_off_due_amount, value));
+            }
+        }
+
+        function refund_renderer(value, record, name) {
+            if(record.get('refund_id')){
+                return '<a href="javascript:winOpen_detail(\'' + record.get('refund_id') + '\');">' + value + '</a>';
+            }else{
+                return value;
+            }
+        }
+
+
+        function winOpen_detail(refund_id) {
+            var win = new Leaf.Window({
+                id: 'csh_transaction_refund_ln_winid',
+                url: '${/request/@context_path}/modules/CSH/CSH_TRX/CSH801/csh_transaction_receipt_refund_ln.lview',
+                params: {
+                    winid: 'csh_transaction_refund_ln_winid',
+                    refund_id: refund_id
+                },
+                title: '退款申请明细',
+                width: 1150,
+                height: 600
+            });
+        }
+
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="csh_transaction_allocation_query_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="allocationId" defaultValue="${/parameter/@allocation_id}"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="csh_transaction_allocation_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/allocation/query"
+                       queryDataSet="csh_transaction_allocation_query_ds">
+                <a:fields>
+                    <a:field name="un_write_off_amount" readOnly="true"/>
+                    <a:field name="can_write_off_amount" readOnly="true"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="csh_transaction_allocation_receipt_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/allocation/receipt/query"
+                       queryDataSet="csh_transaction_allocation_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="transaction_date" datatype="date"/>
+                </a:fields>
+
+            </a:dataSet>
+            <a:dataSet id="csh_transaction_allocation_credit_ds" autoQuery="true"
+                       queryUrl="${/request/@context_path}/csh/allocation/credit/query"
+                       queryDataSet="csh_transaction_allocation_query_ds" selectable="true">
+                <a:fields>
+                    <a:field name="due_date" datatype="date"/>
+                    <a:field name="deal_date" datatype="date"/>
+                    <a:field name="contract_number" autoComplete="true" required="true" lovGridHeight="350"
+                             lovHeight="650"
+                             lovLabelWidth="90"
+                             lovService="/contract/cashflow/queryLov~hls.layout.dto.LovContractCashflowDto"
+                             lovWidth="950"
+                             title="合同编号" prompt="合同编号" readOnly="true">
+                        <a:mapping>
+                            <a:map from="contract_number" to="contract_number"/>
+                            <a:map from="prj_con_number" to="prj_con_number"/>
+                            <a:map from="contract_name" to="contract_name"/>
+                            <a:map from="cashflow_id" to="cashflow_id"/>
+                            <a:map from="contract_id" to="contract_id"/>
+                            <a:map from="times" to="times"/>
+                            <a:map from="contract_seq" to="contract_seq"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="due_date" to="due_date"/>
+                            <a:map from="due_amount" to="due_amount"/>
+                            <a:map from="cf_item_n" to="cf_item_n"/>
+                            <a:map from="cf_item" to="cf_item"/>
+                            <a:map from="cf_type" to="cf_type"/>
+                            <a:map from="surplus_amount" to="surplus_amount"/>
+                            <a:map from="surplus_principal" to="surplus_principal"/>
+                            <a:map from="surplus_interest" to="surplus_interest"/>
+                            <a:map from="surplus_amount" to="write_off_due_amount"/>
+                            <a:map from="surplus_principal" to="write_off_principal"/>
+                            <a:map from="surplus_interest" to="write_off_interest"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="allocation_credit_ds_update_event"/>
+                </a:events>
+            </a:dataSet>
+
+            <a:dataSet id="csh_transaction_allocation_advance_ds"
+                       queryUrl="${/request/@context_path}/csh/allocation/advance/query"
+                       autoQuery="true"
+                       queryDataSet="csh_transaction_allocation_query_ds">
+                <a:fields>
+                    <a:field name="write_off_type" readOnly="true" defaultValue="RECEIPT_ADVANCE_RECEIPT"/>
+                    <a:field name="write_off_type_desc" readOnly="true" defaultValue="收款核销预收款"/>
+                    <a:field name="write_off_due_amount" required="true" prompt="本次核销金额"/>
+                    <a:field name="bp_name" autoComplete="true" required="true" lovGridHeight="350"
+                             lovHeight="550" lovLabelWidth="90" lovWidth="850"
+                             lovService="/hls/bp/queryBpMasterLov~hls.layout.dto.LovHlsBpMasterDto"
+                             title="商业伙伴" prompt="商业伙伴">
+                        <a:mapping>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+            </a:dataSet>
+
+
+
+            <a:dataSet id="csh_transaction_allocation_deposit_ds"
+                       queryUrl="${/request/@context_path}/csh/allocation/deposit/query"
+                       autoQuery="true"
+                       queryDataSet="csh_transaction_allocation_query_ds">
+                <a:fields>
+                    <a:field name="write_off_type" readOnly="true" defaultValue="RECEIPT_DEPOSIT"/>
+                    <a:field name="write_off_type_desc" readOnly="true" defaultValue="收款核销保证金"/>
+                    <a:field name="write_off_due_amount" required="true" prompt="本次核销金额"/>
+                    <a:field name="contract_number" autoComplete="true" required="true" lovGridHeight="350"
+                             lovHeight="650"
+                             lovLabelWidth="90"
+                             lovService="/contract/cashflow/queryLov~hls.layout.dto.LovContractCashflowDto"
+                             lovWidth="950"
+                             title="合同编号" prompt="合同编号" readOnly="true">
+                        <a:mapping>
+                            <a:map from="contract_number" to="contract_number"/>
+                            <a:map from="cashflow_id" to="cashflow_id"/>
+                            <a:map from="contract_id" to="contract_id"/>
+                            <a:map from="times" to="times"/>
+                            <a:map from="contract_seq" to="contract_seq"/>
+                            <a:map from="bp_name" to="bp_name"/>
+                            <a:map from="bp_id" to="bp_id"/>
+                            <a:map from="due_date" to="due_date"/>
+                            <a:map from="due_amount" to="due_amount"/>
+                            <a:map from="cf_item_n" to="cf_item_n"/>
+                            <a:map from="cf_item" to="cf_item"/>
+                            <a:map from="cf_type" to="cf_type"/>
+                            <a:map from="surplus_amount" to="surplus_amount"/>
+                            <a:map from="surplus_principal" to="surplus_principal"/>
+                            <a:map from="surplus_interest" to="surplus_interest"/>
+                            <a:map from="surplus_amount" to="write_off_due_amount"/>
+                            <a:map from="surplus_principal" to="write_off_principal"/>
+                            <a:map from="surplus_interest" to="write_off_interest"/>
+                        </a:mapping>
+                    </a:field>
+
+                </a:fields>
+            </a:dataSet>
+
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="csh301_transaction_receipt_allocation_back" text="返回"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:fieldSet title="分配情况" marginWidth="50">
+                    <a:box column="3" labelWidth="150">
+                        <a:numberField name="un_write_off_amount" bindTarget="csh_transaction_allocation_ds"
+                                     prompt="剩余可核销金额汇总" />
+                        <a:numberField name="can_write_off_amount" bindTarget="csh_transaction_allocation_ds"
+                                     prompt="债权剩余待核销金额汇总" />
+                    </a:box>
+                </a:fieldSet>
+            </a:form>
+            <a:fieldSet title="收款" width="750">
+                <a:grid bindTarget="csh_transaction_allocation_receipt_ds" height="250"
+                        marginWidth="50"
+                        navBar="true">
+                    <a:toolBar>
+                        <a:button type="excel"/>
+                    </a:toolBar>
+                    <a:columns>
+                        <a:column name="transaction_num" prompt="收款编号" width="120"/>
+                        <a:column name="transaction_date" align="center" prompt="交易日期" width="100"
+                                  renderer="Leaf.formatDate"/>
+                        <!--<a:column name="import_date" align="center" prompt="导入日期" width="150"
+                                  renderer="Leaf.formatDate"/>-->
+                        <a:column name="bp_name" prompt="收款对象" width="200"/>
+                        <a:column name="transaction_amount" prompt="收款金额" renderer="Leaf.formatMoney"
+                                  align="right"
+                                  width="120"/>
+                        <a:column name="write_off_amount" prompt="已核销金额"
+                                  align="right" renderer="write_off_detail_renderer"
+                                  width="120"/>
+                        <a:column name="un_write_off_amount" prompt="剩余可核销金额"
+                                  align="right" renderer="Leaf.formatMoney"
+                                  width="120"/>
+                        <a:column name="advance_receipt_amount" prompt="待处理款项金额"
+                                  align="right" renderer="Leaf.formatMoney"
+                                  width="120"/>
+                        <a:column name="contract_number" prompt="租金支付表编号" width="150"/>
+                        <a:column name="refund_flag_n" prompt="是否退款" align="center" width="80"/>
+                        <a:column name="refund_amount" prompt="已退金额" align="right" renderer="refund_renderer"
+                                  width="100"/>
+                        <a:column name="write_off_flag_desc" prompt="核销状态" width="100"/>
+                        <a:column name="bank_account_name" prompt="入账户名" width="200"/>
+                        <a:column name="bank_account_num" prompt="入账账号" width="200"/>
+                        <a:column name="bank_name" prompt="入账银行" width="200"/>
+                        <a:column name="bank_slip_num" prompt="交易号" width="120"/>
+                        <a:column name="description" prompt="摘要" width="120"/>
+                    </a:columns>
+                </a:grid>
+            </a:fieldSet>
+            <a:fieldSet title="债权" width="750">
+                <a:tabPanel id="csh_transaction_allocation_credit_tab" marginWidth="20" marginHeight="1">
+                    <a:tabs>
+                        <a:tab prompt="核销债权" width="200" selected="true">
+                            <a:grid id="csh_transaction_allocation_credit_grid_id" bindTarget="csh_transaction_allocation_credit_ds"
+                                    height="250"
+                                    marginWidth="50"
+                                    navBar="true">
+                                <a:toolBar>
+                                    <a:button type="excel"/>
+                                </a:toolBar>
+                                <a:columns>
+                                    <a:column name="contract_number" prompt="租金支付表编号" width="120"/>
+                                    <a:column name="prj_con_number" prompt="合同编号" width="120"/>
+                                    <a:column name="arrive_modality_desc" prompt="到账形式" width="150" align="left"/>
+                                    <a:column name="times" prompt="期数" align="center" width="80"/>
+                                    <a:column name="bp_name" prompt="商业伙伴" width="200"/>
+                                    <a:column name="due_date" prompt="预定收款日" align="center" renderer="Leaf.formatDate" width="100"/>
+                                    <a:column name="deal_date" prompt="核销日期" align="center" renderer="Leaf.formatDate" width="100"/>
+                                    <a:column name="due_amount" prompt="预定收款金额" align="right" renderer="Leaf.formatMoney"
+                                              width="120"/>
+                                    <a:column name="cf_item_n" prompt="性质" align="center" width="100"/>
+                                    <a:column name="surplus_amount" prompt="剩余金额" renderer="Leaf.formatMoney" align="right"
+                                              width="150"/>
+                                    <a:column name="write_off_due_amount" prompt="本次核销金额"
+                                              align="right" renderer="Leaf.formatMoney"
+                                              width="150"/>
+                                    <a:column name="write_off_principal" prompt="本金" align="right"
+                                              renderer="Leaf.formatMoney" width="150"/>
+                                    <a:column name="write_off_interest" prompt="利息" align="right"
+                                              renderer="Leaf.formatMoney" width="150"/>
+                                </a:columns>
+
+                            </a:grid>
+                        </a:tab>
+                        <a:tab prompt="核销为预收款" width="200">
+                            <a:grid id="csh_transaction_allocation_advance_grid_id" bindTarget="csh_transaction_allocation_advance_ds"
+                                    height="250"
+                                    marginWidth="50">
+                                <a:toolBar>
+                                    <a:button type="excel"/>
+                                </a:toolBar>
+                                <a:columns>
+                                    <a:column name="write_off_type_desc" prompt="核销类型" width="120"/>
+                                    <a:column name="write_off_due_amount" prompt="本次核销金额" renderer="Leaf.formatMoney"
+                                              align="right" editor="advance_credit_editor_nf" width="150"/>
+                                    <a:column name="bp_name" prompt="商业伙伴" width="200" />
+                                </a:columns>
+                            </a:grid>
+                        </a:tab>
+
+
+                        <a:tab prompt="核销为保证金（零售业务用）" width="200">
+                            <a:grid id="csh_transaction_allocation_deposit_grid_id" bindTarget="csh_transaction_allocation_deposit_ds"
+                                    height="250" marginWidth="50">
+                                <a:toolBar>
+                                    <a:button type="excel"/>
+                                </a:toolBar>
+                                <a:columns>
+                                    <a:column name="write_off_type_desc" prompt="核销类型" width="120"/>
+                                    <a:column name="contract_number" prompt="合同编号" width="120"/>
+                                    <a:column name="bp_name" prompt="商业伙伴" width="200" />
+                                    <a:column name="deposit_amount" prompt="保证金总额" renderer="Leaf.formatMoney"
+                                              align="right" editor="advance_credit_editor_nf" width="150"/>
+                                    <a:column name="surplus_deposit_amount" prompt="剩余保证金金额" renderer="Leaf.formatMoney"
+                                              align="right" editor="advance_credit_editor_nf" width="150"/>
+                                    <a:column name="write_off_due_amount" prompt="本次核销金额" renderer="Leaf.formatMoney"
+                                              align="right" editor="advance_credit_editor_nf" width="150"/>
+                                </a:columns>
+                            </a:grid>
+
+                        </a:tab>
+
+                    </a:tabs>
+                </a:tabPanel>
+            </a:fieldSet>
+
+        </a:screenBody>
+    </a:view>
+</a:screen>
+

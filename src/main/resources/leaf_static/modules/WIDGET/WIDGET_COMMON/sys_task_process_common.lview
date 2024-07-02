@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
+    <a:init-procedure><![CDATA[
+        ]]></a:init-procedure>
+
+    <a:view>
+        <style>
+            html,body{
+                height: 100%;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            iframe{
+                width:100%;
+                height:calc(100% - 10px);
+                border: none;
+                box-sizing: border-box;
+            }
+        </style>
+
+        <script><![CDATA[
+        Leaf.onReady(function(){
+            var type = "${/parameter/@type}";
+            var taskId = "${/parameter/@taskId}" || "${/parameter/@task_id}";
+            var processInstanceId = "${/parameter/@processInstanceId}" || "${/parameter/@process_instance_id}";
+            if(type == "todo"){
+                url='${/request/@context_path}/modules/MYWFL/MYWFL001/task_detail.lview?isAdmin=false&taskId='+taskId+'&processInstanceId='+processInstanceId+'&winid=${/parameter/@winid}';
+            }else if(type == "his"){
+                url='${/request/@context_path}/modules/WFL/WFL003/process_instance_detail.lview?taskId='+taskId+'&id='+processInstanceId+'&function_usage=QUERY&maintain_type=READONLY';
+                //工作流窗口的通用winid为task_detail_win
+                $L.CmpManager.cache["task_detail_win"] = $L.CmpManager.cache["${/parameter/@winid}"];
+            }
+            $jq("#${/parameter/@id}_bp_iframe").attr("src",url);
+
+
+        });
+        function getParaFromUrl(url,pName){
+            var ret = '',urlParaStr=url;
+            if(url.indexOf("?") >= 0){
+                urlParaStr = url.substr(url.indexOf("?")+1);
+            }
+            var urlParaArr = urlParaStr.split("&");
+            for(var i=0;i<urlParaArr.length;i++){
+                if(urlParaArr[i].split("=")[0] == pName){
+                    ret = urlParaArr[i].split("=")[1];
+                    return ret;
+                }
+            };
+            return ret;
+        }
+
+
+        function on_widget_bp_iframe_load(){
+            var ifm = $jq("#${/parameter/@id}_iframe");
+        }
+
+        ]]></script>
+
+        <iframe id="${/parameter/@id}_bp_iframe" onload="on_widget_bp_iframe_load"/>
+        <a:screenBody>
+        </a:screenBody>
+    </a:view>
+</a:screen>

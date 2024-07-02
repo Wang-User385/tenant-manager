@@ -1,0 +1,946 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hand.hls.fnd.mapper.HlsCusEmployeeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fnd.dto.HlsCusEmployee">
+        <id column="employee_id" property="employeeId" jdbcType="BIGINT"/>
+        <result column="employee_code" property="employeeCode" jdbcType="VARCHAR"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="mobil" property="mobil" jdbcType="VARCHAR"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="id_type" property="idType" jdbcType="VARCHAR"/>
+        <result column="id_card_no" property="idCardNo" jdbcType="VARCHAR"/>
+        <result column="enabled_flag" property="enabledFlag" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="position_name" property="positionName" jdbcType="VARCHAR"/>
+        <result column="position_id" property="positionId" jdbcType="BIGINT"/>
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR"/>
+        <result column="unit_id" property="unitId" jdbcType="BIGINT"/>
+        <result column="unit_type" property="unitType" jdbcType="VARCHAR"/>
+        <result column="unit_code" property="unitCode" jdbcType="VARCHAR"/>
+        <result column="project_manager_name" property="projectManagerName" jdbcType="VARCHAR"/>
+        <result column="company_name" property="companyName" jdbcType="VARCHAR"/>
+        <result column="manager_name" property="managerName" jdbcType="VARCHAR"/>
+        <result column="employee_assign_id" property="employeeAssignId" jdbcType="BIGINT"/>
+        <result column="position_code" property="positionCode" jdbcType="VARCHAR"/>
+        <result column="manage_unit_id" property="manageUnitId" jdbcType="VARCHAR"/>
+        <result column="user_name" property="userName" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectProjectAssistant" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.fct.dto.HlsCusFctProject">
+        select DISTINCT b.allocation_id as name
+        from sys_user a,
+        sys_user_allocation b
+        where a.USER_ID = b.user_id
+        <if test="projectAssistant!=null">
+            and a.user_id=#{projectAssistant}
+        </if>
+        order by b.employee_assign_id
+    </select>
+
+    <select id="selectUserNameByEmployeeAssignId" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.fct.dto.HlsCusFctProject">
+        select DISTINCT b.allocation_id as name
+        from sys_user a,
+        sys_user_allocation b
+        where a.USER_ID = b.user_id
+        <if test="employeeAssignId!=null">
+            and b.employee_assign_id=#{employeeAssignId}
+        </if>
+        order by b.employee_assign_id
+    </select>
+
+    <select id="selectUserNameByEmployeeId" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.fct.dto.HlsCusFctProject">
+        select DISTINCT b.allocation_id as name
+        from sys_user a,
+        sys_user_allocation b
+        where a.USER_ID = b.user_id
+        <if test="userId!=null">
+            and b.user_id=#{userId}
+        </if>
+    </select>
+
+    <select id="selectEmployeeAssignIdByEmployeeId" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.fct.dto.HlsCusFctProject">
+        select employee_assign_id
+        from fnd_employee_assigns where 1=1
+<!--        <if test="companyId!=null">-->
+<!--            and company_id =#{companyId}-->
+<!--        </if>-->
+        <if test="employeeId!=null">
+            and employee_id=#{employeeId}
+        </if>
+        order by employee_assign_id
+    </select>
+
+    <select id="selectAllEmployeeForFctPrj" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.fnd.dto.HlsCusEmployee">
+        select
+        fea.employee_assign_id,
+        em.employee_id,
+        em.employee_code,
+        em.company_id,
+        em.name,
+        em.email,
+        em.mobil,
+        em.phone,
+        em.id_type,
+        em.id_card_no,
+        em.enabled_flag,
+        fou.unit_name as unit_name,
+        fc.company_full_name as company_name,
+        fou.unit_id as unit_id,
+        (
+        select Max(fe.name)
+        from fnd_employee fe,
+        fnd_employee_assigns feas
+        where fe.employee_id=feas.employee_id
+        and feas.unit_id=fou.unit_id
+        and feas.position_id=fop.position_id
+        )as manager_name
+        from fnd_employee em,
+        fnd_employee_assigns fea,
+        fnd_org_position fop,
+        fnd_org_unit fou,
+        fnd_company fc
+        <where>
+            em.employee_id=fea.employee_id
+            and fou.unit_id = fea.unit_id
+            and fop.position_id=fou.chief_position_id
+            and fc.company_id=em.company_id
+            and em.employee_code != #{request.employeeCode}
+            <if test="employeeId != null">
+                and em.employee_id = #{employeeId}
+            </if>
+            <if test="employeeCode != null">
+                and em.employee_code like concat(concat('%',#{employeeCode}),'%')
+            </if>
+            <if test="companyId != null">
+                and em.company_id = #{companyId}
+            </if>
+            <if test="name!=null">
+                and em.name like concat(concat('%',#{name}),'%')
+            </if>
+            <if test="positionId!=null">
+                and fop.position_id=#{positionId}
+            </if>
+            <if test="projectManagerName!=null">
+                and em.name!=#{projectManagerName}
+            </if>
+            <if test="unitType!=null">
+                and fou.unit_type in('SALES')
+            </if>
+        </where>
+    </select>
+
+    <select id="appPersonalInformationQuery" parameterType="java.lang.String" resultMap="BaseResultMap">
+    SELECT
+    t.name as name,
+    t.phone as phone,
+    t.email as email,
+    t.company_name as company_name,
+    wm_concat ( t.unit_name ) AS unit_name,
+    wm_concat ( t.position_name ) AS position_name
+    FROM
+    (
+    SELECT
+    fe.name AS name,
+    fe.phone AS phone,
+    fe.email AS email,
+    ( SELECT fc.COMPANY_FULL_NAME FROM FND_COMPANY fc WHERE fc.COMPANY_ID = fea.COMPANY_ID ) AS company_name,
+    ( SELECT fou.unit_name FROM FND_ORG_UNIT fou WHERE fou.UNIT_ID = fea.UNIT_ID ) AS unit_name,
+    ( SELECT fop.POSITION_NAME FROM FND_ORG_POSITION fop WHERE fop.POSITION_ID = fea.POSITION_ID ) AS POSITION_NAME
+    FROM
+    FND_EMPLOYEE FE,
+    FND_EMPLOYEE_ASSIGNS fea
+    WHERE
+    fe.EMPLOYEE_ID = FEA.EMPLOYEE_ID
+    AND fe.employee_code = #{employeeCode}
+    ) t
+    GROUP BY
+    t.name,
+    t.phone,
+    t.email,
+    t.company_name
+    </select>
+
+    <!--根据手机号判断用户信息-->
+    <select id="appPersonalInformationQueryByPhone" parameterType="java.lang.String" resultMap="BaseResultMap">
+      SELECT
+      t.name as name,
+      t.phone as phone,
+      t.email as email,
+      t.company_name as company_name,
+      t.employee_code,
+      wm_concat ( t.unit_name ) AS unit_name,
+      wm_concat ( t.position_name ) AS position_name
+    FROM
+      (
+    SELECT
+      fe.name AS name,
+      fe.phone AS phone,
+      fe.email AS email,
+      fe.employee_code,
+      ( SELECT fc.COMPANY_FULL_NAME FROM FND_COMPANY fc WHERE fc.COMPANY_ID = fea.COMPANY_ID ) AS company_name,
+      ( SELECT fou.unit_name FROM FND_ORG_UNIT fou WHERE fou.UNIT_ID = fea.UNIT_ID ) AS unit_name,
+      ( SELECT fop.POSITION_NAME FROM FND_ORG_POSITION fop WHERE fop.POSITION_ID = fea.POSITION_ID ) AS POSITION_NAME
+    FROM
+      FND_EMPLOYEE FE,
+      FND_EMPLOYEE_ASSIGNS fea
+    WHERE
+      fe.EMPLOYEE_ID = FEA.EMPLOYEE_ID
+      AND fe.phone = #{phone}
+      ) t
+    GROUP BY
+      t.name,
+      t.phone,
+      t.email,
+      t.employee_code,
+      t.company_name
+    </select>
+
+    <!--工作流查询各部门经办人-->
+    <select id="queryManagerByType" parameterType="java.util.Map" resultMap="BaseResultMap">
+        SELECT
+        E1.EMPLOYEE_CODE,
+        E1.NAME,
+        FC.COMPANY_SHORT_NAME as company_name
+        FROM
+        fnd_employee e1 ,
+        fnd_org_position p1 ,
+        fnd_employee_assigns f1,
+        FND_COMPANY fc
+        WHERE
+        e1.employee_id = f1.employee_id
+        and f1.position_id = p1.position_id
+        and FC.COMPANY_ID=E1.COMPANY_ID
+        <if test="isDesignated !=null and isDesignated != '' and isDesignated == 'RISK' ">
+            and p1.POSITION_CODE = '120'
+        </if>
+        <if test="isDesignated !=null and isDesignated != '' and isDesignated == 'CREDIT' ">
+            and p1.POSITION_CODE = '05400'
+        </if>
+        <if test="isDesignated !=null and isDesignated != '' and isDesignated == 'COMPLIANCE' ">
+            and p1.POSITION_CODE = '05520'
+        </if>
+        <if test="isDesignated !=null and isDesignated != '' and isDesignated == 'OPERATION' ">
+            and p1.POSITION_TYPE = 'OPERATION'
+        </if>
+        <if test="isDesignated !=null and isDesignated != '' and isDesignated == 'FINANCE' ">
+            and (p1.POSITION_CODE = '100504' or p1.POSITION_CODE = '100505')
+        </if>
+        <if test="isDesignated !=null and isDesignated != '' and isDesignated == 'LEGAL' ">
+            and p1.POSITION_CODE = '150'
+        </if>
+        <if test="name !=null ">
+            and E1.NAME LIKE concat('%', concat(#{name,jdbcType=VARCHAR}, '%'))
+        </if>
+        <if test="employeeCode !=null">
+            and E1.EMPLOYEE_CODE LIKE concat('%', concat(#{employeeCode,jdbcType=VARCHAR}, '%'))
+        </if>
+    </select>
+
+    <select id="unitTypeQueryByEmployeeCode" parameterType="java.lang.String" resultType="java.lang.String">
+        SELECT FOU.UNIT_TYPE
+        FROM FND_EMPLOYEE_ASSIGNS FEA, FND_EMPLOYEE FE, FND_ORG_UNIT FOU
+        WHERE FEA.EMPLOYEE_ID = FE.EMPLOYEE_ID
+        AND FEA.UNIT_ID = FOU.UNIT_ID
+        AND FE.EMPLOYEE_CODE = #{employeeCode}
+    </select>
+
+    <select id="selectAllEmployeeForAct" resultMap="BaseResultMap" parameterType="com.hand.hls.fnd.dto.HlsEmployee">
+        select DISTINCT
+        em.employee_id ,
+        (
+        select fc.company_short_name
+        from fnd_company fc
+        where fc.company_id = fou.company_id
+        )company_name,
+        fop.position_name,
+        fou.unit_name,
+        em.employee_code ,
+        em.company_id ,
+        em.name as name,
+        em.email as email,
+        em.mobil as mobil,
+        em.phone as phone,
+        em.id_type ,
+        em.id_card_no ,
+        em.enabled_flag
+        from fnd_employee em
+        left join fnd_employee_assigns fea
+        on em.employee_id = fea.employee_id
+        left join fnd_org_position fop
+        on fop.position_id = fea.position_id
+        left join fnd_org_unit fou
+        on fou.unit_id = fop.unit_id
+        <where>
+            em.enabled_flag = 'Y'
+            <if test="unitId != null">
+                AND fea.UNIT_ID = #{unitId}
+            </if>
+            <if test="employeeId != null">
+                and em.employee_id = #{employeeId}
+            </if>
+            <if test="employeeCode != null">
+                and em.employee_code like concat(concat('%',#{employeeCode}),'%')
+            </if>
+            <if test="companyId != null">
+                and em.company_id = #{request.companyId}
+            </if>
+            <if test="name!=null">
+                and em.name like concat(concat('%',#{name}),'%')
+            </if>
+            <if test="positionId!=null">
+                and fop.position_id=#{positionId}
+            </if>
+            <if test="projectManagerName!=null">
+                and em.name!=#{projectManagerName}
+            </if>
+            <if test="codeString!= null">
+                and em.employee_code not in (#{codeString})
+            </if>
+            <if test="unitType!=null">
+                and fou.unit_type= #{unitType}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectWitness" resultMap="BaseResultMap" parameterType="com.hand.hls.fnd.dto.HlsEmployee">
+        select DISTINCT
+        em.employee_id ,
+        (
+        select fc.company_short_name
+        from fnd_company fc
+        where fc.company_id = fou.company_id
+        )company_name,
+        fop.position_name,
+        fou.unit_name,
+        em.employee_code ,
+        em.company_id ,
+        em.name as name,
+        em.email as email,
+        em.mobil as mobil,
+        em.phone as phone,
+        em.id_type ,
+        em.id_card_no ,
+        em.enabled_flag
+        from fnd_employee em
+        left join fnd_employee_assigns fea
+        on em.employee_id = fea.employee_id
+        left join fnd_org_position fop
+        on fop.position_id = fea.position_id
+        left join fnd_org_unit fou
+        on fou.unit_id = fop.unit_id
+        <where>
+            em.enabled_flag = 'Y'
+            and fea.unit_id in (10324,10331)
+            <if test="employeeId != null">
+                and em.employee_id = #{employeeId}
+            </if>
+            <if test="employeeCode != null">
+                and em.employee_code like concat(concat('%',#{employeeCode}),'%')
+            </if>
+            <if test="companyId != null">
+                and em.company_id = #{request.companyId}
+            </if>
+            <if test="name!=null">
+                and em.name like concat(concat('%',#{name}),'%')
+            </if>
+            <if test="unitName!=null">
+                and fou.unit_name like concat(concat('%',#{unitName}),'%')
+            </if>
+            <if test="positionId!=null">
+                and fop.position_id=#{positionId}
+            </if>
+            <if test="projectManagerName!=null">
+                and em.name!=#{projectManagerName}
+            </if>
+        </where>
+    </select>
+
+    <select id="queryManageDeptDirector" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+        SELECT
+        sua.ALLOCATION_ID as name
+        FROM
+        sys_user_allocation sua,
+        sys_user su
+        WHERE
+        su.user_id = sua.user_id
+        <!-- AND sua.company_id = #{companyId} -->
+        AND sua.employee_assign_id = (
+        SELECT
+        fea.employee_assign_id
+        FROM
+        fnd_employee_assigns fea ,fnd_employee fe
+        WHERE
+        fea.position_id = (
+        SELECT
+        fop.position_id
+        FROM
+        fnd_org_position fop
+        WHERE
+        fop.unit_id = #{manageUnitId}
+        AND fop.chief_position_flag = 'Y'
+        )
+        and fea.employee_id = fe.employee_id
+        <!-- AND fea.company_id = #{companyId} -->
+        )
+	</select>
+
+    <select id="queryParentManager" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+        select sua.ALLOCATION_ID as name
+        from
+        fnd_org_position fop,
+        fnd_employee_assigns fea,
+        SYS_USER_ALLOCATION sua,
+        SYS_USER su
+        where
+        fea.POSITION_ID = fop.POSITION_ID
+        and SUA.EMPLOYEE_ASSIGN_ID=fea.EMPLOYEE_ASSIGN_ID
+        and SUA.USER_ID=SU.USER_ID
+        and fop.POSITION_NAME =
+        (select concat(fou.UNIT_NAME,'分管领导')
+        from
+           fnd_org_unit fou
+        where fou.UNIT_ID = #{unitId})
+    </select>
+
+    <select id="selectSecretaryByComIdAndPositionId" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee"
+            resultMap="BaseResultMap">
+        select e.EMPLOYEE_ID,
+        e.NAME,
+        e.EMPLOYEE_CODE
+        from fnd_employee_assigns t,
+        fnd_employee e
+        where
+        1=1
+        <choose>
+            <when test="companyId!=null and companyId!=''">
+                and t.company_id=#{companyId}
+            </when>
+            <otherwise>
+                and t.company_id=#{request.companyId}
+            </otherwise>
+        </choose>
+        and position_id in (77,44)
+        and t.employee_id=e.EMPLOYEE_ID
+        <if test="employeeCode!=null and employeeCode!=''">
+            and e.employee_code like concat('%',concat(#{employeeCode},'%'))
+        </if>
+        <if test="name!=null and name!=''">
+            and e.name like concat('%',concat(#{name},'%'))
+        </if>
+    </select>
+
+    <select id="selectUnitIdByEmployeeCodeAndCompanyId" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee"
+            resultMap="BaseResultMap">
+        SELECT
+        FE.EMPLOYEE_ID,
+        FE.NAME,
+        FE.EMPLOYEE_CODE,
+        FE.COMPANY_ID,
+        FEA.UNIT_ID,
+        FOU.UNIT_CODE,
+        fou.unit_name,
+        FOP.POSITION_CODE
+        FROM
+        FND_EMPLOYEE FE
+        LEFT JOIN FND_EMPLOYEE_ASSIGNS FEA ON FE.EMPLOYEE_ID = FEA.EMPLOYEE_ID
+        LEFT JOIN FND_ORG_UNIT FOU ON FEA.UNIT_ID = FOU.UNIT_ID
+        LEFT JOIN FND_ORG_POSITION FOP ON FOP.POSITION_ID = FEA.POSITION_ID
+        <where>
+            1 = 1
+            <if test="employeeCode!=null">
+                and FE.EMPLOYEE_CODE = #{employeeCode}
+            </if>
+            <!--            <if test="companyId!=null">-->
+            <!--                AND FE.COMPANY_ID = #{companyId}-->
+            <!--            </if>-->
+        </where>
+    </select>
+    <!-- <select id="selectUnitIdByEmployeeCodeAndCompanyId" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+         SELECT
+             FE.EMPLOYEE_ID,
+             FE.NAME,
+             FE.EMPLOYEE_CODE,
+             FE.COMPANY_ID,
+             FEA.UNIT_ID,
+             FOU.UNIT_CODE,
+             FOP.POSITION_CODE
+         FROM
+             FND_EMPLOYEE FE
+             LEFT JOIN FND_EMPLOYEE_ASSIGNS FEA ON FE.EMPLOYEE_ID = FEA.EMPLOYEE_ID
+             LEFT JOIN FND_ORG_UNIT FOU ON FEA.UNIT_ID = FOU.UNIT_ID
+             LEFT JOIN FND_ORG_POSITION FOP ON FOP.POSITION_ID = FEA.POSITION_ID
+         WHERE
+             FE.EMPLOYEE_CODE = #{employeeCode}
+             AND FE.COMPANY_ID = #{companyId}
+     </select>-->
+
+    <select id="selectEmailAndName" resultMap="BaseResultMap" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee">
+		select distinct su.USER_NAME,su.USER_ID,su.EMAIL,fe.NAME from SYS_USER su
+		LEFT JOIN SYS_USER_ALLOCATION sua ON su.USER_ID = sua.USER_ID
+        LEFT JOIN FND_EMPLOYEE_ASSIGNS fea ON sua.EMPLOYEE_ASSIGN_ID = fea.EMPLOYEE_ASSIGN_ID
+        LEFT JOIN FND_EMPLOYEE fe ON fea.EMPLOYEE_ID = fe.EMPLOYEE_ID
+        where (su.USER_NAME = #{userName} or fe.NAME = #{userName})
+	</select>
+
+    <select id="selectEmployeeCodeByPositionCodeList" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee"
+            resultMap="BaseResultMap">
+        select fe.* from
+        FND_EMPLOYEE_ASSIGNS fea,
+        FND_ORG_POSITION fop,
+        FND_EMPLOYEE fe
+        WHERE fea.EMPLOYEE_ID = fe.EMPLOYEE_ID
+        and fop.POSITION_ID = fea.POSITION_ID
+        <if test="positionCodeList != null and !positionCodeList.isEmpty()">
+            and fop.POSITION_CODE in
+            <foreach item="item" index="index" collection="positionCodeList" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="employeeCode!=null and employeeCode!=''">
+            and fe.EMPLOYEE_CODE = #{employeeCode}
+        </if>
+        <if test="companyId!=null and companyId!=''">
+            and fe.COMPANY_ID = #{companyId}
+        </if>
+    </select>
+
+    <select id="selectEmployeeNameByCode" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+        select wm_concat(fe.name) name
+        from
+        FND_EMPLOYEE fe
+        WHERE
+        fe.company_id= #{request.companyId}
+        <if test="employeeCodes != null ">
+            and UPPER(fe.employee_code) in
+            <foreach item="item" index="index" collection="employeeCodes" open="(" separator="," close=")">
+                UPPER(#{item})
+            </foreach>
+        </if>
+        <if test="employeeCode != null">
+            and UPPER(fe.employee_code)=UPPER(#{employeeCode})
+        </if>
+
+
+    </select>
+    <select id="selectAllEmployeeInfoByCode" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee"
+            resultMap="BaseResultMap">
+        select fe.*
+        from
+        FND_EMPLOYEE fe
+        WHERE
+        fe.company_id=261
+        <if test="employeeCodes != null ">
+            and UPPER(fe.employee_code) in
+            <foreach item="item" index="index" collection="employeeCodes" open="(" separator="," close=")">
+                UPPER(#{item})
+            </foreach>
+        </if>
+    </select>
+
+    <select id="queryUserByUnitId" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+        select
+        distinct su.user_id,su.user_name,su.description as name,
+        fea.employee_assign_id,fea.employee_id
+        from sys_user su,
+        sys_user_allocation sua,
+        fnd_employee_assigns fea
+        where fea.unit_id=#{unitId}
+        and su.user_id=sua.user_id
+        and fea.employee_assign_id=sua.employee_assign_id
+        and fea.company_id=sua.company_id
+        and fea.company_id=#{companyId}
+        <if test="userId!=null and userId!=''">
+            and su.user_id=#{userId}
+        </if>
+    </select>
+
+    <select id="queryUnitManagerByUnitId" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+        select distinct sua.allocation_id as user_name from fnd_employee_assigns fea,
+        fnd_org_unit fou,
+        sys_user_allocation sua,
+        sys_user su
+        where
+        1=1
+        and fou.unit_id=#{unitId}
+        and fea.company_id=fou.company_id
+        and fou.company_id=sua.company_id
+        and fea.company_id=#{companyId}
+        and su.user_id=sua.user_id
+        and fea.employee_assign_id=sua.employee_assign_id
+        and fea.position_id=fou.chief_position_id
+    </select>
+
+    <select id="queryUnitManagerByUnitIdNew" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+        SELECT
+           a.allocation_id AS user_name
+        FROM
+            fnd_org_position p,
+            sys_user_allocation a,
+            fnd_employee_assigns e
+        WHERE
+            p.unit_id = #{unitId}
+        AND p.chief_position_flag = 'Y'
+        AND a.employee_assign_id = e.employee_assign_id
+        AND p.position_id = e.position_id
+        and a.company_id = #{companyId}
+        and e.company_id = a.company_id
+    </select>
+
+
+    <select id="selectCarbonEmployees" resultMap="BaseResultMap">
+
+        <!--出纳、运营岗、总经理-->
+        SELECT
+        FE.EMPLOYEE_ID,
+        FE.EMPLOYEE_CODE
+        FROM
+        FND_ORG_POSITION FOP
+        JOIN
+        FND_EMPLOYEE_ASSIGNS FEA
+        ON
+        FOP.POSITION_ID=FEA.POSITION_ID
+        AND FOP.ENABLED_FLAG='Y'
+        JOIN
+        FND_EMPLOYEE FE
+        ON
+        FE.EMPLOYEE_ID=FEA.EMPLOYEE_ID
+        AND FE.ENABLED_FLAG='Y'
+        WHERE
+        FOP.POSITION_CODE IN （'05230','00130','05530','00320','01700','05000'）
+        AND FE.COMPANY_ID=#{companyId}
+        UNION
+
+        <!--主协办-->
+        <if test="documentCategory == 'FCT_CONTRACT'">
+
+            SELECT
+            FE.EMPLOYEE_ID,
+            FE.EMPLOYEE_CODE
+            FROM
+            FCT_CONTRACT FC
+            JOIN
+            FCT_PROJECT FP
+            ON
+            FC.PROJECT_ID=FP.PROJECT_ID
+            JOIN
+            FND_EMPLOYEE_ASSIGNS FEA
+            ON
+            FEA.EMPLOYEE_ASSIGN_ID=FP.PROJECT_ASSISTANT_ASSIGNS_ID
+            JOIN
+            FND_EMPLOYEE FE
+            ON
+            FE.EMPLOYEE_ID=FEA.EMPLOYEE_ID
+            WHERE
+            1=1
+            AND FC.CONTRACT_ID=#{contractId}
+
+            UNION
+
+            SELECT
+            FE.EMPLOYEE_ID,
+            FE.EMPLOYEE_CODE
+            FROM
+            FCT_CONTRACT FC
+            JOIN
+            FCT_PROJECT FP
+            ON
+            FC.PROJECT_ID=FP.PROJECT_ID
+            JOIN
+            FND_EMPLOYEE FE
+            ON
+            FE.EMPLOYEE_ID=FP.EMPLOYEE_ID
+            WHERE
+            1=1
+            AND FC.CONTRACT_ID=#{contractId}
+
+            UNION
+        </if>
+
+        <if test="documentCategory == 'CON_CONTRACT'">
+            SELECT
+            FE.EMPLOYEE_ID,
+            FE.EMPLOYEE_CODE
+            FROM
+            CON_CONTRACT FC
+            JOIN
+            PRJ_PROJECT FP
+            ON
+            FC.PROJECT_ID=FP.PROJECT_ID
+            JOIN
+            FND_EMPLOYEE_ASSIGNS FEA
+            ON
+            FEA.EMPLOYEE_ASSIGN_ID=(select fea.employee_assign_id from sys_user_allocation sua where sua.user_id = fp.assist_project_manager and sua.user_id = fp.assist_unit_id)
+            JOIN
+            FND_EMPLOYEE FE
+            ON
+            FE.EMPLOYEE_ID=FEA.EMPLOYEE_ID
+            WHERE
+            1=1
+            AND FC.CONTRACT_ID=#{contractId}
+
+            UNION
+
+            SELECT
+            FE.EMPLOYEE_ID,
+            FE.EMPLOYEE_CODE
+            FROM
+            CON_CONTRACT FC
+            JOIN
+            PRJ_PROJECT FP
+            ON
+            FC.PROJECT_ID=FP.PROJECT_ID
+            JOIN
+            FND_EMPLOYEE FE
+            ON
+            FE.EMPLOYEE_ID=FP.EMPLOYEE_ID
+            WHERE
+            1=1
+            AND FC.CONTRACT_ID=#{contractId}
+
+            UNION
+        </if>
+
+        <!--分管领导-->
+        SELECT
+        FE.EMPLOYEE_ID,
+        FE.EMPLOYEE_CODE
+        FROM
+        FND_ORG_UNIT FOU,
+        FND_EMPLOYEE_ASSIGNS FEA,
+        FND_EMPLOYEE FE
+        WHERE
+        FOU.UNIT_ID = #{unitId}
+        AND FEA.UNIT_ID=FOU.PARENT_UNIT_ID
+        AND FE.EMPLOYEE_ID=FEA.EMPLOYEE_ID
+
+        UNION
+
+        <!--部门负责人-->
+        SELECT
+        FE.EMPLOYEE_ID,
+        FE.EMPLOYEE_CODE
+        FROM
+        FND_ORG_UNIT FOU
+        JOIN
+        FND_ORG_POSITION FOP
+        ON
+        FOU.CHIEF_POSITION_ID=FOP.POSITION_ID
+        AND FOU.ENABLED_FLAG='Y'
+        JOIN
+        FND_EMPLOYEE_ASSIGNS FEA
+        ON
+        FOP.POSITION_ID=FEA.POSITION_ID
+        AND FOP.ENABLED_FLAG='Y'
+        AND FEA.ENABLED_FLAG='Y'
+        JOIN
+        FND_EMPLOYEE FE
+        ON
+        FE.EMPLOYEE_ID=FEA.EMPLOYEE_ID
+        AND FE.ENABLED_FLAG='Y'
+        WHERE
+        FOU.UNIT_ID=#{unitId}
+    </select>
+
+
+    <select id="selectUserNameByEmployeeAssignIdList" resultMap="BaseResultMap">
+        select DISTINCT a.USER_NAME as name
+        from sys_user a,
+        sys_user_allocation b
+        where a.USER_ID = b.user_id
+        <!--        <if test="companyId!=null">-->
+        <!--            and b.company_id =#{companyId}-->
+        <!--        </if>-->
+        and b.employee_assign_id in
+        <foreach item="item" index="index" collection="employeeAssignIdList" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+
+    <select id="selectManagerUserNameByEmployeeAssignIdList" resultMap="BaseResultMap">
+        SELECT DISTINCT
+        a.USER_NAME AS name
+        FROM
+        fnd_employee_assigns fea,
+        fnd_org_unit fou,
+        fnd_employee_assigns leader,
+        sys_user_allocation b,
+        sys_user a
+        WHERE
+        fou.unit_id = fea.unit_id
+        AND fou.chief_position_id = leader.position_id
+        AND a.USER_ID = b.user_id
+        AND b.employee_assign_id=leader.employee_assign_id
+        <!--   <if test="companyId!=null">
+               and b.company_id =#{companyId}
+           </if>-->
+        and fea.employee_assign_id in
+        <foreach item="item" index="index" collection="employeeAssignIdList" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+
+    <select id="selectProjectMajorAndAssistant" resultMap="BaseResultMap">
+        select DISTINCT a.USER_NAME as name
+        from sys_user a,
+        sys_user_allocation b
+        where a.USER_ID = b.user_id
+        <if test="companyId!=null">
+            and b.company_id =#{companyId}
+        </if>
+        and b.employee_assign_id in(#{employeeAssignId},#{assistantAssignId})
+    </select>
+
+    <select id="queryManyParentManager" resultMap="BaseResultMap">
+        SELECT
+        SU.USER_NAME as name
+        FROM
+        FND_ORG_UNIT fou,
+        FND_EMPLOYEE_ASSIGNS fea,
+        SYS_USER_ALLOCATION sua,
+        SYS_USER su
+        WHERE
+
+        FOU.UNIT_ID in
+        <foreach item="item" index="index" collection="unitIdList" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        and FEA.UNIT_ID=FOU.PARENT_UNIT_ID
+        and SUA.EMPLOYEE_ASSIGN_ID=fea.EMPLOYEE_ASSIGN_ID
+        and SUA.USER_ID=SU.USER_ID
+    </select>
+
+    <select id="getUnitPositionUsername" resultType="java.lang.String">
+		SELECT
+		su.USER_NAME
+		FROM
+		SYS_USER su ,
+		SYS_USER_ALLOCATION sua ,
+		FND_EMPLOYEE_ASSIGNS fea
+		WHERE
+		su.USER_ID = sua.USER_ID
+		AND sua.EMPLOYEE_ASSIGN_ID = fea.EMPLOYEE_ASSIGN_ID
+		AND fea.POSITION_ID IN(
+		SELECT
+		fou1.CHIEF_POSITION_ID
+		FROM
+		SYS_USER su1 ,
+		SYS_USER_ALLOCATION sua1 ,
+		FND_EMPLOYEE_ASSIGNS fea1 ,
+		FND_ORG_UNIT fou1
+		WHERE
+		su1.USER_ID = sua1.USER_ID
+		AND su1.USER_NAME = #{username}
+		AND fea1.EMPLOYEE_ASSIGN_ID = sua1.EMPLOYEE_ASSIGN_ID
+		AND fou1.UNIT_ID = fea1.UNIT_ID
+		)
+	</select>
+
+
+    <select id="getEmployeeCode" resultMap="BaseResultMap">
+        SELECT
+            distinct fe.employee_code as employeeCode,
+             fe.name,
+             fe.employee_id as employeeId
+        FROM
+            fnd_employee fe,
+            fnd_employee_assigns fea,
+            sys_user su,
+            sys_user_allocation sua
+        where
+          fe.EMPLOYEE_ID = fea.EMPLOYEE_ID
+          and su.USER_ID = sua.USER_ID
+          and sua.EMPLOYEE_ASSIGN_ID = fea.EMPLOYEE_ASSIGN_ID
+          and fe.enabled_flag ='Y'
+          and su.USER_ID = #{userId}
+          and fea.PRIMARY_POSITION_FLAG = 'Y'
+	</select>
+
+
+    <select id="queryAssignByAllocation" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+
+        SELECT sua.allocation_id as name
+          FROM sys_user_allocation sua, sys_user su
+         where su.user_id = sua.user_id
+           and sua.allocation_id = #{allocationId}
+        <if test="companyId!=null">
+            and sua.company_id = #{companyId}
+        </if>
+
+	</select>
+
+    <select id="queryBusinessLeader" parameterType="com.hand.hls.fnd.dto.HlsCusEmployee" resultMap="BaseResultMap">
+
+        SELECT
+            (
+                CASE u.unit_code
+                WHEN 'BUSINESS_DEPT_OD' THEN
+                    (
+                        SELECT
+                            sa.allocation_id
+                        FROM
+                            sys_user_allocation sa,
+                            fnd_employee_assigns fea,
+                            fnd_org_position fp
+                        WHERE
+                            sa.EMPLOYEE_ASSIGN_ID = fea.EMPLOYEE_ASSIGN_ID
+                        AND fea.POSITION_ID = fp.POSITION_ID
+                        AND fp.POSITION_CODE = 'A8001'
+                    )
+                WHEN 'BUSINESS_DEPT_TD' THEN
+                    (
+                        SELECT
+                            sa.allocation_id
+                        FROM
+                            sys_user_allocation sa,
+                            fnd_employee_assigns fea,
+                            fnd_org_position fp
+                        WHERE
+                            sa.EMPLOYEE_ASSIGN_ID = fea.EMPLOYEE_ASSIGN_ID
+                        AND fea.POSITION_ID = fp.POSITION_ID
+                        AND fp.POSITION_CODE = 'A8002'
+                    )
+                WHEN 'BUSINESS_DEPT_THD' THEN
+                    (
+                        SELECT
+                            sa.allocation_id
+                        FROM
+                            sys_user_allocation sa,
+                            fnd_employee_assigns fea,
+                            fnd_org_position fp
+                        WHERE
+                            sa.EMPLOYEE_ASSIGN_ID = fea.EMPLOYEE_ASSIGN_ID
+                        AND fea.POSITION_ID = fp.POSITION_ID
+                        AND fp.POSITION_CODE = 'A8003'
+                    )
+                WHEN 'BUSINESS_DEPT_ZD' THEN
+                    (
+                        SELECT
+                            sa.allocation_id
+                        FROM
+                            sys_user_allocation sa,
+                            fnd_employee_assigns fea,
+                            fnd_org_position fp
+                        WHERE
+                            sa.EMPLOYEE_ASSIGN_ID = fea.EMPLOYEE_ASSIGN_ID
+                        AND fea.POSITION_ID = fp.POSITION_ID
+                        AND fp.POSITION_CODE = 'A8004'
+                    )
+                END
+            ) NAME
+        FROM
+            fnd_org_unit u
+        WHERE
+	        u.unit_id = #{unitId}
+	</select>
+
+
+</mapper>

@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="lease_info_detaill_id"
+                url="${/request/@context_path}/modules/LEASE/LEASE001/lease_item_modify_detail.lview"/>
+        <script><![CDATA[
+
+
+        //提交审批SUBMIT_APPROVAL
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function (){
+            debugger;
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id =  get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_hd');
+            var con_contract_cashflow_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_ln' , 'G_DETAIL');
+
+            var dsRecord = $(ds_id).getAll();
+            if(dsRecord.length == 1){
+                var contractRecord= dsRecord[0].data;
+
+                //避免栈溢出ASSET_HD_ID
+                contractRecord[con_contract_cashflow_id.replace('_ds','')]=undefined;
+                var asset_hd_id = contractRecord.asset_hd_id;
+                if(contractRecord.asset_status!=='APPROVING' && contractRecord.asset_status!=='APPROVED') {
+                    Leaf.request({
+                        url: "${/request/@context_path}/lease/asset/hd/incept/sumbit",
+                        para: {
+                            asset_hd_id:asset_hd_id
+                        },
+                        success: function (r) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $L.showInfoMessage("提示", "提交成功,已进入工作流审批!", function () {
+                                $('${/parameter/@winid}').close();
+
+                            });
+                        },
+                        error: function (r) {
+                            // $L.Masker.unmask(document.body);
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            // Leaf.showMessage("提示", r.error.message, null);
+                        },
+                        scope: this
+                    });
+                }else{
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    $L.showInfoMessage("提示", "正在审批中。。。。", function () {
+                        $('${/parameter/@winid}').close();
+
+                    });
+                }
+
+
+
+            }
+        }
+
+       /* //保存时更新最新重估值
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            // window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            console.log(111);
+            //debugger;
+            // 先执行保存操作,保存成功后确认数据
+            debugger;
+            window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+
+            });
+            /!*window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+            });*!/
+
+
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_hd');
+            var base_record = $(base_ds_id).getCurrentRecord();
+            var asset_hd_id = base_record.get('asset_hd_id');
+
+            Leaf.showOkCancelWindow("确认", "确认后不可在当前页面进行维护，是否对资产重估价值进行确认？", function () {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                 //submit();
+                Leaf.request({
+                    url: "${/request/@context_path}/lease/confirm/lease/value",
+                    async: false,
+                    para: {asset_hd_id: asset_hd_id},
+                    success: function (res) {
+
+                        $L.showInfoMessage("提示","确认成功!",function(){
+                            $('${/parameter/@winid}').close();
+                        });
+
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                });
+
+            }, function () {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }, 200, 200);
+            // });
+
+
+
+        };
+*/
+
+
+
+
+
+
+       // 保存前调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function(ds, record) {
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_hd');
+            //$(pledge_ds_id).getCurrentRecord().set('modify_date', new Date());
+            debugger;
+            if(typeof ($(pledge_ds_id).getCurrentRecord().get('asset_status'))=='undefined'|| 'undefined' == ($(pledge_ds_id).getCurrentRecord().get('asset_status'))){
+                $(pledge_ds_id).getCurrentRecord().set('asset_status', 'NEW');
+            }
+            //生成权限字符串  authority_rule_string
+            Leaf.request({
+                url: "${/request/@context_path}/lease/asset/hd/generateAuthorityString",
+                success: function (res) {
+                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_hd');
+                    $(ds_id).getCurrentRecord().set('authority_rule_string', res.result.record[0]);
+                },
+                sync: true,
+                scope: this
+            });
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        };
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+            alert(123)
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            debugger;
+            /*var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_hd');
+            var base_record = $(base_ds_id).getCurrentRecord();
+            var asset_hd_id = base_record.get('asset_hd_id');
+
+            Leaf.showOkCancelWindow("确认", "确认后不可在当前页面进行维护，是否对资产重估价值进行确认？", function () {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                //submit();
+                Leaf.request({
+                    url: "${/request/@context_path}/lease/confirm/lease/value",
+                    async: false,
+                    para: {asset_hd_id: asset_hd_id},
+                    success: function (res) {
+
+                        $L.showInfoMessage("提示","确认成功!",function(){
+                            $('${/parameter/@winid}').close();
+                        });
+
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                });
+
+            }, function () {
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }, 200, 200);*/
+
+
+        };
+
+
+        //创建加载时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq){
+            var pledge_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_hd');
+
+
+            var check_flag = true;
+            var asset_number =$(pledge_ds_id).getCurrentRecord().get('asset_number');
+            var document_category = 'REV_ASSET_NUMBER';
+            var document_type = 'ASSET_NUMBER';
+            var business_type ='ASSET_NUMBER';
+            debugger;
+
+            if(pledge_ds_id!="" && $(pledge_ds_id).getCurrentRecord()!=null){
+                //MODIFY_PERSON  new Date() MODIFY_DATE ASSET_STATUS
+                $(pledge_ds_id).getCurrentRecord().set('modify_person', '${/session/@employeeId}');
+                $(pledge_ds_id).getCurrentRecord().set('modify_person_n', '${/session/@employeeName}');
+                $(pledge_ds_id).getCurrentRecord().set('modify_unit_n', '${/session/@unitName}');
+               /* if(typeof ($(pledge_ds_id).getCurrentRecord().get('asset_status'))=='undefined'|| 'undefined' == ($(pledge_ds_id).getCurrentRecord().get('asset_status'))){
+                    $(pledge_ds_id).getCurrentRecord().set('asset_status', 'NEW');
+                }*/
+                if(typeof ($(pledge_ds_id).getCurrentRecord().get('modify_date'))=='undefined'|| 'undefined' == ($(pledge_ds_id).getCurrentRecord().get('modify_date'))){
+                    $(pledge_ds_id).getCurrentRecord().set('modify_date', new Date());
+                }
+
+
+               console.log('${/session/@unitId}')
+
+
+                $(pledge_ds_id).getCurrentRecord().set('modify_unit', '${/session/@unitId}');
+
+                if(!asset_number){
+                    Leaf.request({
+                        url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type,
+                        success: function (res) {
+                            $(pledge_ds_id).getCurrentRecord().set('asset_number', res.result.record[0]);
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            check_flag = true;
+                            // $(pledge_ds_id).query({
+                            //     asset_number:res.result.record[0]
+                            // });
+                        },
+                        error: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            check_flag = false;
+                        },
+                        failure: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            check_flag = false;
+                        },
+                        sync: true,
+                        scope: this
+                    });
+                }
+
+
+            }
+
+
+
+            return check_flag;
+        }
+
+
+        // 超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'lease001_detail_open';
+            //debugger;
+
+
+
+
+
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name === 'asset_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id +  '\',\'' + record.get('contract_status') +  '\');">' + value + '</a>';
+            }
+
+            if (name == 'upload') {
+
+                return '<a href="javascript:approval_upload_file(\'' + record.id + '\',\'' + record.get('asset_ln_id') + '\')">附件上传</a>';
+            }
+            //FILE_NAME file_name
+
+            if (name == 'file_name' && value) {
+                var str = value.split(',');
+                var url = '' ;
+                for(var i = 0;i < str.length;i++){
+                    debugger;
+                    var temp;
+                    if(record.get('attachment_id')!='undefined'){
+                         temp = record.get('attachment_id')
+                    }
+
+                    url = url + '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + temp +'">' + str[i] +' ; </a>';
+                }
+                return url;
+                // return '<a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + record.get('asset_ln_id') + '">' + value + '</a>';
+            }
+
+
+        };
+
+        //ASSET_LN_ID
+        window['approval_upload_file'] = function (record_id, asset_ln_id) {
+            if (typeof (asset_ln_id) === 'undefined' || 'undefined' === asset_ln_id) {
+                Leaf.showMessage('提示', '请先保存!', null);
+                return;
+            }
+            var url;
+            if ('${/parameter/@function_usage}' == 'QUERY') {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            var win = new Leaf.Window({
+                id: 'prj316wfl_open_attachment_winid',
+                url: url,
+                params: {
+                    'header_id': asset_ln_id,
+                    'table_name': 'lease_asset_ln',
+                    winid: 'prj320_open_attachment_winid',
+                    function_usage: '${/parameter/@function_usage}'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'lease_asset_ln');
+                $(ds_id).query();
+            });
+        };
+
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function(ds, record, res, bp_seq) {
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            console.log(1234)
+
+        };
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: Eugene Song
+    $Date: 2020年5月27日
+    $Revision: 1.0
+    $Purpose: 存续期审批-入口界面
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+    <a:view>
+        <a:link id="${/parameter/@layout_code}_duration_create_id"
+                url="${/request/@context_path}/modules/HLS/HLS300/hls_duration_create.lview"/>
+
+        <a:link id="${/parameter/@layout_code}_duration_window_id"
+                url="${/request/@context_path}/modules/HLS/HLS300/hls_duration_modify.lview"/>
+
+        <script><![CDATA[
+
+
+
+        function duration_number_open(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var duration_status = record.get('duration_status');
+            var duration_type = record.get('duration_type');
+
+
+            param['url_title'] = '存续期审批查询';
+            param['function_code'] = get_function_code(duration_type);
+            param['winid'] = 'duration_detail_open_id';
+            param['function_usage'] = 'QUERY';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_duration_window_id', ds_id, 'HLS300F');
+        }
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = '';
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'duration_number') {
+                link_function = 'duration_number_open';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        function get_function_code(duration_type) {
+            /**
+             PROJECT           项目变更审批事项工作联系单
+             TERMINATE         正常结清
+             ET                提前结清
+             DEPOSIT           保证金释放、退还
+             RELEASE           解押
+             REPURCHASE        回购
+             PREPAYMENT        提前还款
+             SPECIAL           特殊事项
+             */
+            if (duration_type == 'BUSINESS_CHANGE') {
+                return 'HLS300F20';
+            }else if (duration_type == 'ET') {
+                return 'HLS300F9';
+            }else if (duration_type == 'DEPOSIT') {
+                return 'HLS300F5';
+            }else if (duration_type == 'CON_TERMINATION') {
+                return 'HLS300F21';
+            }
+        }
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd')
+            if (ds_id == ds.id) {
+                qpara['execute_flag'] = 'N';
+                qpara['query_flag'] = 'Y';
+                //qpara['apply_person'] = '${/session/@user_id}';
+                ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+            }
+        };
+
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_duration_hd');
+            var records = $(ds_id).getSelected();
+            var hd_id = records[0].get('hd_id');
+            var duration_type = records[0].get('duration_type');
+            //模板类型代码
+            if(duration_type == 'TERMINATE'){
+                var code = "DUR_TERMINATE";
+            }else if(duration_type == 'ET'){
+                var code = "DUR_ET";
+            }else if(duration_type == 'DEPOSIT'){
+                var code = "DUR_DEPOSIT";
+            }else if(duration_type == 'PREPAYMENT'){
+                var code = "DUR_PREPAYMENT";
+            }else if(duration_type == 'REPURCHASE'){
+                var code = "DUR_REPURCHASE";
+            }else if(duration_type == 'RELEASE'){
+                var code = "DUR_RELEASE";
+            }else if(duration_type == 'PROJECT'){
+                var code = "DUR_PROJECT";
+            }else if(duration_type == 'SPECIAL'){
+                var code = "DUR_SPECIAL";
+            }
+
+            var url = "${/request/@context_path}/hls/duration/approval/doc?code=" + code + "&hdId=" + hd_id;
+            //window.location.href = url;
+
+            Leaf.Masker.mask(Ext.getBody());
+            Leaf.request({
+                url: url,
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    var attachment_id = res.result.record[0].attachment_id;
+                    down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
+                    location.href = down_url;
+                    Leaf.SideBar.show({
+                        msg: '生成成功',
+                        duration: 2000
+                    });
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

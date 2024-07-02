@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.rpt.mapper.RptOffBalanceSheetMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.rpt.dto.RptOffBalanceSheet">
+        <result column="CONTRACT_ID" property="contractId" jdbcType="DECIMAL"/>
+        <result column="CASHFLOW_ID" property="cashflowId" jdbcType="DECIMAL"/>
+        <result column="TIMES" property="times" jdbcType="DECIMAL"/>
+        <result column="DUE_DATE" property="dueDate" jdbcType="DATE"/>
+        <result column="DUE_AMOUNT" property="dueAmount" jdbcType="DECIMAL"/>
+        <result column="PRINCIPAL" property="principal" jdbcType="DECIMAL"/>
+        <result column="INTEREST" property="interest" jdbcType="DECIMAL"/>
+        <result column="AMORTIZATION_DATE" property="amortizationDate" jdbcType="DATE"/>
+        <result column="PERIOD_NAME" property="periodName" jdbcType="VARCHAR"/>
+        <result column="AMORTIZATION_AMOUNT" property="amortizationAmount" jdbcType="DECIMAL"/>
+        <result column="FINANCE_INCOME" property="financeIncome" jdbcType="DECIMAL"/>
+        <result column="ACT_AMORTIZATION_AMOUNT" property="actAmortizationAmount" jdbcType="DECIMAL"/>
+        <result column="ACT_FINANCE_INCOME" property="actFinanceIncome" jdbcType="DECIMAL"/>
+        <result column="OFF_BALANCE_SHEET_AMOUNT" property="offBalanceSheetAmount" jdbcType="DECIMAL"/>
+        <result column="WRITE_OFF_DUE_AMOUNT" property="writeOffDueAmount" jdbcType="DECIMAL"/>
+        <result column="WRITE_OFF_PRINCIPAL" property="writeOffPrincipal" jdbcType="DECIMAL"/>
+        <result column="WRITE_OFF_INTEREST" property="writeOffInterest" jdbcType="DECIMAL"/>
+        <result column="ORIGINAL_OBS_AMOUNT" property="originalObsAmount" jdbcType="DECIMAL"/>
+        <result column="days" property="days" jdbcType="DECIMAL"/>
+
+
+        <result column="index_number" property="indexNumber" jdbcType="DECIMAL"/>
+        <result column="outflow_amount" property="outflowAmount" jdbcType="DECIMAL"/>
+        <result column="inflow_amount" property="inflowAmount" jdbcType="DECIMAL"/>
+
+    </resultMap>
+    <select id="rptOffBalanceSheetQuery" parameterType="com.hand.hls.rpt.dto.RptOffBalanceSheet"
+            resultMap="BaseResultMap">
+        select * from rpt_off_balance_sheet t
+        <where>
+            t.contract_id = #{contractId}
+        </where>
+        order by  amortization_date
+    </select>
+
+    <delete id="deleteByContractId">
+        delete
+        from rpt_off_balance_sheet t
+        where t.contract_id = #{contractId}
+    </delete>
+
+
+    <insert id="insertOffBalanceSheetBatch" parameterType="java.util.List">
+        insert into rpt_off_balance_sheet (
+        contract_id,
+        cashflow_id,
+        times,
+        due_date,
+        due_amount,
+        principal,
+        interest,
+        amortization_date,
+        period_name,
+        amortization_amount,
+        finance_income,
+        act_amortization_amount,
+        act_finance_income,
+        off_balance_sheet_amount,
+        write_off_due_amount,
+        write_off_principal,
+        write_off_interest,
+        original_obs_amount,
+        object_version_number,
+        request_id,
+        program_id,
+        created_by,
+        creation_date,
+        last_updated_by,
+        last_update_date,
+        last_update_login)
+
+        <foreach collection="list" item="item" index="index" separator="union all">
+            ( SELECT
+            #{item.contractId,jdbcType=NUMERIC} contract_id,
+            #{item.cashflowId,jdbcType=NUMERIC} cashflow_id,
+            #{item.times,jdbcType=NUMERIC} times,
+            #{item.dueDate,jdbcType=DATE} due_date,
+            #{item.dueAmount,jdbcType=NUMERIC} due_amount,
+            #{item.principal,jdbcType=NUMERIC} principal,
+            #{item.interest,jdbcType=NUMERIC} interest,
+            #{item.amortizationDate,jdbcType=DATE} amortization_date,
+            #{item.periodName,jdbcType=VARCHAR} period_name,
+            #{item.amortizationAmount,jdbcType=NUMERIC} amortization_amount,
+            #{item.financeIncome,jdbcType=NUMERIC} finance_income,
+            #{item.actAmortizationAmount,jdbcType=NUMERIC} act_amortization_amount,
+            #{item.actFinanceIncome,jdbcType=NUMERIC} act_finance_income,
+            #{item.offBalanceSheetAmount,jdbcType=NUMERIC} off_balance_sheet_amount,
+            #{item.writeOffDueAmount,jdbcType=NUMERIC} write_off_due_amount,
+            #{item.writeOffPrincipal,jdbcType=NUMERIC} write_off_principal,
+            #{item.writeOffInterest,jdbcType=NUMERIC} write_off_interest,
+            #{item.originalObsAmount,jdbcType=NUMERIC} original_obs_amount,
+            1 object_version_number,
+            1 request_id,
+            1 program_id,
+            1 created_by,
+            sysdate creation_date,
+            1 last_updated_by,
+            sysdate last_update_date,
+            1 last_update_login from dual)
+        </foreach>
+
+    </insert>
+
+
+
+    <select id="offBalanceSheetInOutQuery" parameterType="com.hand.hls.rpt.dto.RptOffBalanceSheet" resultMap="BaseResultMap">
+     select  t1.*, (@i :=@i + 1)  AS index_number
+        from (SELECT t.amortization_date,
+        <![CDATA[
+            CASE
+            WHEN t.act_amortization_amount < 0 THEN
+            t.act_amortization_amount * -1
+            ELSE
+            0
+            END AS inflow_amount,
+            CASE
+            WHEN t.act_amortization_amount > 0 THEN
+            t.act_amortization_amount
+            ELSE
+            0
+            END AS outflow_amount,
+        ]]>
+        t.off_balance_sheet_amount
+        FROM rpt_off_balance_sheet t,(SELECT @i := 0) AS row_seq
+        <where>
+            t.off_balance_sheet_amount IS NOT NULL
+            AND t.act_amortization_amount IS NOT NULL
+            and t.contract_id =  #{contractId,jdbcType=NUMERIC}
+        </where>
+
+        ORDER BY t.amortization_date) t1
+    </select>
+
+
+</mapper>

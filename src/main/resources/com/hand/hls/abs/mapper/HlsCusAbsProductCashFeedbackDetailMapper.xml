@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProductCashFeedbackDetailMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProductCashFeedbackDetail">
+        <result column="feedback_detail_id" property="feedbackDetailId" jdbcType="DECIMAL" />
+        <result column="cash_detail_id" property="cashDetailId" jdbcType="DECIMAL" />
+        <result column="structure_id" property="structureId" jdbcType="DECIMAL" />
+        <result column="product_id" property="productId" jdbcType="DECIMAL" />
+        <result column="cash_principal" property="cashPrincipal" jdbcType="DECIMAL" />
+        <result column="cash_interest" property="cashInterest" jdbcType="DECIMAL" />
+        <result column="cash_amount_sum" property="cashAmountSum" jdbcType="DECIMAL" />
+        <result column="structure_id_n" property="structureIdN" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="selectProductCashFeedbackDetailData" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductCashFeedbackDetail" resultMap="BaseResultMap">
+        SELECT
+        pcfd.feedback_detail_id,
+        pcfd.cash_detail_id,
+        pcfd.structure_id,
+        pcfd.product_id,
+        pcfd.cash_amount_sum,
+        pcfd.cash_principal,
+        pcfd.cash_interest,
+        ps.PROJECT_STRUCTURE,
+        ( SELECT s.MEANING FROM sys_code_value_b_v s WHERE s.CODE_VALUE = ps.project_structure AND s.CODE = 'ABS.PRORITY_LEVEL' ) as structure_id_n
+        FROM
+        ct_abs_product_cash_fb_detail pcfd
+        left join ct_abs_product_structure ps on pcfd.STRUCTURE_ID = ps.STRUCTURE_ID
+        WHERE
+        1=1
+        <if test="cashDetailId != null">
+            and pcfd.cash_detail_id = #{cashDetailId}
+        </if>
+    </select>
+
+</mapper>

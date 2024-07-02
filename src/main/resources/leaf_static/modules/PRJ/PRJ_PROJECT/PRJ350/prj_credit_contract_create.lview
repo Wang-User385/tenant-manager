@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+
+    <a:view>
+        <a:link id="prj_credit_contract_detail"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ350/prj_credit_contract_detail.lview"/>
+        <script><![CDATA[
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            qpara['created_by'] = '${/session/@user_id}';
+        };
+
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+
+            debugger
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var records = $(ds_id).getSelected()
+
+            if (records[0].data.left_amount == 0) {
+                Leaf.showMessage('提示','该授信项目已创建合同')
+                return
+            }
+            var data = records[0].data
+            data['ref_project_id'] = data.project_id;
+            Leaf.request({
+                url: "${/request/@context_path}/ct/prj/project/submit/create/credit/con",
+                para: data,
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    var param = {};
+                    param['url_title'] = '合同协议维护';
+                    param['function_code'] = 'PRJ350F1';
+                    param['winid'] = 'prj_credit_contract_create_win_id';
+                    param['function_usage'] = 'MODIFY';
+                    param['project_id'] = res.result.record[0].project_id;
+                    hls_doc_get_layout_code(param, 'prj_credit_contract_detail', ds_id, 'PRJ350F1');
+                },
+                error: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                //sync: true,
+                scope: this
+            });
+            /*var param = records[0].data;
+            param['url_title'] = '合同协议维护';
+            param['function_code'] = 'PRJ350F1';
+            param['winid'] = 'prj_credit_contract_create_win_id';
+            param['function_usage'] = 'MODIFY';
+            param['project_id'] = records[0].data.project_id;
+            hls_doc_get_layout_code(param, 'prj_credit_contract_detail', ds_id, 'PRJ350F1');*/
+
+        };
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function = 'prj_credit_contract_detail';
+            if (name == 'project_number') {
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        }
+
+        window['prj_credit_contract_detail'] = function (record_id, ds_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '合同协议维护';
+            param['function_code'] = 'PRJ350F1';
+            param['winid'] = 'prj_credit_contract_create_win_id';
+            param['ds_id'] = ds_id;
+            param['function_usage'] = 'MODIFY';
+            if (record.data.org_sign_state == 'CONFIRM') {
+                param['function_usage'] = 'QUERY';
+            }
+            var link_id = 'prj_credit_contract_detail';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'PRJ350');
+        };
+
+        ]]></script>
+
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
+

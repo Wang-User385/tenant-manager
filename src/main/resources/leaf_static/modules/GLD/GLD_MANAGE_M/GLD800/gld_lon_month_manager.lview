@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true"
+          trace="true">
+    <a:init-procedure>
+    </a:init-procedure>
+    <a:view>
+        <style>
+            /*滚动条样式*/
+            .item-tab .tab::-webkit-scrollbar { /*滚动条整体样式*/
+                width: 8px; /*高宽分别对应横竖滚动条的尺寸*/
+                height: 8px;
+            }
+
+            .item-tab .tab::-webkit-scrollbar-thumb { /*滚动条里面小方块*/
+                border-radius: 5px;
+                -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                background-color: rgb(204, 204, 204);
+            }
+
+            .item-tab .tab::-webkit-scrollbar-track { /*滚动条里面轨道*/
+                -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+                border-radius: 0;
+                background-color: white;
+            }
+        </style>
+
+        <script><![CDATA[
+
+        function sum_foot(data, name) {
+            if (name == 'credit_bp_name') {
+                return '<font color=red>' + '合计：' + '</font>';
+            } else if (name == 'due_amount') {
+                return colum_caculateTotal(data, name);
+            } else if (name == 'finance_cost') {
+                return colum_caculateTotal(data, name);
+            }
+        }
+
+        function colum_caculateTotal(data, name) {
+            var total = 0;
+            var length = data.length;
+            var value = 0;
+            for (var i = 0; i < length; i++) {
+                if (Ext.isEmpty(data[i].get(name))) {
+                    value = 0;
+                } else {
+                    value = data[i].get(name);
+                }
+                total = plus(total, value);
+            }
+            return '<font color=red>' + Leaf.formatMoney(total) + '</font>';
+        }
+
+        function onUpdate_period_name_ds(ds, record, name, value, oldvalue) {
+            //debugger;
+            if (name == 'period_name') {
+                var period_name = $('period_name_ds').getCurrentRecord().get('period_name');
+                var period_name_n = $('period_name_ds').getCurrentRecord().get('period_name_n');
+                if (period_name != null && period_name != '') {
+                    //融资利息
+                    $('lon_interest_query_ds').getCurrentRecord().set('period_name', period_name);
+                    $('lon_interest_query_ds').getCurrentRecord().set('period_name_n', period_name_n);
+
+
+                    lon_interest_query();
+                }
+            }
+        }
+
+        <!--融资利息 start -->
+
+        function onQuery_lon_interest_ds() {
+            $('lon_interest_ds').setQueryParameter('period_name', $('period_name_ds').getCurrentRecord().get('period_name'));
+        }
+
+        function lon_interest_query() {
+            if ($('lon_interest_query_ds').getCurrentRecord()) {
+                if ($('lon_interest_query_ds').getCurrentRecord().get('period_name')) {
+                    $('lon_interest_ds').query();
+                } else {
+                    Leaf.showMessage('提示', '请先选择期间再进行操作！');
+                }
+            } else {
+                Leaf.showMessage('提示', '请先选择期间再进行操作！');
+            }
+        }
+
+        //融资利息月结
+        function lon_interest_month_settle() {
+            var pre_lon_interest_record = $('lon_interest_ds').getSelected();
+            var param = [];
+            var post_flag = 'N';
+            for (var i = 0; i < pre_lon_interest_record.length; i++) {
+                if (pre_lon_interest_record[i].get('post_flag') == 'Y') {
+                    post_flag = 'Y';
+                    break;
+                } else {
+                    param.push(pre_lon_interest_record[i].data);
+                }
+            }
+            if (pre_lon_interest_record.length == 0) {
+                Leaf.showMessage('提示', '未选择一条记录！');
+                return;
+            }
+
+            if (post_flag == 'Y') {
+                Leaf.showMessage('提示', '存在月结过的记录，不可重复月结！');
+                return;
+            }
+            var period_name = $('period_name_ds').getCurrentRecord().get('period_name');
+            Leaf.Masker.mask(Ext.getBody(), '执行中...');
+            Leaf.request({
+                url: "${/request/@context_path}/gld/lon/finance/cost/monthSettle?periodName=" + period_name + "&contractType=IN",
+                para: param,
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    $L.showInfoMessage("提示", "执行成功!", function () {
+                        lon_interest_query();
+                    });
+                },
+                error: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+
+                scope: this
+            });
+        }
+        <!--融资利息 end -->
+
+        var current_tab = 0;
+
+        //上一步
+        function pre_tab() {
+            if (current_tab > 0) {
+                current_tab--;
+                $("monthTab").selectTab(current_tab);
+            }
+        }
+
+        //下一步
+        function next_tab() {
+            if (current_tab < 5) {
+                current_tab++;
+                $("monthTab").selectTab(current_tab);
+            }
+        }
+
+        //获取当前tab页index
+        function onSelect_month_tab(tabPanel, index, tab) {
+            current_tab = index;
+        }
+
+        //百分数格式化
+        function percentFormat(value, record, name) {
+            if (name == 'stamp_tax') {
+                if (!isNaN(value)) {
+                    return parseFloat(value * 100).toFixed(2) + '%';
+                } else {
+                    return '';
+                }
+            }
+        }
+
+        function month_end() {
+            Leaf.showMessage('提示', '月结结束！');
+        }
+
+        Leaf.onReady(function () {
+            $('lon_interest_query_ds').getCurrentRecord().set('company_id', '${/session/@companyId}');
+        });
+
+
+        ]]></script>
+        <!--期间-->
+        <a:dataSets>
+            <a:dataSet id="query_post_flag_ds" lookupCode="GLD.POST_FLAG"/>
+            <a:dataSet id="period_name_ds">
+                <a:fields>
+                    <a:field name="period_name" autoComplete="true" required="true" lovGridHeight="450"
+                             lovHeight="650"
+                             lovLabelWidth="90"
+                             lovService="/gld/period/name/lov~hls.layout.dto.LovPeriodDto"
+                             lovWidth="850"
+                             title="期间" prompt="期间">
+                        <a:mapping>
+                            <a:map from="period_num" to="period_num"/>
+                            <a:map from="period_name" to="period_name"/>
+                        </a:mapping>
+                    </a:field>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="onUpdate_period_name_ds"/>
+                </a:events>
+            </a:dataSet>
+            <!--融资利息查询的条件-->
+            <a:dataSet id="lon_interest_query_ds">
+                <a:fields>
+                    <a:field name="period_name" autoComplete="true" lovGridHeight="450"
+                             lovHeight="650"
+                             lovLabelWidth="90"
+                             lovService="/gld/period/name/lov~hls.layout.dto.LovPeriodDto"
+                             lovWidth="850"
+                             title="期间" prompt="期间">
+                        <a:mapping>
+                            <a:map from="period_name" to="period_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_full_name"/>
+                    <a:field name="contract_number"/>
+                    <a:field name="withdraw_number"/>
+                    <a:field name="post_flag"/>
+                    <a:field name="post_flag_n" returnField="post_flag"
+                             options="query_post_flag_ds" displayField="code_value_name"
+                             valueField="code_value"/>
+                    <a:field name="credit_bp_name"/>
+                    <a:field name="start_date"/>
+                    <a:field name="end_date"/>
+                </a:fields>
+            </a:dataSet>
+            <!--融资利息-->
+            <a:dataSet id="lon_interest_ds" queryDataSet="lon_interest_query_ds" autoQuery="false"
+                       queryurl="${/request/@context_path}/gld/month/fin/cost/query" selectable="true">
+                <a:fields>
+                    <a:field name="due_date" datatype="date"/>
+                    <a:field name="start_date" datatype="date"/>
+                    <a:field name="end_date" datatype="date"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="query" handler="onQuery_lon_interest_ds"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="pre_tab" text="上一步"/>
+                <a:gridButton click="next_tab" text="下一步"/>
+            </a:screenTopToolbar>
+            <a:tabPanel marginWidth="20" marginHeight="0" id="monthTab">
+                <a:tabs>
+                    <a:tab prompt="期间" width="80" id="period_tab">
+                        <a:form column="1" labelWidth="100" prompt="期间选择" title="期间选择">
+                            <a:lov name="period_name" width="120" prompt="期间" required="true"
+                                   bindTarget="period_name_ds"/>
+                        </a:form>
+                    </a:tab>
+                    <a:tab prompt="融资计提" width="120" id="lon_interest_tab">
+                        <a:screenTopToolbar>
+                            <a:gridButton click="lon_interest_month_settle" text="月结"/>
+                            <a:gridButton click="lon_interest_query" text="查询"/>
+                        </a:screenTopToolbar>
+                        <a:form column="4" labelWidth="100" prompt="查询的条件" title="查询的条件">
+                            <a:lov name="period_name" width="120" prompt="期间" readOnly="true"
+                                   bindTarget="lon_interest_query_ds"/>
+                            <a:textField name="credit_bp_name" width="120" prompt="交易对手"
+                                         bindTarget="lon_interest_query_ds"/>
+                            <a:textField name="company_full_name" width="120" prompt="融资主体"
+                                         bindTarget="lon_interest_query_ds"/>
+                            <a:textField name="contract_number" width="120" prompt="融资合同编号"
+                                         bindTarget="lon_interest_query_ds"/>
+                            <a:textField name="withdraw_number" width="120" prompt="提款编号"
+                                         bindTarget="lon_interest_query_ds"/>
+                            <a:comboBox name="post_flag_n" width="120" prompt="确认标志"
+                                        bindTarget="lon_interest_query_ds"/>
+                            <a:datePicker name="start_date" width="120" prompt="计算日期从"
+                                          bindTarget="lon_interest_query_ds"/>
+                            <a:datePicker name="end_date" width="120" prompt="计算日期到"
+                                          bindTarget="lon_interest_query_ds"/>
+                        </a:form>
+                        <a:grid bindTarget="lon_interest_ds" marginHeight="270"
+                                marginWidth="100"
+                                navBar="true">
+                            <a:toolBar>
+                                <a:button type="excel"/>
+                            </a:toolBar>
+                            <a:columns>
+                                <a:column name="credit_bp_name" prompt="交易对手" width="200" footerRenderer="sum_foot"/>
+                                <a:column name="contract_number" prompt="融资合同编号" width="150"/>
+                                <a:column name="withdraw_number" prompt="提款编号" width="150"/>
+                                <a:column name="company_full_name" prompt="融资主体" width="180"/>
+                                <a:column name="due_amount" prompt="提款金额" width="100" renderer="Leaf.formatMoney"
+                                          footerRenderer="sum_foot" align="right"/>
+                                <a:column name="currency_n" prompt="币种" width="80"/>
+                                <a:column name="due_date" prompt="提款日期" width="100" renderer="Leaf.formatDate"/>
+                                <a:column name="start_date" prompt="计算日从" width="100" renderer="Leaf.formatDate"/>
+                                <a:column name="end_date" prompt="计算日到" width="100" renderer="Leaf.formatDate"/>
+                                <a:column name="finance_cost" prompt="待确认金额" width="100" align="right"
+                                          renderer="Leaf.formatMoney" footerRenderer="sum_foot"/>
+                                <a:column name="post_flag" prompt="确认标志" width="100"/>
+                                <a:column name="period_name" prompt="确认期间" width="100"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="月结结束" width="80" id="month_end_tab">
+                        <a:screenTopToolbar>
+                            <a:gridButton click="month_end" text="月结结束"/>
+                        </a:screenTopToolbar>
+                        <a:form column="1" labelWidth="100" prompt="期间选择" title="期间选择" marginHeight="370">
+                            <a:lov name="period_name" width="120" prompt="期间" required="true"
+                                   bindTarget="period_name_ds"/>
+                        </a:form>
+                    </a:tab>
+                </a:tabs>
+                <a:events>
+                    <a:event name="select" handler="onSelect_month_tab"/>
+                </a:events>
+            </a:tabPanel>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

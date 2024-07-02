@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    $Purpose: 支付期平移
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true" dynamiccreateenabled="true"
+          customizationEnabled="true">
+    <a:init-procedure/>
+    <a:view>
+        <a:link id="cont301f10_contract_change_info_link"
+                url="${/request/@context_path}/modules/CONT/CON_CONTRACT/CONT301F10/cont301f10_contract_change_info.lview"/>
+        <!--<a:link id="con_contract_change_req_reschedule_link_id" url="${/request/@context_path}/"/>-->
+        <script><![CDATA[
+
+        var contract_id = '${/parameter/@contract_id}';
+        var change_req_id = '${/parameter/@change_req_id}';
+        var quotation_id = '${/parameter/@quotation_id}';
+
+        //变更历史查看
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function() {
+
+            var param = {};
+            param['contract_id'] = contract_id;
+            param['change_req_id'] = change_req_id;
+            param['url_title'] = '合同变更信息查看';
+            param['function_code'] = 'CONT301F10';
+            param['winid'] = 'cont301f10_contract_change_info_winid';
+            param['screen_width'] = '910';
+            param['side'] =  'right';
+            hls_doc_get_layout_code(param, 'cont301f10_contract_change_info_link', null, 'CONT301F10');
+        };
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            var documentId = '${/parameter/@change_req_id}';
+            var documentCategory = '${/parameter/@document_category}';
+
+            if (ds.queryurl.indexOf('history_flag') === -1) {
+                ds.queryurl = splitparameter(splitparameter(ds.queryurl, 'document_id', documentId), 'document_history_flag', 'Y');
+            }
+        };
+
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var documentId = '${/parameter/@change_req_id}';
+            var documentCategory = '${/parameter/@document_category}';
+
+            if (ds.queryurl.indexOf('history_flag') === -1) {
+                ds.queryurl = splitparameter(splitparameter(ds.queryurl, 'document_id', documentId), 'document_history_flag', 'Y');
+            }
+            switch (ds.id) {
+                case get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow'):
+                    ds.setQueryParameter('generated_source_doc_id', quotation_id);
+                    break;
+                case get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req'):
+                    ds.setQueryParameter('change_req_id', change_req_id);
+                    break;
+            }
+        };
+        //计算
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+                var con_contract_result_ds = $(ds_id);
+                var record = con_contract_result_ds.getAt(0);
+                var con_contract_req_ds = $(get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_change_req'));
+
+                /*if (record.get('contract_status') !== 'NEW') {
+                    Leaf.showErrorMessage('提示', '只有新建合同才允许进行变更操作！');
+                    return;
+                } else {
+                    alert("计算");
+                }*/
+
+                var data = {};
+                data.config = [{
+                    field: 'ccr_start_times',
+                    value: record.get('ccr_start_times')
+                }, {
+                    field: 'ccr_reschedule_start_date',
+                    value: record.get('ccr_reschedule_start_date')
+                }, {
+                    field: 'ccr_reschedule_date',
+                    value: record.get('ccr_reschedule_date')
+                },{
+                    field: 'ccr_fee',
+                    value: record.get('ccr_fee')
+                }];
+                data.price_list = con_contract_req_ds.data[0].data.ccr_price_list;
+
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: '${/request/@context_path}/con/contract/change/req/recalculate?documentId=${/parameter/@change_req_id}&quotationId=${/parameter/@quotation_id}',
+                    // url: '${/request/@context_path}/con/contract/change/req/recalculate?documentId=32&quotationId=402',
+                    para: data,
+                    //url: '${/request/@context_path}/con/contract/change/req/backup?documentId=${/parameter/@change_req_id}&tablePkValue=${/parameter/@contract_id}',
+                    success: function (res) {
+                        Leaf.SideBar.show({
+                            msg: '${l:HLS.SUBMIT_SUCCESS}',
+                            duration: 2000
+                        });
+                        window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        $(get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'],'con_contract_cashflow')).query();
+                    },
+                    failure: function () {
+                        window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+
+            });
+
+        };
+
+        //提交审批
+        window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            if ('${/parameter/@try_flag}' === 'true') {
+                Leaf.showErrorMessage('提示', '试算不能提交');
+                return;
+            }
+            var obj = window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'];
+            if (!obj.approve) {
+                obj.approve = function () {
+                    window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                    Leaf.request({
+                        url: '${/request/@context_path}/con/contract/change/req/approve',
+                        para: {change_req_id: '${/parameter/@change_req_id}'},
+                        success: function (res) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            $('${/parameter/@winid}').close();
+                            if (res.success) {
+                                Leaf.showMessage('提示', '提交审批成功!');
+                            }
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        }
+                    });
+                }
+            }
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](obj.approve);
+        };
+        //取消申请
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: '${/request/@context_path}/con/contract/change/req/cancel',
+                para: {change_req_id: '${/parameter/@change_req_id}'},
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    if (res.success) {
+                        $('${/parameter/@winid}').close();
+                        Leaf.showMessage('提示', '申请取消!');
+                    }
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                }
+            })
+        };
+
+        //保存前调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var check_flag = true;
+            var documentId = '${/parameter/@change_req_id}';
+            var documentCategory = '${/parameter/@document_category}';
+            var submitUrl = $('${/parameter/@layout_code}_virtual_ds').submiturl;
+            if (submitUrl.indexOf('document_history_flag') === -1) {
+                submitUrl = splitparameter(
+                    splitparameter(
+                        splitparameter(submitUrl, 'document_id', documentId),
+                        'document_history_flag', 'Y'),
+                    'document_category', documentCategory);
+            }
+            $('${/parameter/@layout_code}_virtual_ds').submiturl = submitUrl;
+            return check_flag;
+        };
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            if (ds.id === get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow')) {
+                ds.data.forEach(function (value) {
+                    value.get('generated_source_doc_id') != quotation_id && ds.removeLocal(value);
+                })
+            }
+        };
+
+        //新增和加载时调用(form)
+          window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+              var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+              if(ds.id === ds_id) {
+                  $(ds_id).getCurrentRecord().set('current_quotation_id', quotation_id);
+              }
+          };
+        function splitparameter(aUrl, key, value) {
+            // return aUrl.indexOf('?') > -1 ? aUrl + '&' + key + '=' + value : aUrl + '?' + key + '=' + value;
+            // url1或url2里如果有$，再根据是否有参数做处理
+            if (aUrl.indexOf('$') > -1) {
+                if (aUrl.indexOf('=') > -1) {
+                    return aUrl + '&' + key + '=' + value;
+                }
+                else {
+                    return aUrl + key + '=' + value;
+                }
+            }
+            if (aUrl.indexOf('?') > -1) {
+                return aUrl + '&' + key + '=' + value;
+            }
+            if (aUrl.indexOf('$') === -1 && aUrl.indexOf('?') === -1) {
+                return aUrl + '?' + key + '=' + value;
+            }
+        }
+
+        ]]></script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+
+    </a:view>
+</a:screen>
+    
+    

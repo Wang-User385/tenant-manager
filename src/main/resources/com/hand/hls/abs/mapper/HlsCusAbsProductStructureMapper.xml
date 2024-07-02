@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProductStructureMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProductStructure">
+        <result column="STRUCTURE_ID" property="structureId" jdbcType="DECIMAL" />
+        <result column="PRODUCT_ID" property="productId" jdbcType="DECIMAL" />
+        <result column="SECURITY_NUMBER" property="securityNumber" jdbcType="VARCHAR" />
+        <result column="PROJECT_STRUCTURE" property="projectStructure" jdbcType="VARCHAR" />
+        <result column="PROJECT_GRADE" property="projectGrade" jdbcType="VARCHAR" />
+        <result column="PUBLISH_AMOUNT" property="publishAmount" jdbcType="DECIMAL" />
+        <result column="PREDICT_RATE" property="predictRate" jdbcType="DECIMAL" />
+        <result column="PREDICT_DUE_DATE" property="predictDueDate" jdbcType="DATE" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="SECURITY_SHORT_NAME" property="securityShortName" jdbcType="VARCHAR" />
+        <result column="STRUCTURE_PRECENT" property="structurePrecent" jdbcType="DECIMAL" />
+        <result column="REF_STRUCTURE_ID" property="refStructureId" jdbcType="DECIMAL" />
+        <result column="TERM_MONTH" property="termMonth" jdbcType="DECIMAL" />
+
+        <result column="PREDICT_RATE_DESC" property="predictRateDesc" jdbcType="VARCHAR" />
+        <result column="CASH_PRINCIPAL" property="cashPrincipal" jdbcType="DECIMAL" />
+        <result column="CASH_INTEREST" property="cashInterest" jdbcType="DECIMAL" />
+        <result column="SUBSCRIBE_AMOUNT" property="subscribeAmount" jdbcType="DECIMAL" />
+        <result column="SURPLUS_CASH_PRINCIPAL" property="surplusCashPrincipal" jdbcType="DECIMAL" />
+
+        <result column="project_structure_n" property="projectStructureN" jdbcType="VARCHAR"/>
+        <result column="project_grade_n" property="projectGradeN" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectStructure" resultMap="BaseResultMap">
+        SELECT
+        structure_id,
+        product_id,
+        security_number,
+        project_structure,
+        (select s.MEANING from sys_code_value_b_v s where s.CODE_VALUE = c.project_structure and s.code = 'ABS.PRORITY_LEVEL') project_structure_n,
+        project_grade,
+        (select s.MEANING from sys_code_value_b_v s where s.CODE_VALUE = c.project_grade and s.code = 'ABS.SUBJECT_RATE') project_grade_n,
+        publish_amount,
+        predict_rate,
+        predict_due_date,
+        description,
+        term_month,
+        structure_precent,
+        ref_structure_id,
+        security_short_name
+        FROM
+        ct_abs_product_structure c
+        <where>
+            <if test="productId != null">
+                c.product_id = #{productId}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectProductStructureData" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductStructure" resultMap="BaseResultMap">
+        SELECT
+            CAPS.*,
+            (CAPS.PREDICT_RATE*100)||'%' PREDICT_RATE_DESC,
+            nvl(PSRB.SUBSCRIBE_AMOUNT,0) SUBSCRIBE_AMOUNT,
+            nvl(PCD.CASH_PRINCIPAL,0) CASH_PRINCIPAL,
+            nvl(PCD.CASH_INTEREST,0) CASH_INTEREST,
+            nvl(CAPS.PUBLISH_AMOUNT,0)-nvl(PCD.CASH_INTEREST,0) SURPLUS_CASH_PRINCIPAL
+        FROM
+            CT_ABS_PRODUCT_STRUCTURE CAPS
+        LEFT JOIN
+            (SELECT
+                CD.STRUCTURE_ID,
+                SUM(PLAN_CASH_PRINCIPAL) CASH_PRINCIPAL,
+                SUM(PLAN_CASH_INTEREST) CASH_INTEREST
+              FROM
+              CT_ABS_PRODUCT_CASH_DETAIL CD
+              JOIN CT_ABS_PRODUCT_COLLECTION CAPC
+                ON CAPC.COLLECTION_ID=CD.COLLECTION_ID
+               WHERE CAPC.DATA_CLASS='NORMAL'
+              GROUP BY
+              CD.STRUCTURE_ID) PCD
+         ON  PCD.STRUCTURE_ID=CAPS.STRUCTURE_ID
+        LEFT JOIN (
+            SELECT
+                PS.STRUCTURE_ID,
+                SUM(PS.SUBSCRIBE_AMOUNT) SUBSCRIBE_AMOUNT
+            FROM
+                CT_ABS_PRODUCT_SUBSCRIBE PS
+            WHERE
+                PS.SUBSCRIBE_STATUS='CONFIRM'
+            AND PS.SUBSCRIBE_TYPE='SELF_HOLDING_SUBSCRIPTION'
+            GROUP BY
+                PS.STRUCTURE_ID
+        ) PSRB
+        ON CAPS.STRUCTURE_ID=PSRB.STRUCTURE_ID
+        WHERE
+            CAPS.PRODUCT_ID=#{productId}
+        <if test="securityNumber != null">
+            AND CAPS.SECURITY_NUMBER LIKE CONCAT('%',CONCAT(#{securityNumber},'%'))
+        </if>
+        <if test="projectGrade != null">
+            AND CAPS.PROJECT_GRADE LIKE CONCAT('%',CONCAT(#{projectGrade},'%'))
+        </if>
+        ORDER BY   CAPS.PROJECT_STRUCTURE
+    </select>
+
+
+     <select id="selectCashStructure" parameterType="com.hand.hls.abs.dto.HlsCusAbsProductStructure" resultMap="BaseResultMap">
+        SELECT
+            CAPS.*,
+            nvl(PCD.CASH_PRINCIPAL,0) CASH_PRINCIPAL,
+            nvl(PCD.CASH_INTEREST,0) CASH_INTEREST
+        FROM
+            CT_ABS_PRODUCT_STRUCTURE CAPS
+        LEFT JOIN
+            (SELECT
+                CD.STRUCTURE_ID,
+                SUM(PLAN_CASH_PRINCIPAL) CASH_PRINCIPAL,
+                SUM(PLAN_CASH_INTEREST) CASH_INTEREST
+              FROM
+                 CT_ABS_PRODUCT_CASH_DETAIL CD
+              JOIN
+                 CT_ABS_PRODUCT_COLLECTION PC
+              ON
+                CD.COLLECTION_ID=PC.COLLECTION_ID
+              WHERE 1=1
+               <if test="dataClass != null">
+                  AND PC.DATA_CLASS = #{dataClass}
+               </if>
+              <if test="times != null">
+                AND PC.TIMES &lt; #{times}
+              </if>
+              GROUP BY
+              CD.STRUCTURE_ID) PCD
+         ON  PCD.STRUCTURE_ID=CAPS.STRUCTURE_ID
+        WHERE
+            CAPS.STRUCTURE_ID=#{structureId}
+    </select>
+
+
+
+    <select id="selectStructureCashInterestSum" resultType="java.math.BigDecimal">
+        SELECT
+            nvl(SUM(ROUND(((CAPS.PUBLISH_AMOUNT-nvl(PCD.CASH_PRINCIPAL,0)-nvl(PSRB.SUBSCRIBE_AMOUNT,0))* CAPS.PREDICT_RATE*#{interestPeriodDays}/
+            CAP.INTEREST_STANDARD_DAYS),2)),0) interest_sum
+        FROM
+            CT_ABS_PRODUCT_STRUCTURE CAPS
+        JOIN
+            CT_ABS_PRODUCT CAP
+        ON
+            CAPS.PRODUCT_ID=CAP.PRODUCT_ID
+        LEFT JOIN
+            (
+                SELECT
+                    CD.STRUCTURE_ID,
+                    SUM(PLAN_CASH_PRINCIPAL) CASH_PRINCIPAL,
+                    SUM(PLAN_CASH_INTEREST)  CASH_INTEREST
+                FROM
+                    CT_ABS_PRODUCT_CASH_DETAIL CD
+                JOIN CT_ABS_PRODUCT_COLLECTION CAPC
+                ON CAPC.COLLECTION_ID=CD.COLLECTION_ID
+               WHERE CAPC.DATA_CLASS='NORMAL'
+                GROUP BY
+                    CD.STRUCTURE_ID) PCD
+        ON
+            PCD.STRUCTURE_ID=CAPS.STRUCTURE_ID
+        LEFT JOIN (
+            SELECT
+                PS.STRUCTURE_ID,
+                SUM(PS.SUBSCRIBE_AMOUNT) SUBSCRIBE_AMOUNT
+            FROM
+                CT_ABS_PRODUCT_SUBSCRIBE PS
+            WHERE
+                PS.SUBSCRIBE_STATUS='CONFIRM'
+            AND PS.SUBSCRIBE_TYPE='SELF_HOLDING_SUBSCRIPTION'
+            GROUP BY
+                PS.STRUCTURE_ID
+        ) PSRB
+        ON CAPS.STRUCTURE_ID=PSRB.STRUCTURE_ID
+        WHERE
+            CAPS.PRODUCT_ID=#{productId}
+    </select>
+
+
+    <select id="selectStructureQuoteCount" resultType="int">
+        SELECT
+            COUNT(1)
+          FROM
+            CT_ABS_PRODUCT_RECEIPT CAPR
+          WHERE
+             CAPR.STRUCTURE_ID=#{structureId}
+    </select>
+</mapper>

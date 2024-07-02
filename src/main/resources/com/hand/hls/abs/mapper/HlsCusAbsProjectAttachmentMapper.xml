@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.abs.mapper.HlsCusAbsProjectAttachmentMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.abs.dto.HlsCusAbsProjectAttachment">
+        <result column="project_attachment_id" property="projectAttachmentId" jdbcType="DECIMAL" />
+        <result column="project_id" property="projectId" />
+        <result column="source_key" property="sourceKey"/>
+        <result column="project_attachment_category" property="projectAttachmentCategory" jdbcType="VARCHAR" />
+        <result column="document_name" property="documentName" jdbcType="VARCHAR" />
+        <result column="source_id" property="sourceId" jdbcType="DECIMAL" />
+        <result column="description" property="description" jdbcType="VARCHAR" />
+        <result column="wfl_upload" property="wflUpload" jdbcType="VARCHAR" />
+        <result column="final_print_flag" property="finalPrintFlag" jdbcType="VARCHAR" />
+        <result column="stamp_name" property="stampName" jdbcType="VARCHAR" />
+        <result column="company_seal" property="companySeal" jdbcType="VARCHAR" />
+        <result column="rep_seal" property="repSeal" jdbcType="VARCHAR" />
+        <result column="copies" property="copies" jdbcType="VARCHAR" />
+        <result column="print_comment" property="printComment" jdbcType="VARCHAR" />
+        <result column="attachment_code" property="attachmentCode" jdbcType="VARCHAR" />
+        <result column="contract_id" property="contractId" jdbcType="DECIMAL" />
+        <result column="order_bigint" property="orderBigint" jdbcType="DECIMAL" />
+        <result column="creation_date" property="creationDate" jdbcType="DECIMAL" />
+        <result column="file_name" property="fileName" jdbcType="VARCHAR" />
+        <result column="upload_date" property="uploadDate" jdbcType="VARCHAR" />
+        <result column="upload_person" property="uploadPerson" jdbcType="VARCHAR" />
+    </resultMap>
+    <select id="selectAbsProjectAtt" resultMap="BaseResultMap" parameterType="com.hand.hls.abs.dto.HlsCusAbsProjectAttachment">
+select  t2.*  from (     select     t.*,
+     t.project_id source_key,
+        (select   wm_concat( fat.FILE_NAME ) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+        and faam.table_name = 'CT_ABS_PROJECT_ATTACHMENT' and faam.table_pk_value = t.project_attachment_id
+        ) file_name,
+        (select max(fat.last_update_date) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+        and faam.table_name = 'CT_ABS_PROJECT_ATTACHMENT' and faam.table_pk_value = t.project_attachment_id) upload_date,
+        (select max(su.description) from sys_user su, fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+        and faam.table_name = 'CT_ABS_PROJECT_ATTACHMENT' and faam.table_pk_value = t.project_attachment_id and su.user_id = fat.last_updated_by) upload_person
+        FROM
+        ct_abs_project_attachment t)  t2
+        where t2.source_key = #{sourceKey}
+        and t2.project_attachment_category = 'CT_ABS_PROJECT'
+    </select>
+
+    <select id="selectAbsProjectRegisterInfoAtt" resultMap="BaseResultMap">
+        select  t2.*  from (     select     t.*,
+                    (select   wm_concat( fat.FILE_NAME ) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+                                                                                                                         and faam.table_name = 'CT_ABS_PROJECT_ATTACHMENT' and faam.table_pk_value = t.project_attachment_id
+                    ) file_name,
+                    (select max(fat.last_update_date) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+                                                                                                                   and faam.table_name = 'CT_ABS_PROJECT_ATTACHMENT' and faam.table_pk_value = t.project_attachment_id) upload_date,
+                    (select max(su.description) from sys_user su, fnd_atm_attachment fat, fnd_atm_attachment_multi faam where fat.attachment_id = faam.attachment_id
+                                                                                                                          and faam.table_name = 'CT_ABS_PROJECT_ATTACHMENT' and faam.table_pk_value = t.project_attachment_id and su.user_id = fat.last_updated_by) upload_person
+         FROM
+             ct_abs_project_attachment t)  t2
+        where t2.project_id = #{projectId}
+          and t2.project_attachment_category = 'CT_ABS_REGISTER_INFO'
+    </select>
+
+</mapper>

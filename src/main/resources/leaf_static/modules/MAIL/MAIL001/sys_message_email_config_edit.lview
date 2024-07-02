@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" trace="true">
+    <a:init-procedure/>
+    <a:view>
+        <script><![CDATA[
+
+        function sys_message_email_config_save() {
+            var ds = $('sys_message_email_config_info_ds');
+            if (ds.validate()) {
+                ds.setSubmitUrl('${/request/@context_path}/sys/messageEmailConfig/submit');
+                ds.submit();
+            }
+        }
+
+        /***
+         * 关闭编辑页面
+         */
+        function sys_message_email_config_close() {
+            $('${/parameter/@winId}').close();
+        }
+
+
+        function onSubmitSuccess_sys_message_email_config_info_ds() {
+            $('sys_message_email_config_info_ds').query();
+        }
+        
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="sys_message_email_config_info_query_ds">
+                <a:fields>
+                    <a:field name="config_id" defaultValue="${/parameter/@config_id}"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="sys_message_email_config_info_ds"
+                       queryDataSet="sys_message_email_config_info_query_ds" autoQuery="true" autoPageSize="true"
+                       queryUrl="${/request/@context_path}/sys/messageEmailConfig/query">
+                <a:fields>
+                    <a:field name="config_code"/>
+                    <a:field name="description"/>
+                    <a:field name="host"/>
+                    <a:field name="port" />
+                    <a:field name="use_white_list" checkedValue="Y" defaultValue="N" unCheckedValue="N"/>
+                    <a:field name="enable" checkedValue="Y" defaultValue="N" unCheckedValue="N"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="submitsuccess" handler="onSubmitSuccess_sys_message_email_config_info_ds"/>
+                </a:events>
+            </a:dataSet>
+
+
+            <a:dataSet id="sys_message_email_account_info_ds" bindName="emailAccounts" bindTarget="sys_message_email_config_info_ds"
+                       queryDataSet="sys_message_email_config_info_query_ds"
+                       queryUrl="${/request/@context_path}/sys/messageEmailAccount/query"
+                       deleteUrl="${/request/@context_path}/sys/messageEmailAccount/remove"
+                       selectable="true">
+                <a:fields>
+                    <a:field name="account_code" required="true" requiredMessage="账户代码 为必填项"/>
+                    <a:field name="user_name" required="true" requiredMessage="用户名 为必填项"/>
+                    <a:field name="pass_word" required="true" requiredMessage="密码 为必填项"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="sys_message_email_white_list_info_ds" bindName="whiteLists" bindTarget="sys_message_email_config_info_ds"
+                       queryDataSet="sys_message_email_config_info_query_ds" autoPageSize="true"
+                       queryUrl="${/request/@context_path}/sys/messageEmailWhiteList/query"
+                       deleteUrl="${/request/@context_path}/sys/messageEmailWhiteList/remove" selectable="true">
+                <a:fields>
+                    <a:field name="address"/>
+                </a:fields>
+            </a:dataSet>
+
+            <a:dataSet id="sys_message_email_property_info_ds" bindName="propertyLists" bindTarget="sys_message_email_config_info_ds"
+                       queryDataSet="sys_message_email_config_info_query_ds" autoPageSize="true"
+                       queryUrl="${/request/@context_path}/sys/message/email/property/query"
+                       deleteUrl="${/request/@context_path}/sys/message/email/property/remove"
+                       selectable="true">
+                <a:fields>
+                    <a:field name="property_code"/>
+                    <a:field name="property_name"/>
+                </a:fields>
+            </a:dataSet>
+
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:gridButton click="sys_message_email_config_save" text="HLS.SAVE"/>
+                <a:gridButton click="sys_message_email_config_close" text="取消"/>
+            </a:screenTopToolbar>
+            <a:form>
+                <a:box row="3" column="2" labelWidth="220">
+                    <a:textField name="config_code" prompt="配置代码" bindTarget="sys_message_email_config_info_ds"/>
+                    <a:textField name="description" prompt="描述" bindTarget="sys_message_email_config_info_ds"/>
+                    <a:textField name="host" prompt="邮件服务器" bindTarget="sys_message_email_config_info_ds"/>
+                    <a:numberField name="port" allowDecimals="false" allowNegative="false" prompt="端口" bindTarget="sys_message_email_config_info_ds"/>
+                    <a:checkBox name="use_white_list" prompt="启用白名单" bindTarget="sys_message_email_config_info_ds"/>
+                    <a:checkBox name="enable" prompt="是否启用" bindTarget="sys_message_email_config_info_ds"/>
+                </a:box>
+            </a:form>
+
+            <a:tabPanel width="800" height="300" >
+                <a:tabs>
+                    <a:tab prompt="账户" width="130" selected="true" >
+                        <a:screenTopToolbar>
+                            <a:gridButton bind="sys_message_email_account_ds_grid" type="add"/>
+                            <a:gridButton bind="sys_message_email_account_ds_grid" type="delete"/>
+                        </a:screenTopToolbar>
+                        <a:grid id="sys_message_email_account_ds_grid" bindTarget="sys_message_email_account_info_ds" width="750"
+                                height="200"
+                                navBar="true">
+                            <a:columns>
+                                <a:column name="account_code" width="240" editor="sys_message_email_account_ds_grid_tf" prompt="账户代码" />
+                                <a:column name="user_name" width="150" editor="sys_message_email_account_ds_grid_tf" prompt="用户名"/>
+                                <a:column name="pass_word" width="130" editor="sys_message_email_account_ds_grid_tf" prompt="密码"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="sys_message_email_account_ds_grid_tf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="白名单" width="130">
+                        <a:screenTopToolbar>
+                            <a:gridButton bind="sys_message_email_white_list_info_ds_grid" type="add"/>
+                            <a:gridButton bind="sys_message_email_white_list_info_ds_grid" type="delete"/>
+                        </a:screenTopToolbar>
+                        <a:grid id="sys_message_email_white_list_info_ds_grid" bindTarget="sys_message_email_white_list_info_ds" width="750"
+                                height="200"
+                                navBar="true">
+                            <a:columns>
+                                <a:column name="address" width="240" editor="sys_message_email_white_list_info_ds_grid_tf" prompt="地址" />
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="sys_message_email_white_list_info_ds_grid_tf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                    <a:tab prompt="服务器设置" width="130">
+                        <a:screenTopToolbar>
+                            <a:gridButton bind="sys_message_email_property_info_ds_grid" type="add"/>
+                            <a:gridButton bind="sys_message_email_property_info_ds_grid" type="delete"/>
+                        </a:screenTopToolbar>
+                        <a:grid id="sys_message_email_property_info_ds_grid" bindTarget="sys_message_email_property_info_ds" width="750"
+                                height="200"
+                                navBar="true">
+                            <a:columns>
+                                <a:column name="property_name" width="240" editor="sys_message_email_property_info_ds_grid_tf" prompt="属性名称" />
+                                <a:column name="property_code" width="150" editor="sys_message_email_property_info_ds_grid_tf" prompt="属性值"/>
+                            </a:columns>
+                            <a:editors>
+                                <a:textField id="sys_message_email_property_info_ds_grid_tf"/>
+                            </a:editors>
+                        </a:grid>
+                    </a:tab>
+                </a:tabs>
+            </a:tabPanel>
+        </a:screenBody>
+    </a:view>
+</a:screen>

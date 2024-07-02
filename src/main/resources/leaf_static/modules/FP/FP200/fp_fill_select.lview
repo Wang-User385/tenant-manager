@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="false"
+          trace="true">
+    <a:view>
+        <a:link id="fp200_fp_select_year_id"
+                url="${/request/@context_path}/modules/FP/FP200/fund_filling_ln_year.lview"/>
+        <a:link id="fp200_fp_select_quarter_id"
+                url="${/request/@context_path}/modules/FP/FP200/fund_filling_ln_quarter.lview"/>
+        <a:link id="fp200_fp_select_mon_id"
+                url="${/request/@context_path}/modules/FP/FP200/fund_filling_ln_mon.lview"/>
+        <a:link id="fp200_fp_select_week_id"
+                url="${/request/@context_path}/modules/FP/FP200/fund_filling_ln_week.lview"/>
+         <script><![CDATA[
+
+        function fp_fill_create_ds_update(ds, record, name, value, oldValue) {
+            debugger;
+            if (name == 'fill_type') {
+                if (value && value == 'QUARTER') {
+                    record.getField('fill_quarter').setRequired(true);
+                    record.getField('fill_quarter_n').setRequired(true);
+                    record.getField('fill_mon').setRequired(false);
+                    record.getField('fill_mon_n').setRequired(false);
+                    record.getField('fill_week').setRequired(false);
+                    record.getField('fill_week_n').setRequired(false);
+                    record.getField('fill_quarter').setReadOnly(false);
+                    record.getField('fill_quarter_n').setReadOnly(false);
+                    record.getField('fill_week').setReadOnly(true);
+                    record.getField('fill_week_n').setReadOnly(true);
+                    record.getField('fill_mon').setReadOnly(true);
+                    record.getField('fill_mon_n').setReadOnly(true);
+                    record.set('fill_week','');
+                    record.set('fill_week_n','');
+                    record.set('fill_mon','');
+                    record.set('fill_mon_n','');
+                } else if (value && value == 'MON') {
+                    record.getField('fill_quarter').setRequired(true);
+                    record.getField('fill_quarter_n').setRequired(true);
+                    record.getField('fill_mon').setRequired(true);
+                    record.getField('fill_mon_n').setRequired(true);
+                    record.getField('fill_week').setRequired(false);
+                    record.getField('fill_week_n').setRequired(false);
+                    record.getField('fill_week').setReadOnly(true);
+                    record.getField('fill_week_n').setReadOnly(true);
+                    record.getField('fill_quarter').setReadOnly(false);
+                    record.getField('fill_quarter_n').setReadOnly(false);
+                    record.getField('fill_mon').setReadOnly(false);
+                    record.getField('fill_mon_n').setReadOnly(false);
+                    record.set('fill_week','');
+                    record.set('fill_week_n','');
+                } else if (value && value == 'WEEK') {
+                    record.getField('fill_quarter').setRequired(true);
+                    record.getField('fill_quarter_n').setRequired(true);
+                    record.getField('fill_mon').setRequired(true);
+                    record.getField('fill_mon_n').setRequired(true);
+                    record.getField('fill_week').setRequired(true);
+                    record.getField('fill_week_n').setRequired(true);
+                    record.getField('fill_quarter').setReadOnly(false);
+                    record.getField('fill_quarter_n').setReadOnly(false);
+                    record.getField('fill_mon').setReadOnly(false);
+                    record.getField('fill_mon_n').setReadOnly(false);
+                    record.getField('fill_week').setReadOnly(false);
+                    record.getField('fill_week_n').setReadOnly(false);
+                } else {
+                    record.getField('fill_quarter').setRequired(false);
+                    record.getField('fill_quarter_n').setRequired(false);
+                    record.getField('fill_mon').setRequired(false);
+                    record.getField('fill_mon_n').setRequired(false);
+                    record.getField('fill_week').setRequired(false);
+                    record.getField('fill_week_n').setRequired(false);
+                    record.getField('fill_week').setReadOnly(true);
+                    record.getField('fill_week_n').setReadOnly(true);
+                    record.getField('fill_mon').setReadOnly(true);
+                    record.getField('fill_mon_n').setReadOnly(true);
+                    record.getField('fill_quarter').setReadOnly(true);
+                    record.getField('fill_quarter_n').setReadOnly(true);
+                    record.set('fill_week','');
+                    record.set('fill_week_n','');
+                    record.set('fill_mon','');
+                    record.set('fill_mon_n','');
+                    record.set('fill_quarter','');
+                    record.set('fill_quarter_n','');
+                }
+            }
+            record.set('fill_user_id', '${/session/@user_id}');
+        }
+
+
+        function fp200_fp_exit() {
+            $('${/parameter/@parent_winid}').close();
+            var ds_id = 'FP200_G_QUERY_RESULT_jc_fund_filling_ds';
+            $(ds_id).query();
+        }
+
+        function fp200_fp_create() {
+            debugger;
+            var ds = $('fp_fill_create_ds');
+            if (ds.validate()) {
+                var record = ds.getCurrentRecord();
+                var param = {};
+                param['function_usage'] = 'CREATE';
+                param['fill_type'] = record.get('fill_type');
+                param['fill_type_n'] = record.get('fill_type_n');
+                param['fill_quarter'] = record.get('fill_quarter');
+                param['fill_quarter_n'] = record.get('fill_quarter_n');
+                param['fill_year'] = record.get('fill_year');
+                param['fill_year_n'] = record.get('fill_year_n');
+                param['fill_mon'] = record.get('fill_mon');
+                param['fill_mon_n'] = record.get('fill_mon_n');
+                param['fill_week'] = record.get('fill_week');
+                param['fill_week_n'] = record.get('fill_week_n');
+                param['fill_user_id'] = '${/session/@userId}';
+                param['fill_user_id_n'] = '${/session/@userName}';
+                param['unit_id'] = '${/session/@unitId}';
+                param['unit_id_n'] = '${/session/@unitName}';
+                param['winid'] = 'fp_fp200_create_winid';
+                param['parent_winid'] = '${/parameter/@parent_winid}';
+                param['default_value_dsid'] = ds.id;
+                // param['layout_debugger_flag'] = 'Y';
+                param['url_title'] = '资金计划填报明细';
+                var link_url;
+                if (record.get('fill_type') == 'YEAR') {
+                    param['function_code'] = 'FP200D01';
+                    link_url = "fp200_fp_select_year_id";
+                } else if (record.get('fill_type') == 'QUARTER') {
+                    link_url = "fp200_fp_select_quarter_id";
+                    if (record.get('fill_quarter') == 'FIRST') {
+                        param['function_code'] = 'FP200D02';
+                    } else if (record.get('fill_quarter') == 'SECOND') {
+                        param['function_code'] = 'FP200D03';
+                    } else if (record.get('fill_quarter') == 'THIRD') {
+                        param['function_code'] = 'FP200D04';
+                    } else if (record.get('fill_quarter') == 'FOURTH') {
+                        param['function_code'] = 'FP200D05';
+                    }
+                }else if (record.get('fill_type') == 'MON') {
+                    param['function_code'] = 'FP200D06';
+                    link_url = "fp200_fp_select_mon_id";
+                }else if (record.get('fill_type') == 'WEEK') {
+                    param['function_code'] = 'FP200D07';
+                    link_url = "fp200_fp_select_week_id";
+                }
+                hls_doc_get_layout_code(param, link_url, 'fp_fill_create_ds', 'FP200', param['parent_winid'], 'Y');
+            }
+        }
+
+        ]]></script>
+        <a:dataSets>
+            <a:dataSet id="fp_fill_type_ds" lookupCode="FP.FILL_TYPE"/>
+            <a:dataSet id="fp_fill_year_ds" lookupCode="FP.FILL_YEAR"/>
+            <a:dataSet id="fp_fill_quarter_ds" lookupCode="FP.FILL_QUARTER"/>
+            <a:dataSet id="fp_fill_mon_ds" lookupCode="FP.FILL_MON"/>
+            <a:dataSet id="fp_fill_week_ds" lookupCode="FP.FILL_WEEK"/>
+            <a:dataSet id="fp_fill_create_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="fill_type_n" options="fp_fill_type_ds" displayField="code_value_name"
+                             valueField="code_value" returnField="fill_type" required="true"/>
+                    <a:field name="fill_type" required="true"/>
+                    <a:field name="fill_year_n" options="fp_fill_year_ds" displayField="code_value_name"
+                             valueField="code_value" returnField="fill_year" required="true"/>
+                    <a:field name="fill_year" required="true"/>
+                    <a:field name="fill_quarter_n" options="fp_fill_quarter_ds" displayField="code_value_name"
+                             valueField="code_value" returnField="fill_quarter"/>
+                    <a:field name="fill_quarter"/>
+                    <a:field name="fill_mon_n" options="fp_fill_mon_ds" displayField="code_value_name"
+                             valueField="code_value" returnField="fill_mon"/>
+                    <a:field name="fill_mon"/>
+                    <a:field name="fill_week_n" options="fp_fill_week_ds" displayField="code_value_name"
+                             valueField="code_value" returnField="fill_week"/>
+                    <a:field name="fill_week"/>
+                </a:fields>
+                <a:events>
+                    <a:event name="update" handler="fp_fill_create_ds_update"/>
+                </a:events>
+            </a:dataSet>
+        </a:dataSets>
+        <a:screenBody>
+            <a:screenTopToolbar>
+                <a:screenTitle/>
+                <a:gridButton click="fp200_fp_exit" text="退出"/>
+                <a:gridButton click="fp200_fp_create" text="创建"/>
+            </a:screenTopToolbar>
+            <a:form title="资金计划填报创建" id="fp_select_form">
+                <a:box column="1" labelWidth="140">
+                    <a:comboBox name="fill_type_n" bindTarget="fp_fill_create_ds" prompt="类型"
+                                width="165">
+                    </a:comboBox>
+                </a:box>
+                <a:box column="1" labelWidth="140">
+                    <a:comboBox name="fill_year_n" bindTarget="fp_fill_create_ds" prompt="年份"
+                                width="165">
+                    </a:comboBox>
+                </a:box>
+                <a:box column="1" labelWidth="140">
+                    <a:comboBox name="fill_quarter_n" bindTarget="fp_fill_create_ds" prompt="季度"
+                                width="165">
+                    </a:comboBox>
+                </a:box>
+                <a:box column="1" labelWidth="140">
+                    <a:comboBox name="fill_mon_n" bindTarget="fp_fill_create_ds" prompt="月份"
+                                width="165">
+                    </a:comboBox>
+                </a:box>
+                <a:box column="1" labelWidth="140">
+                    <a:comboBox name="fill_week_n" bindTarget="fp_fill_create_ds" prompt="周"
+                                width="165">
+                    </a:comboBox>
+                </a:box>
+            </a:form>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
