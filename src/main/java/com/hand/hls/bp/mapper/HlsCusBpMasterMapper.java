@@ -133,4 +133,6 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
     List<HlsBpMaster> queryForNp(Map var1);
     List<String> queryProjectStatusbyBPId( @Param("bpId")  Long bpId);
     List<HlsCusBpMaster> queryVenderInfo(HlsCusBpMaster hlsCusBpMaster);
+
+    HlsCusBpMaster selectMasterByIdCardNo(String idCardNo);
 }

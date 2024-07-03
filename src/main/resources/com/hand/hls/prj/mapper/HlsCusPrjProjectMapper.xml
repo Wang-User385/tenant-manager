@@ -12414,4 +12414,39 @@ WHERE
         order by plan.date_to desc
         )where rownum &lt;= 1
     </select>
+    <select id="selectProjectByIdCardNo" resultType="com.hand.hls.prj.dto.HlsCusPrjProject">
+        SELECT
+            pp.*
+        FROM
+            PRJ_PROJECT pp
+                LEFT JOIN HLS_BP_MASTER hbm ON hbm.BP_ID = pp.TENANT_ID
+        WHERE
+            hbm.ID_CARD_NO = #{idCardNo} and pp.data_class = 'NORMAL'
+    </select>
+    <select id="selectProjectByOrderNo" resultType="com.hand.hls.prj.dto.HlsCusPrjProject">
+        select
+            pp.*
+        from
+            PRJ_PROJECT pp
+        where
+            pp.project_number = #{orderNo}
+    </select>
+    <select id="selectPaymentByOrderNo" resultType="com.hand.hls.csh.dto.CshPaymentReqHd">
+        select
+            cprh.*
+        from
+            CSH_PAYMENT_REQ_HD cprh
+                left join
+            con_contract_cashflow ccc
+            on ccc.CASHFLOW_ID = cprh.SOURCE_DOC_LINE_ID
+                left join
+            CON_CONTRACT cc
+            on cc.CONTRACT_ID = ccc.CONTRACT_ID
+                left join
+            PRJ_PROJECT pp
+            on pp.PROJECT_ID = cc.PROJECT_ID
+        where
+            pp.project_number = #{orderNo} and pp.DATA_CLASS = 'VIRTUAL_CON'
+    </select>
+
 </mapper>

@@ -158,4 +158,6 @@ public interface HlsCusConContractMapper extends Mapper<HlsCusConContract> {
      * 查询批复参数
      */
     Double queryReplyParamDefaultValue(@Param("contractId")Long contractId, @Param("replyPara")String replyPara);
+
+    HlsCusConContract selectByRefProjectId(Long projectId);
 }

@@ -1,6 +1,7 @@
 package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
+import com.hand.hls.csh.dto.CshPaymentReqHd;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectBp;
 import org.apache.ibatis.annotations.Param;
@@ -241,4 +242,11 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     List<Map> prjProcessExportQuery(Map<String, Object> prjProject);
 
     Long queryCreditAssistProjectManager(Long tenantId);
+
+    List<HlsCusPrjProject> selectProjectByIdCardNo(String idCardNo);
+
+    HlsCusPrjProject selectProjectByOrderNo(String orderNo);
+
+    CshPaymentReqHd selectPaymentByOrderNo(String orderNo);
+
 }
