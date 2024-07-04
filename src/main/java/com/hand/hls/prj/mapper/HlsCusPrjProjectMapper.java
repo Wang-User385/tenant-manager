@@ -1,9 +1,12 @@
 package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
+import com.hand.hls.cont.dto.ConContractCashflow;
 import com.hand.hls.csh.dto.CshPaymentReqHd;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectBp;
+import di.dto.QueryOrder;
+import di.dto.RepayPlanTermInfoDTO;
 import org.apache.ibatis.annotations.Param;
 import uncertain.composite.CompositeMap;
 
@@ -249,4 +252,7 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
 
     CshPaymentReqHd selectPaymentByOrderNo(String orderNo);
 
+    QueryOrder selectQueryOrderByOrderNo(String orderNo);
+
+    List<RepayPlanTermInfoDTO> selectRepayPlanByOrderNo(String orderNo);
 }
