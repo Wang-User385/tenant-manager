@@ -4,6 +4,9 @@ import com.hand.hap.system.dto.BaseDTO;
 import lombok.Data;
 
 import java.util.List;
+
+//期次还款
+
 @Data
 public class RepayMent extends BaseDTO {
 

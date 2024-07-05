@@ -5,6 +5,8 @@ import lombok.Data;
 
 import java.util.List;
 
+//账单查询
+
 @Data
 public class QueryOrder extends BaseDTO {
 

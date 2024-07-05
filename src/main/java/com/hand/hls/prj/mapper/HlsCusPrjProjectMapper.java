@@ -5,6 +5,7 @@ import com.hand.hls.cont.dto.ConContractCashflow;
 import com.hand.hls.csh.dto.CshPaymentReqHd;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectBp;
+import di.dto.CompensatoryTrialCalculationDTO;
 import di.dto.QueryOrder;
 import di.dto.RepayPlanTermInfoDTO;
 import org.apache.ibatis.annotations.Param;
@@ -255,4 +256,6 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     QueryOrder selectQueryOrderByOrderNo(String orderNo);
 
     List<RepayPlanTermInfoDTO> selectRepayPlanByOrderNo(String orderNo);
+
+    CompensatoryTrialCalculationDTO selectCTCByOrderNo(CompensatoryTrialCalculationDTO compensatoryTrialCalculation);
 }

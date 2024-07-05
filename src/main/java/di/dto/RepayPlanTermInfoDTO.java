@@ -3,6 +3,8 @@ package di.dto;
 import com.hand.hap.system.dto.BaseDTO;
 import lombok.Data;
 
+//还款计划期次详情信息
+
 @Data
 public class RepayPlanTermInfoDTO extends BaseDTO {
 
