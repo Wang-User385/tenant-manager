@@ -12449,4 +12449,108 @@ WHERE
             pp.project_number = #{orderNo} and pp.DATA_CLASS = 'VIRTUAL_CON'
     </select>
 
+    <select id="selectQueryOrderByOrderNo" resultType="di.dto.QueryOrder">
+        select
+            max(ccc.TIMES) termCount
+        from
+            CON_CONTRACT_CASHFLOW ccc
+                right join
+            CON_CONTRACT cc
+            on cc.CONTRACT_ID = ccc.CONTRACT_ID
+                right JOIN
+            PRJ_PROJECT pp
+            on pp.PROJECT_ID = cc.PROJECT_ID
+        where
+            pp.PROJECT_NUMBER = #{orderNo}
+    </select>
+    <select id="selectRepayPlanByOrderNo" resultType="di.dto.RepayPlanTermInfoDTO">
+        SELECT
+            CASE
+
+                WHEN
+                    ccc.CF_ITEM = 1 THEN
+                    ccc.DUE_AMOUNT * 100 ELSE 0
+                END AS termTotal,
+            CASE
+
+                WHEN ccc.CF_ITEM = 1 THEN
+                    ccc.RECEIVED_AMOUNT * 100 ELSE 0
+                END AS paidTotal,
+            CASE
+
+                WHEN ccc.CF_ITEM = 1 THEN
+                    ( ccc.DUE_AMOUNT - RECEIVED_AMOUNT ) * 100 ELSE 0
+                END AS restTotal,
+            CASE
+
+                WHEN ccc.CF_ITEM = 9 THEN
+                    ccc.DUE_AMOUNT * 100 ELSE 0
+                END AS termOvd,
+            CASE
+
+                WHEN ccc.CF_ITEM = 9 THEN
+                    ccc.RECEIVED_AMOUNT * 100 ELSE 0
+                END AS paidOvd,
+            CASE
+
+                WHEN ccc.CF_ITEM = 9 THEN
+                    ( ccc.DUE_AMOUNT - RECEIVED_AMOUNT ) * 100 ELSE 0
+                END AS restOvd,
+            CASE
+
+                WHEN ccc.DUE_AMOUNT - ccc.PRINCIPAL - ccc.INTEREST - ccc.RECEIVED_AMOUNT + ccc.RECEIVED_PRINCIPAL + ccc.RECEIVED_INTEREST = 0 THEN
+                    'ENDED结束'
+                WHEN SYSDATE &lt;
+        ccc.DUE_DATE + cc.GRACE_PERIOD THEN
+			'GRACE_TERM宽限期'
+			WHEN SYSDATE &lt;
+			ccc.DUE_DATE THEN
+				'NOT_START_TERM未到期'
+				WHEN SYSDATE &gt;
+				ccc.DUE_DATE THEN
+					'OVERDUE_TERM逾期' ELSE 'GRACE_TERM宽限期'
+        END AS status,
+				ccc.TIMES termNo,
+				to_char( ccc.LAST_RECEIVED_DATE, 'yyyy-mm-dd' ) lastPaidTime,
+				to_char( ccc.FULL_WRITE_OFF_DATE, 'yyyy-mm-dd' ) endTime,
+				to_char(
+					( SELECT c1.DUE_DATE FROM CON_CONTRACT_CASHFLOW c1 WHERE c1.CONTRACT_ID = ccc.CONTRACT_ID AND c1.TIMES = ccc.TIMES - 1 ),
+					'yyyy-mm-dd'
+				) termStartDate,
+				to_char( ccc.DUE_DATE, 'yyyy-mm-dd' ) termEndDate,
+				to_char( ccc.DUE_DATE, 'yyyy-mm-dd' ) termRepayDate,
+				to_char( ccc.DUE_DATE + cc.GRACE_PERIOD, 'yyyy-mm-dd' ) termPenaltyGraceDate,
+				to_char( ccc.DUE_DATE + cc.OVERDUE_MAX_DAYS, 'yyyy-mm-dd' ) termOvdGraceDate,
+				cc.CONTRACT_STATUS,
+				ccc.PAYMENT_METHOD repayType,
+				ccc.OVERDUE_MAX_DAYS ovdDays,
+				ccc.PRINCIPAL * 100 termNomPrin,
+				ccc.INTEREST * 100 termNomInt,
+				( ccc.DUE_AMOUNT - ccc.PRINCIPAL - ccc.INTEREST ) * 100 AS termFee,
+				ccc.RECEIVED_PRINCIPAL * 100 paidNomPrin,
+				ccc.RECEIVED_INTEREST * 100 paidNomInt,
+				( ccc.RECEIVED_AMOUNT - ccc.RECEIVED_PRINCIPAL - ccc.RECEIVED_INTEREST ) * 100 AS paidFee,
+				( ccc.PRINCIPAL - RECEIVED_PRINCIPAL ) * 100 AS restNomPrin,
+				( ccc.INTEREST - RECEIVED_INTEREST ) * 100 AS restNomInt,
+				( ccc.DUE_AMOUNT - ccc.PRINCIPAL - ccc.INTEREST - ccc.RECEIVED_AMOUNT + ccc.RECEIVED_PRINCIPAL + ccc.RECEIVED_INTEREST ) * 100 AS restFee
+				FROM
+					CON_CONTRACT_CASHFLOW ccc
+					RIGHT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
+					RIGHT JOIN PRJ_PROJECT pp ON pp.PROJECT_ID = cc.PROJECT_ID
+			WHERE
+            pp.PROJECT_NUMBER = #{orderNo}
+    </select>
+    <select id="selectCTCByOrderNo" resultType="di.dto.CompensatoryTrialCalculationDTO">
+        SELECT
+            ccc.DUE_AMOUNT * 100 payableAmount,
+            ccc.PRINCIPAL * 100 principal,
+            ccc.INTEREST * 100 interest
+        FROM
+            CON_CONTRACT_CASHFLOW ccc
+                RIGHT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
+                RIGHT JOIN PRJ_PROJECT pp ON pp.PROJECT_ID = cc.PROJECT_ID
+        WHERE
+            pp.PROJECT_NUMBER = #{orderNo} and ccc.CF_ITEM = 1 and ccc.TIMES = #{termNo}
+    </select>
+
 </mapper>

@@ -5,7 +5,9 @@ package di.controller;
 
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
+import di.dto.*;
 import di.service.DockingInterfaceService;
+import leaf.bean.LeafRequestData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -24,14 +26,8 @@ public class DockingInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData placeOrder(@RequestParam String name,
-                                   @RequestParam String idCardNo,
-                                   @RequestParam String mobile,
-                                   @RequestParam String productCode,
-                                   @RequestParam String idissue,
-                                   @RequestParam String idexp,
-                                   @RequestParam String outBizNo, HttpServletRequest request) {
-        return dockingInterfaceService.placeOrder(name,idCardNo,mobile,productCode,outBizNo,idissue,idexp,request);
+    public ResponseData placeOrder(@RequestBody PlaceOrderDTO placeOrderDTO, HttpServletRequest request) {
+        return dockingInterfaceService.placeOrder(placeOrderDTO,request);
     }
 
     @RequestMapping(
@@ -39,8 +35,43 @@ public class DockingInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData closeOrder(@RequestParam String orderNo,
-                                   @RequestParam String reason, HttpServletRequest request) {
-        return dockingInterfaceService.closeOrder(orderNo,reason);
+    public ResponseData closeOrder(@RequestBody CloseOrderDTO closeOrderDTO, HttpServletRequest request) {
+        return dockingInterfaceService.closeOrder(closeOrderDTO,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/queryOrder"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData queryOrder(@RequestParam String orderNo, HttpServletRequest request) {
+        return dockingInterfaceService.queryOrder(orderNo,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/repayment"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData repayment(@RequestBody RepayMent repayMent, HttpServletRequest request) {
+        return dockingInterfaceService.repayment(repayMent,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/compensatoryTrialCalculation"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData compensatoryTrialCalculation(@RequestBody CompensatoryTrialCalculationDTO compensatoryTrialCalculation, HttpServletRequest request) {
+        return dockingInterfaceService.compensatoryTrialCalculation(compensatoryTrialCalculation,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/claimsSubrogation"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData claimsSubrogation(@RequestBody ClaimsSubrogationDTO claimsSubrogationDTO, HttpServletRequest request) {
+        return dockingInterfaceService.claimsSubrogation(claimsSubrogationDTO,request);
     }
 }

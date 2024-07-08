@@ -1,11 +1,20 @@
 package di.service;
 
 import com.hand.hap.system.dto.ResponseData;
+import di.dto.*;
 
 import javax.servlet.http.HttpServletRequest;
 
 public interface DockingInterfaceService {
-    ResponseData placeOrder(String name, String idCardNo, String mobile, String productCode, String outBizNo, String idissue, String idexp, HttpServletRequest request);
+    ResponseData placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest request);
 
-    ResponseData closeOrder(String orderNo, String reason);
+    ResponseData closeOrder(CloseOrderDTO closeOrderDTO, HttpServletRequest request);
+
+    ResponseData queryOrder(String orderNo, HttpServletRequest request);
+
+    ResponseData repayment(RepayMent repayMent, HttpServletRequest request);
+
+    ResponseData compensatoryTrialCalculation(CompensatoryTrialCalculationDTO compensatoryTrialCalculation, HttpServletRequest request);
+
+    ResponseData claimsSubrogation(ClaimsSubrogationDTO claimsSubrogationDTO, HttpServletRequest request);
 }
