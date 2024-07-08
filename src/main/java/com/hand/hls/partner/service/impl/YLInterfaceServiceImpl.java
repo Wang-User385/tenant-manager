@@ -1,27 +1,28 @@
-package di.service.impl;
+package com.hand.hls.partner.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.hand.hap.core.IRequest;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
 import com.hand.hls.csh.dto.CshPaymentReqHd;
+import com.hand.hls.fnd.service.FndCodingRuleValuesService;
+import com.hand.hls.partner.dto.*;
+import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
+import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
-import di.dto.*;
-import di.service.DockingInterfaceService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
-public class DockingInterfaceServiceImpl implements DockingInterfaceService {
+public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Autowired
     private HlsCusPrjProjectMapper prjProjectMapper;
@@ -31,9 +32,11 @@ public class DockingInterfaceServiceImpl implements DockingInterfaceService {
     private HlsWsRequestsMapper hlsWsRequestsMapper;
     @Autowired
     private HlsCusBpMasterMapper hlsCusBpMasterMapper;
+    @Autowired
+    private FndCodingRuleValuesService fndCodingRuleValuesService;
 
     @Override
-    public ResponseData placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest request) {
+    public ResponseData placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest request, IRequest iRequest) {
 
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
@@ -172,16 +175,23 @@ public class DockingInterfaceServiceImpl implements DockingInterfaceService {
         }
 
         //获取订单编号,将订单编号入库
+        /*编码规则*/
+        Map<String, String> params = new HashMap<String, String>();
+        String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest, HlsCusConstant.ORDER_CODE, HlsCusConstant.ORDER_CODE, HlsCusConstant.ORDER_CODE, params);
+
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
-        String s = "111";
-        hlsCusPrjProject.setProjectNumber(s);
+        hlsCusPrjProject.setProjectNumber(codeRuleValue);
         hlsCusPrjProject.setCompanyId(1L);
         hlsCusPrjProject.setProjectStatus("NEW");
         prjProjectMapper.insert(hlsCusPrjProject);
 
 
 //        设置返回信息
+        List<String> stringList = new ArrayList<>();
+        stringList.add(codeRuleValue);
         responseData.setCode("200");
+        responseData.setRows(stringList);
+        responseData.setMessage("下单成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
         hlsWsRequestsMapper.insert(hlsWsRequests);
@@ -666,6 +676,124 @@ public class DockingInterfaceServiceImpl implements DockingInterfaceService {
             }
 
             //保存代偿金额
+
+            //            设置返回状态
+            responseData.setCode("200");
+            responseData.setMessage("还款成功");
+            hlsWsRequests.setReturnStatus("S");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            hlsWsRequestsMapper.insert(hlsWsRequests);
+            return responseData;
+        }
+    }
+
+    @Override
+    public ResponseData advancesSettleTrialCalculation(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request) {
+
+        //保存日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+//        获取请求路径
+        String requestURI = request.getRequestURI();
+        hlsWsRequests.setRequestWsdlUrl(requestURI);
+        //请求日期
+        hlsWsRequests.setRequestDate(new Date());
+//        功能名称
+        hlsWsRequests.setFunctionName("提前结清试算");
+//        状态变更日期
+        hlsWsRequests.setStatusDate(new Date());
+//        user_id
+        String userId = request.getParameter("user_id");
+        if (userId!=null){
+            hlsWsRequests.setUserId(Long.valueOf(userId));
+        }
+//        请求状态
+        hlsWsRequests.setStatusCode("200");
+//        参数类型
+        hlsWsRequests.setParameterType("JSON");
+        // 读取请求体
+        try {
+            String jsonBody = request.getInputStream().toString();
+            hlsWsRequests.setRequestJson(jsonBody);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        ResponseData responseData = new ResponseData();
+
+        //判断所传参数是否为空,如果为空直接返回
+        if (advancesSettleComputeDTO==null){
+            responseData.setCode("400");
+            responseData.setMessage("请求参数为空");
+            hlsWsRequests.setReturnStatus("E");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            hlsWsRequestsMapper.insert(hlsWsRequests);
+            return responseData;
+        }else{
+
+//            查询结算金额
+            AdvancesSettleComputeDTO advancesSettleComputeDTO1 = new AdvancesSettleComputeDTO();
+            advancesSettleComputeDTO1.setOrderNo(advancesSettleComputeDTO.getOrderNo());
+            //            判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
+            if (advancesSettleComputeDTO.getTrialTime()==null){
+                advancesSettleComputeDTO1.setTrialTime(String.valueOf(new Date()));
+            }
+            advancesSettleComputeDTO1.setTrialTime(advancesSettleComputeDTO.getTrialTime());
+            //            设置返回状态
+            responseData.setCode("200");
+            responseData.setMessage("试算成功");
+            hlsWsRequests.setReturnStatus("S");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            hlsWsRequestsMapper.insert(hlsWsRequests);
+            return responseData;
+        }
+    }
+
+    @Override
+    public ResponseData advancesSettleRequest(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request) {
+
+        //保存日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+//        获取请求路径
+        String requestURI = request.getRequestURI();
+        hlsWsRequests.setRequestWsdlUrl(requestURI);
+        //请求日期
+        hlsWsRequests.setRequestDate(new Date());
+//        功能名称
+        hlsWsRequests.setFunctionName("提前结清请求");
+//        状态变更日期
+        hlsWsRequests.setStatusDate(new Date());
+//        user_id
+        String userId = request.getParameter("user_id");
+        if (userId!=null){
+            hlsWsRequests.setUserId(Long.valueOf(userId));
+        }
+//        请求状态
+        hlsWsRequests.setStatusCode("200");
+//        参数类型
+        hlsWsRequests.setParameterType("JSON");
+        // 读取请求体
+        try {
+            String jsonBody = request.getInputStream().toString();
+            hlsWsRequests.setRequestJson(jsonBody);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        ResponseData responseData = new ResponseData();
+
+        //判断所传参数是否为空,如果为空直接返回
+        if (advancesSettleComputeDTO==null){
+            responseData.setCode("400");
+            responseData.setMessage("请求参数为空");
+            hlsWsRequests.setReturnStatus("E");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            hlsWsRequestsMapper.insert(hlsWsRequests);
+            return responseData;
+        }else{
+//            保存还款金额
+
 
             //            设置返回状态
             responseData.setCode("200");

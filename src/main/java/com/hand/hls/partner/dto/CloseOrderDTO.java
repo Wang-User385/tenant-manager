@@ -1,4 +1,4 @@
-package di.dto;
+package com.hand.hls.partner.dto;
 
 import com.hand.hap.system.dto.BaseDTO;
 import lombok.Data;

@@ -47,6 +47,11 @@ public class HlsCusConstant {
     public static final String FCT_CONTRACT_CODE = "FCT_CONTRACT_CODE";
 
     /**
+     * 订单的编码规则
+     */
+    public static final String ORDER_CODE = "ORDER_CODE";
+
+    /**
      * 工作流状态
      */
     public static interface WORKFLOW_STATUS {
