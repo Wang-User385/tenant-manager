@@ -3,6 +3,7 @@ package di.controller;
 
 //对接接口
 
+import com.hand.hap.core.IRequest;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
 import di.dto.*;
@@ -27,7 +28,8 @@ public class DockingInterfaceController extends BaseController {
     )
     @ResponseBody
     public ResponseData placeOrder(@RequestBody PlaceOrderDTO placeOrderDTO, HttpServletRequest request) {
-        return dockingInterfaceService.placeOrder(placeOrderDTO,request);
+        IRequest iRequest = createRequestContext(request);
+        return dockingInterfaceService.placeOrder(placeOrderDTO,request,iRequest);
     }
 
     @RequestMapping(
@@ -73,5 +75,23 @@ public class DockingInterfaceController extends BaseController {
     @ResponseBody
     public ResponseData claimsSubrogation(@RequestBody ClaimsSubrogationDTO claimsSubrogationDTO, HttpServletRequest request) {
         return dockingInterfaceService.claimsSubrogation(claimsSubrogationDTO,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/advancesSettleTrialCalculation"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData advancesSettleTrialCalculation(AdvancesSettleComputeDTO advancesSettleComputeDTO,HttpServletRequest request) {
+        return dockingInterfaceService.advancesSettleTrialCalculation(advancesSettleComputeDTO,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/advancesSettleRequest"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData advancesSettleRequest(AdvancesSettleComputeDTO advancesSettleComputeDTO,HttpServletRequest request) {
+        return dockingInterfaceService.advancesSettleRequest(advancesSettleComputeDTO,request);
     }
 }
