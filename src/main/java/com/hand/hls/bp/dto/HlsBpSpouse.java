@@ -66,6 +66,16 @@ public class HlsBpSpouse extends BaseDTO {
      private String email;
      private String cellPhone;
 
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    private String address;
+
     public String getRefV01() {
         return refV01;
     }
