@@ -17,11 +17,13 @@ import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.*;
 
+@Service
 public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Autowired
