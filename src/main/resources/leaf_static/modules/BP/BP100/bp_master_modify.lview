@@ -13,6 +13,8 @@
                 url="${/request/@context_path}/modules/BP/BP100/bp_master_credit_notice_detail.lview"/>
         <a:link id="hls100_cdd_uploadFile_id" url="${/request/@context_path}/uploadFile.lview"/>
         <a:link id="hls100_cdd_downloadFile_id" url="${/request/@context_path}/downloadFile.lview"/>
+        <a:link id="${/parameter/@layout_code}_bp_master_product_detail_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_product_detail.lview"/>
         <script><![CDATA[
 
         //天眼查
@@ -151,7 +153,73 @@
            else{
                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
            }
-        }
+        };
+
+
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            debugger;
+            var hls_bp_master_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var record = $(hls_bp_master_ds_id).getCurrentRecord();
+            var bp_id1 = record.get("bp_id");
+            if (!bp_id1){
+                Leaf.showErrorMessage('提示', '请先保存数据！', null, 200, 100);
+                return;
+            }
+            Leaf.Masker.mask(Ext.getBody(), '正在生成版本信息，请稍等...');
+            Leaf.request({
+                url: "${/request/@context_path}/hls/bp/master/change/request/submit",
+                para: {"bp_id": bp_id1},
+                success: function (res) {
+                    if (res.success) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.Masker.unmask(Ext.getBody());
+                        Leaf.showInfoMessage("提示", "保存成功!", function () {
+                            // $(hls_bp_master_ds_id).setQueryParameter('bp_id', bp_id);
+                            // $(hls_bp_master_ds_id).query();
+                        });
+                    }
+                },
+                error: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                sync: true,
+                scope: this
+            });
+        };
+
+
+        window['${/parameter/@layout_code}_user_button8_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var record = $(ds_id).getCurrentRecord();
+            var bp_id1 = record.get("bp_id");
+            if (!bp_id1){
+                Leaf.showErrorMessage('提示', '请先保存数据！', null, 200, 100);
+                return;
+            }
+            var  param = {};
+            param['condition_id'] = record.get('condition_id');
+            param['bp_id'] = record.get('bp_id');
+            console.log(record.get('bp_id'));
+            param['url_title'] = '生产经营情况维护明细页面';
+            param['function_code'] = 'BP100F7';  // BP100F2
+            param['winid'] = 'hls_bp_master_business_condition_winid';
+            if ('${/parameter/@function_usage}' === 'QUERY'){
+                param['function_usage'] = 'QUERY';
+                // param['function_usage'] = 'READONLY';
+            }else {
+                param['maintain_type'] = 'UPDATE';
+                param['function_usage'] = 'MODIFY';
+            }
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_bp_master_product_detail_id', ds_id, 'BP100F1');
+        };
+
+
 
         //保存submitsuccess调用
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
@@ -726,20 +794,20 @@
                 Leaf.showMessage('${l:PROMPT_MESSAGE}', "合作方只能维护一条主办项目经理！");
                 return false;
             }}
-            var relation_num=0;
-            var relation_ds_records = $(relation_ds_id).getAll();
-            if ('${/parameter/@bp_type}' == 'MANAGEMENT_COMPANY') {
-                for (var i = 0; i < relation_ds_records.length; i++) {
-                    if (relation_ds_records[i].get('relation_type') == 'MANUFACTURER'&&relation_ds_records[i].get('enabled_flag') === 'Y') {
-                        relation_num++;
-                    }
-                }
-                if (relation_num === 0) {
-                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                    Leaf.showMessage('${l:PROMPT_MESSAGE}', "伙伴关系必须维护一启用的条合作方信息！");
-                    return false;
-                }
-            }
+            // var relation_num=0;
+            // var relation_ds_records = $(relation_ds_id).getAll();
+            // if ('${/parameter/@bp_type}' == 'MANAGEMENT_COMPANY') {
+            //     for (var i = 0; i < relation_ds_records.length; i++) {
+            //         if (relation_ds_records[i].get('relation_type') == 'MANUFACTURER'&&relation_ds_records[i].get('enabled_flag') === 'Y') {
+            //             relation_num++;
+            //         }
+            //     }
+            //     if (relation_num === 0) {
+            //         window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //         Leaf.showMessage('${l:PROMPT_MESSAGE}', "伙伴关系必须维护一启用的条合作方信息！");
+            //         return false;
+            //     }
+            // }
             var role_ds_id=get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_role');
             var role_num=0;
             var role_relation_num=0;
@@ -1036,6 +1104,13 @@
                         record.getField('loan_card_num').setReadOnly(false);
                         record.getField('loan_card_num').setRequired(true);
                     } else if (record.get('ref_v01') == 'N') {
+                        record.getField('loan_card_num').setReadOnly(true);
+                        record.getField('loan_card_num').setRequired(false);
+                    }
+                    if (record.get('loan_card_num_flag') === 'Y') {
+                        record.getField('loan_card_num').setReadOnly(false);
+                        record.getField('loan_card_num').setRequired(true);
+                    } else {
                         record.getField('loan_card_num').setReadOnly(true);
                         record.getField('loan_card_num').setRequired(false);
                     }
