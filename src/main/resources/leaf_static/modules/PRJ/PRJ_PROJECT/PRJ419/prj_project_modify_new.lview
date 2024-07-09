@@ -66,8 +66,12 @@
                 $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(true);
             }
             if(manufacturerCode && manufacturerCode !== 'C000030601' ){
-                record.getField('partners_contract_number').setReadOnly(true);
-                record.getField('partners_payment_number').setReadOnly(true);
+                if(record.getField('partners_contract_number')){
+                    record.getField('partners_contract_number').setReadOnly(true);
+                }
+                if(record.getField('partners_payment_number')){
+                    record.getField('partners_payment_number').setReadOnly(true);
+                }
             }
             //三一进件整机编号允许为空
             if (manufacturerCode && manufacturerCode == 'C000004453') {
@@ -142,10 +146,14 @@
             Leaf.request({
                 url: '${/request/@context_path}/prj/manufacturer/query/amount?projectId='+project_id,
                 success: function (res) {
-                    record.set('credit_amt',res.result.record[0].credit_amt);
-                    record.set('tenant_amount',res.result.record[0].tenant_amount);
+                    record.set('credit_amt',res.result.record[0].creditAmt);
+                    record.set('tenant_amount',res.result.record[0].tenantAmount);
                     record.set('release_amount',finance_amount);
-                    record.set('surplus_amount',res.result.record[0].credit_amt - res.result.record[0].tenant_amount);
+                    record.set('surplus_amount',res.result.record[0].creditAmt - res.result.record[0].tenantAmount);
+                    record.set('current_margin',res.result.record[0].currentMargin);
+                    record.set('remaining_invested',res.result.record[0].remainingInvested);
+                    record.set('deposit_already_invested',res.result.record[0].depositAlreadyInvested);
+
                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                 },
                 failure: function () {
@@ -651,14 +659,14 @@
             try{
                 if (currentDivision === 'Vehicle_Leasing' || currentDivision === 'COMMERCIAL_VEHICLE') { //商用车
                     //删除工程机械ds
-                    $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').fields = {}
-                    $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').removeAll
-                    //删除光伏
-                    $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').fields = {}
-                    $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').removeAll
-                    //删除天合附件
-                    $('${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds').fields = {}
-                    $('${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds').removeAll
+                    // $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').fields = {}
+                    // $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').removeAll
+                    // //删除光伏
+                    // $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').fields = {}
+                    // $('${/parameter/@layout_code}_G_LEASING_PHOTOVOLTAIC_prj_project_lease_item_ds').removeAll
+                    // //删除天合附件
+                    // $('${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds').fields = {}
+                    // $('${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds').removeAll
                 } else if (currentDivision === 'PHOTOVOLTAIC_DEVICES') { //光伏设备
                     //删除工程机械ds
                     $('${/parameter/@layout_code}_G_LEASING_MACHINE_prj_project_lease_item_ds').fields = {}
@@ -702,85 +710,87 @@
                 $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(true);
             }
             if (judgeReadOnly()){
-                $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(false);
+                if( $(ds_id).getCurrentRecord().getField("project_number_replace_n")){
+                    $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(false);
+                }
             }
-            if ('${/parameter/@function_usage}' == 'CREATE') {
-                $(ds_id).getCurrentRecord().set('industry_type_n', '${/parameter/@industry_type_n}');
-                $(ds_id).getCurrentRecord().set('industry_type', '${/parameter/@industry_type}');
-                $(ds_id).getCurrentRecord().set('property_type_n', '${/parameter/@property_type_n}');
-                $(ds_id).getCurrentRecord().set('property_type', '${/parameter/@property_type}');
-                $(ds_id).getCurrentRecord().set('document_type_n', '${/parameter/@document_type_n}');
-                $(ds_id).getCurrentRecord().set('document_type', '${/parameter/@document_type}');
-                $(ds_id).getCurrentRecord().set('document_category', 'PRJ_PROJECT');
-                $(ds_id).getCurrentRecord().set('project_status', 'NEW');
-                $(ds_id).getCurrentRecord().set('company_id_n', '${/parameter/@company_id_n}');
-                $(ds_id).getCurrentRecord().set('company_id', '${/parameter/@company_id}');
-                $(ds_id).getCurrentRecord().set('business_type_n', '${/parameter/@business_type_n}');
-                $(ds_id).getCurrentRecord().set('business_type', '${/parameter/@business_type}');
-                /*$(ds_id).getCurrentRecord().set('lease_organization_n', '${/parameter/@lease_organization_n}');
-                $(ds_id).getCurrentRecord().set('lease_organization', '${/parameter/@lease_organization}');
-                $(ds_id).getCurrentRecord().set('employee_id_n', '${/parameter/@employee_id_n}');
-                $(ds_id).getCurrentRecord().set('employee_id', '${/parameter/@employee_id}');*/
-                $(ds_id).getCurrentRecord().set('lease_channel_n', '${/parameter/@lease_channel_n}');
-                $(ds_id).getCurrentRecord().set('lease_channel', '${/parameter/@lease_channel}');
-                $(ds_id).getCurrentRecord().set('tenant_id_n', '${/parameter/@bp_id_n}');
-                $(ds_id).getCurrentRecord().set('tenant_id', '${/parameter/@bp_id}');
-                $(ds_id).getCurrentRecord().set('employee_code', '${/parameter/@employee_code}');
-                $(ds_id).getCurrentRecord().set('owner_user_id', '${/parameter/@owner_user_id}');
-                $(ds_id).getCurrentRecord().set('bp_code', '${/parameter/@tenant_bp_code}');
-                $(ds_id).getCurrentRecord().set('bp_type_desc', '${/parameter/@bp_type_desc}');
-                $(ds_id).getCurrentRecord().set('bp_class', '${/parameter/@bp_class}');
-                $(ds_id).getCurrentRecord().set('bp_class_n', '${/parameter/@bp_class_n}');
+            // if ('${/parameter/@function_usage}' == 'CREATE') {
+            //     $(ds_id).getCurrentRecord().set('industry_type_n', '${/parameter/@industry_type_n}');
+            //     $(ds_id).getCurrentRecord().set('industry_type', '${/parameter/@industry_type}');
+            //     $(ds_id).getCurrentRecord().set('property_type_n', '${/parameter/@property_type_n}');
+            //     $(ds_id).getCurrentRecord().set('property_type', '${/parameter/@property_type}');
+            //     $(ds_id).getCurrentRecord().set('document_type_n', '${/parameter/@document_type_n}');
+            //     $(ds_id).getCurrentRecord().set('document_type', '${/parameter/@document_type}');
+            //     $(ds_id).getCurrentRecord().set('document_category', 'PRJ_PROJECT');
+            //     $(ds_id).getCurrentRecord().set('project_status', 'NEW');
+            //     $(ds_id).getCurrentRecord().set('company_id_n', '${/parameter/@company_id_n}');
+            //     $(ds_id).getCurrentRecord().set('company_id', '${/parameter/@company_id}');
+            //     $(ds_id).getCurrentRecord().set('business_type_n', '${/parameter/@business_type_n}');
+            //     $(ds_id).getCurrentRecord().set('business_type', '${/parameter/@business_type}');
+            //     /*$(ds_id).getCurrentRecord().set('lease_organization_n', '${/parameter/@lease_organization_n}');
+            //     $(ds_id).getCurrentRecord().set('lease_organization', '${/parameter/@lease_organization}');
+            //     $(ds_id).getCurrentRecord().set('employee_id_n', '${/parameter/@employee_id_n}');
+            //     $(ds_id).getCurrentRecord().set('employee_id', '${/parameter/@employee_id}');*/
+            //     $(ds_id).getCurrentRecord().set('lease_channel_n', '${/parameter/@lease_channel_n}');
+            //     $(ds_id).getCurrentRecord().set('lease_channel', '${/parameter/@lease_channel}');
+            //     $(ds_id).getCurrentRecord().set('tenant_id_n', '${/parameter/@bp_id_n}');
+            //     $(ds_id).getCurrentRecord().set('tenant_id', '${/parameter/@bp_id}');
+            //     $(ds_id).getCurrentRecord().set('employee_code', '${/parameter/@employee_code}');
+            //     $(ds_id).getCurrentRecord().set('owner_user_id', '${/parameter/@owner_user_id}');
+            //     $(ds_id).getCurrentRecord().set('bp_code', '${/parameter/@tenant_bp_code}');
+            //     $(ds_id).getCurrentRecord().set('bp_type_desc', '${/parameter/@bp_type_desc}');
+            //     $(ds_id).getCurrentRecord().set('bp_class', '${/parameter/@bp_class}');
+            //     $(ds_id).getCurrentRecord().set('bp_class_n', '${/parameter/@bp_class_n}');
+            //
+            //     $(ds_id).getCurrentRecord().set('employee_id_of_manager', '${/parameter/@employee_id_of_manager}');//部门负责人
+            //     $(ds_id).getCurrentRecord().set('employee_id_of_manager_n', '${/parameter/@employee_id_of_manager_n}');
+            //
+            //     /*主机厂*/
+            //     $(ds_id).getCurrentRecord().set('factory_id', '${/parameter/@factory_id}');
+            //     $(ds_id).getCurrentRecord().set('factory_id_n', '${/parameter/@factory_id_n}');
+            //
+            //     /*经销商*/
+            //     $(ds_id).getCurrentRecord().set('bp_id_vender', '${/parameter/@bp_vender_name}');
+            //     $(ds_id).getCurrentRecord().set('bp_id_vender_n', '${/parameter/@bp_vender_name_n}');
+            //
+            //     /*业务线*/
+            //     $(ds_id).getCurrentRecord().set('division', currentDivision);
+            //     $(ds_id).getCurrentRecord().set('division_n', '${/parameter/@division_n}');
+            //
+            //     $(ds_id).getCurrentRecord().set('manufacturer_id_n', '${/parameter/@manufacturer_id_n}');
+            //     $(ds_id).getCurrentRecord().set('manufacturer_id', '${/parameter/@manufacturer_id}');
+            //
+            //     $(ds_id).getCurrentRecord().set('seller_id_n', '${/parameter/@seller_id_n}');
+            //     $(ds_id).getCurrentRecord().set('seller_id', '${/parameter/@seller_id}');
+            //
+            //     $(ds_id).getCurrentRecord().set('floating_range_method', 'NEXT_YEAR_NUARY_1ST');
+            //     $(ds_id).getCurrentRecord().set('floating_range_method_n', '次年1月1日');
+            //
+            //     $(ds_id).getCurrentRecord().set('base_rate_type', 'PBOC');
+            //     $(ds_id).getCurrentRecord().set('base_rate_type_n', '人民银行基准利率');
+            //
+            // }
 
-                $(ds_id).getCurrentRecord().set('employee_id_of_manager', '${/parameter/@employee_id_of_manager}');//部门负责人
-                $(ds_id).getCurrentRecord().set('employee_id_of_manager_n', '${/parameter/@employee_id_of_manager_n}');
-
-                /*主机厂*/
-                $(ds_id).getCurrentRecord().set('factory_id', '${/parameter/@factory_id}');
-                $(ds_id).getCurrentRecord().set('factory_id_n', '${/parameter/@factory_id_n}');
-
-                /*经销商*/
-                $(ds_id).getCurrentRecord().set('bp_id_vender', '${/parameter/@bp_vender_name}');
-                $(ds_id).getCurrentRecord().set('bp_id_vender_n', '${/parameter/@bp_vender_name_n}');
-
-                /*业务线*/
-                $(ds_id).getCurrentRecord().set('division', currentDivision);
-                $(ds_id).getCurrentRecord().set('division_n', '${/parameter/@division_n}');
-
-                $(ds_id).getCurrentRecord().set('manufacturer_id_n', '${/parameter/@manufacturer_id_n}');
-                $(ds_id).getCurrentRecord().set('manufacturer_id', '${/parameter/@manufacturer_id}');
-
-                $(ds_id).getCurrentRecord().set('seller_id_n', '${/parameter/@seller_id_n}');
-                $(ds_id).getCurrentRecord().set('seller_id', '${/parameter/@seller_id}');
-
-                $(ds_id).getCurrentRecord().set('floating_range_method', 'NEXT_YEAR_NUARY_1ST');
-                $(ds_id).getCurrentRecord().set('floating_range_method_n', '次年1月1日');
-
-                $(ds_id).getCurrentRecord().set('base_rate_type', 'PBOC');
-                $(ds_id).getCurrentRecord().set('base_rate_type_n', '人民银行基准利率');
-
-            }
-
-            if($(ds_id).getCurrentRecord().get("lease_channel") == 10&&$(ds_id).getCurrentRecord().get("division") == 'PHOTOVOLTAIC_DEVICES'){
-                $(ds_id).getCurrentRecord().getField("dealer_sign_type").setReadOnly(true);
-                $(ds_id).getCurrentRecord().getField("dealer_sign_type_n").setReadOnly(true);
-                $(ds_id).getCurrentRecord().getField("vender_sign_type").setReadOnly(true);
-                $(ds_id).getCurrentRecord().getField("vender_sign_type_n").setReadOnly(true);
-                $(ds_id).getCurrentRecord().getField("manufacturer_sign_type").setReadOnly(true);
-                $(ds_id).getCurrentRecord().getField("manufacturer_sign_type_n").setReadOnly(true);
-                $(ds_id).getCurrentRecord().getField("dealer_sign_type").setRequired(false);
-                $(ds_id).getCurrentRecord().getField("dealer_sign_type_n").setRequired(false);
-                $(ds_id).getCurrentRecord().getField("vender_sign_type").setRequired(false);
-                $(ds_id).getCurrentRecord().getField("vender_sign_type_n").setRequired(false);
-                $(ds_id).getCurrentRecord().getField("manufacturer_sign_type").setRequired(false);
-                $(ds_id).getCurrentRecord().getField("manufacturer_sign_type_n").setRequired(false);
-            }
+            // if($(ds_id).getCurrentRecord().get("lease_channel") == 10&&$(ds_id).getCurrentRecord().get("division") == 'PHOTOVOLTAIC_DEVICES'){
+            //     $(ds_id).getCurrentRecord().getField("dealer_sign_type").setReadOnly(true);
+            //     $(ds_id).getCurrentRecord().getField("dealer_sign_type_n").setReadOnly(true);
+            //     $(ds_id).getCurrentRecord().getField("vender_sign_type").setReadOnly(true);
+            //     $(ds_id).getCurrentRecord().getField("vender_sign_type_n").setReadOnly(true);
+            //     $(ds_id).getCurrentRecord().getField("manufacturer_sign_type").setReadOnly(true);
+            //     $(ds_id).getCurrentRecord().getField("manufacturer_sign_type_n").setReadOnly(true);
+            //     $(ds_id).getCurrentRecord().getField("dealer_sign_type").setRequired(false);
+            //     $(ds_id).getCurrentRecord().getField("dealer_sign_type_n").setRequired(false);
+            //     $(ds_id).getCurrentRecord().getField("vender_sign_type").setRequired(false);
+            //     $(ds_id).getCurrentRecord().getField("vender_sign_type_n").setRequired(false);
+            //     $(ds_id).getCurrentRecord().getField("manufacturer_sign_type").setRequired(false);
+            //     $(ds_id).getCurrentRecord().getField("manufacturer_sign_type_n").setRequired(false);
+            // }
             debugger
             //判断是不是厂商
             // if ($(ds_id).getCurrentRecord().get("lease_channel") == 10) {
                 //根据主机厂带出厂商
-                window['${/parameter/@layout_code}_get_manufacturer'](ds_id, $(ds_id).getCurrentRecord().get("factory_id"), 'FACTORY');
-                $(ds_id).getCurrentRecord().getField("payment_bp_id_n").setReadOnly(true);
+                // window['${/parameter/@layout_code}_get_manufacturer'](ds_id, $(ds_id).getCurrentRecord().get("factory_id"), 'FACTORY');
+                // $(ds_id).getCurrentRecord().getField("payment_bp_id_n").setReadOnly(true);
             // } else if ($(ds_id).getCurrentRecord().get("lease_channel") == 20) {
             //     window['${/parameter/@layout_code}_get_manufacturer'](ds_id, $(ds_id).getCurrentRecord().get("manufacturer_id"), 'MANUFACTURER');
             // }

@@ -84,7 +84,11 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
     public List<HlsProductDefinition> batchUpdateProductDefinition(IRequest request, List<HlsProductDefinition> hlsProductDefinitionList) throws HlsCusException {
         for (HlsProductDefinition hlsProductDefinition : hlsProductDefinitionList) {
             if (hlsProductDefinition.getDefinitionId() == null) {
-
+                //每个合作商仅支持关联一个产品
+                Integer numByBpName = hlsProductDefDealerMapper.selectProductNumByBpName(hlsProductDefinition.getReplyProductId());
+                if (numByBpName > 0){
+                    throw new HlsCusException("同一个合作方仅支持一个启用的产品！");
+                }
                 //单据类别信息
                 hlsProductDefinition.setDocumentCategory(HlsConstantUtil.HlsProductDefinition.DOCUMENT_CATEGORY);
                 hlsProductDefinition.setDocumentType(HlsConstantUtil.HlsProductDefinition.DOCUMENT_TYPE);
@@ -100,6 +104,10 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
                 //单据所属公司及所有者
                 hlsProductDefinition.setCompanyId(request.getCompanyId());
                 hlsProductDefinition.setOwnerUserId(request.getUserId());
+                //产品新增保存后默认为启用状态
+                hlsProductDefinition.setEnabledFlag("Y");
+                //是否推到租金默认为否（表里这个字段不能为空）
+                hlsProductDefinition.setIntRateCalcFlag("N");
 
                 //单据状态
                 hlsProductDefinition.setProductStatus(HlsConstantUtil.WorkFlowStatus.NEW);

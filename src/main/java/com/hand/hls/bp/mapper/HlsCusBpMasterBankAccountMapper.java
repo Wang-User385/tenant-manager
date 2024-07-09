@@ -27,4 +27,6 @@ public interface HlsCusBpMasterBankAccountMapper extends HlsBpMasterBankAccountM
 
 
     List<HlsCusBpMasterBankAccount> updateEbsCodeforBp(HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount);
+
+    List<HlsCusBpMasterBankAccount> queryBpBankAccountByProject(HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount);
 }

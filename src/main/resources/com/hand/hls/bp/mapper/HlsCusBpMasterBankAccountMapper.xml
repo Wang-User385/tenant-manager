@@ -368,4 +368,36 @@
         update hls_bp_master_bank_account ha set ha.ebs_business_code=#{ebsBusinessCode}
         where ha.bp_id=#{bpId} and ha.bank_account_num=#{bankAccountNum}
     </update>
+
+    <select id="queryBpBankAccountByProject" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        SELECT
+        ba.bank_account_id,
+        ba.bp_id,
+        ba.bank_account_num,
+        ba.bank_account_name,
+        ba.currency,
+        ba.bank_full_name,
+        ba.bank_branch_name,
+        ba.country,
+        ba.REMARKS,
+        hbm.BP_NAME,
+        hbm.BP_CODE,
+        (select fp.description from fnd_province fp where fp.province = ba.province) province,
+        (select fc.description from fnd_city fc where fc.city = ba.city) city,
+        (select fd.description from fnd_district fd where fd.district = ba.district) district,
+        ba.debt_bank_id,
+        (select hdb.BANK_NAME from hls_debt_deduction_bank hdb where hdb.BANK_ID = ba.debt_bank_id) debt_bank_name,
+        (select hdb.BANK_CODE from hls_debt_deduction_bank hdb where hdb.BANK_ID = ba.debt_bank_id) debt_bank_code,
+        ba.debt_flag,
+        ba.bank_account_type
+        FROM
+        hls_bp_master_bank_account ba
+        join HLS_BP_MASTER hbm ON ba.BP_ID = hbm.BP_ID
+        left join prj_project_bp fpb ON hbm.BP_ID = fpb.BP_ID
+        where fpb.bp_type  = 'TENANT'
+          and fpb.bank_account_id = ba.bank_account_id
+          and ba.enabled_flag = 'Y'
+          and fpb.project_Id = #{projectId}
+          and rownum=1
+    </select>
 </mapper>

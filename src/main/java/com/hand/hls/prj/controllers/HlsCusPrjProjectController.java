@@ -2844,6 +2844,9 @@ public class HlsCusPrjProjectController extends BaseController {
         }
         map.put("creditAmt", creditAmt);
         map.put("tenantAmount", tenantAmount);
+        map.put("currentMargin", 0D);
+        map.put("remainingInvested", 0D);
+        map.put("depositAlreadyInvested", 0D);
         list.add(map);
         return new ResponseData(list);
     }

@@ -22,7 +22,7 @@ public class HlsCusBpMasterBankAccount extends HlsBpMasterBankAccount {
     private String bpName;
 
     @Transient
-    private Long projectId;
+    private Integer projectId;
 
     @Transient
     private String bankAccountTypeN;
@@ -100,11 +100,11 @@ public class HlsCusBpMasterBankAccount extends HlsBpMasterBankAccount {
         this.remarks = remarks;
     }
 
-    public Long getProjectId() {
+    public Integer getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(Long projectId) {
+    public void setProjectId(Integer projectId) {
         this.projectId = projectId;
     }
 

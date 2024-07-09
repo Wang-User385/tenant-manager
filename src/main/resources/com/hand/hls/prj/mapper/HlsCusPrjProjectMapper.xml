@@ -10652,6 +10652,13 @@ WHERE
         <result column="vehicle_type_n" property="vehicle_type_n"/>
         <result column="lessor_code" property="lessor_code"/>
         <result column="lessor_code_n" property="lessor_code_n"/>
+        <result column="create_date" property="create_date"/>
+        <result column="driver_and_applicant" property="driver_and_applicant"/>
+        <result column="vehicle_brand" property="vehicle_brand"/>
+        <result column="vehicle_model" property="vehicle_model"/>
+        <result column="vehicle_vin_code" property="vehicle_vin_code"/>
+        <result column="vehicle_price" property="vehicle_price"/>
+        <result column="monthly_repayment_amount" property="monthly_repayment_amount"/>
     </resultMap>
     <select id="prjRpLModifyQuery" resultMap="PrjRpLModifyQueryMap">
         SELECT pp.project_id,
@@ -10667,6 +10674,7 @@ WHERE
                pp.industry_type,
                pp.project_status,
                pp.chance_id,
+               to_date(to_char(pp.creation_date,'yyyy-mm-dd'),'yyyy-mm-dd') create_date,
                <!--pp.employee_id,-->
         <!--(select hbme.employee_id from HLS_BP_MASTER_EMPLOYEE hbme where hbme.bp_id=pp.manufacturer_id and hbme.primary_flag='Y' and hbme.enabled_flag='Y') employee_id,-->
         decode(
@@ -10862,7 +10870,13 @@ WHERE
                (SELECT v.meaning
                 FROM sys_code_value_b_v v
                 WHERE v.CODE = 'SIGN_METHOD'
-                  AND v.code_value = pp.dealer_sign_type) dealer_sign_type_n
+                  AND v.code_value = pp.dealer_sign_type) dealer_sign_type_n,
+               '' driver_and_applicant,
+               '' vehicle_brand,
+               '' vehicle_model,
+               '' vehicle_vin_code,
+               '' vehicle_price,
+               '' monthly_repayment_amount
         FROM prj_project pp
                  LEFT JOIN hls_bp_master hbm
                            ON hbm.bp_id = pp.tenant_id
@@ -10886,6 +10900,10 @@ WHERE
         <result column="bp_type_n" property="bp_type_n"/>
         <result column="bp_category_n" property="bp_category_n"/>
         <result column="tenant_name" property="tenant_name"/>
+        <result column="bp_info_link" property="bp_info_link"/>
+        <result column="bp_code" property="bp_code"/>
+        <result column="bp_category" property="bp_category"/>
+        <result column="ref_v02" property="ref_v02"/>
     </resultMap>
     <!--项目报告 承租人-->
     <select id="prjProjectBpTenantQuery" resultMap="PrjProjectBpTenantQueryMap">
@@ -10915,7 +10933,12 @@ WHERE
         hbm.bp_name tenant_name,
         hbm.bp_class,
         ( SELECT hbt.description AS value_name FROM hls_business_type hbt WHERE hbt.document_category = 'HLS_BP_MASTER' AND hbt.business_type = hbm.bp_class ) bp_class_N,
-        pp.description
+        pp.description,
+        '客户明细信息' bp_info_link,
+        hbm.bp_code,
+        ppb.bp_categroy bp_category,
+        (select bc.description from hls_bp_category bc where bc.bp_category = ppb.bp_categroy) bp_category_n,
+        ppb.ref_v02
         FROM
             prj_project pp LEFT JOIN hls_bp_master hbm ON hbm.bp_id = pp.TENANT_ID LEFT JOIN prj_project_bp ppb ON ppb.PROJECT_ID = pp.PROJECT_ID
         WHERE

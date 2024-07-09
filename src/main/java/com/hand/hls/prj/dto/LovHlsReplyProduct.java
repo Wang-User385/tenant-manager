@@ -14,14 +14,14 @@ public class LovHlsReplyProduct extends HlsCusPrjProject {
 //    private String difinitionName;
 //    @LovField(prompt = "厂商/合作方", field = "bp_name", forQuery = true, forDisplay = true)
 //    private String bpName;
-    @LovField(prompt = "批复编号", field = "project_number", forQuery = true, forDisplay = true)
-    private String projectNumber;
-    @LovField(prompt = "项目名称", field = "project_name", forQuery = true, forDisplay = true)
-    private String projectName;
+//    @LovField(prompt = "批复编号", field = "project_number", forQuery = true, forDisplay = true)
+//    private String projectNumber;
+//    @LovField(prompt = "项目名称", field = "project_name", forQuery = true, forDisplay = true)
+//    private String projectName;
     @LovField(prompt = "合作方", field = "bp_name", forQuery = true, forDisplay = true)
     private String bpName;
 
-    @Override
+    /*@Override
     public String getProjectNumber() {
         return projectNumber;
     }
@@ -39,7 +39,7 @@ public class LovHlsReplyProduct extends HlsCusPrjProject {
     @Override
     public void setProjectName(String projectName) {
         this.projectName = projectName;
-    }
+    }*/
 
     @Override
     public String getBpName() {
