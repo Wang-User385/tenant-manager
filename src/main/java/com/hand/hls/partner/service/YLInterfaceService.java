@@ -12,7 +12,7 @@ public interface YLInterfaceService {
 
     ResponseData closeOrder(CloseOrderDTO closeOrderDTO, HttpServletRequest request);
 
-    ResponseData queryOrder(String orderNo, HttpServletRequest request);
+    ResponseData queryOrder(QueryOrderDTO queryOrderDTO, HttpServletRequest request);
 
     ResponseData repayment(RepayMent repayMent, HttpServletRequest request);
 

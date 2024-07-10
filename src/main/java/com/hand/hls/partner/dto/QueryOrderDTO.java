@@ -4,13 +4,9 @@ import com.hand.hap.system.dto.BaseDTO;
 import lombok.Data;
 import org.hibernate.validator.constraints.NotBlank;
 
-//关单
-
 @Data
-public class CloseOrderDTO extends BaseDTO {
+public class QueryOrderDTO extends BaseDTO {
 
     @NotBlank(message = "订单编号不能为空")
-    private String orderNo;
-    @NotBlank(message = "关单原因不能为空")
-    private String reason;
+    private String orderNo;//订单编号
 }

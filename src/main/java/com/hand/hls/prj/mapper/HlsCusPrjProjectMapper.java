@@ -2,6 +2,8 @@ package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.csh.dto.CshPaymentReqHd;
+import com.hand.hls.csh.dto.CshTransaction;
+import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectBp;
@@ -255,4 +257,6 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     List<RepayPlanTermInfoDTO> selectRepayPlanByOrderNo(String orderNo);
 
     CompensatoryTrialCalculationDTO selectCTCByOrderNo(CompensatoryTrialCalculationDTO compensatoryTrialCalculation);
+
+    List<HlsCusCshTransaction> selectTranSactionByOrderNo(String orderNo);
 }

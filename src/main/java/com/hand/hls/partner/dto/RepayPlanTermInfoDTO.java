@@ -21,20 +21,17 @@ public class RepayPlanTermInfoDTO extends BaseDTO {
     private Integer ovdDays;//逾期天数
     private Long termNomPrin;//应还本金；单位：分
     private Long termNomInt;//应还利息；单位：分
-    private Long termOvdPrin;//应还本罚；单位：分
-    private Long termOvdInt;//应还利罚；单位：分
+    private Long termOvd;//应还罚息；单位：分
     private Long termFee;//应还其他费用；单位：分
     private Long termTotal;//应还总金额；单位：分
     private Long paidNomPrin;//实还本金；单位：分
     private Long paidNomInt;//实还利息；单位：分
-    private Long paidOvdPrin;//实还本罚；单位：分
-    private Long paidOvdInt;//实还利罚；单位：分
+    private Long paidOvd;//实还罚息；单位：分
     private Long paidFee;//实还其他费用；单位：分
     private Long paidTotal;//实还总金额；单位：分
     private Long restNomPrin;//剩余应还本金；单位：分
     private Long restNomInt;//剩余应还利息；单位：分
-    private Long restOvdPrin;//剩余应还本罚；单位：分
-    private Long restOvdInt;//剩余应还利罚；单位：分
+    private Long restOvd;//剩余应还罚息；单位：分
     private Long restFee;//剩余应还其他费用；单位：分
     private Long restTotal;//剩余应还总金额；单位：分
 }

@@ -301,6 +301,14 @@ public class HlsCusCshTransaction extends CshTransaction {
     @Transient
     private Double creditInterest;
 
+    private Long repayPrincipal;
+    private Long repayInterest;
+    private Long repayPenalty;
+    private Long repayAmount;
+    private String transactionNo;
+    private String externalDeductNo;
+    private Long termNo;
+
     public HlsCusCshTransaction() {
     }
 

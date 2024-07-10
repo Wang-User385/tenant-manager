@@ -1,6 +1,7 @@
 package com.hand.hls.partner.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
@@ -8,6 +9,9 @@ import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
 import com.hand.hls.csh.dto.CshPaymentReqHd;
+import com.hand.hls.csh.dto.HlsCusCshTransaction;
+import com.hand.hls.csh.mapper.CshTransactionMapper;
+import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.service.YLInterfaceService;
@@ -20,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
 import java.util.*;
 
 @Service
@@ -36,6 +39,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsCusBpMasterMapper hlsCusBpMasterMapper;
     @Autowired
     private FndCodingRuleValuesService fndCodingRuleValuesService;
+    @Autowired
+    private HlsCusCshTransactionMapper hlsCusCshTransactionMapper;
 
     @Override
     public ResponseData placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest request, IRequest iRequest) {
@@ -60,73 +65,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
-        // 读取请求体
-        try {
-            String jsonBody = request.getInputStream().toString();
-            hlsWsRequests.setRequestJson(jsonBody);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // 请求体
+        String s = JSONObject.toJSONString(placeOrderDTO);
+        hlsWsRequests.setRequestJson(s);
 
 
         ResponseData responseData = new ResponseData();
-        //判断姓名、客户身份证号、手机号、产品码、合作机构单号、证件签发日期、证件到期日期是否为空
-        if (placeOrderDTO.getName()==null){
-            responseData.setCode("400");
-            responseData.setMessage("客户姓名为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }
-        if (placeOrderDTO.getIdCardNo()==null){
-            responseData.setCode("400");
-            responseData.setMessage("客户身份证号为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }
-        if (placeOrderDTO.getMobile()==null){
-            responseData.setCode("400");
-            responseData.setMessage("手机号为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }
-        if (placeOrderDTO.getProductCode()==null){
-            responseData.setCode("400");
-            responseData.setMessage("产品码为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }
-        if (placeOrderDTO.getOutBizNo()==null){
-            responseData.setCode("400");
-            responseData.setMessage("合作机构单号为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }
-        if (placeOrderDTO.getIdissue()==null){
-            responseData.setCode("400");
-            responseData.setMessage("证件签发日期为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }
-        if (placeOrderDTO.getIdexp()==null){
-            responseData.setCode("400");
-            responseData.setMessage("证件到期日期为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }
 
         //判断该客户存不存在
         //如果存在，判断名称和电话一不一致，不一致就修改
@@ -134,11 +78,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         HlsCusBpMaster bpMaster = hlsCusBpMasterMapper.selectMasterByIdCardNo(placeOrderDTO.getIdCardNo());
         if (bpMaster==null){
             HlsCusBpMaster bpMaster1 = new HlsCusBpMaster();
+            Map<String, String> params = new HashMap<String, String>();
+//            String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest, "HLS_BP_MASTER", "NP", "NP", params);
+//            bpMaster1.setBpCode(codeRuleValue);
             bpMaster1.setBpName(placeOrderDTO.getName());
             bpMaster1.setIdCardNo(placeOrderDTO.getIdCardNo());
             bpMaster1.setPhone(placeOrderDTO.getMobile());
             bpMaster1.setBpClass("NP");
-            hlsCusBpMasterMapper.insert(bpMaster1);
+//            hlsCusBpMasterMapper.insert(bpMaster1);
         }else{
             if (!placeOrderDTO.getName().equals(bpMaster.getBpName())){
                 bpMaster.setBpName(placeOrderDTO.getName());
@@ -146,7 +93,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if (!placeOrderDTO.getMobile().equals(bpMaster.getPhone())){
                 bpMaster.setPhone(placeOrderDTO.getMobile());
             }
-            hlsCusBpMasterMapper.updateByPrimaryKey(bpMaster);
+//            hlsCusBpMasterMapper.updateByPrimaryKey(bpMaster);
         }
 
 //        获取当前客户所有的项目，判断项目状态
@@ -172,31 +119,32 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if ("400".equals(responseData.getCode())){
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
+//            hlsWsRequestsMapper.insert(hlsWsRequests);
             return responseData;
         }
 
         //获取订单编号,将订单编号入库
         /*编码规则*/
         Map<String, String> params = new HashMap<String, String>();
-        String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest, HlsCusConstant.ORDER_CODE, HlsCusConstant.ORDER_CODE, HlsCusConstant.ORDER_CODE, params);
+//        String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest,"PRJ_PROJECT_IMPORT", "PRJLB", "LEASEBACK", params);
 
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
-        hlsCusPrjProject.setProjectNumber(codeRuleValue);
+//        hlsCusPrjProject.setProjectNumber(codeRuleValue);
+        hlsCusPrjProject.setProjectNumber("s");
         hlsCusPrjProject.setCompanyId(1L);
         hlsCusPrjProject.setProjectStatus("NEW");
-        prjProjectMapper.insert(hlsCusPrjProject);
+//        prjProjectMapper.insert(hlsCusPrjProject);
 
 
 //        设置返回信息
         List<String> stringList = new ArrayList<>();
-        stringList.add(codeRuleValue);
+//        stringList.add(codeRuleValue);
         responseData.setCode("200");
         responseData.setRows(stringList);
         responseData.setMessage("下单成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+//        hlsWsRequestsMapper.insert(hlsWsRequests);
         return responseData;
     }
 
@@ -223,13 +171,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
-        // 读取请求体
-        try {
-            String jsonBody = request.getInputStream().toString();
-            hlsWsRequests.setRequestJson(jsonBody);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // 请求体
+        String s = JSONObject.toJSONString(closeOrderDTO);
+        hlsWsRequests.setRequestJson(s);
 
         ResponseData responseData = new ResponseData();
 
@@ -269,6 +213,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 return responseData;
             }
         }
+        //修改订单状态
+        hlsCusPrjProject.setProjectStatus("END");
+        prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
         responseData.setCode("200");
         responseData.setMessage("取消成功");
         hlsWsRequests.setReturnStatus("S");
@@ -278,7 +225,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public ResponseData queryOrder(String orderNo, HttpServletRequest request) {
+    public ResponseData queryOrder(QueryOrderDTO queryOrderDTO, HttpServletRequest request) {
 
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
@@ -300,19 +247,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
-        // 读取请求体
-        try {
-            String jsonBody = request.getInputStream().toString();
-            hlsWsRequests.setRequestJson(jsonBody);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // 请求体
+        String s = JSONObject.toJSONString(queryOrderDTO);
+        hlsWsRequests.setRequestJson(s);
 
 
         ResponseData responseData = new ResponseData();
         //根据订单编号查询相对应的还款信息,判断订单存不存在，不存在直接返回
-        List<RepayPlanTermInfoDTO> repayPlanTermInfoDTOList = prjProjectMapper.selectRepayPlanByOrderNo(orderNo);
-        QueryOrder queryOrder = prjProjectMapper.selectQueryOrderByOrderNo(orderNo);
+        List<RepayPlanTermInfoDTO> repayPlanTermInfoDTOList = prjProjectMapper.selectRepayPlanByOrderNo(queryOrderDTO.getOrderNo());
+        QueryOrder queryOrder = prjProjectMapper.selectQueryOrderByOrderNo(queryOrderDTO.getOrderNo());
         if (queryOrder==null){
             responseData.setCode("100003");
             responseData.setMessage("订单不存在");
@@ -370,132 +313,58 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
-        // 读取请求体
-        try {
-            String jsonBody = request.getInputStream().toString();
-            hlsWsRequests.setRequestJson(jsonBody);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // 请求体
+        String s = JSONObject.toJSONString(repayMent);
+        hlsWsRequests.setRequestJson(s);
 
         ResponseData responseData = new ResponseData();
-//        判断传入参数是否为空，为空直接返回
-        if (repayMent==null){
+
+        //根据订单编号查询数据
+        List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(repayMent.getOrderNo());
+        if (hlsCusCshTransactionList.size()==0){
             responseData.setCode("400");
-            responseData.setMessage("请求参数为空");
+            responseData.setMessage("查询数据为空");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
             hlsWsRequestsMapper.insert(hlsWsRequests);
             return responseData;
-        }else{
-            //判断订单编号是否为空，为空直接返回
-            if (repayMent.getOrderNo()==null){
-                responseData.setCode("400");
-                responseData.setMessage("订单编号为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
+        }
+        List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
+        //保存数据到事务表
+        for (TermRepayDetailApplyDTO termRepayDetailApplyDTO : termRepayDetailApplyDTOList) {
+            //判断还款方式是否为蚂蚁链代扣，如果是则判断结算单号、代扣交易单号是否为空
+            if ("蚂蚁链代扣".equals(repayMent.getRepayType())){
+                if (termRepayDetailApplyDTO.getTransactionNo()==null){
+                    responseData.setCode("400");
+                    responseData.setMessage("结算单号为空");
+                    hlsWsRequests.setReturnStatus("E");
+                    hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                    hlsWsRequestsMapper.insert(hlsWsRequests);
+                    return responseData;
+                }
+                if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
+                    responseData.setCode("400");
+                    responseData.setMessage("代扣交易单号为空");
+                    hlsWsRequests.setReturnStatus("E");
+                    hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                    hlsWsRequestsMapper.insert(hlsWsRequests);
+                    return responseData;
+                }
             }
-            //判断还款方式是否为空，为空直接返回
-            if (repayMent.getRepayType()==null){
-                responseData.setCode("400");
-                responseData.setMessage("还款方式为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
-            }
-            //判断请求号是否为空，为空直接返回
-            if (repayMent.getRequestNo()==null){
-                responseData.setCode("400");
-                responseData.setMessage("请求号为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
-            }
-            List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
-            //判断期次还款信息是否为空，为空直接返回
-            if (termRepayDetailApplyDTOList==null){
-                responseData.setCode("400");
-                responseData.setMessage("期次还款信息为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
-            }else{
-                //循环判断实体信息是否为空
-                for (TermRepayDetailApplyDTO termRepayDetailApplyDTO : termRepayDetailApplyDTOList) {
-                    //判断期次号是否为空，为空直接返回
-                    if (termRepayDetailApplyDTO.getTermNo()==null){
-                        responseData.setCode("400");
-                        responseData.setMessage("期次号为空");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
-                        return responseData;
-                    }
-                    //判断实际还款本金是否为空，为空直接返回
-                    if (termRepayDetailApplyDTO.getRepayPrincipal()==null){
-                        responseData.setCode("400");
-                        responseData.setMessage("实际还款本金为空");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
-                        return responseData;
-                    }
-                    //判断实际还款利息是否为空，为空直接返回
-                    if (termRepayDetailApplyDTO.getRepayInterest()==null){
-                        responseData.setCode("400");
-                        responseData.setMessage("实际还款利息为空");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
-                        return responseData;
-                    }
-                    //判断实还罚息是否为空，为空直接返回
-                    if (termRepayDetailApplyDTO.getRepayPrincipalPenalty()==null){
-                        responseData.setCode("400");
-                        responseData.setMessage("实还罚息为空");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
-                        return responseData;
-                    }
-                    //判断实际还款总金额是否为空，为空直接返回
-                    if (termRepayDetailApplyDTO.getRepayAmount()==null){
-                        responseData.setCode("400");
-                        responseData.setMessage("实际还款总金额为空");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
-                        return responseData;
-                    }
-                    //判断还款方式是否为蚂蚁链代扣，如果是则判断结算单号、代扣交易单号是否为空
-                    if ("蚂蚁链代扣".equals(repayMent.getRepayType())){
-                        if (termRepayDetailApplyDTO.getTransactionNo()==null){
-                            responseData.setCode("400");
-                            responseData.setMessage("结算单号为空");
-                            hlsWsRequests.setReturnStatus("E");
-                            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                            hlsWsRequestsMapper.insert(hlsWsRequests);
-                            return responseData;
-                        }
-                        if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
-                            responseData.setCode("400");
-                            responseData.setMessage("代扣交易单号为空");
-                            hlsWsRequests.setReturnStatus("E");
-                            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                            hlsWsRequestsMapper.insert(hlsWsRequests);
-                            return responseData;
-                        }
-                    }
+//            将数据保存入库
+            for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
+                if (hlsCusCshTransaction.getTermNo().equals(termRepayDetailApplyDTO.getTermNo())){
+                    hlsCusCshTransaction.setRepayPrincipal(termRepayDetailApplyDTO.getRepayPrincipal());
+                    hlsCusCshTransaction.setRepayInterest(termRepayDetailApplyDTO.getRepayInterest());
+                    hlsCusCshTransaction.setRepayAmount(termRepayDetailApplyDTO.getRepayAmount());
+                    hlsCusCshTransaction.setPaymentMethod(repayMent.getRepayType());
+                    hlsCusCshTransaction.setTransactionNo(termRepayDetailApplyDTO.getTransactionNo());
+                    hlsCusCshTransaction.setExternalDeductNo(termRepayDetailApplyDTO.getExternalDeductNo());
+                    hlsCusCshTransactionMapper.insert(hlsCusCshTransaction);
                 }
             }
         }
 
-        //保存数据到事务表，待完成
 
 
         //设置返回状态
@@ -531,71 +400,46 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
-        // 读取请求体
-        try {
-            String jsonBody = request.getInputStream().toString();
-            hlsWsRequests.setRequestJson(jsonBody);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // 请求体
+        String s = JSONObject.toJSONString(compensatoryTrialCalculation);
+        hlsWsRequests.setRequestJson(s);
 
         ResponseData responseData = new ResponseData();
 
-        //        判断传入参数是否为空，为空直接返回
-        if (compensatoryTrialCalculation==null){
-            responseData.setCode("400");
-            responseData.setMessage("请求参数为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }else{
-            String orderNo = compensatoryTrialCalculation.getOrderNo();
-            Integer termNo = compensatoryTrialCalculation.getTermNo();
-            //        判断期次是否为空，为空直接返回
-            if (termNo==null){
-                responseData.setCode("400");
-                responseData.setMessage("期次为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
-            }
-            //        判断订单编号是否为空，为空直接返回
-            if (orderNo==null){
-                responseData.setCode("400");
-                responseData.setMessage("订单编号为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
-            }
 //            计算本金、利息、罚息、应付金额
             CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(compensatoryTrialCalculation);
 
-//            判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
-            if (compensatoryTrialCalculation.getTrialTime()==null){
-                compensatoryTrialCalculation1.setTrialTime(String.valueOf(new Date()));
+            if (compensatoryTrialCalculation1==null){
+                responseData.setCode("400");
+                responseData.setMessage("订单不存在");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                hlsWsRequestsMapper.insert(hlsWsRequests);
+                return responseData;
             }else{
-                compensatoryTrialCalculation1.setTrialTime(compensatoryTrialCalculation.getTrialTime());
-            }
-            //设置返回订单号
-            compensatoryTrialCalculation1.setOrderNo(compensatoryTrialCalculation.getOrderNo());
+                //            判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
+                if (compensatoryTrialCalculation.getTrialTime()==null){
+                    compensatoryTrialCalculation1.setTrialTime(String.valueOf(new Date()));
+                }else{
+                    compensatoryTrialCalculation1.setTrialTime(compensatoryTrialCalculation.getTrialTime());
+                }
+                //设置返回订单号
+                compensatoryTrialCalculation1.setOrderNo(compensatoryTrialCalculation.getOrderNo());
 //            设置返回期次号
-            compensatoryTrialCalculation1.setTermNo(compensatoryTrialCalculation.getTermNo());
+                compensatoryTrialCalculation1.setTermNo(compensatoryTrialCalculation.getTermNo());
 //            设置返回数据
-            List<CompensatoryTrialCalculationDTO> compensatoryTrialCalculationList = new ArrayList<>();
-            compensatoryTrialCalculationList.add(compensatoryTrialCalculation1);
-            responseData.setRows(compensatoryTrialCalculationList);
+                List<CompensatoryTrialCalculationDTO> compensatoryTrialCalculationList = new ArrayList<>();
+                compensatoryTrialCalculationList.add(compensatoryTrialCalculation1);
+                responseData.setRows(compensatoryTrialCalculationList);
 
 //            设置返回状态
-            responseData.setCode("200");
-            responseData.setMessage("还款成功");
-            hlsWsRequests.setReturnStatus("S");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }
+                responseData.setCode("200");
+                responseData.setMessage("还款成功");
+                hlsWsRequests.setReturnStatus("S");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                hlsWsRequestsMapper.insert(hlsWsRequests);
+                return responseData;
+            }
     }
 
     @Override
@@ -621,72 +465,32 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
-        // 读取请求体
-        try {
-            String jsonBody = request.getInputStream().toString();
-            hlsWsRequests.setRequestJson(jsonBody);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // 请求体
+        String s = JSONObject.toJSONString(claimsSubrogationDTO);
+        hlsWsRequests.setRequestJson(s);
 
         ResponseData responseData = new ResponseData();
+        //保存代偿金额
 
-        //        判断传入参数是否为空，为空直接返回
-        if (claimsSubrogationDTO==null){
-            responseData.setCode("400");
-            responseData.setMessage("请求参数为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }else{
-            //        判断期次是否为空，为空直接返回
-            if (claimsSubrogationDTO.getTermNo()==null){
-                responseData.setCode("400");
-                responseData.setMessage("请求参数为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
+        //根据订单编号查询数据
+        List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(claimsSubrogationDTO.getOrderNo());
+//            将数据保存入库
+        for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
+            if (hlsCusCshTransaction.getTermNo().equals(claimsSubrogationDTO.getTermNo())){
+                hlsCusCshTransaction.setRepayAmount(claimsSubrogationDTO.getSubstituteAmount());
+                hlsCusCshTransaction.setPaymentMethod("代偿");
+                hlsCusCshTransactionMapper.insert(hlsCusCshTransaction);
             }
-            //        判断请求号是否为空，为空直接返回
-            if (claimsSubrogationDTO.getRequestNo()==null){
-                responseData.setCode("400");
-                responseData.setMessage("请求参数为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
-            }
-            //        判断代偿金额是否为空，为空直接返回
-            if (claimsSubrogationDTO.getSubstituteAmount()==null){
-                responseData.setCode("400");
-                responseData.setMessage("请求参数为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
-            }
-            //        判断订单编号是否为空，为空直接返回
-            if (claimsSubrogationDTO.getOrderNo()==null){
-                responseData.setCode("400");
-                responseData.setMessage("请求参数为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
-                return responseData;
-            }
-
-            //保存代偿金额
-
-            //            设置返回状态
-            responseData.setCode("200");
-            responseData.setMessage("还款成功");
-            hlsWsRequests.setReturnStatus("S");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
         }
+
+
+        //            设置返回状态
+        responseData.setCode("200");
+        responseData.setMessage("还款成功");
+        hlsWsRequests.setReturnStatus("S");
+        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        hlsWsRequestsMapper.insert(hlsWsRequests);
+        return responseData;
     }
 
     @Override
@@ -712,13 +516,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
-        // 读取请求体
-        try {
-            String jsonBody = request.getInputStream().toString();
-            hlsWsRequests.setRequestJson(jsonBody);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // 请求体
+        String s = JSONObject.toJSONString(advancesSettleComputeDTO);
+        hlsWsRequests.setRequestJson(s);
 
 
         ResponseData responseData = new ResponseData();
@@ -774,13 +574,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
-        // 读取请求体
-        try {
-            String jsonBody = request.getInputStream().toString();
-            hlsWsRequests.setRequestJson(jsonBody);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        // 请求体
+        String s = JSONObject.toJSONString(advancesSettleComputeDTO);
+        hlsWsRequests.setRequestJson(s);
 
 
         ResponseData responseData = new ResponseData();

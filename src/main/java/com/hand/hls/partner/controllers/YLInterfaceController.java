@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 
 @Controller
 @RequestMapping(value = {"/r/api"})
@@ -24,7 +25,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData placeOrder(@RequestBody PlaceOrderDTO placeOrderDTO, HttpServletRequest request) {
+    public ResponseData placeOrder(@RequestBody @Valid PlaceOrderDTO placeOrderDTO, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.placeOrder(placeOrderDTO,request,iRequest);
     }
@@ -34,7 +35,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData closeOrder(@RequestBody CloseOrderDTO closeOrderDTO, HttpServletRequest request) {
+    public ResponseData closeOrder(@RequestBody @Valid CloseOrderDTO closeOrderDTO, HttpServletRequest request) {
         return ylInterfaceService.closeOrder(closeOrderDTO,request);
     }
 
@@ -43,8 +44,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData queryOrder(@RequestParam String orderNo, HttpServletRequest request) {
-        return ylInterfaceService.queryOrder(orderNo,request);
+    public ResponseData queryOrder(@RequestBody @Valid QueryOrderDTO queryOrderDTO, HttpServletRequest request) {
+        return ylInterfaceService.queryOrder(queryOrderDTO,request);
     }
 
     @RequestMapping(
@@ -52,7 +53,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData repayment(@RequestBody RepayMent repayMent, HttpServletRequest request) {
+    public ResponseData repayment(@RequestBody @Valid RepayMent repayMent, HttpServletRequest request) {
         return ylInterfaceService.repayment(repayMent,request);
     }
 
@@ -61,7 +62,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData compensatoryTrialCalculation(@RequestBody CompensatoryTrialCalculationDTO compensatoryTrialCalculation, HttpServletRequest request) {
+    public ResponseData compensatoryTrialCalculation(@RequestBody @Valid CompensatoryTrialCalculationDTO compensatoryTrialCalculation, HttpServletRequest request) {
         return ylInterfaceService.compensatoryTrialCalculation(compensatoryTrialCalculation,request);
     }
 
@@ -70,7 +71,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData claimsSubrogation(@RequestBody ClaimsSubrogationDTO claimsSubrogationDTO, HttpServletRequest request) {
+    public ResponseData claimsSubrogation(@RequestBody @Valid ClaimsSubrogationDTO claimsSubrogationDTO, HttpServletRequest request) {
         return ylInterfaceService.claimsSubrogation(claimsSubrogationDTO,request);
     }
 
@@ -79,7 +80,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData advancesSettleTrialCalculation(AdvancesSettleComputeDTO advancesSettleComputeDTO,HttpServletRequest request) {
+    public ResponseData advancesSettleTrialCalculation(@RequestBody @Valid AdvancesSettleComputeDTO advancesSettleComputeDTO,HttpServletRequest request) {
         return ylInterfaceService.advancesSettleTrialCalculation(advancesSettleComputeDTO,request);
     }
 
@@ -88,7 +89,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData advancesSettleRequest(AdvancesSettleComputeDTO advancesSettleComputeDTO,HttpServletRequest request) {
+    public ResponseData advancesSettleRequest(@RequestBody @Valid AdvancesSettleComputeDTO advancesSettleComputeDTO,HttpServletRequest request) {
         return ylInterfaceService.advancesSettleRequest(advancesSettleComputeDTO,request);
     }
 }
