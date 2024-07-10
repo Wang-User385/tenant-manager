@@ -426,6 +426,7 @@
         <result column="loan_card_num_flag" property="loanCardNumFlag" jdbcType="VARCHAR"/>
         <result column="work_phone" property="workPhone" jdbcType="VARCHAR"/>
         <result column="condition_id" property="conditionId" jdbcType="DECIMAL"/>
+        <result column="source" property="source" jdbcType="DECIMAL"/>
 
         <result column="indu_classify_sp" property="induClassifySp" jdbcType="VARCHAR"/>
         <result column="company_nature_sp" property="companyNatureSp" jdbcType="VARCHAR"/>
@@ -435,6 +436,7 @@
         <result column="profession_sp" property="professionSpN" jdbcType="VARCHAR"/>
         <result column="job_title_sp" property="jobTitleSp" jdbcType="VARCHAR"/>
         <result column="job_title_sp_n" property="jobTitleSpN" jdbcType="VARCHAR"/>
+        <result column="source_n" property="sourceN" jdbcType="DECIMAL"/>
 
         <result column="id_long_term_n" property="idLongTermN" jdbcType="VARCHAR"/>
         <result column="driver_license_status_n" property="driverLicenseStatusN" jdbcType="VARCHAR"/>
@@ -3896,7 +3898,11 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         'zxcx' AS change_record,
         bm.group_companies,
         to_char(bm.CREATION_DATE, 'yyyy-mm-dd') AS CREATION_DATE_STR,
-        bm.retail_flag
+        bm.retail_flag,
+        bm.source,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'SOURCE' and sc.code_value = bm.source ) source_n
         FROM hls_bp_master bm
         WHERE bm.BP_APPROVE_STATUS is null or bm.BP_APPROVE_STATUS='APPROVED'
         ORDER BY bm.bp_name ASC) tt
@@ -4636,6 +4642,11 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         from sys_code_value_b_v sc
         where sc.code = 'BP_HOUSETYPE'
         and sc.code_value = hbm.house_type) house_type_n,
+
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'SOURCE'
+        and  sc.code_value = hbm.source) source_n,
 
         (select sc.meaning value_name
         from sys_code_value_b_v sc

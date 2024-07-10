@@ -40,6 +40,11 @@ public class HlsBusinessConditionBank extends BaseDTO {
 
      private Double netIncome;
 
+     private String year;
+
+     @Transient
+     private String yearN;
+
      @Transient
      private String monthN;
 

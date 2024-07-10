@@ -37,6 +37,11 @@ public class HlsBusinessConditionHydropower extends BaseDTO {
 
      private Double electricityAmount;
 
+     private String year;
+
+     @Transient
+     private String yearN;
+
      @Transient
      private String monthN;
 

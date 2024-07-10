@@ -37,6 +37,10 @@ public class HlsBusinessConditionReceivePay extends BaseDTO {
 
      private Double payAmount;
 
+     private String year;
+
+     @Transient
+     private String yearN;
      @Transient
      private String monthN;
 

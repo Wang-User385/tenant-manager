@@ -37,6 +37,11 @@ public class HlsBusinessConditionSale extends BaseDTO {
 
      private Double invoiceAmount;
 
+     private String year;
+
+     @Transient
+     private String yearN;
+
      @Transient
      private String monthN;
 

@@ -793,6 +793,13 @@ public class HlsCusBpMaster extends BaseDTO {
     private String jobTitleSp;
 
 
+
+    private String source;
+
+    @Transient
+    private String sourceN;
+
+
     @Transient
     private String professionSpN;
 
@@ -820,6 +827,22 @@ public class HlsCusBpMaster extends BaseDTO {
     private String houseTypeN;
     @Transient
     private String domicileLocalFlagN;
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getSourceN() {
+        return sourceN;
+    }
+
+    public void setSourceN(String sourceN) {
+        this.sourceN = sourceN;
+    }
 
     public String getLoanCardNumFlagN() {
         return loanCardNumFlagN;

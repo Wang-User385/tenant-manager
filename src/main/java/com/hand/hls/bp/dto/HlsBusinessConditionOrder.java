@@ -40,6 +40,11 @@ public class HlsBusinessConditionOrder extends BaseDTO {
 
      private Double vat;
 
+     private String year;
+
+     @Transient
+     private String yearN;
+
      @Transient
      private String monthN;
 
