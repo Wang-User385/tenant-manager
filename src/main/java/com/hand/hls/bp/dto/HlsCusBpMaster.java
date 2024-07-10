@@ -43,7 +43,7 @@ public class HlsCusBpMaster extends BaseDTO {
     public static final String FIELD_START_ACTIVE_DATE = "startActiveDate";
     public static final String FIELD_END_ACTIVE_DATE = "endActiveDate";
     public static final String REGISTER_CERT_NUM = "registerCertNum";
-//    @Id
+    //    @Id
 //    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sequence")
 //    @SequenceGenerator(name="sequence", sequenceName="hls_bp_master_s", initialValue=1, allocationSize=1)
     @Id
@@ -147,6 +147,9 @@ public class HlsCusBpMaster extends BaseDTO {
     private String businessLicenseNum;
     private String organizationCode;
     private String taxRegistryNum;
+
+
+
     private String loanCardNum;
     private String loanCardPassword;
     private String primaryBusiness;
@@ -182,6 +185,8 @@ public class HlsCusBpMaster extends BaseDTO {
     private String bpNameSpClass;
     private Date licenseTerms;
     private String companyNature;
+
+
     private String invoiceKind;
     private String ifToZxFlag;
     private String bpApproveStatus;
@@ -444,7 +449,6 @@ public class HlsCusBpMaster extends BaseDTO {
     private String strategicBpType;
     private String moneyLaunderingRiLev;
     private Date expiryCertificate;
-
 
 
     private String insiderTradingC;
@@ -715,6 +719,439 @@ public class HlsCusBpMaster extends BaseDTO {
     private String skyStatus;
 
     private String skyType;
+
+
+    //46433 添加字段
+    private Date idIssueDate;
+
+    private String idLongTerm;
+
+    private String idIssueOrgan;
+
+    private String ethnicity;
+
+    private String driverLicenseFlag;
+
+    private String driverLicenseType;
+
+    private String driverLicenseStatus;
+
+    private Date driverLicenseDeadline;
+
+    private Long violationScore;
+
+    private Long violationFines;
+
+    private String domicileProvince;
+
+    private String domicileCity;
+
+    private String domicileDistrict;
+
+    private String domicileAddress;
+
+    private String domicileLocalFlag;
+
+    private String houseProvince;
+
+    private String houseCity;
+
+    private String houseDistrict;
+
+    private String houseAddress;
+
+    private String houseType;
+
+    private String companyProvince;
+
+    private String companyCity;
+
+    private String companyDistrict;
+
+    private String companyAddress;
+
+    private Long numberOfChildren;
+
+    private String addressSp;
+
+    private String bpUsedName;
+
+    private String loanCardNumFlag;
+
+
+
+    private String workPhone;
+
+
+    @Transient
+    private Long conditionId;
+    private String induClassifySp;
+    private String companyNatureSp;
+
+    private String professionSp;
+
+    private String jobTitleSp;
+
+
+
+    private String source;
+
+    @Transient
+    private String sourceN;
+
+
+    @Transient
+    private String professionSpN;
+
+    @Transient
+    private String jobTitleSpN;
+
+    @Transient
+    private String companyProvinceN;
+    @Transient
+    private String companyCityN;
+
+
+    @Transient
+    private String induClassifySpN;
+
+    @Transient
+    private String idLongTermN;
+    @Transient
+    private String driverLicenseStatusN;
+    @Transient
+    private String driverLicenseFlagN;
+    @Transient
+    private String ethnicityN;
+    @Transient
+    private String houseTypeN;
+    @Transient
+    private String domicileLocalFlagN;
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public String getSourceN() {
+        return sourceN;
+    }
+
+    public void setSourceN(String sourceN) {
+        this.sourceN = sourceN;
+    }
+
+    public String getLoanCardNumFlagN() {
+        return loanCardNumFlagN;
+    }
+
+    public void setLoanCardNumFlagN(String loanCardNumFlagN) {
+        this.loanCardNumFlagN = loanCardNumFlagN;
+    }
+
+    @Transient
+    private String loanCardNumFlagN;
+
+    @Transient
+    private String domicileDistrictN;
+
+    @Transient
+    private String houseDistrictN;
+
+    @Transient
+    private String companyDistrictN;
+
+    public Long getConditionId() {
+        return conditionId;
+    }
+
+    public void setConditionId(Long conditionId) {
+        this.conditionId = conditionId;
+    }
+
+
+    public String getInduClassifySpN() {
+        return induClassifySpN;
+    }
+
+    public void setInduClassifySpN(String induClassifySpN) {
+        this.induClassifySpN = induClassifySpN;
+    }
+
+    public String getWorkPhone() {
+        return workPhone;
+    }
+
+    public void setWorkPhone(String workPhone) {
+        this.workPhone = workPhone;
+    }
+
+    public String getBpCode() {
+        return bpCode;
+    }
+
+    public void setBpCode(String bpCode) {
+        this.bpCode = bpCode;
+    }
+
+    public Long getNumberOfChildren() {
+        return numberOfChildren;
+    }
+
+    public void setNumberOfChildren(Long numberOfChildren) {
+        this.numberOfChildren = numberOfChildren;
+    }
+
+    public String getAddressSp() {
+        return addressSp;
+    }
+
+    public void setAddressSp(String addressSp) {
+        this.addressSp = addressSp;
+    }
+
+    public String getBpUsedName() {
+        return bpUsedName;
+    }
+
+    public void setBpUsedName(String bpUsedName) {
+        this.bpUsedName = bpUsedName;
+    }
+
+    public String getLoanCardNumFlag() {
+        return loanCardNumFlag;
+    }
+
+    public void setLoanCardNumFlag(String loanCardNumFlag) {
+        this.loanCardNumFlag = loanCardNumFlag;
+    }
+
+    public String getInduClassifySp() {
+        return induClassifySp;
+    }
+
+    public void setInduClassifySp(String induClassifySp) {
+        this.induClassifySp = induClassifySp;
+    }
+
+    public String getCompanyNatureSp() {
+        return companyNatureSp;
+    }
+
+    public void setCompanyNatureSp(String companyNatureSp) {
+        this.companyNatureSp = companyNatureSp;
+    }
+
+    public String getProfessionSp() {
+        return professionSp;
+    }
+
+    public void setProfessionSp(String professionSp) {
+        this.professionSp = professionSp;
+    }
+
+    public String getJobTitleSp() {
+        return jobTitleSp;
+    }
+
+    public void setJobTitleSp(String jobTitleSp) {
+        this.jobTitleSp = jobTitleSp;
+    }
+
+    public Date getIdIssueDate() {
+        return idIssueDate;
+    }
+
+    public void setIdIssueDate(Date idIssueDate) {
+        this.idIssueDate = idIssueDate;
+    }
+
+    public String getIdLongTerm() {
+        return idLongTerm;
+    }
+
+    public void setIdLongTerm(String idLongTerm) {
+        this.idLongTerm = idLongTerm;
+    }
+
+    public String getIdIssueOrgan() {
+        return idIssueOrgan;
+    }
+
+    public void setIdIssueOrgan(String idIssueOrgan) {
+        this.idIssueOrgan = idIssueOrgan;
+    }
+
+    public String getEthnicity() {
+        return ethnicity;
+    }
+
+    public void setEthnicity(String ethnicity) {
+        this.ethnicity = ethnicity;
+    }
+
+    public String getDriverLicenseFlag() {
+        return driverLicenseFlag;
+    }
+
+    public void setDriverLicenseFlag(String driverLicenseFlag) {
+        this.driverLicenseFlag = driverLicenseFlag;
+    }
+
+    public String getDriverLicenseType() {
+        return driverLicenseType;
+    }
+
+    public void setDriverLicenseType(String driverLicenseType) {
+        this.driverLicenseType = driverLicenseType;
+    }
+
+    public String getDriverLicenseStatus() {
+        return driverLicenseStatus;
+    }
+
+    public void setDriverLicenseStatus(String driverLicenseStatus) {
+        this.driverLicenseStatus = driverLicenseStatus;
+    }
+
+    public Date getDriverLicenseDeadline() {
+        return driverLicenseDeadline;
+    }
+
+    public void setDriverLicenseDeadline(Date driverLicenseDeadline) {
+        this.driverLicenseDeadline = driverLicenseDeadline;
+    }
+
+    public Long getViolationScore() {
+        return violationScore;
+    }
+
+    public void setViolationScore(Long violationScore) {
+        this.violationScore = violationScore;
+    }
+
+    public Long getViolationFines() {
+        return violationFines;
+    }
+
+    public void setViolationFines(Long violationFines) {
+        this.violationFines = violationFines;
+    }
+
+    public String getDomicileProvince() {
+        return domicileProvince;
+    }
+
+    public void setDomicileProvince(String domicileProvince) {
+        this.domicileProvince = domicileProvince;
+    }
+
+    public String getDomicileCity() {
+        return domicileCity;
+    }
+
+    public void setDomicileCity(String domicileCity) {
+        this.domicileCity = domicileCity;
+    }
+
+    public String getDomicileDistrict() {
+        return domicileDistrict;
+    }
+
+    public void setDomicileDistrict(String domicileDistrict) {
+        this.domicileDistrict = domicileDistrict;
+    }
+
+    public String getDomicileAddress() {
+        return domicileAddress;
+    }
+
+    public void setDomicileAddress(String domicileAddress) {
+        this.domicileAddress = domicileAddress;
+    }
+
+    public String getDomicileLocalFlag() {
+        return domicileLocalFlag;
+    }
+
+    public void setDomicileLocalFlag(String domicileLocalFlag) {
+        this.domicileLocalFlag = domicileLocalFlag;
+    }
+
+    public String getHouseProvince() {
+        return houseProvince;
+    }
+
+    public void setHouseProvince(String houseProvince) {
+        this.houseProvince = houseProvince;
+    }
+
+    public String getHouseCity() {
+        return houseCity;
+    }
+
+    public void setHouseCity(String houseCity) {
+        this.houseCity = houseCity;
+    }
+
+    public String getHouseDistrict() {
+        return houseDistrict;
+    }
+
+    public void setHouseDistrict(String houseDistrict) {
+        this.houseDistrict = houseDistrict;
+    }
+
+    public String getHouseAddress() {
+        return houseAddress;
+    }
+
+    public void setHouseAddress(String houseAddress) {
+        this.houseAddress = houseAddress;
+    }
+
+    public String getHouseType() {
+        return houseType;
+    }
+
+    public void setHouseType(String houseType) {
+        this.houseType = houseType;
+    }
+
+    public String getCompanyProvince() {
+        return companyProvince;
+    }
+
+    public void setCompanyProvince(String companyProvince) {
+        this.companyProvince = companyProvince;
+    }
+
+    public String getCompanyCity() {
+        return companyCity;
+    }
+
+    public void setCompanyCity(String companyCity) {
+        this.companyCity = companyCity;
+    }
+
+    public String getCompanyDistrict() {
+        return companyDistrict;
+    }
+
+    public void setCompanyDistrict(String companyDistrict) {
+        this.companyDistrict = companyDistrict;
+    }
+
+    public String getCompanyAddress() {
+        return companyAddress;
+    }
+
+    public void setCompanyAddress(String companyAddress) {
+        this.companyAddress = companyAddress;
+    }
 
     public String getSkyType() {
         return skyType;
@@ -1191,6 +1628,40 @@ public class HlsCusBpMaster extends BaseDTO {
     private String genderSp;
     @Transient
     private String genderSpN;
+
+    public String getEquipmentType() {
+        return equipmentType;
+    }
+
+    public void setEquipmentType(String equipmentType) {
+        this.equipmentType = equipmentType;
+    }
+
+    public String getEquipmentTypeN() {
+        return equipmentTypeN;
+    }
+
+    public void setEquipmentTypeN(String equipmentTypeN) {
+        this.equipmentTypeN = equipmentTypeN;
+    }
+
+    public String getLoanCardNum() {
+        return loanCardNum;
+    }
+
+    public void setLoanCardNum(String loanCardNum) {
+        this.loanCardNum = loanCardNum;
+    }
+
+    public String getInvoiceKind() {
+        return invoiceKind;
+    }
+
+    public void setInvoiceKind(String invoiceKind) {
+        this.invoiceKind = invoiceKind;
+    }
+
+
     private String equipmentType;
     @Transient
     private String equipmentTypeN;

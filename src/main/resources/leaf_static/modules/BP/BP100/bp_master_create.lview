@@ -8,6 +8,8 @@
     <a:view>
         <a:link id="hls214N_cdd_uploadFile_id" url="${/request/@context_path}/uploadFile.lview"/>
         <a:link id="hls214N_cdd_downloadFile_id" url="${/request/@context_path}/downloadFile.lview"/>
+        <a:link id="${/parameter/@layout_code}_bp_master_product_detail_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_product_detail.lview"/>
         <script><![CDATA[
 
         //天眼查
@@ -149,6 +151,63 @@
             } else {
                 window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             }
+        }
+
+        window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
+            debugger;
+            var hls_bp_master_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var record = $(hls_bp_master_ds_id).getCurrentRecord();
+            var bp_id1 = record.get("bp_id");
+            if (!bp_id1){
+                Leaf.showErrorMessage('提示', '请先保存数据！', null, 200, 100);
+                return;
+            }
+            Leaf.Masker.mask(Ext.getBody(), '正在生成版本信息，请稍等...');
+            Leaf.request({
+                url: "${/request/@context_path}/hls/bp/master/change/request/submit",
+                para: {"bp_id": bp_id1},
+                success: function (res) {
+                    if (res.success) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.Masker.unmask(Ext.getBody());
+                        Leaf.showInfoMessage("提示", "保存成功!", function () {
+                            // $(hls_bp_master_ds_id).setQueryParameter('bp_id', bp_id);
+                            // $(hls_bp_master_ds_id).query();
+                        });
+                    }
+                },
+                error: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                failure: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                sync: true,
+                scope: this
+            });
+        }
+
+
+        window['${/parameter/@layout_code}_user_button8_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var record = $(ds_id).getCurrentRecord();
+            var bp_id1 = record.get("bp_id");
+            if (!bp_id1){
+                Leaf.showErrorMessage('提示', '请先保存数据！', null, 200, 100);
+                return;
+            }
+            var  param = {};
+            param['bp_id'] = record.get('bp_id');
+            console.log(record.get('bp_id'));
+            param['url_title'] = '生产经营情况维护明细页面';
+            param['function_code'] = 'BP100F7';
+            param['winid'] = 'hls_bp_master_business_condition_winid';
+            param['maintain_type'] = 'UPDATE';
+            param['function_usage'] = 'MODIFY';
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_bp_master_product_detail_id', ds_id, 'BP100F1');
         }
 
 
@@ -520,6 +579,46 @@
         //更新时调用
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
             debugger;
+            //如果不是已婚 则只读
+            var hp_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var hp_ds_id_record = $(hp_ds_id).getCurrentRecord();
+            if (ds.id === hp_ds_id){
+                if (!(hp_ds_id_record.get("marital_status_n") === '已婚') ){
+                    hp_ds_id_record.getField("bp_name_sp").setReadOnly(true);
+                    hp_ds_id_record.getField("id_card_no_sp").setReadOnly(true);
+                    hp_ds_id_record.getField("gender_sp").setReadOnly(true);
+                    hp_ds_id_record.getField("gender_sp_n").setReadOnly(true);
+                    hp_ds_id_record.getField("date_of_birth_sp").setReadOnly(true);
+                    hp_ds_id_record.getField("spouse_phone").setReadOnly(true);
+                    hp_ds_id_record.getField("spouse_jobs_unit").setReadOnly(true);
+                    hp_ds_id_record.getField("compind_sp").setReadOnly(true);
+                    hp_ds_id_record.getField("compind_sp_n").setReadOnly(true);
+                    hp_ds_id_record.getField("comptype_sp").setReadOnly(true);
+                    hp_ds_id_record.getField("zylx_sp").setReadOnly(true);
+                    hp_ds_id_record.getField("zylx_sp_n").setReadOnly(true);
+                    hp_ds_id_record.getField("zw_sp").setReadOnly(true);
+                    hp_ds_id_record.getField("zw_sp_n").setReadOnly(true);
+                    hp_ds_id_record.getField("address_sp").setReadOnly(true);
+                }else {
+                    hp_ds_id_record.getField("bp_name_sp").setReadOnly(false);
+                    hp_ds_id_record.getField("id_card_no_sp").setReadOnly(false);
+                    hp_ds_id_record.getField("gender_sp").setReadOnly(false);
+                    hp_ds_id_record.getField("gender_sp_n").setReadOnly(false);
+                    hp_ds_id_record.getField("date_of_birth_sp").setReadOnly(false);
+                    hp_ds_id_record.getField("spouse_phone").setReadOnly(false);
+                    hp_ds_id_record.getField("spouse_jobs_unit").setReadOnly(false);
+                    hp_ds_id_record.getField("compind_sp").setReadOnly(false);
+                    hp_ds_id_record.getField("compind_sp_n").setReadOnly(false);
+                    hp_ds_id_record.getField("comptype_sp").setReadOnly(false);
+                    hp_ds_id_record.getField("zylx_sp").setReadOnly(false);
+                    hp_ds_id_record.getField("zylx_sp_n").setReadOnly(false);
+                    hp_ds_id_record.getField("zw_sp").setReadOnly(false);
+                    hp_ds_id_record.getField("zw_sp_n").setReadOnly(false);
+                    hp_ds_id_record.getField("address_sp").setReadOnly(false);
+                }
+            }
+
+
             // var base_ds_id = '${/parameter/@layout_code}_F_BASIC_hls_bp_master_ds';
             var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
             var base_ds_id_record=$(base_ds_id).getCurrentRecord();
@@ -529,34 +628,43 @@
             var ds_bp_address = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_address');
 
             var gbm_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master', 'F_BASIC');
+            console.log()
             if ('${/parameter/@function_usage}' != 'QUERY') {
                 if (gbm_ds_id == ds.id) {
-                    if (record.get('ref_v01') == 'Y') {
+                    if (record.get('ref_v01') === 'Y') {
                         record.getField('loan_card_num').setReadOnly(false);
                         record.getField('loan_card_num').setRequired(true);
-                    } else if (record.get('ref_v01') == 'N') {
+                    } else {
                         record.getField('loan_card_num').setReadOnly(true);
                         record.getField('loan_card_num').setRequired(false);
                     }
+                    if (record.get('loan_card_num_flag') === 'Y') {
+                        record.getField('loan_card_num').setReadOnly(false);
+                        record.getField('loan_card_num').setRequired(true);
+                    } else {
+                        record.getField('loan_card_num').setReadOnly(true);
+                        record.getField('loan_card_num').setRequired(false);
+                    }
+
                 }
             }
-            if(base_ds_id==ds.id){
-
-            if(base_ds_id_record.get('marital_status') =='MARRIED'){
-                record.getField('bp_name_sp').setRequired(true);
-                record.getField('id_type_sp').setRequired(true);
-                record.getField('id_type_sp_n').setRequired(true);
-                record.getField('id_card_no_sp').setRequired(true);
-                record.getField('gender_sp').setRequired(true);
-                record.getField('gender_sp_n').setRequired(true);
-            }else{
-                record.getField('bp_name_sp').setRequired(false);
-                record.getField('id_type_sp').setRequired(false);
-                record.getField('id_type_sp_n').setRequired(false);
-                record.getField('id_card_no_sp').setRequired(false);
-                record.getField('gender_sp').setRequired(false);
-                record.getField('gender_sp_n').setRequired(false);
-            }}
+            // if(base_ds_id==ds.id){
+            //
+            // if(base_ds_id_record.get('marital_status') =='MARRIED'){
+            //     record.getField('bp_name_sp').setRequired(true);
+            //     record.getField('id_type_sp').setRequired(true);
+            //     record.getField('id_type_sp_n').setRequired(true);
+            //     record.getField('id_card_no_sp').setRequired(true);
+            //     record.getField('gender_sp').setRequired(true);
+            //     record.getField('gender_sp_n').setRequired(true);
+            // }else{
+            //     record.getField('bp_name_sp').setRequired(false);
+            //     record.getField('id_type_sp').setRequired(false);
+            //     record.getField('id_type_sp_n').setRequired(false);
+            //     record.getField('id_card_no_sp').setRequired(false);
+            //     record.getField('gender_sp').setRequired(false);
+            //     record.getField('gender_sp_n').setRequired(false);
+            // }}
 
             if (base_ds_id == ds.id && value) {
                 if (name == 'actual_class') {
@@ -742,19 +850,23 @@
 
             var relation_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_relation');
             var relation_num=0;
-            var relation_ds_records = $(relation_ds_id).getAll();
-            if ('${/parameter/@bp_type}' == 'MANAGEMENT_COMPANY') {
-                for (var i = 0; i < relation_ds_records.length; i++) {
-                    if (relation_ds_records[i].get('relation_type') == 'MANUFACTURER'&&relation_ds_records[i].get('enabled_flag') === 'Y') {
-                        relation_num++;
-                    }
-                }
-                if (relation_num === 0) {
-                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                    Leaf.showMessage('${l:PROMPT_MESSAGE}', "伙伴关系必须维护一条启用的归属合作方信息！");
-                    return false;
-                }
-            }
+            // bug
+            // if(relation_ds_id != null){
+            //     var relation_ds_records = $(relation_ds_id).getAll();
+            //     if ('${/parameter/@bp_type}' == 'MANAGEMENT_COMPANY') {
+            //         for (var i = 0; i < relation_ds_records.length; i++) {
+            //             if (relation_ds_records[i].get('relation_type') == 'MANUFACTURER'&&relation_ds_records[i].get('enabled_flag') === 'Y') {
+            //                 relation_num++;
+            //             }
+            //         }
+            //         if (relation_num === 0) {
+            //             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            //             Leaf.showMessage('${l:PROMPT_MESSAGE}', "伙伴关系必须维护一条启用的归属合作方信息！");
+            //             return false;
+            //         }
+            //     }
+            // }
+
             var role_ds_id=get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_role');
             var role_num=0;
             var role_relation_num=0;
@@ -788,6 +900,7 @@
             // var ds_id = '${/parameter/@layout_code}_F_BASIC_hls_bp_master_ds';
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
             // var spouse_ds_id = '${/parameter/@layout_code}_F_SPOUSE_hls_bp_master_ds';
+            $(ds_id).getCurrentRecord().set('source','0');
             var basicRec = $(ds_id).getCurrentRecord();
             var id_card_no = basicRec.get('id_card_no');
             var id_type = basicRec.get('id_type');

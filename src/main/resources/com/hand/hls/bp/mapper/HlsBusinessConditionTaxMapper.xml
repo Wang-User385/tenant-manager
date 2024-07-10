@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.bp.mapper.HlsBusinessConditionTaxMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.bp.dto.HlsBusinessConditionTax">
+        <result column="TAX_ID" property="taxId" jdbcType="DECIMAL" />
+        <result column="CONDITION_ID" property="conditionId" jdbcType="DECIMAL" />
+        <result column="YEAR" property="year" jdbcType="VARCHAR" />
+        <result column="VAT" property="vat" jdbcType="DECIMAL" />
+        <result column="SALE_TAX" property="saleTax" jdbcType="DECIMAL" />
+        <result column="OTHER_CIRCULATION_TAX" property="otherCirculationTax" jdbcType="DECIMAL" />
+        <result column="PAIN_TAX" property="painTax" jdbcType="DECIMAL" />
+        <result column="OTHER_TAX" property="otherTax" jdbcType="DECIMAL" />
+
+        <result column="year_n" property="yearN" jdbcType="VARCHAR" />
+        <result column="tax_amount" property="taxAmount" jdbcType="VARCHAR" />
+        <result column="cir_amount" property="cirAmount" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="queryAllByConditionId" resultMap="BaseResultMap" parameterType="com.hand.hls.bp.dto.HlsBusinessConditionTax">
+
+        select hbct.*,
+        (nvl(VAT,0)+nvl(SALE_TAX,0)+nvl(OTHER_CIRCULATION_TAX,0)+nvl(PAIN_TAX,0)+nvl(OTHER_TAX,0)) as tax_amount,
+        (nvl(VAT,0)+nvl(SALE_TAX,0)+nvl(OTHER_CIRCULATION_TAX,0)) as cir_amount,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'YEAR'
+        and sc.code_value = hbct.year) year_n
+        from hls_business_condition_tax hbct
+        <where>
+            1 = 1
+            <if test="conditionId != null">
+                and condition_id = #{conditionId}
+            </if>
+        </where>
+
+    </select>
+
+</mapper>
