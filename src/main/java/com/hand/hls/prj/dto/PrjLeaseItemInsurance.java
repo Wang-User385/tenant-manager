@@ -28,6 +28,15 @@ public class PrjLeaseItemInsurance extends BaseDTO {
      public static final String FIELD_INSURANCE_NUMBER = "insuranceNumber";
      public static final String FIELD_INSURANCE_AMOUNT = "insuranceAmount";
      public static final String FIELD_FIRST_BENEFICIARY = "firstBeneficiary";
+     public static final String COMPULSORY_AMOUNT = "compulsoryAmount";
+     public static final String IS_COMPULSORY_INSURANCE = "isCompulsoryInsurance";
+     public static final String COMPULSORY_END_DATE = "compulsoryEndDate";
+     public static final String COMMERCIAL_INSURANCE = "commercialInsurance";
+     public static final String EXTENDED_WARRANTY_AMOUNT = "extendedWarrantyAmount";
+     public static final String IS_VEHICLE_DAMAGE = "isVehicleDamage";
+     public static final String VEHICLE_END_DATE = "vehicleEndDate";
+     public static final String IS_THIRD_PARTY = "isThirdParty";
+     public static final String THIRD_END_DATE = "thirdEndDate";
 
 
      @Id
@@ -74,4 +83,14 @@ public class PrjLeaseItemInsurance extends BaseDTO {
 
      @Transient
      private String fullName;
+
+     private String compulsoryAmount;
+     private String isCompulsoryInsurance;
+     private String compulsoryEndDate;
+     private String commercialInsurance;
+     private String extendedWarrantyAmount;
+     private String isVehicleDamage;
+     private String vehicleEndDate;
+     private String isThirdParty;
+     private String thirdEndDate;
 }

@@ -417,6 +417,9 @@
         <result column="status_n" property="statusN"/>
         <result column="quota_type" property="quotaType" jdbcType="VARCHAR"/>
         <result column="definition_id" property="definitionId" jdbcType="DECIMAL"/>
+        <result column="pre_status" property="preStatus" jdbcType="VARCHAR"/>
+        <result column="order_status" property="orderStatus" jdbcType="VARCHAR"/>
+        <result column="driver_and_applicant" property="driverAndApplicant" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="prjHomePageGetAllStatusProjectCountMap" type="java.util.Map">
@@ -9459,6 +9462,13 @@ WHERE
         <result column="business_status_n" property="business_status_n"/>
         <result column="bp_class" property="bp_class"/>
         <result column="bp_class_n" property="bp_class_n"/>
+        <result column="pre_status" property="pre_status"/>
+        <result column="pre_status_n" property="pre_status_n"/>
+        <result column="business_type" property="business_type"/>
+        <result column="business_type_n" property="business_type_n"/>
+        <result column="order_status" property="order_status"/>
+        <result column="order_status_n" property="order_status_n"/>
+        <result column="driver_and_applicant" property="driver_and_applicant"/>
     </resultMap>
 
     <!--项目报告维护-->
@@ -9528,6 +9538,27 @@ WHERE
         VALUE
         = pp.project_status
         ) project_status_n,
+        --pp.pre_status,
+        /*(
+        SELECT
+        v.meaning
+        FROM
+        sys_code_value_b v,
+        sys_code_b b
+        WHERE
+        b.CODE = 'PRJ501_PRE_STATUS'
+        AND v.code_id = b.code_id
+        AND v.
+        VALUE
+        = pp.pre_status
+        ) pre_status_n,*/
+        pp.business_type,
+        (SELECT hdt.description
+        FROM hls_document_type hdt
+        WHERE hdt.business_type = pp.business_type
+        AND hdt.document_category = pp.document_category
+        AND hdt.document_type = pp.document_type
+        ) AS business_type_n,
         pp.lease_channel,
         ( SELECT hlc.description FROM hls_lease_channel hlc WHERE hlc.lease_channel = pp.lease_channel ) lease_channel_n,
         pp.bp_id_vender,
@@ -9584,7 +9615,12 @@ WHERE
         AND sv.
         VALUE
         = pp.partners_contract_status
-        ) partners_contract_status_n
+        ) partners_contract_status_n,
+        pp.pre_status,
+        decode(pp.pre_status,'NEW','新建','APPROVING','审批中','APPROVED','审批通过','CLOSED','关闭') pre_status_n,
+        pp.order_status,
+        decode(pp.order_status,'START','开启','REJECTED','拒绝','INCEPT','起租','CLOSED','关闭') order_status_n,
+        pp.driver_and_applicant
         FROM
         prj_project pp
         LEFT JOIN hls_bp_master hbm ON pp.TENANT_ID = hbm.bp_id
@@ -10653,12 +10689,16 @@ WHERE
         <result column="lessor_code" property="lessor_code"/>
         <result column="lessor_code_n" property="lessor_code_n"/>
         <result column="create_date" property="create_date"/>
-        <result column="driver_and_applicant" property="driver_and_applicant"/>
         <result column="vehicle_brand" property="vehicle_brand"/>
         <result column="vehicle_model" property="vehicle_model"/>
         <result column="vehicle_vin_code" property="vehicle_vin_code"/>
         <result column="vehicle_price" property="vehicle_price"/>
         <result column="monthly_repayment_amount" property="monthly_repayment_amount"/>
+        <result column="pre_status" property="pre_status"/>
+        <result column="pre_status_n" property="pre_status_n"/>
+        <result column="order_status" property="order_status"/>
+        <result column="order_status_n" property="order_status_n"/>
+        <result column="driver_and_applicant" property="driver_and_applicant"/>
     </resultMap>
     <select id="prjRpLModifyQuery" resultMap="PrjRpLModifyQueryMap">
         SELECT pp.project_id,
@@ -10871,12 +10911,19 @@ WHERE
                 FROM sys_code_value_b_v v
                 WHERE v.CODE = 'SIGN_METHOD'
                   AND v.code_value = pp.dealer_sign_type) dealer_sign_type_n,
-               '' driver_and_applicant,
-               '' vehicle_brand,
-               '' vehicle_model,
-               '' vehicle_vin_code,
-               '' vehicle_price,
-               '' monthly_repayment_amount
+                (select li.brand_c from prj_project_lease_item li where li.project_id=pp.project_id and rownum =1) vehicle_brand,
+                (select li.model_c from prj_project_lease_item li where li.project_id=pp.project_id and rownum =1) vehicle_model,
+                (select li.frame_number from prj_project_lease_item li where li.project_id=pp.project_id and rownum =1) vehicle_vin_code,
+                (select li.list_price from prj_project_lease_item li where li.project_id=pp.project_id and rownum =1) vehicle_price,
+                (select pq.pmt from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                and rownum =1) monthly_repayment_amount,
+               pp.pre_status,
+               decode(pp.pre_status,'NEW','新建','APPROVING','审批中','APPROVED','审批通过','CLOSED','关闭') pre_status_n,
+               pp.order_status,
+               decode(pp.order_status,'START','开启','REJECTED','拒绝','INCEPT','起租','CLOSED','关闭') order_status_n,
+               pp.driver_and_applicant
         FROM prj_project pp
                  LEFT JOIN hls_bp_master hbm
                            ON hbm.bp_id = pp.tenant_id
@@ -11301,7 +11348,11 @@ WHERE
         <result column="service_fee_repay_flag_n" property="service_fee_repay_flag_n"/>
         <result column="residual_price_type" property="residual_price_type"/>
         <result column="default_residual_value" property="default_residual_value"/>
+        <result column="loan_review_ratio" property="loan_review_ratio"/>
+        <result column="surplus_amount" property="surplus_amount"/>
+        <result column="gps_amount" property="gps_amount"/>
     </resultMap>
+
     <!--项目报告 报价-->
     <select id="prjProjectQuotationQuery" resultMap="prjProjectQuotationQueryMap">
         select pq.quotation_id,
@@ -11423,7 +11474,10 @@ WHERE
                                        from prj_quotation_cashflow pqc
                                        where pqc.quotation_id = pq.quotation_id
                                          and pqc.cf_item = 5),
-                                      0)) after_deduction_amount
+                                      0)) after_deduction_amount,
+               pq.loan_review_ratio,
+               pq.surplus_amount,
+               pq.gps_amount
         from prj_quotation pq
                  LEFT JOIN hls_business_type hbt
                            ON pq.business_type = hbt.business_type
@@ -12427,6 +12481,14 @@ WHERE
                  left join prj_quotation pq2 on pq2.source_document_id = p2.project_id  and pq2.source_document_category = 'PRJ_PROJECT'
                  left join CON_CONTRACT con on con.project_id = p2.project_id
         where con.contract_status IN ('PENDING','ET','TERMINATE','INCEPT','PAYMENTED') and pq2.plan_id  = #{definitionId}
+    </select>
+
+    <select id="queryNotDeployedFinanceAmount" resultType="java.lang.Double">
+        select nvl(sum(nvl(pq2.finance_amount,0)-nvl(pq2.deposit,0)),0)
+          from prj_project p2
+          left join prj_quotation pq2 on pq2.source_document_id = p2.project_id
+           and pq2.source_document_category = 'PRJ_PROJECT'
+        where p2.project_status = 'START' and pq2.plan_id  = #{definitionId}
     </select>
 
     <select id="queryCreditAssistProjectManager" resultType="java.lang.Long">

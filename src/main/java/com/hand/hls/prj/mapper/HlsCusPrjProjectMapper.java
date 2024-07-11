@@ -39,6 +39,8 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     Double queryUsedFinanceAmountRevolving(@Param("definitionId") Long definitionId);
 
     Double queryUsedFinanceAmountNonRevolving(@Param("definitionId") Long definitionId);
+    //查询合作商未投放的金额
+    Double queryNotDeployedFinanceAmount(@Param("definitionId") Long definitionId);
 
 
     List<HlsCusPrjProject> prjHomePageProjectInfoGridSecond(HlsCusPrjProject prjProject);

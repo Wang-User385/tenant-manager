@@ -20,9 +20,13 @@ public class HlsCusPrjQuotationElements extends BaseDTO {
      public static final String FIELD_ORDER_SEQ = "orderSeq";
      public static final String FIELD_PROJECT_ELEMENTS = "projectElements";
      public static final String FIELD_ELEMENTS_DESCRIBE = "elementsDescribe";
+     public static final String LOAN_REVIEW_RATIO = "loanReviewRatio";
+     public static final String SURPLUS_AMOUNT = "surplusAmount";
+     public static final String GPS_AMOUNT = "gpsAmount";
 
 
-     @Id
+
+    @Id
      @GeneratedValue
      private Long prjElementsId;
 
@@ -53,6 +57,34 @@ public class HlsCusPrjQuotationElements extends BaseDTO {
 
      @Transient
      private Long oldQuotationId;
+
+     private Double loanReviewRatio;
+     private Double surplusAmount;
+     private Double gpsAmount;
+
+    public Double getLoanReviewRatio() {
+        return loanReviewRatio;
+    }
+
+    public void setLoanReviewRatio(Double loanReviewRatio) {
+        this.loanReviewRatio = loanReviewRatio;
+    }
+
+    public Double getSurplusAmount() {
+        return surplusAmount;
+    }
+
+    public void setSurplusAmount(Double surplusAmount) {
+        this.surplusAmount = surplusAmount;
+    }
+
+    public Double getGpsAmount() {
+        return gpsAmount;
+    }
+
+    public void setGpsAmount(Double gpsAmount) {
+        this.gpsAmount = gpsAmount;
+    }
 
     public String getHisElementsDescribe() {
         return hisElementsDescribe;

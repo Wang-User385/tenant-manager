@@ -196,6 +196,9 @@ public class PrjProject extends BaseDTO {
     private String rejectedDescription;
     private Date rejectedDate;
     private String deApplyResult;
+    private String preStatus;
+    private String orderStatus;
+    private String driverAndApplicant;
 
     public PrjProject() {
     }
