@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
+import com.hand.hls.bp.dto.HlsCusBpMasterBankAccount;
+import com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
@@ -13,12 +15,16 @@ import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.csh.mapper.CshTransactionMapper;
 import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
+import com.hand.hls.lease.mapper.LeaseItemInsuranceMapper;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
+import com.hand.hls.prj.dto.PrjLeaseItemInsurance;
+import com.hand.hls.prj.dto.PrjQuotation;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectLeaseItemMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
+import com.hand.hls.prj.mapper.PrjLeaseItemInsuranceMapper;
 import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
@@ -26,6 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Service
@@ -45,6 +53,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsCusCshTransactionMapper hlsCusCshTransactionMapper;
     @Autowired
     private HlsCusPrjProjectLeaseItemMapper hlsCusPrjProjectLeaseItemMapper;
+    @Autowired
+    private PrjLeaseItemInsuranceMapper prjLeaseItemInsuranceMapper;
+    @Autowired
+    private HlsCusBpMasterBankAccountMapper hlsCusBpMasterBankAccountMapper;
 
     @Override
     public ResponseData placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest request, IRequest iRequest) {
@@ -629,8 +641,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //根据项目id获取租赁物信息,如果为空，那么直接入库，如果不为空，判断订单状态
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
         if (hlsCusPrjProjectLeaseItemList.size()==0){
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            //租赁物信息
             HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = new HlsCusPrjProjectLeaseItem();
+            //融资方案相关信息
+            FinanceInfo financeInfo = dataAcquisitionDTO.getFinanceInfo();
+//            销售信息
+            SaleInfo saleInfo = dataAcquisitionDTO.getSaleInfo();
+//            风控审核相关数据
+            String riskInfo = dataAcquisitionDTO.getRiskInfo();
+
             CarInfo carInfo = dataAcquisitionDTO.getCarInfo();
+            //项目id
+            hlsCusPrjProjectLeaseItem.setProjectId(hlsCusPrjProject.getProjectId());
             //品牌
             hlsCusPrjProjectLeaseItem.setBrandC(carInfo.getBrandName());
 //            车系
@@ -640,7 +663,162 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            车架号
             hlsCusPrjProjectLeaseItem.setFrameNumber(carInfo.getVin());
 //            车辆颜色
-//            hlsCusPrjProjectLeaseItem.setColor
+//            hlsCusPrjProjectLeaseItem.setColorC(carInfo.getColor());
+//            车辆出厂日期
+            try {
+                Date productDate = simpleDateFormat.parse(carInfo.getCarProductionDate());
+                hlsCusPrjProjectLeaseItem.setProductDate(productDate);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+//            发动机号
+            hlsCusPrjProjectLeaseItem.setEngineNumber(carInfo.getEngineNumber());
+            //车辆指导价
+//            hlsCusPrjProjectLeaseItem.setListPrice(financeInfo.getCarGuidePrice().doubleValue()/100);
+//            车辆售价
+//            hlsCusPrjProjectLeaseItem.setSellingPrice(financeInfo.getCarSalePrice().doubleValue()/100);
+//            申请融资额
+//            hlsCusPrjProjectLeaseItem.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
+            hlsCusPrjProjectLeaseItemMapper.insert(hlsCusPrjProjectLeaseItem);
+
+            //强制保险金额
+            PrjLeaseItemInsurance prjLeaseItemInsurance = new PrjLeaseItemInsurance();
+            prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+            double compulsoryAmount = carInfo.getMandatoryInsuranceAmount().doubleValue();
+//            prjLeaseItemInsurance.setCompulsoryAmount(compulsoryAmount / 100);
+            //商业保险类型
+//            prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
+            prjLeaseItemInsuranceMapper.insert(prjLeaseItemInsurance);
+
+
+            PrjQuotation prjQuotation = new PrjQuotation();
+            //期次
+            prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
+//            月租
+            prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
+//            利率
+            prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
+//            首付款
+            prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
+
+//            PrjLeaseItemSales prjLeaseItemSales = new PrjLeaseItemSales();
+            //销售方统一社会信用代码
+//            prjLeaseItemSales.setUnifiedSocialCreditCode(saleInfo.getSellerCode());
+//            销售方统一社会信用代码名称
+//            prjLeaseItemSales.setSalesName(saleInfo.getSellerName());
+//            上牌主体社会代码
+//            prjLeaseItemSales.setRegisterSocialCreditCode(saleInfo.getLicensePlateOwnerCode());
+//            上牌主体名称
+//            prjLeaseItemSales.setRegisterName(saleInfo.getLicensePlateOwnerName());
+//            抵押人社会代码
+//            prjLeaseItemSales.setMortgageSocialCreditCode(saleInfo.getMortgagorCode());
+//            抵押人名称
+//            prjLeaseItemSales.setMortgageName(saleInfo.getMortgagorName());
+//            抵押城市名称
+//            prjLeaseItemSales.setMortgageCity(saleInfo.getMortgageCityName());
+
+            PreRiskAuditData preRiskAuditData = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
+            //进件信息
+            hlsCusPrjProject.setDivision(preRiskAuditData.getProline());
+            prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
+            //承租人基本信息
+            BasicCustomerInformation basicCustomerInformation = preRiskAuditData.getBasicCustomerInformation();
+            BasicCustomerJobInformation basicCustomerJobInformation = preRiskAuditData.getBasicCustomerJobInformation();
+            HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+            //性别
+            hlsCusBpMaster.setGender(basicCustomerInformation.getSex());
+            //民族
+            hlsCusBpMaster.setEthnicity(basicCustomerInformation.getNation());
+            //出生日期
+            Date dateOfBirth = null;
+            try {
+                dateOfBirth = simpleDateFormat.parse(basicCustomerInformation.getBirthdate());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            hlsCusBpMaster.setDateOfBirth(dateOfBirth);
+            //年龄
+            hlsCusBpMaster.setAge(Long.valueOf(basicCustomerInformation.getAge()));
+            //国籍
+            hlsCusBpMaster.setNationality(basicCustomerInformation.getNationality());
+            //户籍所属省份
+            hlsCusBpMaster.setDomicileProvince(basicCustomerInformation.getDomicileshen());
+            //户籍所属市
+            hlsCusBpMaster.setDomicileCity(basicCustomerInformation.getHomeaddresspcity());
+            //户籍所属区
+            hlsCusBpMaster.setDomicileDistrict(basicCustomerInformation.getDomicilequ());
+            //户籍地址
+            hlsCusBpMaster.setDomicileAddress(basicCustomerInformation.getDomicileaddress());
+            //是否本地户籍
+            hlsCusBpMaster.setDomicileLocalFlag(basicCustomerInformation.getIslocaldomicile());
+            //签发机关
+            hlsCusBpMaster.setIdIssueOrgan(basicCustomerInformation.getIssuegov());
+            //是否长期有效
+            hlsCusBpMaster.setIdLongTerm(basicCustomerInformation.getIsenable());
+            //居住地址省
+            hlsCusBpMaster.setHouseProvince(basicCustomerInformation.getHomeaddressprovince());
+            //居住地址市
+            hlsCusBpMaster.setHouseCity(basicCustomerInformation.getHomeaddresspcity());
+            //居住地址区县
+            hlsCusBpMaster.setHouseDistrict(basicCustomerInformation.getJzdzqx());
+            //居住地址
+            hlsCusBpMaster.setHouseAddress(basicCustomerInformation.getHomeaddress());
+            //房产类型
+            hlsCusBpMaster.setHouseType(basicCustomerInformation.getHousetype());
+            //婚姻状况
+            hlsCusBpMaster.setMaritalStatus(basicCustomerInformation.getMarriage());
+            //子女人数
+            hlsCusBpMaster.setNumberOfChildren(Long.valueOf(basicCustomerInformation.getChildnum()));
+            //有无驾照
+            hlsCusBpMaster.setDriverLicenseFlag(basicCustomerInformation.getIsdriverlicence());
+            //驾照类型
+            hlsCusBpMaster.setDriverLicenseType(basicCustomerInformation.getDriverlicencetype());
+            //驾照状态
+            hlsCusBpMaster.setDriverLicenseStatus(basicCustomerInformation.getDriverstatus());
+            //驾照截止日期
+            Date driverLicenseDeadline = null;
+            try {
+                driverLicenseDeadline = simpleDateFormat.parse(basicCustomerInformation.getJzjzrq());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            hlsCusBpMaster.setDriverLicenseDeadline(driverLicenseDeadline);
+            //违章分数
+            hlsCusBpMaster.setViolationScore(Long.valueOf(basicCustomerInformation.getWzfs()));
+            //违章罚款
+            hlsCusBpMaster.setViolationFines(Long.valueOf(basicCustomerInformation.getWzfk()));
+            //学历
+            hlsCusBpMaster.setHighestDegree(basicCustomerInformation.getDiploma());
+            //单位名称
+            hlsCusBpMaster.setWorkingCompany(basicCustomerJobInformation.getCompany());
+            //所属行业
+            hlsCusBpMaster.setEconomicInduClassify(basicCustomerJobInformation.getIndustry());
+            //单位性质
+            hlsCusBpMaster.setCompanyNature(basicCustomerJobInformation.getCorpnprop());
+            //职业
+            hlsCusBpMaster.setProfession(basicCustomerJobInformation.getOccu());
+            //当前职位
+            hlsCusBpMaster.setJobTitle(basicCustomerJobInformation.getPosition());
+            //个人月收入
+//            hlsCusBpMaster.setMonthlyIncome(Long.valueOf(basicCustomerJobInformation.getSalary()));
+            //单位电话
+            hlsCusBpMaster.setWorkPhone(basicCustomerJobInformation.getCompanyphone());
+            //公司所属省份
+            hlsCusBpMaster.setCompanyProvince(basicCustomerJobInformation.getCompanyshen());
+            //公司所属市
+            hlsCusBpMaster.setCompanyCity(basicCustomerJobInformation.getCompanyshi());
+            //公司所属区
+            hlsCusBpMaster.setCompanyDistrict(basicCustomerJobInformation.getCompanyqu());
+            //公司地址
+            hlsCusBpMaster.setCompanyAddress(basicCustomerJobInformation.getCompaddr());
+            hlsCusBpMasterMapper.insert(hlsCusBpMaster);
+
+            //银行卡号
+            HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+            hlsCusBpMasterBankAccount.setBankAccountNum(basicCustomerInformation.getCardno());
+            hlsCusBpMasterBankAccount.setBpId(hlsCusBpMaster.getBpId());
+            hlsCusBpMasterBankAccountMapper.insert(hlsCusBpMasterBankAccount);
+
         }
 //        如果订单状态为业务申请之前，不需要判断，直接修改入库
 //        如果订单为业务申请之后，放款之前，对字段进行校验

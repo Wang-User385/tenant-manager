@@ -15,6 +15,8 @@ public class PreRiskAuditData extends BaseDTO {
 
     private BasicCustomerInformation basicCustomerInformation;//承租人信息
 
+    private BasicCustomerJobInformation basicCustomerJobInformation;//承租人职业信息
+
     private AssociatedPersonInformation associatedPersonInformation;//关联人信息
 
     private BasicDealerInformation basicDealerInformation;//经销商基本信息
