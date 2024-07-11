@@ -23,4 +23,6 @@ public interface YLInterfaceService {
     ResponseData advancesSettleTrialCalculation(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request);
 
     ResponseData advancesSettleRequest(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request);
+
+    ResponseData dataAcquisition(DataAcquisitionDTO dataAcquisitionDTO, HttpServletRequest request);
 }

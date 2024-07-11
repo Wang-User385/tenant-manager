@@ -92,4 +92,13 @@ public class YLInterfaceController extends BaseController {
     public ResponseData advancesSettleRequest(@RequestBody @Valid AdvancesSettleComputeDTO advancesSettleComputeDTO,HttpServletRequest request) {
         return ylInterfaceService.advancesSettleRequest(advancesSettleComputeDTO,request);
     }
+
+    @RequestMapping(
+            value = {"/di/dataAcquisition"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData dataAcquisition(@RequestBody @Valid DataAcquisitionDTO dataAcquisitionDTO,HttpServletRequest request) {
+        return ylInterfaceService.dataAcquisition(dataAcquisitionDTO,request);
+    }
 }

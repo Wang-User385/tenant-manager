@@ -16,6 +16,8 @@ import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
+import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
+import com.hand.hls.prj.mapper.HlsCusPrjProjectLeaseItemMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
@@ -41,6 +43,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private FndCodingRuleValuesService fndCodingRuleValuesService;
     @Autowired
     private HlsCusCshTransactionMapper hlsCusCshTransactionMapper;
+    @Autowired
+    private HlsCusPrjProjectLeaseItemMapper hlsCusPrjProjectLeaseItemMapper;
 
     @Override
     public ResponseData placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest request, IRequest iRequest) {
@@ -523,32 +527,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         ResponseData responseData = new ResponseData();
 
-        //判断所传参数是否为空,如果为空直接返回
-        if (advancesSettleComputeDTO==null){
-            responseData.setCode("400");
-            responseData.setMessage("请求参数为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
-        }else{
 
 //            查询结算金额
-            AdvancesSettleComputeDTO advancesSettleComputeDTO1 = new AdvancesSettleComputeDTO();
-            advancesSettleComputeDTO1.setOrderNo(advancesSettleComputeDTO.getOrderNo());
-            //            判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
-            if (advancesSettleComputeDTO.getTrialTime()==null){
-                advancesSettleComputeDTO1.setTrialTime(String.valueOf(new Date()));
-            }
-            advancesSettleComputeDTO1.setTrialTime(advancesSettleComputeDTO.getTrialTime());
-            //            设置返回状态
-            responseData.setCode("200");
-            responseData.setMessage("试算成功");
-            hlsWsRequests.setReturnStatus("S");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
+        AdvancesSettleComputeDTO advancesSettleComputeDTO1 = new AdvancesSettleComputeDTO();
+        advancesSettleComputeDTO1.setOrderNo(advancesSettleComputeDTO.getOrderNo());
+        //            判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
+        if (advancesSettleComputeDTO.getTrialTime()==null){
+            advancesSettleComputeDTO1.setTrialTime(String.valueOf(new Date()));
         }
+        advancesSettleComputeDTO1.setTrialTime(advancesSettleComputeDTO.getTrialTime());
+        //            设置返回状态
+        responseData.setCode("200");
+        responseData.setMessage("试算成功");
+        hlsWsRequests.setReturnStatus("S");
+        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        hlsWsRequestsMapper.insert(hlsWsRequests);
+        return responseData;
     }
 
     @Override
@@ -581,25 +575,82 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         ResponseData responseData = new ResponseData();
 
-        //判断所传参数是否为空,如果为空直接返回
-        if (advancesSettleComputeDTO==null){
+//            保存还款金额
+
+
+        //            设置返回状态
+        responseData.setCode("200");
+        responseData.setMessage("还款成功");
+        hlsWsRequests.setReturnStatus("S");
+        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        hlsWsRequestsMapper.insert(hlsWsRequests);
+        return responseData;
+    }
+
+    @Override
+    public ResponseData dataAcquisition(DataAcquisitionDTO dataAcquisitionDTO, HttpServletRequest request) {
+        //保存日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+//        获取请求路径
+        String requestURI = request.getRequestURI();
+        hlsWsRequests.setRequestWsdlUrl(requestURI);
+        //请求日期
+        hlsWsRequests.setRequestDate(new Date());
+//        功能名称
+        hlsWsRequests.setFunctionName("提前结清请求");
+//        状态变更日期
+        hlsWsRequests.setStatusDate(new Date());
+//        user_id
+        String userId = request.getParameter("user_id");
+        if (userId!=null){
+            hlsWsRequests.setUserId(Long.valueOf(userId));
+        }
+//        请求状态
+        hlsWsRequests.setStatusCode("200");
+//        参数类型
+        hlsWsRequests.setParameterType("JSON");
+        // 请求体
+        String s = JSONObject.toJSONString(dataAcquisitionDTO);
+        hlsWsRequests.setRequestJson(s);
+
+
+        ResponseData responseData = new ResponseData();
+
+//        首先判断订单状态
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(dataAcquisitionDTO.getOrderNo());
+        if (hlsCusPrjProject==null){
             responseData.setCode("400");
-            responseData.setMessage("请求参数为空");
+            responseData.setMessage("订单不存在");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
             hlsWsRequestsMapper.insert(hlsWsRequests);
             return responseData;
-        }else{
-//            保存还款金额
-
-
-            //            设置返回状态
-            responseData.setCode("200");
-            responseData.setMessage("还款成功");
-            hlsWsRequests.setReturnStatus("S");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
-            return responseData;
         }
-    }
+        //根据项目id获取租赁物信息,如果为空，那么直接入库，如果不为空，判断订单状态
+        List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
+        if (hlsCusPrjProjectLeaseItemList.size()==0){
+            HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = new HlsCusPrjProjectLeaseItem();
+            CarInfo carInfo = dataAcquisitionDTO.getCarInfo();
+            //品牌
+            hlsCusPrjProjectLeaseItem.setBrandC(carInfo.getBrandName());
+//            车系
+            hlsCusPrjProjectLeaseItem.setSeriesC(carInfo.getSeriesName());
+//            车型
+            hlsCusPrjProjectLeaseItem.setModelC(carInfo.getModelName());
+//            车架号
+            hlsCusPrjProjectLeaseItem.setFrameNumber(carInfo.getVin());
+//            车辆颜色
+//            hlsCusPrjProjectLeaseItem.setColor
+        }
+//        如果订单状态为业务申请之前，不需要判断，直接修改入库
+//        如果订单为业务申请之后，放款之前，对字段进行校验
+//        如果订单状态为放款之后，不允许修改
+
+
+        //获取租赁物相关信息，并入库
+
+
+
+        return null;
+}
 }
