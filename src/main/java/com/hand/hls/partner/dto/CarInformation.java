@@ -38,6 +38,8 @@ public class CarInformation extends BaseDTO {
 
     private  String scdjrq;//首次登记日期
 
+    private  String transferencedate;//转让登记日期
+
     private  String chepaihao;//车牌号
 
     private  String carnatureofuse;//车辆使用性质
