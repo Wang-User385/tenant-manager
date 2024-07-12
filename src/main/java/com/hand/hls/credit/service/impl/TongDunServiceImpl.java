@@ -63,8 +63,6 @@ public class TongDunServiceImpl implements TongDunService {
 
     @Override
     public boolean preliminaryValid(Long projectId, HttpServletRequest request) {
-
-
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
         //获取请求路径
@@ -73,7 +71,7 @@ public class TongDunServiceImpl implements TongDunService {
         //请求日期
         hlsWsRequests.setRequestDate(new Date());
         //功能名称
-        hlsWsRequests.setFunctionName("关单");
+        hlsWsRequests.setFunctionName("预审");
         //状态变更日期
         hlsWsRequests.setStatusDate(new Date());
         // user_id
@@ -199,7 +197,7 @@ public class TongDunServiceImpl implements TongDunService {
         //请求日期
         hlsWsRequests.setRequestDate(new Date());
         //功能名称
-        hlsWsRequests.setFunctionName("关单");
+        hlsWsRequests.setFunctionName("正审");
         //状态变更日期
         hlsWsRequests.setStatusDate(new Date());
         // user_id
@@ -343,6 +341,12 @@ public class TongDunServiceImpl implements TongDunService {
         //经销商所在城市
         param.put("dealercity",String.valueOf(salesInfo.getCityId()));
 
+        //从调用接口开始到一年前逾期4-30天次数
+        param.put("last1yearM1count",String.valueOf(0));
+        //从调用接口开始到一年前逾期31-60天次数
+        param.put("last1yearM2count",String.valueOf(0));
+        //从调用接口开始到一年前有多少起租日
+        param.put("last1YearCount",String.valueOf(0));
 
         /*
             测试IP:http://172.17.241.66:8088/
