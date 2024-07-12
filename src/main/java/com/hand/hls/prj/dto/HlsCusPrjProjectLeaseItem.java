@@ -368,7 +368,7 @@ public class HlsCusPrjProjectLeaseItem extends BaseDTO {
     @Transient
     private String projectStatus; //合同状态
 
-    private String colourC; //车辆颜色
+    private String colorC; //车辆颜色
     private String ageC;	//车龄
     private String vehicleCapacity;	//车辆准载(定员)
     private Double sellingPrice;	//车辆销售价格
@@ -389,5 +389,5 @@ public class HlsCusPrjProjectLeaseItem extends BaseDTO {
     private Double vehicleTax;	//车辆税额
     private String fuelType;	//燃料类型(01汽油、02柴油、03纯电动、04混动)
     private String isImport;	//是否进口(Y/N)
-    private Double finance_amount; //融资金额
+    private Double financeAmount; //融资金额
 }
