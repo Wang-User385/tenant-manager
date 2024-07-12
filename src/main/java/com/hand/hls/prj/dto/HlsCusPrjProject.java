@@ -70,6 +70,9 @@ public class HlsCusPrjProject extends PrjProject {
     private String leaseOrganization;
 
     private String signedFlag;
+    private String preStatus;
+    private String orderStatus;
+    private String driverAndApplicant;
 
 
     @Transient

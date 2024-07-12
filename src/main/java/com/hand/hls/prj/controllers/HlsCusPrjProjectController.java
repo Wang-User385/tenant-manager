@@ -2813,6 +2813,7 @@ public class HlsCusPrjProjectController extends BaseController {
         List<Map> list=new ArrayList<>();
         Double creditAmt = 0D;
         Double tenantAmount = 0D;
+        Double NotDeployedAmount = 0D;
 
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
         hlsCusPrjProject.setProjectId(projectId);
@@ -2830,20 +2831,26 @@ public class HlsCusPrjProjectController extends BaseController {
         if(CollectionUtils.isNotEmpty(creditAmtProjects)){
             for(HlsCusPrjProject creditAmtProject:creditAmtProjects){
                 Double usedFinanceAmount = 0D;
+                Double UnusedFinanceAmount = 0D;
                 if("REVOLVING".equals(creditAmtProject.getQuotaType())){
                     usedFinanceAmount = hlsCusPrjProjectMapper.queryUsedFinanceAmountRevolving(creditAmtProject.getDefinitionId());
                 }else{
                     usedFinanceAmount = hlsCusPrjProjectMapper.queryUsedFinanceAmountNonRevolving(creditAmtProject.getDefinitionId());
                 }
+                //未投放额度：取合作方所有关联进件，订单状态为开启且未投放的总额
+                UnusedFinanceAmount = hlsCusPrjProjectMapper.queryNotDeployedFinanceAmount(creditAmtProject.getDefinitionId());
                 if (!calcedProject.contains(creditAmtProject.getProjectId())) {
                     calcedProject.add(creditAmtProject.getProjectId());
                     creditAmt += creditAmtProject.getCreditAmt();
                 }
                 tenantAmount +=usedFinanceAmount;
+                NotDeployedAmount +=UnusedFinanceAmount;
             }
         }
         map.put("creditAmt", creditAmt);
         map.put("tenantAmount", tenantAmount);
+        map.put("releaseAmount", NotDeployedAmount);
+        map.put("surplusAmount", creditAmt-tenantAmount-NotDeployedAmount);
         map.put("currentMargin", 0D);
         map.put("remainingInvested", 0D);
         map.put("depositAlreadyInvested", 0D);

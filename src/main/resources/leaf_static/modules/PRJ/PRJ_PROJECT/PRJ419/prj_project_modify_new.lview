@@ -28,6 +28,8 @@
         <a:link id="PRJ419f2_prj_get_manufacturer_code"
                 url="${/request/@context_path}/prj/project/get/manufacturerCode"/>
         <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
+        <a:link id="lease_info_detaill_id"
+                url="${/request/@context_path}/modules/LEASE/LEASE001/lease_item_modify_detail.lview"/>
         <script><![CDATA[
 
         /*定义全局对象变量*/
@@ -61,7 +63,7 @@
             var lease_item_ds= get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_lease_item');
             var record = $(ds_id);
             var lease_item_record = $(lease_item_ds);
-            if(wfl_flag == 'Y'){
+            /*if(wfl_flag == 'Y'){
                 $(ds_id).getCurrentRecord().getField("project_number_replace").setReadOnly(true);
                 $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(true);
             }
@@ -72,11 +74,11 @@
                 if(record.getField('partners_payment_number')){
                     record.getField('partners_payment_number').setReadOnly(true);
                 }
-            }
+            }*/
             //三一进件整机编号允许为空
-            if (manufacturerCode && manufacturerCode == 'C000004453') {
+            /*if (manufacturerCode && manufacturerCode == 'C000004453') {
                 lease_item_record.getField('serial_number').setRequired(false);
-            }
+            }*/
 
             //根据业务线隐藏租赁物
             hideGird();
@@ -148,8 +150,8 @@
                 success: function (res) {
                     record.set('credit_amt',res.result.record[0].creditAmt);
                     record.set('tenant_amount',res.result.record[0].tenantAmount);
-                    record.set('release_amount',finance_amount);
-                    record.set('surplus_amount',res.result.record[0].creditAmt - res.result.record[0].tenantAmount);
+                    record.set('release_amount',res.result.record[0].releaseAmount);
+                    record.set('surplus_amount',res.result.record[0].creditAmt - res.result.record[0].surplusAmount);
                     record.set('current_margin',res.result.record[0].currentMargin);
                     record.set('remaining_invested',res.result.record[0].remainingInvested);
                     record.set('deposit_already_invested',res.result.record[0].depositAlreadyInvested);
@@ -211,29 +213,42 @@
         }
 
         window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            debugger;
             if (name == 'bp_info_link' && !record.isNew) {
-                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:#ff0000">查看承租人</span></a>';
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:#0000FF">客户明细信息</span></a>';
             } else if (name == 'bp_supplier_link' && !record.isNew) {
-                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:red">查看供应商</span></a>';
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:#0000FF">查看供应商</span></a>';
             } else if (name == 'bp_security_link' && !record.isNew) {
-                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:red">查看担保人</span></a>';
-
+                return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:#0000FF">查看担保人</span></a>';
+            }else if(name == 'vehicle_info_link' && !record.isNew){
+                link_function = 'lease_item_details';
+                return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');"><span style="color:#0000FF">详情</span></a>';
             } else if (name == 'quote' && !record.isNew) {
-                if (PRJ419f2_viewModel.function_usage != 'QUERY') {
-                    return '<a href="javascript:PRJ419_open_price(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('quotation_id') + '\')"><span style="color:red">报价</span></a>';
-                }else{
-                    return '报价计算成功';
+                if (PRJ419f2_viewModel.function_usage == 'QUERY') {
+                    return '<a href="javascript:quotation_calc_detail_adjust(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('quotation_id') + '\')"><span style="    width: 82px;\n' +
+                        '    background-color: #4CAF50;\n' +
+                        '    border: none;\n' +
+                        '    color: white;\n' +
+                        '    padding: 1px 33px;\n' +
+                        '    text-align: center;\n' +
+                        '    text-decoration: none;\n' +
+                        '    display: inline-block;\n' +
+                        '    font-size: 13px;\n' +
+                        '    margin: 0px 0px;\n' +
+                        '    cursor: pointer;\n' +
+                        '    border-radius: 8px;\n' +
+                        '    transition: background-color 0.3s;">报价详情</span></a>';
                 }
             }
-            else if (name == 'attach_link' && record.isNew) {
+            else if (name == 'file_names' && record.isNew) {
                 return null;
             }
-            else if (name == 'attach_link' && !record.isNew) {
+            else if (name == 'file_names' && !record.isNew) {
 
                 var table_name = record.get("project_attachment_category");
                 var th_back_flag = record.get("th_back_flag");
                 var document_name  = record.get("document_name");
-                return '<a href="javascript:PRJ419_open_attach(\'' + record.get('project_attachment_id') + '\',\''+table_name + '\',\''+ document_name +'\',\''+ th_back_flag +'\')">上传/下载</a>';
+                return '<a href="javascript:PRJ419_open_attach(\'' + record.get('project_attachment_id') + '\',\''+table_name + '\',\''+ document_name +'\',\''+ th_back_flag +'\')">'+record.get("file_names")+'</a>';
             }
             else if (name == 'insurance_information' && !record.isNew) {
                 return '<a style="color: red;" href="javascript:PRJ419_open_insurance_information(\'' + record.ds.id + '\',\'' + record.id + '\')">保险信息</a>';
@@ -412,22 +427,64 @@
             }
             //非天合光伏业务线, 报价方案隐藏 装机量、单价、每期租金
             if (currentDivision !== 'PHOTOVOLTAIC_DEVICES') {
-                $(quotation_ds_id).hideColumn('installed_capacity');
+                /*$(quotation_ds_id).hideColumn('installed_capacity');
                 $(quotation_ds_id).hideColumn('unit_price');
-                $(quotation_ds_id).hideColumn('each_rental');
+                $(quotation_ds_id).hideColumn('each_rental');*/
             } else {
                 // debugger
                 //厂商非碳银
-                if (manufacturerCode !== 'C000032182') {
+                /*if (manufacturerCode !== 'C000032182') {
                     //租赁物隐藏组件生产商
                     $(lease_item_ds_id).hideColumn('module_producer');
                 } else {
                     //碳银厂商报价方案隐藏每期租金
                     $(quotation_ds_id).hideColumn('each_rental');
-                }
+                }*/
             }
         }
+        function lease_item_details(record_id, ds_id ) {
+            debugger;
+            var param = $(ds_id).findById(record_id).data;
+            /*var project_lease_item_id =  param['project_lease_item_id'];
+            param['url_title'] = '租赁物详细信息';
+            param['function_code'] = 'LEASE001F1';
+            param['winid'] = 'lease_item_detail_winid';
+            param['ds_id'] = ds_id;
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
 
+            var link_id = 'lease_info_detaill_id';
+            hls_doc_get_layout_code(param, link_id, ds_id, 'LEASE001');*/
+            var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_lease_item_detail.lview';
+            new Leaf.Window({
+                id: 'prj419_lease_item_detail_winid',
+                url: url,
+                params: {
+                    project_lease_item_id: param['project_lease_item_id'],
+                    winid: 'prj419_lease_item_detail_winid'
+                },
+                title: '租赁物详细信息',
+                fullScreen: true
+            });
+        }
+
+        function quotation_calc_detail_adjust(dsId,record_id,quotation_id) {
+            //debugger;
+            var price_list = $(dsId).findById(record_id).get("price_list");
+            if(quotation_id == 'undefined' || quotation_id == null || quotation_id == ''){
+                Leaf.showInfoMessage("提示" , "请先进行调息计算");
+                return ;
+            }
+
+            var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId='+quotation_id + '&priceList=' + price_list  + '&readOnly=Y' ;
+            var win = new Leaf.Window({
+                id: 'hls901_open_price_winid',
+                url: url,
+                title: '项目报价',
+                fullScreen: true
+            });
+
+        }
         //报价
         function PRJ419_open_price(dsId, record_id, quotationId) {
             debugger
@@ -463,7 +520,7 @@
         function open_bp_modify_win(ds_id, record_id) {
             var record = $(ds_id).findById(record_id);
             var param = record.data;
-            param['url_title'] = '客户信息维护';
+            param['url_title'] = '商业伙伴信息';
             if (param['bp_class'] == 'ORG') {
                 if(param['bp_type']=='MANUFACTURER'){
                     param['function_code'] = 'BP100F4'
@@ -705,7 +762,7 @@
             disableDs();
             var wfl_flag = '${/parameter/@wfl_flag}';
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
-            if(wfl_flag == 'Y'){
+            /*if(wfl_flag == 'Y'){
                 $(ds_id).getCurrentRecord().getField("project_number_replace").setReadOnly(true);
                 $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(true);
             }
@@ -713,7 +770,7 @@
                 if( $(ds_id).getCurrentRecord().getField("project_number_replace_n")){
                     $(ds_id).getCurrentRecord().getField("project_number_replace_n").setReadOnly(false);
                 }
-            }
+            }*/
             // if ('${/parameter/@function_usage}' == 'CREATE') {
             //     $(ds_id).getCurrentRecord().set('industry_type_n', '${/parameter/@industry_type_n}');
             //     $(ds_id).getCurrentRecord().set('industry_type', '${/parameter/@industry_type}');
@@ -864,7 +921,7 @@
         }
 
         //更新时调用
-        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+        /*window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
             debugger
             disableDs()
             var regEn = /[`~!@#$%^&*()\-_+=<>?:"{}\,.\\/;'[\]]/im;//匹配所有英文特殊字符
@@ -993,7 +1050,7 @@
                         }
                     }
                 }
-                debugger
+                debugger;
                 isAdvancedEquipment(record);
             }
 
@@ -1004,7 +1061,7 @@
                 record.set('manufacturer_id','${/parameter/@manufacturer_id}');
                 let requiredFlag = false;
                 // debugger
-                /*更新对应的价目表*/
+                /!*更新对应的价目表*!/
                 if (name == 'plan_id') {
                     var datas = PRJ419f2_viewModel.productList;
                     for (var i = 0; i < datas.length; i++) {
@@ -1277,7 +1334,7 @@
                 record.getField('document_name').setReadOnly(false);
                 record.getField('description').setReadOnly(false);
             }
-        };
+        };*/
 
         //删除时调用
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_remove'] = function(ds, record, bp_seq) {
@@ -2150,7 +2207,7 @@
                     }
                 }
             }
-            if(quotation_ds_id == ds.id){
+            /*if(quotation_ds_id == ds.id){
                 debugger
                 var record = $(quotation_ds_id).getAt(0);
                 if(record!=null){
@@ -2207,7 +2264,7 @@
                         }
                     }
                 });
-            }
+            }*/
             if(ds.id=='PRJ329F1_C_PRJ_BASIC_INFO_prj_project_attachment_ds'){
                 if(parent_layout_code=='PRJ329'&&record!=null&&record!=''){
                     record.getField('document_name').setReadOnly(false);
