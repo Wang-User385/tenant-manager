@@ -1477,6 +1477,11 @@ public class ActivitiServiceImpl implements IActivitiService, IActivitiConstants
     public HistoricProcessInstanceResponseExt getInstanceDetail(IRequest request, String processInstanceId) {
         HistoricProcessInstanceResponseExt historicProcessInstanceResponseExt = new HistoricProcessInstanceResponseExt();
         // 查询流程实例历史
+        List<HistoricProcessInstance> processInstanceList = historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).list();
+        //处理没有审批记录时页面报错问题java.util.NoSuchElementException
+        if (processInstanceList.size() == 0){
+            return historicProcessInstanceResponseExt;
+        }
         HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
                 .processInstanceId(processInstanceId).list().iterator().next();
         // 设置申请人，流程名称

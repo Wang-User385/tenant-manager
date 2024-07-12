@@ -10,6 +10,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
+import java.util.Date;
 
 @ExtensionAttribute(disable = true)
 @Table(name = "prj_lease_item_mortgage")
@@ -37,22 +38,22 @@ public class PrjProjectLeaseItemMortgage extends BaseDTO {
     @NotNull
     private Long projectLeaseItemId;
 
-    private String numberOfMortgages; //抵押次数
+    private Integer numberOfMortgages; //抵押次数
 
-    private String numberOfTransfers; //过户次数
+    private Integer numberOfTransfers; //过户次数
 
-    private String numberOfMortgagesOne; //近1年抵押次数
+    private Integer numberOfMortgagesOne; //近1年抵押次数
 
-    private String numberOfTransfersOne; //近1年过户次数
+    private Integer numberOfTransfersOne; //近1年过户次数
 
-    private String numberOfTransfersTwo; //近2年过户次数
+    private Integer numberOfTransfersTwo; //近2年过户次数
 
     private String isRenewalRecord; //是否有车辆登记证补领记录
 
     private String isHalfRenewalRecord; //近半年是否有车辆登记证补领记录
-    private String lastTransfersDate; //上一次抵押登记日期
-    private String recentlyTransfersDate; //最近一次解押日期
+    private Date lastTransfersDate; //上一次抵押登记日期
+    private Date recentlyTransfersDate; //最近一次解押日期
     private String transfersStatus; //抵押状态
-    private String daysToRelease; //解押天数
+    private Integer daysToRelease; //解押天数
 
 }
