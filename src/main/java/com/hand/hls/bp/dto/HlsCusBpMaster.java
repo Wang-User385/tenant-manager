@@ -796,6 +796,13 @@ public class HlsCusBpMaster extends BaseDTO {
 
     private String source;
 
+
+    @Transient
+    private String domicileDesc;
+    @Transient
+    private String houseDesc;
+    @Transient
+    private String companyDesc;
     @Transient
     private String sourceN;
 
@@ -827,6 +834,31 @@ public class HlsCusBpMaster extends BaseDTO {
     private String houseTypeN;
     @Transient
     private String domicileLocalFlagN;
+
+    public String getDomicileDesc() {
+        return domicileDesc;
+    }
+
+    public void setDomicileDesc(String domicileDesc) {
+        this.domicileDesc = domicileDesc;
+    }
+
+    public String getHouseDesc() {
+        return houseDesc;
+    }
+
+    public void setHouseDesc(String houseDesc) {
+        this.houseDesc = houseDesc;
+    }
+
+    public String getCompanyDesc() {
+        return companyDesc;
+    }
+
+    public void setCompanyDesc(String companyDesc) {
+        this.companyDesc = companyDesc;
+    }
+
 
     public String getSource() {
         return source;

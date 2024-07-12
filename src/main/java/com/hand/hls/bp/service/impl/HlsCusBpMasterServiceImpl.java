@@ -1787,4 +1787,14 @@ public class HlsCusBpMasterServiceImpl extends BaseServiceImpl<HlsCusBpMaster> i
         return authorityRuleString;
     }
 
+    @Override
+    public List<Long> getCityIdAndProvinceIdByDistrictId(Long districtId) {
+        List<Long> res = new ArrayList<>();
+        String provinceIdAndCityId = mapper.getCityIdAndProvinceIdByDistrictId(districtId);
+        String[] ans = provinceIdAndCityId.split("_");
+        res.add(Long.parseLong(ans[0]));
+        res.add(Long.parseLong(ans[1]));
+        return res;
+    }
+
 }

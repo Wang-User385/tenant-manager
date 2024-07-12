@@ -194,4 +194,18 @@ public class HlsCusBpMasterController extends BaseController {
         this.service.bpWflSubmit(iRequest, bpMaster);
         return new ResponseData();
     }
-}
+
+
+    @RequestMapping({"/hls/bp/master/getCityIdAndProvinceId"})
+    @ResponseBody
+    public ResponseData getCityIdAndProvinceIdByDistrictId(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        Long districtId = (Long) param.get("district_id");
+
+        return new ResponseData(service.getCityIdAndProvinceIdByDistrictId(districtId));
+    }
+
+
+    }

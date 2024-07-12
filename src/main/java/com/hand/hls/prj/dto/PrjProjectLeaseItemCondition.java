@@ -18,24 +18,24 @@ import java.util.Date;
 @Setter
 public class PrjProjectLeaseItemCondition extends BaseDTO {
 
-    public static final String PROJECT_LEASE_ITEM_ID = "projectLeaseItemId";//外键-租赁物主键
-    public static final String CONDITION_ID = "conditionId";//主键
-    public static final String IS_WATER_DAMAGED = "isWaterDamaged";//是否水泡
-    public static final String IS_CONVERSION = "isConversion";//是否营转非
-    public static final String IS_VEHICLE_DAMAGE = "isVehicleDamage";//是否有车损险
-    public static final String VEHICLE_END_DATE = "vehicleEndDate";//车损险到期日期
-    public static final String ACCIDENT_STATUS = "accidentStatus";//事故状况
-    public static final String IS_THIRD_PARTY = "isThirdParty";//是否有第三者责任险
-    public static final String THIRD_END_DATE = "thirdEndDate";//第三者责任险到期日期
-    public static final String IS_ANNUAL_INSPECTION = "isAnnualInspection";//是否年检
-    public static final String IS_SIGNIFICANTLY_MODIFIED = "isSignificantlyModified";//是否重大改装车
-    public static final String ENGINE_OVERHAUL = "engineOverhaul";//发动机大修
-    public static final String PREMIUM_ADD_ON = "premiumAddOn";//精品加装
-    public static final String MAINTENANCE_INFO = "maintenanceInfo";//维修保养情况
-    public static final String ORIGINAL_OWNER_CARD_TYPE = "originalOwnerCardType";//原车主证件类型
-    public static final String ORIGINAL_OWNER_NAME = "originalOwnerName";//原车主姓名
-    public static final String ORIGINAL_OWNER_CARD_NUM = "originalOwnerCardNum";//原车主证件号
-    public static final String ORIGINAL_OWNER_ADDRESS = "originalOwnerAddress";//原车主户籍所在地
+    public static final String FIELD_PROJECT_LEASE_ITEM_ID = "projectLeaseItemId";//外键-租赁物主键
+    public static final String FIELD_CONDITION_ID = "conditionId";//主键
+    public static final String FIELD_IS_WATER_DAMAGED = "isWaterDamaged";//是否水泡
+    public static final String FIELD_IS_CONVERSION = "isConversion";//是否营转非
+    public static final String FIELD_IS_VEHICLE_DAMAGE = "isVehicleDamage";//是否有车损险
+    public static final String FIELD_VEHICLE_END_DATE = "vehicleEndDate";//车损险到期日期
+    public static final String FIELD_ACCIDENT_STATUS = "accidentStatus";//事故状况
+    public static final String FIELD_IS_THIRD_PARTY = "isThirdParty";//是否有第三者责任险
+    public static final String FIELD_THIRD_END_DATE = "thirdEndDate";//第三者责任险到期日期
+    public static final String FIELD_IS_ANNUAL_INSPECTION = "isAnnualInspection";//是否年检
+    public static final String FIELD_IS_SIGNIFICANTLY_MODIFIED = "isSignificantlyModified";//是否重大改装车
+    public static final String FIELD_ENGINE_OVERHAUL = "engineOverhaul";//发动机大修
+    public static final String FIELD_PREMIUM_ADD_ON = "premiumAddOn";//精品加装
+    public static final String FIELD_MAINTENANCE_INFO = "maintenanceInfo";//维修保养情况
+    public static final String FIELD_ORIGINAL_OWNER_CARD_TYPE = "originalOwnerCardType";//原车主证件类型
+    public static final String FIELD_ORIGINAL_OWNER_NAME = "originalOwnerName";//原车主姓名
+    public static final String FIELD_ORIGINAL_OWNER_CARD_NUM = "originalOwnerCardNum";//原车主证件号
+    public static final String FIELD_ORIGINAL_OWNER_ADDRESS = "originalOwnerAddress";//原车主户籍所在地
 
     @Id
     @GeneratedValue
