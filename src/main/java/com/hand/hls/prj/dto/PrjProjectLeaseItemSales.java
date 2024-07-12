@@ -18,15 +18,15 @@ import javax.validation.constraints.NotNull;
 
 public class PrjProjectLeaseItemSales extends BaseDTO {
 
-    public static final String PROJECT_LEASE_ITEM_ID = "projectLeaseItemId";//外键-租赁物主键
-    public static final String SALES_ID = "salesId";//主键
-    public static final String UNIFIED_SOCIAL_CREDIT_CODE = "unifiedSocialCreditCode";//销售方统一社会信用代码
-    public static final String SALES_NAME = "salesName";//销售方名称
-    public static final String REGISTER_SOCIAL_CREDIT_CODE = "registerSocialCreditCode";//上牌主体社会代码
-    public static final String REGISTER_NAME = "registerName";//上牌主体名称
-    public static final String MORTGAGE_SOCIAL_CREDIT_CODE = "mortgageSocialCreditCode";//抵押人社会代码
-    public static final String MORTGAGE_NAME = "mortgageName";//抵押人名称
-    public static final String MORTGAGE_CITY = "mortgageCity";//抵押城市名称
+    public static final String FIELD_PROJECT_LEASE_ITEM_ID = "projectLeaseItemId";//外键-租赁物主键
+    public static final String FIELD_SALES_ID = "salesId";//主键
+    public static final String FIELD_UNIFIED_SOCIAL_CREDIT_CODE = "unifiedSocialCreditCode";//销售方统一社会信用代码
+    public static final String FIELD_SALES_NAME = "salesName";//销售方名称
+    public static final String FIELD_REGISTER_SOCIAL_CREDIT_CODE = "registerSocialCreditCode";//上牌主体社会代码
+    public static final String FIELD_REGISTER_NAME = "registerName";//上牌主体名称
+    public static final String FIELD_MORTGAGE_SOCIAL_CREDIT_CODE = "mortgageSocialCreditCode";//抵押人社会代码
+    public static final String FIELD_MORTGAGE_NAME = "mortgageName";//抵押人名称
+    public static final String FIELD_MORTGAGE_CITY = "mortgageCity";//抵押城市名称
 
 
     @Id

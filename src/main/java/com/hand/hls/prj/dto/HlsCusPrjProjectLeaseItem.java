@@ -367,4 +367,27 @@ public class HlsCusPrjProjectLeaseItem extends BaseDTO {
 
     @Transient
     private String projectStatus; //合同状态
+
+    private String colourC; //车辆颜色
+    private String ageC;	//车龄
+    private String vehicleCapacity;	//车辆准载(定员)
+    private Double sellingPrice;	//车辆销售价格
+    private Double listPrice;	//车辆厂商指导价格
+    private String loanPurpose;	//贷款用途
+    private Date firstRegistrationDate;	//首次登记日期
+    private Date transferRegistrationDate;	//转让登记日期
+    private String plateType;	//上牌类型
+    private String natureOfVehicle;	//车辆使用性质(1营运、2非营运)
+    private Date firstPlateDate;	//首次上牌日
+    private String licensePlateOwnership;	//牌照归属
+    private Integer odometerReading;	//表显里程(公里数)
+    private String gpsIsInstallation;	//是否安装GPS(Y/N)
+    private Double gpsFee;	//GPS费用
+    private Double plateInvoiceAmount;	//上牌发票金额
+    private Double accessoryAmount;	//装饰品金额
+    private Integer vehicleAge;	//车辆年限
+    private Double vehicleTax;	//车辆税额
+    private String fuelType;	//燃料类型(01汽油、02柴油、03纯电动、04混动)
+    private String isImport;	//是否进口(Y/N)
+    private Double finance_amount; //融资金额
 }

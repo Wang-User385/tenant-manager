@@ -18,19 +18,19 @@ import javax.validation.constraints.NotNull;
 
 public class PrjProjectLeaseItemMortgage extends BaseDTO {
 
-    public static final String PROJECT_LEASE_ITEM_ID = "projectLeaseItemId";//外键-租赁物主键
-    public static final String MORTGAGE_ID = "mortgageId";//主键
-    public static final String NUMBER_OF_MORTGAGES = "numberOfMortgages";//抵押次数
-    public static final String NUMBER_OF_TRANSFERS = "numberOfTransfers";//过户次数
-    public static final String NUMBER_OF_MORTGAGES_ONE = "numberOfMortgagesOne";//近1年抵押次数
-    public static final String NUMBER_OF_TRANSFERS_ONE = "numberOfTransfersOne";//近1年过户次数
-    public static final String NUMBER_OF_TRANSFERS_TWO = "numberOfTransfersTwo";//近2年过户次数
-    public static final String IS_RENEWAL_RECORD = "isRenewalRecord";//是否有车辆登记证补领记录
-    public static final String IS_HALF_RENEWAL_RECORD = "isHalfRenewalRecord";//近半年是否有车辆登记证补领记录
-    public static final String LAST_TRANSFERS_DATE = "lastTransfersDate";//上一次抵押登记日期
-    public static final String RECENTLY_TRANSFERS_DATE = "recentlyTransfersDate";//最近一次解押日期
-    public static final String TRANSFERS_STATUS = "transfersStatus";//抵押状态
-    public static final String DAYS_TO_RELEASE = "daysToRelease";//解押天数
+    public static final String FIELD_PROJECT_LEASE_ITEM_ID = "projectLeaseItemId";//外键-租赁物主键
+    public static final String FIELD_MORTGAGE_ID = "mortgageId";//主键
+    public static final String FIELD_NUMBER_OF_MORTGAGES = "numberOfMortgages";//抵押次数
+    public static final String FIELD_NUMBER_OF_TRANSFERS = "numberOfTransfers";//过户次数
+    public static final String FIELD_NUMBER_OF_MORTGAGES_ONE = "numberOfMortgagesOne";//近1年抵押次数
+    public static final String FIELD_NUMBER_OF_TRANSFERS_ONE = "numberOfTransfersOne";//近1年过户次数
+    public static final String FIELD_NUMBER_OF_TRANSFERS_TWO = "numberOfTransfersTwo";//近2年过户次数
+    public static final String FIELD_IS_RENEWAL_RECORD = "isRenewalRecord";//是否有车辆登记证补领记录
+    public static final String FIELD_IS_HALF_RENEWAL_RECORD = "isHalfRenewalRecord";//近半年是否有车辆登记证补领记录
+    public static final String FIELD_LAST_TRANSFERS_DATE = "lastTransfersDate";//上一次抵押登记日期
+    public static final String FIELD_RECENTLY_TRANSFERS_DATE = "recentlyTransfersDate";//最近一次解押日期
+    public static final String FIELD_TRANSFERS_STATUS = "transfersStatus";//抵押状态
+    public static final String FIELD_DAYS_TO_RELEASE = "daysToRelease";//解押天数
     @Id
     @GeneratedValue
     private Long mortgageId; //主键
