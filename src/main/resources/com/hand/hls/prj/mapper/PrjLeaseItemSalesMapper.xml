@@ -12,6 +12,8 @@
         <result column="MORTGAGE_SOCIAL_CREDIT_CODE" property="mortgageSocialCreditCode" jdbcType="VARCHAR" />
         <result column="MORTGAGE_NAME" property="mortgageName" jdbcType="VARCHAR" />
         <result column="MORTGAGE_CITY" property="mortgageCity" jdbcType="VARCHAR" />
+        <result column="SALES_NUMBER" property="salesNumber" jdbcType="VARCHAR" />
+        <result column="SALES_ADDRESS" property="salesAddress" jdbcType="VARCHAR" />
     </resultMap>
 
     <select id="prjProjectLeaseItemSalesQuery" resultMap="BaseResultMap">
@@ -24,9 +26,19 @@
            sa.REGISTER_NAME,
            sa.MORTGAGE_SOCIAL_CREDIT_CODE,
            sa.MORTGAGE_NAME,
-           sa.MORTGAGE_CITY
+           sa.MORTGAGE_CITY,
+           sa.SALES_NUMBER,
+           ((SELECT p.description FROM fnd_province p WHERE p.province = sa.province_id ) ||
+            ( SELECT c.description FROM fnd_city c WHERE c.city = sa.city_id ) ||
+            ( SELECT d.description FROM fnd_district d WHERE d.district = sa.district_id )) salesAddress
         from prj_lease_item_sales sa
         where sa.PROJECT_LEASE_ITEM_ID = #{projectLeaseItemId}
+    </select>
+
+    <select id="getQueryProjectLeaseItemSalesDTOProjectLeaseItemId" resultType="com.hand.hls.credit.dto.QueryProjectLeaseItemSalesDTO">
+        select PROVINCE_ID , CITY_ID
+        from PRJ_LEASE_ITEM_SALES plis
+        where plis.PROJECT_LEASE_ITEM_ID = #{projectLeaseItemId}
     </select>
 
 </mapper>

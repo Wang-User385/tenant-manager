@@ -2,7 +2,7 @@ package com.hand.hls.bp.mapper;
 
 import com.hand.hap.core.IRequest;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
-import com.hand.hls.partner.dto.QueryHlsBpMasterDTO;
+import com.hand.hls.credit.dto.QueryHlsBpMasterDTO;
 import com.hand.hls.prj.dto.HlsBpMaster;
 import com.hand.hls.prj.mapper.HlsBpMasterMapper;
 import org.apache.ibatis.annotations.Param;

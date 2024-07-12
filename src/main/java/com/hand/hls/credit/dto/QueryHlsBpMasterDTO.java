@@ -1,5 +1,6 @@
-package com.hand.hls.partner.dto;
+package com.hand.hls.credit.dto;
 
+import com.hand.hap.system.dto.BaseDTO;
 import lombok.Data;
 
 import java.util.Date;
@@ -12,7 +13,7 @@ import java.util.Date;
  * @author JINGZHOU.LI@hand-china.com 2024/7/11 16:44
  */
 @Data
-public class QueryHlsBpMasterDTO {
+public class QueryHlsBpMasterDTO  extends BaseDTO {
 
     /**
      * 客户编号
@@ -112,7 +113,7 @@ public class QueryHlsBpMasterDTO {
     /**
      * 驾照截止日期
      */
-    private String driverLicenseDeadline;
+    private Date driverLicenseDeadline;
 
     /**
      * 公司所属省份
