@@ -683,10 +683,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //强制保险金额
             PrjLeaseItemInsurance prjLeaseItemInsurance = new PrjLeaseItemInsurance();
             prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
-            double compulsoryAmount = carInfo.getMandatoryInsuranceAmount().doubleValue();
+//            double compulsoryAmount = carInfo.getMandatoryInsuranceAmount().doubleValue();
 //            prjLeaseItemInsurance.setCompulsoryAmount(compulsoryAmount / 100);
             //商业保险类型
-//            prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
+            prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
             prjLeaseItemInsuranceMapper.insert(prjLeaseItemInsurance);
 
 
@@ -700,21 +700,21 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            首付款
             prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
 
-//            PrjLeaseItemSales prjLeaseItemSales = new PrjLeaseItemSales();
-            //销售方统一社会信用代码
-//            prjLeaseItemSales.setUnifiedSocialCreditCode(saleInfo.getSellerCode());
+            PrjProjectLeaseItemSales prjProjectLeaseItemSales = new PrjProjectLeaseItemSales();
+//            销售方统一社会信用代码
+            prjProjectLeaseItemSales.setUnifiedSocialCreditCode(saleInfo.getSellerCode());
 //            销售方统一社会信用代码名称
-//            prjLeaseItemSales.setSalesName(saleInfo.getSellerName());
+            prjProjectLeaseItemSales.setSalesName(saleInfo.getSellerName());
 //            上牌主体社会代码
-//            prjLeaseItemSales.setRegisterSocialCreditCode(saleInfo.getLicensePlateOwnerCode());
+            prjProjectLeaseItemSales.setRegisterSocialCreditCode(saleInfo.getLicensePlateOwnerCode());
 //            上牌主体名称
-//            prjLeaseItemSales.setRegisterName(saleInfo.getLicensePlateOwnerName());
+            prjProjectLeaseItemSales.setRegisterName(saleInfo.getLicensePlateOwnerName());
 //            抵押人社会代码
-//            prjLeaseItemSales.setMortgageSocialCreditCode(saleInfo.getMortgagorCode());
+            prjProjectLeaseItemSales.setMortgageSocialCreditCode(saleInfo.getMortgagorCode());
 //            抵押人名称
-//            prjLeaseItemSales.setMortgageName(saleInfo.getMortgagorName());
+            prjProjectLeaseItemSales.setMortgageName(saleInfo.getMortgagorName());
 //            抵押城市名称
-//            prjLeaseItemSales.setMortgageCity(saleInfo.getMortgageCityName());
+            prjProjectLeaseItemSales.setMortgageCity(saleInfo.getMortgageCityName());
 
             PreRiskAuditData preRiskAuditData = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
             //进件信息
@@ -827,7 +827,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
             HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
             //实际驾驶人与申请人关系
-//            hlsCusPrjProject.setDriverAndApplicant(associatedPersonInformation.getSjjsrysqrgx());
+            hlsCusPrjProject.setDriverAndApplicant(associatedPersonInformation.getSjjsrysqrgx());
 
             prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
 
