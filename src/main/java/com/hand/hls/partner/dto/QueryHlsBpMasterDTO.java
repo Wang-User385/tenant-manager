@@ -1,0 +1,129 @@
+package com.hand.hls.partner.dto;
+
+import lombok.Data;
+
+import java.util.Date;
+
+/**
+ * <p>
+ * 预审商业伙伴表字段返回接收类
+ * </p>
+ *
+ * @author JINGZHOU.LI@hand-china.com 2024/7/11 16:44
+ */
+@Data
+public class QueryHlsBpMasterDTO {
+
+    /**
+     * 客户编号
+     */
+    private String bpCode;
+
+    /**
+     * 客户名称
+     */
+    private String bpName;
+
+    /**
+     * 客户证件类型
+     */
+    private String idType;
+
+    /**
+     * 客户证件号码
+     */
+    private String idCardNo;
+
+    /**
+     * 手机号
+     */
+    private String phone;
+
+    /**
+     * 证件签发日期
+     */
+    private Date idIssueDate;
+
+    /**
+     * 证件到期日期
+     */
+    private Date idExpirationDate;
+
+    /**
+     * 性别
+     */
+    private String gender;
+
+    /**
+     * 民族
+     */
+    private String ethnicity;
+
+    /**
+     * 出生日期
+     */
+    private String dateOfBirth;
+
+    /**
+     * 性别
+     */
+    private Long age;
+
+    /**
+     * 国籍
+     */
+    private String nationality;
+
+    /**
+     * 户籍所属省份
+     */
+    private String domicileProvince;
+
+    /**
+     * 户籍所属市
+     */
+    private String domicileCity;
+
+    /**
+     * 居住地址省
+     */
+    private String houseProvince;
+
+    /**
+     * 居住地址市
+     */
+    private String houseCity;
+
+    /**
+     * 居住地址
+     */
+    private String houseAddress;
+
+    /**
+     * 有无驾照
+     */
+    private String driverLicenseFlag;
+
+    /**
+     * 驾照类型
+     */
+    private String driverLicenseType;
+
+    /**
+     * 驾照截止日期
+     */
+    private String driverLicenseDeadline;
+
+    /**
+     * 公司所属省份
+     */
+    private String companyProvince;
+
+    /**
+     * 公司所属省份
+     */
+    private String companyCity;
+
+
+
+}

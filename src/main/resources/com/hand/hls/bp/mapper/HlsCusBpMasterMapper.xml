@@ -427,6 +427,9 @@
         <result column="work_phone" property="workPhone" jdbcType="VARCHAR"/>
         <result column="condition_id" property="conditionId" jdbcType="DECIMAL"/>
         <result column="source" property="source" jdbcType="DECIMAL"/>
+        <result column="domicile_desc" property="domicileDesc" jdbcType="VARCHAR"/>
+        <result column="house_desc" property="houseDesc" jdbcType="VARCHAR"/>
+        <result column="company_desc" property="companyDesc" jdbcType="VARCHAR"/>
 
         <result column="indu_classify_sp" property="induClassifySp" jdbcType="VARCHAR"/>
         <result column="company_nature_sp" property="companyNatureSp" jdbcType="VARCHAR"/>
@@ -1119,7 +1122,7 @@ WHERE
         ORDER BY hbm.bp_code DESC
     </select>
     <select id="queryById" resultMap="BaseResultMap" parameterType="java.lang.Long">
-  		select 
+  		select
   			bm.bp_id,
   			bm.bp_code,
   			bm.bp_name,
@@ -1414,14 +1417,14 @@ WHERE
   </select>
 
     <select id="validateCredit" parameterType="java.lang.String" resultType="java.lang.String">
-		select bm.bp_code 
-		from hls_bp_master bm 
+		select bm.bp_code
+		from hls_bp_master bm
 		where bm.Enterprise_unified_credit_code = #{enterpriseUnifiedCreditCode,jdbcType=VARCHAR}
 	</select>
 
     <select id="validateCardNo" parameterType="java.lang.String" resultType="java.lang.String">
-		select bm.bp_code 
-		from hls_bp_master bm 
+		select bm.bp_code
+		from hls_bp_master bm
 		where bm.id_card_no = #{idCardNo,jdbcType=VARCHAR}
 	</select>
 
@@ -1430,8 +1433,8 @@ WHERE
 			bp_type,
 			count(bp_type) as count
 		FROM
-			hls_bp_master_role 
-		GROUP BY bp_type	
+			hls_bp_master_role
+		GROUP BY bp_type
 	</select>
 
     <select id="editQuery" resultMap="BaseResultMap" parameterType="java.lang.Long">
@@ -2110,7 +2113,7 @@ WHERE
     <select id="countQuery" resultMap="BaseResultMap">
 		select nvl(v1.allCount,0) allCount,nvl(v2.monthAddCount,0) monthAddCount from
 		(select count(1) allCount from hls_bp_master bm where bm.enabled_flag = 'Y') v1,
-		(select count(1) monthAddCount from hls_bp_master bm where bm.enabled_flag = 'Y' 
+		(select count(1) monthAddCount from hls_bp_master bm where bm.enabled_flag = 'Y'
 		and month(bm.CREATION_DATE) = month(sysdate)) v2
 	</select>
 
@@ -4617,6 +4620,33 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         AND v.code_value = INVOICE_KIND
         )invoice_kind_n,
 
+        (SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd.DESCRIPTION ) DESCRIPTION
+        FROM
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd ON TO_CHAR( fc.CITY ) = TO_CHAR( fd.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd.PROVINCE )
+        where fd.district = hbm.domicile_district) domicile_desc,
+
+        (SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd.DESCRIPTION ) DESCRIPTION
+        FROM
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd ON TO_CHAR( fc.CITY ) = TO_CHAR( fd.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd.PROVINCE )
+        where fd.district = hbm.house_district) house_desc,
+
+        (SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd.DESCRIPTION ) DESCRIPTION
+        FROM
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd ON TO_CHAR( fc.CITY ) = TO_CHAR( fd.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd.PROVINCE )
+        where fd.district = hbm.company_district) company_desc,
+
 
         (select sc.meaning value_name
         from sys_code_value_b_v sc
@@ -6329,4 +6359,20 @@ select hbm.bp_id value_code,
         where
             hbm.id_card_no = #{idCardNo}
     </select>
+
+    <select id="getCityIdAndProvinceIdByDistrictId" resultType="java.lang.String">
+    select
+        concat(concat(fd.province,'_'),fd.city) city_id_and_province_id
+    from
+        FND_DISTRICT fd
+    where
+        fd.district = #{districtId}
+    </select>
+
+    <select id="getQueryHlsBpMasterDTOByBpId" resultType="com.hand.hls.partner.dto.QueryHlsBpMasterDTO">
+        select bp_code,bp_name,id_type,id_card_no,phone,id_issue_date,id_expiration_date
+        from hls_bp_master hbm
+        where hbm.bp_id = #{bpId}
+    </select>
+
 </mapper>

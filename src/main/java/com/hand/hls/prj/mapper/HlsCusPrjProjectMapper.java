@@ -261,4 +261,6 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     CompensatoryTrialCalculationDTO selectCTCByOrderNo(CompensatoryTrialCalculationDTO compensatoryTrialCalculation);
 
     List<HlsCusCshTransaction> selectTranSactionByOrderNo(String orderNo);
+
+    String getBusinessApplyNoByProjectId(@Param("projectId") Long projectId);
 }
