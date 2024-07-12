@@ -2,6 +2,7 @@ package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.cont.dto.HlsCusConContract;
+import com.hand.hls.credit.dto.QueryPrjQuotationDTO;
 import com.hand.hls.fnd.dto.CalcPrice;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectParam;
@@ -119,4 +120,6 @@ public interface HlsCusPrjQuotationMapper extends Mapper<HlsCusPrjQuotation> {
      * 查询租金/服务费是否返利描述
      */
     String queryYNFlag(@Param("valueCode") String valueCode);
+
+    QueryPrjQuotationDTO getQueryPrjQuotationDTOByProjectId(@Param("projectId") Long projectId);
 }

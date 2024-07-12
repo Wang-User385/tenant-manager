@@ -6369,9 +6369,32 @@ select hbm.bp_id value_code,
         fd.district = #{districtId}
     </select>
 
-    <select id="getQueryHlsBpMasterDTOByBpId" resultType="com.hand.hls.partner.dto.QueryHlsBpMasterDTO">
-        select bp_code,bp_name,id_type,id_card_no,phone,id_issue_date,id_expiration_date
-        from hls_bp_master hbm
+    <select id="getQueryHlsBpMasterDTOByBpId" resultType="com.hand.hls.credit.dto.QueryHlsBpMasterDTO">
+        SELECT
+            bp_code,
+            bp_name,
+            id_type,
+            id_card_no,
+            phone,
+            id_issue_date,
+            id_expiration_date,
+            ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.code = 'HR.EMPLOYEE_GENDER' AND sc.CODE_VALUE = hbm.gender ) AS gender,
+            ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.code = 'BP_NATION' AND sc.CODE_VALUE = hbm.ethnicity ) AS ethnicity,
+            date_of_birth,
+            age,
+            ( SELECT COUNTRY_NAME FROM FND_COUNTRY WHERE COUNTRY = hbm.NATIONALITY ) AS nationality,
+            domicile_province,
+            domicile_city,
+            house_province,
+            house_city,
+            house_address,
+            ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.code = 'SYS.YES_NO' AND sc.code_value = hbm.driver_license_flag ) driver_license_flag,
+            driver_license_type,
+            driver_license_deadline,
+            company_province,
+            company_city
+        FROM
+            hls_bp_master hbm
         where hbm.bp_id = #{bpId}
     </select>
 
