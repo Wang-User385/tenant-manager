@@ -18,10 +18,7 @@ import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.lease.mapper.LeaseItemInsuranceMapper;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.service.YLInterfaceService;
-import com.hand.hls.prj.dto.HlsCusPrjProject;
-import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
-import com.hand.hls.prj.dto.PrjLeaseItemInsurance;
-import com.hand.hls.prj.dto.PrjQuotation;
+import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectLeaseItemMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.prj.mapper.PrjLeaseItemInsuranceMapper;
@@ -651,6 +648,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            风控审核相关数据
             String riskInfo = dataAcquisitionDTO.getRiskInfo();
 
+
+
             CarInfo carInfo = dataAcquisitionDTO.getCarInfo();
             //项目id
             hlsCusPrjProjectLeaseItem.setProjectId(hlsCusPrjProject.getProjectId());
@@ -720,10 +719,16 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             PreRiskAuditData preRiskAuditData = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
             //进件信息
             hlsCusPrjProject.setDivision(preRiskAuditData.getProline());
-            prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
+
             //承租人基本信息
             BasicCustomerInformation basicCustomerInformation = preRiskAuditData.getBasicCustomerInformation();
+            //承租人职业信息
             BasicCustomerJobInformation basicCustomerJobInformation = preRiskAuditData.getBasicCustomerJobInformation();
+            //            关联人信息
+            AssociatedPersonInformation associatedPersonInformation = preRiskAuditData.getAssociatedPersonInformation();
+
+
+
             HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
             //性别
             hlsCusBpMaster.setGender(basicCustomerInformation.getSex());
@@ -818,6 +823,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             hlsCusBpMasterBankAccount.setBankAccountNum(basicCustomerInformation.getCardno());
             hlsCusBpMasterBankAccount.setBpId(hlsCusBpMaster.getBpId());
             hlsCusBpMasterBankAccountMapper.insert(hlsCusBpMasterBankAccount);
+
+
+            HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
+            //实际驾驶人与申请人关系
+//            hlsCusPrjProject.setDriverAndApplicant(associatedPersonInformation.getSjjsrysqrgx());
+
+            prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
 
         }
 //        如果订单状态为业务申请之前，不需要判断，直接修改入库
