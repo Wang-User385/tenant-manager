@@ -4689,26 +4689,60 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         where sc.code = 'PROFESSION'
         and sc.code_value = hbm.profession_sp) profession_sp_n,
 
-        (SELECT
-        DESCRIPTION AS value_name
-        FROM
-        FND_DISTRICT fd
-        where  hbm.domicile_district = fd.DISTRICT
-        ) domicile_district_n,
+--         (SELECT
+--         DESCRIPTION AS value_name
+--         FROM
+--         FND_DISTRICT fd
+--         where  hbm.domicile_district = fd.DISTRICT
+--         ) domicile_district_n,
+--
+--         (SELECT
+--         DESCRIPTION AS value_name
+--         FROM
+--         FND_DISTRICT fd
+--         where  hbm.house_district = fd.DISTRICT
+--         ) house_district_n,
+--
+--         (SELECT
+--         DESCRIPTION AS value_name
+--         FROM
+--         FND_DISTRICT fd
+--         where  hbm.company_district = fd.DISTRICT
+--         ) company_district_n,
 
-        (SELECT
-        DESCRIPTION AS value_name
+        (
+        SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
         FROM
-        FND_DISTRICT fd
-        where  hbm.house_district = fd.DISTRICT
-        ) house_district_n,
-
-        (SELECT
-        DESCRIPTION AS value_name
-        FROM
-        FND_DISTRICT fd
-        where  hbm.company_district = fd.DISTRICT
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        WHERE
+        hbm.company_district = fd1.district
         ) company_district_n,
+        (
+        SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
+        FROM
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        WHERE
+        hbm.house_district = fd1.district
+        ) house_district_n,
+        (
+        SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
+        FROM
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        WHERE
+        hbm.domicile_district = fd1.district
+        ) domicile_district_n,
 
         (SELECT
         DESCRIPTION AS value_name
@@ -6392,7 +6426,11 @@ select hbm.bp_id value_code,
             driver_license_type,
             driver_license_deadline,
             company_province,
-            company_city
+            company_city,
+            domicile_district,
+            house_district,
+            company_district,
+            (case when  domicile_local_flag = 'N' then '2' else  '1'  end ) domicile_local_flag
         FROM
             hls_bp_master hbm
         where hbm.bp_id = #{bpId}

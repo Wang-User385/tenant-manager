@@ -289,4 +289,8 @@ public class HlsBpMasterServiceImpl extends BaseServiceImpl<HlsBpMaster> impleme
     public List<HlsBpMaster> bpManufacturerPartnerLovQuery() {
         return hlsBpMasterMapper.bpManufacturerPartnerLovQuery();
     }
+
+
+
+
 }

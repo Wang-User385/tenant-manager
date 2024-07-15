@@ -10,6 +10,7 @@ import com.hand.hls.prj.dto.BpVenderInfoLov;
 import com.hand.hls.prj.dto.HlsBpMaster;
 
 import java.util.List;
+import java.util.Map;
 
 
 public interface HlsBpMasterService extends IBaseService<HlsBpMaster> {
@@ -95,4 +96,6 @@ public interface HlsBpMasterService extends IBaseService<HlsBpMaster> {
     HlsBpMaster queryByBpId(long bpId);
     String getAuthorityString(IRequest iRequest);
     List<HlsBpMaster> bpManufacturerPartnerLovQuery();
+
+
 }

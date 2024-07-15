@@ -13,7 +13,7 @@ import java.util.Date;
  * @author JINGZHOU.LI@hand-china.com 2024/7/11 16:44
  */
 @Data
-public class QueryHlsBpMasterDTO  extends BaseDTO {
+public class QueryHlsBpMasterDTO extends BaseDTO {
 
     /**
      * 客户编号
@@ -121,10 +121,30 @@ public class QueryHlsBpMasterDTO  extends BaseDTO {
     private String companyProvince;
 
     /**
-     * 公司所属省份
+     * 公司所属城市
      */
     private String companyCity;
 
+    /**
+     * 户籍所在地（区）
+     */
+    private String domicileDistrict;
+    /**
+     * 居住所在地（区）
+     */
+    private String houseDistrict;
+    /**
+     * 公司所在地（区）
+     */
+    private String companyDistrict;
+    /**
+     *户籍详细地址
+     */
+    private String domicileAddress;
+    /**
+     * 是否本地户籍
+     */
+    private String domicileLocalFlag;
 
 
 }

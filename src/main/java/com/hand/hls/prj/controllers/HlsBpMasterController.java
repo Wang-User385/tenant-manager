@@ -417,4 +417,5 @@ public class HlsBpMasterController extends BaseController {
         return new ResponseData(this.hlsBpMasterService.bpManufacturerPartnerLovQuery());
     }
 
+
 }
