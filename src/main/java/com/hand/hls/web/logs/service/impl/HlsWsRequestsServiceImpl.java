@@ -127,54 +127,37 @@ public class HlsWsRequestsServiceImpl extends BaseServiceImpl<HlsWsRequests> imp
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
-    public HlsWsRequests interfaceSave(HlsWsRequests dto , IRequest iRequest)  throws Exception {
-
+    public HlsWsRequests interfaceSave(HlsWsRequests dto , IRequest iRequest){
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-             if(dto.getRecordId()!= null ){
-                 hlsWsRequests =hlsWsRequestsMapper.selectByPrimaryKey(dto.getRecordId()) ;
-                 hlsWsRequests.setResponseJson(dto.getResponseJson());
-                 hlsWsRequests.setResponsedDate(dto.getResponsedDate());
-                 hlsWsRequests.setReturnStatus(dto.getReturnStatus());
-                 hlsWsRequests.setFunctionName(dto.getFunctionName());
-                 hlsWsRequests.setRequestJson(dto.getRequestJson());
-                 hlsWsRequests.setRequestWsdlUrl(dto.getRequestWsdlUrl());
-                 hlsWsRequests.setParameterType(dto.getParameterType());
-                 hlsWsRequests.setPkValue(dto.getPkValue());
-                 hlsWsRequests.setRequestXml(dto.getRequestXml());
-                 hlsWsRequests.setResponseXml(dto.getResponseXml());
-                 hlsWsRequests.setRequestXml(dto.getRequestXml());
-
-                 hlsWsRequests.setLastUpdateDate(new Date());
-                 if(iRequest.getUserId() != null) {
-                     hlsWsRequests.setLastUpdatedBy(iRequest.getUserId());
-                 }else{
-                     hlsWsRequests.setLastUpdatedBy(userId);
-                 }
-
-//                 更新日志
-                   hlsWsRequestsMapper.updateByPrimaryKey(hlsWsRequests);
-
-             }else {
-
-                // BeanUtils.copyProperties(被复制对象, 粘贴内容的对象);
-                 BeanUtils.copyProperties(dto, hlsWsRequests);
-                 if(iRequest.getUserId() != null){
-                     hlsWsRequests.setUserId(iRequest.getUserId());
-                     hlsWsRequests.setCreatedBy(iRequest.getUserId());
-                 }else{
-                     hlsWsRequests.setUserId(userId);
-                     hlsWsRequests.setCreatedBy(userId);
-                 }
-                 hlsWsRequests.setRequestDate(new Date());
-                 hlsWsRequests.setCreationDate(new Date());
-                 hlsWsRequests.setLastUpdateDate(new Date());
-                 hlsWsRequests.setStatusDate(new Date());
-                 hlsWsRequests.setRequestDate(new Date());
-                 hlsWsRequests.setStatusCode("NEW");
-                 //新增 日志
-                    hlsWsRequestsMapper.insert(hlsWsRequests);
-             }
-
+        if(dto.getRecordId()!= null ){
+            hlsWsRequests =hlsWsRequestsMapper.selectByPrimaryKey(dto.getRecordId()) ;
+            hlsWsRequests.setResponsedDate(new Date());
+            hlsWsRequests.setReturnStatus(dto.getReturnStatus());
+            hlsWsRequests.setResponseJson(dto.getResponseJson());
+            hlsWsRequests.setResponseXml(dto.getResponseXml());
+            hlsWsRequests.setLastUpdateDate(new Date());
+            if(iRequest.getUserId() != null) {
+                hlsWsRequests.setLastUpdatedBy(iRequest.getUserId());
+            }else{
+                hlsWsRequests.setLastUpdatedBy(userId);
+            }
+            hlsWsRequestsMapper.updateByPrimaryKey(hlsWsRequests);
+        }else {
+            BeanUtils.copyProperties(dto, hlsWsRequests);
+            if(iRequest.getUserId() != null){
+                hlsWsRequests.setUserId(iRequest.getUserId());
+                hlsWsRequests.setCreatedBy(iRequest.getUserId());
+            }else{
+                hlsWsRequests.setUserId(userId);
+                hlsWsRequests.setCreatedBy(userId);
+            }
+            hlsWsRequests.setRequestDate(new Date());
+            hlsWsRequests.setCreationDate(new Date());
+            hlsWsRequests.setLastUpdateDate(new Date());
+            hlsWsRequests.setStatusDate(new Date());
+            hlsWsRequests.setStatusCode("NEW");
+            hlsWsRequestsMapper.insert(hlsWsRequests);
+        }
         return hlsWsRequests;
     }
 
