@@ -107,6 +107,7 @@ public interface HlsBpMasterMapper <T extends HlsCusBpMaster> extends Mapper<Hls
     List<HlsBpMaster> selectForLovIf(HlsBpMaster var1);
 
     List<Map> provinceCityDistrictTree();
+//    List<ProvinceCityDistrictTreeNode> provinceCityDistrictTree();
     List<Map> industryTree();
     List<Map> businessTree();
     List<Map> organizationTree();

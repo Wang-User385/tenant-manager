@@ -3,13 +3,12 @@ package com.hand.hls.credit.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.system.dto.ResponseData;
+import com.hand.hls.bp.mapper.HlsBpMasterBusinessConditionMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
-import com.hand.hls.credit.dto.QueryPrjProjectLeaseItemDTO;
+import com.hand.hls.credit.dto.QueryLateInfo;
 import com.hand.hls.credit.dto.QueryPrjQuotationDTO;
-import com.hand.hls.credit.dto.QueryProjectLeaseItemSalesDTO;
 import com.hand.hls.credit.service.TongDunService;
 import com.hand.hls.credit.dto.QueryHlsBpMasterDTO;
-import com.hand.hls.prj.dto.PrjProjectLeaseItemSales;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectBpMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectLeaseItemMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
@@ -26,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -60,7 +60,10 @@ public class TongDunServiceImpl implements TongDunService {
     @Autowired
     private ProjectLeaseItemSalesMapper projectLeaseItemSalesMapper;
 
+    @Autowired
+    private HlsBpMasterBusinessConditionMapper hlsBpMasterBusinessConditionMapper;
 
+    //预审
     @Override
     public boolean preliminaryValid(Long projectId, HttpServletRequest request) {
         //保存日志
@@ -120,7 +123,7 @@ public class TongDunServiceImpl implements TongDunService {
         param.put("orgcode", "GtZl");
         //运行模式
         param.put("runtype", "1");
-        //目前易靓为XC
+        //产品编号 目前易靓为XC
         param.put("productcode", "XC");
         //目前客户类型只能接受个人  个人：1 企业：2 同业：3
         param.put("custtype", "1");
@@ -155,7 +158,7 @@ public class TongDunServiceImpl implements TongDunService {
             准生产IP:http://172.17.241.69:8088/
             生产IP:http://172.17.241.12:8088/
          */
-        String url = "http://172.17.241.66:8088/qclszqsp";
+        String url = "http://172.17.241.66:8088/riskService/atreus/riskDecision/qclszqsp";
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
         try {
@@ -186,9 +189,10 @@ public class TongDunServiceImpl implements TongDunService {
         hlsWsRequestsMapper.insert(hlsWsRequests);
     }
 
+
     //正审
     @Override
-    public String interlocutoryValid(Long projectId, HttpServletRequest request) {
+    public String interlocutoryValid(Long projectId, String jsonString, HttpServletRequest request) {
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
         //获取请求路径
@@ -210,10 +214,12 @@ public class TongDunServiceImpl implements TongDunService {
         //参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(projectId);
+        String s = JSONObject.toJSONString(projectId + jsonString);
         hlsWsRequests.setRequestJson(s);
         ResponseData responseData = new ResponseData();
-
+        JSONObject param = JSONObject.parseObject(jsonString);
+        //清除多余字段
+        //clear(param);
         //项目id为空则预审失败
         if (projectId == null) {
             commonLog(responseData, "100001", "项目id为空", hlsWsRequests);
@@ -234,7 +240,7 @@ public class TongDunServiceImpl implements TongDunService {
         String businessApplyNo = hlsCusPrjProjectMapper.getBusinessApplyNoByProjectId(projectId);
         //业务流水号
         String businessNo = UUID.randomUUID().toString().replace("-", "");
-        HashMap<String, String> param = new HashMap<>();
+//        HashMap<String, String> param = new HashMap<>();
         param.put("bizid", businessNo);
         //客户编号
         param.put("custno", queryHlsBpMasterDTO.getBpCode());
@@ -246,7 +252,7 @@ public class TongDunServiceImpl implements TongDunService {
         param.put("orgcode", "GtZl");
         //运行模式
         param.put("runtype", "1");
-        //目前易靓为XC
+        //产品编号 目前易靓为XC
         param.put("productcode", "XC");
         //目前客户类型只能接受个人  个人：1 企业：2 同业：3
         param.put("custtype", "1");
@@ -276,88 +282,29 @@ public class TongDunServiceImpl implements TongDunService {
         param.put("idissue", parse.format(queryHlsBpMasterDTO.getIdIssueDate()));
         //证件到期日期
         param.put("idexp", parse.format(queryHlsBpMasterDTO.getIdExpirationDate()));
-        //性别
-        param.put("sex", queryHlsBpMasterDTO.getGender());
-        //民族
-        param.put("nation", queryHlsBpMasterDTO.getEthnicity());
-        //出生日期
-        param.put("birthdate", queryHlsBpMasterDTO.getDateOfBirth());
-        //年龄
-        param.put("age", String.valueOf(queryHlsBpMasterDTO.getAge()));
-        //国籍
-        param.put("nationality", queryHlsBpMasterDTO.getNationality());
-        //户籍所属省份
-        param.put("domicileshen", queryHlsBpMasterDTO.getDomicileProvince());
-        //户籍所属市
-        param.put("domicileshi", queryHlsBpMasterDTO.getDomicileCity());
-        //居住地址省
-        param.put("homeaddressprovince", queryHlsBpMasterDTO.getHouseProvince());
-        //居住地址市
-        param.put("homeaddresspcity", queryHlsBpMasterDTO.getHouseCity());
-        //居住地址
-        param.put("homeaddress", queryHlsBpMasterDTO.getHouseAddress());
-        //有无驾照
-        param.put("isdriverlicence", queryHlsBpMasterDTO.getDriverLicenseFlag());
-        //驾照类型
-        param.put("driverlicencetype", queryHlsBpMasterDTO.getDriverLicenseType());
-        //驾照截止日期
-        param.put("jzjzrq", parse.format(queryHlsBpMasterDTO.getDriverLicenseDeadline()));
-        //公司所属省份
-        param.put("companyshen", queryHlsBpMasterDTO.getCompanyProvince());
-        //公司所属市
-        param.put("companyshi", queryHlsBpMasterDTO.getCompanyCity());
-
-        //获取车辆信息
-        QueryPrjProjectLeaseItemDTO carInfo = hlsCusPrjProjectLeaseItemMapper.
-                getQueryPrjProjectLeaseItemDTOByProjectId(projectId);
-        //车辆品牌
-        param.put("carbrand2",carInfo.getBrandC());
-        //车系
-        param.put("chexi",carInfo.getSeriesC());
-        //车辆准载（定员）
-        param.put("carzkcount",carInfo.getVehicleCapacity());
-        //上牌城市
-        param.put("registeredcity",carInfo.getCityCode());
-        //融资金额
-        param.put("financingamount",String.valueOf(carInfo.getFinanceAmount()));
-        //车辆厂商指导价格
-        param.put("cfpp",String.valueOf(carInfo.getListPrice()));
-
         //报价信息
         QueryPrjQuotationDTO quotationInfo = hlsCusPrjQuotationMapper.
                 getQueryPrjQuotationDTOByProjectId(projectId);
-        //首付比例
-        param.put("paymentratio",String.valueOf(quotationInfo.getDownPaymentRatio()));
-        //月还款额
-        param.put("yhke",String.valueOf(quotationInfo.getPmt()));
-        //车辆厂商指导价格
-        param.put("shenqingqixain",String.valueOf(quotationInfo.getLeaseTimes()));
-
-        //经销商信息
-        QueryProjectLeaseItemSalesDTO salesInfo =  projectLeaseItemSalesMapper.
-                getQueryProjectLeaseItemSalesDTOProjectLeaseItemId(carInfo.getProjectLeaseItemId());
-        //经销商所在省份
-        param.put("dealerprovince",String.valueOf(salesInfo.getProvinceId()));
-        //经销商所在城市
-        param.put("dealercity",String.valueOf(salesInfo.getCityId()));
-
+        //逾期信息
+        QueryLateInfo queryLateInfo = hlsCusPrjQuotationMapper.getQueryLateInfoByQuotationId(quotationInfo.getQuotationId());
         //从调用接口开始到一年前逾期4-30天次数
-        param.put("last1yearM1count",String.valueOf(0));
+        param.put("last1yearM1count", String.valueOf(queryLateInfo.getFourToThirtyDaysOverdueCount()));
         //从调用接口开始到一年前逾期31-60天次数
-        param.put("last1yearM2count",String.valueOf(0));
+        param.put("last1yearM2count", String.valueOf(queryLateInfo.getThirtyOneToSixtyDaysOverdueCount()));
         //从调用接口开始到一年前有多少起租日
-        param.put("last1YearCount",String.valueOf(0));
+        param.put("last1YearCount", String.valueOf(queryLateInfo.getLeaseStartDateCount()));
 
-        /*
+         /*
             测试IP:http://172.17.241.66:8088/
             准生产IP:http://172.17.241.69:8088/
             生产IP:http://172.17.241.12:8088/
          */
-        String url = "http://172.17.241.66:8088/qclszqsp";
+        String url = "http://172.17.241.66:8088/riskService/atreus/riskDecision/qclszqsp";
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
         try {
-            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(url, param, header);
+            Map<String, String> map = JSONObject.toJavaObject(param, Map.class);
+            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(url, map, header);
             String responseAsString = httpExecuteResponse.getResponseAsString();
             JSONObject resp = JSONObject.parseObject(responseAsString);
             JSONObject data = JSONObject.parseObject((String) resp.get("data"));
@@ -365,7 +312,7 @@ public class TongDunServiceImpl implements TongDunService {
                 commonLog(responseData, "100001", "同盾正审失败", hlsWsRequests);
                 return "Reject";
             }
-            if ("Review".equals(data.getString("finalDecisionCode"))){
+            if ("Review".equals(data.getString("finalDecisionCode"))) {
                 commonLog(responseData, "100001", "同盾正审成功但是有风险", hlsWsRequests);
                 return "Review";
             }
@@ -373,10 +320,44 @@ public class TongDunServiceImpl implements TongDunService {
             commonLog(responseData, "100001", "请求同盾接口异常", hlsWsRequests);
             return "Reject";
         }
-
-
         return "Accept";
     }
-
+    private void clear(JSONObject param) {
+        param.remove("orderNo");
+        param.remove("sellerCode");
+        param.remove("sellerName");
+        param.remove("licensePlateOwnerCode");
+        param.remove("licensePlateOwnerName");
+        param.remove("mortgagorCode");
+        param.remove("mortgagorName");
+        param.remove("licensePlateCityCode");
+        param.remove("licensePlateCityName");
+        param.remove("mortgageCityCode");
+        param.remove("mortgageCityName");
+        param.remove("salesCityCode");
+        param.remove("salesCityName");
+        param.remove("brandCode");
+        param.remove("brandName");
+        param.remove("seriesCode");
+        param.remove("seriesName");
+        param.remove("modelCode");
+        param.remove("modelName");
+        param.remove("vin");
+        param.remove("color");
+        param.remove("carProductionDate");
+        param.remove("engineNumber");
+        param.remove("mandatoryInsuranceAmount");
+        param.remove("commercialInsuranceType");
+        param.remove("termCount");
+        param.remove("monthPayment");
+        param.remove("rate");
+        param.remove("firstPayment");
+        param.remove("carGuidePrice");
+        param.remove("carSalePrice");
+        param.remove("applyLoanAmount");
+        param.remove("carRestPrice");
+        param.remove("plusFinanceAmount");
+        param.remove("startRentDate");
+    }
 
 }
