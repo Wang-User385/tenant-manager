@@ -9,6 +9,7 @@ package com.hand.hls.bp.mapper;
 import com.hand.hls.bp.dto.HlsCusBpMasterBankAccount;
 import com.hand.hls.prj.dto.HlsBpMasterBankAccount;
 import com.hand.hls.prj.mapper.HlsBpMasterBankAccountMapper;
+import org.apache.ibatis.annotations.Param;
 import org.springframework.context.annotation.Primary;
 
 import java.util.List;
@@ -29,4 +30,6 @@ public interface HlsCusBpMasterBankAccountMapper extends HlsBpMasterBankAccountM
     List<HlsCusBpMasterBankAccount> updateEbsCodeforBp(HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount);
 
     List<HlsCusBpMasterBankAccount> queryBpBankAccountByProject(HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount);
+
+    HlsCusBpMasterBankAccount selectBankByBpId(@Param("bpId") Long bpId);
 }

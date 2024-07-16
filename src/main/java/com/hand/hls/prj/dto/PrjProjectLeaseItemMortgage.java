@@ -56,4 +56,6 @@ public class PrjProjectLeaseItemMortgage extends BaseDTO {
     private String transfersStatus; //抵押状态
     private Integer daysToRelease; //解押天数
 
+    public PrjProjectLeaseItemMortgage() {
+    }
 }

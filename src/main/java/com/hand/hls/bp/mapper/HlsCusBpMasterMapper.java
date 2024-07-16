@@ -140,4 +140,6 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
     String getCityIdAndProvinceIdByDistrictId(@Param("districtId") Long districtId);
 
     QueryHlsBpMasterDTO getQueryHlsBpMasterDTOByBpId(@Param("bpId")Long bpId);
+
+    HlsCusBpMaster selectByProjectId(@Param("projectId") Long projectId);
 }

@@ -24,7 +24,6 @@ public class DataAcquisitionDTO extends BaseDTO {
         @Valid
         private FinanceInfo financeInfo;//融资方案相关信息
 
-        @NotNull(message = "风控审核相关数据不能为空")
         private String riskInfo;//风控审核相关数据
 
 }

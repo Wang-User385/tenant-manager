@@ -65,4 +65,6 @@ public class PrjProjectLeaseItemSales extends BaseDTO {
     private  String salesAddress;//经销商所在地
 
 
+    public PrjProjectLeaseItemSales() {
+    }
 }

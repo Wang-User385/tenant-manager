@@ -248,19 +248,19 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
 
     Long queryCreditAssistProjectManager(Long tenantId);
 
-    List<HlsCusPrjProject> selectProjectByIdCardNo(String idCardNo);
+    List<HlsCusPrjProject> selectProjectByIdCardNo(@Param("idCardNo") String idCardNo);
 
-    HlsCusPrjProject selectProjectByOrderNo(String orderNo);
+    HlsCusPrjProject selectProjectByOrderNo(@Param("orderNo") String orderNo);
 
-    CshPaymentReqHd selectPaymentByOrderNo(String orderNo);
+    CshPaymentReqHd selectPaymentByOrderNo(@Param("orderNo") String orderNo);
 
-    QueryOrder selectQueryOrderByOrderNo(String orderNo);
+    QueryOrder selectQueryOrderByOrderNo(@Param("orderNo") String orderNo);
 
-    List<RepayPlanTermInfoDTO> selectRepayPlanByOrderNo(String orderNo);
+    List<RepayPlanTermInfoDTO> selectRepayPlanByOrderNo(@Param("orderNo") String orderNo);
 
     CompensatoryTrialCalculationDTO selectCTCByOrderNo(CompensatoryTrialCalculationDTO compensatoryTrialCalculation);
 
-    List<HlsCusCshTransaction> selectTranSactionByOrderNo(String orderNo);
+    List<HlsCusCshTransaction> selectTranSactionByOrderNo(@Param("orderNo") String orderNo);
 
     String getBusinessApplyNoByProjectId(@Param("projectId") Long projectId);
 }
