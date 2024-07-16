@@ -34,7 +34,7 @@ public interface IHlsWsRequestsService extends IBaseService<HlsWsRequests>, Prox
      * @return  返回结果集
      * @throws Exception  异常
      */
-    HlsWsRequests interfaceSave(HlsWsRequests dto, IRequest iRequest) throws Exception;
+    HlsWsRequests interfaceSave(HlsWsRequests dto, IRequest iRequest);
 
 
     /**

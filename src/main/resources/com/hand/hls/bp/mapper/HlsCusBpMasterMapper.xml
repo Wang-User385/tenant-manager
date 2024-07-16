@@ -4689,26 +4689,60 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         where sc.code = 'PROFESSION'
         and sc.code_value = hbm.profession_sp) profession_sp_n,
 
-        (SELECT
-        DESCRIPTION AS value_name
-        FROM
-        FND_DISTRICT fd
-        where  hbm.domicile_district = fd.DISTRICT
-        ) domicile_district_n,
+--         (SELECT
+--         DESCRIPTION AS value_name
+--         FROM
+--         FND_DISTRICT fd
+--         where  hbm.domicile_district = fd.DISTRICT
+--         ) domicile_district_n,
+--
+--         (SELECT
+--         DESCRIPTION AS value_name
+--         FROM
+--         FND_DISTRICT fd
+--         where  hbm.house_district = fd.DISTRICT
+--         ) house_district_n,
+--
+--         (SELECT
+--         DESCRIPTION AS value_name
+--         FROM
+--         FND_DISTRICT fd
+--         where  hbm.company_district = fd.DISTRICT
+--         ) company_district_n,
 
-        (SELECT
-        DESCRIPTION AS value_name
+        (
+        SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
         FROM
-        FND_DISTRICT fd
-        where  hbm.house_district = fd.DISTRICT
-        ) house_district_n,
-
-        (SELECT
-        DESCRIPTION AS value_name
-        FROM
-        FND_DISTRICT fd
-        where  hbm.company_district = fd.DISTRICT
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        WHERE
+        hbm.company_district = fd1.district
         ) company_district_n,
+        (
+        SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
+        FROM
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        WHERE
+        hbm.house_district = fd1.district
+        ) house_district_n,
+        (
+        SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
+        FROM
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        WHERE
+        hbm.domicile_district = fd1.district
+        ) domicile_district_n,
 
         (SELECT
         DESCRIPTION AS value_name
@@ -6369,7 +6403,17 @@ select hbm.bp_id value_code,
         fd.district = #{districtId}
     </select>
 
-    <select id="getQueryHlsBpMasterDTOByBpId" resultType="com.hand.hls.credit.dto.QueryHlsBpMasterDTO">
+    <resultMap id="queryHlsBpMasterDTO" type="com.hand.hls.credit.dto.QueryHlsBpMasterDTO">
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR"/>
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
+        <result column="id_type" property="idType" jdbcType="VARCHAR"/>
+        <result column="id_card_no" property="idCardNo" jdbcType="VARCHAR"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="id_issue_date" property="idIssueDate" jdbcType="DATE"/>
+        <result column="id_expiration_date" property="idExpirationDate" jdbcType="DATE"/>
+    </resultMap>
+
+    <select id="getQueryHlsBpMasterDTOByBpId" resultMap="queryHlsBpMasterDTO">
         SELECT
             bp_code,
             bp_name,
@@ -6377,22 +6421,7 @@ select hbm.bp_id value_code,
             id_card_no,
             phone,
             id_issue_date,
-            id_expiration_date,
-            ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.code = 'HR.EMPLOYEE_GENDER' AND sc.CODE_VALUE = hbm.gender ) AS gender,
-            ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.code = 'BP_NATION' AND sc.CODE_VALUE = hbm.ethnicity ) AS ethnicity,
-            date_of_birth,
-            age,
-            ( SELECT COUNTRY_NAME FROM FND_COUNTRY WHERE COUNTRY = hbm.NATIONALITY ) AS nationality,
-            domicile_province,
-            domicile_city,
-            house_province,
-            house_city,
-            house_address,
-            ( SELECT sc.meaning value_name FROM sys_code_value_b_v sc WHERE sc.code = 'SYS.YES_NO' AND sc.code_value = hbm.driver_license_flag ) driver_license_flag,
-            driver_license_type,
-            driver_license_deadline,
-            company_province,
-            company_city
+            id_expiration_date
         FROM
             hls_bp_master hbm
         where hbm.bp_id = #{bpId}

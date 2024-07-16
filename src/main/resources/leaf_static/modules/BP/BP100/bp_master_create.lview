@@ -153,6 +153,99 @@
             }
         }
 
+        //暂存
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            //忽略保存校验方法
+            window['${/parameter/@layout_code}_ignore_required_before_save']();
+            var hls_bp_master_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var record = $(hls_bp_master_ds_id).getCurrentRecord();
+            record.set('enabled_flag','N');
+            var documentCategory = 'HLS_BP_MASTER';
+            var documentType = 'BP';
+            var businessType = 'BP';
+            Leaf.request({
+                url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory
+                    + "&documentType=" + documentType + "&businessType=" + businessType,
+                success: function (res) {
+                    record.set('bp_code', res.result.record[0]);
+                    check_flag = true;
+                },
+                error: function (res) {
+                    console.log(res);
+                    record.set('bp_code', res.result.record[0]);
+                    // window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (res) {
+                    console.log(res);
+                    record.set('bp_code', res.result.record[0]);
+                    // window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true,
+                scope: this
+            });
+            var root_ds=$('${/parameter/@bp_seq}${/parameter/@layout_code}_virtual_ds');
+            // debugger;
+            //window['${/parameter/@layout_code}_ignore_required_before_save']();
+            // var before_flag= before_submit();
+            var before_flag= true;
+            if(before_flag){
+                var winid = '${/parameter/@winid}';
+                var root_record = root_ds.getCurrentRecord();
+                root_ds.setSubmitParameter('layout_code', '${/parameter/@layout_code}');
+                function ON_LAYOUT_DYNAMIC_BEFORE_SAVE(){
+
+                    root_ds.un('beforesubmit',ON_LAYOUT_DYNAMIC_BEFORE_SAVE);
+                    var flag = false;
+                    for (var name in root_record.data) {
+                        if (root_record.data[name].data[0].ds && root_record.data[name].data[0].ds instanceof $L.DataSet) {
+                            var current_record = root_record.data[name].data[0].ds.getCurrentRecord();
+                            flag = window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'](root_record.data[name].data[0].ds, current_record);
+                        }
+                    }
+                    if(!flag){
+                        UN_SUBMIT_REF_FUNCTION();
+                    }
+                    return flag;
+                }
+
+                function UN_SUBMIT_REF_FUNCTION(){
+                    root_ds.un('submitsuccess', ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS);
+                    root_ds.un('submitfailed', ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED);
+                    root_ds.un('submiterror', ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR);
+                }
+
+                function ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS(ds, res) {
+                    UN_SUBMIT_REF_FUNCTION();
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'](ds,root_record,res);
+                    if (typeof(nextStep) == 'function') {
+                        nextStep(ds);
+                    }
+                }
+                function ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED(){
+                    UN_SUBMIT_REF_FUNCTION();
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                }
+                function ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR(){
+                    UN_SUBMIT_REF_FUNCTION();
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                }
+                root_ds.on('beforesubmit',ON_LAYOUT_DYNAMIC_BEFORE_SAVE);
+                root_ds.on('submitsuccess', ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS);
+                root_ds.on('submitfailed', ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED);
+                root_ds.on('submiterror', ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR);
+
+                root_ds.doNewSubmit(null,root_ds.getJsonData());
+            }
+            else{
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }
+
+
+        }
+
         window['${/parameter/@layout_code}_user_button3_layout_dynamic_click'] = function () {
             debugger;
             var hls_bp_master_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
@@ -201,6 +294,7 @@
             }
             var param = {};
             param['bp_id'] = record.get('bp_id');
+            param['condition_id'] = record.get('condition_id');
             console.log(record.get('bp_id'));
             param['url_title'] = '生产经营情况维护明细页面';
             param['function_code'] = 'BP100F7';
@@ -209,6 +303,9 @@
             param['function_usage'] = 'MODIFY';
             hls_doc_get_layout_code(param, '${/parameter/@layout_code}_bp_master_product_detail_id', ds_id, 'BP100F1');
         }
+
+
+
 
 
         function combin(record, data) {
@@ -782,6 +879,17 @@
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
             debugger;
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            // var hp_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            // var hp_ds_id_record = $(hp_ds_id).getCurrentRecord();
+            // //如果是启用的用户则隐藏按钮
+            // if (hp_ds_id_record.get('enabled_flag') === 'Y'){
+            //     jQuery('#${/parameter/@layout_code}_user_button1').hide();
+            // }else {
+            //     jQuery('#${/parameter/@layout_code}_user_button1').show();
+            // }
+
+
+
             var ds_id = '${/parameter/@layout_code}_F_BASIC_hls_bp_master_ds';
             var records = $(ds_id).getCurrentRecord();
             var bp_id = records.get('bp_id');
@@ -895,69 +1003,60 @@
 
         //保存前调用
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
-            debugger
+            debugger;
             // window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             var check_flag = true;
             // var ds_id = '${/parameter/@layout_code}_F_BASIC_hls_bp_master_ds';
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
             // var spouse_ds_id = '${/parameter/@layout_code}_F_SPOUSE_hls_bp_master_ds';
             $(ds_id).getCurrentRecord().set('source', '0');
-            // var record_cur = $(ds_id).getCurrentRecord();
-            //
-            // if (record_cur.get('domicile_desc') != null) {
-            //     record_cur.set('domicile_district', record_cur.get('domicile_desc'));
-            // }
-            // if (record_cur.get('house_desc') != null) {
-            //     record_cur.set('house_district', record_cur.get('house_desc'));
-            // }
-            // if (record_cur.get('company_desc') != null) {
-            //     record_cur.set('company_district', record_cur.get('company_desc'));
-            // }
-            // if(record_cur.get('function_code') === 'BP100F1' && record_cur.get('domicile_ad') != null){
-            //     var  do_district_id  =  record_cur.get('domicile_ad');
-            //     Leaf.request({
-            //         url: "${/request/@context_path}/hls/bp/master?districtId=" + do_district_id,
-            //         success: function (res) {
-            //             $(ds_id).getCurrentRecord().set('domicile_province', res.result.record[0]);
-            //             $(ds_id).getCurrentRecord().set('domicile_city', res.result.record[1]);
-            //             $(ds_id).getCurrentRecord().set('domicile_district', do_district_id);
-            //             check_flag = true;
-            //         },
-            //         sync: true,
-            //         scope: this
-            //     });
-            // }
-            //
-            // if(record_cur.get('function_code') === 'BP100F1' && record_cur.get('house_ad') != null){
-            //     var  ho_district_id  =  record_cur.get('house_ad');
-            //     Leaf.request({
-            //         url: "${/request/@context_path}/hls/bp/master?districtId=" + ho_district_id,
-            //         success: function (res) {
-            //             $(ds_id).getCurrentRecord().set('house_province', res.result.record[0]);
-            //             $(ds_id).getCurrentRecord().set('house_city', res.result.record[1]);
-            //             $(ds_id).getCurrentRecord().set('house_district', ho_district_id);
-            //             check_flag = true;
-            //         },
-            //         sync: true,
-            //         scope: this
-            //     });
-            // }
-            //
-            // if(record_cur.get('function_code') === 'BP100F1' && record_cur.get('company_ad') != null){
-            //     var  co_district_id  =  record_cur.get('company_ad');
-            //     Leaf.request({
-            //         url: "${/request/@context_path}/hls/bp/master/getCityIdAndProvinceId?districtId=" + co_district_id,
-            //         success: function (res) {
-            //             $(ds_id).getCurrentRecord().set('company_province', res.result.record[0]);
-            //             $(ds_id).getCurrentRecord().set('company_city', res.result.record[1]);
-            //             $(ds_id).getCurrentRecord().set('company_district', co_district_id);
-            //             check_flag = true;
-            //         },
-            //         sync: true,
-            //         scope: this
-            //     });
-            // }
-            //
+            var record_cur = $(ds_id).getCurrentRecord();
+
+            if(record_cur.get('domicile_district') != null){
+                var  do_district_id  =  record_cur.get('domicile_district');
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/bp/master/getCityIdAndProvinceId?districtId=" + do_district_id,
+                    success: function (res) {
+                        $(ds_id).getCurrentRecord().set('domicile_province', res.result.record[0]);
+                        $(ds_id).getCurrentRecord().set('domicile_city', res.result.record[1]);
+                        $(ds_id).getCurrentRecord().set('domicile_district', do_district_id);
+                        check_flag = true;
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+
+            if(record_cur.get('house_district') != null){
+                var  ho_district_id  =  record_cur.get('house_district');
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/bp/master/getCityIdAndProvinceId?districtId=" + ho_district_id,
+                    success: function (res) {
+                        $(ds_id).getCurrentRecord().set('house_province', res.result.record[0]);
+                        $(ds_id).getCurrentRecord().set('house_city', res.result.record[1]);
+                        $(ds_id).getCurrentRecord().set('house_district', ho_district_id);
+                        check_flag = true;
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+
+            if(record_cur.get('company_district') != null){
+                var  co_district_id  =  record_cur.get('company_district');
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/bp/master/getCityIdAndProvinceId?districtId=" + co_district_id,
+                    success: function (res) {
+                        $(ds_id).getCurrentRecord().set('company_province', res.result.record[0]);
+                        $(ds_id).getCurrentRecord().set('company_city', res.result.record[1]);
+                        $(ds_id).getCurrentRecord().set('company_district', co_district_id);
+                        check_flag = true;
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
+
 
 
             var basicRec = $(ds_id).getCurrentRecord();

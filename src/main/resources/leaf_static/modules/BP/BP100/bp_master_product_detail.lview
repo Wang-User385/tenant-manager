@@ -2,19 +2,35 @@
 <a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
-<!--        <a:link id="bp100_bp_master_modify_id"-->
-<!--                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>-->
+        <!--        <a:link id="bp100_bp_master_modify_id"-->
+        <!--                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>-->
 
         <script><![CDATA[
 
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            debugger;
+            var order_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_order', 'T_OREDE_G');
+            if (ds.id == order_ds_id) {
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_business_condition');
+                // console.log($(ds_id).getCurrentRecord().get('condition_id'));
+                $(order_ds_id).setQueryParameter("condition_id", '${/parameter/@condition_id}');
+                // $(order_ds_id).query();
+            }
+        };
+
 
         // 保存前调用
-        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function(ds, record) {
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
             // window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
             debugger;
             var check_flag = true;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_business_condition');
-            $(ds_id).getCurrentRecord().set('bp_id','${/parameter/@bp_id}');
+            $(ds_id).getCurrentRecord().set('bp_id', '${/parameter/@bp_id}');
+            var order_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_order', 'T_OREDE_G');
+            if (ds.id ==order_ds_id ){
+                $(order_ds_id).getCurrentRecord().set('condition_id',$(ds_id).getCurrentRecord().get("condition_id"));
+            }
             return check_flag;
         };
 
@@ -37,7 +53,6 @@
             $(ds_id5).query();
             $(ds_id6).query();
         };
-
 
 
         ]]></script>

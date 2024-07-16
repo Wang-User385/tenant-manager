@@ -2,6 +2,7 @@ package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.cont.dto.HlsCusConContract;
+import com.hand.hls.credit.dto.QueryLateInfo;
 import com.hand.hls.credit.dto.QueryPrjQuotationDTO;
 import com.hand.hls.fnd.dto.CalcPrice;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
@@ -10,7 +11,6 @@ import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import org.apache.ibatis.annotations.Param;
 import uncertain.composite.CompositeMap;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -122,4 +122,6 @@ public interface HlsCusPrjQuotationMapper extends Mapper<HlsCusPrjQuotation> {
     String queryYNFlag(@Param("valueCode") String valueCode);
 
     QueryPrjQuotationDTO getQueryPrjQuotationDTOByProjectId(@Param("projectId") Long projectId);
+
+    QueryLateInfo getQueryLateInfoByQuotationId(@Param("quotationId") Long quotationId);
 }

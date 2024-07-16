@@ -12,6 +12,12 @@ import lombok.Data;
  */
 @Data
 public class QueryPrjQuotationDTO extends BaseDTO {
+
+    /**
+     * 主键
+     */
+    private Long quotationId;
+
     /**
      * 首付比例
      */

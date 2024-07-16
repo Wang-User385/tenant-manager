@@ -6524,10 +6524,21 @@
     </select>
 
     <select id="getQueryPrjQuotationDTOByProjectId" resultType="com.hand.hls.credit.dto.QueryPrjQuotationDTO">
-        select down_payment_ratio , pmt ,  lease_times
+        select quotation_id , down_payment_ratio , pmt ,  lease_times
         from prj_quotation pq
         where pq.source_document_id = #{projectId} and pq.source_document_category = 'PROJECT'
 
+    </select>
+
+    <select id="getQueryLateInfoByQuotationId" resultType="com.hand.hls.credit.dto.QueryLateInfo">
+        SELECT
+        COUNT( pq.lease_start_date ) leaseStartDateCount,
+        nvl(SUM( CASE WHEN ( write_off_days IS NOT NULL AND write_off_days >= 4 AND write_off_days <![CDATA[[ <= ]]> 30 ) THEN 1 ELSE 0 END ),0) fourToThirtyDaysOverdueCount,
+        nvl(SUM( CASE WHEN ( write_off_days IS NOT NULL AND write_off_days >= 31 AND write_off_days <![CDATA[[ <= ]]> 60 ) THEN 1 ELSE 0 END ),0) ThirtyOneToSixtyDaysOverdueCount
+        FROM
+        prj_quotation pq
+        INNER JOIN prj_quotation_cashflow pqc ON pq.quotation_id = pqc.quotation_id
+        where pq.quotation_id = #{quotationId} and  pqc.plan_due_date >= (sysdate - interval '1' year) and pqc.plan_due_date <![CDATA[[ <= ]]> sysdate
     </select>
 
 </mapper>

@@ -14,10 +14,12 @@ public interface TongDunService {
     //预审
     boolean preliminaryValid(Long projectId, HttpServletRequest request);
 
+
+
     //正审
     //Accept：通过
     //Reject：拒绝
     //Review：人工审核
-    String interlocutoryValid(Long projectId, HttpServletRequest request);
+     String interlocutoryValid(Long projectId,String jsonString, HttpServletRequest request);
 
 }
