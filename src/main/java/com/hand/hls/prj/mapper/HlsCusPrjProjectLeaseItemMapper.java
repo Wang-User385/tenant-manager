@@ -1,7 +1,6 @@
 package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
-import com.hand.hls.credit.dto.QueryPrjProjectLeaseItemDTO;
 import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
 import org.apache.ibatis.annotations.Param;
 
@@ -40,8 +39,4 @@ public interface HlsCusPrjProjectLeaseItemMapper extends Mapper<HlsCusPrjProject
 
 
     List<HlsCusPrjProjectLeaseItem> wxinQueryLeaseChange(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem);
-
-    List<HlsCusPrjProjectLeaseItem> selectLeaseItemByProjectId(@Param("projectId") Long projectId);
-
-    QueryPrjProjectLeaseItemDTO getQueryPrjProjectLeaseItemDTOByProjectId(@Param("projectId") Long projectId);
 }
