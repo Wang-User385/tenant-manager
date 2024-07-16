@@ -39,4 +39,6 @@ public interface HlsCusPrjProjectLeaseItemMapper extends Mapper<HlsCusPrjProject
 
 
     List<HlsCusPrjProjectLeaseItem> wxinQueryLeaseChange(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem);
+
+    List<HlsCusPrjProjectLeaseItem> selectLeaseItemByProjectId(@Param("projectId") Long projectId);
 }
