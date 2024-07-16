@@ -2,22 +2,24 @@ package com.hand.hls.prj.controllers;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.hand.hap.activiti.dto.HistoricProcessInstanceResponseExt;
+import com.hand.hap.activiti.exception.WflSecurityException;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
-import com.hand.hls.abs.dto.HlsCusAbsAssetsPackage;
-import com.hand.hls.fct.dto.HlsCusFctProjectAttachment;
+import com.hand.hls.atm.dto.FndAttachment;
+import com.hand.hls.bp.dto.HlsCusSysFile;
 import com.hand.hls.fct.service.HlsCusFctProjectAttachmentService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectAttachment;
+import com.hand.hls.prj.mapper.HlsCusPrjProjectAttachmentMapper;
 import com.hand.hls.prj.service.HlsCusPrjProjectAttachmentService;
 import com.hand.hls.prj.service.HlsCusPrjProjectService;
-import com.hand.hls.sys.dto.SysUser;
+import com.hand.hls.prj.utils.HlsCusZipUtil;
 import com.hand.hls.sys.service.SysUserService;
 import leaf.bean.LeafRequestData;
 import com.hand.hap.attachment.dto.SysFile;
 import com.hand.hap.security.TokenUtils;
-import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +27,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.text.SimpleDateFormat;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipOutputStream;
 
 @Controller
 public class HlsCusPrjProjectAttachmentController extends BaseController {
@@ -47,6 +52,8 @@ public class HlsCusPrjProjectAttachmentController extends BaseController {
     @Autowired
     private static Logger logger = LoggerFactory.getLogger(HlsCusPrjProjectAttachmentController.class);
 
+    @Autowired
+    private HlsCusPrjProjectAttachmentMapper hlsCusPrjProjectAttachmentMapper;
     @RequestMapping(value = "/ct/prj/project/attachment/query/review/info")
     @ResponseBody
     public ResponseData prjProjectAttachmentDetailQuery2(@ModelAttribute("_request_data") LeafRequestData requestData, @RequestParam(defaultValue = "1") int pagenum,
@@ -182,4 +189,58 @@ public class HlsCusPrjProjectAttachmentController extends BaseController {
         }
         return new ResponseData(list);
     }
+
+    @RequestMapping("/ct/prj/project/sign/content/{projectId}")
+    @ResponseBody
+    public ResponseData selectContractAttachmentInfo(HttpServletRequest request, @PathVariable String projectId)
+            throws WflSecurityException {
+        IRequest iRequest = createRequestContext(request);
+        HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment = new HlsCusPrjProjectAttachment();
+        hlsCusPrjProjectAttachment.setProjectId(Long.parseLong(projectId));
+        List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.selectContractAttachmentInfo(hlsCusPrjProjectAttachment);
+        return new ResponseData(hlsCusPrjProjectAttachments);
+    }
+    @RequestMapping("/ct/prj/project/sign/contentFileList")
+    @ResponseBody
+    public void selectContractAttachmentList(HttpServletRequest request, @RequestParam("projectId") String projectId, HttpServletResponse response)
+            throws Exception {
+        HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment = new HlsCusPrjProjectAttachment();
+        hlsCusPrjProjectAttachment.setProjectId(Long.parseLong(projectId));
+        List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.selectContractAttachmentList(hlsCusPrjProjectAttachment);
+        if (hlsCusPrjProjectAttachments.size() > 0) {
+            try {
+                String zipFilePath = "";
+                String fileName = "";
+                List<HlsCusSysFile> hlsCusSysFiles = new ArrayList<>(hlsCusPrjProjectAttachments.size());
+                for (int i = 0; i < hlsCusPrjProjectAttachments.size(); i++) {
+                    HlsCusSysFile hlsCusSysFile = new HlsCusSysFile();
+                    String filePath = hlsCusPrjProjectAttachments.get(i).getFilePath();
+                    String fileName1 = hlsCusPrjProjectAttachments.get(i).getFileName();
+                    hlsCusSysFile.setFilePath(filePath);
+                    hlsCusSysFile.setFileName(fileName1);
+                    hlsCusSysFiles.add(hlsCusSysFile);
+                }
+                if (hlsCusSysFiles.size() > 0) {
+                    File zipFilePath1 = new File(zipFilePath);
+                    //拼接文件名,用户名+系统时间,避免出现重复
+                    fileName = "downloadZip_" + System.currentTimeMillis();
+                    //String zipFile = "attachment;filename=" + new String(fileName.getBytes("utf-8"), "iso-8859-1") + ".zip";
+                    String zipFile = zipFilePath1 + fileName + ".zip";
+
+                    FileOutputStream outStream = new FileOutputStream(zipFile);
+                    ZipOutputStream toClient = new ZipOutputStream(outStream);
+                    //打包转换为zip文件
+                    HlsCusZipUtil.zipFile(hlsCusSysFiles, toClient);
+                    toClient.close();
+                    outStream.close();
+                    //下载zip文件
+                    HlsCusZipUtil.downloadZip(new File(zipFile), response);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e.getMessage());
+            }
+        }
+
+    }
+
 }

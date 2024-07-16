@@ -368,6 +368,7 @@ public class HlsCusPrjProjectLeaseItem extends BaseDTO {
     @Transient
     private String projectStatus; //合同状态
 
+    private String voitureType; //车辆类型
     private String colorC; //车辆颜色
     private String ageC;	//车龄
     private String vehicleCapacity;	//车辆准载(定员)

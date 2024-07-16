@@ -60,6 +60,7 @@ public interface HlsCusPrjProjectAttachmentMapper extends Mapper<HlsCusPrjProjec
     List<HlsCusPrjProjectAttachment> selectPrjProjectAttachmentInfo1(HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment);
 
     List<HlsCusPrjProjectAttachment> selectContractAttachmentInfo(HlsCusPrjProjectAttachment t);
+    List<HlsCusPrjProjectAttachment> selectContractAttachmentList(HlsCusPrjProjectAttachment t);
     List<HlsCusPrjProjectAttachment> selectContractChangeAttachmentInfo(HlsCusPrjProjectAttachment t);
     List<Map> selectContractChangeAttachmentInfo1(HlsCusPrjProjectAttachment t);
 

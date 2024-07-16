@@ -21,6 +21,9 @@
             if (name == 'project_number' && value) {
                 return '<a href="javascript:open_project_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
             }
+            if (name == 'contract_content_info') {
+                return '<a href="javascript:open_contract_content_info_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:#68798a">合同文本查看</span></a>';
+            }
             return value;
         };
 
@@ -53,6 +56,29 @@
             });
         }
 
+        //合同文本查看跳转
+        function open_contract_content_info_win(ds_id, record_id) {
+            debugger
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var project_id = param['project_id']
+
+
+            new Leaf.Window({
+                id: 'PRJ419F6_sign_content_winid',
+                params: {
+                    winid: 'PRJ419F6_sign_content_winid',
+                    project_id: project_id,
+                    function_usage:'${/parameter/@function_usage}'
+                },
+                url: '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419F6/prj_project_sign_contract_content.lview',
+                title: '合同文本查看',
+                fullScreen:true
+            });
+
+
+        }
+
         //项目维护
         function open_project_modify_win(ds_id, record_id) {
             var record = $(ds_id).findById(record_id);
@@ -68,37 +94,37 @@
                     }
                 }
             });
-            param['url_title'] = '项目明细';
+            param['url_title'] = '进件明细';
             //厂商租赁
             // if(record.get('lease_channel') === '10'){
             //直接租赁
-            if (param['document_type'] === 'PRJL') {
-                param['function_code'] = 'PRJ419F2';
-            }
-            //售后回租
-            if (param['document_type'] === 'PRJLB') {
-                param['function_code'] = 'PRJ419F2';
-            }
+            // if (param['document_type'] === 'PRJL') {
+            //     param['function_code'] = 'PRJ419F2';
+            // }
+            // //售后回租
+            // if (param['document_type'] === 'PRJLB') {
+            //     param['function_code'] = 'PRJ419F2';
+            // }
             //汽车租赁
             // }else if(record.get('lease_channel') === '20'){
             //     param['function_code'] = 'PRJ419F4';
             // } else if (record.get('lease_channel') === '40') {
             //     param['function_code'] = 'PRJ419F20';
             // }
-
+            param['function_code'] = 'PRJ419F2';
             param['winid'] = 'project_modify_winid';
-            var project_status = record.get('project_status');
-            var division = record.get('division');
-            if (division === 'PHOTOVOLTAIC_DEVICES') {
-                param['function_usage'] = 'QUERY';
-                param['parent_layout_code'] = 'PRJ419';
-            }
+            // var project_status = record.get('project_status');
+            // var division = record.get('division');
+            // if (division === 'PHOTOVOLTAIC_DEVICES') {
+            //param['function_usage'] = 'QUERY';
+            //param['parent_layout_code'] = 'PRJ419';
+            //}
             //审批中、退回、审批通过、业务审批通过
-            if (project_status === 'APPROVING' || project_status === 'APPROVED_RETURN' ||project_status ==='APPROVED' ||project_status === 'BUSINESSAPPROVED') {
+            //if (project_status === 'APPROVING' || project_status === 'APPROVED_RETURN' ||project_status ==='APPROVED' ||project_status === 'BUSINESSAPPROVED') {
                 param['maintain_type'] = 'READONLY';
                 param['function_usage'] = 'QUERY';
                 param['submit_hide'] = true;
-            }
+            //}
 
             // //厂商租赁、直租/回租
             // if(record.get('lease_channel') === '10' && (param['document_type'] === 'PRJL' ||param['document_type'] === 'PRJLB')){

@@ -9416,7 +9416,6 @@ WHERE
         <result column="sum_deposit" property="sum_deposit"/>
         <result column="sum_commission" property="sum_commission"/>
         <result column="SUM_COMMISSION_DISCOUNT" property="sum_commission_discount"/>
-        <result column="factory_name" property="factory_name"/>
         <result column="manufacturer_code" property="manufacturer_code"/>
         <result column="manufacturer_name" property="manufacturer_name"/>
         <result column="return_type" property="return_type"/>
@@ -9469,6 +9468,9 @@ WHERE
         <result column="order_status" property="order_status"/>
         <result column="order_status_n" property="order_status_n"/>
         <result column="driver_and_applicant" property="driver_and_applicant"/>
+        <result column="investment_status" property="investment_status"/>
+        <result column="investment_status_n" property="investment_status_n"/>
+        <result column="payment_result_n" property="payment_result_n"/>
     </resultMap>
 
     <!--项目报告维护-->
@@ -9619,7 +9621,7 @@ WHERE
         pp.pre_status,
         decode(pp.pre_status,'NEW','新建','APPROVING','审批中','APPROVED','审批通过','CLOSED','关闭') pre_status_n,
         pp.order_status,
-        decode(pp.order_status,'START','开启','REJECTED','拒绝','INCEPT','起租','CLOSED','关闭') order_status_n,
+        decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n,
         pp.driver_and_applicant
         FROM
         prj_project pp
@@ -9837,7 +9839,20 @@ WHERE
         AND sv.
         VALUE
         = pp.partners_contract_status
-        ) partners_contract_status_n
+        ) partners_contract_status_n,
+        pp.sign_status,
+        (
+        SELECT
+        v.meaning
+        FROM
+        sys_code_value_b v,
+        sys_code_b b
+        WHERE
+        b.CODE = 'SIGN_STATUS'
+        AND v.code_id = b.code_id
+        AND v.value = nvl( pp.SIGN_STATUS, 'NEW' )) sign_status_n,
+        pp.order_status,
+        decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n
         FROM
         prj_project pp
         LEFT JOIN hls_bp_master hbm ON pp.TENANT_ID = hbm.bp_id
@@ -10278,13 +10293,6 @@ WHERE
         from sys_code_value_b_v s
         where s.code = 'PRJ_CONFIRM_STATUS'
         and s.code_value = pp.confirm_status)                         confirm_status_n,
-        nvl(pp.SIGN_STATUS, 'NEW')                                       sign_status,
-        (Select v.meaning
-        From sys_code_value_b v,
-        sys_code_b b
-        Where b.CODE = 'SIGN_STATUS'
-        and v.code_id = b.code_id
-        And v.value = nvl(pp.SIGN_STATUS, 'NEW'))                     sign_status_n,
         pp.PROJECT_STATUS,
         (Select v.meaning
         From sys_code_value_b v,
@@ -10362,7 +10370,8 @@ WHERE
         (Select pqt.int_rate
         From prj_quotation pqt
         Where pqt.SOURCE_DOCUMENT_ID = pp.PROJECT_ID
-        And pqt.source_document_category = 'PRJ_PROJECT')             int_rate,
+        And pqt.source_document_category = 'PRJ_PROJECT'
+        and pqt.enabled_flag ='Y')             int_rate,
         (Select Sum(pqc.due_amount)
         From prj_quotation_cashflow pqc,
         prj_quotation pqt
@@ -10388,7 +10397,34 @@ WHERE
         And pc.cf_type = 65
         AND pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
         AND pq.SOURCE_DOCUMENT_ID = pp.PROJECT_ID
-        ) AS                                                             SUM_COMMISSION_DISCOUNT
+        ) AS                                                             SUM_COMMISSION_DISCOUNT,
+        pp.sign_status,
+        decode(pp.sign_status,'NEW','未签约','SIGN','已签约','未签约')sign_status_n,
+        pp.business_type,
+        (SELECT hdt.description
+        FROM hls_document_type hdt
+        WHERE hdt.business_type = pp.business_type
+        AND hdt.document_category = pp.document_category
+        AND hdt.document_type = pp.document_type
+        ) AS business_type_n,
+        pp.order_status,
+        decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n,
+        decode((select count(1)
+                from con_contract cc, con_contract_cashflow ccc
+                where cc.contract_id = ccc.contract_id
+                and ccc.cf_item = 0
+                and ccc.cf_type = 0
+                and ccc.cf_direction = 'OUTFLOW'
+                and ccc.cf_status = 'RELEASE'
+                and ccc.write_off_flag ='FULL'
+                and cc.project_id = pp.project_id),0,'未支付',1,'支付成功') payment_result_n,
+        pp.investment_status,
+        (Select v.meaning
+        From sys_code_value_b v,
+        sys_code_b b
+        Where b.CODE = 'INVESTMENT_STATUS'
+        and v.code_id = b.code_id
+        And v.value = nvl(pp.investment_status, 'NEW')) investment_status_n
         From prj_project pp
         Left Join hls_bp_master hbm
         On pp.TENANT_ID = hbm.bp_id
@@ -10579,6 +10615,9 @@ WHERE
         </if>
         <if test="deApplyResult!=null">
             and de_apply_result = #{deApplyResult}
+        </if>
+        <if test="manufacturerName != null">
+            and manufacturer_name like concat('%',concat(#{manufacturerName},'%'))
         </if>
         order by project_id desc
     </select>
@@ -10922,7 +10961,7 @@ WHERE
                pp.pre_status,
                decode(pp.pre_status,'NEW','新建','APPROVING','审批中','APPROVED','审批通过','CLOSED','关闭') pre_status_n,
                pp.order_status,
-               decode(pp.order_status,'START','开启','REJECTED','拒绝','INCEPT','起租','CLOSED','关闭') order_status_n,
+               decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n,
                pp.driver_and_applicant
         FROM prj_project pp
                  LEFT JOIN hls_bp_master hbm

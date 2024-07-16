@@ -20,13 +20,13 @@ public class HlsCusPrjQuotationElements extends BaseDTO {
      public static final String FIELD_ORDER_SEQ = "orderSeq";
      public static final String FIELD_PROJECT_ELEMENTS = "projectElements";
      public static final String FIELD_ELEMENTS_DESCRIBE = "elementsDescribe";
-     public static final String LOAN_REVIEW_RATIO = "loanReviewRatio";
-     public static final String SURPLUS_AMOUNT = "surplusAmount";
-     public static final String GPS_AMOUNT = "gpsAmount";
+     public static final String FIELD_LOAN_REVIEW_RATIO = "loanReviewRatio";
+     public static final String FIELD_SURPLUS_AMOUNT = "surplusAmount";
+     public static final String FIELD_GPS_AMOUNT = "gpsAmount";
 
 
 
-    @Id
+     @Id
      @GeneratedValue
      private Long prjElementsId;
 

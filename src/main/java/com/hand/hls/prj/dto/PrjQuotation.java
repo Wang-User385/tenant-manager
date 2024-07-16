@@ -99,6 +99,9 @@ public class PrjQuotation extends BaseDTO {
     private String annualPayTimesDesc;
     @Transient
     private String intRateTypeDesc;
+    private Double loanReviewRatio;
+    private Double surplusAmount;
+    private Double gpsAmount;
 
     public PrjQuotation() {
     }
@@ -670,5 +673,29 @@ public class PrjQuotation extends BaseDTO {
 
     public void setCompressSheets(String compressSheets) {
         this.compressSheets = compressSheets;
+    }
+
+    public Double getLoanReviewRatio() {
+        return loanReviewRatio;
+    }
+
+    public void setLoanReviewRatio(Double loanReviewRatio) {
+        this.loanReviewRatio = loanReviewRatio;
+    }
+
+    public Double getSurplusAmount() {
+        return surplusAmount;
+    }
+
+    public void setSurplusAmount(Double surplusAmount) {
+        this.surplusAmount = surplusAmount;
+    }
+
+    public Double getGpsAmount() {
+        return gpsAmount;
+    }
+
+    public void setGpsAmount(Double gpsAmount) {
+        this.gpsAmount = gpsAmount;
     }
 }
