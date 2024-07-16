@@ -93,4 +93,7 @@ public class PrjLeaseItemInsurance extends BaseDTO {
      private Date vehicleEndDate;
      private String isThirdParty;
      private Date thirdEndDate;
+
+    public PrjLeaseItemInsurance() {
+    }
 }

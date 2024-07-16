@@ -66,4 +66,6 @@ public class PrjProjectLeaseItemCondition extends BaseDTO {
     private String originalOwnerCardNum; //原车主证件号
     private String originalOwnerAddress; //原车主户籍所在地
 
+    public PrjProjectLeaseItemCondition() {
+    }
 }
