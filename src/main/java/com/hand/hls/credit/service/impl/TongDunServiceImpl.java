@@ -88,10 +88,10 @@ public class TongDunServiceImpl implements TongDunService {
         String businessNo = UUID.randomUUID().toString().replace("-", "");
         HashMap<String, String> param = new HashMap<>();
         //设置预审参数
-//        if (setPreliminaryParam(hlsWsRequests, responseData,
-//                queryHlsBpMasterDTO, parse, businessApplyNo, businessNo, param)) {
-//            return "Error";
-//        }
+        if (setPreliminaryParam(hlsWsRequests, responseData,
+                queryHlsBpMasterDTO, parse, businessApplyNo, businessNo, param)) {
+            return "Error";
+        }
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
         try {
@@ -129,17 +129,12 @@ public class TongDunServiceImpl implements TongDunService {
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
         JSONObject param = JSONObject.parseObject(jsonString);
         //设置正审参数
-//        String error = setInterlocutoryParam(projectId, hlsWsRequests, responseData, param);
-//        if (error != null) return error;
-         /*
-            测试IP:http://172.17.241.66:8088/
-            准生产IP:http://172.17.241.69:8088/
-            生产IP:http://172.17.241.12:8088/
-         */
+        String error = setInterlocutoryParam(projectId, hlsWsRequests, responseData, param);
+        if (error != null) return error;
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
         try {
-//            Map<String, String> map = JSONObject.toJavaObject(param, Map.class);
+            Map<String, String> map = JSONObject.toJavaObject(param, Map.class);
             HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(ZS_URL, interlocutoryTestMap(), header);
             if (200 != httpExecuteResponse.getResponseCode()) {
                 commonLog(responseData, "100001", "E", "同盾接口请求失败", hlsWsRequests);
