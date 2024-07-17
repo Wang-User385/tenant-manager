@@ -12,7 +12,10 @@ import javax.servlet.http.HttpServletRequest;
 public interface TongDunService {
 
     //预审
-    boolean preliminaryValid(Long projectId, HttpServletRequest request);
+    //Accept：通过
+    //Reject：拒绝
+    //Error：参数异常
+    String preliminaryValid(Long projectId, HttpServletRequest request);
 
 
 
@@ -20,6 +23,7 @@ public interface TongDunService {
     //Accept：通过
     //Reject：拒绝
     //Review：人工审核
-     String interlocutoryValid(Long projectId,String jsonString, HttpServletRequest request);
+    //Error：参数异常
+     String interlocutoryValid(Long projectId, HttpServletRequest request);
 
 }

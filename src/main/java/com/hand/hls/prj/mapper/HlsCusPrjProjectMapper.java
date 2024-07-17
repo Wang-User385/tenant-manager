@@ -263,4 +263,6 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     List<HlsCusCshTransaction> selectTranSactionByOrderNo(@Param("orderNo") String orderNo);
 
     String getBusinessApplyNoByProjectId(@Param("projectId") Long projectId);
+
+    String getRiskInfoByProjectId(@Param("projectId") Long projectId);
 }

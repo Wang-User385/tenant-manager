@@ -40,7 +40,8 @@ public class TongDunTestController extends BaseController {
     public ResponseData test(@PathVariable(value = "projectId") Long projectId, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        return new ResponseData(tongDunService.preliminaryValid(projectId,request));
+        System.out.println(tongDunService.preliminaryValid(projectId, request));
+        return new ResponseData();
     }
 
 
@@ -50,7 +51,7 @@ public class TongDunTestController extends BaseController {
     public ResponseData test02(@RequestParam(value = "projectId") Long projectId, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        tongDunService.interlocutoryValid(projectId,"",request);
+        tongDunService.interlocutoryValid(projectId,request);
 //        tongDunService.preliminaryValid(projectId,request);
         return new ResponseData();
     }
