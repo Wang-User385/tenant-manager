@@ -17,4 +17,6 @@ public interface ProjectLeaseItemConditionMapper extends Mapper<PrjProjectLeaseI
     List<PrjProjectLeaseItemCondition> prjProjectLeaseItemConditionQuery(@Param("projectLeaseItemId") Long projectLeaseItemId);
 
 
+    List<PrjProjectLeaseItemCondition> prjProjectLeaseItemConditionByLeaseItemId(@Param("projectLeaseItemId") Long projectLeaseItemId);
+
 }

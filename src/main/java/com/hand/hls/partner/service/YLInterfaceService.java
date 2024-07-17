@@ -25,4 +25,14 @@ public interface YLInterfaceService {
     ResponseData advancesSettleRequest(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request);
 
     ResponseData dataAcquisition(DataAcquisitionDTO dataAcquisitionDTO, HttpServletRequest request);
+
+    ResponseData overdueRepurchaseTrialCalculation(OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO, HttpServletRequest request);
+
+    ResponseData overdueRepurchaseRequest(OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO, HttpServletRequest request);
+
+    ResponseData queryWithholdingState(QueryWithholdingStateDTO queryWithholdingStateDTO, HttpServletRequest request);
+
+    ResponseData stopWithholding(StopWithholdingDTO stopWithholdingDTO, HttpServletRequest request);
+
+    ResponseData recoverWithholding(RecoverWithholdingDTO recoverWithholdingDTO, HttpServletRequest request);
 }

@@ -124,4 +124,7 @@ public interface HlsCusPrjQuotationMapper extends Mapper<HlsCusPrjQuotation> {
     QueryPrjQuotationDTO getQueryPrjQuotationDTOByProjectId(@Param("projectId") Long projectId);
 
     QueryLateInfo getQueryLateInfoByQuotationId(@Param("quotationId") Long quotationId);
+
+    List<HlsCusPrjQuotation> selectQuoByProjectId(@Param("projectId") Long projectId);
+
 }

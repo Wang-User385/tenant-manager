@@ -101,4 +101,49 @@ public class YLInterfaceController extends BaseController {
     public ResponseData dataAcquisition(@RequestBody @Valid DataAcquisitionDTO dataAcquisitionDTO,HttpServletRequest request) {
         return ylInterfaceService.dataAcquisition(dataAcquisitionDTO,request);
     }
+
+    @RequestMapping(
+            value = {"/di/overdueRepurchaseTrialCalculation"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData overdueRepurchaseTrialCalculation(@RequestBody @Valid OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO,HttpServletRequest request) {
+        return ylInterfaceService.overdueRepurchaseTrialCalculation(overdueRepurchaseTrialCalculationDTO,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/overdueRepurchaseRequest"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData overdueRepurchaseRequest(@RequestBody @Valid OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO,HttpServletRequest request) {
+        return ylInterfaceService.overdueRepurchaseRequest(overdueRepurchaseRequestDTO,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/queryWithholdingState"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData queryWithholdingState(@RequestBody @Valid QueryWithholdingStateDTO queryWithholdingStateDTO,HttpServletRequest request) {
+        return ylInterfaceService.queryWithholdingState(queryWithholdingStateDTO,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/stopWithholding"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData stopWithholding(@RequestBody @Valid StopWithholdingDTO stopWithholdingDTO,HttpServletRequest request) {
+        return ylInterfaceService.stopWithholding(stopWithholdingDTO,request);
+    }
+
+    @RequestMapping(
+            value = {"/di/recoverWithholding"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public ResponseData recoverWithholding(@RequestBody @Valid RecoverWithholdingDTO recoverWithholdingDTO,HttpServletRequest request) {
+        return ylInterfaceService.recoverWithholding(recoverWithholdingDTO,request);
+    }
 }

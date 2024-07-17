@@ -17,4 +17,5 @@ public interface ProjectLeaseItemMortgageMapper extends Mapper<PrjProjectLeaseIt
     List<PrjProjectLeaseItemMortgage> prjProjectLeaseItemMortgageQuery(@Param("projectLeaseItemId") Long projectLeaseItemId);
 
 
+    List<PrjProjectLeaseItemMortgage> prjProjectLeaseItemMortgageByLeaseItemId(@Param("projectLeaseItemId") Long projectLeaseItemId);
 }
