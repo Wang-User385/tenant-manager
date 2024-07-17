@@ -1702,4 +1702,14 @@ public class HlsCusBpMaster extends BaseDTO {
     private String retailFlag;
     @Transient
     private String retailFlagN;
+
+    public Double getMonthlyIncome() {
+        return monthlyIncome;
+    }
+
+    public void setMonthlyIncome(Double monthlyIncome) {
+        this.monthlyIncome = monthlyIncome;
+    }
+
+    private Double monthlyIncome;
 }

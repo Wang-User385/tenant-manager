@@ -199,6 +199,7 @@ public class PrjProject extends BaseDTO {
     private String preStatus;
     private String orderStatus;
     private String driverAndApplicant;
+    private String riskInfo;
 
     public PrjProject() {
     }

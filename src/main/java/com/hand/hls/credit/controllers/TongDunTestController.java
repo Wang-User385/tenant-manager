@@ -5,10 +5,12 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
+import com.hand.hls.app.event.service.impl.AppWflTodoNoticeServiceImpl;
 import com.hand.hls.credit.dto.HlsCusConCreditWhiteList;
 import com.hand.hls.credit.service.TongDunService;
 import leaf.bean.LeafRequestData;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,13 +36,23 @@ public class TongDunTestController extends BaseController {
     @Resource
     private TongDunService tongDunService;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @RequestMapping(value = "/tong/dun/test/to",method = {RequestMethod.GET})
+    @ResponseBody
+    public String test03() {
+       String token = (String) redisTemplate.opsForValue().get("accessToken");
+        return token;
+    }
 
     @RequestMapping(value = "/tong/dun/test/{projectId}",method = {RequestMethod.GET})
     @ResponseBody
     public ResponseData test(@PathVariable(value = "projectId") Long projectId, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        return new ResponseData(tongDunService.preliminaryValid(projectId,request));
+        System.out.println(tongDunService.preliminaryValid(projectId, request));
+        return new ResponseData();
     }
 
 
@@ -50,7 +62,7 @@ public class TongDunTestController extends BaseController {
     public ResponseData test02(@RequestParam(value = "projectId") Long projectId, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        tongDunService.interlocutoryValid(projectId,"",request);
+        tongDunService.interlocutoryValid(projectId,request);
 //        tongDunService.preliminaryValid(projectId,request);
         return new ResponseData();
     }
