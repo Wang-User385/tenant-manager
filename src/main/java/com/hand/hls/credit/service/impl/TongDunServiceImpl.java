@@ -95,7 +95,7 @@ public class TongDunServiceImpl implements TongDunService {
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
         try {
-            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(YS_URL, preliminaryTestMap(), header);
+            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(YS_URL, param, header);
             if (200 != httpExecuteResponse.getResponseCode()) {
                 commonLog(responseData, "100001", "E", "同盾接口请求失败", hlsWsRequests);
                 return "Error";
@@ -135,7 +135,7 @@ public class TongDunServiceImpl implements TongDunService {
         header.put("Content-Type", "application/x-www-form-urlencoded");
         try {
             Map<String, String> map = JSONObject.toJavaObject(param, Map.class);
-            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(ZS_URL, interlocutoryTestMap(), header);
+            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(ZS_URL, map, header);
             if (200 != httpExecuteResponse.getResponseCode()) {
                 commonLog(responseData, "100001", "E", "同盾接口请求失败", hlsWsRequests);
                 return "Error";
