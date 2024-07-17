@@ -5,10 +5,12 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
+import com.hand.hls.app.event.service.impl.AppWflTodoNoticeServiceImpl;
 import com.hand.hls.credit.dto.HlsCusConCreditWhiteList;
 import com.hand.hls.credit.service.TongDunService;
 import leaf.bean.LeafRequestData;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +36,15 @@ public class TongDunTestController extends BaseController {
     @Resource
     private TongDunService tongDunService;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @RequestMapping(value = "/tong/dun/test/to",method = {RequestMethod.GET})
+    @ResponseBody
+    public String test03() {
+       String token = (String) redisTemplate.opsForValue().get("accessToken");
+        return token;
+    }
 
     @RequestMapping(value = "/tong/dun/test/{projectId}",method = {RequestMethod.GET})
     @ResponseBody
