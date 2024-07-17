@@ -116,6 +116,7 @@ public class TongDunServiceImpl implements TongDunService {
             commonLog(responseData, "100001", "E", "请求同盾接口异常", hlsWsRequests);
             return "Error";
         }
+        commonLog(responseData, "200", "S", "预审成功", hlsWsRequests);
         return "Accept";
     }
 
@@ -160,6 +161,7 @@ public class TongDunServiceImpl implements TongDunService {
             commonLog(responseData, "100001", "E", "请求同盾接口异常", hlsWsRequests);
             return "Error";
         }
+        commonLog(responseData, "200", "S", "正审成功", hlsWsRequests);
         return "Accept";
     }
 
