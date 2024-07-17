@@ -22,11 +22,7 @@ public class PrjProjectLeaseItemCondition extends BaseDTO {
     public static final String FIELD_CONDITION_ID = "conditionId";//主键
     public static final String FIELD_IS_WATER_DAMAGED = "isWaterDamaged";//是否水泡
     public static final String FIELD_IS_CONVERSION = "isConversion";//是否营转非
-    public static final String FIELD_IS_VEHICLE_DAMAGE = "isVehicleDamage";//是否有车损险
-    public static final String FIELD_VEHICLE_END_DATE = "vehicleEndDate";//车损险到期日期
     public static final String FIELD_ACCIDENT_STATUS = "accidentStatus";//事故状况
-    public static final String FIELD_IS_THIRD_PARTY = "isThirdParty";//是否有第三者责任险
-    public static final String FIELD_THIRD_END_DATE = "thirdEndDate";//第三者责任险到期日期
     public static final String FIELD_IS_ANNUAL_INSPECTION = "isAnnualInspection";//是否年检
     public static final String FIELD_IS_SIGNIFICANTLY_MODIFIED = "isSignificantlyModified";//是否重大改装车
     public static final String FIELD_ENGINE_OVERHAUL = "engineOverhaul";//发动机大修
@@ -47,15 +43,8 @@ public class PrjProjectLeaseItemCondition extends BaseDTO {
 
     private String isConversion; //是否营转非
 
-    private String isVehicleDamage; //是否有车损险
-
-    private Date vehicleEndDate; //车损险到期日期
-
     private String accidentStatus; //事故状况
 
-    private String isThirdParty; //是否有第三者责任险
-
-    private Date thirdEndDate; //第三者责任险到期日期
     private String isAnnualInspection; //是否年检
     private String isSignificantlyModified; //是否重大改装车
     private String engineOverhaul; //发动机大修
