@@ -8,6 +8,7 @@ import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.service.YLInterfaceService;
+import com.hand.hls.partner.util.RsaAesUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -23,24 +24,13 @@ public class YLInterfaceController extends BaseController {
     private YLInterfaceService ylInterfaceService;
 
 
-//    @RequestMapping(
-//            value = {"/di/placeOrder"},
-//            method = {RequestMethod.GET, RequestMethod.POST}
-//    )
-//    @ResponseBody
-//    public ResponseData placeOrder(@RequestBody @Valid PlaceOrderDTO placeOrderDTO, HttpServletRequest request) {
-//        IRequest iRequest = createRequestContext(request);
-//        System.out.println(JSONObject.toJSONString(placeOrderDTO));
-//        return null;
-////        return ylInterfaceService.placeOrder(placeOrderDTO,request,iRequest);
-//    }
-
     @RequestMapping(
             value = {"/di/placeOrder"},
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
     public ResponseData placeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.placeOrder(jsonObject,request,iRequest);
     }

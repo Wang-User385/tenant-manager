@@ -19,6 +19,7 @@ import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.service.YLInterfaceService;
+import com.hand.hls.partner.util.RsaAesUtils;
 import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.*;
 import com.hand.hls.utils.HlsCusConstant;
@@ -73,7 +74,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     @Override
     @Transactional
     public ResponseData placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) {
-        PlaceOrderDTO placeOrderDTO = JSONObject.toJavaObject(jsonObject, PlaceOrderDTO.class);
+
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(ss, PlaceOrderDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
         //        获取请求路径
@@ -197,7 +205,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     @Transactional
     public ResponseData closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
-        CloseOrderDTO closeOrderDTO = JSONObject.toJavaObject(jsonObject, CloseOrderDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        CloseOrderDTO closeOrderDTO = JSONObject.parseObject(ss, CloseOrderDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
         //        获取请求路径
