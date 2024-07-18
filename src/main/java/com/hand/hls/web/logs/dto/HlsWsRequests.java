@@ -102,6 +102,8 @@ public class HlsWsRequests extends BaseDTO {
      * */
     private String responseJson;
 
+    private String requestJsonEncrypt;
+    private String responseJsonEncrypt;
 
     private Long createdBy;
     private Long lastUpdatedBy;
@@ -229,4 +231,19 @@ public class HlsWsRequests extends BaseDTO {
     }
 
 
+    public String getRequestJsonEncrypt() {
+        return requestJsonEncrypt;
+    }
+
+    public void setRequestJsonEncrypt(String requestJsonEncrypt) {
+        this.requestJsonEncrypt = requestJsonEncrypt;
+    }
+
+    public String getResponseJsonEncrypt() {
+        return responseJsonEncrypt;
+    }
+
+    public void setResponseJsonEncrypt(String responseJsonEncrypt) {
+        this.responseJsonEncrypt = responseJsonEncrypt;
+    }
 }
