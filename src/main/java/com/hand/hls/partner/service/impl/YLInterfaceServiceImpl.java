@@ -12,13 +12,11 @@ import com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
+import com.hand.hls.credit.service.TongDunService;
 import com.hand.hls.csh.dto.CshPaymentReqHd;
 import com.hand.hls.csh.dto.HlsCusCshTransaction;
-import com.hand.hls.csh.mapper.CshTransactionMapper;
 import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
-import com.hand.hls.hls.dto.HlsDurationLn;
-import com.hand.hls.lease.mapper.LeaseItemInsuranceMapper;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.prj.dto.*;
@@ -26,10 +24,10 @@ import com.hand.hls.prj.mapper.*;
 import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
+import com.hand.hls.web.logs.service.IHlsWsRequestsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.text.ParseException;
@@ -67,33 +65,25 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsCusPrjProjectBpMapper hlsCusPrjProjectBpMapper;
     @Autowired
     private ProjectLeaseItemConditionMapper projectLeaseItemConditionMapper;
+    @Autowired
+    private IHlsWsRequestsService logService;
+    @Autowired
+    private TongDunService tongDunService;
 
     @Override
-    public ResponseData placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest request, IRequest iRequest) {
-
+    @Transactional
+    public ResponseData placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) {
+        PlaceOrderDTO placeOrderDTO = JSONObject.toJavaObject(jsonObject, PlaceOrderDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("下单");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(placeOrderDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -150,7 +140,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if ("400".equals(responseData.getCode())){
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
+            logService.interfaceSave(hlsWsRequests,iRequest);
             return responseData;
         }
 
@@ -172,44 +162,52 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             hlsCusPrjProjectBpMapper.insert(hlsCusPrjProjectBp);
         }
 
-//        设置返回信息
-        List<String> stringList = new ArrayList<>();
-        stringList.add(codeRuleValue);
-        responseData.setCode("200");
-        responseData.setRows(stringList);
-        responseData.setMessage("下单成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
-        return responseData;
+        String s = tongDunService.preliminaryValid(hlsCusPrjProject.getProjectId(), request);
+        if ("Accept".equals(s)){
+            //        设置返回信息
+            List<String> stringList = new ArrayList<>();
+            stringList.add(codeRuleValue);
+            responseData.setCode("200");
+            responseData.setRows(stringList);
+            responseData.setMessage("下单成功");
+            hlsWsRequests.setReturnStatus("S");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            logService.interfaceSave(hlsWsRequests,iRequest);
+            return responseData;
+        }else if ("Reject".equals(s)){
+            //        设置返回信息
+            responseData.setCode("400");
+            responseData.setMessage("风控预审拒绝");
+            hlsWsRequests.setReturnStatus("S");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            logService.interfaceSave(hlsWsRequests,iRequest);
+            return responseData;
+        }else{
+            //        设置返回信息
+            responseData.setCode("400");
+            responseData.setMessage("风控参数异常拒绝");
+            hlsWsRequests.setReturnStatus("S");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            logService.interfaceSave(hlsWsRequests,iRequest);
+            return responseData;
+        }
     }
 
     @Override
-    public ResponseData closeOrder(CloseOrderDTO closeOrderDTO, HttpServletRequest request) {
+    @Transactional
+    public ResponseData closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
+        CloseOrderDTO closeOrderDTO = JSONObject.toJavaObject(jsonObject, CloseOrderDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("关单");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(closeOrderDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
         ResponseData responseData = new ResponseData();
 
@@ -220,7 +218,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("订单不存在");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
+            logService.interfaceSave(hlsWsRequests,iRequest);
             return responseData;
         }else{
             String projectStatus = hlsCusPrjProject.getProjectStatus();
@@ -229,7 +227,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("订单状态和操作不相符");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
+                logService.interfaceSave(hlsWsRequests,iRequest);
                 return responseData;
             }
             if ("Y".equals(hlsCusPrjProject.getLoanInitialLease())){
@@ -237,7 +235,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("订单状态和操作不相符");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
+                logService.interfaceSave(hlsWsRequests,iRequest);
                 return responseData;
             }
             if ("APPROVING".equals(cshPaymentReqHd.getPaymentReqStatusDesc())){
@@ -245,7 +243,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("订单状态和操作不相符");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
+                logService.interfaceSave(hlsWsRequests,iRequest);
                 return responseData;
             }
         }
@@ -256,36 +254,25 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("取消成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
-    public ResponseData queryOrder(QueryOrderDTO queryOrderDTO, HttpServletRequest request) {
+    public ResponseData queryOrder(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
 
+        QueryOrderDTO queryOrderDTO = JSONObject.toJavaObject(jsonObject, QueryOrderDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("账单查询");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(queryOrderDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+
 
 
         ResponseData responseData = new ResponseData();
@@ -297,7 +284,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("订单不存在");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
+            logService.interfaceSave(hlsWsRequests,iRequest);
             return responseData;
         }else{
             queryOrder.setRepayPlanTermInfoDTOList(repayPlanTermInfoDTOList);
@@ -310,7 +297,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("查询成功");
                 hlsWsRequests.setReturnStatus("S");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
+                logService.interfaceSave(hlsWsRequests,iRequest);
                 List<QueryOrder> queryOrderList = new ArrayList<>();
                 queryOrderList.add(queryOrder);
                 responseData.setRows(queryOrderList);
@@ -320,38 +307,28 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("订单状态和操作不相符");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
+                logService.interfaceSave(hlsWsRequests,iRequest);
                 return responseData;
             }
         }
     }
 
     @Override
-    public ResponseData repayment(RepayMent repayMent, HttpServletRequest request) {
+    @Transactional
+    public ResponseData repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
+        RepayMent repayMent = JSONObject.toJavaObject(jsonObject, RepayMent.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("还款");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(repayMent);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+
 
         ResponseData responseData = new ResponseData();
 
@@ -362,7 +339,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("查询数据为空");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
+            logService.interfaceSave(hlsWsRequests,iRequest);
             return responseData;
         }
         List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
@@ -375,7 +352,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     responseData.setMessage("结算单号为空");
                     hlsWsRequests.setReturnStatus("E");
                     hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                    hlsWsRequestsMapper.insert(hlsWsRequests);
+                    logService.interfaceSave(hlsWsRequests,iRequest);
                     return responseData;
                 }
                 if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
@@ -383,7 +360,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     responseData.setMessage("代扣交易单号为空");
                     hlsWsRequests.setReturnStatus("E");
                     hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                    hlsWsRequestsMapper.insert(hlsWsRequests);
+                    logService.interfaceSave(hlsWsRequests,iRequest);
                     return responseData;
                 }
             }
@@ -408,61 +385,51 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("还款成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
 
         return responseData;
     }
 
     @Override
-    public ResponseData compensatoryTrialCalculation(CompensatoryTrialCalculationDTO compensatoryTrialCalculation, HttpServletRequest request) {
+    public ResponseData compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
 
+
+        CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.toJavaObject(jsonObject, CompensatoryTrialCalculationDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("代偿试算");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(compensatoryTrialCalculation);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+
 
         ResponseData responseData = new ResponseData();
 
 //            计算本金、利息、罚息、应付金额
-            CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(compensatoryTrialCalculation);
+            CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(compensatoryTrialCalculationDTO);
 
             if (compensatoryTrialCalculation1==null){
                 responseData.setCode("400");
                 responseData.setMessage("订单不存在");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
+                logService.interfaceSave(hlsWsRequests,iRequest);
                 return responseData;
             }else{
                 //            判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
-                if (compensatoryTrialCalculation.getTrialTime()==null){
+                if (compensatoryTrialCalculationDTO.getTrialTime()==null){
                     compensatoryTrialCalculation1.setTrialTime(String.valueOf(new Date()));
                 }else{
-                    compensatoryTrialCalculation1.setTrialTime(compensatoryTrialCalculation.getTrialTime());
+                    compensatoryTrialCalculation1.setTrialTime(compensatoryTrialCalculationDTO.getTrialTime());
                 }
                 //设置返回订单号
-                compensatoryTrialCalculation1.setOrderNo(compensatoryTrialCalculation.getOrderNo());
+                compensatoryTrialCalculation1.setOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
 //            设置返回期次号
-                compensatoryTrialCalculation1.setTermNo(compensatoryTrialCalculation.getTermNo());
+                compensatoryTrialCalculation1.setTermNo(compensatoryTrialCalculationDTO.getTermNo());
 //            设置返回数据
                 List<CompensatoryTrialCalculationDTO> compensatoryTrialCalculationList = new ArrayList<>();
                 compensatoryTrialCalculationList.add(compensatoryTrialCalculation1);
@@ -473,42 +440,40 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("还款成功");
                 hlsWsRequests.setReturnStatus("S");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                hlsWsRequestsMapper.insert(hlsWsRequests);
+                logService.interfaceSave(hlsWsRequests,iRequest);
                 return responseData;
             }
     }
 
     @Override
-    public ResponseData claimsSubrogation(ClaimsSubrogationDTO claimsSubrogationDTO, HttpServletRequest request) {
+    @Transactional
+    public ResponseData claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
+        ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.toJavaObject(jsonObject, ClaimsSubrogationDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("代偿请求");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(claimsSubrogationDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+
 
         ResponseData responseData = new ResponseData();
 
         //根据订单编号查询数据
         List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(claimsSubrogationDTO.getOrderNo());
+        if (hlsCusCshTransactionList.size()==0){
+            responseData.setCode("400");
+            responseData.setMessage("代偿数据不存在");
+            hlsWsRequests.setReturnStatus("E");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            logService.interfaceSave(hlsWsRequests,iRequest);
+            return responseData;
+       }
 //            将数据保存入库
         for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
             if (hlsCusCshTransaction.getTermNo().equals(claimsSubrogationDTO.getTermNo())){
@@ -524,36 +489,24 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("还款成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
-    public ResponseData advancesSettleTrialCalculation(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request) {
+    public ResponseData advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
+        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.toJavaObject(jsonObject, AdvancesSettleComputeDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("提前结清试算");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(advancesSettleComputeDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -572,36 +525,25 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("试算成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
-    public ResponseData advancesSettleRequest(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request) {
+    @Transactional
+    public ResponseData advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
+        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.toJavaObject(jsonObject, AdvancesSettleComputeDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("提前结清请求");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(advancesSettleComputeDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -614,36 +556,25 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("还款成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
     @Transactional
-    public ResponseData dataAcquisition(DataAcquisitionDTO dataAcquisitionDTO, HttpServletRequest request) {
+    public ResponseData dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+
+        DataAcquisitionDTO dataAcquisitionDTO = JSONObject.toJavaObject(jsonObject, DataAcquisitionDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("数据采集");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(dataAcquisitionDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -659,7 +590,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("订单不存在");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
+            logService.interfaceSave(hlsWsRequests,iRequest);
             return responseData;
         }
         //根据项目id获取租赁物信息,如果为空，那么直接入库，如果不为空，判断订单状态
@@ -673,6 +604,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         SaleInfo saleInfo = dataAcquisitionDTO.getSaleInfo();
 //            风控审核相关数据
         String riskInfo = dataAcquisitionDTO.getRiskInfo();
+        hlsCusPrjProject.setRiskInfo(riskInfo);
         PreRiskAuditData preRiskAuditData = null;
         if (riskInfo!=null){
             preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
@@ -780,7 +712,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("订单已放款，不允许修改");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            hlsWsRequestsMapper.insert(hlsWsRequests);
+            logService.interfaceSave(hlsWsRequests,iRequest);
             return responseData;
         }
         //如果订单为业务申请之后，放款之前，对字段进行校验
@@ -796,7 +728,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         responseData.setMessage("品牌名称与riskInfo中的值不同");
                         hlsWsRequests.setReturnStatus("E");
                         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
+                        logService.interfaceSave(hlsWsRequests,iRequest);
                         return responseData;
                     }
                     if (hlsCusPrjProjectLeaseItem1.getSeriesC().equals(carInformation.getChexi())){
@@ -804,7 +736,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         responseData.setMessage("车系名称与riskInfo中的值不同");
                         hlsWsRequests.setReturnStatus("E");
                         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
+                        logService.interfaceSave(hlsWsRequests,iRequest);
                         return responseData;
                     }
                     if (hlsCusPrjProjectLeaseItem1.getModelC().equals(carInformation.getCartype())){
@@ -812,7 +744,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         responseData.setMessage("车型名称与riskInfo中的值不同");
                         hlsWsRequests.setReturnStatus("E");
                         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
+                        logService.interfaceSave(hlsWsRequests,iRequest);
                         return responseData;
                     }
                     if (hlsCusPrjProjectLeaseItem1.getColorC().equals(carInformation.getCarcolor())){
@@ -820,7 +752,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         responseData.setMessage("车辆颜色与riskInfo中的值不同");
                         hlsWsRequests.setReturnStatus("E");
                         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        hlsWsRequestsMapper.insert(hlsWsRequests);
+                        logService.interfaceSave(hlsWsRequests,iRequest);
                         return responseData;
                     }
                 }
@@ -971,7 +903,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     //当前职位
                     hlsCusBpMaster.setJobTitle(basicCustomerJobInformation.getPosition());
                     //个人月收入
-//            hlsCusBpMaster.setMonthlyIncome(Long.valueOf(basicCustomerJobInformation.getSalary()));
+                    hlsCusBpMaster.setMonthlyIncome(Double.valueOf(basicCustomerJobInformation.getSalary())/100);
                     //单位电话
                     hlsCusBpMaster.setWorkPhone(basicCustomerJobInformation.getCompanyphone());
                     //公司所属省份
@@ -1260,35 +1192,24 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("数据采集成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
-    public ResponseData overdueRepurchaseTrialCalculation(OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO, HttpServletRequest request) {
+    public ResponseData overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+
+        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.toJavaObject(jsonObject, OverdueRepurchaseTrialCalculationDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("逾期回购试算");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(overdueRepurchaseTrialCalculationDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -1301,35 +1222,23 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("试算成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
-    public ResponseData overdueRepurchaseRequest(OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO, HttpServletRequest request) {
+    public ResponseData overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.toJavaObject(jsonObject, OverdueRepurchaseTrialCalculationDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("逾期回购请求");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(overdueRepurchaseRequestDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -1342,35 +1251,24 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("逾期回购成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
-    public ResponseData queryWithholdingState(QueryWithholdingStateDTO queryWithholdingStateDTO, HttpServletRequest request) {
+    public ResponseData queryWithholdingState(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+
+        QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.toJavaObject(jsonObject, QueryWithholdingStateDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("代扣状态查询");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(queryWithholdingStateDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -1383,35 +1281,24 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("查询成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
-    public ResponseData stopWithholding(StopWithholdingDTO stopWithholdingDTO, HttpServletRequest request) {
+    public ResponseData stopWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+
+        StopWithholdingDTO stopWithholdingDTO = JSONObject.toJavaObject(jsonObject, StopWithholdingDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("暂停代扣");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(stopWithholdingDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -1424,35 +1311,24 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("暂停代扣成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 
     @Override
-    public ResponseData recoverWithholding(RecoverWithholdingDTO recoverWithholdingDTO, HttpServletRequest request) {
+    public ResponseData recoverWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+
+        RecoverWithholdingDTO recoverWithholdingDTO = JSONObject.toJavaObject(jsonObject, RecoverWithholdingDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-//        获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-//        功能名称
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
         hlsWsRequests.setFunctionName("恢复代扣");
-//        状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-//        user_id
-        String userId = request.getParameter("user_id");
-        if (userId!=null){
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-//        请求状态
-        hlsWsRequests.setStatusCode("200");
 //        参数类型
         hlsWsRequests.setParameterType("JSON");
         // 请求体
-        String s = JSONObject.toJSONString(recoverWithholdingDTO);
-        hlsWsRequests.setRequestJson(s);
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
         ResponseData responseData = new ResponseData();
@@ -1465,7 +1341,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("暂停代扣成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
+        logService.interfaceSave(hlsWsRequests,iRequest);
         return responseData;
     }
 }

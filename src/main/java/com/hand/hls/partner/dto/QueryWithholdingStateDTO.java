@@ -5,6 +5,8 @@ import lombok.Data;
 
 import javax.validation.constraints.NotNull;
 
+//代扣状态查询
+
 @Data
 public class QueryWithholdingStateDTO extends BaseDTO {
 

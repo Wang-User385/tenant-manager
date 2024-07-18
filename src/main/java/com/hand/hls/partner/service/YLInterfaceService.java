@@ -1,5 +1,6 @@
 package com.hand.hls.partner.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.partner.dto.*;
@@ -8,31 +9,31 @@ import com.hand.hls.partner.dto.*;
 import javax.servlet.http.HttpServletRequest;
 
 public interface YLInterfaceService {
-    ResponseData placeOrder(PlaceOrderDTO placeOrderDTO, HttpServletRequest request, IRequest iRequest);
+    ResponseData placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest);
 
-    ResponseData closeOrder(CloseOrderDTO closeOrderDTO, HttpServletRequest request);
+    ResponseData closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData queryOrder(QueryOrderDTO queryOrderDTO, HttpServletRequest request);
+    ResponseData queryOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData repayment(RepayMent repayMent, HttpServletRequest request);
+    ResponseData repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData compensatoryTrialCalculation(CompensatoryTrialCalculationDTO compensatoryTrialCalculation, HttpServletRequest request);
+    ResponseData compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData claimsSubrogation(ClaimsSubrogationDTO claimsSubrogationDTO, HttpServletRequest request);
+    ResponseData claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData advancesSettleTrialCalculation(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request);
+    ResponseData advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData advancesSettleRequest(AdvancesSettleComputeDTO advancesSettleComputeDTO, HttpServletRequest request);
+    ResponseData advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData dataAcquisition(DataAcquisitionDTO dataAcquisitionDTO, HttpServletRequest request);
+    ResponseData dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData overdueRepurchaseTrialCalculation(OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO, HttpServletRequest request);
+    ResponseData overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData overdueRepurchaseRequest(OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO, HttpServletRequest request);
+    ResponseData overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData queryWithholdingState(QueryWithholdingStateDTO queryWithholdingStateDTO, HttpServletRequest request);
+    ResponseData queryWithholdingState(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData stopWithholding(StopWithholdingDTO stopWithholdingDTO, HttpServletRequest request);
+    ResponseData stopWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
-    ResponseData recoverWithholding(RecoverWithholdingDTO recoverWithholdingDTO, HttpServletRequest request);
+    ResponseData recoverWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 }
