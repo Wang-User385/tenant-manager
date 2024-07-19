@@ -135,7 +135,6 @@ public class TongDunServiceImpl implements TongDunService {
         }
         commonLog(responseData, "200", "S", "预审成功", hlsWsRequests);
         prjProject.setPreStatus("Accept");
-        prjProject.setApprovedDate(new Date());
         hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
         return "Accept";
     }
