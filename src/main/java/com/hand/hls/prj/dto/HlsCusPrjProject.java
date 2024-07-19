@@ -874,7 +874,7 @@ public class HlsCusPrjProject extends PrjProject {
     private String leaseMatterNote;
     private String guaranteeMethodNote;
     private String financeNote;
-    @Transient
+//    @Transient
     private Date approvedDate;
     private String otherYn;
     private String pledgeYn;

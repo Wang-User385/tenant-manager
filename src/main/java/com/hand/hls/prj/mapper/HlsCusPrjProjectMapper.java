@@ -267,4 +267,10 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     String getRiskInfoByProjectId(@Param("projectId") Long projectId);
 
     List<HlsCusPrjProject> findAll();
+
+    String getPreStatusByProjectId(@Param("projectId")Long projectId);
+
+    String getProjectStatusByProjectId(@Param("projectId")Long projectId);
+
+    HlsCusPrjProject getSinglePrjProjectByProjectId(@Param("projectId")Long projectId);
 }

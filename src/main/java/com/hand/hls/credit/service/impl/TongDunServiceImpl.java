@@ -1,13 +1,17 @@
 package com.hand.hls.credit.service.impl;
 
+import cfca.paperless.base.util.StringUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.system.dto.ResponseData;
+import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.credit.dto.QueryLateInfo;
 import com.hand.hls.credit.dto.QueryPrjQuotationDTO;
 import com.hand.hls.credit.service.TongDunService;
 import com.hand.hls.credit.dto.QueryHlsBpMasterDTO;
+import com.hand.hls.prj.dto.HlsCusPrjProject;
+import com.hand.hls.prj.dto.PrjProject;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectBpMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationMapper;
@@ -72,6 +76,13 @@ public class TongDunServiceImpl implements TongDunService {
             commonLog(responseData, "100001", "E", "项目id为空", hlsWsRequests);
             return "Error";
         }
+
+        String preStatus = hlsCusPrjProjectMapper.getPreStatusByProjectId(projectId);
+        //不为空且不为新建则该订单已经结束
+        if (!StringUtil.isEmpty(preStatus) && !"NEW".equals(preStatus)){
+            return "Repeat";
+        }
+
         //获取商业伙伴id
         Long bpId = hlsCusPrjProjectBpMapper.getBpIdByProjectId(projectId);
         //bpId为空则预审失败
@@ -79,8 +90,10 @@ public class TongDunServiceImpl implements TongDunService {
             commonLog(responseData, "100001", "E", "商业伙伴id为空", hlsWsRequests);
             return "Error";
         }
+
         //通过bpId获取商业伙伴信息
         QueryHlsBpMasterDTO queryHlsBpMasterDTO = hlsCusBpMasterMapper.getQueryHlsBpMasterDTOByBpId(bpId);
+
         SimpleDateFormat parse = new SimpleDateFormat("yyyy-MM-dd HH:ss:mm");
         //获取业务申请编号
         String businessApplyNo = hlsCusPrjProjectMapper.getBusinessApplyNoByProjectId(projectId);
@@ -94,6 +107,9 @@ public class TongDunServiceImpl implements TongDunService {
         }
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
+
+        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
+
         try {
             HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(YS_URL, param, header);
             if (200 != httpExecuteResponse.getResponseCode()) {
@@ -110,6 +126,7 @@ public class TongDunServiceImpl implements TongDunService {
             }
             if ("Reject".equals(data.getString("finalDecisionCode"))) {
                 commonLog(responseData, "100001", "E", "同盾预审失败", hlsWsRequests);
+                prjProject.setPreStatus("Reject");
                 return "Reject";
             }
         } catch (Exception e) {
@@ -117,6 +134,9 @@ public class TongDunServiceImpl implements TongDunService {
             return "Error";
         }
         commonLog(responseData, "200", "S", "预审成功", hlsWsRequests);
+        prjProject.setPreStatus("Accept");
+        prjProject.setApprovedDate(new Date());
+        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
         return "Accept";
     }
 
@@ -130,10 +150,13 @@ public class TongDunServiceImpl implements TongDunService {
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
         JSONObject param = JSONObject.parseObject(jsonString);
         //设置正审参数
-        String error = setInterlocutoryParam(projectId, hlsWsRequests, responseData, param);
-        if (error != null) return error;
+        String info = setInterlocutoryParam(projectId, hlsWsRequests, responseData, param);
+        if (info != null) return info;
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
+
+        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
+
         try {
             Map<String, String> map = JSONObject.toJavaObject(param, Map.class);
             HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(ZS_URL, map, header);
@@ -151,10 +174,12 @@ public class TongDunServiceImpl implements TongDunService {
             }
             if ("Reject".equals(data.getString("finalDecisionCode"))) {
                 commonLog(responseData, "100001", "E", "同盾正审失败", hlsWsRequests);
+                prjProject.setProjectStatus("Reject");
                 return "Reject";
             }
             if ("Review".equals(data.getString("finalDecisionCode"))) {
                 commonLog(responseData, "100001", "S", "同盾正审成功但是有风险", hlsWsRequests);
+                prjProject.setProjectStatus("Review");
                 return "Review";
             }
         } catch (Exception e) {
@@ -162,25 +187,34 @@ public class TongDunServiceImpl implements TongDunService {
             return "Error";
         }
         commonLog(responseData, "200", "S", "正审成功", hlsWsRequests);
+        prjProject.setProjectStatus("Accept");
+        prjProject.setApprovedDate(new Date());
+        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
         return "Accept";
     }
 
     private String setInterlocutoryParam(Long projectId, HlsWsRequests hlsWsRequests, ResponseData responseData, JSONObject param) {
-        //项目id为空则预审失败
+        //项目id为空则正审失败
         if (projectId == null) {
             commonLog(responseData, "100001", "E", "项目id为空", hlsWsRequests);
             return "Error";
         }
 
+        String projectStatus = hlsCusPrjProjectMapper.getProjectStatusByProjectId(projectId);
+        if (!StringUtil.isEmpty(projectStatus)&&!"NEW".equals(projectStatus)){
+            return "Repeat";
+        }
         //获取商业伙伴id
         Long bpId = hlsCusPrjProjectBpMapper.getBpIdByProjectId(projectId);
-        //bpId为空则预审失败
+        //bpId为空则正审失败
         if (bpId == null) {
             commonLog(responseData, "100001", "E", "商业伙伴id为空", hlsWsRequests);
             return "Error";
         }
+
         //通过bpId获取商业伙伴信息
         QueryHlsBpMasterDTO queryHlsBpMasterDTO = hlsCusBpMasterMapper.getQueryHlsBpMasterDTOByBpId(bpId);
+
         SimpleDateFormat parse = new SimpleDateFormat("yyyy-MM-dd HH:ss:mm");
         //获取业务申请编号
         String businessApplyNo = hlsCusPrjProjectMapper.getBusinessApplyNoByProjectId(projectId);
