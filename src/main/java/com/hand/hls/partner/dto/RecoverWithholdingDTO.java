@@ -9,8 +9,8 @@ import javax.validation.constraints.NotNull;
 public class RecoverWithholdingDTO extends BaseDTO {
 
 
-    @NotNull
+    @NotNull(message = "订单编号不能为空")
     private String orderNo;//订单编号
-    @NotNull
+    @NotNull(message = "期次号不能为空")
     private Integer termNo;//期次号
 }

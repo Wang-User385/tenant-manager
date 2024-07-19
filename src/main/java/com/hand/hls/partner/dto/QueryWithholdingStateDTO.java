@@ -10,7 +10,7 @@ import javax.validation.constraints.NotNull;
 @Data
 public class QueryWithholdingStateDTO extends BaseDTO {
 
-    @NotNull
+    @NotNull(message = "订单编号不能为空")
     private String orderNo;//订单编号
 
     private Integer termNox0;//期次号

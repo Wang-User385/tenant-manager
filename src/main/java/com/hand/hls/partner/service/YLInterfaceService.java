@@ -9,7 +9,7 @@ import com.hand.hls.partner.dto.*;
 import javax.servlet.http.HttpServletRequest;
 
 public interface YLInterfaceService {
-    JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest);
+    JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) throws Exception;
 
     JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
@@ -36,4 +36,6 @@ public interface YLInterfaceService {
     JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
 
     JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+
+    JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request);
 }

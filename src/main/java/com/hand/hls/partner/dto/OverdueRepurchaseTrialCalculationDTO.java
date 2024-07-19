@@ -12,7 +12,7 @@ import java.util.List;
 public class OverdueRepurchaseTrialCalculationDTO extends BaseDTO {
 
 
-    @NotNull
+    @NotNull(message = "订单编号不能为空")
     private String orderNo;//订单编号
 
     private String trialTime;//预计回购日期

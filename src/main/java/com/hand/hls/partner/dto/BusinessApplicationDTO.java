@@ -5,14 +5,15 @@ import lombok.Data;
 
 import javax.validation.constraints.NotNull;
 
-//暂停代扣
+//业务申请
 
 @Data
-public class StopWithholdingDTO extends BaseDTO {
+public class BusinessApplicationDTO extends BaseDTO {
 
     @NotNull(message = "订单编号不能为空")
     private String orderNo;//订单编号
-    @NotNull(message = "期次号不能为空")
-    private Integer termNo;//期次号
+    @NotNull(message = "需要执行的动作不能为空")
+    private String action;//需要执行的动作
 
+    private ExtendInfo extendInfo;//扩展参数
 }

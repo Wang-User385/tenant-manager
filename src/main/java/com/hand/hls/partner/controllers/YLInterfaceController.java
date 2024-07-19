@@ -177,4 +177,14 @@ public class YLInterfaceController extends BaseController {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.recoverWithholding(jsonObject,iRequest, request);
     }
+
+    @RequestMapping(
+            value = {"/di/businessApplication"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public JSONObject businessApplication(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+        IRequest iRequest = createRequestContext(request);
+        return ylInterfaceService.businessApplication(jsonObject,iRequest, request);
+    }
 }

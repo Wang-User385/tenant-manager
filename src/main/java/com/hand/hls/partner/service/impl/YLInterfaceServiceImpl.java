@@ -70,30 +70,18 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private IHlsWsRequestsService logService;
     @Autowired
     private TongDunService tongDunService;
+    @Autowired
+    private HlsCusPrjProjectAttachmentMapper hlsCusPrjProjectAttachmentMapper;
 
     @Override
     @Transactional
-    public JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) {
+    public JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(ss, PlaceOrderDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        //保存请求报文
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("下单");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "下单", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(ss, PlaceOrderDTO.class);
+
 
 
         ResponseData responseData = new ResponseData();
@@ -149,17 +137,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         });
 //        判断循环之后的结果，如果不允许创建，返回信息
         if ("400".equals(responseData.getCode())){
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+            return requestsErrorSave(responseData,hlsWsRequests,iRequest);
         }
 
         //获取订单编号,将订单编号入库
@@ -181,28 +159,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             hlsCusPrjProjectBpMapper.insert(hlsCusPrjProjectBp);
         }
 
-        String s = tongDunService.preliminaryValid(hlsCusPrjProject.getProjectId(), request);
-        if ("Accept".equals(s)){
-            //        设置返回信息
-            List<String> stringList = new ArrayList<>();
-            stringList.add(codeRuleValue);
-            responseData.setCode("200");
-            responseData.setRows(stringList);
-            responseData.setMessage("下单成功");
-            hlsWsRequests.setReturnStatus("S");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
-        }else{
-            throw new IllegalArgumentException();
-        }
+        //        设置返回信息
+        List<String> stringList = new ArrayList<>();
+        stringList.add(codeRuleValue);
+        responseData.setCode("200");
+        responseData.setRows(stringList);
+        responseData.setMessage("下单成功");
+        return requestsSecondSave(responseData,hlsWsRequests,iRequest);
     }
 
     @Override
@@ -1656,5 +1619,432 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
         return jsonObject1;
+    }
+
+    @Override
+    public JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request) {
+
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(ss, BusinessApplicationDTO.class);
+        //保存日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
+        //        获取请求路径
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        //请求名称
+        hlsWsRequests.setFunctionName("业务申请");
+//        参数类型
+        hlsWsRequests.setParameterType("JSON");
+        // 请求体
+        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+
+        ResponseData responseData = new ResponseData();
+
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(businessApplicationDTO.getOrderNo());
+        if (hlsCusPrjProject==null){
+            responseData.setCode("100003");
+            responseData.setMessage("订单不存在");
+            hlsWsRequests.setReturnStatus("E");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+            logService.interfaceSave(hlsWsRequests,iRequest);
+            return jsonObject1;
+        }
+        //根据action，执行操作
+        String action = businessApplicationDTO.getAction();
+        if ("PRE_RISK".equals(action)){
+            String s = tongDunService.preliminaryValid(hlsCusPrjProject.getProjectId(), request);
+//            校验客户信息查询授权书是否已经上传
+
+
+            if ("Accept".equals(s)){
+                //        设置返回信息
+                responseData.setCode("200");
+                responseData.setMessage("预审成功");
+                hlsWsRequests.setReturnStatus("S");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            responseData.setCode("400");
+            responseData.setMessage("预审失败");
+            hlsWsRequests.setReturnStatus("E");
+            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+            logService.interfaceSave(hlsWsRequests,iRequest);
+            return jsonObject1;
+        }
+        else if ("APPLY_PRE_RISK".equals(action)){
+            String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
+            if ("Accept".equals(s)){
+                //        设置返回信息
+                responseData.setCode("200");
+                responseData.setMessage("审核成功");
+                hlsWsRequests.setReturnStatus("S");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            else if ("Reject".equals(s) || "Error".equals(s)){
+                responseData.setCode("400");
+                responseData.setMessage("预审失败");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+        }
+        else if ("RE_APPLY_PRE_RISK".equals(action)){
+            String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
+            if ("Accept".equals(s)){
+                //        设置返回信息
+                responseData.setCode("200");
+                responseData.setMessage("审核成功");
+                hlsWsRequests.setReturnStatus("S");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            else if ("Reject".equals(s) || "Error".equals(s)){
+                responseData.setCode("400");
+                responseData.setMessage("预审失败");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+        }
+        else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
+//            申请代扣签约
+        }
+        else if ("APPLY_LOAN".equals(action)){
+            //申请放款
+            String riskInfo = hlsCusPrjProject.getRiskInfo();
+            //获取riskinfo数据
+            PreRiskAuditData preRiskAuditData = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
+            //获取车辆信息
+            CarInformation carInformation = preRiskAuditData.getCarInformation();
+            if (carInformation==null){
+                responseData.setCode("400");
+                responseData.setMessage("riskinfo信息不能为空");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            //获取租赁物信息
+            List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
+            //获取报价
+            List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
+            //获取附件
+            List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.queryByProjectId(hlsCusPrjProject.getProjectId());
+            if (hlsCusPrjQuotations.size()==0){
+                responseData.setCode("400");
+                responseData.setMessage("报价不能为空");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            if (hlsCusPrjProjectLeaseItemList.size()==0){
+                responseData.setCode("400");
+                responseData.setMessage("租赁物不能为空");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            if (hlsCusPrjProjectAttachments.size()==0){
+                responseData.setCode("400");
+                responseData.setMessage("附件不能为空");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
+            HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
+            if (carInformation.getCarbrand2().equals(hlsCusPrjProjectLeaseItem.getBrandC())&&
+                    carInformation.getChexi().equals(hlsCusPrjProjectLeaseItem.getSeriesC())&&
+                    carInformation.getCartype().equals(hlsCusPrjProjectLeaseItem.getModelC())&&
+                    carInformation.getCarcolor().equals(hlsCusPrjProjectLeaseItem.getColorC())&&
+                    carInformation.getFinancingamount().equals(hlsCusPrjProjectLeaseItem.getFinanceAmount())&&
+                    carInformation.getClxsjg().equals(hlsCusPrjProjectLeaseItem.getSellingPrice())&&
+                    carInformation.getCfpp().equals(hlsCusPrjProjectLeaseItem.getListPrice())&&
+                    carInformation.getYfzj().equals(hlsCusPrjQuotation.getPmt())&&
+                    carInformation.getNhll().equals(hlsCusPrjQuotation.getIntRate())&&
+                    carInformation.getSfje().equals(hlsCusPrjQuotation.getDownPayment())){
+                if (hlsCusPrjProjectAttachments.size()>0){
+                    //获取审批通过日的毫秒值
+                    long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
+                    //获取当前时间毫秒值
+                    long nowTime = new Date().getTime();
+                    //计算间隔的时间
+                    long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
+                    if (days>=30){
+                        responseData.setCode("400");
+                        responseData.setMessage("审批通过超过三十天");
+                        hlsWsRequests.setReturnStatus("E");
+                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                        JSONObject jsonObject1 = null;
+                        try {
+                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                        logService.interfaceSave(hlsWsRequests,iRequest);
+                        return jsonObject1;
+                    }
+                }
+            }
+        }
+        else if ("RE_APPLY_LOAN".equals(action)){
+            //再次申请放款
+            String riskInfo = hlsCusPrjProject.getRiskInfo();
+            //获取riskinfo数据
+            PreRiskAuditData preRiskAuditData = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
+            //获取车辆信息
+            CarInformation carInformation = preRiskAuditData.getCarInformation();
+            if (carInformation==null){
+                responseData.setCode("400");
+                responseData.setMessage("riskinfo信息不能为空");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            //获取租赁物信息
+            List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
+            //获取报价
+            List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
+            //获取附件
+            List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.queryByProjectId(hlsCusPrjProject.getProjectId());
+            if (hlsCusPrjQuotations.size()==0){
+                responseData.setCode("400");
+                responseData.setMessage("报价不能为空");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            if (hlsCusPrjProjectLeaseItemList.size()==0){
+                responseData.setCode("400");
+                responseData.setMessage("租赁物不能为空");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            if (hlsCusPrjProjectAttachments.size()==0){
+                responseData.setCode("400");
+                responseData.setMessage("附件不能为空");
+                hlsWsRequests.setReturnStatus("E");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
+            }
+            HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
+            HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
+            if (carInformation.getCarbrand2().equals(hlsCusPrjProjectLeaseItem.getBrandC())&&
+                    carInformation.getChexi().equals(hlsCusPrjProjectLeaseItem.getSeriesC())&&
+                    carInformation.getCartype().equals(hlsCusPrjProjectLeaseItem.getModelC())&&
+                    carInformation.getCarcolor().equals(hlsCusPrjProjectLeaseItem.getColorC())&&
+                    carInformation.getFinancingamount().equals(hlsCusPrjProjectLeaseItem.getFinanceAmount())&&
+                    carInformation.getClxsjg().equals(hlsCusPrjProjectLeaseItem.getSellingPrice())&&
+                    carInformation.getCfpp().equals(hlsCusPrjProjectLeaseItem.getListPrice())&&
+                    carInformation.getYfzj().equals(hlsCusPrjQuotation.getPmt())&&
+                    carInformation.getNhll().equals(hlsCusPrjQuotation.getIntRate())&&
+                    carInformation.getSfje().equals(hlsCusPrjQuotation.getDownPayment())){
+                if (hlsCusPrjProjectAttachments.size()>0){
+                    //获取审批通过日的毫秒值
+                    long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
+                    //获取当前时间毫秒值
+                    long nowTime = new Date().getTime();
+                    //计算间隔的时间
+                    long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
+                    if (days>=30){
+                        responseData.setCode("400");
+                        responseData.setMessage("审批通过超过三十天");
+                        hlsWsRequests.setReturnStatus("E");
+                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                        JSONObject jsonObject1 = null;
+                        try {
+                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                        logService.interfaceSave(hlsWsRequests,iRequest);
+                        return jsonObject1;
+                    }
+                }
+            }
+        }
+        else{
+            //抵押材料审核
+        }
+
+
+        //            设置返回状态
+        responseData.setCode("200");
+        responseData.setMessage("暂停代扣成功");
+        hlsWsRequests.setReturnStatus("S");
+        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+        logService.interfaceSave(hlsWsRequests,iRequest);
+        return jsonObject1;
+    }
+
+    public HlsWsRequests requestsFirstSave(JSONObject jsonObject,String name, HttpServletRequest request,IRequest iRequest) throws Exception{
+        //step1 存储加密请求报文日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        hlsWsRequests.setFunctionName(name);
+        hlsWsRequests.setRequestJsonEncrypt(JSONObject.toJSONString(jsonObject));
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
+        //step2 解密请求报文，存储解密请求报文日志
+        String decryptedStr = RsaAesUtils.decryptedData(jsonObject);
+        hlsWsRequests.setRequestJson(decryptedStr);
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
+        return hlsWsRequests;
+    }
+    public JSONObject requestsSecondSave(ResponseData responseData,HlsWsRequests hlsWsRequests,IRequest iRequest) throws Exception{
+        String resStr = JSONObject.toJSONString(responseData);
+        //step5 存储返回报文日志
+        hlsWsRequests.setResponseJson(resStr);
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
+        //step6 加密返回报文，存储加密返回报文日志
+        JSONObject encryptedResJson = RsaAesUtils.encryptedData(resStr);
+        hlsWsRequests.setResponseJsonEncrypt(JSONObject.toJSONString(encryptedResJson));
+        hlsWsRequests.setReturnStatus("S");
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
+        return encryptedResJson;
+    }
+    public JSONObject requestsErrorSave(ResponseData responseData,HlsWsRequests hlsWsRequests,IRequest iRequest) throws Exception{
+        String resStr = JSONObject.toJSONString(responseData);
+        //step5 存储返回报文日志
+        hlsWsRequests.setResponseJson(resStr);
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
+        //step6 加密返回报文，存储加密返回报文日志
+        JSONObject encryptedResJson = RsaAesUtils.encryptedData(resStr);
+        hlsWsRequests.setResponseJsonEncrypt(JSONObject.toJSONString(encryptedResJson));
+        hlsWsRequests.setReturnStatus("E");
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
+        return encryptedResJson;
     }
 }
