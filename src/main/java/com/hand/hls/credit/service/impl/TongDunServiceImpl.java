@@ -216,7 +216,7 @@ public class TongDunServiceImpl implements TongDunService {
         //客户名称
         param.put("custname", queryHlsBpMasterDTO.getBpName());
         //客户证件类型 目前只支持ID_CARD身份证
-        if (!"ID_CARD".equals(queryHlsBpMasterDTO.getIdCardNo())) {
+        if (!"ID_CARD".equals(queryHlsBpMasterDTO.getIdType())) {
             commonLog(responseData, "100001", "E", "证件类型暂时不支持", hlsWsRequests);
             return "Error";
         }
@@ -285,7 +285,7 @@ public class TongDunServiceImpl implements TongDunService {
         param.put("custname", queryHlsBpMasterDTO.getBpName());
 
         //客户证件类型 目前只支持ID_CARD身份证
-        if (!"ID_CARD".equals(queryHlsBpMasterDTO.getIdCardNo())) {
+        if (!"ID_CARD".equals(queryHlsBpMasterDTO.getIdType())) {
             commonLog(responseData, "100001", "E", "证件类型暂时不支持", hlsWsRequests);
             return true;
         }

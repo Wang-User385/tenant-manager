@@ -131,9 +131,10 @@ public class HlsWsRequestsServiceImpl extends BaseServiceImpl<HlsWsRequests> imp
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
         if(dto.getRecordId()!= null ){
             hlsWsRequests =hlsWsRequestsMapper.selectByPrimaryKey(dto.getRecordId()) ;
-            hlsWsRequests.setResponsedDate(new Date());
             hlsWsRequests.setReturnStatus(dto.getReturnStatus());
+            hlsWsRequests.setRequestJson(dto.getRequestJson());
             hlsWsRequests.setResponseJson(dto.getResponseJson());
+            hlsWsRequests.setResponseJsonEncrypt(dto.getResponseJsonEncrypt());
             hlsWsRequests.setResponseXml(dto.getResponseXml());
             hlsWsRequests.setLastUpdateDate(new Date());
             if(iRequest.getUserId() != null) {

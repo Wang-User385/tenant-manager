@@ -80,9 +80,17 @@
         from fnd_province p
         where p.province = ma.province) as province_n,
         (select c.description from fnd_city c where c.city = ma.city) as city_n,
-        (select d.description
-        from fnd_district d
-        where d.district = ma.district) as district_n,
+        (
+        SELECT
+        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
+        FROM
+        FND_CITY fc
+        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
+        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
+        WHERE
+        ma.district = fd1.district
+        )  as district_n,
         ma.region,
         (select v.meaning
         from sys_code_value_b_v v

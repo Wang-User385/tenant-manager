@@ -265,4 +265,6 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     String getBusinessApplyNoByProjectId(@Param("projectId") Long projectId);
 
     String getRiskInfoByProjectId(@Param("projectId") Long projectId);
+
+    List<HlsCusPrjProject> findAll();
 }
