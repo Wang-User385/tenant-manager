@@ -73,7 +73,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     @Transactional
-    public ResponseData placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) {
+    public JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) {
 
         String ss = null;
         try {
@@ -84,6 +84,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(ss, PlaceOrderDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        //保存请求报文
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -111,6 +113,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setIdCardNo(placeOrderDTO.getIdCardNo());
             bpMaster.setPhone(placeOrderDTO.getMobile());
             bpMaster.setBpClass("NP");
+            bpMaster.setIdType("ID_CARD");
             hlsCusBpMasterMapper.insert(bpMaster);
             hlsCusPrjProjectBp.setBpId(bpMaster.getBpId());
 
@@ -148,8 +151,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if ("400".equals(responseData.getCode())){
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
             logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            return jsonObject1;
         }
 
         //获取订单编号,将订单编号入库
@@ -167,6 +177,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (hlsCusPrjProjectBp!=null){
             hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+            hlsCusPrjProjectBp.setBpCategroy("TENANT");
             hlsCusPrjProjectBpMapper.insert(hlsCusPrjProjectBp);
         }
 
@@ -180,30 +191,23 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("下单成功");
             hlsWsRequests.setReturnStatus("S");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
             logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
-        }else if ("Reject".equals(s)){
-            //        设置返回信息
-            responseData.setCode("400");
-            responseData.setMessage("风控预审拒绝");
-            hlsWsRequests.setReturnStatus("S");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            return jsonObject1;
         }else{
-            //        设置返回信息
-            responseData.setCode("400");
-            responseData.setMessage("风控参数异常拒绝");
-            hlsWsRequests.setReturnStatus("S");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            throw new IllegalArgumentException();
         }
     }
 
     @Override
     @Transactional
-    public ResponseData closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
         String ss = null;
         try {
@@ -214,6 +218,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         CloseOrderDTO closeOrderDTO = JSONObject.parseObject(ss, CloseOrderDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -232,8 +237,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("订单不存在");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
             logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            return jsonObject1;
         }else{
             String projectStatus = hlsCusPrjProject.getProjectStatus();
             if ("APPROVING".equals(projectStatus)){
@@ -241,24 +253,45 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("订单状态和操作不相符");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                 logService.interfaceSave(hlsWsRequests,iRequest);
-                return responseData;
+                return jsonObject1;
             }
             if ("Y".equals(hlsCusPrjProject.getLoanInitialLease())){
                 responseData.setCode("100101");
                 responseData.setMessage("订单状态和操作不相符");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                 logService.interfaceSave(hlsWsRequests,iRequest);
-                return responseData;
+                return jsonObject1;
             }
             if ("APPROVING".equals(cshPaymentReqHd.getPaymentReqStatusDesc())){
                 responseData.setCode("100101");
                 responseData.setMessage("订单状态和操作不相符");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                 logService.interfaceSave(hlsWsRequests,iRequest);
-                return responseData;
+                return jsonObject1;
             }
         }
         //修改订单状态
@@ -268,16 +301,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("取消成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
-    public ResponseData queryOrder(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject queryOrder(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
 
-        QueryOrderDTO queryOrderDTO = JSONObject.toJavaObject(jsonObject, QueryOrderDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        QueryOrderDTO queryOrderDTO = JSONObject.parseObject(ss, QueryOrderDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -298,8 +345,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("订单不存在");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
             logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            return jsonObject1;
         }else{
             queryOrder.setRepayPlanTermInfoDTOList(repayPlanTermInfoDTOList);
             queryOrder.setStatus("NORMAL");
@@ -309,31 +363,52 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus)){
                 responseData.setCode("200");
                 responseData.setMessage("查询成功");
-                hlsWsRequests.setReturnStatus("S");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                logService.interfaceSave(hlsWsRequests,iRequest);
                 List<QueryOrder> queryOrderList = new ArrayList<>();
                 queryOrderList.add(queryOrder);
                 responseData.setRows(queryOrderList);
-                return responseData;
+                hlsWsRequests.setReturnStatus("S");
+                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
+                logService.interfaceSave(hlsWsRequests,iRequest);
+                return jsonObject1;
             }else{
                 responseData.setCode("100101");
                 responseData.setMessage("订单状态和操作不相符");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                 logService.interfaceSave(hlsWsRequests,iRequest);
-                return responseData;
+                return jsonObject1;
             }
         }
     }
 
     @Override
     @Transactional
-    public ResponseData repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
-        RepayMent repayMent = JSONObject.toJavaObject(jsonObject, RepayMent.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        RepayMent repayMent = JSONObject.parseObject(ss, RepayMent.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -353,8 +428,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("查询数据为空");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
             logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            return jsonObject1;
         }
         List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
         //保存数据到事务表
@@ -366,16 +448,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     responseData.setMessage("结算单号为空");
                     hlsWsRequests.setReturnStatus("E");
                     hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                    JSONObject jsonObject1 = null;
+                    try {
+                        jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                     logService.interfaceSave(hlsWsRequests,iRequest);
-                    return responseData;
+                    return jsonObject1;
                 }
                 if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
                     responseData.setCode("400");
                     responseData.setMessage("代扣交易单号为空");
                     hlsWsRequests.setReturnStatus("E");
                     hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                    JSONObject jsonObject1 = null;
+                    try {
+                        jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                     logService.interfaceSave(hlsWsRequests,iRequest);
-                    return responseData;
+                    return jsonObject1;
                 }
             }
 //            将数据保存入库
@@ -399,18 +495,31 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("还款成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
 
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
-    public ResponseData compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
 
-
-        CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.toJavaObject(jsonObject, CompensatoryTrialCalculationDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(ss, CompensatoryTrialCalculationDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -431,8 +540,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("订单不存在");
                 hlsWsRequests.setReturnStatus("E");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                 logService.interfaceSave(hlsWsRequests,iRequest);
-                return responseData;
+                return jsonObject1;
             }else{
                 //            判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
                 if (compensatoryTrialCalculationDTO.getTrialTime()==null){
@@ -454,18 +570,32 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 responseData.setMessage("还款成功");
                 hlsWsRequests.setReturnStatus("S");
                 hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                JSONObject jsonObject1 = null;
+                try {
+                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                 logService.interfaceSave(hlsWsRequests,iRequest);
-                return responseData;
+                return jsonObject1;
             }
     }
 
     @Override
     @Transactional
-    public ResponseData claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
-        ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.toJavaObject(jsonObject, ClaimsSubrogationDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.parseObject(ss, ClaimsSubrogationDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -485,8 +615,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("代偿数据不存在");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
             logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            return jsonObject1;
        }
 //            将数据保存入库
         for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
@@ -503,16 +640,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("还款成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
-    public ResponseData advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
-        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.toJavaObject(jsonObject, AdvancesSettleComputeDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(ss, AdvancesSettleComputeDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -539,17 +690,31 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("试算成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
     @Transactional
-    public ResponseData advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
-        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.toJavaObject(jsonObject, AdvancesSettleComputeDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(ss, AdvancesSettleComputeDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -570,17 +735,31 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("还款成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
     @Transactional
-    public ResponseData dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
 
-        DataAcquisitionDTO dataAcquisitionDTO = JSONObject.toJavaObject(jsonObject, DataAcquisitionDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(ss, DataAcquisitionDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -604,8 +783,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("订单不存在");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
             logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            return jsonObject1;
         }
         //根据项目id获取租赁物信息,如果为空，那么直接入库，如果不为空，判断订单状态
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
@@ -726,8 +912,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             responseData.setMessage("订单已放款，不允许修改");
             hlsWsRequests.setReturnStatus("E");
             hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+            JSONObject jsonObject1 = null;
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
             logService.interfaceSave(hlsWsRequests,iRequest);
-            return responseData;
+            return jsonObject1;
         }
         //如果订单为业务申请之后，放款之前，对字段进行校验
         //品牌名称、车系名称、车型名称、车辆颜色
@@ -742,32 +935,60 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         responseData.setMessage("品牌名称与riskInfo中的值不同");
                         hlsWsRequests.setReturnStatus("E");
                         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                        JSONObject jsonObject1 = null;
+                        try {
+                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                         logService.interfaceSave(hlsWsRequests,iRequest);
-                        return responseData;
+                        return jsonObject1;
                     }
                     if (hlsCusPrjProjectLeaseItem1.getSeriesC().equals(carInformation.getChexi())){
                         responseData.setCode("400");
                         responseData.setMessage("车系名称与riskInfo中的值不同");
                         hlsWsRequests.setReturnStatus("E");
                         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                        JSONObject jsonObject1 = null;
+                        try {
+                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                         logService.interfaceSave(hlsWsRequests,iRequest);
-                        return responseData;
+                        return jsonObject1;
                     }
                     if (hlsCusPrjProjectLeaseItem1.getModelC().equals(carInformation.getCartype())){
                         responseData.setCode("400");
                         responseData.setMessage("车型名称与riskInfo中的值不同");
                         hlsWsRequests.setReturnStatus("E");
                         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                        JSONObject jsonObject1 = null;
+                        try {
+                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                         logService.interfaceSave(hlsWsRequests,iRequest);
-                        return responseData;
+                        return jsonObject1;
                     }
                     if (hlsCusPrjProjectLeaseItem1.getColorC().equals(carInformation.getCarcolor())){
                         responseData.setCode("400");
                         responseData.setMessage("车辆颜色与riskInfo中的值不同");
                         hlsWsRequests.setReturnStatus("E");
                         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+                        JSONObject jsonObject1 = null;
+                        try {
+                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
                         logService.interfaceSave(hlsWsRequests,iRequest);
-                        return responseData;
+                        return jsonObject1;
                     }
                 }
             }
@@ -1206,16 +1427,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("数据采集成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
-    public ResponseData overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
 
-        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.toJavaObject(jsonObject, OverdueRepurchaseTrialCalculationDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(ss, OverdueRepurchaseTrialCalculationDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -1236,15 +1471,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("试算成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
-    public ResponseData overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
-        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.toJavaObject(jsonObject, OverdueRepurchaseTrialCalculationDTO.class);
+    public JSONObject overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(ss, OverdueRepurchaseTrialCalculationDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -1265,16 +1515,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("逾期回购成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
-    public ResponseData queryWithholdingState(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject queryWithholdingState(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
 
-        QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.toJavaObject(jsonObject, QueryWithholdingStateDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.parseObject(ss, QueryWithholdingStateDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -1295,16 +1559,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("查询成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
-    public ResponseData stopWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
 
-        StopWithholdingDTO stopWithholdingDTO = JSONObject.toJavaObject(jsonObject, StopWithholdingDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        StopWithholdingDTO stopWithholdingDTO = JSONObject.parseObject(ss, StopWithholdingDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -1325,16 +1603,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("暂停代扣成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 
     @Override
-    public ResponseData recoverWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
 
-        RecoverWithholdingDTO recoverWithholdingDTO = JSONObject.toJavaObject(jsonObject, RecoverWithholdingDTO.class);
+        String ss = null;
+        try {
+            ss = RsaAesUtils.decryptedData(jsonObject);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        RecoverWithholdingDTO recoverWithholdingDTO = JSONObject.parseObject(ss, RecoverWithholdingDTO.class);
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
         //        获取请求路径
         hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
         //请求名称
@@ -1355,7 +1647,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         responseData.setMessage("暂停代扣成功");
         hlsWsRequests.setReturnStatus("S");
         hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
         logService.interfaceSave(hlsWsRequests,iRequest);
-        return responseData;
+        return jsonObject1;
     }
 }

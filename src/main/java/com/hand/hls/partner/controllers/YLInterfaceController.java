@@ -14,7 +14,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 
 @Controller
 @RequestMapping(value = {"/r/api"})
@@ -29,10 +28,24 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData placeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+    public JSONObject placeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
 
         IRequest iRequest = createRequestContext(request);
-        return ylInterfaceService.placeOrder(jsonObject,request,iRequest);
+        JSONObject jsonObject1 = null;
+        try {
+            jsonObject1 = ylInterfaceService.placeOrder(jsonObject, request, iRequest);
+        }catch (Exception e){
+            //捕获异常
+            ResponseData responseData = new ResponseData();
+            responseData.setCode("400");
+            responseData.setMessage("风控预审拒绝");
+            try {
+                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+        return jsonObject1;
     }
 
     @RequestMapping(
@@ -40,7 +53,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData closeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+    public JSONObject closeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.closeOrder(jsonObject,iRequest,request);
     }
@@ -50,7 +63,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData queryOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+    public JSONObject queryOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.queryOrder(jsonObject,iRequest,request);
     }
@@ -60,7 +73,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData repayment(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+    public JSONObject repayment(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.repayment(jsonObject,iRequest,request);
     }
@@ -70,7 +83,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData compensatoryTrialCalculation(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+    public JSONObject compensatoryTrialCalculation(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.compensatoryTrialCalculation(jsonObject,iRequest,request);
     }
@@ -80,7 +93,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData claimsSubrogation(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+    public JSONObject claimsSubrogation(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.claimsSubrogation(jsonObject,iRequest,request);
     }
@@ -90,7 +103,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData advancesSettleTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
+    public JSONObject advancesSettleTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.advancesSettleTrialCalculation(jsonObject,iRequest,request);
     }
@@ -100,7 +113,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData advancesSettleRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
+    public JSONObject advancesSettleRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.advancesSettleRequest(jsonObject,iRequest,request);
     }
@@ -110,7 +123,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData dataAcquisition(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
+    public JSONObject dataAcquisition(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.dataAcquisition(jsonObject,iRequest,request);
     }
@@ -120,7 +133,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData overdueRepurchaseTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
+    public JSONObject overdueRepurchaseTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.overdueRepurchaseTrialCalculation(jsonObject,iRequest,request);
     }
@@ -130,7 +143,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData overdueRepurchaseRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
+    public JSONObject overdueRepurchaseRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.overdueRepurchaseRequest(jsonObject,iRequest,request);
     }
@@ -140,7 +153,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData queryWithholdingState(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
+    public JSONObject queryWithholdingState(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.queryWithholdingState(jsonObject,iRequest,request);
     }
@@ -150,7 +163,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData stopWithholding(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
+    public JSONObject stopWithholding(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.stopWithholding(jsonObject,iRequest,request);
     }
@@ -160,7 +173,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public ResponseData recoverWithholding(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+    public JSONObject recoverWithholding(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
         return ylInterfaceService.recoverWithholding(jsonObject,iRequest, request);
     }

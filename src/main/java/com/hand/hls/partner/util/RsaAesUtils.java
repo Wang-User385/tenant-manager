@@ -19,43 +19,34 @@ public class RsaAesUtils {
 
     public static void main(String[] args) throws Exception {
         //generatorKeys();
-//        String data = "{\n" +
-//                "\t\"head\": {\n" +
-//                "\t\t\"systemId\": \"HT-SF\",\n" +
-//                "\t\t\"serialNumber\": \"305967f5-4278-40eb-b257-40e486b550a2\",\n" +
-//                "\t\t\"transactionCode\": \"HT_SYNC_FARMER_INFO_SIT\",\n" +
-//                "\t\t\"transactionTime\": \"20240527 15:02:11\",\n" +
-//                "\t\t\"version\": 1\n" +
-//                "\t},\n" +
-//                "\t\"body\": [{\n" +
-//                "\t\t\"idType\": \"ID_CARD\",\n" +
-//                "\t\t\"gender\": \"MALE\",\n" +
-//                "\t\t\"liveAddress\": \"广西钦州市钦南区久隆镇石安村委石安村1-1号\",\n" +
-//                "\t\t\"idCardFrom\": \"20180227\",\n" +
-//                "\t\t\"nation\": \"汉\",\n" +
-//                "\t\t\"idCardNo\": \"450702198210226632\",\n" +
-//                "\t\t\"dateOfBirth\": \"19821022\",\n" +
-//                "\t\t\"enabledFlag\": \"Y\",\n" +
-//                "\t\t\"preApprovalStatus\": \"APPROVED\",\n" +
-//                "\t\t\"liveProvince\": \"450000\",\n" +
-//                "\t\t\"bpClass\": \"NP\",\n" +
-//                "\t\t\"liveCity\": \"450700\",\n" +
-//                "\t\t\"bpName\": \"罗仕锦\",\n" +
-//                "\t\t\"nationality\": \"46\",\n" +
-//                "\t\t\"liveDistrict\": \"450702\",\n" +
-//                "\t\t\"idCardUntil\": \"20380227\",\n" +
-//                "\t\t\"cellPhone\": \"19907775553\",\n" +
-//                "\t\t\"contactInfoList\": []\n" +
-//                "\t}]\n" +
-//                "}";
         String data = "{\n" +
-                "\t\"name\": \"李四\",\n" +
-                "\t\"idCardNo\": \"231222196404106232\",\n" +
-                "\t\"mobile\": \"14584883037\",\n" +
-                "\t\"productCode\": \"GUOTAI_YLHC_CAR\",\n" +
-                "\t\"idissue\": \"2023-7-9\",\n" +
-                "\t\"idexp\": \"2024-7-9\",\n" +
-                "\t\"outBizNo\": \"yl\",\n" +
+                "\t\"head\": {\n" +
+                "\t\t\"systemId\": \"HT-SF\",\n" +
+                "\t\t\"serialNumber\": \"305967f5-4278-40eb-b257-40e486b550a2\",\n" +
+                "\t\t\"transactionCode\": \"HT_SYNC_FARMER_INFO_SIT\",\n" +
+                "\t\t\"transactionTime\": \"20240527 15:02:11\",\n" +
+                "\t\t\"version\": 1\n" +
+                "\t},\n" +
+                "\t\"body\": [{\n" +
+                "\t\t\"idType\": \"ID_CARD\",\n" +
+                "\t\t\"gender\": \"MALE\",\n" +
+                "\t\t\"liveAddress\": \"广西钦州市钦南区久隆镇石安村委石安村1-1号\",\n" +
+                "\t\t\"idCardFrom\": \"20180227\",\n" +
+                "\t\t\"nation\": \"汉\",\n" +
+                "\t\t\"idCardNo\": \"450702198210226632\",\n" +
+                "\t\t\"dateOfBirth\": \"19821022\",\n" +
+                "\t\t\"enabledFlag\": \"Y\",\n" +
+                "\t\t\"preApprovalStatus\": \"APPROVED\",\n" +
+                "\t\t\"liveProvince\": \"450000\",\n" +
+                "\t\t\"bpClass\": \"NP\",\n" +
+                "\t\t\"liveCity\": \"450700\",\n" +
+                "\t\t\"bpName\": \"罗仕锦\",\n" +
+                "\t\t\"nationality\": \"46\",\n" +
+                "\t\t\"liveDistrict\": \"450702\",\n" +
+                "\t\t\"idCardUntil\": \"20380227\",\n" +
+                "\t\t\"cellPhone\": \"19907775553\",\n" +
+                "\t\t\"contactInfoList\": []\n" +
+                "\t}]\n" +
                 "}";
         JSONObject encryptedJson = encryptedData(data);
         System.out.println("加密后的数据： " + encryptedJson.toString());
