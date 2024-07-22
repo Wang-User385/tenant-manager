@@ -35,6 +35,8 @@
                 url="${/request/@context_path}/modules/FND/HLS_COMMON/HLS900/quotation_calc_common.lview"/>
         <a:link id="bill001f2_modify_link_id"
                 url="${/request/@context_path}/modules/CSH/CSH_SET/CSH002/csh002_csh_payment_req_hd_detail.lview"/>
+        <a:link id="PRJ419_project_modify_new_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_modify_new.lview"/>
         <script><![CDATA[
 
         function csh_unpaid_list_query() {
@@ -365,6 +367,22 @@
                  scope: this
              });*/
         }
+        <!--render函数-->
+        function formateDate(value, record, name){
+            if(value!=""&&value!=undefined){
+                var date = new Date(value);
+                var yy = date.getFullYear();
+                var mm = date.getMonth() + 1;
+                var dd = date.getDate();
+                mm = (mm < 10) ? '0' + mm : mm;
+                dd = (dd < 10) ? '0' + dd : dd;
+                var dateStr=yy + '-' + mm + '-' + dd;
+                return dateStr;
+            }
+            else{
+                return "";
+            }
+        }
 
         function refund_detail_renderer(value, record, name) {
             return '<a href="javascript:winOpen_detail(\'' + record.get('refund_id') + '\');">支付单明细</a>';
@@ -577,7 +595,7 @@
             }
 
             var param = records[0].data;
-            param['url_title'] = '零售业务付款申请支付界面';
+            param['url_title'] = '车辆业务付款支付';
             param['function_code'] = 'CSH008R1';
             param['winId'] = 'csh008r1_detail_win_id';
             param['function_usage'] = function_usage;
@@ -590,6 +608,29 @@
         <!--跳转到付款申请页面-->
         function retail_payment_req_number_renderer(value, record, name) {
             return '<a href="javascript:open_retail_payment_req_number_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+
+        }
+        <!--跳转到进件明细页面-->
+        function retail_project_number_renderer(value, record, name) {
+            return '<a href="javascript:open_project_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+        }
+
+        //进件明细
+        function open_project_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '进件明细';
+            param['function_code'] = 'PRJ419F2';
+            param['winid'] = 'project_modify_winid';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['submit_hide'] = true;
+            if( param['document_type'] === 'PRJL' ||param['document_type'] === 'PRJLB'){
+                hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
+            }else{
+                hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
+            }
+
 
         }
 
@@ -1014,7 +1055,7 @@
                     </a:tab>-->
 
                     <!--二期功能：零售业务的付款申请 start-->
-                    <a:tab prompt="待支付清单-零售业务付款申请" width="250">
+                    <a:tab prompt="待支付清单-车辆业务付款支付" width="250">
                         <a:screenTopToolbar>
                             <a:screenTitle/>
                             <a:gridButton click="csh_retail_unpaid_list_query" text="HAP.QUERY"/>
@@ -1023,30 +1064,35 @@
                         </a:screenTopToolbar>
                         <a:form column="4" labelWidth="110">
                             <a:textField name="paymentReqNumber" bindTarget="csh_retail_unpaid_list_query_ds"
-                                         prompt="付款申请编号" width="160"/>
-                            <a:numberField name="afterDeductAmount" bindTarget="csh_retail_unpaid_list_query_ds"
-                                           prompt="本次付款金额(元)" width="160"/>
+                                         prompt="付款支付编号" width="160"/>
+                            <a:textField name="bp_name" bindTarget="csh_retail_unpaid_list_query_ds"
+                                         prompt="客户名称" width="160"/>
+                            <a:numberField name="amount" bindTarget="csh_retail_unpaid_list_query_ds"
+                                           prompt="申请付款金额(元)" width="160"/>
                             <a:comboBox name="payment_approved_status_n"
                                         bindTarget="csh_retail_unpaid_list_query_ds"
                                         prompt="支付单状态" width="160"/>
-                            <a:textField name="bp_name" bindTarget="csh_retail_unpaid_list_query_ds"
-                                         prompt="客户名称" width="160"/>
 
                         </a:form>
 
                         <a:grid bindTarget="csh_retail_unpaid_list_result_ds" marginHeight="193" marginWidth="80"
                                 navBar="true" >
                             <a:columns>
-                                <a:column name="payment_req_number" prompt="付款申请编号" width="140" align="center" renderer="retail_payment_req_number_renderer"/>
-                                <a:column name="detail" prompt="支付单明细" width="160" renderer="csh_retail_payment_detail_render"
-                                          align="center"/>
+                                <a:column name="payment_req_number" prompt="付款支付编号" width="140" align="center"/>
+                                <a:column name="project_number" prompt="业务编号" width="140" align="center" renderer="retail_project_number_renderer"/>
+                                <!--<a:column name="detail" prompt="支付单明细" width="160" renderer="csh_retail_payment_detail_render"
+                                          align="center"/>-->
                                 <a:column name="payment_type_n" prompt="款项类型" width="140" align="center"/>
                                 <a:column name="bp_name" prompt="客户名称" width="220" align="left"/>
-                                <a:column name="after_deduct_amount" prompt="本次付款金额(元)" width="140" align="right"
+                                <a:column name="amount" prompt="申请付款金额(元)" width="140" align="right"
                                           renderer="Leaf.formatMoney"/>
-                                <a:column name="unpaid" prompt="未支付金额(元)" width="140" align="right"
+                                <a:column name="apply_pay_date" prompt="申请付款日期" width="140" align="right"
+                                          renderer="formateDate"/>
+                                <a:column name="actual_hd_pay_amount" prompt="实际付款金额(元)" width="140" align="right"
                                           renderer="Leaf.formatMoney"/>
-                                <a:column name="project_manager_name" prompt="项目经理" width="140" align="center"/>
+                                <a:column name="actual_pay_date" prompt="实际付款日期" width="140" align="right"
+                                          renderer="formateDate"/>
+                                <a:column name="project_manager_name" prompt="客户经理" width="140" align="center"/>
 
                                 <a:column name="payment_approved_status_n" prompt="支付单状态" width="140" align="center"/>
 

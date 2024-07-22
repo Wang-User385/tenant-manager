@@ -31,6 +31,8 @@ public class CshPaymentReqLnBankAccount extends BaseDTO {
     private Double actualPaymentAmount;
     private Long cshBankAccountId;
     private String cshBankAccountNum;
+    @Transient
+    private String cshBankAccountNumN;
     private String cshBankAccountName;
     private Long processInstanceId;
     private Date actualPaymentDate;
@@ -120,6 +122,8 @@ public class CshPaymentReqLnBankAccount extends BaseDTO {
     @Transient
     private String flowNoN;
     private String tradeNo;
+    @Transient
+    private String tradeNoN;
     private String purpose;
     @Transient
     private String rivalAccountNo;
@@ -127,4 +131,8 @@ public class CshPaymentReqLnBankAccount extends BaseDTO {
     private String rivalAccountName;
 
     private String cshBankBranchName;
+    private String paymentStatus;
+    @Transient
+    private String paymentStatusN;
+    private String paymentMethod;
 }

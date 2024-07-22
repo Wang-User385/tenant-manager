@@ -10,6 +10,7 @@
         <result column="ACTUAL_PAYMENT_AMOUNT" property="actualPaymentAmount" jdbcType="DECIMAL"/>
         <result column="CSH_BANK_ACCOUNT_ID" property="cshBankAccountId" jdbcType="DECIMAL"/>
         <result column="CSH_BANK_ACCOUNT_NUM" property="cshBankAccountNum" jdbcType="VARCHAR"/>
+        <result column="CSH_BANK_ACCOUNT_NUM_N" property="cshBankAccountNumN" jdbcType="VARCHAR"/>
         <result column="CSH_BANK_ACCOUNT_NAME" property="cshBankAccountName" jdbcType="VARCHAR"/>
         <result column="CSH_BANK_BRANCH_NAME" property="cshBankBranchName" jdbcType="VARCHAR"/>
         <result column="CSH_BANK_ID" property="cshBankId" jdbcType="DECIMAL"/>
@@ -50,7 +51,7 @@
         <result column="payment_type_n" property="paymentTypeN" jdbcType="VARCHAR"/>
         <result column="loan_type" property="loanType" jdbcType="VARCHAR"/>
         <result column="loan_type_n" property="loanTypeN" jdbcType="VARCHAR"/>
-        <result column="PAYMENT_METHOD_n" property="paymentMethodN" jdbcType="VARCHAR"/>
+        <result column="payment_method_n" property="paymentMethodN" jdbcType="VARCHAR"/>
         <result column="bill_id_n" property="billIdN" jdbcType="VARCHAR"/>
         <result column="bp_id_n" property="bpIdN" jdbcType="VARCHAR"/>
         <result column="bp_bank_account_name_n" property="bpBankAccountNameN" jdbcType="VARCHAR"/>
@@ -65,9 +66,14 @@
         <result column="flow_no" property="flowNo" jdbcType="VARCHAR"/>
         <result column="flow_no_n" property="flowNoN" jdbcType="VARCHAR"/>
         <result column="trade_no" property="tradeNo" jdbcType="VARCHAR"/>
+        <result column="trade_no_n" property="tradeNoN" jdbcType="VARCHAR"/>
         <result column="purpose" property="purpose" jdbcType="VARCHAR"/>
         <result column="rival_account_no" property="rivalAccountNo" jdbcType="VARCHAR"/>
         <result column="rival_account_name" property="rivalAccountName" jdbcType="VARCHAR"/>
+        <result column="payment_status" property="paymentStatus" jdbcType="VARCHAR"/>
+        <result column="payment_status_n" property="paymentStatusN" jdbcType="VARCHAR"/>
+        <result column="payment_method" property="paymentMethod" jdbcType="VARCHAR"/>
+        <result column="payment_method_n" property="paymentMethodN" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="basic_column">
@@ -571,6 +577,7 @@
         cprba.csh_bank_account_id,
         cprba.csh_bank_account_name csh_bank_account_id_n,
         cprba.csh_bank_account_num,
+        cprba.csh_bank_account_num csh_bank_account_num_n,
         cprba.csh_bank_account_name,
         cprba.created_by,
         cprba.creation_date,
@@ -591,13 +598,23 @@
         cprba.process_instance_id,
         cprba.flow_no,
         cprba.trade_no,
+        cprba.trade_no trade_no_n,
         cprba.purpose,
         cprba.apy_number,
         cprba.csh_bank_branch_name,
-        cprba.PAYMENT_REQ_ID
+        cprba.PAYMENT_REQ_ID,
+        cprba.payment_status,
+        (SELECT s.MEANING
+        FROM sys_code_value_b_v s
+        WHERE s.CODE = 'PAYMENT_APPROVED_STATUS'
+        and s.code_value=cprba.payment_status)payment_status_n,
+        cprba.payment_method,
+        (select bv.MEANING
+        from SYS_CODE_VALUE_B_V bv
+        where bv.CODE='CSH.PAYMENT_METHOD1'
+        and bv.code_value=cprba.payment_method) payment_method_n
         from CSH_PAY_REQ_LN_BANK_ACCOUNT cprba
         <where>
-            cprba.PAYMENT_NAME = 'TT'
             <if test="paymentReqId != null">
                 and cprba.PAYMENT_REQ_ID = #{paymentReqId}
             </if>

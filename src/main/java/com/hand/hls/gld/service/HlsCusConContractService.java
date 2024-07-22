@@ -244,4 +244,9 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
      * 根据合同编号查找合同
      */
     List<HlsCusConContract> queryContractIdByContractNumber(String contractNumber);
+    /**
+     * 进件合同起租列表页面查询
+     */
+    List<HlsCusConContract> queryContractInceptInfoMain(IRequest iRequest, HlsCusPrjProject dto, int page, int pageSize);
+
 }

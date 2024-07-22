@@ -304,6 +304,7 @@ public interface HlsCusPrjProjectService extends IBaseService<HlsCusPrjProject>,
     List<HlsBpMasterInceptRule> queryManufacturerInceptType(HlsCusBpMaster hlsBpMaster);
     List<FndAttachmentMulti> contextCreateMultiple(IRequest request, List<Long> list, HttpServletResponse response) throws Exception;
     List<HlsCusPrjProject> manufacturerQueryProductInfo2(IRequest iRequest, HlsCusPrjProject hlsCusPrjProject, int pageNum, int pageSize);
+    List<HlsCusPrjProject> manufacturerQueryProductInfo3(IRequest iRequest, HlsCusPrjProject hlsCusPrjProject, int pageNum, int pageSize);
 
     /**
      * 检查租赁物编号是否重复

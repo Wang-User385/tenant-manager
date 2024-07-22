@@ -36,6 +36,7 @@ import com.hand.hls.fct.service.HlsCusFctQuotationCashflowService;
 import com.hand.hls.fnd.dto.FndSysCodes;
 import com.hand.hls.fnd.dto.HlsCusEmployee;
 import com.hand.hls.fnd.dto.HlsEmployee;
+import com.hand.hls.fnd.dto.HlsProductDefinition;
 import com.hand.hls.fnd.mapper.HlsCusEmployeeMapper;
 import com.hand.hls.fnd.mapper.HlsEmployeeMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
@@ -4623,5 +4624,12 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     @Override
     public List<HlsCusConContract> queryContractIdByContractNumber(String contractNumber) {
         return hlsCusConContractMapper.queryContractIdByContractNumber(contractNumber);
+    }
+
+    @Override
+    public List<HlsCusConContract> queryContractInceptInfoMain(IRequest iRequest, HlsCusPrjProject dto, int page, int pageSize) {
+        PageHelper.startPage(page, pageSize);
+        List<HlsCusConContract> list = hlsCusConContractMapper.queryContractInceptInfoMain(dto);
+        return list;
     }
 }

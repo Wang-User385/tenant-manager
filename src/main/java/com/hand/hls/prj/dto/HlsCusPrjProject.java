@@ -913,6 +913,13 @@ public class HlsCusPrjProject extends PrjProject {
     private Double penaltyRatio;
     private String singAddr;
 
+    @Transient
+    private String employeeIdN;
+    @Transient
+    private String manufacturerIdN;
+    @Transient
+    private String projectNumber;
+
     public Long getAllocationId() {
         return allocationId;
     }

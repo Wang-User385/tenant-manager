@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    $Author: lipan
+    $Date:2024年7月19日
+    $Revision: 1.0
+    $Purpose: 进件合同起租
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application">
+    <a:view>
+        <a:link id="CSH008R1_create_detail_id"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH302/csh_retail_payment_detail.lview"/>
+        <a:link id="PRJ419_project_modify_new_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_modify_new.lview"/>
+        <script><![CDATA[
+
+        <!--render函数-->
+        function formateDate(value, record, name){
+            if(value!=""&&value!=undefined){
+                var date = new Date(value);
+                var yy = date.getFullYear();
+                var mm = date.getMonth() + 1;
+                var dd = date.getDate();
+                mm = (mm < 10) ? '0' + mm : mm;
+                dd = (dd < 10) ? '0' + dd : dd;
+                var dateStr=yy + '-' + mm + '-' + dd;
+                return dateStr;
+            }
+            else{
+                return "";
+            }
+        }
+
+        function csh_retail_unpaid_list_query() {
+            $('contract_incept_list_result_ds').query();
+        }
+
+        function csh_retail_unpaid_list_reset() {
+            $('contract_incept_list_query_ds').reset();
+            $('contract_incept_list_result_ds').query();
+        }
+
+        <!--跳转到付款申请页面-->
+        function retail_payment_req_number_renderer(value, record, name) {
+            return '<a href="javascript:open_retail_payment_req_number_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+
+        }
+        <!--跳转到进件明细页面-->
+        function retail_project_number_renderer(value, record, name) {
+            return '<a href="javascript:open_project_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+        }
+
+        //进件明细
+        function open_project_modify_win(ds_id, record_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '进件明细';
+            param['function_code'] = 'PRJ419F2';
+            param['winid'] = 'project_modify_winid';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['submit_hide'] = true;
+            if( param['document_type'] === 'PRJL' ||param['document_type'] === 'PRJLB'){
+                hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
+            }else{
+                hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
+            }
+
+        }
+        <!--车辆业务付款支付页面-->
+        function open_retail_payment_req_number_win(ds_id, record_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var ds = 'contract_incept_list_result_ds';
+            /*param['url_title'] = '付款申请支付界面';
+            param['function_code'] = 'CSH008NEW';
+            param['winId'] = 'csh007_detail_win_id';
+            param['function_usage'] = 'QUERY';
+            param['parent_ds'] = ds;
+            hls_doc_get_layout_code(param, 'CSH007_create_detail_id', ds);*/
+            param['url_title'] = '车辆业务付款支付';
+            param['function_code'] = 'CSH008R1';
+            param['winId'] = 'csh008r1_detail_win_id';
+            param['function_usage'] = 'QUERY';
+
+            param['parent_ds'] = ds;
+
+            hls_doc_get_layout_code(param, 'CSH008R1_create_detail_id', ds);
+        }
+
+        ]]></script>
+        <a:screenBody>
+            <a:dataSets>
+                <a:dataSet id="contract_incept_list_query_ds">
+                    <a:fields>
+                        <a:field name="bp_name"/>
+                        <a:field name="project_number"/>
+                        <a:field name="manufacturer_id_n"/>
+                        <a:field name="employee_id_n"/>
+                    </a:fields>
+                </a:dataSet>
+
+                <a:dataSet id="contract_incept_list_result_ds" autoPageSize="true" autoQuery="true"
+                           autoCount="true" fetchAll="false" pageSize="10"
+                           queryDataSet="contract_incept_list_query_ds"
+                           queryUrl="${/request/@context_path}/contract/queryContractInceptList"
+                           selectable="true"
+                           selectionModel="single">
+                    <a:fields>
+                        <a:field name="payment_req_number"/>
+                        <a:field name="bp_name"/>
+                        <a:field name="payment_approved_status_n"/>
+                    </a:fields>
+                </a:dataSet>
+
+            </a:dataSets>
+                    <a:tab >
+                        <a:screenTopToolbar>
+                            <a:screenTitle/>
+                            <a:gridButton click="csh_retail_unpaid_list_query" text="HAP.QUERY"/>
+                            <a:gridButton click="csh_retail_unpaid_list_reset" text="HAP.RESET"/>
+                        </a:screenTopToolbar>
+                        <a:form column="4" labelWidth="110">
+                            <a:textField name="project_number" bindTarget="contract_incept_list_query_ds"
+                                         prompt="业务编号" width="160"/>
+                            <a:textField name="bp_name" bindTarget="contract_incept_list_query_ds"
+                                         prompt="客户名称" width="160"/>
+                            <a:textField name="manufacturer_id_n" bindTarget="contract_incept_list_query_ds"
+                                           prompt="合作商" width="160"/>
+                            <a:textField name="employee_id_n"
+                                        bindTarget="contract_incept_list_query_ds"
+                                        prompt="客户经理" width="160"/>
+                        </a:form>
+
+                        <a:grid bindTarget="contract_incept_list_result_ds" marginHeight="193" marginWidth="80"
+                                navBar="true" >
+                            <a:columns>
+                                <a:column name="project_number" prompt="业务编号" width="140" align="center" renderer="retail_project_number_renderer"/>
+                                <a:column name="bp_name" prompt="客户名称" width="220" align="left"/>
+                                <a:column name="business_type_n" prompt="业务类型" width="140" align="center"/>
+                                <a:column name="manufacturer_id_n" prompt="合作商" width="140" align="center"/>
+                                <a:column name="finance_amount" prompt="融资金额(元)" width="140" align="right"
+                                          renderer="Leaf.formatMoney"/>
+                                <a:column name="incept_flag_n" prompt="起租类型" width="140" align="center"/>
+                                <a:column name="lease_start_date" prompt="起租日" width="140" align="right"
+                                          renderer="formateDate"/>
+                                <a:column name="contract_status_n" prompt="合同状态" width="140" align="center"/>
+                                <a:column name="payment_req_number" prompt="付款编号" width="140" align="center" renderer="retail_payment_req_number_renderer"/>
+                                <a:column name="payment_approved_status_n" prompt="支付单状态" width="140" align="center"/>
+                                <a:column name="employee_id_n" prompt="客户经理" width="140" align="center"/>
+                                <a:column name="unit_id_n" prompt="业务部门" width="140" align="center"/>
+                            </a:columns>
+                        </a:grid>
+                    </a:tab>
+        </a:screenBody>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>
