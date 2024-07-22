@@ -11299,7 +11299,7 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
 
     <select id="queryContractInceptInfoMain" parameterType="com.hand.hls.prj.dto.HlsCusPrjProject"
             resultMap="BaseResultMap">
-            select
+            select * from (select
             p.project_id,
             pq.quotation_id,
             cc.contract_id,
@@ -11342,21 +11342,24 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             cprh.payment_req_id
             from
             prj_project p, con_contract cc, prj_quotation pq, csh_payment_req_hd cprh
-            <where>
-                p.project_id = cc.project_id and cc.quotation_id = pq.quotation_id and cc.contract_id = cprh.source_contract_id
-                and p.data_type = 'NORMAL'
+
+            where p.project_id = cc.project_id
+              and cc.quotation_id = pq.quotation_id
+              and cc.contract_id = cprh.source_contract_id
+              and p.data_type = 'NORMAL') v
+        <where>
                 <!--and p.investment_status = 'APPROVED'-->
                 <if test="manufacturerIdN != null">
-                    and p.manufacturer_id_n like concat(concat('%',#{manufacturerIdN}),'%')
+                    and v.manufacturer_id_n like concat(concat('%',#{manufacturerIdN}),'%')
                 </if>
                 <if test="projectNumber != null">
-                    and p.project_number like concat(concat('%',#{projectNumber}),'%')
+                    and v.project_number like concat(concat('%',#{projectNumber}),'%')
                 </if>
                 <if test="bpName != null">
-                    and p.bp_name like concat(concat('%',#{bpName}),'%')
+                    and v.bp_name like concat(concat('%',#{bpName}),'%')
                 </if>
                 <if test="employeeIdN != null">
-                    and p.employee_id_n like concat(concat('%',#{employeeIdN}),'%')
+                    and v.employee_id_n like concat(concat('%',#{employeeIdN}),'%')
                 </if>
             </where>
     </select>
