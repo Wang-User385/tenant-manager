@@ -1,0 +1,88 @@
+package com.hand.hls.partner.mapper;
+
+import com.hand.hap.mybatis.common.Mapper;
+import com.hand.hls.partner.dto.*;
+import org.apache.ibatis.annotations.MapKey;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+import java.util.Map;
+
+public interface LeasingNoticeMapper extends Mapper<LeasingNotice> {
+
+    /**
+     * 查询审核结果通知
+     *
+     * @param projectId
+     * @return
+     */
+    OrderAuditResultDto queryPerRiskResult(@Param("projectId") Long projectId);
+
+    /**
+     * 放款审核结果通知
+     *
+     * @param projectId
+     * @return
+     */
+    OrderAuditResultDto queryLoanAuditResult(@Param("projectId") Long projectId);
+
+
+    /**
+     * 抵押材料审核结果通知
+     *
+     * @param projectId
+     * @return
+     */
+    OrderAuditResultDto queryMortgageMaterialAuditResult(@Param("projectId") Long projectId);
+
+
+    /**
+     * 易靓放款结果通知
+     *
+     * @param projectId
+     * @return
+     */
+    OrderLoanResultDto queryOrderLoanResult(@Param("projectId") Long projectId);
+
+
+    /**
+     * 易靓需代偿通知
+     *
+     * @param projectId
+     * @return
+     */
+    AssetNeedSubstituteDto queryAssetNeedSubstitute(@Param("projectId") Long projectId);
+
+    /**
+     * 易靓需回购通知
+     *
+     * @param projectId
+     * @return
+     */
+    AssetNeedBuybackDto queryAssetNeedBuybackDto(@Param("projectId") Long projectId);
+
+    /**
+     * 易靓代扣签约结果通知
+     *
+     * @param projectId
+     * @return
+     */
+    Map<String, Object> queryWithholdContractResult(@Param("projectId") Long projectId);
+
+    /**
+     *易靓期次代扣结果通知
+     * @param projectId
+     * @return
+     */
+    Map<String,Object> queryRepayPlanRepaidNotify(@Param("projectId") Long projectId);
+
+
+    /**
+     * 易靓期次代扣结果通知:具体期次查询
+     *
+     * @param projectId
+     * @return
+     */
+    List<RepayPlanRepaidNotifyDto> queryTerm(@Param("projectId") Long projectId);
+
+}

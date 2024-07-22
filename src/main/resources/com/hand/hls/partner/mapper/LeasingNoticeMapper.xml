@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.partner.mapper.LeasingNoticeMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.partner.dto.LeasingNotice">
+        <result column="NOTICE_ID" property="noticeId" jdbcType="DECIMAL"/>
+        <result column="SOURCE_ID" property="sourceId" jdbcType="DECIMAL"/>
+        <result column="SOURCE_TYPE" property="sourceType" jdbcType="VARCHAR"/>
+        <result column="SCENE" property="scene" jdbcType="VARCHAR"/>
+        <result column="NOTICE_STATUS" property="noticeStatus" jdbcType="VARCHAR"/>
+        <result column="ERROR_MESSAGE" property="errorMessage" jdbcType="VARCHAR"/>
+        <result column="NOTICE_BODY" property="noticeBody" jdbcType="VARCHAR"/>
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
+        <result column="RESEND_FLAG" property="resendFlag" jdbcType="VARCHAR"/>
+
+    </resultMap>
+
+
+
+    <!--下面的都是推送消息的查询sql-->
+    <!--人工风险审核结果通知-->
+    <select id="queryPerRiskResult" resultType="com.hand.hls.partner.dto.OrderAuditResultDto" parameterType="java.lang.Long">
+        SELECT
+            pp.PROJECT_NUMBER AS orderNo,
+            CASE pp.PROJECT_STATUS
+                WHEN 'APPROVED' THEN'PASS'
+                WHEN 'REJECTED' THEN 'REJECT'
+                WHEN 'APPROVED_RETURN'   THEN 'REVIEW'
+                END AS status,
+            '暂无工作流，后续sql加上此段逻辑' AS opinion
+        FROM PRJ_PROJECT pp WHERE pp.PROJECT_ID = #{projectId}
+    </select>
+
+    <!--放款审核结果通知-->
+    <select id="queryLoanAuditResult" resultType="com.hand.hls.partner.dto.OrderAuditResultDto" parameterType="java.lang.Long">
+        SELECT
+            pp.PROJECT_NUMBER AS orderNo,
+            CASE pp.investment_status
+                WHEN 'APPROVED' THEN'PASS'
+                WHEN 'REJECTED'   THEN 'REVIEW'
+                END AS status,
+            '暂无工作流，后续sql加上此段逻辑' AS opinion
+        FROM PRJ_PROJECT pp WHERE pp.PROJECT_ID = #{projectId}
+    </select>
+
+    <!--抵押材料审核结果通知-->
+    <select id="queryMortgageMaterialAuditResult" resultType="com.hand.hls.partner.dto.OrderAuditResultDto" parameterType="java.lang.Long">
+        SELECT
+            pp.PROJECT_NUMBER AS orderNo,
+            CASE cc.mortgage_status WHEN 'APPROVED' THEN 'PASS'
+                                    ELSE 'REVIEW' END AS status,
+            '暂无工作流，后续sql加上此段逻辑' AS opinion
+        FROM CON_CONTRACT cc
+                 INNER JOIN PRJ_PROJECT pp ON cc.PROJECT_ID = pp.PROJECT_ID
+        WHERE pp.PROJECT_ID = #{projectId}
+    </select>
+
+    <!--易靓放款结果通知-->
+    <select id="queryOrderLoanResult" resultType="com.hand.hls.partner.dto.OrderLoanResultDto" parameterType="java.lang.Long">
+        SELECT
+            pp.PROJECT_NUMBER as orderNo,
+            reqhd.ACTUAL_PAY_DATE as loanTime,
+            reqhd.ACTUAL_HD_PAY_AMOUNT*100 as loanAmount,
+            CASE reqhd.PAYMENT_APPROVED_STATUS
+                WHEN 'PAID' THEN 'SUCCESS'
+                ELSE 'FAIL'END as status,
+            reqhd.payment_type as type
+        FROM prj_project pp
+                 LEFT JOIN CON_CONTRACT cc ON pp.PROJECT_ID = cc.PROJECT_ID
+                 LEFT JOIN csh_payment_req_hd reqhd ON reqhd.source_contract_id=cc.contract_id
+        where pp.PROJECT_ID = #{projectId}
+    </select>
+
+    <!--易靓需代偿通知-->
+    <select id="queryAssetNeedSubstitute" resultType="com.hand.hls.partner.dto.AssetNeedSubstituteDto" parameterType="java.lang.Long">
+        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
+        SELECT
+            pp.PROJECT_NUMBER as orderNo,
+            '1' as termNo,
+            SYSDATE as trialTime,
+            100*100 as principal,
+            100*100 as interest,
+            10*100 as principalPenalty,
+            10*100 as interestPenalty,
+            1000*100 as payableAmount
+        FROM PRJ_PROJECT pp
+        WHERE pp.PROJECT_ID = #{projectId}
+    </select>
+
+    <!--易靓需回购通知-->
+    <select id="queryAssetNeedBuybackDto" resultType="com.hand.hls.partner.dto.AssetNeedBuybackDto" parameterType="java.lang.Long">
+        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
+        SELECT
+        MAX(pp.PROJECT_NUMBER) AS orderNo,
+        LISTAGG(ccc.TIMES, ',') WITHIN GROUP (ORDER BY ccc.CONTRACT_ID) AS termNos,
+        TO_CHAR(SYSDATE,'yyyy-mm-dd') AS trialTime,
+        SUM(ccc.PRINCIPAL)*100 AS principal,
+        SUM(ccc.INTEREST)*100 AS interest,
+        1000*100 AS principalPenalty,
+        1000*100 AS interestPenalty,
+        1000*100 AS otherFee,
+        10000*100 AS payableAmount
+        FROM PRJ_PROJECT pp
+        LEFT JOIN CON_CONTRACT cc ON pp.PROJECT_ID = cc.PROJECT_ID
+        LEFT JOIN CON_CONTRACT_CASHFLOW ccc ON cc.contract_id = ccc.contract_id
+        WHERE pp.PROJECT_ID = #{projectId} AND ccc.CF_ITEM=1
+        GROUP BY cc.CONTRACT_ID
+    </select>
+
+    <!--易靓代扣签约结果通知-->
+    <select id="queryWithholdContractResult" resultType="java.util.Map" parameterType="java.lang.Long">
+        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
+        SELECT
+            pp.PROJECT_NUMBER  AS orderNo,
+            CASE pp.SIGN_STATUS WHEN 'APPROVED' THEN 'FINISHED'
+                                ELSE 'CREATED' END AS status
+        FROM PRJ_PROJECT pp where pp.PROJECT_ID = #{projectId}
+    </select>
+
+    <!--易靓期次代扣结果通知-->
+    <select id="queryRepayPlanRepaidNotify" resultType="java.util.Map" parameterType="java.lang.Long">
+        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
+        SELECT
+            pp.PROJECT_NUMBER  AS orderNo,
+            'DEDUCT' repayType
+        FROM PRJ_PROJECT pp where pp.PROJECT_ID = #{projectId}
+    </select>
+
+    <!--易靓期次代扣结果通知:具体期次查询-->
+    <select id="queryTerm" resultType="com.hand.hls.partner.dto.RepayPlanRepaidNotifyDto" parameterType="java.lang.Long">
+        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
+        SELECT
+            pp.PROJECT_NUMBER AS orderNo,
+            ccc.times AS termNo,
+            ccc.PRINCIPAL*100 AS principal,
+            ccc.INTEREST*100 AS interest,
+            100*100 AS principalPenalty,
+            10*100 AS interestPenalty,
+            10*100 AS otherFee,
+            1000*100 AS total,
+            'JSNO0000001' AS transactionNo,
+            'DKJYNO000001' AS externalDeductNo
+        FROM PRJ_PROJECT pp
+                 LEFT JOIN CON_CONTRACT cc ON pp.PROJECT_ID = cc.PROJECT_ID
+                 LEFT JOIN CON_CONTRACT_CASHFLOW ccc ON cc.contract_id = ccc.contract_id
+        WHERE pp.PROJECT_ID=#{projectId} AND ccc.CF_ITEM=1
+    </select>
+
+
+</mapper>
