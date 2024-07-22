@@ -128,4 +128,10 @@ public class HlsMortgage {
     @Transient
     private Long processInstanceId;
 
+    @Transient
+    private String documentName;
+
+    @Transient
+    private Date uploadDate;
+
 }

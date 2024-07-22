@@ -14,4 +14,11 @@ public interface HlsMortgageMapper extends Mapper<HlsMortgage> {
     List<YxLeaseItemClassify> HlsMortgageMachineQuery(Map map);
 
     List<HlsMortgage> findAllByHlsMortgage(HlsMortgage hlsMortgage);
+
+    List<HlsMortgage> findAttachReview(HlsMortgage hlsMortgage);
+    List<HlsMortgage> findAttachContact(HlsMortgage hlsMortgage);
+    List<HlsMortgage> findAttachMortgage(HlsMortgage hlsMortgage);
+
+
+
 }
