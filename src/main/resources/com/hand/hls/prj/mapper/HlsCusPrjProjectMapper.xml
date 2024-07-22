@@ -9928,6 +9928,9 @@ WHERE
             <if test="employeeId!=null">
                 and v.employee_id = #{employeeId}
             </if>
+            <if test="employeeIdN!=null">
+                and v.employee_id_n = #{employeeIdN}
+            </if>
             <if test="employeeIdOfManager!=null">
                 and v.employee_id_of_manager = #{employeeIdOfManager}
             </if>
@@ -11696,6 +11699,7 @@ WHERE
         <result column="attach_code" property="attach_code"/>
         <result column="th_back_flag" property="th_back_flag"/>
         <result column="upload_person_id" property="upload_person_id"/>
+        <result column="file_num" property="file_num"/>
     </resultMap>
 
     <select id="prjProjectAttachQuery" resultMap="PrjProjectAttachQueryMap">
@@ -11729,7 +11733,18 @@ WHERE
         AND faam.table_pk_value = ppa.project_attachment_id
         AND faam.table_name = ppa.project_attachment_category
         AND ROWNUM &lt;= 10
-        )	file_attachment_id
+        )	file_attachment_id,
+        (
+        SELECT
+        count(faa.*)
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = ppa.project_attachment_id
+        AND faam.table_name = ppa.project_attachment_category
+        )	file_num
         From prj_project_attachment ppa
         Where ppa.project_id = #{projectId}
           And (ppa.project_attachment_category = 'prj_project_attachment'
@@ -11769,7 +11784,18 @@ WHERE
         AND faam.table_pk_value = ppa.project_attachment_id
         AND faam.table_name = ppa.project_attachment_category
         AND ROWNUM &lt;= 10
-        )	file_attachment_id
+        )	file_attachment_id,
+        (
+        SELECT
+        count(faa.*)
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = ppa.project_attachment_id
+        AND faam.table_name = ppa.project_attachment_category
+        )	file_num
         From prj_project_attachment ppa
         Where ppa.project_id = #{projectId}
           And (ppa.project_attachment_category = 'ONLINE_SIGN_CONTRACT' And
