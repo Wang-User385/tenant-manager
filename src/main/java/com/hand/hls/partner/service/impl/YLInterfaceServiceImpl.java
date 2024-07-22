@@ -193,7 +193,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         }
         //修改订单状态
-        hlsCusPrjProject.setProjectStatus("END");
+        hlsCusPrjProject.setProjectStatus("CLOSED");
         prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
         jsonObject1.put("code","200");
         jsonObject1.put("message","取消成功");
