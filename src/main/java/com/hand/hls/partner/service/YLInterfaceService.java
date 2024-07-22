@@ -11,31 +11,31 @@ import javax.servlet.http.HttpServletRequest;
 public interface YLInterfaceService {
     JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) throws Exception;
 
-    JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject queryOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject queryOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject queryWithholdingState(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject queryWithholdingState(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request);
+    JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
-    JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request);
+    JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request) throws Exception;
 }

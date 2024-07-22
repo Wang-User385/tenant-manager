@@ -83,8 +83,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(ss, PlaceOrderDTO.class);
 
 
-
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
         //判断该客户存不存在
         //如果存在，判断名称和电话一不一致，不一致就修改
@@ -121,8 +120,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            如果项目是取消、拒绝、结束允许下单，否则不允许
             if (!"CLOSED".equals(x.getProjectStatus())||!"CANCEL".equals(x.getProjectStatus())||
                     !"REJECTED".equals(x.getProjectStatus())){
-                responseData.setCode("400");
-                responseData.setMessage("存在在途单");
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","存在在途单");
             }
 //            else{
 ////                如果项目不是取消、拒绝、结束，则判断合同状态是否为结束、关闭、终止，如果是则允许下单，否则不允许下单
@@ -136,8 +135,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            }
         });
 //        判断循环之后的结果，如果不允许创建，返回信息
-        if ("400".equals(responseData.getCode())){
-            return requestsErrorSave(responseData,hlsWsRequests,iRequest);
+        if ("400".equals(jsonObject1.getString("code"))){
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
         }
 
         //获取订单编号,将订单编号入库
@@ -160,246 +159,103 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
 
         //        设置返回信息
-        List<String> stringList = new ArrayList<>();
-        stringList.add(codeRuleValue);
-        responseData.setCode("200");
-        responseData.setRows(stringList);
-        responseData.setMessage("下单成功");
-        return requestsSecondSave(responseData,hlsWsRequests,iRequest);
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","下单成功");
+        jsonObject1.put("codeRuleValue",codeRuleValue);
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
     @Transactional
-    public JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception{
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        CloseOrderDTO closeOrderDTO = JSONObject.parseObject(ss, CloseOrderDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("关单");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "关单", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        CloseOrderDTO closeOrderDTO = JSONObject.parseObject(ss, CloseOrderDTO.class);
 
-        ResponseData responseData = new ResponseData();
+
+        JSONObject jsonObject1 = new JSONObject();
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(closeOrderDTO.getOrderNo());
         CshPaymentReqHd cshPaymentReqHd =prjProjectMapper.selectPaymentByOrderNo(closeOrderDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            responseData.setCode("100003");
-            responseData.setMessage("订单不存在");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+            jsonObject1.put("code","100003");
+            jsonObject1.put("message","订单不存在");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
         }else{
             String projectStatus = hlsCusPrjProject.getProjectStatus();
-            if ("APPROVING".equals(projectStatus)){
-                responseData.setCode("100101");
-                responseData.setMessage("订单状态和操作不相符");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
-            }
-            if ("Y".equals(hlsCusPrjProject.getLoanInitialLease())){
-                responseData.setCode("100101");
-                responseData.setMessage("订单状态和操作不相符");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
-            }
-            if ("APPROVING".equals(cshPaymentReqHd.getPaymentReqStatusDesc())){
-                responseData.setCode("100101");
-                responseData.setMessage("订单状态和操作不相符");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+            if ("APPROVING".equals(projectStatus)||"Y".equals(hlsCusPrjProject.getLoanInitialLease())||
+                    "APPROVING".equals(cshPaymentReqHd.getPaymentReqStatusDesc())){
+                jsonObject1.put("code","100101");
+                jsonObject1.put("message","订单状态和操作不相符");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }
         }
         //修改订单状态
         hlsCusPrjProject.setProjectStatus("END");
         prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
-        responseData.setCode("200");
-        responseData.setMessage("取消成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","取消成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject queryOrder(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject queryOrder(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        QueryOrderDTO queryOrderDTO = JSONObject.parseObject(ss, QueryOrderDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("账单查询");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "订单查询", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        QueryOrderDTO queryOrderDTO = JSONObject.parseObject(ss, QueryOrderDTO.class);
 
 
+        JSONObject jsonObject1 = new JSONObject();
 
-        ResponseData responseData = new ResponseData();
+
         //根据订单编号查询相对应的还款信息,判断订单存不存在，不存在直接返回
-        List<RepayPlanTermInfoDTO> repayPlanTermInfoDTOList = prjProjectMapper.selectRepayPlanByOrderNo(queryOrderDTO.getOrderNo());
-        QueryOrder queryOrder = prjProjectMapper.selectQueryOrderByOrderNo(queryOrderDTO.getOrderNo());
-        if (queryOrder==null){
-            responseData.setCode("100003");
-            responseData.setMessage("订单不存在");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(queryOrderDTO.getOrderNo());
+        if (hlsCusPrjProject==null){
+            jsonObject1.put("code","100003");
+            jsonObject1.put("message","订单不存在");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
         }else{
+            List<RepayPlanTermInfoDTO> repayPlanTermInfoDTOList = prjProjectMapper.selectRepayPlanByOrderNo(queryOrderDTO.getOrderNo());
+            QueryOrder queryOrder = prjProjectMapper.selectQueryOrderByOrderNo(queryOrderDTO.getOrderNo());
             queryOrder.setRepayPlanTermInfoDTOList(repayPlanTermInfoDTOList);
             queryOrder.setStatus("NORMAL");
 //            订单存在，判断合同状态是否为起租后状态、结清状态
 //            如果是，则返回数据，如果不是，返回错误
-            String contractStatus = queryOrder.getContractStatus();
+            String contractStatus = prjProjectMapper.selectContractByOrderNo(queryOrderDTO.getOrderNo());
             if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus)){
-                responseData.setCode("200");
-                responseData.setMessage("查询成功");
-                List<QueryOrder> queryOrderList = new ArrayList<>();
-                queryOrderList.add(queryOrder);
-                responseData.setRows(queryOrderList);
-                hlsWsRequests.setReturnStatus("S");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","200");
+                jsonObject1.put("message","查询成功");
+                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
             }else{
-                responseData.setCode("100101");
-                responseData.setMessage("订单状态和操作不相符");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","100101");
+                jsonObject1.put("message","订单状态和操作不相符");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }
         }
     }
 
     @Override
     @Transactional
-    public JSONObject repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        RepayMent repayMent = JSONObject.parseObject(ss, RepayMent.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("还款");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "还款", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        RepayMent repayMent = JSONObject.parseObject(ss, RepayMent.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号查询数据
         List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(repayMent.getOrderNo());
         if (hlsCusCshTransactionList.size()==0){
-            responseData.setCode("400");
-            responseData.setMessage("查询数据为空");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","查询数据为空");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
         }
         List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
         //保存数据到事务表
@@ -407,34 +263,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //判断还款方式是否为蚂蚁链代扣，如果是则判断结算单号、代扣交易单号是否为空
             if ("蚂蚁链代扣".equals(repayMent.getRepayType())){
                 if (termRepayDetailApplyDTO.getTransactionNo()==null){
-                    responseData.setCode("400");
-                    responseData.setMessage("结算单号为空");
-                    hlsWsRequests.setReturnStatus("E");
-                    hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                    JSONObject jsonObject1 = null;
-                    try {
-                        jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                    logService.interfaceSave(hlsWsRequests,iRequest);
-                    return jsonObject1;
+                    jsonObject1.put("code","400");
+                    jsonObject1.put("message","结算单号为空");
+                    return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
                 }
                 if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
-                    responseData.setCode("400");
-                    responseData.setMessage("代扣交易单号为空");
-                    hlsWsRequests.setReturnStatus("E");
-                    hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                    JSONObject jsonObject1 = null;
-                    try {
-                        jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                    logService.interfaceSave(hlsWsRequests,iRequest);
-                    return jsonObject1;
+                    jsonObject1.put("code","400");
+                    jsonObject1.put("message","代扣交易单号为空");
+                    return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
                 }
             }
 //            将数据保存入库
@@ -451,67 +287,37 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         }
 
-
-
         //设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("还款成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","还款成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(ss, CompensatoryTrialCalculationDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("代偿试算");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代偿试算", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(ss, CompensatoryTrialCalculationDTO.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
+
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
+        if (hlsCusPrjProject==null){
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","订单不存在");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+        }
 
 //            计算本金、利息、罚息、应付金额
             CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(compensatoryTrialCalculationDTO);
 
             if (compensatoryTrialCalculation1==null){
-                responseData.setCode("400");
-                responseData.setMessage("订单不存在");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","数据不存在");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }else{
                 //            判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
                 if (compensatoryTrialCalculationDTO.getTrialTime()==null){
@@ -524,69 +330,31 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            设置返回期次号
                 compensatoryTrialCalculation1.setTermNo(compensatoryTrialCalculationDTO.getTermNo());
 //            设置返回数据
-                List<CompensatoryTrialCalculationDTO> compensatoryTrialCalculationList = new ArrayList<>();
-                compensatoryTrialCalculationList.add(compensatoryTrialCalculation1);
-                responseData.setRows(compensatoryTrialCalculationList);
-
-//            设置返回状态
-                responseData.setCode("200");
-                responseData.setMessage("还款成功");
-                hlsWsRequests.setReturnStatus("S");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","200");
+                jsonObject1.put("message","还款成功");
+                jsonObject1.put("result",compensatoryTrialCalculation1);
+                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
             }
     }
 
     @Override
     @Transactional
-    public JSONObject claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.parseObject(ss, ClaimsSubrogationDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("代偿请求");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代偿试算", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.parseObject(ss, ClaimsSubrogationDTO.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号查询数据
         List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(claimsSubrogationDTO.getOrderNo());
         if (hlsCusCshTransactionList.size()==0){
-            responseData.setCode("400");
-            responseData.setMessage("代偿数据不存在");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","代偿数据不存在");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
        }
 //            将数据保存入库
         for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
@@ -599,45 +367,21 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("还款成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","还款成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(ss, AdvancesSettleComputeDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("提前结清试算");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代偿试算", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(ss, AdvancesSettleComputeDTO.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
 
 //            查询结算金额
@@ -649,91 +393,43 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         advancesSettleComputeDTO1.setTrialTime(advancesSettleComputeDTO.getTrialTime());
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("试算成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","试算成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
     @Transactional
-    public JSONObject advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(ss, AdvancesSettleComputeDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("提前结清请求");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代偿请求", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        AdvancesSettleRequestDTO advancesSettleRequestDTO = JSONObject.parseObject(ss, AdvancesSettleRequestDTO.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
 //            保存还款金额
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("还款成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","还款成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
     @Transactional
-    public JSONObject dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(ss, DataAcquisitionDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("数据采集");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "数据采集", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(ss, DataAcquisitionDTO.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
 //        首先判断订单状态
 //        Example durationLnExample = new Example(HlsCusPrjProject.class);
@@ -742,19 +438,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //        prjProjectMapper.selectByExample(durationLnExample)
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(dataAcquisitionDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            responseData.setCode("400");
-            responseData.setMessage("订单不存在");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","订单不存在");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
         }
         //根据项目id获取租赁物信息,如果为空，那么直接入库，如果不为空，判断订单状态
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
@@ -871,19 +557,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         String projectStatus = hlsCusPrjProject.getProjectStatus();
         //        如果订单状态为放款之后，不允许修改
         if ("放款之后".equals(projectStatus)){
-            responseData.setCode("400");
-            responseData.setMessage("订单已放款，不允许修改");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","订单已放款，不允许修改");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
         }
         //如果订单为业务申请之后，放款之前，对字段进行校验
         //品牌名称、车系名称、车型名称、车辆颜色
@@ -894,75 +570,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     //判断车系名称与riskInfo中的值是否相同
                     CarInformation carInformation = preRiskAuditData.getCarInformation();
                     if (!hlsCusPrjProjectLeaseItem1.getBrandC().equals(carInformation.getCarbrand2())){
-                        responseData.setCode("400");
-                        responseData.setMessage("品牌名称与riskInfo中的值不同");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        JSONObject jsonObject1 = null;
-                        try {
-                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                        logService.interfaceSave(hlsWsRequests,iRequest);
-                        return jsonObject1;
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","品牌名称与riskInfo中的值不同");
+                        return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
                     }
                     if (hlsCusPrjProjectLeaseItem1.getSeriesC().equals(carInformation.getChexi())){
-                        responseData.setCode("400");
-                        responseData.setMessage("车系名称与riskInfo中的值不同");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        JSONObject jsonObject1 = null;
-                        try {
-                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                        logService.interfaceSave(hlsWsRequests,iRequest);
-                        return jsonObject1;
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","车系名称与riskInfo中的值不同");
+                        return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
                     }
                     if (hlsCusPrjProjectLeaseItem1.getModelC().equals(carInformation.getCartype())){
-                        responseData.setCode("400");
-                        responseData.setMessage("车型名称与riskInfo中的值不同");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        JSONObject jsonObject1 = null;
-                        try {
-                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                        logService.interfaceSave(hlsWsRequests,iRequest);
-                        return jsonObject1;
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","车型名称与riskInfo中的值不同");
+                        return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
                     }
                     if (hlsCusPrjProjectLeaseItem1.getColorC().equals(carInformation.getCarcolor())){
-                        responseData.setCode("400");
-                        responseData.setMessage("车辆颜色与riskInfo中的值不同");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        JSONObject jsonObject1 = null;
-                        try {
-                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                        logService.interfaceSave(hlsWsRequests,iRequest);
-                        return jsonObject1;
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","车辆颜色与riskInfo中的值不同");
+                        return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
                     }
                 }
             }
         }
 
         //获取租赁物相关信息，并入库
-
-
-
-
-
 //            if ("申请之前".equals(projectStatus)){
 
                 HlsCusPrjQuotation prjQuotation = null;
@@ -1386,280 +1017,127 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("数据采集成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","数据采集成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(ss, OverdueRepurchaseTrialCalculationDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("逾期回购试算");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "逾期回购试算", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(ss, OverdueRepurchaseTrialCalculationDTO.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号查询数据
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("试算成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","试算成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) {
+    public JSONObject overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(ss, OverdueRepurchaseTrialCalculationDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("逾期回购请求");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "逾期回购请求", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO = JSONObject.parseObject(ss, OverdueRepurchaseRequestDTO.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
         //将数据入库
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("逾期回购成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","逾期回购成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject queryWithholdingState(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject queryWithholdingState(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.parseObject(ss, QueryWithholdingStateDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("代扣状态查询");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代扣状态查询", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.parseObject(ss, QueryWithholdingStateDTO.class);
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号查询数据
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("查询成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","查询成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request)throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        //保存日志
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代扣状态查询", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
         StopWithholdingDTO stopWithholdingDTO = JSONObject.parseObject(ss, StopWithholdingDTO.class);
-        //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("暂停代扣");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号和期次号，修改状态
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("暂停代扣成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","暂停代扣成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) {
+    public JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request)throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        //保存日志
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "恢复代扣", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
         RecoverWithholdingDTO recoverWithholdingDTO = JSONObject.parseObject(ss, RecoverWithholdingDTO.class);
-        //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("恢复代扣");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
 
 
-        ResponseData responseData = new ResponseData();
+        JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号和期次号，修改状态
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("暂停代扣成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","恢复代扣成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     @Override
-    public JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request) {
+    public JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request)throws Exception {
 
-        String ss = null;
-        try {
-            ss = RsaAesUtils.decryptedData(jsonObject);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(ss, BusinessApplicationDTO.class);
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestJsonEncrypt(jsonObject.toJSONString());
-        //        获取请求路径
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        //请求名称
-        hlsWsRequests.setFunctionName("业务申请");
-//        参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        hlsWsRequests.setRequestJson(jsonObject.toJSONString());
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "恢复代扣", request, iRequest);
+        String  ss = RsaAesUtils.decryptedData(jsonObject);
+        BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(ss, BusinessApplicationDTO.class);
 
-        ResponseData responseData = new ResponseData();
+
+        JSONObject jsonObject1 = new JSONObject();
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(businessApplicationDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            responseData.setCode("100003");
-            responseData.setMessage("订单不存在");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+            jsonObject1.put("code","100003");
+            jsonObject1.put("message","订单不存在");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
         }
         //根据action，执行操作
         String action = businessApplicationDTO.getAction();
@@ -1670,106 +1148,46 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
             if ("Accept".equals(s)){
                 //        设置返回信息
-                responseData.setCode("200");
-                responseData.setMessage("预审成功");
-                hlsWsRequests.setReturnStatus("S");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","200");
+                jsonObject1.put("message","预审成功");
+                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
             }
-            responseData.setCode("400");
-            responseData.setMessage("预审失败");
-            hlsWsRequests.setReturnStatus("E");
-            hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-            JSONObject jsonObject1 = null;
-            try {
-                jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-            logService.interfaceSave(hlsWsRequests,iRequest);
-            return jsonObject1;
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","预审失败");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
         }
         else if ("APPLY_PRE_RISK".equals(action)){
             String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
             if ("Accept".equals(s)){
                 //        设置返回信息
-                responseData.setCode("200");
-                responseData.setMessage("审核成功");
-                hlsWsRequests.setReturnStatus("S");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","200");
+                jsonObject1.put("message","审核成功");
+                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
             }
             else if ("Reject".equals(s) || "Error".equals(s)){
-                responseData.setCode("400");
-                responseData.setMessage("预审失败");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","审核失败");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }
         }
         else if ("RE_APPLY_PRE_RISK".equals(action)){
             String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
             if ("Accept".equals(s)){
                 //        设置返回信息
-                responseData.setCode("200");
-                responseData.setMessage("审核成功");
-                hlsWsRequests.setReturnStatus("S");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","200");
+                jsonObject1.put("message","审核成功");
+                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
             }
             else if ("Reject".equals(s) || "Error".equals(s)){
-                responseData.setCode("400");
-                responseData.setMessage("预审失败");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","审核失败");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }
         }
         else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
 //            申请代扣签约
         }
-        else if ("APPLY_LOAN".equals(action)){
+        else if ("APPLY_LOAN".equals(action)||"RE_APPLY_LOAN".equals(action)){
             //申请放款
             String riskInfo = hlsCusPrjProject.getRiskInfo();
             //获取riskinfo数据
@@ -1777,19 +1195,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //获取车辆信息
             CarInformation carInformation = preRiskAuditData.getCarInformation();
             if (carInformation==null){
-                responseData.setCode("400");
-                responseData.setMessage("riskinfo信息不能为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","riskinfo信息不能为空");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }
             //获取租赁物信息
             List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
@@ -1798,49 +1206,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //获取附件
             List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.queryByProjectId(hlsCusPrjProject.getProjectId());
             if (hlsCusPrjQuotations.size()==0){
-                responseData.setCode("400");
-                responseData.setMessage("报价不能为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","报价不能为空");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }
             if (hlsCusPrjProjectLeaseItemList.size()==0){
-                responseData.setCode("400");
-                responseData.setMessage("租赁物不能为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","租赁物不能为空");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }
             if (hlsCusPrjProjectAttachments.size()==0){
-                responseData.setCode("400");
-                responseData.setMessage("附件不能为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","附件不能为空");
+                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
             }
             HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
             HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
@@ -1861,131 +1239,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     long nowTime = new Date().getTime();
                     //计算间隔的时间
                     long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
-                    if (days>=30){
-                        responseData.setCode("400");
-                        responseData.setMessage("审批通过超过三十天");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        JSONObject jsonObject1 = null;
-                        try {
-                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    if ("APPLY_LOAN".equals(action)){
+                        if (days>=30){
+                            jsonObject1.put("code","400");
+                            jsonObject1.put("message","审批通过超过三十天");
+                            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
                         }
-                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                        logService.interfaceSave(hlsWsRequests,iRequest);
-                        return jsonObject1;
-                    }
-                }
-            }
-        }
-        else if ("RE_APPLY_LOAN".equals(action)){
-            //再次申请放款
-            String riskInfo = hlsCusPrjProject.getRiskInfo();
-            //获取riskinfo数据
-            PreRiskAuditData preRiskAuditData = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
-            //获取车辆信息
-            CarInformation carInformation = preRiskAuditData.getCarInformation();
-            if (carInformation==null){
-                responseData.setCode("400");
-                responseData.setMessage("riskinfo信息不能为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
-            }
-            //获取租赁物信息
-            List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
-            //获取报价
-            List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
-            //获取附件
-            List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.queryByProjectId(hlsCusPrjProject.getProjectId());
-            if (hlsCusPrjQuotations.size()==0){
-                responseData.setCode("400");
-                responseData.setMessage("报价不能为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
-            }
-            if (hlsCusPrjProjectLeaseItemList.size()==0){
-                responseData.setCode("400");
-                responseData.setMessage("租赁物不能为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
-            }
-            if (hlsCusPrjProjectAttachments.size()==0){
-                responseData.setCode("400");
-                responseData.setMessage("附件不能为空");
-                hlsWsRequests.setReturnStatus("E");
-                hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                JSONObject jsonObject1 = null;
-                try {
-                    jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                logService.interfaceSave(hlsWsRequests,iRequest);
-                return jsonObject1;
-            }
-            HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
-            HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
-            if (carInformation.getCarbrand2().equals(hlsCusPrjProjectLeaseItem.getBrandC())&&
-                    carInformation.getChexi().equals(hlsCusPrjProjectLeaseItem.getSeriesC())&&
-                    carInformation.getCartype().equals(hlsCusPrjProjectLeaseItem.getModelC())&&
-                    carInformation.getCarcolor().equals(hlsCusPrjProjectLeaseItem.getColorC())&&
-                    carInformation.getFinancingamount().equals(hlsCusPrjProjectLeaseItem.getFinanceAmount())&&
-                    carInformation.getClxsjg().equals(hlsCusPrjProjectLeaseItem.getSellingPrice())&&
-                    carInformation.getCfpp().equals(hlsCusPrjProjectLeaseItem.getListPrice())&&
-                    carInformation.getYfzj().equals(hlsCusPrjQuotation.getPmt())&&
-                    carInformation.getNhll().equals(hlsCusPrjQuotation.getIntRate())&&
-                    carInformation.getSfje().equals(hlsCusPrjQuotation.getDownPayment())){
-                if (hlsCusPrjProjectAttachments.size()>0){
-                    //获取审批通过日的毫秒值
-                    long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
-                    //获取当前时间毫秒值
-                    long nowTime = new Date().getTime();
-                    //计算间隔的时间
-                    long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
-                    if (days>=30){
-                        responseData.setCode("400");
-                        responseData.setMessage("审批通过超过三十天");
-                        hlsWsRequests.setReturnStatus("E");
-                        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-                        JSONObject jsonObject1 = null;
-                        try {
-                            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    }else if ("RE_APPLY_LOAN".equals(action)){
+                        if (days>=50){
+                            jsonObject1.put("code","400");
+                            jsonObject1.put("message","再次审批通过超过五十天");
+                            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
                         }
-                        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-                        logService.interfaceSave(hlsWsRequests,iRequest);
-                        return jsonObject1;
                     }
+
                 }
             }
         }
@@ -1995,19 +1262,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
 
         //            设置返回状态
-        responseData.setCode("200");
-        responseData.setMessage("暂停代扣成功");
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        JSONObject jsonObject1 = null;
-        try {
-            jsonObject1 = RsaAesUtils.encryptedData(JSONObject.toJSONString(responseData));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        hlsWsRequests.setResponseJsonEncrypt(jsonObject1.toJSONString());
-        logService.interfaceSave(hlsWsRequests,iRequest);
-        return jsonObject1;
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","业务申请成功");
+        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
     }
 
     public HlsWsRequests requestsFirstSave(JSONObject jsonObject,String name, HttpServletRequest request,IRequest iRequest) throws Exception{
@@ -2023,8 +1280,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
         return hlsWsRequests;
     }
-    public JSONObject requestsSecondSave(ResponseData responseData,HlsWsRequests hlsWsRequests,IRequest iRequest) throws Exception{
-        String resStr = JSONObject.toJSONString(responseData);
+    public JSONObject requestsSecondSave(JSONObject jsonObject,HlsWsRequests hlsWsRequests,IRequest iRequest) throws Exception{
+        String resStr = JSONObject.toJSONString(jsonObject);
         //step5 存储返回报文日志
         hlsWsRequests.setResponseJson(resStr);
         hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
@@ -2035,8 +1292,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
         return encryptedResJson;
     }
-    public JSONObject requestsErrorSave(ResponseData responseData,HlsWsRequests hlsWsRequests,IRequest iRequest) throws Exception{
-        String resStr = JSONObject.toJSONString(responseData);
+    public JSONObject requestsErrorSave(JSONObject jsonObject,HlsWsRequests hlsWsRequests,IRequest iRequest) throws Exception{
+        String resStr = JSONObject.toJSONString(jsonObject);
         //step5 存储返回报文日志
         hlsWsRequests.setResponseJson(resStr);
         hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);

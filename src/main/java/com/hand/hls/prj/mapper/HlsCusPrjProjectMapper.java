@@ -273,4 +273,6 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     String getProjectStatusByProjectId(@Param("projectId")Long projectId);
 
     HlsCusPrjProject getSinglePrjProjectByProjectId(@Param("projectId")Long projectId);
+
+    String selectContractByOrderNo(@Param("orderNo") String orderNo);
 }
