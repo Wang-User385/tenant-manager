@@ -96,4 +96,36 @@ public class HlsMortgage {
     @Transient
     private String productModel;
 
+    private String mortgageStatus;
+
+    @Transient
+    private String mortgageStatusN;
+
+    @Transient
+    private String bpIdTenantN;
+
+    @Transient
+    private String businessType;
+
+    @Transient
+    private String businessTypeN;
+
+    @Transient
+    private String divisionN;
+
+    @Transient
+    private String employeeIdN;
+
+    @Transient
+    private String unitIdN;
+
+    @Transient
+    private Date actualPayDate;
+
+
+    private Date mortgageApprovedDate;
+
+    @Transient
+    private Long processInstanceId;
+
 }

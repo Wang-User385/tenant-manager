@@ -36,6 +36,18 @@
         <result column="pledge_state" property="pledgeState" jdbcType="VARCHAR"/>
         <result column="pledge_state_n" property="pledgeStateN" jdbcType="VARCHAR"/>
         <result column="product_model" property="productModel" jdbcType="VARCHAR"/>
+
+        <result column="mortgage_status" property="mortgageStatus" jdbcType="VARCHAR"/>
+        <result column="mortgage_status_n" property="mortgageStatusN" jdbcType="VARCHAR"/>
+        <result column="bp_id_tenant_n" property="bpIdTenantN" jdbcType="VARCHAR"/>
+        <result column="business_type" property="businessType" jdbcType="VARCHAR"/>
+        <result column="business_type_n" property="businessTypeN" jdbcType="VARCHAR"/>
+        <result column="division_n" property="divisionN" jdbcType="VARCHAR"/>
+        <result column="employee_id_n" property="employeeIdN" jdbcType="VARCHAR"/>
+        <result column="unit_id_n" property="unitIdN" jdbcType="VARCHAR"/>
+        <result column="actual_pay_date" property="actualPayDate" jdbcType="DATE"/>
+        <result column="mortgage_approved_date" property="mortgageApprovedDate" jdbcType="DATE"/>
+        <result column="process_instance_id" property="processInstanceId" jdbcType="DECIMAL"/>
     </resultMap>
 
     <select id="HlsContractListQuery" resultMap="BaseResultMap">
@@ -104,7 +116,7 @@
                 and v.manufacturer_id_n = #{manufacturerIdN}
             </if>
             <if test="factoryIdN!=null">
-                and  v.factory_id_n  = #{factoryIdN}
+                and v.factory_id_n = #{factoryIdN}
             </if>
             <if test="tenantName!=null">
                 and v.tenant_name like concat(concat('%',#{tenantName}),'%')
@@ -209,23 +221,23 @@
                      cc.manufacturer_id,
                      (Select hbv.bp_code
                       From hls_bp_master hbv
-                      Where hbv.bp_id = cc.manufacturer_id) manufacturer_code,
+                      Where hbv.bp_id = cc.manufacturer_id)        manufacturer_code,
                      (Select hbv.bp_name
                       From hls_bp_master hbv
-                      Where hbv.bp_id = cc.manufacturer_id) manufacturer_id_n,
+                      Where hbv.bp_id = cc.manufacturer_id)        manufacturer_id_n,
                      cc.factory_id,
                      (Select hbv.bp_name
                       From hls_bp_master hbv
-                      Where hbv.bp_id = cc.factory_id) factory_id_n,
+                      Where hbv.bp_id = cc.factory_id)             factory_id_n,
                      (Select hbv.bp_name
                       From hls_bp_master hbv
-                      Where hbv.bp_id = cc.tenant_id) tenant_name,
+                      Where hbv.bp_id = cc.tenant_id)              tenant_name,
                      ccli.contract_lease_item_id,
                      ccli.full_name,
-                     cc.employee_id host_project_manager,
+                     cc.employee_id                                host_project_manager,
                      (select fe.name
                       from fnd_employee fe
-                      where fe.employee_id = cc.employee_id) host_project_manager_n,
+                      where fe.employee_id = cc.employee_id)       host_project_manager_n,
                      hlm.actual_province_code,
                      (select f.description
                       from fnd_province f
@@ -233,7 +245,7 @@
                      hlm.actual_city_code,
                      (select f.description
                       from fnd_city f
-                      where f.city = hlm.actual_city_code) actual_city_code_n,
+                      where f.city = hlm.actual_city_code)         actual_city_code_n,
                      hlm.vehicle_regist_number,
                      hlm.vehicle_owner,
                      hlm.mortgage_regist_number,
@@ -242,17 +254,17 @@
                      ccli.classify_id,
                      (select ic.attribute_value
                       from yx_lease_item_classify ic
-                      where ic.classify_id = ccli.classify_id) classify_id_n,
+                      where ic.classify_id = ccli.classify_id)     classify_id_n,
                      hlm.location,
                      hlm.registration_authority,
                      hlm.description,
                      ccli.product_model
               from con_contract cc
-         left join con_contract_lease_item ccli
-                on cc.contract_id = ccli.contract_id
-        left join hls_lease_mortgage hlm
-                on hlm.contract_lease_item_id = ccli.contract_lease_item_id
-             where cc.document_type in ('CONL', 'CONLB')
+                       left join con_contract_lease_item ccli
+                                 on cc.contract_id = ccli.contract_id
+                       left join hls_lease_mortgage hlm
+                                 on hlm.contract_lease_item_id = ccli.contract_lease_item_id
+              where cc.document_type in ('CONL', 'CONLB')
                  --and cc.contract_status in ('REJECTED', 'APPROVED_RETURN', 'CONDITIONAL', 'APPROVING', 'APPROVED')
              ) v
         where v.contract_id = #{contractId}
@@ -363,7 +375,7 @@
                 and v.manufacturer_id_n = #{manufacturerIdN}
             </if>
             <if test="factoryIdN!=null">
-                and  v.factory_id_n  = #{factoryIdN}
+                and v.factory_id_n = #{factoryIdN}
             </if>
             <if test="tenantName!=null">
                 and v.tenant_name like concat(concat('%',#{tenantName}),'%')
@@ -449,7 +461,7 @@
                 and v.manufacturer_id_n = #{manufacturerIdN}
             </if>
             <if test="factoryIdN!=null">
-                and  v.factory_id_n  = #{factoryIdN}
+                and v.factory_id_n = #{factoryIdN}
             </if>
             <if test="tenantName!=null">
                 and v.tenant_name like concat(concat('%',#{tenantName}),'%')
@@ -466,5 +478,57 @@
         </where>
         order by v.contract_id desc
     </select>
+
+    <select id="findAllByHlsMortgage" resultMap="BaseResultMap">
+        SELECT
+        pp.process_instance_id,
+        pp.project_id,
+        cc.CONTRACT_NUMBER,
+        cc.mortgage_status,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON_CONTRACT.MORTGAGE_STATUS' AND sc.CODE_VALUE
+        = cc.mortgage_status ) mortgage_status_n,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.manufacturer_id ) manufacturer_id_n,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) bp_id_tenant_n,
+        ( SELECT bt.description FROM hls_business_type bt WHERE bt.DOCUMENT_CATEGORY='PRJ_PROJECT' AND bt.business_type
+        = pp.business_type ) business_type_n,
+        cc.division,
+        ( SELECT d.description FROM hls_division d WHERE d.division = pp.division ) division_n,
+        ( SELECT fe.NAME FROM FND_EMPLOYEE fe WHERE fe.EMPLOYEE_ID = pp.EMPLOYEE_ID ) employee_id_n,
+        ( SELECT u.unit_name FROM fnd_org_unit u WHERE u.unit_id = pp.unit_id ) unit_id_n,
+        (
+        SELECT
+        h.actual_pay_date
+        FROM
+        csh_payment_req_hd h,
+        csh_payment_req_ln l,
+        con_contract_cashflow cf
+        WHERE
+        h.payment_req_id = l.payment_req_id
+        AND l.source_doc_category = 'PRJ_PROJECT'
+        AND l.source_doc_id = cf.contract_id
+        AND l.source_doc_line_id = cf.cashflow_id
+        AND cf.contract_id = cc.contract_id
+        ) actual_pay_date ,
+        mortgage_approved_date
+        FROM
+        CON_CONTRACT cc
+        INNER JOIN PRJ_PROJECT pp ON cc.PROJECT_ID = pp.PROJECT_ID
+        <where>
+            1=1
+            <if test="contractNumber != null">
+                and cc.contract_number like  concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="mortgageStatus != null">
+                and cc.mortgage_status = #{mortgageStatus}
+            </if>
+            <if test="manufacturerIdN != null">
+                and ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.manufacturer_id ) like concat(concat('%',#{manufacturerIdN}),'%')
+            </if>
+            <if test="bpIdTenantN != null">
+                 and (SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) like concat(concat('%',#{bpIdTenantN}),'%')
+            </if>
+        </where>
+    </select>
+
 
 </mapper>
