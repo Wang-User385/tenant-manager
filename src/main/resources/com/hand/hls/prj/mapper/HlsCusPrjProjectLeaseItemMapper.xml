@@ -122,6 +122,27 @@
         <result column="document_type" property="documentType" jdbcType="VARCHAR" />
         <result column="division" property="division" jdbcType="VARCHAR" />
         <result column="project_status" property="projectStatus" jdbcType="VARCHAR" />
+        <result column="voiture_type" property="voitureType" jdbcType="VARCHAR" />
+        <result column="vehicle_capacity" property="vehicleCapacity" jdbcType="VARCHAR" />
+        <result column="selling_price" property="sellingPrice" jdbcType="DECIMAL" />
+        <result column="list_price" property="listPrice" jdbcType="DECIMAL" />
+        <result column="loan_purpose" property="loanPurpose" jdbcType="VARCHAR" />
+        <result column="first_registration_date" property="firstRegistrationDate" jdbcType="DATE" />
+        <result column="transfer_registration_date" property="transferRegistrationDate" jdbcType="DATE" />
+        <result column="plate_type" property="plateType" jdbcType="VARCHAR" />
+        <result column="nature_of_vehicle" property="natureOfVehicle" jdbcType="VARCHAR" />
+        <result column="first_plate_date" property="firstPlateDate" jdbcType="DATE" />
+        <result column="license_plate_ownership" property="licensePlateOwnership" jdbcType="VARCHAR" />
+        <result column="odometer_reading" property="odometerReading" jdbcType="DECIMAL" />
+        <result column="gps_is_installation" property="gpsIsInstallation" jdbcType="VARCHAR" />
+        <result column="gps_fee" property="gpsFee" jdbcType="DECIMAL" />
+        <result column="plate_invoice_amount" property="plateInvoiceAmount" jdbcType="DECIMAL" />
+        <result column="accessory_amount" property="accessoryAmount" jdbcType="DECIMAL" />
+        <result column="vehicle_age" property="vehicleAge" jdbcType="DECIMAL" />
+        <result column="prop_person" property="propPerson" jdbcType="VARCHAR" />
+        <result column="vehicle_tax" property="vehicleTax" jdbcType="DECIMAL" />
+        <result column="fuel_type" property="fuelType" jdbcType="VARCHAR" />
+        <result column="is_import" property="isImport" jdbcType="VARCHAR" />
     </resultMap>
 
     <delete id="deleteLeaseItemByProjectId" parameterType="java.lang.Long">
@@ -196,13 +217,53 @@
         (select t.description
         from hls_business_type t
         where t.document_category = 'REGULATORY_ASSET_CLASS'
-        and t.business_type = hli.asset_types) ITEM_TYPE_N
+        and t.business_type = hli.asset_types) ITEM_TYPE_N,
+        hcli.manufacturer,
+        hcli.lease_item_name,
+        hcli.voiture_type,
+        hcli.brand_c,
+        hcli.model_c,
+        hcli.series_c,
+        hcli.color_c,
+        hcli.vehicle_capacity,
+        hcli.frame_number,
+        hcli.engine_number,
+        hcli.evaluation_value,
+        hcli.price,
+        hcli.selling_price,
+        hcli.list_price,
+        hcli.loan_purpose,
+        hcli.lease_item_amount,
+        hcli.product_date,
+        hcli.first_registration_date,
+        hcli.transfer_registration_date,
+        hcli.plate_type,
+        hcli.license_plate_number,
+        hcli.nature_of_vehicle,
+        hcli.city_code,
+        (select f.description
+        from fnd_city f
+        where f.enabled_flag = 'Y'
+        and f.city = hcli.city_code) city_code_n,
+        hcli.first_plate_date,
+        hcli.license_plate_ownership,
+        hcli.odometer_reading,
+        hcli.gps_is_installation,
+        hcli.gps_fee,
+        hcli.plate_invoice_amount,
+        hcli.accessory_amount,
+        hcli.vehicle_age,
+        hcli.prop_person,
+        hcli.purchase_tax,
+        hcli.vehicle_tax,
+        hcli.fuel_type,
+        hcli.is_import
         from prj_project_lease_item hcli,hls_lease_item hli
         <where>
             hli.LEASE_ITEM_ID = hcli.LEASE_ITEM_ID
             and hli.enabled_flag = 'Y'
             and hli.LEASE_ITEM_TYPE in ('LEASE')
-            and hcli.project_id = #{projectId}
+            and hcli.project_lease_item_id = #{projectLeaseItemId}
         </where>
        <!--select pp.*,
         (select bp_name from hls_bp_master where bp_id = pp.evaluation_bp_id) evaluation_bp_name,

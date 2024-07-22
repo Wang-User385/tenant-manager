@@ -9003,6 +9003,11 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         PageHelper.startPage(pageNum,pageSize);
         return hlsCusPrjProjectMapper.manufacturerQueryProductInfo2(hlsCusPrjProject);
     }
+    @Override
+    public List<HlsCusPrjProject> manufacturerQueryProductInfo3(IRequest iRequest, HlsCusPrjProject hlsCusPrjProject, int pageNum, int pageSize) {
+        PageHelper.startPage(pageNum,pageSize);
+        return hlsCusPrjProjectMapper.manufacturerQueryProductInfo3(hlsCusPrjProject);
+    }
     /**
      * 当前登录用户信息获取
      *

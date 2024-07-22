@@ -2367,6 +2367,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd = new HlsCusCshPaymentReqHd();
         Long paymentReqId = hlsCusCshPaymentTran.getPaymentReqId();
         hlsCusCshPaymentReqHd.setPaymentReqId(paymentReqId);
+        hlsCusCshPaymentReqHd.setActualPayDate(hlsCusCshPaymentTran.getTransactionDate());
         hlsCusCshPaymentReqHd = cshPaymentReqHdService.selectByPrimaryKey(iRequest, hlsCusCshPaymentReqHd);
         hlsCusCshPaymentReqHd = hlsCusCshPaymentReqHdMapper.retailPaymentQuery(hlsCusCshPaymentReqHd).get(0);
 

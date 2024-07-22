@@ -40,7 +40,7 @@ public class ProjectLeaseItemDetailController extends BaseController {
     public ResponseData queryPrjLeaseItemDetail(HlsCusConFloatingRateReqLn dto, @ModelAttribute("_request_data") LeafRequestData requestData, @RequestParam(defaultValue = "1") int pagenum, @RequestParam(defaultValue = "10") int pagesize, HttpServletRequest request) {
         IRequest requestContext = this.createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
-        Long projectLeaseItemId = param.getLong("project_lease_item_id");
+        //Long projectLeaseItemId = param.getLong("project_lease_item_id");
         HlsCusPrjProjectLeaseItem dto1 = param.toJavaObject(HlsCusPrjProjectLeaseItem.class);
         List<HlsCusPrjProjectLeaseItem> list = hlsCusPrjProjectLeaseItemMapper.queryPrjProjectLeaseItem(dto1);
         return new ResponseData(list);

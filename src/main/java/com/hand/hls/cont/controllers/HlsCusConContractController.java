@@ -20,6 +20,7 @@ import com.hand.hls.gld.service.HlsCusConContractService;
 import com.hand.hls.gld.service.IGldContractCashflowService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectInfo;
+import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
@@ -906,6 +907,18 @@ public class HlsCusConContractController extends BaseController {
             return new ResponseData(false, "合同编号不能为空!");
         }
         return new ResponseData(service.queryContractIdByContractNumber(contractNumber));
+    }
+    /**
+     * 进件合同起租列表页面查询
+     */
+    @RequestMapping(value = "/contract/queryContractInceptList")
+    @ResponseBody
+    public ResponseData queryContractInceptList(HlsCusConFloatingRateReqLn dto, @ModelAttribute("_request_data") LeafRequestData requestData, @RequestParam(defaultValue = "1") int pagenum, @RequestParam(defaultValue = "10") int pagesize, HttpServletRequest request) {
+        IRequest requestContext = this.createRequestContext(request);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject dto1 = param.toJavaObject(HlsCusPrjProject.class);
+        List<HlsCusConContract> list = service.queryContractInceptInfoMain(requestContext,dto1, pagenum, pagesize);
+        return new ResponseData(list);
     }
 
 

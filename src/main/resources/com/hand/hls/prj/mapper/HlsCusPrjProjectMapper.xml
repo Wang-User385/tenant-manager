@@ -10742,6 +10742,13 @@ WHERE
         <result column="order_status" property="order_status"/>
         <result column="order_status_n" property="order_status_n"/>
         <result column="driver_and_applicant" property="driver_and_applicant"/>
+        <result column="pmt" property="pmt"/>
+        <result column="down_payment" property="down_payment"/>
+        <result column="down_payment_ratio" property="down_payment_ratio"/>
+        <result column="lease_times" property="lease_times"/>
+        <result column="finance_amount" property="finance_amount"/>
+        <result column="id_card_no" property="id_card_no"/>
+        <result column="unit_id_n" property="unit_id_n"/>
     </resultMap>
     <select id="prjRpLModifyQuery" resultMap="PrjRpLModifyQueryMap">
         SELECT pp.project_id,
@@ -12209,6 +12216,13 @@ WHERE
             AND v.project_name like concat(concat('%',#{projectName}),'%')
         </if>
     </select>
+    <select id="manufacturerQueryProductInfo3"  parameterType="com.hand.hls.prj.dto.HlsCusPrjProject"
+            resultMap="BaseResultMap" >
+        select b.bp_name FROM hls_bp_master b where b.bp_type = 'MANUFACTURER' and b.enabled_flag= 'Y'
+        <if test="projectName!=null">
+            AND v.project_name like concat(concat('%',#{projectName}),'%')
+        </if>
+    </select>
 
     <select id="checkLeaseItemCheck" resultType="java.lang.String">
         select max(contract_number)
@@ -12769,4 +12783,315 @@ WHERE
         where  pp.project_id = #{projectId}
     </select>
 
+    <!--进件创建列表页面查询-->
+    <select id="prjProjectListQuery" resultMap="PrjRpModifyMap">
+        SELECT v.*
+        FROM (SELECT pp.project_id,
+        pp.project_name,
+        pp.project_number,
+        pp.project_status,
+        pp.document_type,
+        pp.creation_date,
+        hbm.bp_name,
+        hbm.bp_class,
+        pp.FINANCE_AMOUNT,
+        pp.employee_id,
+        (SELECT fe.NAME
+        FROM fnd_employee fe
+        WHERE fe.employee_id = pp.employee_id) employee_id_n,
+        pp.created_by,
+        pp.lease_organization,
+        (SELECT fou.UNIT_NAME
+        FROM fnd_org_unit fou
+        WHERE pp.LEASE_ORGANIZATION = fou.UNIT_CODE
+        AND fou.ENABLED_FLAG = 'Y') lease_organization_n,
+        (SELECT v.meaning
+        FROM sys_code_value_b v, sys_code_b b
+        WHERE b.CODE = 'PRJ501_PRJ_STATUS'
+        AND v.code_id = b.code_id
+        AND v. VALUE = pp.project_status) project_status_n,
+        pp.business_type,
+        (SELECT hdt.description
+        FROM hls_document_type hdt
+        WHERE hdt.business_type = pp.business_type
+        AND hdt.document_category = pp.document_category
+        AND hdt.document_type = pp.document_type) AS business_type_n,
+        pp.lease_channel,
+        (SELECT hlc.description
+        FROM hls_lease_channel hlc
+        WHERE hlc.lease_channel = pp.lease_channel) lease_channel_n,
+        (SELECT hbv.bp_name
+        FROM hls_bp_master hbv
+        WHERE hbv.bp_id = pp.manufacturer_id) manufacturer_name,
+        pp.MANUFACTURER_ID,
+        pp.TENANT_ID,
+        pp.division,
+        (SELECT t.description
+        FROM hls_division t
+        WHERE t.division = pp.division
+        AND t.enabled_flag = 'Y') division_n,
+        pp.pre_status,
+        decode(pp.pre_status,
+        'NEW',
+        '新建',
+        'APPROVING',
+        '审批中',
+        'APPROVED',
+        '审批通过',
+        'CLOSED',
+        '关闭') pre_status_n,
+        pp.order_status,
+        decode(pp.order_status,
+        'START',
+        '开启',
+        'INCEPT',
+        '起租',
+        'CLOSED',
+        '关闭') order_status_n,
+        pp.driver_and_applicant,
+        pp.process_instance_id,
+        pp.approved_date
+        FROM prj_project pp
+        LEFT JOIN hls_bp_master hbm
+        ON pp.TENANT_ID = hbm.bp_id) v
+        <where>
+            <if test="createdBy!=null">
+                and (v.created_by = #{createdBy}
+                or exists(
+                select 1
+                from fnd_org_unit fu,  sys_user_allocation su,fnd_employee_assigns fa
+                where su.user_id=#{createdBy}
+                and su.EMPLOYEE_ASSIGN_ID=fa.EMPLOYEE_ASSIGN_ID
+                and fa.unit_id =fu.unit_id
+                and fu.unit_code != 'BUSINESS_DEPT_MANUFACTURER')
+                )
+            </if>
+            <if test="bpName!=null">
+                and v.bp_name like concat('%',concat(#{bpName},'%'))
+            </if>
+            <if test="manufacturerName != null">
+                and v.manufacturer_name like concat('%',concat(#{manufacturerName},'%'))
+            </if>
+            <if test="projectNumber!=null">
+                and v.project_number like concat('%',concat(#{projectNumber},'%'))
+            </if>
+            <if test="employeeIdN!=null">
+                and v.employee_id_n = #{employeeIdN}
+            </if>
+        </where>
+        order by v.project_id desc
+    </select>
+    <!--进件创建明细页面基本信息查询-->
+    <select id="prjProjectInfoQuery" resultMap="PrjRpLModifyQueryMap">
+        SELECT pp.project_id,
+               pp.project_number,
+               pp.project_name,
+               pp.document_type,
+               pp.tenant_id,
+               pp.project_status,
+               to_date(to_char(pp.creation_date, 'yyyy-mm-dd'), 'yyyy-mm-dd') create_date,
+               pp.employee_id,
+               (SELECT fe.NAME
+                FROM fnd_employee fe
+                WHERE fe.employee_id = pp.employee_id) employee_id_n,
+               pp.lease_channel,
+               pp.business_type,
+               pp.division,
+               pp.lease_start_date,
+               pp.description,
+               hbm.bp_code,
+               hbm.bp_class,
+               (SELECT hbt.description AS value_name
+                FROM hls_business_type hbt
+                WHERE hbt.document_category = 'HLS_BP_MASTER'
+                  AND hbt.business_type = hbm.bp_class) bp_class_N,
+               (SELECT hd.description
+                FROM hls_division hd
+                WHERE hd.division = pp.DIVISION) AS division_n,
+               (SELECT v.meaning
+                FROM sys_code_value_b_v v
+                WHERE v.CODE = 'INDUSTRY_TYPE'
+                  AND v.code_value = pp.industry_type) industry_type_n,
+               (SELECT v.description value_name
+                FROM hls_document_type v
+                WHERE V.enabled_flag = 'Y'
+                  AND v.document_category = 'PRJ_PROJECT_IMPORT'
+                  and v.document_type in ('PRJL', 'PRJLB')
+                  AND v.document_type = pp.document_type) document_type_n,
+               (SELECT bt.description
+                FROM hls_business_type bt
+                WHERE bt.document_category = 'PRJ_PROJECT_IMPORT'
+                  AND bt.business_type = pp.business_type) business_type_n,
+               (SELECT hbm.bp_name
+                FROM hls_bp_master hbm
+                WHERE hbm.bp_id = pp.tenant_id) tenant_id_n,
+               (SELECT t1.description
+                FROM hls_lease_channel t1
+                WHERE t1.lease_channel = pp.lease_channel) lease_channel_n,
+               (SELECT fou.UNIT_NAME
+                FROM fnd_org_unit fou
+                WHERE pp.unit_id = fou.unit_id
+                  AND fou.ENABLED_FLAG = 'Y') unit_id_n,
+               (SELECT v.meaning
+                FROM sys_code_value_b_v v
+                WHERE v.CODE = 'PRJ501_PRJ_STATUS'
+                  AND v.code_value = pp.project_status) project_status_n,
+               pp.factory_id,
+               (SELECT hb.bp_name
+                FROM hls_bp_master hb
+                WHERE hb.bp_id = pp.factory_id) factory_id_n,
+               pp.bp_id_vender,
+               (SELECT hb.bp_name
+                FROM hls_bp_master hb
+                WHERE hb.bp_id = pp.bp_id_vender) bp_id_vender_n,
+               pp.manufacturer_id,
+               (SELECT hb.bp_name
+                FROM hls_bp_master hb
+                WHERE hb.bp_id = pp.manufacturer_id) manufacturer_id_n,
+               (SELECT hb.bp_code
+                FROM hls_bp_master hb
+                WHERE hb.bp_id = pp.manufacturer_id) manufacturer_code,
+               pp.currency,
+               (select li.brand_c
+                from prj_project_lease_item li
+                where li.project_id = pp.project_id
+                  and rownum = 1) vehicle_brand,
+               (select li.model_c
+                from prj_project_lease_item li
+                where li.project_id = pp.project_id
+                  and rownum = 1) vehicle_model,
+               (select li.frame_number
+                from prj_project_lease_item li
+                where li.project_id = pp.project_id
+                  and rownum = 1) vehicle_vin_code,
+               (select li.list_price
+                from prj_project_lease_item li
+                where li.project_id = pp.project_id
+                  and rownum = 1) vehicle_price,
+               (select pq.pmt
+                from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                  and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                  and rownum = 1) monthly_repayment_amount,
+               pp.pre_status,
+               decode(pp.pre_status,
+                      'NEW',
+                      '新建',
+                      'APPROVING',
+                      '审批中',
+                      'APPROVED',
+                      '审批通过',
+                      'CLOSED',
+                      '关闭') pre_status_n,
+               pp.order_status,
+               decode(pp.order_status,
+                      'START',
+                      '开启',
+                      'INCEPT',
+                      '起租',
+                      'CLOSED',
+                      '关闭') order_status_n,
+               pp.driver_and_applicant,
+               hbm.id_card_no,
+               pp.finance_amount,
+               (select pq.lease_times
+                from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                  and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                  and rownum = 1) lease_times,
+               (select pq.down_payment_ratio
+                from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                  and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                  and rownum = 1) down_payment_ratio,
+               (select pq.down_payment
+                from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                  and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                  and rownum = 1) down_payment
+        FROM prj_project pp
+                 LEFT JOIN hls_bp_master hbm
+                           ON hbm.bp_id = pp.tenant_id
+        where pp.project_id = #{projectId}
+    </select>
+
+    <select id="prjProjectBpInfoQuery" resultMap="PrjProjectBpTenantQueryMap">
+        SELECT
+            pp.project_id,
+            pp.TENANT_ID bp_id,
+            ppb.PRJ_BP_ID,
+            hbm.bp_name tenant_name,
+            hbm.bp_class,
+            ( SELECT hbt.description AS value_name FROM hls_business_type hbt WHERE hbt.document_category = 'HLS_BP_MASTER' AND hbt.business_type = hbm.bp_class ) bp_class_N,
+            pp.description,
+            '客户明细信息' bp_info_link,
+            hbm.bp_code,
+            ppb.bp_categroy bp_category,
+            (select bc.description from hls_bp_category bc where bc.bp_category = ppb.bp_categroy) bp_category_n,
+            ppb.ref_v02
+        FROM
+            prj_project pp LEFT JOIN prj_project_bp ppb ON ppb.PROJECT_ID = pp.PROJECT_ID LEFT JOIN hls_bp_master hbm ON hbm.bp_id = ppb.bp_id
+        WHERE
+            pp.project_id = #{projectId}
+    </select>
+
+    <!--项目进件 租赁物-->
+    <select id="prjProjectItemListQuery" resultMap="PrjProjectLIQueryMap">
+        select ppl.project_lease_item_id,
+               ppl.project_id,
+               ppl.contract_seq,
+               ppl.short_name,
+               ppl.full_name full_name,
+               ppl.price,
+               ppl.brand_c,
+               ppl.series_c,
+               ppl.model_c,
+               ppl.trailer_flag,
+               (SELECT v.meaning
+                FROM sys_code_value_b_v v
+                WHERE v. CODE = 'TRAILER_FLAG'
+                  AND v.code_value = ppl.trailer_flag) trailer_flag_n,
+               (select pp.manufacturer_id
+                from prj_project pp
+                where pp.project_id = ppl.project_id) manufacturer_id,
+               (SELECT hb.bp_name
+                FROM hls_bp_master hb
+                WHERE hb.bp_id = (select ppr.manufacturer_id
+                                  from prj_project ppr
+                                  where ppr.project_id = ppl.project_id)) manufacturer_id_n,
+               ppl.color_c,
+               ppl.age_c,
+               ppl.vehicle_capacity,
+               ppl.selling_price,
+               ppl.list_price,
+               ppl.loan_purpose,
+               ppl.first_registration_date,
+               ppl.transfer_registration_date,
+               ppl.plate_type,
+               decode(ppl.nature_of_vehicle, '1', '营运', '2', '非营运', ' ') nature_of_vehicle_n,
+               ppl.first_plate_date,
+               ppl.license_plate_ownership,
+               ppl.odometer_reading,
+               decode(ppl.gps_is_installation, 'Y', '是', 'N', '否', ' ') gps_is_installation,
+               ppl.gps_fee,
+               ppl.plate_invoice_amount,
+               ppl.accessory_amount,
+               ppl.vehicle_age,
+               ppl.vehicle_tax,
+               decode(ppl.fuel_type,
+                      '01',
+                      '汽油',
+                      '02',
+                      '柴油',
+                      '03',
+                      '纯电动',
+                      '04',
+                      '混动',
+                      ' ') fuel_type_n,
+               decode(is_import, '1', '是', '2', '否', ' ') is_import,
+               ppl.finance_amount
+        from prj_project_lease_item ppl, prj_project pp
+        where ppl.project_id = pp.project_id
+          and ppl.project_id = #{projectId}
+    </select>
 </mapper>

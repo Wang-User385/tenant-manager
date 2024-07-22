@@ -351,12 +351,26 @@ public class HlsCusCshPaymentReqHd extends CshPaymentReqHd {
     private String approvalNumber;
     @Transient
     private Double unpaid;
+    @Transient
+    private String projectNumber;
 
     private String postItfcFlag;
     private String itfcDocument;
     private String postItfcCode;
     private String postItfcMsg;
     private Date postApprovedDate;
+    private Date applyPayDate;
+    private Double amount;
+    @Transient
+    private String bpName;
+    @Transient
+    private String manufacturerName;
+    @Transient
+    private String idCardNo;
+    @Transient
+    private String phone;
+    @Transient
+    private Long contractId;
 
     public Long getUnitId() {
         return unitId;

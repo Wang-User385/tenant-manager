@@ -233,6 +233,7 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
 
     void saveDescription(HlsCusPrjProject hlsCusPrjProject);
     List<HlsCusPrjProject> manufacturerQueryProductInfo2(HlsCusPrjProject hlsCusPrjProject);
+    List<HlsCusPrjProject> manufacturerQueryProductInfo3(HlsCusPrjProject hlsCusPrjProject);
     void updateStatus(HlsCusPrjProject hlsCusPrjProject);
 
     String checkLeaseItemCheck(@Param("itemNumber")String itemNumber,@Param("columnName")String columnName
@@ -273,4 +274,14 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     String getProjectStatusByProjectId(@Param("projectId")Long projectId);
 
     HlsCusPrjProject getSinglePrjProjectByProjectId(@Param("projectId")Long projectId);
+
+    List<Map> prjProjectListQuery(Map prjRpModifyMap);
+
+    Map prjProjectInfoQuery(HlsCusPrjProject hlsCusPrjProject);
+
+    Map prjProjectBpInfoQuery(HlsCusPrjProject hlsCusPrjProject);
+
+    List<Map> prjProjectLIQuery(Map prjRpModifyMap);
+
+    List<Map> prjProjectItemListQuery(Map prjRpModifyMap);
 }

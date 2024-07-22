@@ -3166,6 +3166,22 @@ public class HlsCusPrjProjectController extends BaseController {
 //        }
         return new ResponseData(service.manufacturerQueryProductInfo2(iRequest, dto, pagenum, pagesize));
     }
+    @RequestMapping(value = "/hls/manufacturer/reply/product/query3")
+    @ResponseBody
+    public ResponseData manufacturerBpCreditLineQuery2(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,
+                                                       @RequestParam(defaultValue = "") String latestFlag,
+                                                       @RequestParam(required = false) Long replyId,
+                                                       @RequestParam(defaultValue = DEFAULT_PAGE) int pagenum,
+                                                       @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pagesize,
+                                                       HttpServletRequest request) {
+
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        IRequest iRequest = createRequestContext(request);
+        RequestHelper.setCurrentRequest(iRequest);
+        HlsCusPrjProject dto =param.toJavaObject(HlsCusPrjProject.class);
+
+        return new ResponseData(service.manufacturerQueryProductInfo3(iRequest, dto, pagenum, pagesize));
+    }
     /**
      * 当前登录用户信息获取
      * @param request
