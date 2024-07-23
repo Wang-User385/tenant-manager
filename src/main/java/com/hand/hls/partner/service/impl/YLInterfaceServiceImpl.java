@@ -82,7 +82,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(ss, PlaceOrderDTO.class);
 
-
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         JSONObject jsonObject1 = new JSONObject();
 
         //判断该客户存不存在
@@ -99,6 +99,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setBpName(placeOrderDTO.getName());
             bpMaster.setIdCardNo(placeOrderDTO.getIdCardNo());
             bpMaster.setPhone(placeOrderDTO.getMobile());
+            Date idExpirationDate = simpleDateFormat.parse(placeOrderDTO.getIdexp());
+            Date idIssueDate = simpleDateFormat.parse(placeOrderDTO.getIdissue());
+            bpMaster.setIdIssueDate(idIssueDate);
+            bpMaster.setIdExpirationDate(idExpirationDate);
+            bpMaster.setCreationDate(new Date());
             bpMaster.setBpClass("NP");
             bpMaster.setIdType("ID_CARD");
             hlsCusBpMasterMapper.insert(bpMaster);

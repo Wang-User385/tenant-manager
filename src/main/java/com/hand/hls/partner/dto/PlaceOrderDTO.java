@@ -18,10 +18,10 @@ public class PlaceOrderDTO extends BaseDTO {
     private String mobile;
     @NotBlank(message = "产品码不能为空")
     private String productCode;
-    @NotBlank(message = "合作机构单号不能为空")
-    private String idissue;
     @NotBlank(message = "证件签发日期不能为空")
-    private String idexp;
+    private String idissue;
     @NotBlank(message = "证件到期日期为空")
+    private String idexp;
+    @NotBlank(message = "合作机构单号不能为空")
     private String outBizNo;
 }
