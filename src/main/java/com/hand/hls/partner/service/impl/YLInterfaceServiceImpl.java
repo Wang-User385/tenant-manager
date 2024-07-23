@@ -78,7 +78,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "下单", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-B001-下单", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(ss, PlaceOrderDTO.class);
 
@@ -179,7 +179,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception{
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "关单", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-B005-关单", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         CloseOrderDTO closeOrderDTO = JSONObject.parseObject(ss, CloseOrderDTO.class);
 
@@ -213,7 +213,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject queryOrder(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "订单查询", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A001-订单查询", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         QueryOrderDTO queryOrderDTO = JSONObject.parseObject(ss, QueryOrderDTO.class);
 
@@ -252,7 +252,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "还款", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A002-还款", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         RepayMent repayMent = JSONObject.parseObject(ss, RepayMent.class);
 
@@ -306,7 +306,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代偿试算", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A003-代偿试算", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(ss, CompensatoryTrialCalculationDTO.class);
 
@@ -351,7 +351,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代偿试算", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A004-代偿请求", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.parseObject(ss, ClaimsSubrogationDTO.class);
 
@@ -385,7 +385,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代偿试算", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A005-提前结清试算", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(ss, AdvancesSettleComputeDTO.class);
 
@@ -412,7 +412,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代偿请求", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A006-提前结清请求", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         AdvancesSettleRequestDTO advancesSettleRequestDTO = JSONObject.parseObject(ss, AdvancesSettleRequestDTO.class);
 
@@ -433,7 +433,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "数据采集", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-B002-数据采集", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(ss, DataAcquisitionDTO.class);
 
@@ -1035,7 +1035,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "逾期回购试算", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A007-逾期回购试算", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(ss, OverdueRepurchaseTrialCalculationDTO.class);
 
@@ -1055,7 +1055,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "逾期回购请求", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A008-逾期回购请求", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO = JSONObject.parseObject(ss, OverdueRepurchaseRequestDTO.class);
 
@@ -1075,7 +1075,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject queryWithholdingState(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代扣状态查询", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A009-代扣状态查询", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.parseObject(ss, QueryWithholdingStateDTO.class);
 
@@ -1095,7 +1095,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request)throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "代扣状态查询", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A010-暂停代扣", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         StopWithholdingDTO stopWithholdingDTO = JSONObject.parseObject(ss, StopWithholdingDTO.class);
 
@@ -1115,7 +1115,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request)throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "恢复代扣", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A011-恢复代扣", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         RecoverWithholdingDTO recoverWithholdingDTO = JSONObject.parseObject(ss, RecoverWithholdingDTO.class);
 
@@ -1135,7 +1135,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request)throws Exception {
 
         //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "恢复代扣", request, iRequest);
+        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-B004-业务申请", request, iRequest);
         String  ss = RsaAesUtils.decryptedData(jsonObject);
         BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(ss, BusinessApplicationDTO.class);
 
