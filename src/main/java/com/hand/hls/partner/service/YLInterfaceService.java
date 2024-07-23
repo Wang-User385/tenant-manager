@@ -38,4 +38,6 @@ public interface YLInterfaceService {
     JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
 
     JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request) throws Exception;
+
+    String imageSync(String decryptedStr);
 }

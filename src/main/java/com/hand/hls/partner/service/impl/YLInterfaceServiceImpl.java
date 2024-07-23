@@ -18,6 +18,7 @@ import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.partner.dto.*;
+import com.hand.hls.partner.mapper.UploadAttachListMapper;
 import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.partner.util.RsaAesUtils;
 import com.hand.hls.prj.dto.*;
@@ -26,6 +27,7 @@ import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,6 +74,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private TongDunService tongDunService;
     @Autowired
     private HlsCusPrjProjectAttachmentMapper hlsCusPrjProjectAttachmentMapper;
+    @Autowired
+    private UploadAttachListMapper uploadAttachListMapper;
 
     @Override
     @Transactional
@@ -1312,5 +1316,95 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests.setReturnStatus("E");
         hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
         return encryptedResJson;
+    }
+    public String imageSync(String decryptedStr){
+        ImageSyncDTO imageSyncDTO = JSONObject.parseObject(decryptedStr, ImageSyncDTO.class);
+        JSONObject resJson = new JSONObject();
+
+        String orderNo = imageSyncDTO.getOrderNo();
+        List<File> files = imageSyncDTO.getFiles();
+
+        for(File file : files){
+            //step1 影像文件是否已上传
+            String fileId = file.getFileId();
+            UploadAttachList uploadAttachList = uploadAttachListMapper.selectByFileId(fileId);
+            if(uploadAttachList == null){
+                resJson.put("success",false);
+                resJson.put("message","fileId[" + fileId + "]不存在");
+                return JSONObject.toJSONString(resJson);
+            }
+            if(!"Y".equals(uploadAttachList.getUploadFlag())){
+                resJson.put("success",false);
+                resJson.put("message","fileId[" + fileId + "]影像文件未上传");
+                return JSONObject.toJSONString(resJson);
+            }
+            //step2 根据文件类型，检查单据是否可以更新,覆盖更新附件
+            String fileType = file.getFileType();
+            /**
+             * fileType                               材料名称                                       传输时机
+             *JY_FQ_XXCJSYSQ                         个人信息采集及使用授权协议                         风控预审前
+             *TRADE                                  汽车买卖合同                                    申请放款前
+             *CAR_SERVICE                            车辆服务协议                                    申请放款前
+             *CAR_HANDOVER_AND_PAY_CONFIRMx0         汽车交付确认书                                  申请放款前
+             *LEASE                                  融资租赁合同                                    申请放款前
+             *NOTICEx0                               客户告知函                                     申请放款前
+             *OWNERSHIP_STATEMENT                    租赁物所有权转移接受确认函                         申请放款前
+             *CONFIRM_PAYMENT_DELEGATION             委托付款确认书                                  申请放款前
+             *AUTHORIZATIONx0                        授权委托书（抵押物）                             申请放款前
+             *MORTGAGE                               车辆抵押合同                                   申请放款前
+             *LICENSE_FRONT_IMGS                     行驶证正面                                     申请放款前（再次）
+             *DRIVEN_LICENSE_SUB                     驾照主副页                                     申请放款前（再次）
+             *REGISTRATION_CERTIFICATE               登记证                                        申请放款前（再次）
+             *PERSON_AND_CAR                         承租人、车辆、业务员合影                          申请放款前（再次）
+             *LICENSE_AND_PICK_UP_IMG                行驶证+车钥匙+身份证+前挡风玻璃vin码+提车确认单图片   申请放款前（再次）
+             *VEHICLE_CERTIFICATE                    车辆合格证                                     申请放款前（再次）
+             *INSURANCE_POLICYx0                     保险（车辆保险单）-支持多张，最多6张                申请放款前（再次）
+             *REGISTRATION_CERTIFICATE_MORTGAGED     有抵押信息后的登记证（首页至空白页）                 抵押材料审核前
+             *ASSET_TRANSFER_AGREE                   资产转让协议                                    结清后
+             */
+            HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(orderNo);
+            //预审前
+            if("JY_FQ_XXCJSYSQ".equals(fileType)){
+                String preStatus = hlsCusPrjProject.getPreStatus();
+                if(StringUtils.isNotEmpty(preStatus) && !"NEW".equals(preStatus)){
+                    resJson.put("success",false);
+                    resJson.put("message","fileId[" + fileId + "],进件已完成预审，“个人信息采集及使用授权协议”不允许同步");
+                    return JSONObject.toJSONString(resJson);
+                }
+            }else{
+
+            }
+            //放款前
+            if("TRADE".equals(fileType) || "CAR_SERVICE".equals(fileType) || "CAR_HANDOVER_AND_PAY_CONFIRMx0".equals(fileType) || "LEASE".equals(fileType)
+                    || "NOTICEx0".equals(fileType) || "OWNERSHIP_STATEMENT".equals(fileType) || "CONFIRM_PAYMENT_DELEGATION".equals(fileType) || "AUTHORIZATIONx0".equals(fileType)
+                    || "MORTGAGE".equals(fileType) || "LICENSE_FRONT_IMGS".equals(fileType) || "DRIVEN_LICENSE_SUB".equals(fileType) || "REGISTRATION_CERTIFICATE".equals(fileType)
+                    || "PERSON_AND_CAR".equals(fileType) || "LICENSE_AND_PICK_UP_IMG".equals(fileType) || "VEHICLE_CERTIFICATE".equals(fileType) || "INSURANCE_POLICYx0".equals(fileType)){
+               String investmentStatus = hlsCusPrjProject.getInvestmentStatus();
+               if(StringUtils.isNotEmpty(investmentStatus) && !"NEW".equals(investmentStatus) && !"REJECTED".equals(investmentStatus)){
+                   resJson.put("success",false);
+                   resJson.put("message","fileId[" + fileId + "],进件投放审查流程中/投放审查通过，“申请放款前相关材料”不允许同步");
+                   return JSONObject.toJSONString(resJson);
+               }
+            }else{
+
+            }
+            //抵押材料审核前
+            if("REGISTRATION_CERTIFICATE_MORTGAGED".equals(fileType)){
+
+            }else{
+
+            }
+            //结清后
+            if("ASSET_TRANSFER_AGREE".equals(fileType)){
+
+            }else{
+
+            }
+
+
+        }
+
+
+        return null;
     }
 }
