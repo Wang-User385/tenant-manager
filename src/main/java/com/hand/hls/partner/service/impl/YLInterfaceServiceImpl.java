@@ -3,9 +3,14 @@ package com.hand.hls.partner.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
+import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.mybatis.entity.Example;
 import com.hand.hap.mybatis.provider.ExampleProvider;
 import com.hand.hap.system.dto.ResponseData;
+import com.hand.hls.atm.dto.FndAttachment;
+import com.hand.hls.atm.dto.FndAttachmentMulti;
+import com.hand.hls.atm.mapper.FndAttachmentMapper;
+import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.dto.HlsCusBpMasterBankAccount;
 import com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper;
@@ -76,6 +81,39 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsCusPrjProjectAttachmentMapper hlsCusPrjProjectAttachmentMapper;
     @Autowired
     private UploadAttachListMapper uploadAttachListMapper;
+    @Autowired
+    private FndAttachmentMultiMapper fndAttachmentMultiMapper;
+    @Autowired
+    private FndAttachmentMapper fndAttachmentMapper;
+
+    private static final HashMap<String, HashMap<String,String>> fileTypeMap = new HashMap<String, HashMap<String,String>>();
+    private static void putData(String fileType,String documentName,String projectAttachmentCategory){
+        HashMap<String, String> vMap = new HashMap<>();
+        vMap.put("documentName", documentName);
+        vMap.put("projectAttachmentCategory", projectAttachmentCategory);
+        fileTypeMap.put(fileType,vMap);
+    }
+    static {
+        putData("JY_FQ_XXCJSYSQ","个人信息采集及使用授权协议","EXAMINE");
+        putData("TRADE","汽车买卖合同","CONTRACT");
+        putData("CAR_SERVICE","车辆服务协议","CONTRACT");
+        putData("CAR_HANDOVER_AND_PAY_CONFIRMx0","汽车交付确认书","CONTRACT");
+        putData("LEASE","融资租赁合同","CONTRACT");
+        putData("NOTICEx0","客户告知函","CONTRACT");
+        putData("OWNERSHIP_STATEMENT","租赁物所有权转移接受确认函","CONTRACT");
+        putData("CONFIRM_PAYMENT_DELEGATION","委托付款确认书","CONTRACT");
+        putData("AUTHORIZATIONx0","授权委托书（抵押物）","CONTRACT");
+        putData("MORTGAGE","车辆抵押合同","CONTRACT");
+        putData("LICENSE_FRONT_IMGS","行驶证正面","CONTRACT");
+        putData("DRIVEN_LICENSE_SUB","驾照主副页","CONTRACT");
+        putData("REGISTRATION_CERTIFICATE","登记证","CONTRACT");
+        putData("PERSON_AND_CAR","承租人、车辆、业务员合影","CONTRACT");
+        putData("LICENSE_AND_PICK_UP_IMG","行驶证+车钥匙+身份证+前挡风玻璃vin码+提车确认单图片","CONTRACT");
+        putData("VEHICLE_CERTIFICATE","车辆合格证","CONTRACT");
+        putData("INSURANCE_POLICYx0","保险（车辆保险单）-支持多张，最多6张","CONTRACT");
+        putData("REGISTRATION_CERTIFICATE_MORTGAGED","有抵押信息后的登记证（首页至空白页）","MORTGAGE");
+        putData("ASSET_TRANSFER_AGREE","资产转让协议","");
+    }
 
     @Override
     @Transactional
@@ -1344,12 +1382,63 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
         return encryptedResJson;
     }
+
+    private void replaceAttach(HlsCusPrjProjectAttachment prjAttachment,String fileId){
+        //删除附件
+        FndAttachmentMulti prjMulti = new FndAttachmentMulti();
+        prjMulti.setTableName("PRJ_PROJECT_ATTACHMENT");
+        prjMulti.setTablePkValue(prjAttachment.getProjectAttachmentId().toString());
+        List<FndAttachmentMulti> prjMultiList = fndAttachmentMultiMapper.select(prjMulti);
+        for(FndAttachmentMulti multi : prjMultiList){
+            fndAttachmentMapper.deleteByPrimaryKey(multi.getAttachmentId());
+            fndAttachmentMultiMapper.deleteByPrimaryKey(multi.getRecordId());
+        }
+        //插入附件
+        UploadAttachList uploadAttachList = uploadAttachListMapper.selectByFileId(fileId);
+        FndAttachmentMulti uploadMulti = new FndAttachmentMulti();
+        uploadMulti.setTableName("GT_UPLOAD_ATTACH_LIST");
+        uploadMulti.setTablePkValue(uploadAttachList.getListId().toString());
+        List<FndAttachmentMulti> uploadMultiList = fndAttachmentMultiMapper.select(uploadMulti);
+        for(FndAttachmentMulti multi : uploadMultiList){
+            FndAttachment attach = fndAttachmentMapper.selectByPrimaryKey(multi.getAttachmentId());
+            FndAttachment insertAttach = new FndAttachment();
+            insertAttach.setSourceTypeCode("fnd_atm_attachment_multi");
+            insertAttach.setFileName(attach.getFileName());
+            insertAttach.setFilePath(attach.getFilePath());
+            insertAttach.setMimeType(attach.getMimeType());
+            insertAttach.setFileSize(attach.getFileSize());
+            insertAttach.setFileTypeCode(attach.getFileTypeCode());
+            insertAttach.setCreatedBy(RequestHelper.getCurrentRequest().getUserId());
+            insertAttach.setCreationDate(new Date());
+            insertAttach.setLastUpdatedBy(RequestHelper.getCurrentRequest().getUserId());
+            insertAttach.setLastUpdateDate(new Date());
+            fndAttachmentMapper.insertSelective(insertAttach);
+
+            FndAttachmentMulti insertMulti = new FndAttachmentMulti();
+            insertMulti.setTableName(multi.getTableName());
+            insertMulti.setTablePkValue(multi.getTablePkValue());
+            insertMulti.setAttachmentId(insertAttach.getAttachmentId());
+            insertMulti.setCreatedBy(RequestHelper.getCurrentRequest().getUserId());
+            insertMulti.setCreationDate(new Date());
+            insertMulti.setLastUpdatedBy(RequestHelper.getCurrentRequest().getUserId());
+            insertMulti.setLastUpdateDate(new Date());
+            fndAttachmentMultiMapper.insertSelective(insertMulti);
+
+            FndAttachment condition = new FndAttachment();
+            condition.setAttachmentId(insertAttach.getAttachmentId());
+            condition.setSourcePkValue(insertMulti.getRecordId().toString());
+            fndAttachmentMapper.updateByPrimaryKeySelective(condition);
+        }
+    }
+
     public String imageSync(String decryptedStr){
         ImageSyncDTO imageSyncDTO = JSONObject.parseObject(decryptedStr, ImageSyncDTO.class);
         JSONObject resJson = new JSONObject();
 
         String orderNo = imageSyncDTO.getOrderNo();
         List<File> files = imageSyncDTO.getFiles();
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(orderNo);
+        Long projectId = hlsCusPrjProject.getProjectId();
 
         for(File file : files){
             //step1 影像文件是否已上传
@@ -1365,7 +1454,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 resJson.put("message","fileId[" + fileId + "]影像文件未上传");
                 return JSONObject.toJSONString(resJson);
             }
-            //step2 根据文件类型，检查单据是否可以更新,覆盖更新附件
+            //step2 根据文件类型，检查单据是否可以更新
             String fileType = file.getFileType();
             /**
              * fileType                               材料名称                                       传输时机
@@ -1389,49 +1478,62 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
              *REGISTRATION_CERTIFICATE_MORTGAGED     有抵押信息后的登记证（首页至空白页）                 抵押材料审核前
              *ASSET_TRANSFER_AGREE                   资产转让协议                                    结清后
              */
-            HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(orderNo);
-            //预审前
             if("JY_FQ_XXCJSYSQ".equals(fileType)){
+                //预审前
                 String preStatus = hlsCusPrjProject.getPreStatus();
                 if(StringUtils.isNotEmpty(preStatus) && !"NEW".equals(preStatus)){
                     resJson.put("success",false);
                     resJson.put("message","fileId[" + fileId + "],进件已完成预审，“个人信息采集及使用授权协议”不允许同步");
                     return JSONObject.toJSONString(resJson);
                 }
-            }else{
-
-            }
-            //放款前
-            if("TRADE".equals(fileType) || "CAR_SERVICE".equals(fileType) || "CAR_HANDOVER_AND_PAY_CONFIRMx0".equals(fileType) || "LEASE".equals(fileType)
+            }else if("TRADE".equals(fileType) || "CAR_SERVICE".equals(fileType) || "CAR_HANDOVER_AND_PAY_CONFIRMx0".equals(fileType) || "LEASE".equals(fileType)
                     || "NOTICEx0".equals(fileType) || "OWNERSHIP_STATEMENT".equals(fileType) || "CONFIRM_PAYMENT_DELEGATION".equals(fileType) || "AUTHORIZATIONx0".equals(fileType)
                     || "MORTGAGE".equals(fileType) || "LICENSE_FRONT_IMGS".equals(fileType) || "DRIVEN_LICENSE_SUB".equals(fileType) || "REGISTRATION_CERTIFICATE".equals(fileType)
                     || "PERSON_AND_CAR".equals(fileType) || "LICENSE_AND_PICK_UP_IMG".equals(fileType) || "VEHICLE_CERTIFICATE".equals(fileType) || "INSURANCE_POLICYx0".equals(fileType)){
-               String investmentStatus = hlsCusPrjProject.getInvestmentStatus();
-               if(StringUtils.isNotEmpty(investmentStatus) && !"NEW".equals(investmentStatus) && !"REJECTED".equals(investmentStatus)){
-                   resJson.put("success",false);
-                   resJson.put("message","fileId[" + fileId + "],进件投放审查流程中/投放审查通过，“申请放款前相关材料”不允许同步");
-                   return JSONObject.toJSONString(resJson);
-               }
-            }else{
-
+                //放款前
+                String investmentStatus = hlsCusPrjProject.getInvestmentStatus();
+                if(StringUtils.isNotEmpty(investmentStatus) && !"NEW".equals(investmentStatus) && !"REJECTED".equals(investmentStatus)){
+                    resJson.put("success",false);
+                    resJson.put("message","fileId[" + fileId + "],进件投放审查流程中/投放审查通过，“申请放款前相关材料”不允许同步");
+                    return JSONObject.toJSONString(resJson);
+                }
+            }else if("REGISTRATION_CERTIFICATE_MORTGAGED".equals(fileType)){
+                //抵押材料审核前
+            }else if("ASSET_TRANSFER_AGREE".equals(fileType)){
+                //结清后
             }
-            //抵押材料审核前
-            if("REGISTRATION_CERTIFICATE_MORTGAGED".equals(fileType)){
-
-            }else{
-
+        }
+        //step3 覆盖更新附件
+        for(File file : files){
+            HlsCusPrjProjectAttachment prjAttachment = null;
+            String fileType = file.getFileType();
+            if("JY_FQ_XXCJSYSQ".equals(fileType) || "TRADE".equals(fileType) || "CAR_SERVICE".equals(fileType) || "CAR_HANDOVER_AND_PAY_CONFIRMx0".equals(fileType) || "LEASE".equals(fileType)
+                    || "NOTICEx0".equals(fileType) || "OWNERSHIP_STATEMENT".equals(fileType) || "CONFIRM_PAYMENT_DELEGATION".equals(fileType) || "AUTHORIZATIONx0".equals(fileType)
+                    || "MORTGAGE".equals(fileType) || "LICENSE_FRONT_IMGS".equals(fileType) || "DRIVEN_LICENSE_SUB".equals(fileType) || "REGISTRATION_CERTIFICATE".equals(fileType)
+                    || "PERSON_AND_CAR".equals(fileType) || "LICENSE_AND_PICK_UP_IMG".equals(fileType) || "VEHICLE_CERTIFICATE".equals(fileType) || "INSURANCE_POLICYx0".equals(fileType)){
+                //预审前、放款前
+                HashMap<String, String> vMap = fileTypeMap.get(fileType);
+                String documentName = vMap.get("documentName");
+                String projectAttachmentCategory = vMap.get("projectAttachmentCategory");
+                prjAttachment = hlsCusPrjProjectAttachmentMapper.selectAttachYl(projectId,projectAttachmentCategory,documentName);
+                if(prjAttachment == null){
+                    prjAttachment = new HlsCusPrjProjectAttachment();
+                    prjAttachment.setProjectId(projectId);
+                    prjAttachment.setProjectAttachmentCategory(projectAttachmentCategory);
+                    prjAttachment.setDocumentName(documentName);
+                    hlsCusPrjProjectAttachmentMapper.insertSelective(prjAttachment);
+                }
+                this.replaceAttach(prjAttachment,file.getFileId());
+            }else if("REGISTRATION_CERTIFICATE_MORTGAGED".equals(fileType)){
+                //抵押材料审核前
+            }else if("ASSET_TRANSFER_AGREE".equals(fileType)){
+                //结清后
             }
-            //结清后
-            if("ASSET_TRANSFER_AGREE".equals(fileType)){
-
-            }else{
-
-            }
-
 
         }
 
-
-        return null;
+        resJson.put("success",true);
+        resJson.put("message","成功");
+        return JSONObject.toJSONString(resJson);
     }
 }

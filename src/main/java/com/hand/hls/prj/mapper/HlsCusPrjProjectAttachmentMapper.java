@@ -90,4 +90,8 @@ public interface HlsCusPrjProjectAttachmentMapper extends Mapper<HlsCusPrjProjec
 
     List<HlsCusPrjProjectAttachment> prjProjectAttachQuery(HlsCusPrjProject hlsCusPrjProject);
 
+    HlsCusPrjProjectAttachment selectAttachYl(@Param("projectId") Long projectId,
+                                              @Param("projectAttachmentCategory") String projectAttachmentCategory,
+                                              @Param("documentName") String documentName);
+
 }
