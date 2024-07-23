@@ -4,6 +4,7 @@ import cfca.paperless.base.util.StringUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.PageHelper;
+import com.hand.hap.account.mapper.UserMapper;
 import com.hand.hap.activiti.core.IActivitiConstants;
 import com.hand.hap.core.BaseConstants;
 import com.hand.hap.core.IRequest;
@@ -487,6 +488,8 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     private ReplyProductMapper replyProductMapper;
     @Autowired
     private ReplyProductParaMapper replyProductParaMapper;
+    @Autowired
+    private UserMapper userMapper;
 
     @Override
     public List<HlsCusPrjProject> prjManager(IRequest iRequest, HlsCusPrjProject hlsCusPrjProject) {
@@ -9008,6 +9011,14 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         PageHelper.startPage(pageNum,pageSize);
         return hlsCusPrjProjectMapper.manufacturerQueryProductInfo3(hlsCusPrjProject);
     }
+
+    @Override
+    public List<HlsEmployee> selectSalesByEmployeeName(IRequest iRequest, String name, int pageNum, int pageSize) {
+        PageHelper.startPage(pageNum,pageSize);
+        List<HlsEmployee> hlsEmployees = userMapper.selectSalesByEmployeeName(name);
+        return hlsEmployees;
+    }
+
     /**
      * 当前登录用户信息获取
      *

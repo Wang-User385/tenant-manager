@@ -9,6 +9,7 @@ import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.cont.dto.ConfirmBatch;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.exception.HlsCusException;
+import com.hand.hls.fnd.dto.HlsEmployee;
 import com.hand.hls.hls.dto.HlsCusHlsMarketingReport;
 import com.hand.hls.hn.dto.PrjCheck;
 import com.hand.hls.prj.dto.*;
@@ -305,6 +306,7 @@ public interface HlsCusPrjProjectService extends IBaseService<HlsCusPrjProject>,
     List<FndAttachmentMulti> contextCreateMultiple(IRequest request, List<Long> list, HttpServletResponse response) throws Exception;
     List<HlsCusPrjProject> manufacturerQueryProductInfo2(IRequest iRequest, HlsCusPrjProject hlsCusPrjProject, int pageNum, int pageSize);
     List<HlsCusPrjProject> manufacturerQueryProductInfo3(IRequest iRequest, HlsCusPrjProject hlsCusPrjProject, int pageNum, int pageSize);
+    List<HlsEmployee> selectSalesByEmployeeName(IRequest iRequest, String name, int pageNum, int pageSize);
 
     /**
      * 检查租赁物编号是否重复

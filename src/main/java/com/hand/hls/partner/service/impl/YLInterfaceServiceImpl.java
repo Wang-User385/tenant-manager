@@ -163,6 +163,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProject.setCompanyId(1L);
         hlsCusPrjProject.setTenantId(bpMaster.getBpId());
         hlsCusPrjProject.setProjectStatus("NEW");
+        hlsCusPrjProject.setPreStatus("NEW");
+        hlsCusPrjProject.setOrderStatus("START");
+        //当前进件业务只有一家合作商，暂时只插入固定的这个合作商
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        //hlsCusBpMaster.setBpName("杭州易靓好车汽车服务有限公司");
+        hlsCusBpMaster.setBpCode("BP202407230057");
+        hlsCusBpMaster.setBpType("MANUFACTURER");
+        List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectHlsBpMaster(hlsCusBpMaster);
+        hlsCusPrjProject.setManufacturerId(hlsCusBpMasters.get(0).getBpId());
         prjProjectMapper.insert(hlsCusPrjProject);
 
         if (hlsCusPrjProjectBp!=null){
@@ -468,8 +477,16 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         String riskInfo = dataAcquisitionDTO.getRiskInfo();
         hlsCusPrjProject.setRiskInfo(riskInfo);
         PreRiskAuditData preRiskAuditData = null;
+        CarInformation carInformation = null;
         if (riskInfo!=null){
             preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
+        }
+        if(preRiskAuditData != null){
+            carInformation = preRiskAuditData.getCarInformation();
+            HlsCusPrjProject hlsCusPrjProject1 = new HlsCusPrjProject();
+            hlsCusPrjProject1.setProjectId(hlsCusPrjProject.getProjectId());
+            hlsCusPrjProject1.setFinanceAmount(Double.parseDouble(carInformation.getFinancingamount()));
+            prjProjectMapper.updateWflProject(hlsCusPrjProject1);
         }
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -500,8 +517,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProjectLeaseItem1.setSellingPrice(financeInfo.getCarSalePrice().doubleValue()/100);
 //            申请融资额
         hlsCusPrjProjectLeaseItem1.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
-
-
+        //dataAcquisitionDTO;
+        //车辆品牌
+        hlsCusPrjProjectLeaseItem1.setBrandC(carInfo.getBrandName());
+        //车系
+        hlsCusPrjProjectLeaseItem1.setSeriesC(carInfo.getSeriesName());
+        //车型
+        hlsCusPrjProjectLeaseItem1.setModelC(carInfo.getModelName());
+        //车辆颜色
+        hlsCusPrjProjectLeaseItem1.setColorC(carInfo.getColor());
         prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
         if (hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId()!=null){
             hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKey(hlsCusPrjProjectLeaseItem1);
@@ -581,7 +605,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 if (hlsCusPrjProjectLeaseItemList.size()>0){
                     hlsCusPrjProjectLeaseItem1 = hlsCusPrjProjectLeaseItemList.get(0);
                     //判断车系名称与riskInfo中的值是否相同
-                    CarInformation carInformation = preRiskAuditData.getCarInformation();
+                    carInformation = preRiskAuditData.getCarInformation();
                     if (!hlsCusPrjProjectLeaseItem1.getBrandC().equals(carInformation.getCarbrand2())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","品牌名称与riskInfo中的值不同");
@@ -618,6 +642,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 }
                 if (prjQuotation==null){
                     prjQuotation = new HlsCusPrjQuotation();
+                    prjQuotation.setSourceDocumentCategory("PRJ_PROJECT");
                     //期次
                     prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
 //            月租
@@ -628,6 +653,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
                     //剩余车辆价款 (分)
                     prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
+                    //融资金额
+                    prjQuotation.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
                 }else{
                     if (!prjQuotation.getLeaseTimes().equals(Long.valueOf(financeInfo.getTermCount()))&&
                             !prjQuotation.getPmt().equals(financeInfo.getMonthPayment().doubleValue()/100)&&
@@ -668,7 +695,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     //            关联人信息
                     AssociatedPersonInformation associatedPersonInformation = preRiskAuditData.getAssociatedPersonInformation();
                     //车辆信息
-                    CarInformation carInformation = preRiskAuditData.getCarInformation();
+                    carInformation = preRiskAuditData.getCarInformation();
                     HlsCusBpMaster hlsCusBpMaster = hlsCusBpMasterMapper.selectByProjectId(hlsCusPrjProject.getProjectId());
                     //性别
                     hlsCusBpMaster.setGender(basicCustomerInformation.getSex());

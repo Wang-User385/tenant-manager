@@ -27,6 +27,7 @@
         <result column="unit_id_n" property="unitIdN" jdbcType="VARCHAR"/>
         <result column="allocation_id" property="allocationId" jdbcType="VARCHAR"/>
         <result column="intranet_flag" property="intranetFlag" jdbcType="VARCHAR"/>
+        <result column="unit_id" property="unitId" jdbcType="DECIMAL"/>
 
 
     </resultMap>
@@ -669,5 +670,25 @@
                 and fea.EMPLOYEE_ASSIGN_ID = sua.EMPLOYEE_ASSIGN_ID
               group by sua.USER_ID) t1
         where su.USER_ID = t1.USER_ID
+    </select>
+
+    <select id="selectSalesByEmployeeName" resultMap="BaseResultMap">
+        SELECT
+        fe.employee_id,
+        fe.name as employee_name,
+        fea.unit_id
+        FROM
+        fnd_employee fe,
+        fnd_employee_assigns fea,
+        fnd_org_position fop
+        WHERE
+        fe.employee_id = fea.employee_id
+        AND fea.position_id = fop.position_id
+        AND fea.enabled_flag = 'Y'
+        AND fe.enabled_flag = 'Y'
+        AND fop.position_type = 'SALES'
+        <if test="employeeName!=null">
+            and fe.name like concat('%',concat(#{employeeName},'%'))
+        </if>
     </select>
 </mapper>

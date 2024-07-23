@@ -162,6 +162,12 @@ public class HlsProductDefinition extends BaseDTO {
 
     @Transient
     private String rentalDiscountTimesN;
+    @Transient
+    private Long unitId;
+    @Transient
+    private Long employeeId;
+    @Transient
+    private String employeeName;
 
 
 }
