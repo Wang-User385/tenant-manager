@@ -104,6 +104,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setIdIssueDate(idIssueDate);
             bpMaster.setIdExpirationDate(idExpirationDate);
             bpMaster.setCreationDate(new Date());
+            String format = simpleDateFormat.format(new Date());
+            bpMaster.setCreationDateStr(format);
+            bpMaster.setCreatedBy(iRequest.getUserId());
+            bpMaster.setSource("1");
             bpMaster.setBpClass("NP");
             bpMaster.setIdType("ID_CARD");
             hlsCusBpMasterMapper.insert(bpMaster);
