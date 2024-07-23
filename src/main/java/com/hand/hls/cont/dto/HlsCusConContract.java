@@ -1715,6 +1715,9 @@ public class HlsCusConContract extends ConContract {
     @Transient
     private Double listPrice;
 
+    @Transient
+    private Double contractAttachmentId;
+
 
 
 }

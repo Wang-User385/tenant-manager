@@ -1,6 +1,7 @@
 package com.hand.hls.gld.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.StringUtil;
 import com.hand.hap.account.exception.UserException;
@@ -8,11 +9,13 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.lock.components.DatabaseLockProvider;
 import com.hand.hap.system.dto.DTOStatus;
+import com.hand.hap.system.dto.ResponseData;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
 import com.hand.hls.activiti.service.HlsCusActMeetingRiskListService;
 import com.hand.hls.app.dto.HlsCashflowAyncDto;
 import com.hand.hls.app.service.HlsCashflowAyncService;
 import com.hand.hls.ast.dto.VirtualConContractLov;
+import com.hand.hls.bp.dto.HlsCusSysFile;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
 import com.hand.hls.cont.dto.*;
 import com.hand.hls.cont.mapper.*;
@@ -62,6 +65,7 @@ import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationDetailsMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationMapper;
 import com.hand.hls.prj.service.*;
+import com.hand.hls.prj.utils.HlsCusZipUtil;
 import com.hand.hls.req.dto.HlsCusChangeReqInfo;
 import com.hand.hls.req.mapper.HlsCusChangeReqInfoMapper;
 import com.hand.hls.req.service.HlsCusChangeReqInfoService;
@@ -71,6 +75,8 @@ import com.hand.hls.user.service.LoginUserInfoService;
 import com.hand.hls.utils.*;
 import com.hand.hls.vat.dto.HlsInvoiceProfileDtl;
 import com.hand.hls.vat.service.HlsInvoiceProfileDtlService;
+import com.hand.hls.web.logs.dto.HlsWsRequests;
+import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
 import hls.core.sys.event.service.SysEventService;
@@ -83,6 +89,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DateFormat;
@@ -92,6 +104,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.ZipOutputStream;
 
 /**
  * @author wujun
@@ -184,6 +197,11 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     //常规投放
     private static final String ROUTINE = "ROUTINE";
 
+    @Autowired
+    private HlsCusContractAttachmentMapper hlsCusContractAttachmentMapper;
+
+    @Autowired
+    private HlsWsRequestsMapper hlsWsRequestsMapper;
     @Autowired
     private HlsCusConContractMapper hlsCusConContractMapper;
     @Autowired
@@ -1413,23 +1431,23 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
             //保留原始的userId
             Long originalUserId = iRequest.getUserId();
-            String msg= "工作流开始通知-放款申请审批流程-" + cshPaymentReqHd.getBpName();
-            String projectId ="";
+            String msg = "工作流开始通知-放款申请审批流程-" + cshPaymentReqHd.getBpName();
+            String projectId = "";
             if (cshPaymentReqHd.getSourceContractId() != null) {
                 HlsCusConContract contract = new HlsCusConContract();
                 contract.setContractId(cshPaymentReqHd.getSourceContractId());
                 contract = self().selectByPrimaryKey(iRequest, contract);
                 projectId = contract.getProjectId().toString();
-                msg = "工作流开始通知-放款申请审批流程-" + contract.getContractName()+"-" + cshPaymentReqHd.getBpName() + "-" + contract.getContractNumber();
+                msg = "工作流开始通知-放款申请审批流程-" + contract.getContractName() + "-" + cshPaymentReqHd.getBpName() + "-" + contract.getContractNumber();
             }
-            String url = "/CSH/CSH_SET/CSH002/csh002_csh_payment_req_hd_detail.lview?layout_code=CSH002F2QNEW&payment_req_id="+cshPaymentReqHd.getPaymentReqId()+"&project_id="+projectId+"&maintain_type=READONLY&function_usage=QUERY&function_code=CSH002F2QNEW";
+            String url = "/CSH/CSH_SET/CSH002/csh002_csh_payment_req_hd_detail.lview?layout_code=CSH002F2QNEW&payment_req_id=" + cshPaymentReqHd.getPaymentReqId() + "&project_id=" + projectId + "&maintain_type=READONLY&function_usage=QUERY&function_code=CSH002F2QNEW";
             //放款申请提交发送通知给黄蕾、李宁、任江舟
-            String[] sendUsers = {"huanglei", "li.ning","renjiangzhou"};
+            String[] sendUsers = {"huanglei", "li.ning", "renjiangzhou"};
             for (String userName : sendUsers) {
                 Map<String, Object> paramsEvent = new HashMap<>();
                 SysUser user = new SysUser();
                 user = sysUserMapper.queryUserByUserName(userName);
-                if(user != null) {
+                if (user != null) {
                     iRequest.setUserId(user.getUserId());
                     paramsEvent.put("message", msg);
                     paramsEvent.put("noticeTitle", "放款申请审批流程");
@@ -2964,7 +2982,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         }
 
         //合同上的quotation_id同步更新
-        if("CON_CONTRACT".equals(newSourceDocumentCategory)) {
+        if ("CON_CONTRACT".equals(newSourceDocumentCategory)) {
             HlsCusConContract contract = new HlsCusConContract();
             contract.setContractId(newSourceDocumentId);
             contract.setQuotationId(newQuotationId);
@@ -3104,7 +3122,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             conContractRentPaymentConfirm = conContractRentPaymentConfirmService.selectByPrimaryKey(iRequest, conContractRentPaymentConfirm);
             HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
             hlsCusPrjProject.setProjectId(conContractRentPaymentConfirm.getProjectId());
-            hlsCusPrjProject = hlsCusPrjProjectService.selectByPrimaryKey(iRequest,hlsCusPrjProject);
+            hlsCusPrjProject = hlsCusPrjProjectService.selectByPrimaryKey(iRequest, hlsCusPrjProject);
             returnList.add(conContractRentPaymentConfirm);
             //校验现金流
             checkCashflow(iRequest, conContractRentPaymentConfirm.getPaymentConfirmId());
@@ -3138,7 +3156,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     }
 
     /*
-    * 支付表确认审批通过
+     * 支付表确认审批通过
      */
     @Override
     public List<HlsCusConContractRentPaymentConfirm> submitContractConfirmApproved(IRequest iRequest, HlsCusConContractRentPaymentConfirm conContractRentPaymentConfirm) throws Exception {
@@ -3227,31 +3245,31 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
             hlsCusPrjProject.setProjectId(hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract).getProjectId());
             hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
-            if(hlsCusPrjProject != null && "Y".equals(hlsCusPrjProject.getLoanInitialLease())){
+            if (hlsCusPrjProject != null && "Y".equals(hlsCusPrjProject.getLoanInitialLease())) {
                 hlsCusConContract.setContractStatus("INCEPT");
-                if ("OUTSIDE".equals(hlsCusPrjProject.getIsLowRisk())){
+                if ("OUTSIDE".equals(hlsCusPrjProject.getIsLowRisk())) {
                     hlsCusConContract.setRiskReserveRatio(0.015D);
                 }
-                if ("WITHIN".equals(hlsCusPrjProject.getIsLowRisk())){
+                if ("WITHIN".equals(hlsCusPrjProject.getIsLowRisk())) {
                     hlsCusConContract.setRiskReserveRatio(0.01D);
                 }
                 //查询最新的合同数据
                 HlsCusConContract ct = new HlsCusConContract();
                 ct.setContractId(hlsCusConContract.getContractId());
-                ct = self().selectByPrimaryKey(iRequest,ct);
+                ct = self().selectByPrimaryKey(iRequest, ct);
 
-                if ("LEASE".equalsIgnoreCase(ct.getBusinessType())){
+                if ("LEASE".equalsIgnoreCase(ct.getBusinessType())) {
                     hlsCusConContract.setStampDuty("0.00005");
                     hlsCusConContract.setPostFlag("N");
                     hlsCusConContract.setPurStampDuty("0.0003");
                     hlsCusConContract.setPurPostFlag("N");
                 }
-                if ("LEASEBACK".equalsIgnoreCase(ct.getBusinessType())){
+                if ("LEASEBACK".equalsIgnoreCase(ct.getBusinessType())) {
                     hlsCusConContract.setStampDuty("0.00005");
                     hlsCusConContract.setPostFlag("N");
                 }
 
-                gldContractCashflowService.clacFinanceIncome(iRequest, ct.getContractId(), ct.getVatRate(),ct.getIrr());
+                gldContractCashflowService.clacFinanceIncome(iRequest, ct.getContractId(), ct.getVatRate(), ct.getIrr());
                 //gldContractCashflowService.clacFinanceIncome(iRequest, conContractRentPaymentConfirm.getContractId(), hlsCusPrjProject.getVatRate(), null);
 
                 //起租凭证
@@ -3262,7 +3280,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
                 contractInceptMap.put("sourceDoc", "CON_CONTRACT");
                 AbstractJeTrxService contractInceptJeTrxService = JeTrxCommonService.map.get("CONTRACT_INCEPT");
                 contractInceptJeTrxService.process(RequestHelper.getCurrentRequest(true), contractInceptMap);
-            }else {
+            } else {
                 hlsCusConContract.setContractStatus("PAYMENTED");
             }
 
@@ -3324,7 +3342,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         //当前合同最后一期支付日要小于第零期投放日+租赁月数
         HlsCusPrjQuotation quotationConfirm = new HlsCusPrjQuotation();
         quotationConfirm.setQuotationId(confirm.getQuotationId());
-        quotationConfirm = hlsCusPrjQuotationService.selectByPrimaryKey(iRequest,quotationConfirm);
+        quotationConfirm = hlsCusPrjQuotationService.selectByPrimaryKey(iRequest, quotationConfirm);
 
         HlsCusPrjQuotationCashflow quotationCashflow = new HlsCusPrjQuotationCashflow();
         quotationCashflow.setQuotationId(confirm.getQuotationId());
@@ -3349,10 +3367,10 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         HlsCusCshPaymentReqLn hlsCusCshPaymentReqLn = new HlsCusCshPaymentReqLn();
         hlsCusCshPaymentReqLn.setPaymentReqId(paymentReqId);
         List<HlsCusCshPaymentReqLn> cusCshPaymentReqLnList = hlsCusCshPaymentReqLnMapper.select(hlsCusCshPaymentReqLn);
-        for(HlsCusCshPaymentReqLn cshPaymentReqLn : cusCshPaymentReqLnList){
-            if(cshPaymentReqLn.getPurchaseContractId() != null){
+        for (HlsCusCshPaymentReqLn cshPaymentReqLn : cusCshPaymentReqLnList) {
+            if (cshPaymentReqLn.getPurchaseContractId() != null) {
                 Integer approvingPurchaseContractCount = hlsCusCshPaymentReqLnMapper.selectApprovingPurchaseContractCount(cshPaymentReqLn.getPurchaseContractId());
-                if(approvingPurchaseContractCount != 0){
+                if (approvingPurchaseContractCount != 0) {
                     throw new HlsCusException("采购合同还在审批中，不能提交审批");
                 }
             }
@@ -3393,7 +3411,11 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         Long quotationId = Long.valueOf(paraMap.get("quotation_id").toString());
         Long projectId = Long.valueOf(paraMap.get("project_id").toString());
         Date newLeaseStartDate = new Date();
-        try { newLeaseStartDate = sdf.parse(paraMap.get("lease_start_date").toString()); }catch (Exception e){ return; }
+        try {
+            newLeaseStartDate = sdf.parse(paraMap.get("lease_start_date").toString());
+        } catch (Exception e) {
+            return;
+        }
 
         //获取报价原起租日
         HlsCusPrjQuotation hlsCusPrjQuotation = new HlsCusPrjQuotation();
@@ -3436,19 +3458,19 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         contract.setContractId(contractId);
         contract = selectByPrimaryKey(iRequest, contract);
         contract.setContractStatus("INCEPT");
-        if (paraMap.get("is_low_risk").toString().equals("OUTSIDE")){
+        if (paraMap.get("is_low_risk").toString().equals("OUTSIDE")) {
             contract.setRiskReserveRatio(0.015D);
         }
-        if (paraMap.get("is_low_risk").toString().equals("WITHIN")){
+        if (paraMap.get("is_low_risk").toString().equals("WITHIN")) {
             contract.setRiskReserveRatio(0.01D);
         }
-        if (contract.getBusinessType().equalsIgnoreCase("LEASE")){
+        if (contract.getBusinessType().equalsIgnoreCase("LEASE")) {
             contract.setStampDuty("0.00005");
             contract.setPostFlag("N");
             contract.setPurStampDuty("0.0003");
             contract.setPurPostFlag("N");
         }
-        if (contract.getBusinessType().equalsIgnoreCase("LEASEBACK")){
+        if (contract.getBusinessType().equalsIgnoreCase("LEASEBACK")) {
             contract.setStampDuty("0.00005");
             contract.setPostFlag("N");
         }
@@ -3460,13 +3482,13 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         hlsCashflowAyncDto.setInceptionDate(newLeaseStartDate);
         hlsCashflowAyncDto.setType(conQuotationCashflow.getCfItem());
         hlsCashflowAyncDto.setPostFlag("N");
-        hlsCashflowAyncService.insertSelective(iRequest,hlsCashflowAyncDto);
+        hlsCashflowAyncService.insertSelective(iRequest, hlsCashflowAyncDto);
 
         //查询最新的合同数据
         HlsCusConContract ct = new HlsCusConContract();
         ct.setContractId(contract.getContractId());
-        ct = self().selectByPrimaryKey(iRequest,ct);
-        gldContractCashflowService.clacFinanceIncome(iRequest, ct.getContractId(), ct.getVatRate(),ct.getIrr());
+        ct = self().selectByPrimaryKey(iRequest, ct);
+        gldContractCashflowService.clacFinanceIncome(iRequest, ct.getContractId(), ct.getVatRate(), ct.getIrr());
 
         //起租凭证
         Map contractInceptMap = new HashMap<>();
@@ -3517,12 +3539,12 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
         //更新dueDate为投放日
         try {
-            if(conCashFlows.size() > 0){
+            if (conCashFlows.size() > 0) {
                 HlsCusConContractCashflow hlsCusConContractCashflow = conCashFlows.get(0);
                 hlsCusConContractCashflow.setDueDate(date);
                 hlsCusConContractCashflowMapper.updateByPrimaryKeySelective(hlsCusConContractCashflow);
             }
-            if(prjCashFlows.size() > 0){
+            if (prjCashFlows.size() > 0) {
                 HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow = prjCashFlows.get(0);
                 hlsCusPrjQuotationCashflow.setDueDate(date);
                 hlsCusPrjQuotationCashflowMapper.updateByPrimaryKeySelective(hlsCusPrjQuotationCashflow);
@@ -3530,7 +3552,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             //更新报价起租日
             hlsCusPrjQuotation.setLeaseStartDate(date);
             prjQuotationMapper.updateByPrimaryKeySelective(hlsCusPrjQuotation);
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new ResMessageException(e.getMessage());
         }
 
@@ -3569,20 +3591,20 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
         //更新dueDate为投放日
         try {
-            if(conCashFlows.size() > 0){
-                for(HlsCusConContractCashflow cashflow : conCashFlows) {
-                    if(0L != cashflow.getCfItem()){
-                        cashflow.setNetDueAmount(cashflow.getNetPrincipal()+cashflow.getNetInterest());
-                        cashflow.setVatDueAmount(cashflow.getVatPrincipal()+cashflow.getVatInterest());
+            if (conCashFlows.size() > 0) {
+                for (HlsCusConContractCashflow cashflow : conCashFlows) {
+                    if (0L != cashflow.getCfItem()) {
+                        cashflow.setNetDueAmount(cashflow.getNetPrincipal() + cashflow.getNetInterest());
+                        cashflow.setVatDueAmount(cashflow.getVatPrincipal() + cashflow.getVatInterest());
                     }
                     hlsCusConContractCashflowMapper.updateByPrimaryKeySelective(cashflow);
                 }
             }
-            HlsCusPrjQuotationCashflow maxCashflow =prjCashFlows.stream().max(Comparator.comparing(HlsCusPrjQuotationCashflow::getTimes)).get();
-            if(prjCashFlows.size() > 0){
-                for(HlsCusPrjQuotationCashflow quotationCashflow : prjCashFlows) {
-                    if(quotationCashflow.getCfItem() == null){
-                        Date dueDate = quotationCashflow.getDueDate()==null ? quotationCashflow.getCalcDate() : quotationCashflow.getDueDate();
+            HlsCusPrjQuotationCashflow maxCashflow = prjCashFlows.stream().max(Comparator.comparing(HlsCusPrjQuotationCashflow::getTimes)).get();
+            if (prjCashFlows.size() > 0) {
+                for (HlsCusPrjQuotationCashflow quotationCashflow : prjCashFlows) {
+                    if (quotationCashflow.getCfItem() == null) {
+                        Date dueDate = quotationCashflow.getDueDate() == null ? quotationCashflow.getCalcDate() : quotationCashflow.getDueDate();
                         quotationCashflow.setDueDate(dueDate);
                         quotationCashflow.setCalcDate(dueDate);
                         quotationCashflow.setFinIncomeDate(dueDate);
@@ -3590,16 +3612,16 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
                         quotationCashflow.setCfType(1L);
                         quotationCashflow.setCfDirection("INFLOW");
                         quotationCashflow.setCfStatus("RELEASE");
-                        quotationCashflow.setNetDueAmount(quotationCashflow.getNetPrincipal()+quotationCashflow.getNetInterest());
-                        quotationCashflow.setVatDueAmount(quotationCashflow.getVatPrincipal()+quotationCashflow.getVatInterest());
-                    }else{
-                        if(1L == quotationCashflow.getCfItem()) {
-                            quotationCashflow.setNetDueAmount(quotationCashflow.getNetPrincipal()+quotationCashflow.getNetInterest());
-                            quotationCashflow.setVatDueAmount(quotationCashflow.getVatPrincipal()+quotationCashflow.getVatInterest());
+                        quotationCashflow.setNetDueAmount(quotationCashflow.getNetPrincipal() + quotationCashflow.getNetInterest());
+                        quotationCashflow.setVatDueAmount(quotationCashflow.getVatPrincipal() + quotationCashflow.getVatInterest());
+                    } else {
+                        if (1L == quotationCashflow.getCfItem()) {
+                            quotationCashflow.setNetDueAmount(quotationCashflow.getNetPrincipal() + quotationCashflow.getNetInterest());
+                            quotationCashflow.setVatDueAmount(quotationCashflow.getVatPrincipal() + quotationCashflow.getVatInterest());
                         }
                         //留购金日期与期次要与最后一期租金同步
-                        if(8L == quotationCashflow.getCfItem()) {
-                            Date dueDate = maxCashflow.getDueDate()==null ? maxCashflow.getCalcDate() : maxCashflow.getDueDate();
+                        if (8L == quotationCashflow.getCfItem()) {
+                            Date dueDate = maxCashflow.getDueDate() == null ? maxCashflow.getCalcDate() : maxCashflow.getDueDate();
                             quotationCashflow.setTimes(maxCashflow.getTimes());
                             quotationCashflow.setDueDate(dueDate);
                             quotationCashflow.setCalcDate(dueDate);
@@ -3617,19 +3639,19 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             f.setCfItem(1L);
             flows = hlsCusPrjQuotationCashflowService.select(iRequest, f, 1, 999);
             //计算出现金流后，再加上第0期现金流
-            HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow1=new HlsCusPrjQuotationCashflow();
-            Double deposit = hlsCusPrjQuotation.getDeposit()==null?0:hlsCusPrjQuotation.getDeposit();
+            HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow1 = new HlsCusPrjQuotationCashflow();
+            Double deposit = hlsCusPrjQuotation.getDeposit() == null ? 0 : hlsCusPrjQuotation.getDeposit();
             //首付款
-            Double down_payment = hlsCusPrjQuotation.getDownPayment()==null?0:hlsCusPrjQuotation.getDownPayment();
+            Double down_payment = hlsCusPrjQuotation.getDownPayment() == null ? 0 : hlsCusPrjQuotation.getDownPayment();
             //手续费
-            Double lease_charge = hlsCusPrjQuotation.getLeaseCharge()==null?0:hlsCusPrjQuotation.getLeaseCharge();
+            Double lease_charge = hlsCusPrjQuotation.getLeaseCharge() == null ? 0 : hlsCusPrjQuotation.getLeaseCharge();
             //留购金
-            Double residual_value = hlsCusPrjQuotation.getResidualValue()==null?0:hlsCusPrjQuotation.getResidualValue();
+            Double residual_value = hlsCusPrjQuotation.getResidualValue() == null ? 0 : hlsCusPrjQuotation.getResidualValue();
             //第0期加上保证金、手续费
             hlsCusPrjQuotationCashflow1.setDueAmount(0 - hlsCusPrjQuotation.getFinanceAmount() + deposit + lease_charge);
             hlsCusPrjQuotationCashflow1.setDueDate(hlsCusPrjQuotation.getLeaseStartDate());
             hlsCusPrjQuotationCashflow1.setTimes(0L);
-            flows.add(0,hlsCusPrjQuotationCashflow1);
+            flows.add(0, hlsCusPrjQuotationCashflow1);
 
             //最后一期扣除保证金 加上留购金
             hlsCusPrjQuotationCashflow1 = flows.get(flows.size() - 1);
@@ -3643,7 +3665,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             hlsCusPrjQuotation.setXirr(xirr);
             hlsCusPrjQuotation.setLeaseTimes(maxCashflow.getTimes());
             prjQuotationMapper.updateByPrimaryKeySelective(hlsCusPrjQuotation);
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new ResMessageException(e.getMessage());
         }
     }
@@ -3675,7 +3697,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
         for (HlsCusConContractCashflow conCashFlow : conCashFlows) {
             //判断现金流是否都核销了
-            if(!"FULL".equals(conCashFlow.getWriteOffFlag())){
+            if (!"FULL".equals(conCashFlow.getWriteOffFlag())) {
                 throw new RuntimeException("存在未核销的租金现金流");
             }
         }
@@ -3714,18 +3736,18 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         //还款计划变更与提前结清校验是否已经计算
         String calcFlag = "Y";
         int irrCompare = 0;
-        if("REPAYMENT_SCHEDULE".equals(hlsCusChangeReqInfo.getChangeType())){
+        if ("REPAYMENT_SCHEDULE".equals(hlsCusChangeReqInfo.getChangeType())) {
             ConChangeRepaymentInfo conChangeRepaymentInfo = new ConChangeRepaymentInfo();
             conChangeRepaymentInfo.setProjectId(prjProject.getProjectId());
             conChangeRepaymentInfo = conChangeRepaymentInfoMapper.select(conChangeRepaymentInfo).get(0);
             calcFlag = conChangeRepaymentInfo.getCalcFlag();
-        }else if ("ET".equals(hlsCusChangeReqInfo.getChangeType())){
+        } else if ("ET".equals(hlsCusChangeReqInfo.getChangeType())) {
             ConChangeEtInfo conChangeEtInfo = new ConChangeEtInfo();
             conChangeEtInfo.setProjectId(prjProject.getProjectId());
             conChangeEtInfo = conChangeEtInfoMapper.select(conChangeEtInfo).get(0);
             calcFlag = conChangeEtInfo.getCalcFlag();
         }
-        if ("BUSINESS_CHANGE_BEFORE".equals(hlsCusChangeReqInfo.getChangeType())  || "REPAYMENT_SCHEDULE".equals(hlsCusChangeReqInfo.getChangeType())){
+        if ("BUSINESS_CHANGE_BEFORE".equals(hlsCusChangeReqInfo.getChangeType()) || "REPAYMENT_SCHEDULE".equals(hlsCusChangeReqInfo.getChangeType())) {
             //获取变更前后报价,比较irr
             Long oldProjectId = prjProjectOld.getProjectId();
             Long newProjectId = prjProject.getProjectId();
@@ -3743,10 +3765,10 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             BigDecimal newIrr = BigDecimal.valueOf(newQuotation.getIrr());
             irrCompare = newIrr.compareTo(oldIrr);
         }
-        if(!"Y".equals(calcFlag)){
+        if (!"Y".equals(calcFlag)) {
             throw new RuntimeException("请先计算后再提交！");
         }
-        if(irrCompare < 0){
+        if (irrCompare < 0) {
             throw new RuntimeException("当前irr小于原irr,不可提交！");
         }
 
@@ -3785,6 +3807,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
     /**
      * 还款计划变更计算
+     *
      * @param req
      * @param hlsCusConContract
      * @return
@@ -3843,7 +3866,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         //获取已核销的期次
         Long writeOffTimes = 0L;
         for (HlsCusConContractCashflow conFlow : conCashFlowList) {
-            if ("FULL".equals(conFlow.getWriteOffFlag()) && conFlow.getTimes() > writeOffTimes){
+            if ("FULL".equals(conFlow.getWriteOffFlag()) && conFlow.getTimes() > writeOffTimes) {
                 writeOffTimes = conFlow.getTimes();
             }
         }
@@ -3877,7 +3900,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
         //校验提前结清之前一期是否核销
         long changeBeforeTime = startTimes - 1;
-        if(writeOffTimes != changeBeforeTime){
+        if (writeOffTimes != changeBeforeTime) {
             throw new HlsCusException("第" + changeBeforeTime + "期现金流未核销");
         }
 
@@ -3885,22 +3908,22 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         hlsCusPrjQuotationCashflowMapper.deleteChengeTimeAfterCashflow(cQuotation.getQuotationId(), startTimes);
 
         //判断报价方案 以剩余本金与剩余期次进行还本付息测算
-        if( "GECALCULATOR_PMT_YH".equals(oQuotation.getPriceList())){
+        if ("GECALCULATOR_PMT_YH".equals(oQuotation.getPriceList())) {
             //等额租金
             //pmt=(pv*rt*((rt + 1)^Tn) / ((rt + 1)^Tn - 1)
             //ipmt=(pv*rt*((rt + 1)^(Tn + 1) - (rt + 1)^n)) / ((rt + 1)* ((rt + 1)^Tn - 1))
 
-            Long pmt_frequency = 12/Long.valueOf(rentingFrequency);
+            Long pmt_frequency = 12 / Long.valueOf(rentingFrequency);
 
             //每一期还款
-            double per_times_amount=0D;
-            if("YEAR/TIMES".equals(cQuotation.getPaymentMethod())){
+            double per_times_amount = 0D;
+            if ("YEAR/TIMES".equals(cQuotation.getPaymentMethod())) {
                 //年利率/每年还款次数
-                per_times_amount=(Math.round(((remainPrincipal *(year_rate/pmt_frequency) *Math.pow(1+year_rate/pmt_frequency, remainTimes))  /(Math.pow(1+year_rate/pmt_frequency, remainTimes)-1))*100))/100.0;
-            }else{
+                per_times_amount = (Math.round(((remainPrincipal * (year_rate / pmt_frequency) * Math.pow(1 + year_rate / pmt_frequency, remainTimes)) / (Math.pow(1 + year_rate / pmt_frequency, remainTimes) - 1)) * 100)) / 100.0;
+            } else {
                 //年利率/360*每期实际天数
-                double a = Math.pow( (1 + year_rate/360*365/12), new Double(rentingFrequency)) - 1;
-                per_times_amount=(Math.round(((remainPrincipal *(a) *Math.pow(1+a, remainTimes))  /(Math.pow(1+a, remainTimes)-1))*100))/100.0;
+                double a = Math.pow((1 + year_rate / 360 * 365 / 12), new Double(rentingFrequency)) - 1;
+                per_times_amount = (Math.round(((remainPrincipal * (a) * Math.pow(1 + a, remainTimes)) / (Math.pow(1 + a, remainTimes) - 1)) * 100)) / 100.0;
             }
 
 
@@ -3913,20 +3936,20 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             //测算现金流
             for (int i = 0; i < remainTimes; i++) {
                 //本期利息
-                double interest= 0D;
-                if("YEAR/TIMES".equals(cQuotation.getPaymentMethod())){
+                double interest = 0D;
+                if ("YEAR/TIMES".equals(cQuotation.getPaymentMethod())) {
                     //年利率/每年还款次数
-                    interest=Math.round(((remainPrincipal *(year_rate/pmt_frequency) *(Math.pow(1+year_rate/pmt_frequency, remainTimes+1)-Math.pow(1+year_rate/pmt_frequency, i+1)))  /((1+year_rate/pmt_frequency)*(Math.pow(1+year_rate/pmt_frequency, remainTimes)-1)))*100)/100.0;
-                }else{
+                    interest = Math.round(((remainPrincipal * (year_rate / pmt_frequency) * (Math.pow(1 + year_rate / pmt_frequency, remainTimes + 1) - Math.pow(1 + year_rate / pmt_frequency, i + 1))) / ((1 + year_rate / pmt_frequency) * (Math.pow(1 + year_rate / pmt_frequency, remainTimes) - 1))) * 100) / 100.0;
+                } else {
                     //年利率/360*每期实际天数
-                    double a = Math.pow( (1 + year_rate/360*365/12), new Double(rentingFrequency)) - 1;
-                    interest=Math.round(((remainPrincipal *(a) *(Math.pow(1+a, remainTimes+1)-Math.pow(1+a, i+1)))  /((1+a)*(Math.pow(1+a, remainTimes)-1)))*100)/100.0;
+                    double a = Math.pow((1 + year_rate / 360 * 365 / 12), new Double(rentingFrequency)) - 1;
+                    interest = Math.round(((remainPrincipal * (a) * (Math.pow(1 + a, remainTimes + 1) - Math.pow(1 + a, i + 1))) / ((1 + a) * (Math.pow(1 + a, remainTimes) - 1))) * 100) / 100.0;
                 }
 
                 //本期本金
-                double payment_principal=per_times_amount - interest;  //每一期本金
+                double payment_principal = per_times_amount - interest;  //每一期本金
                 //最后一期单独处理,本金用剩余本金减去之前总本金
-                if(i == remainTimes -1){
+                if (i == remainTimes - 1) {
                     payment_principal = remainPrincipal - principalSum;
                     per_times_amount = payment_principal + interest;
                 }
@@ -3977,7 +4000,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
                 hlsCusPrjQuotationCashflowService.insertSelective(req, newFlow);
 
                 //变更首期处理手续费
-                if(i == 0 && ccrFee != null && ccrFee > 0){
+                if (i == 0 && ccrFee != null && ccrFee > 0) {
                     HlsCusPrjQuotationCashflow sxFlow = new HlsCusPrjQuotationCashflow();
                     sxFlow.setCfItem(3L);
                     sxFlow.setCfType(3L);
@@ -3994,7 +4017,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
                 }
 
                 //最后一期更新留购价现金流日期和期次
-                if(i == remainTimes - 1L){
+                if (i == remainTimes - 1L) {
                     HlsCusPrjQuotationCashflow lgFlow = new HlsCusPrjQuotationCashflow();
                     lgFlow.setCfItem(8L);
                     lgFlow.setCfType(8L);
@@ -4005,7 +4028,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
                     hlsCusPrjQuotationCashflowService.updateByPrimaryKeySelective(req, lgFlow);
                 }
             }
-        }else if( "GECALCULATOR_LP_YH".equals(oQuotation.getPriceList())){
+        } else if ("GECALCULATOR_LP_YH".equals(oQuotation.getPriceList())) {
             //等额本金
             Double vatRate = cQuotation.getVatRate();//税率
             Date preFlowDueDate = null; //上一期应收日期
@@ -4019,7 +4042,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             double principalSum = 0D;
             for (int i = 0; i < remainTimes; i++) {
                 //最后一期单独处理,本金倒减
-                if(i == remainTimes - 1){
+                if (i == remainTimes - 1) {
                     per_times_principal = remainPrincipal - principalSum;
                 }
 
@@ -4027,12 +4050,12 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
                 //本期利息 上一期剩余本金*年利率*租金收取频率/12
                 double interest = 0D;
-                if("YEAR/TIMES".equals(cQuotation.getPaymentMethod())){
+                if ("YEAR/TIMES".equals(cQuotation.getPaymentMethod())) {
                     //年利率/每年还款次数
                     interest = preOutstandingPrincipal * year_rate * Long.valueOf(rentingFrequency) / 12;
-                }else{
+                } else {
                     //年利率/360*每期实际天数
-                    double r = Math.pow( (1 + year_rate/360*365/12), new Double(rentingFrequency)) - 1;
+                    double r = Math.pow((1 + year_rate / 360 * 365 / 12), new Double(rentingFrequency)) - 1;
                     interest = preOutstandingPrincipal * r;
                 }
 
@@ -4084,7 +4107,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
                 hlsCusPrjQuotationCashflowService.insertSelective(req, newFlow);
 
                 //变更首期处理手续费
-                if(i == 0 && ccrFee != null && ccrFee > 0){
+                if (i == 0 && ccrFee != null && ccrFee > 0) {
                     HlsCusPrjQuotationCashflow sxFlow = new HlsCusPrjQuotationCashflow();
                     sxFlow.setCfItem(3L);
                     sxFlow.setCfType(3L);
@@ -4101,7 +4124,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
                 }
 
                 //最后一期更新留购价现金流日期和期次
-                if(i == remainTimes - 1L){
+                if (i == remainTimes - 1L) {
                     HlsCusPrjQuotationCashflow lgFlow = new HlsCusPrjQuotationCashflow();
                     lgFlow.setCfItem(8L);
                     lgFlow.setCfType(8L);
@@ -4123,8 +4146,8 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         flows = hlsCusPrjQuotationCashflowService.select(req, f, 1, 999);
 
         //计算出现金流后，再加上第0期现金流
-        HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow1=new HlsCusPrjQuotationCashflow();
-        Double deposit = cQuotation.getDeposit()==null?0:cQuotation.getDeposit();
+        HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow1 = new HlsCusPrjQuotationCashflow();
+        Double deposit = cQuotation.getDeposit() == null ? 0 : cQuotation.getDeposit();
         //第0期加上保证金
         hlsCusPrjQuotationCashflow1.setDueAmount(0 - cQuotation.getFinanceAmount() + deposit);
         hlsCusPrjQuotationCashflow1.setDueDate(cQuotation.getLeaseStartDate());
@@ -4136,7 +4159,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         hlsCusPrjQuotationCashflow1.setCfDirection("OUTFLOW");
         hlsCusPrjQuotationCashflow1 = hlsCusPrjQuotationCashflowMapper.select(hlsCusPrjQuotationCashflow1).get(0);
         hlsCusPrjQuotationCashflow1.setDueAmount(-hlsCusPrjQuotationCashflow1.getDueAmount());*/
-        flows.add(0,hlsCusPrjQuotationCashflow1);
+        flows.add(0, hlsCusPrjQuotationCashflow1);
 
         //最后一期扣除保证金
         hlsCusPrjQuotationCashflow1 = flows.get(flows.size() - 1);
@@ -4151,7 +4174,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         //手续费同期现金流金额合并
         for (HlsCusPrjQuotationCashflow feeFlow : feeFlows) {
             List<HlsCusPrjQuotationCashflow> rentFlows = flows.stream().filter(rentf -> rentf.getTimes() == feeFlow.getTimes()).collect(Collectors.toList());
-            if(rentFlows.size() == 0){
+            if (rentFlows.size() == 0) {
                 continue;
             }
             HlsCusPrjQuotationCashflow rentFlow = rentFlows.get(0);
@@ -4173,9 +4196,9 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         conChangeRepaymentInFo.setAfterTotalTimes(startTimes - 1 + remainTimes);
         conChangeRepaymentInFo.setAfterRemainTimes(remainTimes);
         conChangeRepaymentInFo.setNewXirr(xirr);
-        if(conChangeRepaymentInFo.getAfterTotalTimes() > conChangeRepaymentInFo.getBeforeTotalTimes()){
+        if (conChangeRepaymentInFo.getAfterTotalTimes() > conChangeRepaymentInFo.getBeforeTotalTimes()) {
             conChangeRepaymentInFo.setRepaymentChangeType("extension");
-        }else{
+        } else {
             conChangeRepaymentInFo.setRepaymentChangeType("contraction");
         }
 
@@ -4197,6 +4220,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
     /**
      * 提前结清计算
+     *
      * @param req
      * @param hlsCusConContract
      * @return
@@ -4245,10 +4269,10 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
         HlsCusConContractCashflow hlsCusConContractCashflowQuery = new HlsCusConContractCashflow();
         hlsCusConContractCashflowQuery.setContractId(conContract.getContractId());
-        List<HlsCusConContractCashflow> hlsCusConContractCashflowList = hlsCusConContractCashflowService.select(req,hlsCusConContractCashflowQuery,1,100000);
+        List<HlsCusConContractCashflow> hlsCusConContractCashflowList = hlsCusConContractCashflowService.select(req, hlsCusConContractCashflowQuery, 1, 100000);
         Double residualValue = 0D;
-        for(HlsCusConContractCashflow cashflow:hlsCusConContractCashflowList){
-            if(cashflow.getCfItem() == 8){
+        for (HlsCusConContractCashflow cashflow : hlsCusConContractCashflowList) {
+            if (cashflow.getCfItem() == 8) {
                 residualValue = cashflow.getDueAmount();
             }
             HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow1 = new HlsCusPrjQuotationCashflow();
@@ -4282,7 +4306,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         //获取已核销的期次
         long writeOffTimes = 0L;
         for (HlsCusConContractCashflow conFlow : conCashFlowList) {
-            if ("FULL".equals(conFlow.getWriteOffFlag()) && conFlow.getTimes() > writeOffTimes){
+            if ("FULL".equals(conFlow.getWriteOffFlag()) && conFlow.getTimes() > writeOffTimes) {
                 writeOffTimes = conFlow.getTimes();
             }
         }
@@ -4303,14 +4327,14 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
         //提前结清期次(最后一期核销)
         long etTimes = 1L;
-        if(beforeFlow != null){
+        if (beforeFlow != null) {
             etTimes = beforeFlow.getTimes();
         }
 
         //校验提前结清之前一期是否核销
         long etBeforeTime = etTimes;
-        if(writeOffTimes != etBeforeTime){
-            throw new HlsCusException("请选择第"+writeOffTimes+"期之后的时间");
+        if (writeOffTimes != etBeforeTime) {
+            throw new HlsCusException("请选择第" + writeOffTimes + "期之后的时间");
         }
 
         //尚未偿还租赁本金余额
@@ -4318,12 +4342,12 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         //至提前结清日的未偿利息 上期剩余本金*年利率/360*上一期还款日到提前结清日天数
         BigDecimal etInterest = new BigDecimal("0");
         long calcEtInterestDays = 1;
-        if(beforeFlow != null){
-            calcEtInterestDays=calcEtInterestDays+daysBetween(beforeFlow.getDueDate(), conChangeEtInFo.getEtDate());
+        if (beforeFlow != null) {
+            calcEtInterestDays = calcEtInterestDays + daysBetween(beforeFlow.getDueDate(), conChangeEtInFo.getEtDate());
             unreceivedPrincipal = BigDecimal.valueOf(beforeFlow.getOutstandingPrincipal());
             etInterest = unreceivedPrincipal.multiply(dayRate).multiply(new BigDecimal(calcEtInterestDays));
-        }else{
-            calcEtInterestDays = calcEtInterestDays+daysBetween(conChangeEtInFo.getLeaseStartDate(), conChangeEtInFo.getEtDate());
+        } else {
+            calcEtInterestDays = calcEtInterestDays + daysBetween(conChangeEtInFo.getLeaseStartDate(), conChangeEtInFo.getEtDate());
             unreceivedPrincipal = BigDecimal.valueOf(contract.getFinanceAmount());
             etInterest = unreceivedPrincipal.multiply(dayRate).multiply(new BigDecimal(calcEtInterestDays));
         }
@@ -4337,25 +4361,25 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
         //提前结清手续费 如果不为空就直接使用,空则取 租赁本金余额*年利率*30/360
         BigDecimal etFee = new BigDecimal("0");
-        if(conChangeEtInFo.getEtFee() != null){
+        if (conChangeEtInFo.getEtFee() != null) {
             etFee = BigDecimal.valueOf(conChangeEtInFo.getEtFee());
-        }else{
+        } else {
             etFee = unreceivedPrincipal.multiply(intRate).multiply(new BigDecimal("30")).divide(new BigDecimal("360"), 6, RoundingMode.HALF_UP);
         }
 
         //减免金额
         BigDecimal reduceAmount = new BigDecimal("0");
-        if(conChangeEtInFo.getReduceAmount() != null){
+        if (conChangeEtInFo.getReduceAmount() != null) {
             reduceAmount = BigDecimal.valueOf(conChangeEtInFo.getReduceAmount());
         }
 
         //违约金 判断结清日是否是起租日的12个月后, 是则默认值为0,否则默认值取 剩余本金*30%
         Double penaltyRatio = oProject.getPenaltyRatio();
         BigDecimal liquidatedDamages = new BigDecimal("0");
-        if(conChangeEtInFo.getLiquidatedDamages() != null){
+        if (conChangeEtInFo.getLiquidatedDamages() != null) {
             liquidatedDamages = BigDecimal.valueOf(conChangeEtInFo.getLiquidatedDamages());
-        }else if(!timeSpan(conChangeEtInFo.getEtDate(), conChangeEtInFo.getLeaseStartDate())){
-            liquidatedDamages =  unreceivedPrincipal.multiply(BigDecimal.valueOf(penaltyRatio));//违约金率修改为虚拟合同维护的
+        } else if (!timeSpan(conChangeEtInFo.getEtDate(), conChangeEtInFo.getLeaseStartDate())) {
+            liquidatedDamages = unreceivedPrincipal.multiply(BigDecimal.valueOf(penaltyRatio));//违约金率修改为虚拟合同维护的
         }
 
         //实际应结清金额 实际应结清金额=尚未偿还租赁本金余额+至提前结清日的未偿利息+提前结清手续费+违约金 -减免金额
@@ -4372,7 +4396,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         etFlow.setCfDirection("INFLOW");
         etFlow.setCfStatus("RELEASE");
         etFlow.setFinIncomeDate(conChangeEtInFo.getEtDate());
-        etFlow.setTimes(etTimes+1);
+        etFlow.setTimes(etTimes + 1);
 
         Double vatRate = cQuotation.getVatRate();//税率
         double netPrincipal = etFlow.getDueAmount() / (1 + vatRate);
@@ -4387,7 +4411,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         //删除结清日期之后的现金流
         List<HlsCusPrjQuotationCashflow> cFlows = hlsCusPrjQuotationCashflowService.select(req, flow, 1, 999);
         cFlows = cFlows.stream().filter(f -> f.getTimes() >= etFlow.getTimes() && f.getCfItem() == 1L).collect(Collectors.toList());
-        if(cFlows.size() > 0){
+        if (cFlows.size() > 0) {
             hlsCusPrjQuotationCashflowService.batchDelete(cFlows);
         }
 
@@ -4427,7 +4451,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             if (i == 0) {
                 dueDate = cQuotation.getLeaseStartDate();
             }
-            if(collect.size() > 0) {
+            if (collect.size() > 0) {
                 collect.get(0).setDueAmount(dueAmount);
                 collect.get(0).setNetDueAmount(netDueAmount);
                 collect.get(0).setDueDate(dueDate);
@@ -4488,7 +4512,6 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         conChangeRepaymentInFo = conChangeRepaymentInfoMapper.select(conChangeRepaymentInFo).get(0);
 
 
-
         // 变更前总期数 还款变更方案
         List<HlsCusPrjQuotation> hlsCusPrjQuotationList = new ArrayList<>();
         HlsCusPrjQuotation hlsCusPrjQuotation = new HlsCusPrjQuotation();
@@ -4522,15 +4545,15 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         conChangeRepaymentInFo.setAfterTotalTimes(Long.valueOf(hlsCusPrjQuotationCashflows.size()));
         //变更起始期数 CHANGE_START_TIMES     获取最近后一期的现金流
         HlsCusPrjQuotationCashflow afterFlow = hlsCusPrjQuotationCashflowMapper.queryAfterChangeDateCashflow(hlsCusPrjQuotation.getQuotationId(), conChangeRepaymentInFo.getChangeStartDate());
-        if(afterFlow != null){
+        if (afterFlow != null) {
             conChangeRepaymentInFo.setChangeStartTimes(afterFlow.getTimes());
             //变更后剩余期数 AFTER_REMAIN_TIMES 变更后总期数-变更起始期数+1
             conChangeRepaymentInFo.setAfterRemainTimes(conChangeRepaymentInFo.getAfterTotalTimes() - conChangeRepaymentInFo.getChangeStartTimes() + 1);
         }
         //还款变更方案 REPAYMENT_CHANGE_TYPE(extension/contraction)
-        if(conChangeRepaymentInFo.getAfterTotalTimes() > conChangeRepaymentInFo.getBeforeTotalTimes()){
+        if (conChangeRepaymentInFo.getAfterTotalTimes() > conChangeRepaymentInFo.getBeforeTotalTimes()) {
             conChangeRepaymentInFo.setRepaymentChangeType("extension");
-        }else{
+        } else {
             conChangeRepaymentInFo.setRepaymentChangeType("contraction");
         }
         //变更手续费 CCR_FEE
@@ -4565,7 +4588,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         long time1 = date1.getTime();
         long time2 = date2.getTime();
         long time = time1 - time2;
-        if(time > 31536000000L){
+        if (time > 31536000000L) {
             return true;
         }
         return false;
@@ -4580,7 +4603,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         } else if (type.equals("3")) {
             calendar.setTime(date);
             calendar.add(Calendar.MONTH, 3);
-        }else if (type.equals("6")) {
+        } else if (type.equals("6")) {
             calendar.setTime(date);
             calendar.add(Calendar.MONTH, 6);
         } else if (type.equals("12")) {
@@ -4619,6 +4642,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         }
         return HlsCusXirr.Newtons_method(0.1, payments, dates);
     }
+
     /**
      * 根据合同编号查找合同id
      */
@@ -4638,14 +4662,15 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     private final static String WORK_FLOW = "CAR_MORTGAGE";
     //流程分类
     private final static String DEMO_NAME = "CAR_MORTGAGE";
+
     @Override
     public List<HlsCusConContract> submitWfl(HlsCusConContract dto, IRequest requestCtx) {
         HashMap<String, Object> params = new HashMap<>();
-        params.put("workFlowType",WORK_FLOW);
+        params.put("workFlowType", WORK_FLOW);
         params.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW);
         params.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME);
         params.put(IActivitiCommonService.BUSINESS_KEY, dto.getContractId());
-        params.put("contract_id",dto.getContractId());
+        params.put("contract_id", dto.getContractId());
         //单据名称
         //params.put("documentName", );
         //单据编号
@@ -4656,4 +4681,84 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         activitiStartService.start(requestCtx, res, params);
         return res;
     }
+
+    @Override
+    public void download(Long contractId, String contractAttachmentCategory, HttpServletResponse response, HttpServletRequest request) {
+        //封装
+        HlsCusContractAttachment hlsCusContractAttachment = new HlsCusContractAttachment();
+        hlsCusContractAttachment.setContractId(contractId);
+        hlsCusContractAttachment.setContractAttachmentCategory(contractAttachmentCategory);
+        //日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        this.commonLogHead(hlsWsRequests, "一键下载", hlsCusContractAttachment, request);
+        ResponseData responseData = new ResponseData();
+        //获取所有的数据
+        List<HlsCusContractAttachment> hlsCusConContractAttachmentList = hlsCusContractAttachmentMapper.findListByHlsCusConContractAttachment(hlsCusContractAttachment);
+        if (!CollectionUtils.isEmpty(hlsCusConContractAttachmentList)) {
+            String zipFilePath = "";
+            String fileName = "";
+            List<HlsCusSysFile> hlsCusSysFiles = new ArrayList<>();
+            for (HlsCusContractAttachment cusConContractAttachment : hlsCusConContractAttachmentList) {
+                HlsCusSysFile hlsCusSysFile = new HlsCusSysFile();
+                String filePath = cusConContractAttachment.getFilePath();
+                String fileName1 = cusConContractAttachment.getFileName();
+                hlsCusSysFile.setFilePath(filePath);
+                hlsCusSysFile.setFileName(fileName1);
+                hlsCusSysFiles.add(hlsCusSysFile);
+            }
+            if (!CollectionUtils.isEmpty(hlsCusSysFiles)) {
+                File zipFilePath1 = new File(zipFilePath);
+                //拼接文件名,用户名+系统时间,避免出现重复
+                fileName = "downloadZip_" + System.currentTimeMillis();
+                //String zipFile = "attachment;filename=" + new String(fileName.getBytes("utf-8"), "iso-8859-1") + ".zip";
+                String zipFile = zipFilePath1 + fileName + ".zip";
+                try {
+                    FileOutputStream outStream = new FileOutputStream(zipFile);
+                    ZipOutputStream toClient = new ZipOutputStream(outStream);
+                    //打包转换为zip文件
+                    HlsCusZipUtil.zipFile(hlsCusSysFiles, toClient);
+                    toClient.close();
+                    outStream.close();
+                    //下载zip文件
+                    HlsCusZipUtil.downloadZip(new File(zipFile), response);
+                } catch (Exception e) {
+                    commonLog(responseData, "10001", "E", "一键下载异常", hlsWsRequests);
+                }
+            }
+
+        }
+    }
+
+    private void commonLog(ResponseData responseData, String code, String returnStatus, String parameter, HlsWsRequests hlsWsRequests) {
+        responseData.setCode(code);
+        responseData.setMessage(parameter);
+        hlsWsRequests.setReturnStatus(returnStatus);
+        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        hlsWsRequestsMapper.insert(hlsWsRequests);
+    }
+
+    private void commonLogHead(HlsWsRequests hlsWsRequests, String functionName, Object param, HttpServletRequest request) {
+        //获取请求路径
+        String requestURI = request.getRequestURI();
+        hlsWsRequests.setRequestWsdlUrl(requestURI);
+        //请求日期
+        hlsWsRequests.setRequestDate(new Date());
+        //功能名称
+        hlsWsRequests.setFunctionName(functionName);
+        //状态变更日期
+        hlsWsRequests.setStatusDate(new Date());
+        // user_id
+        String userId = request.getParameter("user_id");
+        if (userId != null) {
+            hlsWsRequests.setUserId(Long.valueOf(userId));
+        }
+        //请求状态
+        hlsWsRequests.setStatusCode("200");
+        //参数类型
+        hlsWsRequests.setParameterType("JSON");
+        // 请求体
+        String s = JSONObject.toJSONString(param);
+        hlsWsRequests.setRequestJson(s);
+    }
+
 }

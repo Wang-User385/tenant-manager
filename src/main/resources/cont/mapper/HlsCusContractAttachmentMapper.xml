@@ -25,6 +25,7 @@
         <result column="document_name_summary" property="documentNameSummary"/>
         <result column="COPIES" property="copies"/>
         <result column="file_names" property="fileNames" jdbcType="VARCHAR"/>
+        <result column="file_path" property="filePath" jdbcType="VARCHAR"/>
     </resultMap>
 
     <select id="queryContractAttachment" resultMap="BaseResultMap"
@@ -223,4 +224,20 @@
                m.created_by, m.creation_date, m.last_updated_by, m.last_update_date
         from FND_ATM_ATTACHMENT m where m.ATTACHMENT_ID = #{attachment_id}
     </select>
+
+    <select id="findListByHlsCusConContractAttachment" resultMap="BaseResultMap">
+        SELECT
+            fat.file_name, fat.file_path
+        FROM
+            con_contract_attachment cca,
+             fnd_atm_attachment_multi faam,
+             fnd_atm_attachment       fat
+        WHERE
+          cca.CONTRACT_ATTACHMENT_ID = faam.table_pk_value
+          AND faam.attachment_id = fat.attachment_id
+          AND faam.table_name = 'CON_CONTRACT_ATTACHMENT'
+          AND cca.contract_attachment_category = #{contractAttachmentCategory} and cca.contract_id = #{contractId}
+    </select>
+
+
 </mapper>

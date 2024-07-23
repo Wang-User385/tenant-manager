@@ -15,6 +15,8 @@ import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import com.hand.hls.req.dto.HlsCusChangeReqInfo;
 import com.hand.hls.utils.ResMessageException;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -250,4 +252,6 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
     List<HlsCusConContract> queryContractInceptInfoMain(IRequest iRequest, HlsCusPrjProject dto, int page, int pageSize);
 
     List<HlsCusConContract> submitWfl(HlsCusConContract dto, IRequest requestCtx);
+
+    void download(Long contractId, String contractAttachmentCategory, HttpServletResponse response, HttpServletRequest request);
 }
