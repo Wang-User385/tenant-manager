@@ -1,6 +1,9 @@
 package com.hand.hls.partner.service;
 
 import com.hand.hap.core.IRequest;
+import com.hand.hls.partner.dto.AssetNeedBuybackDto;
+import com.hand.hls.partner.dto.AssetNeedSubstituteDto;
+
 public interface IYLMessageNoticeService {
 
     /**
@@ -51,19 +54,19 @@ public interface IYLMessageNoticeService {
     /**
      * 易靓需代偿通知
      *
-     * @param projectId
+     * @param
      * @return
      */
-    void assetNeedSubstitute(Long projectId, IRequest iRequest);
+    void assetNeedSubstitute(AssetNeedSubstituteDto assetNeedSubstituteDto, IRequest iRequest);
 
 
     /**
      * 易靓需回购通知
      *
-     * @param projectId
+     * @param
      * @return
      */
-    void assetNeedBuyback(Long projectId, IRequest iRequest);
+    void assetNeedBuyback(AssetNeedBuybackDto assetNeedBuyback,IRequest iRequest);
 
 
     /**

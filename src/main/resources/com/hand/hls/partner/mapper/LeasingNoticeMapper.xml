@@ -72,38 +72,63 @@
     </select>
 
     <!--易靓需代偿通知-->
-    <select id="queryAssetNeedSubstitute" resultType="com.hand.hls.partner.dto.AssetNeedSubstituteDto" parameterType="java.lang.Long">
-        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
+    <select id="queryAssetNeedSubstitute" resultType="com.hand.hls.partner.dto.AssetNeedSubstituteDto" parameterType="com.hand.hls.partner.dto.AssetNeedSubstituteDto">
         SELECT
-            pp.PROJECT_NUMBER as orderNo,
-            '1' as termNo,
-            SYSDATE as trialTime,
-            100*100 as principal,
-            100*100 as interest,
-            10*100 as principalPenalty,
-            10*100 as interestPenalty,
-            1000*100 as payableAmount
-        FROM PRJ_PROJECT pp
-        WHERE pp.PROJECT_ID = #{projectId}
+            ccc.CASHFLOW_ID AS cashflowId,
+            pp.PROJECT_NUMBER AS orderNo,
+            ccc.TIMES AS termNo,
+            TO_CHAR(ccc.FIN_INCOME_DATE,'yyyy-mm-dd') AS trialTime,
+            NVL(ccc.PRINCIPAL, 0)*100 AS principal,
+            NVL(ccc.INTEREST, 0)*100 AS interest,
+            (SELECT NVL(SUM(cf.DUE_AMOUNT), 0)*100 FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID AND CF_ITEM=9) AS penalty,
+            NVL(ccc.DUE_AMOUNT, 0)*100+(SELECT NVL(SUM(cf.DUE_AMOUNT), 0)*100 FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID AND CF_ITEM=9) AS payableAmount
+        FROM CON_CONTRACT_CASHFLOW ccc
+                 INNER JOIN CON_CONTRACT cc ON ccc.CONTRACT_ID = cc.CONTRACT_ID
+                 INNER JOIN hls_penalty_profile_dtl hppd ON hppd.penalty_profile = cc.penalty_profile
+                 INNER JOIN PRJ_PROJECT pp ON cc.project_id = pp.project_id
+        WHERE hppd.enabled_flag = 'Y'
+          AND cc.contract_status = 'INCEPT'
+          AND cc.data_class = 'NORMAL'
+          AND ccc.write_off_flag not in ('FULL')
+          AND ccc.cf_direction='INFLOW'
+          AND ccc.times not in (0)
+          AND ccc.cf_item not in (9)
+          AND ccc.due_amount-nvl(ccc.RECEIVED_AMOUNT,0)>0
+          AND trunc(sysdate) - 30  > trunc(ccc.DUE_DATE) AND trunc(sysdate) - 85 &lt; trunc(ccc.DUE_DATE)
+        <if test="cashflowId != null">
+            AND ccc.CASHFLOW_ID = #{cashflowId}
+        </if>
     </select>
 
     <!--易靓需回购通知-->
-    <select id="queryAssetNeedBuybackDto" resultType="com.hand.hls.partner.dto.AssetNeedBuybackDto" parameterType="java.lang.Long">
-        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
+    <select id="queryAssetNeedBuybackDto" resultType="com.hand.hls.partner.dto.AssetNeedBuybackDto" parameterType="com.hand.hls.partner.dto.AssetNeedBuybackDto">
         SELECT
+        MAX(cc.contract_id) AS contractId,
         MAX(pp.PROJECT_NUMBER) AS orderNo,
         LISTAGG(ccc.TIMES, ',') WITHIN GROUP (ORDER BY ccc.CONTRACT_ID) AS termNos,
         TO_CHAR(SYSDATE,'yyyy-mm-dd') AS trialTime,
-        SUM(ccc.PRINCIPAL)*100 AS principal,
-        SUM(ccc.INTEREST)*100 AS interest,
-        1000*100 AS principalPenalty,
-        1000*100 AS interestPenalty,
-        1000*100 AS otherFee,
-        10000*100 AS payableAmount
-        FROM PRJ_PROJECT pp
-        LEFT JOIN CON_CONTRACT cc ON pp.PROJECT_ID = cc.PROJECT_ID
-        LEFT JOIN CON_CONTRACT_CASHFLOW ccc ON cc.contract_id = ccc.contract_id
-        WHERE pp.PROJECT_ID = #{projectId} AND ccc.CF_ITEM=1
+        NVL(SUM(ccc.PRINCIPAL), 0)*100 AS principal,
+        NVL(SUM(ccc.INTEREST), 0)*100 AS interest,
+        NVL(SUM(cf.DUE_AMOUNT), 0)*100 AS penalty,
+        (SELECT NVL(cf1.DUE_AMOUNT, 0)*100 FROM CON_CONTRACT_CASHFLOW cf1 WHERE cf1.CONTRACT_ID = cc.CONTRACT_ID AND cf1.CF_ITEM=8) AS otherFee,
+        NVL(SUM(ccc.DUE_AMOUNT), 0)*100 + NVL(SUM(cf.DUE_AMOUNT), 0) *100 AS payableAmount
+        FROM CON_CONTRACT_CASHFLOW ccc
+        INNER JOIN CON_CONTRACT cc ON ccc.CONTRACT_ID = cc.CONTRACT_ID
+        INNER JOIN hls_penalty_profile_dtl hppd ON hppd.penalty_profile = cc.penalty_profile
+        INNER JOIN PRJ_PROJECT pp ON cc.project_id = pp.project_id
+        LEFT JOIN CON_CONTRACT_CASHFLOW cf  ON cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID AND cf.CF_ITEM=9
+        WHERE hppd.enabled_flag = 'Y'
+        AND cc.contract_status = 'INCEPT'
+        AND cc.data_class = 'NORMAL'
+        AND ccc.write_off_flag not in ('FULL')
+        AND ccc.cf_direction='INFLOW'
+        AND ccc.times not in (0)
+        AND ccc.cf_item = 1
+        AND ccc.due_amount-nvl(ccc.RECEIVED_AMOUNT,0)>0
+        AND trunc(sysdate) - 85  > trunc(ccc.DUE_DATE)
+        <if test="contractId != null">
+            AND ccc.CONTRACT_ID = #{contractId}
+        </if>
         GROUP BY cc.CONTRACT_ID
     </select>
 
@@ -119,7 +144,6 @@
 
     <!--易靓期次代扣结果通知-->
     <select id="queryRepayPlanRepaidNotify" resultType="java.util.Map" parameterType="java.lang.Long">
-        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
         SELECT
             pp.PROJECT_NUMBER  AS orderNo,
             'DEDUCT' repayType
@@ -128,22 +152,22 @@
 
     <!--易靓期次代扣结果通知:具体期次查询-->
     <select id="queryTerm" resultType="com.hand.hls.partner.dto.RepayPlanRepaidNotifyDto" parameterType="java.lang.Long">
-        <!--sql随便写的，暂时无数据来源，方便测试消息是否发送成功，后期sql调整-->
         SELECT
-            pp.PROJECT_NUMBER AS orderNo,
-            ccc.times AS termNo,
-            ccc.PRINCIPAL*100 AS principal,
-            ccc.INTEREST*100 AS interest,
-            100*100 AS principalPenalty,
-            10*100 AS interestPenalty,
-            10*100 AS otherFee,
-            1000*100 AS total,
-            'JSNO0000001' AS transactionNo,
-            'DKJYNO000001' AS externalDeductNo
-        FROM PRJ_PROJECT pp
-                 LEFT JOIN CON_CONTRACT cc ON pp.PROJECT_ID = cc.PROJECT_ID
-                 LEFT JOIN CON_CONTRACT_CASHFLOW ccc ON cc.contract_id = ccc.contract_id
-        WHERE pp.PROJECT_ID=#{projectId} AND ccc.CF_ITEM=1
+            ccc.TIMES AS termNo,
+            NVL(ccc.PRINCIPAL, 0)*100 AS principal,
+            NVL(ccc.INTEREST, 0)*100 AS interest,
+            (SELECT NVL(SUM(cf.DUE_AMOUNT), 0)*100 FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID AND CF_ITEM=9) AS penalty,
+            (SELECT NVL(cf1.DUE_AMOUNT, 0)*100 FROM CON_CONTRACT_CASHFLOW cf1 WHERE cf1.CONTRACT_ID = cc.CONTRACT_ID AND cf1.CF_ITEM=8) AS otherFee,
+            ccc.DUE_AMOUNT*100 + (SELECT NVL(SUM(cf.DUE_AMOUNT), 0)*100 FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID AND CF_ITEM=9) + (SELECT NVL(cf1.DUE_AMOUNT, 0)*100 FROM CON_CONTRACT_CASHFLOW cf1 WHERE cf1.CONTRACT_ID = cc.CONTRACT_ID AND cf1.CF_ITEM=8)
+                AS total,
+            ct.TRANSACTION_NO AS transactionNo,
+            ct.EXTERNAL_DEDUCT_NO AS externalDeductNo
+        FROM CON_CONTRACT_CASHFLOW CCC
+                 INNER JOIN CON_CONTRACT cc on cc.CONTRACT_ID = ccc.CONTRACT_ID
+                 INNER JOIN CSH_TRANSACTION ct on cc.CONTRACT_ID = ct.CONTRACT_ID AND ct.TERM_NO = ccc.times
+                 INNER JOIN PRJ_PROJECT pp ON pp.PROJECT_ID = cc.PROJECT_ID
+        WHERE ct.PAYMENT_METHOD = '代偿' AND ccc.CF_ITEM=1
+          AND pp.PROJECT_ID=#{projectId}
     </select>
 
 

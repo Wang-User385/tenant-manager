@@ -48,18 +48,18 @@ public interface LeasingNoticeMapper extends Mapper<LeasingNotice> {
     /**
      * 易靓需代偿通知
      *
-     * @param projectId
+     * @param
      * @return
      */
-    AssetNeedSubstituteDto queryAssetNeedSubstitute(@Param("projectId") Long projectId);
+    List<AssetNeedSubstituteDto> queryAssetNeedSubstitute(AssetNeedSubstituteDto assetNeedSubstituteDto);
 
     /**
      * 易靓需回购通知
      *
-     * @param projectId
+     * @param
      * @return
      */
-    AssetNeedBuybackDto queryAssetNeedBuybackDto(@Param("projectId") Long projectId);
+    List<AssetNeedBuybackDto> queryAssetNeedBuybackDto(AssetNeedBuybackDto assetNeedBuybackDto);
 
     /**
      * 易靓代扣签约结果通知

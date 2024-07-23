@@ -2,6 +2,8 @@ package com.hand.hls.partner.service.impl;
 
 import com.hand.hap.core.IRequest;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
+import com.hand.hls.partner.dto.AssetNeedBuybackDto;
+import com.hand.hls.partner.dto.AssetNeedSubstituteDto;
 import com.hand.hls.partner.dto.LeasingNotice;
 import com.hand.hls.partner.service.ILeasingNoticeService;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
@@ -50,9 +52,13 @@ public class LeasingNoticeServiceImpl extends BaseServiceImpl<LeasingNotice> imp
             } else if (leasingNoticeNew.getSourceType().indexOf("n005") != -1) {
                 messageNoticeService.overdueCalculateFinishedNotify(iRequest);
             } else if (leasingNoticeNew.getSourceType().indexOf("n006") != -1) {
-                messageNoticeService.assetNeedSubstitute(leasingNoticeNew.getSourceId(), iRequest);
+                AssetNeedSubstituteDto assetNeedSubstituteDto = new AssetNeedSubstituteDto();
+                assetNeedSubstituteDto.setCashflowId(leasingNoticeNew.getSourceId());
+                messageNoticeService.assetNeedSubstitute(assetNeedSubstituteDto, iRequest);
             } else if (leasingNoticeNew.getSourceType().indexOf("n007") != -1) {
-                messageNoticeService.assetNeedBuyback(leasingNoticeNew.getSourceId(), iRequest);
+                AssetNeedBuybackDto assetNeedBuyback = new AssetNeedBuybackDto();
+                assetNeedBuyback.setContractId(leasingNoticeNew.getSourceId());
+                messageNoticeService.assetNeedBuyback(assetNeedBuyback, iRequest);
             } else if (leasingNoticeNew.getSourceType().indexOf("n008") != -1) {
                 messageNoticeService.withholdContractResult(leasingNoticeNew.getSourceId(), iRequest);
             } else if (leasingNoticeNew.getSourceType().indexOf("n009") != -1) {

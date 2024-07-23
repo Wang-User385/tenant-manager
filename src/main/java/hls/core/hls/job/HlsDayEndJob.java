@@ -3,6 +3,7 @@ package hls.core.hls.job;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.job.AbstractJob;
+import com.hand.hls.partner.service.IYLMessageNoticeService;
 import com.hand.hls.plm.rc.dto.HlsCusRentCollectionRule;
 import com.hand.hls.plm.rc.service.HlsCusRentCollectionRuleService;
 import hls.core.hls.service.HlsDayEndService;
@@ -24,6 +25,9 @@ public class HlsDayEndJob extends AbstractJob {
 
     @Autowired
     private HlsCusRentCollectionRuleService hlsCusRentCollectionRuleService;
+
+    @Autowired
+    private IYLMessageNoticeService iylMessageNoticeService;
 
     private Exception exception = null;
     private Object result;
@@ -90,15 +94,20 @@ public class HlsDayEndJob extends AbstractJob {
         try {
             hlsDayEndService.excEndDay(param);
 
+
+            //调用消息推送接口，推送逾期超过30天未超过85天的现金流数据
+            IRequest request = (IRequest)context.getMergedJobDataMap().get("requestContext");
+            iylMessageNoticeService.assetNeedSubstitute(null,request);
+
             //自动插入租金催收规则数据
-            List<HlsCusRentCollectionRule> collectionRules = hlsCusRentCollectionRuleService.selectOverTimesContract();
+            /*List<HlsCusRentCollectionRule> collectionRules = hlsCusRentCollectionRuleService.selectOverTimesContract();
             for(HlsCusRentCollectionRule rule:collectionRules){
                 rule.setCollectionDays(7L);
                 rule.setEnabledFlag("Y");
                 IRequest iRequest = RequestHelper.newEmptyRequest();
                 iRequest.setUserId(10001L);
                 hlsCusRentCollectionRuleService.insertSelective(iRequest,rule);
-            }
+            }*/
 
         } catch (Exception e) {
             if (logger.isErrorEnabled()) {
