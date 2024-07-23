@@ -3911,79 +3911,79 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         WHERE bm.BP_APPROVE_STATUS is null or bm.BP_APPROVE_STATUS='APPROVED'
         ORDER BY bm.bp_name ASC) tt
         <where>
-            <if test="createdBy!=null and createdBy!=''">
-                and (/*非零售客户权限*/
-                    (nvl(tt.retail_flag,'N') ='N' AND (
-                    #{request.userId}=tt.created_by
-                    OR
-                    exists(
-                    select 1 from fnd_org_unit a1,fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4
-                    where a3.employee_id=a2.employee_id
-                    and a3.unit_id=a1.unit_id
-                    and a4.position_id=a3.position_id
-                    and a4.chief_position_flag='Y'
-                    and employee_code=#{request.employeeCode}
-                    AND A1.UNIT_ID IN(
-                    select b.unit_id
-                    from sys_user_allocation a,fnd_employee_assigns b
-                    where a.user_id=tt.created_by
-                    AND a.employee_assign_id=b.employee_assign_id))
-                    or #{request.employeeCode} in('ADMIN','HULITING')))
-                    /*零售客户权限*/
-                    OR
-                    (nvl(tt.retail_flag,'N') ='Y'
-                    AND ( #{request.userId}=tt.created_by
-                    or exists(
-                    select 1
-                    from fnd_org_unit a1,  sys_user_allocation a,fnd_employee_assigns b
-                    where a.user_id=#{createdBy}
-                    and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID
-                    and b.unit_id =a1.unit_id
-                    and a1.unit_code != 'BUSINESS_DEPT_MANUFACTURER')
-                    ))
-                )
-            </if>
-            <if test="createdBy==null or createdBy==''">
-                and (/*非零售客户权限*/
-                (nvl(tt.retail_flag,'N') ='N' AND (
-                #{request.userId}=tt.created_by
-                OR
-                exists(
-                select 1 from fnd_org_unit a1,fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4
-                where a3.employee_id=a2.employee_id
-                and a3.unit_id=a1.unit_id
-                and a4.position_id=a3.position_id
-                and a4.chief_position_flag='Y'
-                and employee_code=#{request.employeeCode}
-                AND A1.UNIT_ID IN(
-                select b.unit_id
-                from sys_user_allocation a,fnd_employee_assigns b
-                where a.user_id=tt.created_by
-                AND a.employee_assign_id=b.employee_assign_id))
-                or #{request.employeeCode} in('ADMIN','HULITING')))
-                /*零售客户权限*/
-                OR
-                (nvl(tt.retail_flag,'N') ='Y'
-                AND (
-                (exists(
-                select 1
-                from sys_user_allocation a,fnd_employee_assigns b
-                where a.user_id= #{request.userId}
-                and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID
-                and b.position_id in(select b1.position_id
-                from sys_user_allocation a1,fnd_employee_assigns b1
-                where a1.user_id=tt.created_by
-                and a1.EMPLOYEE_ASSIGN_ID=b1.EMPLOYEE_ASSIGN_ID)))
-                or exists(
-                select 1
-                from fnd_org_unit a1,  sys_user_allocation a,fnd_employee_assigns b
-                where a.user_id= #{request.userId}
-                and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID
-                and b.unit_id =a1.unit_id
-                and a1.unit_code != 'BUSINESS_DEPT_MANUFACTURER')
-                ))
-                )
-            </if>
+<!--            <if test="createdBy!=null and createdBy!=''">-->
+<!--                and (/*非零售客户权限*/-->
+<!--                    (nvl(tt.retail_flag,'N') ='N' AND (-->
+<!--                    #{request.userId}=tt.created_by-->
+<!--                    OR-->
+<!--                    exists(-->
+<!--                    select 1 from fnd_org_unit a1,fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4-->
+<!--                    where a3.employee_id=a2.employee_id-->
+<!--                    and a3.unit_id=a1.unit_id-->
+<!--                    and a4.position_id=a3.position_id-->
+<!--                    and a4.chief_position_flag='Y'-->
+<!--                    and employee_code=#{request.employeeCode}-->
+<!--                    AND A1.UNIT_ID IN(-->
+<!--                    select b.unit_id-->
+<!--                    from sys_user_allocation a,fnd_employee_assigns b-->
+<!--                    where a.user_id=tt.created_by-->
+<!--                    AND a.employee_assign_id=b.employee_assign_id))-->
+<!--                    or #{request.employeeCode} in('ADMIN','HULITING')))-->
+<!--                    /*零售客户权限*/-->
+<!--                    OR-->
+<!--                    (nvl(tt.retail_flag,'N') ='Y'-->
+<!--                    AND ( #{request.userId}=tt.created_by-->
+<!--                    or exists(-->
+<!--                    select 1-->
+<!--                    from fnd_org_unit a1,  sys_user_allocation a,fnd_employee_assigns b-->
+<!--                    where a.user_id=#{createdBy}-->
+<!--                    and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID-->
+<!--                    and b.unit_id =a1.unit_id-->
+<!--                    and a1.unit_code != 'BUSINESS_DEPT_MANUFACTURER')-->
+<!--                    ))-->
+<!--                )-->
+<!--            </if>-->
+<!--            <if test="createdBy==null or createdBy==''">-->
+<!--                and (/*非零售客户权限*/-->
+<!--                (nvl(tt.retail_flag,'N') ='N' AND (-->
+<!--                #{request.userId}=tt.created_by-->
+<!--                OR-->
+<!--                exists(-->
+<!--                select 1 from fnd_org_unit a1,fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4-->
+<!--                where a3.employee_id=a2.employee_id-->
+<!--                and a3.unit_id=a1.unit_id-->
+<!--                and a4.position_id=a3.position_id-->
+<!--                and a4.chief_position_flag='Y'-->
+<!--                and employee_code=#{request.employeeCode}-->
+<!--                AND A1.UNIT_ID IN(-->
+<!--                select b.unit_id-->
+<!--                from sys_user_allocation a,fnd_employee_assigns b-->
+<!--                where a.user_id=tt.created_by-->
+<!--                AND a.employee_assign_id=b.employee_assign_id))-->
+<!--                or #{request.employeeCode} in('ADMIN','HULITING')))-->
+<!--                /*零售客户权限*/-->
+<!--                OR-->
+<!--                (nvl(tt.retail_flag,'N') ='Y'-->
+<!--                AND (-->
+<!--                (exists(-->
+<!--                select 1-->
+<!--                from sys_user_allocation a,fnd_employee_assigns b-->
+<!--                where a.user_id= #{request.userId}-->
+<!--                and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID-->
+<!--                and b.position_id in(select b1.position_id-->
+<!--                from sys_user_allocation a1,fnd_employee_assigns b1-->
+<!--                where a1.user_id=tt.created_by-->
+<!--                and a1.EMPLOYEE_ASSIGN_ID=b1.EMPLOYEE_ASSIGN_ID)))-->
+<!--                or exists(-->
+<!--                select 1-->
+<!--                from fnd_org_unit a1,  sys_user_allocation a,fnd_employee_assigns b-->
+<!--                where a.user_id= #{request.userId}-->
+<!--                and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID-->
+<!--                and b.unit_id =a1.unit_id-->
+<!--                and a1.unit_code != 'BUSINESS_DEPT_MANUFACTURER')-->
+<!--                ))-->
+<!--                )-->
+<!--            </if>-->
 
             <if test="bpName!=null and bpName!=''">
                 AND tt.bp_name LIKE concat(concat('%',#{bpName}),'%')
@@ -4411,10 +4411,6 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         from sys_code_value_b_v sc
         where sc.code = 'HLS211_ACADEMIC_BACKGROUND'
         and sc.code_value = hbm.highest_degree)highest_degree_n,
-        -- (select sc.meaning value_name
-        -- from sys_code_value_b_v sc
-        -- where sc.code = 'FND.ORGTYPESUB'
-        -- and sc.code_value = hbm.organization_type_details) organization_type_details_n,
         (select sc.meaning value_name
         from sys_code_value_b_v sc
         where sc.code = 'SYS.YES_NO'
@@ -4517,10 +4513,6 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         (select sc.COUNTRY_NAME
         from fnd_country sc
         where sc.COUNTRY=hbm.NATIONALITY) NATIONALITY_N,
-        /* (select sc.meaning value_name
-        from sys_code_value_b_v sc
-        where sc.code = 'HLS211_NATIONALITY'
-        and sc.code_value = hbm.NATIONALITY) NATIONALITY_N,*/
         (select sc.meaning value_name
         from sys_code_value_b_v sc
         where (sc.code = 'BUSINESS_OPERATION_B' or sc.code = 'BUSINESS_OPERATION_L' or sc.code = 'BUSINESS_OPERATION_M')
@@ -4690,26 +4682,6 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         where sc.code = 'PROFESSION'
         and sc.code_value = hbm.profession_sp) profession_sp_n,
 
---         (SELECT
---         DESCRIPTION AS value_name
---         FROM
---         FND_DISTRICT fd
---         where  hbm.domicile_district = fd.DISTRICT
---         ) domicile_district_n,
---
---         (SELECT
---         DESCRIPTION AS value_name
---         FROM
---         FND_DISTRICT fd
---         where  hbm.house_district = fd.DISTRICT
---         ) house_district_n,
---
---         (SELECT
---         DESCRIPTION AS value_name
---         FROM
---         FND_DISTRICT fd
---         where  hbm.company_district = fd.DISTRICT
---         ) company_district_n,
 
         (
         SELECT
@@ -4742,28 +4714,29 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
         AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
         INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
         WHERE
-        hbm.domicile_district = fd1.district
+        TO_CHAR(hbm.domicile_district) =  TO_CHAR(fd1.district)
         ) domicile_district_n,
 
         (SELECT
         DESCRIPTION AS value_name
         FROM
         FND_CITY fc
-        where  hbm.company_city = fc.CITY
+        where  TO_CHAR(hbm.company_city) = TO_CHAR(fc.CITY)
         ) company_city_n,
 
         (SELECT
         DESCRIPTION AS value_name
         FROM
         FND_PROVINCE fp
-        where  hbm.company_province = fp.PROVINCE
+        where  TO_CHAR(hbm.company_province) = TO_CHAR(fp.PROVINCE)
         ) company_province_n,
+
 
         (SELECT
         DESCRIPTION AS value_name
         FROM
         hls_stat_class hsc
-        where  hbm.INDU_CLASSIFY_SP = hsc.class_id
+        where  TO_CHAR(hbm.INDU_CLASSIFY_SP) = TO_CHAR(hsc.class_id)
         ) indu_classify_sp_n,
 
         (select condition_id from hls_bp_master_business_condition hbmbc where hbmbc.bp_id = hbm.bp_id ) condition_id,
