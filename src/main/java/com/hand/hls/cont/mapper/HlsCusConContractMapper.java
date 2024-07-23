@@ -4,6 +4,7 @@ import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.ast.dto.ConContractLov;
 import com.hand.hls.ast.dto.VirtualConContractLov;
 import com.hand.hls.cont.dto.HlsCusConContract;
+import com.hand.hls.mort.dto.HlsMortgage;
 import org.apache.ibatis.annotations.Param;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import org.apache.ibatis.annotations.Select;
@@ -162,4 +163,14 @@ public interface HlsCusConContractMapper extends Mapper<HlsCusConContract> {
     HlsCusConContract selectByRefProjectId(Long projectId);
     //进件合同起租列表页面查询
     List<HlsCusConContract> queryContractInceptInfoMain(HlsCusPrjProject prjProject);
+
+
+    List<HlsCusConContract> findAllByHlsCusConContract(HlsCusConContract hlsCusConContract);
+
+    List<HlsCusConContract> findDetail(HlsCusConContract hlsCusConContract);
+
+    List<HlsCusConContract> findAttachReview(HlsCusConContract hlsCusConContract);
+    List<HlsCusConContract> findAttachContact(HlsCusConContract hlsCusConContract);
+    List<HlsCusConContract> findAttachMortgage(HlsCusConContract hlsCusConContract);
+
 }

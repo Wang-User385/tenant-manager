@@ -1675,4 +1675,46 @@ public class HlsCusConContract extends ConContract {
     private String legalAssistantFirstN;
     @Transient
     private String legalAssistantSecondN;
+
+
+    private String mortgageStatus;
+
+    @Transient
+    private String mortgageStatusN;
+
+
+    private Date mortgageApprovedDate;
+
+    @Transient
+    private Long processInstanceId;
+
+    @Transient
+    private String documentName;
+
+    @Transient
+    private Date uploadDate;
+
+    @Transient
+    private String idCardNo;
+
+    @Transient
+    private String phone;
+
+    @Transient
+    private Double frameNumber;
+
+    @Transient
+    private String brandC;
+
+    @Transient
+    private String modelC;
+
+    @Transient
+    private String colorC;
+
+    @Transient
+    private Double listPrice;
+
+
+
 }

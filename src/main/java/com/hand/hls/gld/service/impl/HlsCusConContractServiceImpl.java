@@ -55,6 +55,7 @@ import com.hand.hls.gld.utils.IrrUtil;
 import com.hand.hls.hls.dto.HlsCusFundingPlan;
 import com.hand.hls.hls.mapper.HlsCusFundingPlanMapper;
 import com.hand.hls.interfacePlatform.utils.FinanceBaseUtils;
+import com.hand.hls.mort.dto.HlsMortgage;
 import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
@@ -4631,5 +4632,28 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         PageHelper.startPage(page, pageSize);
         List<HlsCusConContract> list = hlsCusConContractMapper.queryContractInceptInfoMain(dto);
         return list;
+    }
+
+    //流程编码
+    private final static String WORK_FLOW = "CAR_MORTGAGE";
+    //流程分类
+    private final static String DEMO_NAME = "CAR_MORTGAGE";
+    @Override
+    public List<HlsCusConContract> submitWfl(HlsCusConContract dto, IRequest requestCtx) {
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("workFlowType",WORK_FLOW);
+        params.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW);
+        params.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME);
+        params.put(IActivitiCommonService.BUSINESS_KEY, dto.getContractId());
+        params.put("contract_id",dto.getContractId());
+        //单据名称
+        //params.put("documentName", );
+        //单据编号
+        //params.put("documentNumber",);
+        //查询
+        List<HlsCusConContract> res = new ArrayList<>();
+        res.add(dto);
+        activitiStartService.start(requestCtx, res, params);
+        return res;
     }
 }

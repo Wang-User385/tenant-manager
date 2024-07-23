@@ -10,4 +10,6 @@ import java.util.List;
 public interface HlsMortgageService extends IBaseService<HlsMortgage>, ProxySelf<HlsMortgageService>{
 
     List<HlsMortgage> save(IRequest iRequest, HlsMortgage hlsMortgage);
+
+    List<HlsMortgage> submitWfl(HlsMortgage dto, IRequest requestCtx);
 }
