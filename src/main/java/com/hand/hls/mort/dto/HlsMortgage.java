@@ -10,7 +10,7 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.util.Date;
 
-@ExtensionAttribute(disable=true)
+@ExtensionAttribute(disable = true)
 @Table(name = "hls_lease_mortgage")
 @Getter
 @Setter
@@ -28,7 +28,7 @@ public class HlsMortgage {
     /*合同编码*/
     private String contractNumber;
     /*抵押编号*/
-    private  String mortgageNumber;
+    private String mortgageNumber;
     /*合作方*/
     @Transient
     private String manufacturerIdN;
@@ -45,7 +45,7 @@ public class HlsMortgage {
     /*租赁物名称*/
     private String fullName;
     /*业务线*/
-    private  String division;
+    private String division;
     /*项目主办ID*/
     @Transient
     private Long hostProjectManager;
@@ -96,42 +96,7 @@ public class HlsMortgage {
     @Transient
     private String productModel;
 
-    private String mortgageStatus;
-
-    @Transient
-    private String mortgageStatusN;
-
-    @Transient
-    private String bpIdTenantN;
-
-    @Transient
-    private String businessType;
-
-    @Transient
-    private String businessTypeN;
-
-    @Transient
-    private String divisionN;
-
-    @Transient
-    private String employeeIdN;
-
-    @Transient
-    private String unitIdN;
-
-    @Transient
-    private Date actualPayDate;
 
 
-    private Date mortgageApprovedDate;
-
-    @Transient
-    private Long processInstanceId;
-
-    @Transient
-    private String documentName;
-
-    @Transient
-    private Date uploadDate;
 
 }

@@ -13,9 +13,11 @@ import com.hand.hls.mort.mapper.HlsMortgageMapper;
 import com.hand.hls.mort.service.HlsMortgageService;
 import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectLeaseItemMapper;
+import com.hand.hls.utils.ResMessageException;
 import leaf.bean.LeafRequestData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -84,5 +86,16 @@ public class HlsMortgageController extends BaseController{
 
         //return new ResponseData(hlsMortgageService.save(requestContext,dto));
     }
+
+    @RequestMapping("/hls/lease/mortgage/submit")
+    @ResponseBody
+    public ResponseData submit(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) throws ResMessageException {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsMortgage dto = param.toJavaObject(HlsMortgage.class);
+        return new ResponseData(hlsMortgageService.submitWfl(dto,requestCtx));
+    }
+
 
 }

@@ -249,4 +249,5 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
      */
     List<HlsCusConContract> queryContractInceptInfoMain(IRequest iRequest, HlsCusPrjProject dto, int page, int pageSize);
 
+    List<HlsCusConContract> submitWfl(HlsCusConContract dto, IRequest requestCtx);
 }

@@ -18,6 +18,7 @@ import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceMapper;
 import com.hand.hls.gld.service.HlsCusConContractService;
 import com.hand.hls.gld.service.IGldContractCashflowService;
+import com.hand.hls.mort.dto.HlsMortgage;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectInfo;
 import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
@@ -69,6 +70,8 @@ public class HlsCusConContractController extends BaseController {
     @Autowired
     private HlsCusPrjProjectMapper hlsCusPrjProjectMapper;
 
+    @Autowired
+    private HlsCusConContractService hlsCusConContractService;
 
     @RequestMapping(value = "/test/this/query")
     @ResponseBody
@@ -920,6 +923,17 @@ public class HlsCusConContractController extends BaseController {
         List<HlsCusConContract> list = service.queryContractInceptInfoMain(requestContext,dto1, pagenum, pagesize);
         return new ResponseData(list);
     }
+
+    @RequestMapping("/con/contract/submit")
+    @ResponseBody
+    public ResponseData submit(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) throws ResMessageException {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusConContract dto = param.toJavaObject(HlsCusConContract.class);
+        return new ResponseData(hlsCusConContractService.submitWfl(dto,requestCtx));
+    }
+
 
 
 }
