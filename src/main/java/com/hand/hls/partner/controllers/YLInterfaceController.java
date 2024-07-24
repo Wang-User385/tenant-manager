@@ -288,8 +288,18 @@ public class YLInterfaceController extends BaseController {
             return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
 
-        String resStr = ylInterfaceService.imageSync(hlsWsRequests.getRequestJson());
+        String resStr = null;
         String returnStatus = "S";
+        try{
+             resStr = ylInterfaceService.imageSync(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
 
         return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
