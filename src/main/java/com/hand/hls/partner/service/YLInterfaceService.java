@@ -9,35 +9,35 @@ import com.hand.hls.partner.dto.*;
 import javax.servlet.http.HttpServletRequest;
 
 public interface YLInterfaceService {
-    JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) throws Exception;
+    String placeOrder(String decryptedStr,IRequest iRequest);
 
-    JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String closeOrder(String decryptedStr);
 
-    JSONObject queryOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String queryOrder(String decryptedStr);
 
-    JSONObject repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String repayment(String decryptedStr);
 
-    JSONObject compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String compensatoryTrialCalculation(String decryptedStr);
 
-    JSONObject claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String claimsSubrogation(String decryptedStr);
 
-    JSONObject advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String advancesSettleTrialCalculation(String decryptedStr);
 
-    JSONObject advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String advancesSettleRequest(String decryptedStr);
 
-    JSONObject dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String dataAcquisition(String decryptedStr,IRequest iRequest);
 
-    JSONObject overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String overdueRepurchaseTrialCalculation(String decryptedStr);
 
-    JSONObject overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String overdueRepurchaseRequest(String decryptedStr);
 
-    JSONObject queryWithholdingState(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String queryWithholdingState(String decryptedStr);
 
-    JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String stopWithholding(String decryptedStr);
 
-    JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception;
+    String recoverWithholding(String decryptedStr);
 
-    JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request) throws Exception;
+    String businessApplication(String decryptedStr,HttpServletRequest request);
 
     String imageSync(String decryptedStr);
 }

@@ -121,12 +121,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     @Transactional
-    public JSONObject placeOrder(JSONObject jsonObject, HttpServletRequest request, IRequest iRequest) throws Exception {
+    public String placeOrder(String decryptedStr,IRequest iRequest) {
 
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-B001-下单", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(ss, PlaceOrderDTO.class);
+        PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(decryptedStr, PlaceOrderDTO.class);
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         JSONObject jsonObject1 = new JSONObject();
@@ -145,8 +142,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setBpName(placeOrderDTO.getName());
             bpMaster.setIdCardNo(placeOrderDTO.getIdCardNo());
             bpMaster.setPhone(placeOrderDTO.getMobile());
-            Date idExpirationDate = simpleDateFormat.parse(placeOrderDTO.getIdexp());
-            Date idIssueDate = simpleDateFormat.parse(placeOrderDTO.getIdissue());
+            Date idExpirationDate = null;
+            Date idIssueDate = null;
+            try {
+                idExpirationDate = simpleDateFormat.parse(placeOrderDTO.getIdexp());
+                idIssueDate = simpleDateFormat.parse(placeOrderDTO.getIdissue());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
             bpMaster.setIdIssueDate(idIssueDate);
             bpMaster.setIdExpirationDate(idExpirationDate);
             bpMaster.setCreationDate(new Date());
@@ -154,6 +157,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setCreationDateStr(format);
             bpMaster.setCreatedBy(iRequest.getUserId());
             bpMaster.setBpCategory("TENANT");
+            bpMaster.setBpType("TENANT");
             bpMaster.setSource("1");
             bpMaster.setBpClass("NP");
             bpMaster.setIdType("ID_CARD");
@@ -179,20 +183,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 jsonObject1.put("code","400");
                 jsonObject1.put("message","存在在途单");
             }
-//            else{
-////                如果项目不是取消、拒绝、结束，则判断合同状态是否为结束、关闭、终止，如果是则允许下单，否则不允许下单
-//                HlsCusConContract hlsCusConContract = conContractMapper.selectByRefProjectId(x.getProjectId());
-//                if (!"TERMINATE".equals(hlsCusConContract.getContractStatus())||
-//                        !"CANCEL".equals(hlsCusConContract.getContractStatus())||
-//                        !"END".equals(hlsCusConContract.getContractStatus())){
-//                    responseData.setCode("400");
-//                    responseData.setMessage("存在在途单");
-//                }
-//            }
         });
 //        判断循环之后的结果，如果不允许创建，返回信息
         if ("400".equals(jsonObject1.getString("code"))){
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }
 
         //获取订单编号,将订单编号入库
@@ -227,19 +221,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         jsonObject1.put("code","200");
         jsonObject1.put("message","下单成功");
         jsonObject1.put("codeRuleValue",codeRuleValue);
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
     @Transactional
-    public JSONObject closeOrder(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception{
+    public String closeOrder(String decryptedStr){
 
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-B005-关单", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        CloseOrderDTO closeOrderDTO = JSONObject.parseObject(ss, CloseOrderDTO.class);
-
-
+        CloseOrderDTO closeOrderDTO = JSONObject.parseObject(decryptedStr, CloseOrderDTO.class);
         JSONObject jsonObject1 = new JSONObject();
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(closeOrderDTO.getOrderNo());
@@ -247,14 +236,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (hlsCusPrjProject==null){
             jsonObject1.put("code","100003");
             jsonObject1.put("message","订单不存在");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }else{
             String projectStatus = hlsCusPrjProject.getProjectStatus();
             if ("APPROVING".equals(projectStatus)||"Y".equals(hlsCusPrjProject.getLoanInitialLease())||
                     "APPROVING".equals(cshPaymentReqHd.getPaymentReqStatusDesc())){
                 jsonObject1.put("code","100101");
                 jsonObject1.put("message","订单状态和操作不相符");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
         }
         //修改订单状态
@@ -262,27 +251,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         prjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
         jsonObject1.put("code","200");
         jsonObject1.put("message","取消成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject queryOrder(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A001-订单查询", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        QueryOrderDTO queryOrderDTO = JSONObject.parseObject(ss, QueryOrderDTO.class);
-
-
+    public String queryOrder(String decryptedStr){
+        QueryOrderDTO queryOrderDTO = JSONObject.parseObject(decryptedStr, QueryOrderDTO.class);
         JSONObject jsonObject1 = new JSONObject();
-
 
         //根据订单编号查询相对应的还款信息,判断订单存不存在，不存在直接返回
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(queryOrderDTO.getOrderNo());
         if (hlsCusPrjProject==null){
             jsonObject1.put("code","100003");
             jsonObject1.put("message","订单不存在");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }else{
             List<RepayPlanTermInfoDTO> repayPlanTermInfoDTOList = prjProjectMapper.selectRepayPlanByOrderNo(queryOrderDTO.getOrderNo());
             QueryOrder queryOrder = prjProjectMapper.selectQueryOrderByOrderNo(queryOrderDTO.getOrderNo());
@@ -294,24 +276,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus)){
                 jsonObject1.put("code","200");
                 jsonObject1.put("message","查询成功");
-                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }else{
                 jsonObject1.put("code","100101");
                 jsonObject1.put("message","订单状态和操作不相符");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
         }
     }
 
     @Override
     @Transactional
-    public JSONObject repayment(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A002-还款", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        RepayMent repayMent = JSONObject.parseObject(ss, RepayMent.class);
-
+    public String repayment(String decryptedStr){
+        RepayMent repayMent = JSONObject.parseObject(decryptedStr, RepayMent.class);
 
         JSONObject jsonObject1 = new JSONObject();
 
@@ -320,7 +297,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (hlsCusCshTransactionList.size()==0){
             jsonObject1.put("code","400");
             jsonObject1.put("message","查询数据为空");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }
         List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
         //保存数据到事务表
@@ -330,12 +307,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 if (termRepayDetailApplyDTO.getTransactionNo()==null){
                     jsonObject1.put("code","400");
                     jsonObject1.put("message","结算单号为空");
-                    return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                    return jsonObject1.toJSONString();
                 }
                 if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
                     jsonObject1.put("code","400");
                     jsonObject1.put("message","代扣交易单号为空");
-                    return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                    return jsonObject1.toJSONString();
                 }
             }
 //            将数据保存入库
@@ -355,17 +332,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","还款成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject compensatoryTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
+    public String compensatoryTrialCalculation(String decryptedStr){
 
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A003-代偿试算", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(ss, CompensatoryTrialCalculationDTO.class);
-
+        CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(decryptedStr, CompensatoryTrialCalculationDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
 
@@ -373,7 +346,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (hlsCusPrjProject==null){
             jsonObject1.put("code","400");
             jsonObject1.put("message","订单不存在");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }
 
 //            计算本金、利息、罚息、应付金额
@@ -382,7 +355,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if (compensatoryTrialCalculation1==null){
                 jsonObject1.put("code","400");
                 jsonObject1.put("message","数据不存在");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }else{
                 //            判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
                 if (compensatoryTrialCalculationDTO.getTrialTime()==null){
@@ -398,19 +371,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 jsonObject1.put("code","200");
                 jsonObject1.put("message","还款成功");
                 jsonObject1.put("result",compensatoryTrialCalculation1);
-                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
     }
 
     @Override
     @Transactional
-    public JSONObject claimsSubrogation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A004-代偿请求", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.parseObject(ss, ClaimsSubrogationDTO.class);
-
+    public String claimsSubrogation(String decryptedStr){
+        ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.parseObject(decryptedStr, ClaimsSubrogationDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
 
@@ -419,7 +387,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (hlsCusCshTransactionList.size()==0){
             jsonObject1.put("code","400");
             jsonObject1.put("message","代偿数据不存在");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
        }
 //            将数据保存入库
         for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
@@ -434,22 +402,18 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","还款成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject advancesSettleTrialCalculation(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A005-提前结清试算", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(ss, AdvancesSettleComputeDTO.class);
-
+    public String advancesSettleTrialCalculation(String decryptedStr){
+        AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(decryptedStr, AdvancesSettleComputeDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
 
-
 //            查询结算金额
+
+
         AdvancesSettleComputeDTO advancesSettleComputeDTO1 = new AdvancesSettleComputeDTO();
         advancesSettleComputeDTO1.setOrderNo(advancesSettleComputeDTO.getOrderNo());
         //            判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
@@ -460,17 +424,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","试算成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
     @Transactional
-    public JSONObject advancesSettleRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
+    public String advancesSettleRequest(String decryptedStr){
 
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A006-提前结清请求", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        AdvancesSettleRequestDTO advancesSettleRequestDTO = JSONObject.parseObject(ss, AdvancesSettleRequestDTO.class);
+        AdvancesSettleRequestDTO advancesSettleRequestDTO = JSONObject.parseObject(decryptedStr, AdvancesSettleRequestDTO.class);
 
 
         JSONObject jsonObject1 = new JSONObject();
@@ -481,31 +442,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","还款成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
     @Transactional
-    public JSONObject dataAcquisition(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-B002-数据采集", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(ss, DataAcquisitionDTO.class);
-
+    public String dataAcquisition(String decryptedStr,IRequest iRequest){
+        DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(decryptedStr, DataAcquisitionDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
 
 //        首先判断订单状态
-//        Example durationLnExample = new Example(HlsCusPrjProject.class);
-//        durationLnExample.createCriteria().
-//                andEqualTo("projectNumber", dataAcquisitionDTO.getOrderNo());
-//        prjProjectMapper.selectByExample(durationLnExample)
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(dataAcquisitionDTO.getOrderNo());
         if (hlsCusPrjProject==null){
             jsonObject1.put("code","400");
             jsonObject1.put("message","订单不存在");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }
         //根据项目id获取租赁物信息,如果为空，那么直接入库，如果不为空，判断订单状态
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
@@ -639,7 +591,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if ("放款之后".equals(projectStatus)){
             jsonObject1.put("code","400");
             jsonObject1.put("message","订单已放款，不允许修改");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }
         //如果订单为业务申请之后，放款之前，对字段进行校验
         //品牌名称、车系名称、车型名称、车辆颜色
@@ -651,22 +603,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     if (!hlsCusPrjProjectLeaseItem1.getBrandC().equals(carInformation.getCarbrand2())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","品牌名称与riskInfo中的值不同");
-                        return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                        return jsonObject1.toJSONString();
                     }
                     if (hlsCusPrjProjectLeaseItem1.getSeriesC().equals(carInformation.getChexi())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车系名称与riskInfo中的值不同");
-                        return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                        return jsonObject1.toJSONString();
                     }
                     if (hlsCusPrjProjectLeaseItem1.getModelC().equals(carInformation.getCartype())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车型名称与riskInfo中的值不同");
-                        return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                        return jsonObject1.toJSONString();
                     }
                     if (hlsCusPrjProjectLeaseItem1.getColorC().equals(carInformation.getCarcolor())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车辆颜色与riskInfo中的值不同");
-                        return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                        return jsonObject1.toJSONString();
                     }
                 }
             }
@@ -808,13 +760,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     //所属行业
                     hlsCusBpMaster.setEconomicInduClassify(basicCustomerJobInformation.getIndustry());
                     //单位性质
-                    hlsCusBpMaster.setCompanyNature(basicCustomerJobInformation.getCorpnprop());
+                    hlsCusBpMaster.setJobNature(basicCustomerJobInformation.getCorpnprop());
                     //职业
                     hlsCusBpMaster.setProfession(basicCustomerJobInformation.getOccu());
                     //当前职位
-                    hlsCusBpMaster.setJobTitle(basicCustomerJobInformation.getPosition());
+                    hlsCusBpMaster.setPosition(basicCustomerJobInformation.getPosition());
                     //个人月收入
-                    hlsCusBpMaster.setMonthlyIncome(Double.valueOf(basicCustomerJobInformation.getSalary())/100);
+                    hlsCusBpMaster.setAnnualIncome(Double.valueOf(basicCustomerJobInformation.getSalary())/100);
                     //单位电话
                     hlsCusBpMaster.setWorkPhone(basicCustomerJobInformation.getCompanyphone());
                     //公司所属省份
@@ -1002,7 +954,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     //配偶姓名
                     hlsCusBpMaster.setBpNameSp(associatedPersonInformation.getSpousename());
 //            配偶性别
-                    hlsCusBpMaster.setGenderSp(associatedPersonInformation.getSpouseidcard());
+                    hlsCusBpMaster.setGenderSp(associatedPersonInformation.getSpousesex());
                     //配偶出生日期
                     Date dateOfBirthSp = null;
                     try {
@@ -1261,17 +1213,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","数据采集成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject overdueRepurchaseTrialCalculation(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A007-逾期回购试算", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(ss, OverdueRepurchaseTrialCalculationDTO.class);
-
+    public String overdueRepurchaseTrialCalculation(String decryptedStr){
+        OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseTrialCalculationDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
 
@@ -1281,16 +1228,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","试算成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject overdueRepurchaseRequest(JSONObject jsonObject,IRequest iRequest, HttpServletRequest request) throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A008-逾期回购请求", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO = JSONObject.parseObject(ss, OverdueRepurchaseRequestDTO.class);
+    public String overdueRepurchaseRequest(String decryptedStr){
+        OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseRequestDTO.class);
 
 
         JSONObject jsonObject1 = new JSONObject();
@@ -1301,17 +1244,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","逾期回购成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject queryWithholdingState(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request) throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A009-代扣状态查询", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.parseObject(ss, QueryWithholdingStateDTO.class);
-
+    public String queryWithholdingState(String decryptedStr){
+        QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.parseObject(decryptedStr, QueryWithholdingStateDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
 
@@ -1321,16 +1259,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","查询成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject stopWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request)throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A010-暂停代扣", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        StopWithholdingDTO stopWithholdingDTO = JSONObject.parseObject(ss, StopWithholdingDTO.class);
+    public String stopWithholding(String decryptedStr){
+        StopWithholdingDTO stopWithholdingDTO = JSONObject.parseObject(decryptedStr, StopWithholdingDTO.class);
 
 
         JSONObject jsonObject1 = new JSONObject();
@@ -1341,16 +1275,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","暂停代扣成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject recoverWithholding(JSONObject jsonObject,IRequest iRequest,HttpServletRequest request)throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-A011-恢复代扣", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        RecoverWithholdingDTO recoverWithholdingDTO = JSONObject.parseObject(ss, RecoverWithholdingDTO.class);
+    public String recoverWithholding(String decryptedStr){
+        RecoverWithholdingDTO recoverWithholdingDTO = JSONObject.parseObject(decryptedStr, RecoverWithholdingDTO.class);
 
 
         JSONObject jsonObject1 = new JSONObject();
@@ -1361,16 +1291,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","恢复代扣成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+        return jsonObject1.toJSONString();
     }
 
     @Override
-    public JSONObject businessApplication(JSONObject jsonObject, IRequest iRequest, HttpServletRequest request)throws Exception {
-
-        //保存日志
-        HlsWsRequests hlsWsRequests = requestsFirstSave(jsonObject, "GT-YL-B004-业务申请", request, iRequest);
-        String  ss = RsaAesUtils.decryptedData(jsonObject);
-        BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(ss, BusinessApplicationDTO.class);
+    public String businessApplication(String decryptedStr,HttpServletRequest request){
+        BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(decryptedStr, BusinessApplicationDTO.class);
 
 
         JSONObject jsonObject1 = new JSONObject();
@@ -1379,7 +1305,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (hlsCusPrjProject==null){
             jsonObject1.put("code","100003");
             jsonObject1.put("message","订单不存在");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }
         //根据action，执行操作
         String action = businessApplicationDTO.getAction();
@@ -1392,11 +1318,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 //        设置返回信息
                 jsonObject1.put("code","200");
                 jsonObject1.put("message","预审成功");
-                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
             jsonObject1.put("code","400");
             jsonObject1.put("message","预审失败");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }
         else if ("APPLY_PRE_RISK".equals(action)){
             String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
@@ -1404,12 +1330,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 //        设置返回信息
                 jsonObject1.put("code","200");
                 jsonObject1.put("message","审核成功");
-                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
             else if ("Reject".equals(s) || "Error".equals(s)){
                 jsonObject1.put("code","400");
                 jsonObject1.put("message","审核失败");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
         }
         else if ("RE_APPLY_PRE_RISK".equals(action)){
@@ -1418,12 +1344,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 //        设置返回信息
                 jsonObject1.put("code","200");
                 jsonObject1.put("message","审核成功");
-                return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
             else if ("Reject".equals(s) || "Error".equals(s)){
                 jsonObject1.put("code","400");
                 jsonObject1.put("message","审核失败");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
         }
         else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
@@ -1439,7 +1365,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if (carInformation==null){
                 jsonObject1.put("code","400");
                 jsonObject1.put("message","riskinfo信息不能为空");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
             //获取租赁物信息
             List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
@@ -1450,17 +1376,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if (hlsCusPrjQuotations.size()==0){
                 jsonObject1.put("code","400");
                 jsonObject1.put("message","报价不能为空");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
             if (hlsCusPrjProjectLeaseItemList.size()==0){
                 jsonObject1.put("code","400");
                 jsonObject1.put("message","租赁物不能为空");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
             if (hlsCusPrjProjectAttachments.size()==0){
                 jsonObject1.put("code","400");
                 jsonObject1.put("message","附件不能为空");
-                return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                return jsonObject1.toJSONString();
             }
             HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
             HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
@@ -1485,13 +1411,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         if (days>=30){
                             jsonObject1.put("code","400");
                             jsonObject1.put("message","审批通过超过三十天");
-                            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                            return jsonObject1.toJSONString();
                         }
                     }else if ("RE_APPLY_LOAN".equals(action)){
                         if (days>=50){
                             jsonObject1.put("code","400");
                             jsonObject1.put("message","再次审批通过超过五十天");
-                            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+                            return jsonObject1.toJSONString();
                         }
                     }
 
@@ -1506,45 +1432,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","业务申请成功");
-        return requestsSecondSave(jsonObject1,hlsWsRequests,iRequest);
-    }
-
-    public HlsWsRequests requestsFirstSave(JSONObject jsonObject,String name, HttpServletRequest request,IRequest iRequest) throws Exception{
-        //step1 存储加密请求报文日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
-        hlsWsRequests.setFunctionName(name);
-        hlsWsRequests.setRequestJsonEncrypt(JSONObject.toJSONString(jsonObject));
-        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
-        //step2 解密请求报文，存储解密请求报文日志
-        String decryptedStr = RsaAesUtils.decryptedData(jsonObject);
-        hlsWsRequests.setRequestJson(decryptedStr);
-        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
-        return hlsWsRequests;
-    }
-    public JSONObject requestsSecondSave(JSONObject jsonObject,HlsWsRequests hlsWsRequests,IRequest iRequest) throws Exception{
-        String resStr = JSONObject.toJSONString(jsonObject);
-        //step5 存储返回报文日志
-        hlsWsRequests.setResponseJson(resStr);
-        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
-        //step6 加密返回报文，存储加密返回报文日志
-        JSONObject encryptedResJson = RsaAesUtils.encryptedData(resStr);
-        hlsWsRequests.setResponseJsonEncrypt(JSONObject.toJSONString(encryptedResJson));
-        hlsWsRequests.setReturnStatus("S");
-        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
-        return encryptedResJson;
-    }
-    public JSONObject requestsErrorSave(JSONObject jsonObject,HlsWsRequests hlsWsRequests,IRequest iRequest) throws Exception{
-        String resStr = JSONObject.toJSONString(jsonObject);
-        //step5 存储返回报文日志
-        hlsWsRequests.setResponseJson(resStr);
-        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
-        //step6 加密返回报文，存储加密返回报文日志
-        JSONObject encryptedResJson = RsaAesUtils.encryptedData(resStr);
-        hlsWsRequests.setResponseJsonEncrypt(JSONObject.toJSONString(encryptedResJson));
-        hlsWsRequests.setReturnStatus("E");
-        hlsWsRequests = logService.interfaceSave(hlsWsRequests,iRequest);
-        return encryptedResJson;
+        return jsonObject1.toJSONString();
     }
 
     private void replaceAttach(HlsCusPrjProjectAttachment prjAttachment,String fileId){

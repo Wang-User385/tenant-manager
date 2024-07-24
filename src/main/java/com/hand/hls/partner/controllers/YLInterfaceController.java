@@ -33,15 +33,33 @@ public class YLInterfaceController extends BaseController {
     )
     @ResponseBody
     public JSONObject placeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.placeOrder(jsonObject, request, iRequest);
+            hlsWsRequests = this.insertLogs("GT-YL-B001-下单",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.placeOrder(hlsWsRequests.getRequestJson(),iRequest);
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -51,13 +69,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject closeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.closeOrder(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-B005-关单",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.closeOrder(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -67,13 +104,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject queryOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.queryOrder(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A001-订单查询",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.queryOrder(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -83,13 +139,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject repayment(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.repayment(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A002-还款",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.repayment(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -99,13 +174,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject compensatoryTrialCalculation(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.compensatoryTrialCalculation(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A003-代偿试算",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.compensatoryTrialCalculation(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -115,13 +209,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject claimsSubrogation(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.claimsSubrogation(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A004-代偿请求",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.claimsSubrogation(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -131,13 +244,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject advancesSettleTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.advancesSettleTrialCalculation(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A005-提前结清试算",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.advancesSettleTrialCalculation(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -147,13 +279,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject advancesSettleRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.advancesSettleRequest(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A006-提前结清请求",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.advancesSettleRequest(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -163,13 +314,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject dataAcquisition(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.dataAcquisition(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-B002-数据采集",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.dataAcquisition(hlsWsRequests.getRequestJson(),iRequest);
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -179,13 +349,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject overdueRepurchaseTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.overdueRepurchaseTrialCalculation(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A007-逾期回购试算",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.overdueRepurchaseTrialCalculation(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -195,13 +384,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject overdueRepurchaseRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.overdueRepurchaseRequest(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A008-逾期回购请求",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.overdueRepurchaseRequest(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -211,13 +419,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject queryWithholdingState(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.queryWithholdingState(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A009-代扣状态查询",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.queryWithholdingState(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -227,13 +454,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject stopWithholding(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.stopWithholding(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A010-暂停代扣",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.stopWithholding(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -243,13 +489,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject recoverWithholding(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.recoverWithholding(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-A011-恢复代扣",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.recoverWithholding(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
@@ -259,13 +524,32 @@ public class YLInterfaceController extends BaseController {
     @ResponseBody
     public JSONObject businessApplication(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
         IRequest iRequest = createRequestContext(request);
-        JSONObject jsonObject1 = null;
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
         try {
-            jsonObject1 = ylInterfaceService.businessApplication(jsonObject, iRequest, request);
+            hlsWsRequests = this.insertLogs("GT-YL-B004-业务申请",jsonObject,request);
         } catch (Exception e) {
             e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-        return jsonObject1;
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = ylInterfaceService.businessApplication(hlsWsRequests.getRequestJson(),request);
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
     }
 
     @RequestMapping(
