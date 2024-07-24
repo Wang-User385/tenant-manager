@@ -222,7 +222,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (hlsProductDefinitionList.size() == 0){
             jsonObject1.put("code","400");
             jsonObject1.put("message","该合作商对应的产品为空，需在产品定义功能中维护新的产品");
-            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+            return jsonObject1.toJSONString();
         }
         hlsCusPrjProject.setEmployeeId(hlsProductDefinitionList.get(0).getEmployeeId());
         hlsCusPrjProject.setUnitId(hlsProductDefinitionList.get(0).getUnitId());
