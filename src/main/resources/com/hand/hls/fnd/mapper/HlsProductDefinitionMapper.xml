@@ -72,6 +72,7 @@
         <result column="margin_deduction_method" property="marginDeductionMethod" jdbcType="VARCHAR"/>
         <result column="margin_deduction_method_n" property="marginDeductionMethodN" jdbcType="VARCHAR"/>
         <result column="reply_id" property="replyId" jdbcType="DECIMAL"/>
+        <result column="employee_name" property="employeeName" jdbcType="VARCHAR"/>
     </resultMap>
 
     <select id="selectHlsProductDefinitionList" resultMap="BaseResultMap">
@@ -82,7 +83,9 @@
         (select p.project_name from prj_project p where p.project_id=hpd.reply_product_id) project_name,
         (select hbm.bp_name from prj_project p,hls_bp_master hbm where p.project_id=hpd.reply_product_id and p.TENANT_ID=hbm.bp_id) bp_name,
         (select p.TENANT_ID from prj_project p where p.project_id=hpd.reply_product_id) bp_id,
-
+        (select fe.name
+        from fnd_employee fe
+        where fe.employee_id = (select p.employee_id from prj_project p where p.project_id=hpd.reply_product_id)) employee_name,
         (select scvb.meaning
         from sys_code_b scb, sys_code_value_b scvb
         where scb.code = 'MARGIN_DEDUCTION_METHOD'

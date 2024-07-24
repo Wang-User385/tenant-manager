@@ -15,11 +15,9 @@ import com.hand.hls.fnd.mapper.HlsProductDefinitionMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.fnd.service.IHlsProductDefinitionParaService;
 import com.hand.hls.fnd.service.IHlsProductDefinitionService;
-import com.hand.hls.prj.dto.BpMasterReply;
-import com.hand.hls.prj.dto.HlsCreditPlan;
-import com.hand.hls.prj.dto.ReplyProduct;
-import com.hand.hls.prj.dto.ReplyProductPara;
+import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.HlsCreditPlanMapper;
+import com.hand.hls.prj.service.HlsCusPrjProjectService;
 import com.hand.hls.prj.service.IBpMasterReplyService;
 import com.hand.hls.prj.service.IReplyProductParaService;
 import com.hand.hls.prj.service.IReplyProductService;
@@ -72,6 +70,8 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
     private IFndCompanyService iFndCompanyService;
     @Autowired
     private HlsProductDefDealerMapper hlsProductDefDealerMapper;
+    @Autowired
+    private HlsCusPrjProjectService hlsCusPrjProjectService;
 
     @Override
     public List<HlsProductDefinition> selectHlsProductDefinitionList(IRequest request, HlsProductDefinition hlsProductDefinition, int page, int pagesize) {
@@ -125,8 +125,21 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
                 hlsProductDefinition.setAuthorityRuleString(authorityRuleString);
 
                 self().insertHlsProductDefinition(request, hlsProductDefinition);
+                //如果选择了业务经理，就将业务经理id和部门id更新到项目表
+                if(hlsProductDefinition.getEmployeeId() != null){
+                    UpdatePrjProjectInfo(request,hlsProductDefinition);
+                }
             } else {
+                //每个合作商仅支持关联一个产品
+                Integer numByBpName = hlsProductDefDealerMapper.selectProductNumByBpName(hlsProductDefinition.getReplyProductId());
+                if (numByBpName > 0){
+                    throw new HlsCusException("同一个合作方仅支持一个启用的产品！");
+                }
                 self().updateHlsProductDefinition(request, hlsProductDefinition);
+                //如果选择了业务经理，就将业务经理id和部门id更新到项目表
+                if(hlsProductDefinition.getEmployeeId() != null){
+                    UpdatePrjProjectInfo(request,hlsProductDefinition);
+                }
             }
         }
         return hlsProductDefinitionList;
@@ -170,6 +183,18 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
         }
 
 //        checkHlsProductDefinition(request, hlsProductDefinition);
+    }
+    /**
+     * 产品定义保存，更新业务经理信息到项目表中
+     *
+     * @param hlsProductDefinition
+     */
+    private void UpdatePrjProjectInfo(IRequest iRequest, HlsProductDefinition hlsProductDefinition) throws HlsCusException {
+        HlsCusPrjProject prjProject = new HlsCusPrjProject();
+        prjProject.setProjectId(hlsProductDefinition.getReplyProductId());
+        prjProject.setEmployeeId(hlsProductDefinition.getEmployeeId());
+        prjProject.setUnitId(hlsProductDefinition.getUnitId());
+        hlsCusPrjProjectService.updateByPrimaryKeySelective(iRequest, prjProject);
     }
 
     /**

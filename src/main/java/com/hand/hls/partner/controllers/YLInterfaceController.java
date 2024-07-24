@@ -4,11 +4,14 @@ import cfca.paperless.client.util.JsonUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
+import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.partner.util.RsaAesUtils;
+import com.hand.hls.web.logs.dto.HlsWsRequests;
+import com.hand.hls.web.logs.service.IHlsWsRequestsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +24,8 @@ public class YLInterfaceController extends BaseController {
     
     @Autowired
     private YLInterfaceService ylInterfaceService;
-
+    @Autowired
+    private IHlsWsRequestsService logService;
 
     @RequestMapping(
             value = {"/di/placeOrder"},
@@ -263,4 +267,73 @@ public class YLInterfaceController extends BaseController {
         }
         return jsonObject1;
     }
+
+    @RequestMapping(
+            value = {"/di/imageSync"},
+            method = {RequestMethod.GET, RequestMethod.POST}
+    )
+    @ResponseBody
+    public JSONObject imageSync(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
+        IRequest iRequest = createRequestContext(request);
+        RequestHelper.setCurrentRequest(iRequest);
+
+        HlsWsRequests hlsWsRequests = null;
+        try {
+            hlsWsRequests = this.insertLogs("GT-YL-B003影像件同步",jsonObject,request);
+        } catch (Exception e) {
+            e.printStackTrace();
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","请求报文预处理失败！");
+            return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
+        }
+
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+             resStr = ylInterfaceService.imageSync(hlsWsRequests.getRequestJson());
+        }catch (Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            JSONObject resJson = new JSONObject();
+            resJson.put("success",false);
+            resJson.put("message","系统错误！");
+            resStr = JSONObject.toJSONString(resJson);
+        }
+
+        return this.updateLogs(hlsWsRequests,resStr,returnStatus);
+    }
+
+    private HlsWsRequests insertLogs(String functionName,JSONObject jsonObject,HttpServletRequest request) throws Exception {
+        //step1 存储加密请求报文日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        hlsWsRequests.setRequestWsdlUrl(request.getRequestURI());
+        hlsWsRequests.setFunctionName(functionName);
+        hlsWsRequests.setRequestJsonEncrypt(JSONObject.toJSONString(jsonObject));
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,RequestHelper.getCurrentRequest());
+        //step2 解密请求报文，存储解密请求报文日志
+        String decryptedStr = RsaAesUtils.decryptedData(jsonObject);
+        hlsWsRequests.setRequestJson(decryptedStr);
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,RequestHelper.getCurrentRequest());
+
+        return hlsWsRequests;
+    }
+
+    private JSONObject updateLogs(HlsWsRequests hlsWsRequests,String resStr,String returnStatus){
+        //step1 存储返回报文日志
+        hlsWsRequests.setResponseJson(resStr);
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,RequestHelper.getCurrentRequest());
+        //step2 加密返回报文，存储加密返回报文日志
+        JSONObject encryptedResJson = new JSONObject();
+        try {
+            encryptedResJson = RsaAesUtils.encryptedData(resStr);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        hlsWsRequests.setResponseJsonEncrypt(JSONObject.toJSONString(encryptedResJson));
+        hlsWsRequests.setReturnStatus(returnStatus);
+        hlsWsRequests = logService.interfaceSave(hlsWsRequests,RequestHelper.getCurrentRequest());
+        return encryptedResJson;
+    }
+
 }

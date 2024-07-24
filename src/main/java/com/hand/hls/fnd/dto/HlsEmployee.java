@@ -48,6 +48,16 @@ public class HlsEmployee extends BaseDTO {
     private String companyName;
     @Transient
     private String managerName;
+    @Transient
+    private String employeeName;
+
+    public String getEmployeeName() {
+        return employeeName;
+    }
+
+    public void setEmployeeName(String employeeName) {
+        this.employeeName = employeeName;
+    }
 
     public HlsEmployee() {
     }

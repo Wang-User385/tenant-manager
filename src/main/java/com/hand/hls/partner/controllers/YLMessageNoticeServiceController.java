@@ -4,6 +4,8 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
+import com.hand.hls.partner.dto.AssetNeedBuybackDto;
+import com.hand.hls.partner.dto.AssetNeedSubstituteDto;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -110,12 +112,12 @@ public class YLMessageNoticeServiceController extends BaseController {
      * @param request
      * @return
      */
-        @RequestMapping(value = "/asset/need/substitute", method = {RequestMethod.POST})
+    @RequestMapping(value = "/asset/need/substitute", method = {RequestMethod.POST})
     @ResponseBody
-    public ResponseData assetNeedSubstitute(@RequestBody Map<String, String> map, HttpServletRequest request) {
+    public ResponseData assetNeedSubstitute(final AssetNeedSubstituteDto assetNeedSubstituteDto, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        iylMessageNoticeService.assetNeedSubstitute(Long.valueOf(String.valueOf(map.get("projectId"))), requestContext);
+        iylMessageNoticeService.assetNeedSubstitute(assetNeedSubstituteDto, requestContext);
         return new ResponseData();
     }
 
@@ -128,10 +130,10 @@ public class YLMessageNoticeServiceController extends BaseController {
      */
     @RequestMapping(value = "/asset/need/buyback", method = {RequestMethod.POST})
     @ResponseBody
-    public ResponseData assetNeedBuyback(@RequestBody Map<String, String> map, HttpServletRequest request) {
+    public ResponseData assetNeedBuyback(final AssetNeedBuybackDto assetNeedBuyback, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        iylMessageNoticeService.assetNeedBuyback(Long.valueOf(String.valueOf(map.get("projectId"))), requestContext);
+        iylMessageNoticeService.assetNeedBuyback(assetNeedBuyback, requestContext);
         return new ResponseData();
     }
 

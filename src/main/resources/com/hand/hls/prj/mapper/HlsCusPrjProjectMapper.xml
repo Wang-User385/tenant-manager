@@ -8502,12 +8502,26 @@ WHERE
     <update id="updateWflProject" parameterType="com.hand.hls.prj.dto.HlsCusPrjProject">
         UPDATE
             prj_project
-        SET
-            business_type = #{businessType},
-            lease_matter_note = #{leaseMatterNote},
-            guarantee_method_note = #{guaranteeMethodNote},
-            finance_note = #{financeNote},
-            other = #{other}
+        <set>
+            <if test="businessType!=null">
+                business_type = #{businessType},
+            </if>
+            <if test="leaseMatterNote!=null">
+                lease_matter_note = #{leaseMatterNote},
+            </if>
+            <if test="guaranteeMethodNote!=null">
+                guarantee_method_note = #{guaranteeMethodNote},
+            </if>
+            <if test="financeNote!=null">
+                finance_note = #{financeNote},
+            </if>
+            <if test="other!=null">
+                other = #{other},
+            </if>
+            <if test="financeAmount!=null">
+                finance_amount = #{financeAmount},
+            </if>
+        </set>
         WHERE
             project_id = #{projectId}
     </update>
@@ -11331,14 +11345,14 @@ WHERE
                 ppl.first_plate_date,
                 ppl.license_plate_ownership,
                 ppl.odometer_reading,
-                decode(ppl.gps_is_installation,'Y','是','N','否',' ') gps_is_installation,
+                decode(ppl.gps_is_installation,'1','是','2','否',' ') gps_is_installation,
                 ppl.gps_fee,
                 ppl.plate_invoice_amount,
                 ppl.accessory_amount,
                 ppl.vehicle_age,
                 ppl.vehicle_tax,
                 decode(ppl.fuel_type,'01','汽油','02','柴油','03','纯电动','04','混动',' ') fuel_type_n,
-                decode(is_import,'Y','是','N','否',' ') is_import,
+                decode(is_import,'1','是','2','否',' ') is_import,
                 ppl.finance_amount
         from prj_project_lease_item ppl, prj_project pp
         where ppl.project_id = pp.project_id
@@ -11736,7 +11750,7 @@ WHERE
         )	file_attachment_id,
         (
         SELECT
-        count(faa.*)
+        count(1)
         FROM
         fnd_atm_attachment faa,
         fnd_atm_attachment_multi faam
@@ -11787,7 +11801,7 @@ WHERE
         )	file_attachment_id,
         (
         SELECT
-        count(faa.*)
+        count(1)
         FROM
         fnd_atm_attachment faa,
         fnd_atm_attachment_multi faam

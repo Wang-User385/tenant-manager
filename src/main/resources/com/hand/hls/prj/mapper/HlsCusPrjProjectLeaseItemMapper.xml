@@ -183,41 +183,6 @@
         hcli.project_id,
         hcli.project_lease_item_id,
         hcli.LEASE_ITEM_ID ,
-        hli.FULL_NAME as LEASE_ITEM_ID_N,
-        hli.LEASE_ITEM_CODE ,
-        hli.INSTALLATION_SITE as IDENTIFICATION_CITY,
-        hli.DESCRIPTION,
-        hli.vender_id,
-        hli.BRAND,
-        hli.LEASE_ITEM_TYPE,
-        (
-        select
-        CASE
-        WHEN
-        ( SELECT max( lal.fair_value ) FROM lease_asset_ln lal WHERE lal.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID ) IS NULL THEN
-        sum( hlil.PRICE*hlil.QUANTITY ) ELSE ( SELECT max( lal.fair_value ) FROM lease_asset_ln lal WHERE lal.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID )
-        END AS ASSET_VALUE_TOTAL
-        from hls_lease_item_list hlil
-        where hli.LEASE_ITEM_ID = hlil.LEASE_ITEM_ID
-        GROUP BY  hlil.LEASE_ITEM_ID
-        )NET_ASSET_VALUE_TOTAL,
-        (select  hbm.bp_name
-        from hls_bp_master hbm
-        where hbm.bp_id = hli.vender_id  ) VENDER_ID_N,
-        (select scv.MEANING
-        from sys_code_b sc,sys_code_value_b scv
-        where sc.CODE_ID = scv.CODE_ID
-        and sc.CODE = 'ASSET_STATUS'
-        and scv.value = hli.asset_status) asset_status_n,
-        hli.asset_types,
-        (select t.description
-        from hls_business_type t
-        where t.document_category = 'REGULATORY_ASSET_CLASS'
-        and t.business_type = hli.asset_types) asset_types_n,
-        (select t.description
-        from hls_business_type t
-        where t.document_category = 'REGULATORY_ASSET_CLASS'
-        and t.business_type = hli.asset_types) ITEM_TYPE_N,
         hcli.manufacturer,
         hcli.lease_item_name,
         hcli.voiture_type,
@@ -258,12 +223,9 @@
         hcli.vehicle_tax,
         hcli.fuel_type,
         hcli.is_import
-        from prj_project_lease_item hcli,hls_lease_item hli
+        from prj_project_lease_item hcli
         <where>
-            hli.LEASE_ITEM_ID = hcli.LEASE_ITEM_ID
-            and hli.enabled_flag = 'Y'
-            and hli.LEASE_ITEM_TYPE in ('LEASE')
-            and hcli.project_lease_item_id = #{projectLeaseItemId}
+            hcli.project_lease_item_id = #{projectLeaseItemId}
         </where>
        <!--select pp.*,
         (select bp_name from hls_bp_master where bp_id = pp.evaluation_bp_id) evaluation_bp_name,

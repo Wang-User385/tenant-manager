@@ -117,6 +117,7 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             Map<String, Object> mapParam = new HashMap<>();
             mapParam.put("orderNo", orderNo);
             mapParam.put("uniqueId", getUniqueId());
+            leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
             //消息推送
             noticePush(leasingNotice, "n003", mapParam, iRequest);
         } catch (Exception e) {
@@ -142,6 +143,7 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             Map<String, Object> mapParam = new HashMap<>();
             mapParam.put("orderNo", orderNo);
             mapParam.put("uniqueId", getUniqueId());
+            leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
             //消息推送
             noticePush(leasingNotice, "n004", mapParam, iRequest);
         } catch (Exception e) {
@@ -167,6 +169,7 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             Map<String, Object> mapParam = new HashMap<>();
             mapParam.put("finishedTime", finishedTime);
             mapParam.put("uniqueId", getUniqueId());
+            leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
             //消息推送
             noticePush(leasingNotice, "n005", mapParam, iRequest);
         } catch (Exception e) {
@@ -177,57 +180,73 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
     /**
      * 易靓需代偿通知
      *
-     * @param projectId
+     * @param iRequest
      * @return
      */
     @Override
-    public void assetNeedSubstitute(Long projectId, IRequest iRequest) {
-        LeasingNotice leasingNotice = new LeasingNotice();
-        leasingNotice.setSourceId(projectId);
-        leasingNotice.setSourceType("n006");
-        leasingNotice.setResendFlag("N");
-        try {
-            //通过主键ID查询数据
-            AssetNeedSubstituteDto needSubstituteDto = leasingNoticeMapper.queryAssetNeedSubstitute(projectId);
-            if (!ObjectUtils.isEmpty(needSubstituteDto)) {
-                needSubstituteDto.setUniqueId(getUniqueId());
-                leasingNotice.setNoticeBody(JSON.toJSONString(needSubstituteDto));
+    public void assetNeedSubstitute(AssetNeedSubstituteDto assetNeedSubstituteDto, IRequest iRequest) {
+        //获取逾期超过30天小于85天的逾期数据
+        List<AssetNeedSubstituteDto> needSubstituteDtoList = leasingNoticeMapper.queryAssetNeedSubstitute(assetNeedSubstituteDto);
+        if (!ObjectUtils.isEmpty(needSubstituteDtoList)) {
+            //本来打算封装成一个集合多条现金流一次推送消息的，但是需求写的是现金流一条一条的推送
+                /*Map map = new HashMap();
+                map.put("uniqueId",getUniqueId());
+                map.put("needSubstituteDtoList",needSubstituteDtoList);
+                leasingNotice.setNoticeBody(JSON.toJSONString(map));
                 //消息推送
-                noticePush(leasingNotice, "n006", needSubstituteDto, iRequest);
-            }
-        } catch (Exception e) {
-            noticeFail(leasingNotice, iRequest, e);
+                noticePush(leasingNotice, "n006", map, iRequest);*/
+            needSubstituteDtoList.forEach(needSubstituteDto -> {
+                LeasingNotice leasingNotice = new LeasingNotice();
+                leasingNotice.setSourceId(needSubstituteDto.getCashflowId());
+                leasingNotice.setSourceType("n006");
+                leasingNotice.setResendFlag("N");
+                try {
+                    needSubstituteDto.setUniqueId(getUniqueId());
+                    needSubstituteDto.setCashflowId(null);
+                    leasingNotice.setNoticeBody(JSON.toJSONString(needSubstituteDto));
+                    //消息推送
+                    noticePush(leasingNotice, "n006", needSubstituteDto, iRequest);
+                } catch (Exception e) {
+                    noticeFail(leasingNotice, iRequest, e);
+                }
+            });
         }
+
     }
 
     /**
      * 易靓需回购通知
      *
-     * @param projectId
+     * @param
      * @return
      */
     @Override
-    public void assetNeedBuyback(Long projectId, IRequest iRequest) {
-        LeasingNotice leasingNotice = new LeasingNotice();
-        leasingNotice.setSourceId(projectId);
-        leasingNotice.setSourceType("n007");
-        leasingNotice.setResendFlag("N");
-        try {
-            //通过主键ID查询数据
-            AssetNeedBuybackDto assetNeedBuybackDto = leasingNoticeMapper.queryAssetNeedBuybackDto(projectId);
-            if (!ObjectUtils.isEmpty(assetNeedBuybackDto)) {
-                Integer[] integerArray = Arrays.stream(assetNeedBuybackDto.getTermNos().split(","))
-                        .map(Integer::parseInt)
-                        .toArray(Integer[]::new);
-                String termNos = JSON.toJSONString(Arrays.asList(integerArray));
-                assetNeedBuybackDto.setTermNos(termNos);
-                assetNeedBuybackDto.setUniqueId(getUniqueId());
-                leasingNotice.setNoticeBody(JSON.toJSONString(assetNeedBuybackDto));
-                //消息推送
-                noticePush(leasingNotice, "n007", assetNeedBuybackDto, iRequest);
-            }
-        } catch (Exception e) {
-            noticeFail(leasingNotice, iRequest, e);
+    public void assetNeedBuyback(AssetNeedBuybackDto assetNeedBuyback, IRequest iRequest) {
+        //查询现金流逾期85天的数据
+        List<AssetNeedBuybackDto> assetNeedBuybackDtoList = leasingNoticeMapper.queryAssetNeedBuybackDto(assetNeedBuyback);
+        if (!ObjectUtils.isEmpty(assetNeedBuybackDtoList)) {
+            assetNeedBuybackDtoList.forEach(assetNeedBuybackDto -> {
+                LeasingNotice leasingNotice = new LeasingNotice();
+                leasingNotice.setSourceId(assetNeedBuybackDto.getContractId());
+                leasingNotice.setSourceType("n007");
+                leasingNotice.setResendFlag("N");
+                try {
+                    Integer[] integerArray = Arrays.stream(assetNeedBuybackDto.getTermNos().split(","))
+                            .map(Integer::parseInt)
+                            .toArray(Integer[]::new);
+                    String termNos = JSON.toJSONString(Arrays.asList(integerArray));
+                    assetNeedBuybackDto.setTermNos(termNos);
+                    assetNeedBuybackDto.setUniqueId(getUniqueId());
+                    assetNeedBuybackDto.setContractId(null);
+                    leasingNotice.setNoticeBody(JSON.toJSONString(assetNeedBuybackDto));
+                    //消息推送
+                    noticePush(leasingNotice, "n007", assetNeedBuybackDto, iRequest);
+
+                } catch (Exception e) {
+                    noticeFail(leasingNotice, iRequest, e);
+                }
+            });
+
         }
     }
 

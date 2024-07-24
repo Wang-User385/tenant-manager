@@ -8,6 +8,7 @@ import com.hand.hls.partner.dto.LeasingNotice;
 import com.hand.hls.partner.service.ILeasingNoticeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -31,7 +32,7 @@ public class LeasingNoticeController extends BaseController {
      */
     @RequestMapping(value = "/notice/re/push", method = {RequestMethod.POST})
     @ResponseBody
-    public ResponseData noticeRePush(LeasingNotice leasingNotice, HttpServletRequest request) {
+    public ResponseData noticeRePush(final LeasingNotice leasingNotice, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
         leasingNoticeService.noticeRePush(leasingNotice, requestContext);

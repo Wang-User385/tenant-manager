@@ -73,6 +73,7 @@ public class HlsCusPrjProject extends PrjProject {
     private String preStatus;
     private String orderStatus;
     private String driverAndApplicant;
+    private String investmentStatus;
 
 
     @Transient
@@ -915,6 +916,8 @@ public class HlsCusPrjProject extends PrjProject {
 
     @Transient
     private String employeeIdN;
+    @Transient
+    private String employeeName;
     @Transient
     private String manufacturerIdN;
     @Transient
@@ -3047,6 +3050,8 @@ public class HlsCusPrjProject extends PrjProject {
     private Date firstReleaseDate;
     @Transient
     private String companyIdN;
+    @Transient
+    private Long companyId;
     @Transient
     private Date firstPayDate;
     @Transient

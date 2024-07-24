@@ -16,13 +16,13 @@ public class AssetNeedBuybackDto {
 
     private Double interest;  //利息
 
-    private Double principalPenalty; //本金罚息
-
-    private Double interestPenalty; //利息罚息
+    private Double penalty; //罚息
 
     private Double otherFee; //其他费用
 
     private Double payableAmount; //应付金额
+
+    private Long contractId; //合同ID
 
 
 }

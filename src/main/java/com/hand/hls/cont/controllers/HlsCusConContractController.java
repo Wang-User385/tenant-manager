@@ -1,5 +1,6 @@
 package com.hand.hls.cont.controllers;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
@@ -8,9 +9,12 @@ import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.ast.dto.VirtualConContractLov;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
+import com.hand.hls.bp.dto.HlsCusSysFile;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.cont.dto.*;
+import com.hand.hls.cont.mapper.HlsCusConContractAttachmentMapper;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
+import com.hand.hls.cont.mapper.HlsCusContractAttachmentMapper;
 import com.hand.hls.cont.service.HlsCusConContractCashflowService;
 import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.fct.dto.HlsCusFctQuotationCashflow;
@@ -20,6 +24,7 @@ import com.hand.hls.gld.service.HlsCusConContractService;
 import com.hand.hls.gld.service.IGldContractCashflowService;
 import com.hand.hls.mort.dto.HlsMortgage;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
+import com.hand.hls.prj.dto.HlsCusPrjProjectAttachment;
 import com.hand.hls.prj.dto.HlsCusPrjProjectInfo;
 import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
@@ -27,22 +32,31 @@ import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationMapper;
 import com.hand.hls.prj.service.HlsCusPrjQuotationService;
+import com.hand.hls.prj.utils.HlsCusZipUtil;
 import com.hand.hls.utils.ResMessageException;
+import com.hand.hls.web.logs.dto.HlsWsRequests;
+import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import leaf.bean.LeafRequestData;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.ZipOutputStream;
 
 
 @Controller
@@ -52,6 +66,12 @@ public class HlsCusConContractController extends BaseController {
 
     @Autowired
     private HlsCusConContractService service;
+
+    @Autowired
+    private HlsWsRequestsMapper hlsWsRequestsMapper;
+
+    @Autowired
+    private HlsCusContractAttachmentMapper hlsCusContractAttachmentMapper;
     @Autowired
     private HlsCusConContractMapper hlsCusConContractMapper;
     @Autowired
@@ -73,16 +93,19 @@ public class HlsCusConContractController extends BaseController {
     @Autowired
     private HlsCusConContractService hlsCusConContractService;
 
+
+
     @RequestMapping(value = "/test/this/query")
     @ResponseBody
-    public ResponseData query(HlsCusFctQuotationCashflow dto, HttpServletRequest request){
+    public ResponseData query(HlsCusFctQuotationCashflow dto, HttpServletRequest request) {
         List<HlsCusFctQuotationCashflow> list = new ArrayList<>();
         list.add(dto);
         return new ResponseData(list);
     }
+
     @RequestMapping(value = "/test/that/query", method = RequestMethod.POST)
     @ResponseBody
-    public ResponseData queryThat(@RequestBody HlsCusFctQuotationCashflow dto, HttpServletRequest request){
+    public ResponseData queryThat(@RequestBody HlsCusFctQuotationCashflow dto, HttpServletRequest request) {
         List<HlsCusFctQuotationCashflow> list = new ArrayList<>();
         list.add(dto);
         return new ResponseData(list);
@@ -90,7 +113,7 @@ public class HlsCusConContractController extends BaseController {
 
     @RequestMapping(value = "/test/that/query", method = RequestMethod.GET)
     @ResponseBody
-    public ResponseData queryThat2(HlsCusFctQuotationCashflow dto, HttpServletRequest request){
+    public ResponseData queryThat2(HlsCusFctQuotationCashflow dto, HttpServletRequest request) {
         List<HlsCusFctQuotationCashflow> list = new ArrayList<>();
         list.add(dto);
         return new ResponseData(list);
@@ -101,42 +124,42 @@ public class HlsCusConContractController extends BaseController {
     @ResponseBody
     public ResponseData queryPaymentChangeInfoLov(HlsCusConContract hlsCusConContract, HttpServletRequest request,
                                                   @RequestParam(defaultValue = DEFAULT_PAGE) int page,
-                                                  @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pageSize){
+                                                  @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pageSize) {
         IRequest req = createRequestContext(request);
         return new ResponseData(service.queryPaymentChangeInfoLov(req, hlsCusConContract, page, pageSize));
     }
 
     @RequestMapping(value = "/con/contract/preRepayment/change/submit")
     @ResponseBody
-    public ResponseData submitConContractPreRepaymentChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request){
+    public ResponseData submitConContractPreRepaymentChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request) {
         IRequest req = createRequestContext(request);
         return new ResponseData(service.submitConContractPreRepaymentChange(req, hlsCusConContract));
     }
 
     @RequestMapping(value = "/con/contract/rentplan/change/submit")
     @ResponseBody
-    public ResponseData submitConContractRentplanChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request){
+    public ResponseData submitConContractRentplanChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request) {
         IRequest req = createRequestContext(request);
         return new ResponseData(service.submitConContractRentplanChange(req, hlsCusConContract));
     }
 
     @RequestMapping(value = "/con/contract/change/submit")
     @ResponseBody
-    public ResponseData submitConContractChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request){
+    public ResponseData submitConContractChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request) {
         IRequest req = createRequestContext(request);
         return new ResponseData(service.submitConContractChange(req, hlsCusConContract));
     }
 
     @RequestMapping(value = "/prj/contract/save/change")
     @ResponseBody
-    public ResponseData saveConContractChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request){
+    public ResponseData saveConContractChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request) {
         IRequest req = createRequestContext(request);
         return new ResponseData(service.saveConContractChange(req, hlsCusConContract));
     }
 
     @RequestMapping(value = "/prj/contract/cancel/change")
     @ResponseBody
-    public ResponseData backConContractChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request){
+    public ResponseData backConContractChange(@RequestBody HlsCusConContract hlsCusConContract, HttpServletRequest request) {
         IRequest req = createRequestContext(request);
         return new ResponseData(service.backConContractChange(req, hlsCusConContract));
     }
@@ -155,30 +178,31 @@ public class HlsCusConContractController extends BaseController {
                                                              @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pageSize, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         dto.setCompanyId(requestContext.getCompanyId());
-        return new ResponseData(service.conHomePageGetAllStatusContractCount(requestContext,dto));
+        return new ResponseData(service.conHomePageGetAllStatusContractCount(requestContext, dto));
     }
+
     @RequestMapping(value = "/ct/con/contract/home/info/query")
     @ResponseBody
     public ResponseData conHomePageContractInfoGrid(HlsCusConContract dto, @RequestParam(defaultValue = DEFAULT_PAGE) int page,
                                                     @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pageSize, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         dto.setCompanyId(requestContext.getCompanyId());
-        return new ResponseData(service.conHomePageContractInfoGrid(requestContext,dto,page,pageSize));
+        return new ResponseData(service.conHomePageContractInfoGrid(requestContext, dto, page, pageSize));
     }
 
     @RequestMapping(value = "/ct/con/contract/submit")
     @ResponseBody
     public ResponseData conContractSave(@RequestBody List<HlsCusPrjQuotation> dto, HttpServletRequest request) {
         IRequest requestCtx = createRequestContext(request);
-        List<HlsCusConContract> list=new ArrayList<>();
-        list=service.conContractSave(requestCtx,dto);
+        List<HlsCusConContract> list = new ArrayList<>();
+        list = service.conContractSave(requestCtx, dto);
         return new ResponseData(list);
     }
 
     @RequestMapping(value = "/ct/con/contract/submit/wfl")
     @ResponseBody
     public ResponseData conContractSubmit(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) throws HlsCusException {
-        JSONObject param  =(JSONObject) requestData.get("parameter");
+        JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusPrjProjectInfo dto = new HlsCusPrjProjectInfo();
         dto.setHlsCusPrjProject(param.toJavaObject(HlsCusPrjProject.class));
         IRequest requestCtx = createRequestContext(request);
@@ -197,44 +221,44 @@ public class HlsCusConContractController extends BaseController {
 
     @RequestMapping(value = "/con/contract/payment/table/make/status")
     @ResponseBody
-    public String paymentTableMakeStatus(HttpServletRequest request,@RequestParam Long projectId) {
+    public String paymentTableMakeStatus(HttpServletRequest request, @RequestParam Long projectId) {
         IRequest requestCtx = createRequestContext(request);
-        return service.paymentTableMakeStatus(requestCtx,projectId);
+        return service.paymentTableMakeStatus(requestCtx, projectId);
     }
 
     @RequestMapping(value = "/con/contract/payment/request/status")
     @ResponseBody
-    public String paymentReqStatus(HttpServletRequest request,@RequestParam Long projectId) {
+    public String paymentReqStatus(HttpServletRequest request, @RequestParam Long projectId) {
         IRequest requestCtx = createRequestContext(request);
-        return service.paymentReqStatus(requestCtx,projectId);
+        return service.paymentReqStatus(requestCtx, projectId);
     }
 
     @RequestMapping(value = "/con/contract/payment/table/confirm/status")
     @ResponseBody
-    public String paymentTableConfirmStatus(HttpServletRequest request,@RequestParam Long projectId) {
+    public String paymentTableConfirmStatus(HttpServletRequest request, @RequestParam Long projectId) {
         IRequest requestCtx = createRequestContext(request);
-        return service.paymentTableConfirmStatus(requestCtx,projectId);
+        return service.paymentTableConfirmStatus(requestCtx, projectId);
     }
 
     @RequestMapping(value = "/con/contract/change/status")
     @ResponseBody
-    public String conContractChangeStatus(HttpServletRequest request,@RequestParam Long projectId) {
+    public String conContractChangeStatus(HttpServletRequest request, @RequestParam Long projectId) {
         IRequest requestCtx = createRequestContext(request);
-        return service.conContractChangeStatus(requestCtx,projectId);
+        return service.conContractChangeStatus(requestCtx, projectId);
     }
 
     @RequestMapping(value = "/con/contract/et/status")
     @ResponseBody
-    public String conContractEtStatus(HttpServletRequest request,@RequestParam Long projectId) {
+    public String conContractEtStatus(HttpServletRequest request, @RequestParam Long projectId) {
         IRequest requestCtx = createRequestContext(request);
-        return service.conContractEtStatus(requestCtx,projectId);
+        return service.conContractEtStatus(requestCtx, projectId);
     }
 
     @RequestMapping(value = "/con/contract/cancel/status")
     @ResponseBody
-    public String conContractCancelStatus(HttpServletRequest request,@RequestParam Long projectId) {
+    public String conContractCancelStatus(HttpServletRequest request, @RequestParam Long projectId) {
         IRequest requestCtx = createRequestContext(request);
-        return service.conContractCancelStatus(requestCtx,projectId);
+        return service.conContractCancelStatus(requestCtx, projectId);
     }
 
     @RequestMapping(value = "/ct/con/contract/payment/info/query")
@@ -243,7 +267,7 @@ public class HlsCusConContractController extends BaseController {
                                              @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pageSize, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         dto.setCompanyId(requestContext.getCompanyId());
-        return new ResponseData(service.queryPaymentInfoList(requestContext,dto,page,pageSize));
+        return new ResponseData(service.queryPaymentInfoList(requestContext, dto, page, pageSize));
     }
 
     /**
@@ -315,13 +339,11 @@ public class HlsCusConContractController extends BaseController {
      */
     @RequestMapping(value = "/hls/cus/con/contract/csh/submit")
     @ResponseBody
-    public ResponseData conContractSave(@RequestBody HlsCusContractPkg hlsCusContractPkg, HttpServletRequest request){
+    public ResponseData conContractSave(@RequestBody HlsCusContractPkg hlsCusContractPkg, HttpServletRequest request) {
         IRequest requestCtx = createRequestContext(request);
         service.conContractSave(requestCtx, hlsCusContractPkg);
         return new ResponseData();
     }
-
-
 
 
     @RequestMapping(value = "/hls/cus/con/loan/submit/wfl")
@@ -331,10 +353,10 @@ public class HlsCusConContractController extends BaseController {
         requestCtx.setAttribute("wflRuleControlFlag", "Y");
         ResponseData rd = new ResponseData(true);
         // 校验采购合同是否在审批中
-        service.validatePurchaseContractStatus(requestCtx,paymentReqId);
-        HlsCusBpMaster hlsCusBpMaster=new HlsCusBpMaster();
+        service.validatePurchaseContractStatus(requestCtx, paymentReqId);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
         hlsCusBpMaster.setPaymentReqId(paymentReqId);
-        List<HlsCusBpMaster> hlsCusBpMasterList= hlsCusBpMasterMapper.paymentFundTenantInfo(hlsCusBpMaster);
+        List<HlsCusBpMaster> hlsCusBpMasterList = hlsCusBpMasterMapper.paymentFundTenantInfo(hlsCusBpMaster);
         //字段必输校验
 //        Boolean  flag=true;
 //        for(HlsCusBpMaster item:hlsCusBpMasterList){
@@ -372,7 +394,7 @@ public class HlsCusConContractController extends BaseController {
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusConContract hlsCusConContract = param.toJavaObject(HlsCusConContract.class);
         HlsCusConContract cusConContract = new HlsCusConContract();
-        if(hlsCusConContract.getContractId() != null){
+        if (hlsCusConContract.getContractId() != null) {
             cusConContract = hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
         }
         cusConContract.setLeaseDateAdjust(hlsCusConContract.getLeaseDateAdjust());
@@ -502,7 +524,7 @@ public class HlsCusConContractController extends BaseController {
      */
     @RequestMapping(value = "/insure/con/contract/list/query")
     @ResponseBody
-    public ResponseData queryInsureContractList(@ModelAttribute("_request_data") LeafRequestData requestData,HttpServletRequest httpServletRequest,
+    public ResponseData queryInsureContractList(@ModelAttribute("_request_data") LeafRequestData requestData, HttpServletRequest httpServletRequest,
                                                 @RequestParam(defaultValue = "1") int pagenum,
                                                 @RequestParam(defaultValue = "10") int pagesize) {
         JSONObject param = (JSONObject) requestData.get("parameter");
@@ -536,13 +558,14 @@ public class HlsCusConContractController extends BaseController {
         JSONArray param = (JSONArray) requestData.get("parameter");
         List<HlsCusConContract> list = param.toJavaList(HlsCusConContract.class);
 
-        list = service.createContractBatchByContract(requestContext,list);
+        list = service.createContractBatchByContract(requestContext, list);
 
         return new ResponseData(list);
     }
 
     /**
      * 租金支付表-退出前校验
+     *
      * @param request
      * @param requestData
      * @return
@@ -556,7 +579,7 @@ public class HlsCusConContractController extends BaseController {
         List<HlsCusConContract> list = param.toJavaList(HlsCusConContract.class);
 
         List<String> responseList = new ArrayList<>();
-        responseList.add(service.exitCheckBp(requestContext,list));
+        responseList.add(service.exitCheckBp(requestContext, list));
         return new ResponseData(responseList);
     }
 
@@ -572,7 +595,7 @@ public class HlsCusConContractController extends BaseController {
         JSONArray param = (JSONArray) requestData.get("parameter");
         List<HlsCusConContract> list = param.toJavaList(HlsCusConContract.class);
 
-        service.deleteContract(requestContext,list);
+        service.deleteContract(requestContext, list);
 
         return new ResponseData(true);
     }
@@ -591,8 +614,8 @@ public class HlsCusConContractController extends BaseController {
             hlsCusConContractCashflow.setContractId(contractId);
             List<HlsCusConContractCashflow> cashflowList = hlsCusConContractCashflowService.selectSelective(requestCtx, hlsCusConContractCashflow);
             List<HlsCusConContractCashflow> list = cashflowList.stream().filter(cashflow -> !(cashflow.getCfItem().equals(1L) || cashflow.getCfItem().equals(10L))).collect(Collectors.toList());
-            for(HlsCusConContractCashflow item : list){
-                if(item.getAmortizationMethod() != null){
+            for (HlsCusConContractCashflow item : list) {
+                if (item.getAmortizationMethod() != null) {
                     item.setQuotationId(hlsCusConContract.getQuotationId());
                     HlsCusPrjQuotationCashflowMapper.updateQuotationAmortizationMethod(item);
                 }
@@ -608,9 +631,9 @@ public class HlsCusConContractController extends BaseController {
         IRequest requestCtx = createRequestContext(request);
         requestCtx.setAttribute("wflRuleControlFlag", "Y");
         ResponseData rd = new ResponseData(true);
-        HlsCusBpMaster hlsCusBpMaster=new HlsCusBpMaster();
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
         hlsCusBpMaster.setPaymentReqId(paymentReqId);
-        List<HlsCusBpMaster> hlsCusBpMasterList= hlsCusBpMasterMapper.paymentFundTenantInfo(hlsCusBpMaster);
+        List<HlsCusBpMaster> hlsCusBpMasterList = hlsCusBpMasterMapper.paymentFundTenantInfo(hlsCusBpMaster);
         //字段必输校验
 //        Boolean  flag=true;
 //        for(HlsCusBpMaster item:hlsCusBpMasterList){
@@ -640,6 +663,7 @@ public class HlsCusConContractController extends BaseController {
 
     /**
      * 查询项目报价
+     *
      * @param requestData
      * @param pagenum
      * @param pageSize
@@ -653,7 +677,7 @@ public class HlsCusConContractController extends BaseController {
         IRequest requestContext = createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
 
-        HlsCusPrjQuotation prjQuotation =  param.toJavaObject(HlsCusPrjQuotation.class);
+        HlsCusPrjQuotation prjQuotation = param.toJavaObject(HlsCusPrjQuotation.class);
         return new ResponseData(hlsCusPrjQuotationService.queryPrjQuotationInfoForContractPlan(prjQuotation));
     }
 
@@ -664,20 +688,20 @@ public class HlsCusConContractController extends BaseController {
         IRequest requestContext = createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
 
-        Long contractId = Long.valueOf(String.valueOf(param.get("contract_id")) );
+        Long contractId = Long.valueOf(String.valueOf(param.get("contract_id")));
         HlsCusConContract ct = new HlsCusConContract();
         ct.setContractId(contractId);
-        ct = service.selectByPrimaryKey(requestContext,ct);
+        ct = service.selectByPrimaryKey(requestContext, ct);
 
-        gldContractCashflowService.clacFinanceIncome(requestContext,contractId,ct.getVatRate(),ct.getIrr());
+        gldContractCashflowService.clacFinanceIncome(requestContext, contractId, ct.getVatRate(), ct.getIrr());
 
         return new ResponseData();
     }
 
 
-
     /**
-     *租金支付表制作,根据传入的项目，拆分成对应金额的合同，自动计算报价,此时并没有创建真正的合同
+     * 租金支付表制作,根据传入的项目，拆分成对应金额的合同，自动计算报价,此时并没有创建真正的合同
+     *
      * @param request
      * @param requestData
      * @return
@@ -690,15 +714,15 @@ public class HlsCusConContractController extends BaseController {
         JSONArray param = (JSONArray) requestData.get("parameter");
         List<HlsCusPrjQuotation> list = param.toJavaList(HlsCusPrjQuotation.class);
 
-        list = service.createContractPlanByContract(requestContext,list);
+        list = service.createContractPlanByContract(requestContext, list);
 
         return new ResponseData(list);
     }
 
 
-
     /**
      * 租金支付表制作,删除合同投放计划
+     *
      * @param request
      * @param requestData
      * @return
@@ -711,13 +735,14 @@ public class HlsCusConContractController extends BaseController {
         JSONArray param = (JSONArray) requestData.get("parameter");
         List<HlsCusPrjQuotation> list = param.toJavaList(HlsCusPrjQuotation.class);
 
-        service.deleteContractPlan(requestContext,list);
+        service.deleteContractPlan(requestContext, list);
 
         return new ResponseData(true);
     }
 
     /**
      * 投放计划确认
+     *
      * @param request
      * @param requestData
      * @return
@@ -730,13 +755,14 @@ public class HlsCusConContractController extends BaseController {
         JSONArray param = (JSONArray) requestData.get("parameter");
         List<HlsCusPrjQuotation> list = param.toJavaList(HlsCusPrjQuotation.class);
 
-        service.confirmContractPlan(requestContext,list);
+        service.confirmContractPlan(requestContext, list);
 
         return new ResponseData(true);
     }
 
     /**
      * 支付表确认新建
+     *
      * @param request
      * @param requestData
      * @return
@@ -749,13 +775,14 @@ public class HlsCusConContractController extends BaseController {
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusConContractRentPaymentConfirm conContractRentPaymentConfirm = param.toJavaObject(HlsCusConContractRentPaymentConfirm.class);
 
-        List<HlsCusConContractRentPaymentConfirm> listR = service.createContractConfirm(requestContext,conContractRentPaymentConfirm)  ;
+        List<HlsCusConContractRentPaymentConfirm> listR = service.createContractConfirm(requestContext, conContractRentPaymentConfirm);
 
         return new ResponseData(listR);
     }
 
     /**
      * 支付表确认提交审批
+     *
      * @param request
      * @param requestData
      * @return
@@ -768,7 +795,7 @@ public class HlsCusConContractController extends BaseController {
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusConContractRentPaymentConfirm conContractRentPaymentConfirm = param.toJavaObject(HlsCusConContractRentPaymentConfirm.class);
 
-        List<HlsCusConContractRentPaymentConfirm> listR = service.submitContractConfirmWfl(requestContext,conContractRentPaymentConfirm);
+        List<HlsCusConContractRentPaymentConfirm> listR = service.submitContractConfirmWfl(requestContext, conContractRentPaymentConfirm);
 
         return new ResponseData(listR);
     }
@@ -823,7 +850,7 @@ public class HlsCusConContractController extends BaseController {
         IRequest requestCtx = createRequestContext(request);
         service.conContractSubmit(requestCtx, dto);*/
 
-        JSONObject param  =(JSONObject) requestData.get("parameter");
+        JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusPrjProject dto = new HlsCusPrjProject();
         dto = param.toJavaObject(HlsCusPrjProject.class);
         IRequest requestCtx = createRequestContext(request);
@@ -833,7 +860,7 @@ public class HlsCusConContractController extends BaseController {
 
     @RequestMapping(value = "/con/contract/repayment/calculate")
     @ResponseBody
-    public ResponseData contractChangeRepaymentCalculate(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData){
+    public ResponseData contractChangeRepaymentCalculate(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData) {
         IRequest req = createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusConContract hlsCusConContract = param.toJavaObject(HlsCusConContract.class);
@@ -842,7 +869,7 @@ public class HlsCusConContractController extends BaseController {
 
     @RequestMapping(value = "/con/contract/et/calculate")
     @ResponseBody
-    public ResponseData contractChangeEtCalculate(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData){
+    public ResponseData contractChangeEtCalculate(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData) {
         IRequest req = createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusConContract hlsCusConContract = param.toJavaObject(HlsCusConContract.class);
@@ -852,8 +879,8 @@ public class HlsCusConContractController extends BaseController {
     @RequestMapping(value = "/con/contract/change/cancel")
     @ResponseBody
     public ResponseData conContractChangeCancel(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
-        JSONObject param  =(JSONObject) requestData.get("parameter");
-        HlsCusPrjProject dto =param.toJavaObject(HlsCusPrjProject.class);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject dto = param.toJavaObject(HlsCusPrjProject.class);
         IRequest requestCtx = createRequestContext(request);
         service.conContractChangeCancel(requestCtx, dto);
         return new ResponseData();
@@ -861,34 +888,35 @@ public class HlsCusConContractController extends BaseController {
 
     @RequestMapping(value = "/con/contract/compareinfoGenerate")
     @ResponseBody
-    public ResponseData compareinfoGenerate(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData){
+    public ResponseData compareinfoGenerate(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData) {
         IRequest req = createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusConContract hlsCusConContract = param.toJavaObject(HlsCusConContract.class);
         return new ResponseData(service.compareinfoGenerate(req, hlsCusConContract));
     }
+
     @RequestMapping(value = "/prj/creditLine/query")
     @ResponseBody
-    public ResponseData queryCreditLine(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData){
+    public ResponseData queryCreditLine(HttpServletRequest request, @ModelAttribute("_request_data") LeafRequestData requestData) {
         IRequest req = createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
-        ResponseData responseData =new ResponseData();
-        if("MANUFACTURER".equals(param.get("bp_type"))){
+        ResponseData responseData = new ResponseData();
+        if ("MANUFACTURER".equals(param.get("bp_type"))) {
             HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance = param.toJavaObject(HlsCusHlsCreditLineChance.class);
-            Long bpId=hlsCusHlsCreditLineChance.getBpId();
+            Long bpId = hlsCusHlsCreditLineChance.getBpId();
             hlsCusHlsCreditLineChance.setBpId(null);
             List<HlsCusHlsCreditLineChance> hlsCusHlsCreditLineChances = hlsCusHlsCreditLineChanceMapper.selectCreditLineChanceByStatus(hlsCusHlsCreditLineChance);
             for (HlsCusHlsCreditLineChance cusHlsCreditLineChance : hlsCusHlsCreditLineChances) {
-                if(bpId.equals(cusHlsCreditLineChance.getBpId())&&(cusHlsCreditLineChance.getCreditLineStatus().equals("APPROVED")||cusHlsCreditLineChance.getCreditLineStatus().equals("APPROVING"))){
+                if (bpId.equals(cusHlsCreditLineChance.getBpId()) && (cusHlsCreditLineChance.getCreditLineStatus().equals("APPROVED") || cusHlsCreditLineChance.getCreditLineStatus().equals("APPROVING"))) {
                     responseData.setRows(hlsCusHlsCreditLineChances);
                 }
             }
-        }else if("TENANT".equals(param.get("bp_type"))){
+        } else if ("TENANT".equals(param.get("bp_type"))) {
             Map prjRpModifyMap = new HashMap();
-            prjRpModifyMap.put("bpName",param.get("bp_name"));
+            prjRpModifyMap.put("bpName", param.get("bp_name"));
             List<Map> prjRpModifyEntranceQuery = hlsCusPrjProjectMapper.prjRpModifyEntranceQuery(prjRpModifyMap);
             for (Map map : prjRpModifyEntranceQuery) {
-                if(prjRpModifyEntranceQuery.size()>0&&("APPROVED".equals(map.get("project_status"))||"APPROVING".equals(map.get("project_status")))){
+                if (prjRpModifyEntranceQuery.size() > 0 && ("APPROVED".equals(map.get("project_status")) || "APPROVING".equals(map.get("project_status")))) {
                     responseData.setRows(prjRpModifyEntranceQuery);
                     break;
                 }
@@ -896,21 +924,24 @@ public class HlsCusConContractController extends BaseController {
         }
         return responseData;
     }
+
     /**
      * 根据合同编号查找合同id
+     *
      * @param contractNumber 合同编号
      * @return 合同id
      */
     @RequestMapping(value = "/contract/queryContractId")
     @ResponseBody
-    public ResponseData queryContractIdByContractNumber(HttpServletRequest request,String contractNumber) {
+    public ResponseData queryContractIdByContractNumber(HttpServletRequest request, String contractNumber) {
         IRequest iRequest = createRequestContext(request);
-        iRequest.setAttribute("authorityRuleFlag","N");
+        iRequest.setAttribute("authorityRuleFlag", "N");
         if (StringUtils.isEmpty(contractNumber)) {
             return new ResponseData(false, "合同编号不能为空!");
         }
         return new ResponseData(service.queryContractIdByContractNumber(contractNumber));
     }
+
     /**
      * 进件合同起租列表页面查询
      */
@@ -920,7 +951,7 @@ public class HlsCusConContractController extends BaseController {
         IRequest requestContext = this.createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusPrjProject dto1 = param.toJavaObject(HlsCusPrjProject.class);
-        List<HlsCusConContract> list = service.queryContractInceptInfoMain(requestContext,dto1, pagenum, pagesize);
+        List<HlsCusConContract> list = service.queryContractInceptInfoMain(requestContext, dto1, pagenum, pagesize);
         return new ResponseData(list);
     }
 
@@ -931,7 +962,89 @@ public class HlsCusConContractController extends BaseController {
         RequestHelper.setCurrentRequest(requestCtx);
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusConContract dto = param.toJavaObject(HlsCusConContract.class);
-        return new ResponseData(hlsCusConContractService.submitWfl(dto,requestCtx));
+        return new ResponseData(hlsCusConContractService.submitWfl(dto, requestCtx));
+    }
+
+
+    @RequestMapping("/hls/con/contract/download")
+    @ResponseBody
+    public void selectContractAttachmentList(@RequestParam("contract_id") Long contractId,
+                                             @RequestParam("contract_attachment_category") String contractAttachmentCategory,
+                                             HttpServletResponse response,HttpServletRequest request){
+        HlsCusContractAttachment hlsCusContractAttachment = new HlsCusContractAttachment();
+        hlsCusContractAttachment.setContractId(contractId);
+        hlsCusContractAttachment.setContractAttachmentCategory(contractAttachmentCategory);
+        //日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        this.commonLogHead(hlsWsRequests, "一键下载", hlsCusContractAttachment, request);
+        ResponseData responseData = new ResponseData();
+        //获取所有的数据
+        List<HlsCusContractAttachment> hlsCusConContractAttachmentList = hlsCusContractAttachmentMapper.findListByHlsCusConContractAttachment(hlsCusContractAttachment);
+        if (!CollectionUtils.isEmpty(hlsCusConContractAttachmentList)) {
+            String zipFilePath = "";
+            String fileName = "";
+            List<HlsCusSysFile> hlsCusSysFiles = new ArrayList<>();
+            for (HlsCusContractAttachment cusConContractAttachment : hlsCusConContractAttachmentList) {
+                HlsCusSysFile hlsCusSysFile = new HlsCusSysFile();
+                String filePath = cusConContractAttachment.getFilePath();
+                String fileName1 = cusConContractAttachment.getFileName();
+                hlsCusSysFile.setFilePath(filePath);
+                hlsCusSysFile.setFileName(fileName1);
+                hlsCusSysFiles.add(hlsCusSysFile);
+            }
+            if (!CollectionUtils.isEmpty(hlsCusSysFiles)) {
+                File zipFilePath1 = new File(zipFilePath);
+                //拼接文件名,用户名+系统时间,避免出现重复
+                fileName = "downloadZip_" + System.currentTimeMillis();
+                //String zipFile = "attachment;filename=" + new String(fileName.getBytes("utf-8"), "iso-8859-1") + ".zip";
+                String zipFile = zipFilePath1 + fileName + ".zip";
+                try {
+                    FileOutputStream outStream = new FileOutputStream(zipFile);
+                    ZipOutputStream toClient = new ZipOutputStream(outStream);
+                    //打包转换为zip文件
+                    HlsCusZipUtil.zipFile(hlsCusSysFiles, toClient);
+                    toClient.close();
+                    outStream.close();
+                    //下载zip文件
+                    HlsCusZipUtil.downloadZip(new File(zipFile), response);
+                } catch (Exception e) {
+                    commonLog(responseData, "10001", "E", "一键下载异常", hlsWsRequests);
+                }
+            }
+
+        }
+    }
+
+    private void commonLog(ResponseData responseData, String code, String returnStatus, String parameter, HlsWsRequests hlsWsRequests) {
+        responseData.setCode(code);
+        responseData.setMessage(parameter);
+        hlsWsRequests.setReturnStatus(returnStatus);
+        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        hlsWsRequestsMapper.insert(hlsWsRequests);
+    }
+
+    private void commonLogHead(HlsWsRequests hlsWsRequests, String functionName, Object param, HttpServletRequest request) {
+        //获取请求路径
+        String requestURI = request.getRequestURI();
+        hlsWsRequests.setRequestWsdlUrl(requestURI);
+        //请求日期
+        hlsWsRequests.setRequestDate(new Date());
+        //功能名称
+        hlsWsRequests.setFunctionName(functionName);
+        //状态变更日期
+        hlsWsRequests.setStatusDate(new Date());
+        // user_id
+        String userId = request.getParameter("user_id");
+        if (userId != null) {
+            hlsWsRequests.setUserId(Long.valueOf(userId));
+        }
+        //请求状态
+        hlsWsRequests.setStatusCode("200");
+        //参数类型
+        hlsWsRequests.setParameterType("JSON");
+        // 请求体
+        String s = JSONObject.toJSONString(param);
+        hlsWsRequests.setRequestJson(s);
     }
 
 

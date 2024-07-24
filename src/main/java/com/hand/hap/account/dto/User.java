@@ -203,6 +203,18 @@ public class User extends BaseDTO {
     @Transient
     private String bpType;
 
+    @Transient
+    private Long unitId;
+
+
+    public Long getUnitId() {
+        return unitId;
+    }
+
+    public void setUnitId(Long unitId) {
+        this.unitId = unitId;
+    }
+
     public String getBpType() {
         return bpType;
     }

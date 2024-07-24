@@ -9,6 +9,8 @@ import com.hand.hap.account.dto.User;
 import com.hand.hap.hr.dto.Employee;
 import com.hand.hap.mybatis.common.Mapper;
 import java.util.List;
+
+import com.hand.hls.fnd.dto.HlsEmployee;
 import org.apache.ibatis.annotations.Param;
 
 public interface UserMapper extends Mapper<User> {
@@ -66,4 +68,8 @@ public interface UserMapper extends Mapper<User> {
      * 查询员工--
      */
     User queryByEmployeeId(@Param("employeeId") Long employeeId);
+    /**
+     * 根据公司和名称选择业务经理
+     */
+    List<HlsEmployee> selectSalesByEmployeeName(@Param("employeeName") String employeeName);
 }

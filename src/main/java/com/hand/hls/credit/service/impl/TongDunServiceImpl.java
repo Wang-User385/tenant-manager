@@ -68,128 +68,128 @@ public class TongDunServiceImpl implements TongDunService {
     //预审
     @Override
     public String preliminaryValid(Long projectId, HttpServletRequest request) {
-        //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        commonLogHead(hlsWsRequests, "预审", projectId, request);
-        ResponseData responseData = new ResponseData();
-        //项目id为空则预审失败
-        if (projectId == null) {
-            commonLog(responseData, "100001", "E", "项目id为空", hlsWsRequests);
-            return "Error";
-        }
-
-        String preStatus = hlsCusPrjProjectMapper.getPreStatusByProjectId(projectId);
-        //不为空且不为新建则该订单已经结束
-        if (!StringUtil.isEmpty(preStatus) && !"NEW".equals(preStatus)){
-            return "Repeat";
-        }
-
-        //获取商业伙伴id
-        Long bpId = hlsCusPrjProjectBpMapper.getBpIdByProjectId(projectId);
-        //bpId为空则预审失败
-        if (bpId == null) {
-            commonLog(responseData, "100001", "E", "商业伙伴id为空", hlsWsRequests);
-            return "Error";
-        }
-
-        //通过bpId获取商业伙伴信息
-        QueryHlsBpMasterDTO queryHlsBpMasterDTO = hlsCusBpMasterMapper.getQueryHlsBpMasterDTOByBpId(bpId);
-
-        SimpleDateFormat parse = new SimpleDateFormat("yyyy-MM-dd HH:ss:mm");
-        //获取业务申请编号
-        String businessApplyNo = hlsCusPrjProjectMapper.getBusinessApplyNoByProjectId(projectId);
-        //业务流水号
-        String businessNo = UUID.randomUUID().toString().replace("-", "");
-        HashMap<String, String> param = new HashMap<>();
-        //设置预审参数
-        if (setPreliminaryParam(hlsWsRequests, responseData,
-                queryHlsBpMasterDTO, parse, businessApplyNo, businessNo, param)) {
-            return "Error";
-        }
-        HashMap<String, String> header = new HashMap<>();
-        header.put("Content-Type", "application/x-www-form-urlencoded");
-
-        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
-
-        try {
-            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(YS_URL, param, header);
-            if (200 != httpExecuteResponse.getResponseCode()) {
-                commonLog(responseData, "100001", "E", "同盾接口请求失败", hlsWsRequests);
-                return "Error";
-            }
-            String responseAsString = httpExecuteResponse.getResponseAsString();
-            JSONObject resp = JSONObject.parseObject(responseAsString);
-            JSONObject data = (JSONObject) resp.get("data");
-            //如果是正常返回的data则不会有success字段
-            if (data.getBoolean("success") != null) {
-                commonLog(responseData, "100001", "E", "参数异常", hlsWsRequests);
-                return "Error";
-            }
-            if ("Reject".equals(data.getString("finalDecisionCode"))) {
-                commonLog(responseData, "100001", "E", "同盾预审失败", hlsWsRequests);
-                prjProject.setPreStatus("Reject");
-                return "Reject";
-            }
-        } catch (Exception e) {
-            commonLog(responseData, "100001", "E", "请求同盾接口异常", hlsWsRequests);
-            return "Error";
-        }
-        commonLog(responseData, "200", "S", "预审成功", hlsWsRequests);
-        prjProject.setPreStatus("Accept");
-        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+//        //保存日志
+//        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+//        commonLogHead(hlsWsRequests, "预审", projectId, request);
+//        ResponseData responseData = new ResponseData();
+//        //项目id为空则预审失败
+//        if (projectId == null) {
+//            commonLog(responseData, "100001", "E", "项目id为空", hlsWsRequests);
+//            return "Error";
+//        }
+//
+//        String preStatus = hlsCusPrjProjectMapper.getPreStatusByProjectId(projectId);
+//        //不为空且不为新建则该订单已经结束
+//        if (!StringUtil.isEmpty(preStatus) && !"NEW".equals(preStatus)){
+//            return "Repeat";
+//        }
+//
+//        //获取商业伙伴id
+//        Long bpId = hlsCusPrjProjectBpMapper.getBpIdByProjectId(projectId);
+//        //bpId为空则预审失败
+//        if (bpId == null) {
+//            commonLog(responseData, "100001", "E", "商业伙伴id为空", hlsWsRequests);
+//            return "Error";
+//        }
+//
+//        //通过bpId获取商业伙伴信息
+//        QueryHlsBpMasterDTO queryHlsBpMasterDTO = hlsCusBpMasterMapper.getQueryHlsBpMasterDTOByBpId(bpId);
+//
+//        SimpleDateFormat parse = new SimpleDateFormat("yyyy-MM-dd HH:ss:mm");
+//        //获取业务申请编号
+//        String businessApplyNo = hlsCusPrjProjectMapper.getBusinessApplyNoByProjectId(projectId);
+//        //业务流水号
+//        String businessNo = UUID.randomUUID().toString().replace("-", "");
+//        HashMap<String, String> param = new HashMap<>();
+//        //设置预审参数
+//        if (setPreliminaryParam(hlsWsRequests, responseData,
+//                queryHlsBpMasterDTO, parse, businessApplyNo, businessNo, param)) {
+//            return "Error";
+//        }
+//        HashMap<String, String> header = new HashMap<>();
+//        header.put("Content-Type", "application/x-www-form-urlencoded");
+//
+//        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
+//
+//        try {
+//            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(YS_URL, param, header);
+//            if (200 != httpExecuteResponse.getResponseCode()) {
+//                commonLog(responseData, "100001", "E", "同盾接口请求失败", hlsWsRequests);
+//                return "Error";
+//            }
+//            String responseAsString = httpExecuteResponse.getResponseAsString();
+//            JSONObject resp = JSONObject.parseObject(responseAsString);
+//            JSONObject data = (JSONObject) resp.get("data");
+//            //如果是正常返回的data则不会有success字段
+//            if (data.getBoolean("success") != null) {
+//                commonLog(responseData, "100001", "E", "参数异常", hlsWsRequests);
+//                return "Error";
+//            }
+//            if ("Reject".equals(data.getString("finalDecisionCode"))) {
+//                commonLog(responseData, "100001", "E", "同盾预审失败", hlsWsRequests);
+//                prjProject.setPreStatus("Reject");
+//                return "Reject";
+//            }
+//        } catch (Exception e) {
+//            commonLog(responseData, "100001", "E", "请求同盾接口异常", hlsWsRequests);
+//            return "Error";
+//        }
+//        commonLog(responseData, "200", "S", "预审成功", hlsWsRequests);
+//        prjProject.setPreStatus("Accept");
+//        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
         return "Accept";
     }
 
     //正审
     @Override
     public String interlocutoryValid(Long projectId, HttpServletRequest request) {
-        //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        commonLogHead(hlsWsRequests, "正审", projectId, request);
-        ResponseData responseData = new ResponseData();
-        String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
-        JSONObject param = JSONObject.parseObject(jsonString);
-        //设置正审参数
-        String info = setInterlocutoryParam(projectId, hlsWsRequests, responseData, param);
-        if (info != null) return info;
-        HashMap<String, String> header = new HashMap<>();
-        header.put("Content-Type", "application/x-www-form-urlencoded");
-
-        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
-
-        try {
-            Map<String, String> map = JSONObject.toJavaObject(param, Map.class);
-            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(ZS_URL, map, header);
-            if (200 != httpExecuteResponse.getResponseCode()) {
-                commonLog(responseData, "100001", "E", "同盾接口请求失败", hlsWsRequests);
-                return "Error";
-            }
-            String responseAsString = httpExecuteResponse.getResponseAsString();
-            JSONObject resp = JSONObject.parseObject(responseAsString);
-            JSONObject data = (JSONObject) resp.get("data");
-            //如果是正常返回的data则不会有success字段
-            if (data.getBoolean("success") != null) {
-                commonLog(responseData, "100001", "E", "参数异常", hlsWsRequests);
-                return "Error";
-            }
-            if ("Reject".equals(data.getString("finalDecisionCode"))) {
-                commonLog(responseData, "100001", "E", "同盾正审失败", hlsWsRequests);
-                prjProject.setProjectStatus("Reject");
-                return "Reject";
-            }
-            if ("Review".equals(data.getString("finalDecisionCode"))) {
-                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险", hlsWsRequests);
-                prjProject.setProjectStatus("Review");
-                return "Review";
-            }
-        } catch (Exception e) {
-            commonLog(responseData, "100001", "E", "请求同盾接口异常", hlsWsRequests);
-            return "Error";
-        }
-        commonLog(responseData, "200", "S", "正审成功", hlsWsRequests);
-        prjProject.setProjectStatus("Accept");
-        prjProject.setApprovedDate(new Date());
-        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+//        //保存日志
+//        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+//        commonLogHead(hlsWsRequests, "正审", projectId, request);
+//        ResponseData responseData = new ResponseData();
+//        String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
+//        JSONObject param = JSONObject.parseObject(jsonString);
+//        //设置正审参数
+//        String info = setInterlocutoryParam(projectId, hlsWsRequests, responseData, param);
+//        if (info != null) return info;
+//        HashMap<String, String> header = new HashMap<>();
+//        header.put("Content-Type", "application/x-www-form-urlencoded");
+//
+//        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
+//
+//        try {
+//            Map<String, String> map = JSONObject.toJavaObject(param, Map.class);
+//            HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(ZS_URL, map, header);
+//            if (200 != httpExecuteResponse.getResponseCode()) {
+//                commonLog(responseData, "100001", "E", "同盾接口请求失败", hlsWsRequests);
+//                return "Error";
+//            }
+//            String responseAsString = httpExecuteResponse.getResponseAsString();
+//            JSONObject resp = JSONObject.parseObject(responseAsString);
+//            JSONObject data = (JSONObject) resp.get("data");
+//            //如果是正常返回的data则不会有success字段
+//            if (data.getBoolean("success") != null) {
+//                commonLog(responseData, "100001", "E", "参数异常", hlsWsRequests);
+//                return "Error";
+//            }
+//            if ("Reject".equals(data.getString("finalDecisionCode"))) {
+//                commonLog(responseData, "100001", "E", "同盾正审失败", hlsWsRequests);
+//                prjProject.setProjectStatus("Reject");
+//                return "Reject";
+//            }
+//            if ("Review".equals(data.getString("finalDecisionCode"))) {
+//                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险", hlsWsRequests);
+//                prjProject.setProjectStatus("Review");
+//                return "Review";
+//            }
+//        } catch (Exception e) {
+//            commonLog(responseData, "100001", "E", "请求同盾接口异常", hlsWsRequests);
+//            return "Error";
+//        }
+//        commonLog(responseData, "200", "S", "正审成功", hlsWsRequests);
+//        prjProject.setProjectStatus("Accept");
+//        prjProject.setApprovedDate(new Date());
+//        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
         return "Accept";
     }
 

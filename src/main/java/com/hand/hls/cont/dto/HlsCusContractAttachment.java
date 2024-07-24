@@ -191,6 +191,17 @@ public class HlsCusContractAttachment extends BaseDTO {
     @Transient
     private String  documentNameSummary;
 
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    @Transient
+    private String filePath;
+
     public void setContractAttachmentId(Long contractAttachmentId) {
         this.contractAttachmentId = contractAttachmentId;
     }
