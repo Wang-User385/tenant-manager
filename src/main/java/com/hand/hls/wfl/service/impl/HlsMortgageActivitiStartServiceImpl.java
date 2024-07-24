@@ -2,6 +2,7 @@ package com.hand.hls.wfl.service.impl;
 
 import com.hand.hap.activiti.service.IActivitiService;
 import com.hand.hap.core.IRequest;
+import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.gld.service.HlsCusConContractService;
 import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.wfl.components.WflGetProcessInstanceComponents;
@@ -50,7 +51,11 @@ public class HlsMortgageActivitiStartServiceImpl implements IActivitiCommonServi
 
     @Override
     public void cancel(IRequest iRequest, Map params) {
-
+        String businessKey = (String) params.get("businessKey");
+        HlsCusConContract conContract = new HlsCusConContract();
+        conContract.setContractId(Long.parseLong(businessKey));
+        conContract.setMortgageStatus(HlsCusConstant.WORKFLOW_STATUS.CANCEL);
+        hlsCusConContractService.updateByPrimaryKeySelective(iRequest,conContract);
     }
 
 }

@@ -14,7 +14,44 @@
         function lease_item_detail_return() {
             $('${/parameter/@winid}').close();
         }
+        <!--render函数-->
+        function formatDate(value, record, name){
+            debugger;
+            if(value!=""&&value!=undefined){
+                var date = new Date(value);
+                var yy = date.getFullYear();
+                var mm = date.getMonth() + 1;
+                var dd = date.getDate();
+                mm = (mm < 10) ? '0' + mm : mm;
+                dd = (dd < 10) ? '0' + dd : dd;
+                var dateStr=yy + '-' + mm + '-' + dd;
+                return dateStr;
+            }
+            else{
+                return "";
+            }
+        }
 
+        function do_formatDate(value){
+            console.log(123456);
+            if (!Ext.isEmpty(value)){
+                return value.parseDate('yyyy-mm-dd').format('yyyy-mm-dd');
+            }
+            return '';
+        }
+        function load_detail_ds(ds) {
+            debugger;
+            /*let record = $(ds).getCurrentRecord();
+            if(record.get("product_date") instanceof Date){
+                do_formatDate(record.get("product_date"));
+            }
+            if(record.get("first_registration_date") instanceof Date){
+                do_formatDate(record.get("first_registration_date"));
+            }
+            if(record.get("transfer_registration_date") instanceof Date){
+                do_formatDate(record.get("transfer_registration_date"));
+            }*/
+        }
         ]]></script>
         <!--/ct/prj/project/lease/item/query  租赁物基本信息查询
         /prj/leaseItem/detail/info/query
@@ -70,6 +107,9 @@
                     <a:field name="fuel_type" readOnly="true"/>
                     <a:field name="is_import" readOnly="true"/>
                 </a:fields>
+                <a:events>
+                    <a:event name="load" handler="load_detail_ds"/>
+                </a:events>
             </a:dataSet>
             <a:dataSet id="project_lease_item_insurance_form_ds" autoQuery="true"
                        queryUrl="${/request/@context_path}/prj/leaseItem/detail/insurance/query"
@@ -169,15 +209,15 @@
                 </a:hBox>
                 <a:hBox labelWidth="200">
                     <a:datePicker name="product_date" bindTarget="project_lease_item_detail_form_ds" prompt="车辆出厂日期" width="150"/>
-                    <a:datePicker name="first_registration_date" bindTarget="project_lease_item_detail_form_ds" prompt="首次登记日期" width="150"/>
-                    <a:datePicker name="transfer_registration_date" bindTarget="project_lease_item_detail_form_ds" prompt="转让登记日期" width="150"/>
+                    <a:datePicker name="first_registration_date" bindTarget="project_lease_item_detail_form_ds" prompt="首次登记日期" renderer="do_formatDate" width="150"/>
+                    <a:datePicker name="transfer_registration_date" bindTarget="project_lease_item_detail_form_ds" prompt="转让登记日期" renderer="do_formatDate" width="150"/>
                     <a:textField name="plate_type" bindTarget="project_lease_item_detail_form_ds" prompt="上牌类型" width="150"/>
                 </a:hBox>
                 <a:hBox labelWidth="200">
                     <a:textField name="license_plate_number" bindTarget="project_lease_item_detail_form_ds" prompt="车牌号" width="150"/>
                     <a:textField name="nature_of_vehicle" bindTarget="project_lease_item_detail_form_ds" prompt="车辆使用性质" width="150"/>
                     <a:textField name="city_code" bindTarget="project_lease_item_detail_form_ds" prompt="上牌城市" width="150"/>
-                    <a:datePicker name="first_plate_date" bindTarget="project_lease_item_detail_form_ds" prompt="首次上牌日" width="150"/>
+                    <a:datePicker name="first_plate_date" bindTarget="project_lease_item_detail_form_ds" prompt="首次上牌日" renderer="do_formatDate" width="150"/>
                 </a:hBox>
                 <a:hBox labelWidth="200">
                     <a:textField name="license_plate_ownership" bindTarget="project_lease_item_detail_form_ds" prompt="牌照归属" width="150"/>
@@ -203,37 +243,37 @@
                 <a:hBox labelWidth="200">
                     <a:textField name="is_compulsory_insurance" bindTarget="project_lease_item_insurance_form_ds" prompt="是否有交强险" width="150"/>
                     <a:numberField name="compulsory_amount" bindTarget="project_lease_item_insurance_form_ds" prompt="强制保险金额" width="150"/>
-                    <a:datePicker name="compulsory_end_date" bindTarget="project_lease_item_insurance_form_ds" prompt="交强险到期日期" width="150"/>
+                    <a:datePicker name="compulsory_end_date" bindTarget="project_lease_item_insurance_form_ds" prompt="交强险到期日期" renderer="do_formatDate" width="150"/>
                     <a:textField name="commercial_insurance" bindTarget="project_lease_item_insurance_form_ds" prompt="商业保险" width="150"/>
                 </a:hBox>
                 <a:hBox labelWidth="200">
                     <a:numberField name="extended_warranty_amount" bindTarget="project_lease_item_insurance_form_ds" prompt="延保金额" width="150"/>
                     <a:numberField name="insurance_amount" bindTarget="project_lease_item_insurance_form_ds" prompt="车辆保险金额" width="150"/>
                     <a:textField name="is_vehicle_damage" bindTarget="project_lease_item_insurance_form_ds" prompt="是否有车损险" width="150"/>
-                    <a:datePicker name="vehicle_end_date" bindTarget="project_lease_item_insurance_form_ds" prompt="车损险到期日期" width="150"/>
+                    <a:textField name="vehicle_end_date" bindTarget="project_lease_item_insurance_form_ds" prompt="车损险到期日期" width="150"/>
                 </a:hBox>
                 <a:hBox labelWidth="200">
                     <a:textField name="is_third_party" bindTarget="project_lease_item_insurance_form_ds" prompt="是否有第三者责任险" width="150"/>
-                    <a:datePicker name="third_end_date" bindTarget="project_lease_item_insurance_form_ds" prompt="第三者责任险到期日期" width="150"/>
+                    <a:textField name="third_end_date" bindTarget="project_lease_item_insurance_form_ds" prompt="第三者责任险到期日期" width="150"/>
                 </a:hBox>
             </a:form>
             <a:form title="抵押信息">
                 <a:hBox labelWidth="200">
-                    <a:numberField name="number_of_mortgages" bindTarget="project_lease_item_mortgage_form_ds" prompt="抵押次数" width="150"/>
-                    <a:numberField name="number_of_transfers" bindTarget="project_lease_item_mortgage_form_ds" prompt="过户次数" width="150"/>
-                    <a:numberField name="number_of_mortgages_one" bindTarget="project_lease_item_mortgage_form_ds" prompt="近1年抵押次数" width="150"/>
-                    <a:numberField name="number_of_transfers_one" bindTarget="project_lease_item_mortgage_form_ds" prompt="近1年过户次数" width="150"/>
+                    <a:textField name="number_of_mortgages" bindTarget="project_lease_item_mortgage_form_ds" prompt="抵押次数" width="150"/>
+                    <a:textField name="number_of_transfers" bindTarget="project_lease_item_mortgage_form_ds" prompt="过户次数" width="150"/>
+                    <a:textField name="number_of_mortgages_one" bindTarget="project_lease_item_mortgage_form_ds" prompt="近1年抵押次数" width="150"/>
+                    <a:textField name="number_of_transfers_one" bindTarget="project_lease_item_mortgage_form_ds" prompt="近1年过户次数" width="150"/>
                 </a:hBox>
                 <a:hBox labelWidth="200">
-                    <a:numberField name="number_of_transfers_two" bindTarget="project_lease_item_mortgage_form_ds" prompt="近2年过户次数" width="150"/>
+                    <a:textField name="number_of_transfers_two" bindTarget="project_lease_item_mortgage_form_ds" prompt="近2年过户次数" width="150"/>
                     <a:textField name="is_renewal_record" bindTarget="project_lease_item_mortgage_form_ds" prompt="是否有车辆登记证补领记录" width="150"/>
                     <a:textField name="is_half_renewal_record" bindTarget="project_lease_item_mortgage_form_ds" prompt="近半年是否有车辆登记证补领记录" width="150"/>
-                    <a:datePicker name="last_transfers_date" bindTarget="project_lease_item_mortgage_form_ds" prompt="上一次抵押登记日期" width="150"/>
+                    <a:datePicker name="last_transfers_date" bindTarget="project_lease_item_mortgage_form_ds" renderer="do_formatDate" prompt="上一次抵押登记日期" width="150"/>
                 </a:hBox>
                 <a:hBox labelWidth="200">
-                    <a:datePicker name="recently_transfers_date" bindTarget="project_lease_item_mortgage_form_ds" prompt="最近一次解押日期" width="150"/>
+                    <a:datePicker name="recently_transfers_date" bindTarget="project_lease_item_mortgage_form_ds" renderer="do_formatDate" prompt="最近一次解押日期" width="150"/>
                     <a:textField name="transfers_status" bindTarget="project_lease_item_mortgage_form_ds" prompt="抵押状态" width="150"/>
-                    <a:numberField name="days_to_release" bindTarget="project_lease_item_mortgage_form_ds" prompt="解押天数" width="150"/>
+                    <a:textField name="days_to_release" bindTarget="project_lease_item_mortgage_form_ds" prompt="解押天数" width="150"/>
                 </a:hBox>
             </a:form>
             <a:form title="车况信息">

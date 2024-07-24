@@ -40,7 +40,7 @@
         <result column="bp_name" property="bpName" jdbcType="VARCHAR"/>
         <result column="project_name" property="projectName" jdbcType="VARCHAR"/>
         <result column="project_number" property="projectNumber" jdbcType="VARCHAR"/>
-        <result column="bp_id" property="bpId" jdbcType="VARCHAR"/>
+        <result column="bp_id" property="bpId" jdbcType="DECIMAL"/>
         <result column="RESIDUAL_PRICE_TYPE_N" property="residualPriceTypeN" jdbcType="VARCHAR"/>
         <result column="credit_line_id" property="creditLineId" jdbcType="DECIMAL"/>
         <result column="insurance_free_amount" property="insuranceFreeAmount" jdbcType="DECIMAL"/>
@@ -73,25 +73,33 @@
         <result column="margin_deduction_method_n" property="marginDeductionMethodN" jdbcType="VARCHAR"/>
         <result column="reply_id" property="replyId" jdbcType="DECIMAL"/>
         <result column="employee_name" property="employeeName" jdbcType="VARCHAR"/>
+        <result column="unit_id" property="unitId" jdbcType="DECIMAL"/>
     </resultMap>
 
     <select id="selectHlsProductDefinitionList" resultMap="BaseResultMap">
-        select * from (
-        SELECT hpd.*,
-
-        (select p.project_number from prj_project p where p.project_id=hpd.reply_product_id) project_number,
-        (select p.project_name from prj_project p where p.project_id=hpd.reply_product_id) project_name,
-        (select hbm.bp_name from prj_project p,hls_bp_master hbm where p.project_id=hpd.reply_product_id and p.TENANT_ID=hbm.bp_id) bp_name,
-        (select p.TENANT_ID from prj_project p where p.project_id=hpd.reply_product_id) bp_id,
+        select *
+        from (SELECT hpd.*,
+        (select hbm.bp_name
+        from hls_bp_master hbm
+        where hpd.bp_id = hbm.bp_id) bp_name,
         (select fe.name
         from fnd_employee fe
-        where fe.employee_id = (select p.employee_id from prj_project p where p.project_id=hpd.reply_product_id)) employee_name,
+        where fe.employee_id = hpd.employee_id) employee_name,
+        (SELECT fea.unit_id
+        FROM fnd_employee fe,
+        fnd_employee_assigns fea,
+        fnd_org_position fop
+        WHERE fe.employee_id = fea.employee_id
+        AND fea.position_id = fop.position_id
+        AND fea.enabled_flag = 'Y'
+        AND fe.enabled_flag = 'Y'
+        AND fop.position_type = 'SALES'
+        AND fe.employee_id = hpd.employee_id) unit_id,
         (select scvb.meaning
         from sys_code_b scb, sys_code_value_b scvb
         where scb.code = 'MARGIN_DEDUCTION_METHOD'
         and scb.code_id = scvb.code_id
-        and scvb.value = hpd.margin_deduction_method
-        ) as margin_deduction_method_n,
+        and scvb.value = hpd.margin_deduction_method) as margin_deduction_method_n,
         (select scvb.meaning
         from sys_code_b scb, sys_code_value_b scvb
         where scb.code = 'HLS500_PAY_TYPE'
@@ -125,7 +133,6 @@
         (SELECT hpl.description
         FROM hls_price_list hpl
         WHERE hpl.price_list = hpd.price_list) price_dist_display,
-
         (SELECT v.meaning
         FROM sys_code_value_b_v v
         WHERE v. code = 'FND.PRODUCT_STATUS'
@@ -150,7 +157,6 @@
         WHERE B1.CODE = 'REPAY_MODE'
         AND B1.CODE_ID = B2.CODE_ID
         AND B2.VALUE = hpd.repay_mode) repay_mode_n,
-
         (SELECT B2.MEANING
         FROM SYS_CODE_B B1, SYS_CODE_VALUE_B B2
         WHERE B1.CODE = 'SYS.YES_NO'
@@ -166,9 +172,7 @@
         WHERE B1.CODE = 'DISCOUNT_TIMES'
         AND B1.CODE_ID = B2.CODE_ID
         AND B2.VALUE = hpd.rental_discount_times) rental_discount_times_n
-
-        FROM hls_product_definition hpd ) v
-
+        FROM hls_product_definition hpd) v
         <where>  v.document_type = 'PRODUCT_DEFINITION'
         and v.business_type = 'PRODUCT_DEFINITION'
             <if test="definitionCode != null">

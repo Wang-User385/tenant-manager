@@ -85,7 +85,7 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
         for (HlsProductDefinition hlsProductDefinition : hlsProductDefinitionList) {
             if (hlsProductDefinition.getDefinitionId() == null) {
                 //每个合作商仅支持关联一个产品
-                Integer numByBpName = hlsProductDefDealerMapper.selectProductNumByBpName(hlsProductDefinition.getReplyProductId());
+                Integer numByBpName = hlsProductDefDealerMapper.selectProductNumByBpName(hlsProductDefinition.getBpId());
                 if (numByBpName > 0){
                     throw new HlsCusException("同一个合作方仅支持一个启用的产品！");
                 }
@@ -125,10 +125,6 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
                 hlsProductDefinition.setAuthorityRuleString(authorityRuleString);
 
                 self().insertHlsProductDefinition(request, hlsProductDefinition);
-                //如果选择了业务经理，就将业务经理id和部门id更新到项目表
-                if(hlsProductDefinition.getEmployeeId() != null){
-                    UpdatePrjProjectInfo(request,hlsProductDefinition);
-                }
             } else {
                 //每个合作商仅支持关联一个产品
                 Integer numByBpName = hlsProductDefDealerMapper.selectProductNumByBpName(hlsProductDefinition.getReplyProductId());
@@ -136,10 +132,6 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
                     throw new HlsCusException("同一个合作方仅支持一个启用的产品！");
                 }
                 self().updateHlsProductDefinition(request, hlsProductDefinition);
-                //如果选择了业务经理，就将业务经理id和部门id更新到项目表
-                if(hlsProductDefinition.getEmployeeId() != null){
-                    UpdatePrjProjectInfo(request,hlsProductDefinition);
-                }
             }
         }
         return hlsProductDefinitionList;
@@ -184,18 +176,7 @@ public class HlsProductDefinitionServiceImpl extends BaseServiceImpl<HlsProductD
 
 //        checkHlsProductDefinition(request, hlsProductDefinition);
     }
-    /**
-     * 产品定义保存，更新业务经理信息到项目表中
-     *
-     * @param hlsProductDefinition
-     */
-    private void UpdatePrjProjectInfo(IRequest iRequest, HlsProductDefinition hlsProductDefinition) throws HlsCusException {
-        HlsCusPrjProject prjProject = new HlsCusPrjProject();
-        prjProject.setProjectId(hlsProductDefinition.getReplyProductId());
-        prjProject.setEmployeeId(hlsProductDefinition.getEmployeeId());
-        prjProject.setUnitId(hlsProductDefinition.getUnitId());
-        hlsCusPrjProjectService.updateByPrimaryKeySelective(iRequest, prjProject);
-    }
+
 
     /**
      * 产品校验 是否符合批复要求

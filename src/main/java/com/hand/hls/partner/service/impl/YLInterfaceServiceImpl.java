@@ -2,6 +2,7 @@ package com.hand.hls.partner.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.github.pagehelper.PageHelper;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.mybatis.entity.Example;
@@ -23,6 +24,9 @@ import com.hand.hls.credit.service.TongDunService;
 import com.hand.hls.csh.dto.CshPaymentReqHd;
 import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
+import com.hand.hls.exception.HlsCusException;
+import com.hand.hls.fnd.dto.HlsProductDefinition;
+import com.hand.hls.fnd.mapper.HlsProductDefinitionMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.mapper.UploadAttachListMapper;
@@ -118,6 +122,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         putData("REGISTRATION_CERTIFICATE_MORTGAGED","有抵押信息后的登记证（首页至空白页）","MORTGAGE");
         putData("ASSET_TRANSFER_AGREE","资产转让协议","");
     }
+    @Autowired
+    private HlsProductDefinitionMapper hlsProductDefinitionMapper;
 
     @Override
     @Transactional
@@ -209,7 +215,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusBpMaster.setBpType("MANUFACTURER");
         List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectHlsBpMaster(hlsCusBpMaster);
         hlsCusPrjProject.setManufacturerId(hlsCusBpMasters.get(0).getBpId());
+        //根据合作商id，查询产品定义表中的业务经理插入到项目表中
+        HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
+        hlsProductDefinition.setBpId(hlsCusBpMasters.get(0).getBpId());
+        List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
+        if (hlsProductDefinitionList.size() == 0){
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","该合作商对应的产品为空，需在产品定义功能中维护新的产品");
+            return requestsErrorSave(jsonObject1,hlsWsRequests,iRequest);
+        }
+        hlsCusPrjProject.setEmployeeId(hlsProductDefinitionList.get(0).getEmployeeId());
+        hlsCusPrjProject.setUnitId(hlsProductDefinitionList.get(0).getUnitId());
         prjProjectMapper.insertSelective(hlsCusPrjProject);
+
+
 
         if (hlsCusPrjProjectBp!=null){
             hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
@@ -1104,7 +1123,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     }
                     //车况信息
                     //是否年检
-                    prjProjectLeaseItemCondition.setIsAnnualInspection(carInformation.getIscheckyea());
+                    prjProjectLeaseItemCondition.setIsAnnualInspection(carInformation.getIscheckyear());
                     //是否安装GPS
                     hlsCusPrjProjectLeaseItem1.setGpsIsInstallation(carInformation.getSfazgps());
                     //贷款用途
@@ -1131,6 +1150,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     prjProjectLeaseItemCondition.setIsWaterDamaged(carInformation.getSfsp());
                     //是否营转非
                     prjProjectLeaseItemCondition.setIsConversion(carInformation.getSfyzf());
+                    //事故状况
+                    prjProjectLeaseItemCondition.setAccidentStatus(carInformation.getSgzk());
+                    //发动机大修
+                    prjProjectLeaseItemCondition.setEngineOverhaul(carInformation.getFdjdx());
                     //是否重大改装车
                     prjProjectLeaseItemCondition.setIsSignificantlyModified(carInformation.getSfzdgzc());
                     //原车主证件类型
