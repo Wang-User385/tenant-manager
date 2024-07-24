@@ -21,6 +21,7 @@ import com.hand.hls.cont.dto.*;
 import com.hand.hls.cont.mapper.*;
 import com.hand.hls.cont.service.*;
 import com.hand.hls.cont.utils.BeanRefUtils;
+import com.hand.hls.credit.service.TongDunService;
 import com.hand.hls.csh.dto.HlsCusCshPaymentReqHd;
 import com.hand.hls.csh.dto.HlsCusCshPaymentReqLn;
 import com.hand.hls.csh.dto.HlsCusCshWriteOff;
@@ -199,6 +200,9 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
     @Autowired
     private HlsCusContractAttachmentMapper hlsCusContractAttachmentMapper;
+
+    @Autowired
+    private TongDunService tongDunService;
 
     @Autowired
     private HlsWsRequestsMapper hlsWsRequestsMapper;
@@ -4662,23 +4666,37 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     private final static String WORK_FLOW = "CAR_MORTGAGE";
     //流程分类
     private final static String DEMO_NAME = "CAR_MORTGAGE";
+    private final static String DOCUMENT_NAME = "车辆业务抵押工作流";
+
+    private final static String DOCUMENT_CATEGORY = "CON_CONTRACT";
+
+    private final static String DOCUMENT_TYPE = " CONLB";
+
 
     @Override
-    public List<HlsCusConContract> submitWfl(HlsCusConContract dto, IRequest requestCtx) {
+    public List<HlsCusConContract> submitWfl(HlsCusConContract dto, IRequest requestCtx,HttpServletRequest request) {
         HashMap<String, Object> params = new HashMap<>();
         params.put("workFlowType", WORK_FLOW);
         params.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW);
         params.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME);
         params.put(IActivitiCommonService.BUSINESS_KEY, dto.getContractId());
-        params.put("contract_id", dto.getContractId());
+        params.put("contractId", dto.getContractId());
+        dto = hlsCusConContractMapper.selectByPrimaryKey(dto);
+        //单据类别
+        params.put("documentCategory",DOCUMENT_CATEGORY);
+        //单据类型
+        params.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        //params.put("documentName", );
+        params.put("documentName", DOCUMENT_NAME);
         //单据编号
-        //params.put("documentNumber",);
+        params.put("documentNumber", dto.getContractNumber());
         //查询
         List<HlsCusConContract> res = new ArrayList<>();
         res.add(dto);
         activitiStartService.start(requestCtx, res, params);
+        //设置状态为提交审批
+        dto.setMortgageStatus("APPROVING");
+        updateByPrimaryKeySelective(requestCtx, dto);
         return res;
     }
 

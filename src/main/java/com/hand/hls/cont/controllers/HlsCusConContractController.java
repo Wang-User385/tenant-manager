@@ -94,7 +94,6 @@ public class HlsCusConContractController extends BaseController {
     private HlsCusConContractService hlsCusConContractService;
 
 
-
     @RequestMapping(value = "/test/this/query")
     @ResponseBody
     public ResponseData query(HlsCusFctQuotationCashflow dto, HttpServletRequest request) {
@@ -962,7 +961,7 @@ public class HlsCusConContractController extends BaseController {
         RequestHelper.setCurrentRequest(requestCtx);
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusConContract dto = param.toJavaObject(HlsCusConContract.class);
-        return new ResponseData(hlsCusConContractService.submitWfl(dto, requestCtx));
+        return new ResponseData(hlsCusConContractService.submitWfl(dto, requestCtx, request));
     }
 
 
@@ -970,7 +969,7 @@ public class HlsCusConContractController extends BaseController {
     @ResponseBody
     public void selectContractAttachmentList(@RequestParam("contract_id") Long contractId,
                                              @RequestParam("contract_attachment_category") String contractAttachmentCategory,
-                                             HttpServletResponse response,HttpServletRequest request){
+                                             HttpServletResponse response, HttpServletRequest request) {
         HlsCusContractAttachment hlsCusContractAttachment = new HlsCusContractAttachment();
         hlsCusContractAttachment.setContractId(contractId);
         hlsCusContractAttachment.setContractAttachmentCategory(contractAttachmentCategory);
@@ -1046,7 +1045,6 @@ public class HlsCusConContractController extends BaseController {
         String s = JSONObject.toJSONString(param);
         hlsWsRequests.setRequestJson(s);
     }
-
 
 
 }
