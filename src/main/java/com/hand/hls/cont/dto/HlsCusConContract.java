@@ -412,6 +412,8 @@ public class HlsCusConContract extends ConContract {
 
     private String fiveClassificationResult;
 
+    private String leaseItemType;
+
     @Transient
     private String fiveClassificationResultN;
 

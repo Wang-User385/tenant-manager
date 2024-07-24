@@ -11206,6 +11206,8 @@ WHERE
         <result column="fuel_type" property="fuel_type"/>
         <result column="is_import" property="is_import"/>
         <result column="finance_amount" property="finance_amount"/>
+        <result column="manufacturer" property="manufacturer"/>
+        <result column="voiture_type" property="voiture_type"/>
     </resultMap>
     <!--项目进件 租赁物-->
     <select id="prjProjectLIQuery1" resultMap="PrjProjectLIQueryMap">
@@ -12855,7 +12857,7 @@ WHERE
         pp.lease_organization,
         (SELECT fou.UNIT_NAME
         FROM fnd_org_unit fou
-        WHERE pp.LEASE_ORGANIZATION = fou.UNIT_CODE
+        WHERE pp.unit_id = fou.unit_id
         AND fou.ENABLED_FLAG = 'Y') lease_organization_n,
         (SELECT v.meaning
         FROM sys_code_value_b v, sys_code_b b
@@ -13106,11 +13108,8 @@ WHERE
                (select pp.manufacturer_id
                 from prj_project pp
                 where pp.project_id = ppl.project_id) manufacturer_id,
-               (SELECT hb.bp_name
-                FROM hls_bp_master hb
-                WHERE hb.bp_id = (select ppr.manufacturer_id
-                                  from prj_project ppr
-                                  where ppr.project_id = ppl.project_id)) manufacturer_id_n,
+               ppl.voiture_type,
+               ppl.manufacturer,
                ppl.color_c,
                ppl.age_c,
                ppl.vehicle_capacity,

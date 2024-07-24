@@ -913,6 +913,9 @@ public class HlsCusPrjProject extends PrjProject {
 
     private Double penaltyRatio;
     private String singAddr;
+    private Long employeeId;
+    private Long unitId;
+    private String leaseItemType;
 
     @Transient
     private String employeeIdN;

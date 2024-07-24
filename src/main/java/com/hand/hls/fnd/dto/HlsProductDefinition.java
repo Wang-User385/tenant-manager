@@ -73,6 +73,7 @@ public class HlsProductDefinition extends BaseDTO {
 
     private Long employeeId;
     private Long bpId;
+    private String leaseItemType;
 
     /**
      * 是否倒推租金
@@ -168,6 +169,9 @@ public class HlsProductDefinition extends BaseDTO {
 
     @Transient
     private Long unitId;;
+
+    @Transient
+    private String leaseItemTypeN;;
 
 
 }

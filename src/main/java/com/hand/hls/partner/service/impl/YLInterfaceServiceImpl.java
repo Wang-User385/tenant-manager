@@ -243,6 +243,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         hlsCusPrjProject.setEmployeeId(hlsProductDefinitionList.get(0).getEmployeeId());
         hlsCusPrjProject.setUnitId(hlsProductDefinitionList.get(0).getUnitId());
+        hlsCusPrjProject.setLeaseItemType(hlsProductDefinitionList.get(0).getLeaseItemType());
         prjProjectMapper.insertSelective(hlsCusPrjProject);
 
 
