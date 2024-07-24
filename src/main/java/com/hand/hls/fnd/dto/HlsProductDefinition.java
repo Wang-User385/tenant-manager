@@ -71,6 +71,9 @@ public class HlsProductDefinition extends BaseDTO {
 
     private String simpleCompoundType;
 
+    private Long employeeId;
+    private Long bpId;
+
     /**
      * 是否倒推租金
      */
@@ -112,9 +115,6 @@ public class HlsProductDefinition extends BaseDTO {
     private String projectName;
     @Transient
     private String projectNumber;
-
-    @Transient
-    private String bpId;
 
     @Transient
     private String residualPriceTypeN;
@@ -162,12 +162,12 @@ public class HlsProductDefinition extends BaseDTO {
 
     @Transient
     private String rentalDiscountTimesN;
-    @Transient
-    private Long unitId;
-    @Transient
-    private Long employeeId;
+
     @Transient
     private String employeeName;
+
+    @Transient
+    private Long unitId;;
 
 
 }

@@ -88,7 +88,7 @@ public class CarInformation extends BaseDTO {
 
     private  String szxdqrq;//第三者责任险到期日期
 
-    private  String ischeckyea;//是否年检
+    private  String ischeckyear;//是否年检
 
     private  String sfazgps;//是否安装GPS
 

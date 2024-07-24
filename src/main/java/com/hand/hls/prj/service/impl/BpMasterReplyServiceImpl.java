@@ -48,7 +48,7 @@ public class BpMasterReplyServiceImpl extends BaseServiceImpl<BpMasterReply> imp
         List<BpMasterReply> listBpMasterReply = new ArrayList<>();
         if(productDefinitions.size()==0){
             HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
-            hlsProductDefinition.setBpId(manufacturerId);
+            hlsProductDefinition.setBpId(Long.parseLong(manufacturerId));
             productDefinitions=hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
         }
         //查询产品信息

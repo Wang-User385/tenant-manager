@@ -2657,7 +2657,7 @@ public class HlsCusPrjProjectController extends BaseController {
         hlsCusBpMaster.setBpName((String) prjRpLModifyQuery.get("manufacturer_id_n"));
         List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.select(hlsCusBpMaster);
         HlsProductDefinition hlsProductDefinition=new HlsProductDefinition();
-        hlsProductDefinition.setBpId(String.valueOf(hlsCusBpMasters.get(0).getBpId()));
+        hlsProductDefinition.setBpId(hlsCusBpMasters.get(0).getBpId());
         List<HlsProductDefinition> hlsProductDefinitions = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
         if(hlsProductDefinitions.size()>0){
             List<HlsProductDefinitionPara> hlsProductDefinitionParas = hlsProductDefinitionParaMapper.selectHlsProductDefinitionParaList(hlsProductDefinitions.get(0));
@@ -2687,7 +2687,7 @@ public class HlsCusPrjProjectController extends BaseController {
         Long bpId = Long.valueOf(prjRpLModifyQuery.get("manufacturer_id").toString());
         List<HlsBpMasterInceptRule> hlsBpMasterInceptRules = hlsBpMasterInceptRuleMapper.query(bpId);
         HlsProductDefinition hlsProductDefinition=new HlsProductDefinition();
-        hlsProductDefinition.setBpId(String.valueOf(bpId));
+        hlsProductDefinition.setBpId(bpId);
         List<HlsProductDefinition> hlsProductDefinitions = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
         List<HlsProductDefinitionPara> hlsProductDefinitionParas = hlsProductDefinitionParaMapper.selectHlsProductDefinitionParaList(hlsProductDefinitions.get(0));
         for (HlsProductDefinitionPara hlsProductDefinitionPara : hlsProductDefinitionParas) {
