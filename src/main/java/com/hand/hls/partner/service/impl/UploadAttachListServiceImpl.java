@@ -26,8 +26,8 @@ public class UploadAttachListServiceImpl extends BaseServiceImpl<UploadAttachLis
 
     @Autowired
     private IHlsWsRequestsService logService;
-    @Value("${file.upload.dir:.}")
-    private String savePath = ".";
+    @Value("${file.upload.dir}")
+    private String savePath;
     @Autowired
     private UploadAttachListMapper uploadAttachListMapper;
     @Autowired
@@ -69,7 +69,7 @@ public class UploadAttachListServiceImpl extends BaseServiceImpl<UploadAttachLis
         }
         //存储附件
         String filename = file.getOriginalFilename();
-        String path = this.savePath + File.separator + fileId;
+        String path = this.savePath + "/" + fileId;
         try {
             File dest = new File(path); // 创建目标文件对象
             file.transferTo(dest); // 将上传的文件保存到目标位置
