@@ -42,7 +42,7 @@ public class HlsMortgageServiceTask implements JavaDelegate, IActivitiBean {
         conContract.setContractId(contractId);
         conContract = hlsCusConContractService.selectByPrimaryKey(requestCtx, conContract);
         conContract.setProcessInstanceId(processInstanceId);
-        databaseLockProvider.lock(conContract);
+//        databaseLockProvider.lock(conContract);
         if (APPROVED.equalsIgnoreCase(result)) {
             flag = "APPROVED";
         } else if (REJECTED.equalsIgnoreCase(result)) {
