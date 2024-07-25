@@ -26,7 +26,7 @@ public interface YLInterfaceService {
 
     String advancesSettleRequest(String decryptedStr);
 
-    String dataAcquisition(String decryptedStr,IRequest iRequest) throws ParseException;
+    String dataAcquisition(String decryptedStr,IRequest iRequest) throws Exception;
 
     String overdueRepurchaseTrialCalculation(String decryptedStr);
 

@@ -11,6 +11,7 @@ import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterRoleMapper;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
+import com.hand.hls.partner.service.IPrjQuotationCalcService;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.bp.dto.HlsBpSpouse;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
@@ -93,6 +94,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsCusBpMasterRoleMapper hlsCusBpMasterRoleMapper;
     @Autowired
     private HlsCusConContractCashflowMapper conContractCashflowMapper;
+    @Autowired
+    private IPrjQuotationCalcService prjQuotationCalcService;
 
     private static final HashMap<String, HashMap<String,String>> fileTypeMap = new HashMap<String, HashMap<String,String>>();
     private static void putData(String fileType,String documentName,String projectAttachmentCategory){
@@ -254,6 +257,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProject.setLeaseItemType(hlsProductDefinitionList.get(0).getLeaseItemType());
         prjProjectMapper.insertSelective(hlsCusPrjProject);
 
+        //创建报价信息
+        HlsCusPrjQuotation hlsCusPrjQuotation = new HlsCusPrjQuotation();
+        hlsCusPrjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
+        hlsCusPrjQuotation.setPriceList(placeOrderDTO.getProductCode());
+        hlsCusPrjQuotationMapper.insertSelective(hlsCusPrjQuotation);
 
         //创建关联人信息
         hlsCusPrjProjectBp.setBpId(bpMaster.getBpId());
@@ -276,15 +284,16 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject jsonObject1 = new JSONObject();
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(closeOrderDTO.getOrderNo());
-        CshPaymentReqHd cshPaymentReqHd =prjProjectMapper.selectPaymentByOrderNo(closeOrderDTO.getOrderNo());
+//        CshPaymentReqHd cshPaymentReqHd =prjProjectMapper.selectPaymentByOrderNo(closeOrderDTO.getOrderNo());
         if (hlsCusPrjProject==null){
             jsonObject1.put("code","100003");
             jsonObject1.put("message","订单不存在");
             return jsonObject1.toJSONString();
         }else{
             String projectStatus = hlsCusPrjProject.getProjectStatus();
-            if ("APPROVING".equals(projectStatus)||"Y".equals(hlsCusPrjProject.getLoanInitialLease())||
-                    "APPROVING".equals(cshPaymentReqHd.getPaymentReqStatusDesc())){
+            if ("APPROVING".equals(projectStatus)||"Y".equals(hlsCusPrjProject.getLoanInitialLease())
+//                    || "APPROVING".equals(cshPaymentReqHd.getPaymentReqStatusDesc())
+            ){
                 jsonObject1.put("code","100101");
                 jsonObject1.put("message","订单状态和操作不相符");
                 return jsonObject1.toJSONString();
@@ -505,7 +514,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public String dataAcquisition(String decryptedStr,IRequest iRequest){
+    public String dataAcquisition(String decryptedStr,IRequest iRequest) throws Exception {
         DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(decryptedStr, DataAcquisitionDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
@@ -644,7 +653,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 }else{
                     hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
                 }
-
+                prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
                 Example example = new Example(HlsCusPrjProjectLeaseItem.class);
                 example.createCriteria().andEqualTo("projectLeaseItemId",hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
                 hlsCusPrjProjectLeaseItemMapper.updateByExample(hlsCusPrjProjectLeaseItem,example);
@@ -698,6 +707,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 }else{
                     hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
                 }
+
+                prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
                 hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);
             }
             //            设置返回状态
