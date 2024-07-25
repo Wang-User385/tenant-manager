@@ -483,7 +483,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     @Transactional
-    public String dataAcquisition(String decryptedStr,IRequest iRequest){
+    public String dataAcquisition(String decryptedStr,IRequest iRequest) throws ParseException {
         DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(decryptedStr, DataAcquisitionDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
@@ -683,6 +683,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
                     //融资金额
                     prjQuotation.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
+                    //起息日
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+                    prjQuotation.setLeaseStartDate(formatter.parse(financeInfo.getStartRentDate()));
+                    //最后一期还款日接口还没传
+
                 }else{
                     if (!prjQuotation.getLeaseTimes().equals(Long.valueOf(financeInfo.getTermCount()))&&
                             !prjQuotation.getPmt().equals(financeInfo.getMonthPayment().doubleValue()/100)&&
