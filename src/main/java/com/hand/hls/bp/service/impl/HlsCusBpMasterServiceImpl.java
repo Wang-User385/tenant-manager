@@ -1797,4 +1797,11 @@ public class HlsCusBpMasterServiceImpl extends BaseServiceImpl<HlsCusBpMaster> i
         return res;
     }
 
+    @Override
+    public void saveOrder(Long conditionId, Long orderId) {
+        mapper.saveOrder(conditionId,orderId);
+    }
+
+
+
 }

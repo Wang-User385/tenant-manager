@@ -26,23 +26,13 @@
             debugger;
             var check_flag = true;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_business_condition');
-            var record =  $(ds_id).getCurrentRecord();
-            record.set('bp_id', '${/parameter/@bp_id}');
-            // if (ds_id !== ds.id){
-            console.log(record.get('condition_id'));
-                $(ds.id).getCurrentRecord().set('condition_id',record.get('condition_id'));
-            // }
-            // var order_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_order','T_OREDE_G');
-            // var order_ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_business_condition','T_OREDE_F');
-            // if (ds.id === order_ds_id ){
-            //     $(order_ds_id).getCurrentRecord().set('condition_id',$(ds_id).getCurrentRecord().get("condition_id"));
-            // }
-            // if (ds.id === order_ds_id1){
-            //     $(order_ds_id1).getCurrentRecord().set('condition_id',$(ds_id).getCurrentRecord().get("condition_id"));
-            // }
+            $(ds_id).getCurrentRecord().set('bp_id', '${/parameter/@bp_id}');
+            var order_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_order', 'T_OREDE_G');
+            if (ds.id ==order_ds_id ){
+                $(order_ds_id).getCurrentRecord().set('condition_id',$(ds_id).getCurrentRecord().get("condition_id"));
+            }
             return check_flag;
         };
-
         //保存成功调用
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
             debugger;
@@ -54,6 +44,21 @@
             var ds_id4 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_receive_pay');
             var ds_id5 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_sale');
             var ds_id6 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_tax');
+            var record_con = $(ds_id).getCurrentRecord();
+            var record_order = $(ds_id3).getCurrentRecord();
+            if (record_con && record_order){
+                var condition_id = record_con.get('condition_id');
+                var order_id = record_order.get('order_id');
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/update?conditionId='+condition_id +'&orderId=' + order_id,
+                    success: function (res) {
+
+                    },
+                    sync: true
+                });
+            }
+
+
             $(ds_id).query();
             $(ds_id1).query();
             $(ds_id2).query();

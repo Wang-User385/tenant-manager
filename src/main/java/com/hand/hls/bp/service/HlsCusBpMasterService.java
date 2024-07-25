@@ -33,4 +33,7 @@ public interface HlsCusBpMasterService extends IBaseService<HlsCusBpMaster>, Pro
     String getAuthorityString(IRequest iRequest);
 
     List<Long> getCityIdAndProvinceIdByDistrictId(Long districtId);
+
+    void saveOrder(Long conditionId, Long orderId);
+
 }

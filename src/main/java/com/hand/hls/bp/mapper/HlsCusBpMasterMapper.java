@@ -142,4 +142,6 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
     QueryHlsBpMasterDTO getQueryHlsBpMasterDTOByBpId(@Param("bpId")Long bpId);
 
     HlsCusBpMaster selectByProjectId(@Param("projectId") Long projectId);
+
+    void saveOrder(@Param("conditionId") Long conditionId, @Param("orderId")Long orderId);
 }

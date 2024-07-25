@@ -202,5 +202,14 @@ public class HlsCusBpMasterController extends BaseController {
         return new ResponseData(service.getCityIdAndProvinceIdByDistrictId(districtId));
     }
 
+    @RequestMapping({"/hls/update"})
+    @ResponseBody
+    public ResponseData updateOrder(@RequestParam("conditionId")Long conditionId,@RequestParam("orderId")Long orderId) {
+        service.saveOrder(conditionId,orderId);
+        return new ResponseData();
+    }
+
+
+
 
     }
