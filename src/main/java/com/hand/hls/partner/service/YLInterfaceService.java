@@ -7,6 +7,7 @@ import com.hand.hls.partner.dto.*;
 
 
 import javax.servlet.http.HttpServletRequest;
+import java.text.ParseException;
 
 public interface YLInterfaceService {
     String placeOrder(String decryptedStr,IRequest iRequest);
@@ -25,7 +26,7 @@ public interface YLInterfaceService {
 
     String advancesSettleRequest(String decryptedStr);
 
-    String dataAcquisition(String decryptedStr,IRequest iRequest);
+    String dataAcquisition(String decryptedStr,IRequest iRequest) throws ParseException;
 
     String overdueRepurchaseTrialCalculation(String decryptedStr);
 

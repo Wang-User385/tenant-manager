@@ -135,7 +135,7 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
     List<String> queryProjectStatusbyBPId( @Param("bpId")  Long bpId);
     List<HlsCusBpMaster> queryVenderInfo(HlsCusBpMaster hlsCusBpMaster);
 
-    HlsCusBpMaster selectMasterByIdCardNo(String idCardNo);
+    List<HlsCusBpMaster> selectMasterByIdCardNo(String idCardNo);
 
     String getCityIdAndProvinceIdByDistrictId(@Param("districtId") Long districtId);
 
@@ -144,4 +144,6 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
     HlsCusBpMaster selectByProjectId(@Param("projectId") Long projectId);
 
     Long selectHlsStatClassByCode(@Param("industry")String industry);
+
+    void saveOrder(@Param("conditionId") Long conditionId, @Param("orderId")Long orderId);
 }

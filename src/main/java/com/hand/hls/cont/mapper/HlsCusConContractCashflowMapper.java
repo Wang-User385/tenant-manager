@@ -2,6 +2,7 @@ package com.hand.hls.cont.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
+import com.hand.hls.partner.dto.ClaimsSubrogationDTO;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import org.apache.ibatis.annotations.Param;
@@ -292,4 +293,32 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
      * @return 现金流
      */
     List<HlsCusConContractCashflow> queryAutoDepositCashflowOrderWithoutBlockAmt(HlsCusConContractCashflow cashflow);
+
+    /**
+     * 车辆业务还款计划明细：现金流数据查询
+     * @param cashflow
+     * @return
+     */
+    List<HlsCusConContractCashflow> queryCashflowByContractId(HlsCusConContractCashflow cashflow);
+
+    /**
+     * 根据接口传递的订单编号和其次号获取代偿现金流数据
+     * @param claimsSubrogationDTO
+     * @return
+     */
+    HlsCusConContractCashflow queryClaimsSubrogation(ClaimsSubrogationDTO claimsSubrogationDTO);
+
+    /**
+     * 根据订单编号和试算日期获取到最大的已到期应收日期
+     * @param claimsSubrogationDTO
+     * @return
+     */
+    Date queryDueDate(ClaimsSubrogationDTO claimsSubrogationDTO);
+
+    /**
+     * 查询出所有除已收（核销）的现金流数据
+     * @param orderNo
+     * @return
+     */
+    List<HlsCusConContractCashflow> queryUnReceivedByOrderNo(@Param("orderNo")String orderNo);
 }

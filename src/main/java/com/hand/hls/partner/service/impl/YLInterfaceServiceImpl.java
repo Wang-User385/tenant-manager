@@ -9,6 +9,8 @@ import com.hand.hls.atm.dto.FndAttachmentMulti;
 import com.hand.hls.atm.mapper.FndAttachmentMapper;
 import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterRoleMapper;
+import com.hand.hls.cont.dto.HlsCusConContractCashflow;
+import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.bp.dto.HlsBpSpouse;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
@@ -35,6 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.text.ParseException;
@@ -88,6 +91,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private FndAttachmentMapper fndAttachmentMapper;
     @Autowired
     private HlsCusBpMasterRoleMapper hlsCusBpMasterRoleMapper;
+    @Autowired
+    private HlsCusConContractCashflowMapper conContractCashflowMapper;
 
     private static final HashMap<String, HashMap<String,String>> fileTypeMap = new HashMap<String, HashMap<String,String>>();
     private static void putData(String fileType,String documentName,String projectAttachmentCategory){
@@ -134,8 +139,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //如果不存在，就新增
         HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
         HlsBpMasterRole hlsBpMasterRole = null;
-        HlsCusBpMaster bpMaster = hlsCusBpMasterMapper.selectMasterByIdCardNo(placeOrderDTO.getIdCardNo());
-        if (bpMaster==null){
+        HlsCusBpMaster bpMaster = null;;
+        List<HlsCusBpMaster> bpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(placeOrderDTO.getIdCardNo());
+        if (bpMasters.size()==0){
             bpMaster = new HlsCusBpMaster();
             hlsBpMasterRole = new HlsBpMasterRole();
             Map<String, String> params = new HashMap<String, String>();
@@ -172,6 +178,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
 
         }else{
+            bpMaster = bpMasters.get(0);
             if (!placeOrderDTO.getName().equals(bpMaster.getBpName())){
                 bpMaster.setBpName(placeOrderDTO.getName());
             }
@@ -404,6 +411,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 compensatoryTrialCalculation1.setOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
 //            设置返回期次号
                 compensatoryTrialCalculation1.setTermNo(compensatoryTrialCalculationDTO.getTermNo());
+                //罚息暂时为0
+                compensatoryTrialCalculation1.setPenalty(0L);
 //            设置返回数据
                 jsonObject1.put("code","200");
                 jsonObject1.put("message","还款成功");
@@ -420,20 +429,29 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号查询数据
-        List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(claimsSubrogationDTO.getOrderNo());
-        if (hlsCusCshTransactionList.size()==0){
+        //List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(claimsSubrogationDTO.getOrderNo());
+
+        //根据订单编号和期次获取需要代偿的现金流数据
+        HlsCusConContractCashflow conContractCashflow = conContractCashflowMapper.queryClaimsSubrogation(claimsSubrogationDTO);
+
+        if (!ObjectUtils.isEmpty(conContractCashflow)){
             jsonObject1.put("code","400");
             jsonObject1.put("message","代偿数据不存在");
             return jsonObject1.toJSONString();
        }
+
+        //将代偿数据入库
+        conContractCashflow.setPlanType("COMP");
+        conContractCashflow.setDueCompAmount(Double.valueOf(claimsSubrogationDTO.getSubstituteAmount())/100);
+        conContractCashflowMapper.updateByPrimaryKeySelective(conContractCashflow);
 //            将数据保存入库
-        for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
+        /*for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
             if (hlsCusCshTransaction.getTermNo().equals(claimsSubrogationDTO.getTermNo())){
                 hlsCusCshTransaction.setRepayAmount(claimsSubrogationDTO.getSubstituteAmount());
                 hlsCusCshTransaction.setPaymentMethod("代偿");
                 hlsCusCshTransactionMapper.insertSelective(hlsCusCshTransaction);
             }
-        }
+        }*/
 
 
         //            设置返回状态
