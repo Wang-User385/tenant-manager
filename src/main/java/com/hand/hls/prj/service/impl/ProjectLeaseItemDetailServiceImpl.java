@@ -27,10 +27,8 @@ public class ProjectLeaseItemDetailServiceImpl implements ProjectLeaseItemDetail
 
     @Override
     public List<PrjLeaseItemInsurance> queryPrjLeaseItemInsurance(Long projectLeaseItemId) {
-        //复制保险信息
-        PrjLeaseItemInsurance itemInsurance = new PrjLeaseItemInsurance();
-        itemInsurance.setProjectLeaseItemId(projectLeaseItemId);
-        List<PrjLeaseItemInsurance> itemInsurances = prjLeaseItemInsuranceMapper.select(itemInsurance);
+        //查询保险信息
+        List<PrjLeaseItemInsurance> itemInsurances = prjLeaseItemInsuranceMapper.selectNew(projectLeaseItemId);
         return itemInsurances;
     }
 

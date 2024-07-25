@@ -512,10 +512,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
         }
         if(preRiskAuditData != null){
-            HlsCusPrjProject hlsCusPrjProject1 = new HlsCusPrjProject();
-            hlsCusPrjProject1.setProjectId(hlsCusPrjProject.getProjectId());
-            hlsCusPrjProject1.setFinanceAmount(Double.parseDouble(preRiskAuditData.getFinancingamount()));
-            prjProjectMapper.updateWflProject(hlsCusPrjProject1);
+            hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
         }
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -546,6 +543,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProjectLeaseItem1.setSellingPrice(financeInfo.getCarSalePrice().doubleValue()/100);
 //            申请融资额
         hlsCusPrjProjectLeaseItem1.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
+
         //dataAcquisitionDTO;
         //车辆品牌
         hlsCusPrjProjectLeaseItem1.setBrandC(carInfo.getBrandName());
@@ -606,7 +604,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         prjLeaseItemInsurance.setCompulsoryAmount(compulsoryAmount / 100);
         //商业保险类型
         prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
-
+        //延保金额
+        prjLeaseItemInsurance.setExtendedWarrantyAmount(Double.valueOf(preRiskAuditData.getYanbaoje())/100);
+        //车辆保险金额 clbxje
+        prjLeaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);
 
         if (prjProjectLeaseItemSales.getSalesId()!=null){
             projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
@@ -1049,7 +1050,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     hlsCusPrjProjectLeaseItem1.setVehicleAge(Integer.valueOf(preRiskAuditData.getCarlife()));
                     //车辆所有人
                     hlsCusPrjProjectLeaseItem1.setPropPerson(preRiskAuditData.getCaraffiliation());
-
+                    //租赁物融资金额
+                    hlsCusPrjProjectLeaseItem1.setLeaseItemAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
 
                     PrjProjectLeaseItemMortgage prjProjectLeaseItemMortgage = null;
                     if (hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId()!=null){

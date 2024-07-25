@@ -15,4 +15,6 @@ public interface PrjLeaseItemInsuranceMapper extends Mapper<PrjLeaseItemInsuranc
     List<PrjLeaseItemInsurance> queryByProjectId(@Param("projectId") Long projectId);
 
     PrjLeaseItemInsurance selectInsByLeaseItemId(@Param("projectLeaseItemId") Long projectLeaseItemId);
+
+    List<PrjLeaseItemInsurance> selectNew(@Param("projectLeaseItemId") Long projectLeaseItemId);
 }

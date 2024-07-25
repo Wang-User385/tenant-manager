@@ -916,6 +916,7 @@ public class HlsCusPrjProject extends PrjProject {
     private Long employeeId;
     private Long unitId;
     private String leaseItemType;
+    private Double financeAmount;
 
     @Transient
     private String employeeIdN;
