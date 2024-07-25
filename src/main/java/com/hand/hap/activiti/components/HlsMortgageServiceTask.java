@@ -10,6 +10,8 @@ import org.activiti.engine.delegate.JavaDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
+
 /**
  * <p>
  *车辆抵押结束监听器
@@ -44,6 +46,7 @@ public class HlsMortgageServiceTask implements JavaDelegate, IActivitiBean {
         conContract.setProcessInstanceId(processInstanceId);
 //        databaseLockProvider.lock(conContract);
         if (APPROVED.equalsIgnoreCase(result)) {
+            conContract.setMortgageApprovedDate(new Date());
             flag = "APPROVED";
         } else if (REJECTED.equalsIgnoreCase(result)) {
             flag = "REJECTED";
