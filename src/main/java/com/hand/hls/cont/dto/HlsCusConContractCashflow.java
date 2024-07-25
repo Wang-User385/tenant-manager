@@ -1127,4 +1127,13 @@ public class HlsCusConContractCashflow extends BaseDTO {
     private String postItfcFlag;
     private Date postApprovedDate;
     private String postItfcMsg;
+
+    private String planType;  //代偿/回购: 【代偿：COMP、回购：REPO、提前结清：ET】
+
+    private Double dueCompAmount; //应收代偿金额
+
+    private Double receivedCompAmount;  //已收代偿金额
+
+    private Double refundCompAmount;   //已退代偿金额
+
 }
