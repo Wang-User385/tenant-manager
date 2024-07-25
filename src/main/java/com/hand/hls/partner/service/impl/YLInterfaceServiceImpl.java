@@ -312,6 +312,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }else{
             List<RepayPlanTermInfoDTO> repayPlanTermInfoDTOList = prjProjectMapper.selectRepayPlanByOrderNo(queryOrderDTO.getOrderNo());
             QueryOrder queryOrder = prjProjectMapper.selectQueryOrderByOrderNo(queryOrderDTO.getOrderNo());
+            if(queryOrder==null){
+                queryOrder = new QueryOrder();
+            }
             queryOrder.setRepayPlanTermInfoDTOList(repayPlanTermInfoDTOList);
             queryOrder.setStatus("NORMAL");
 //            订单存在，判断合同状态是否为起租后状态、结清状态
@@ -336,7 +339,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         JSONObject jsonObject1 = new JSONObject();
 
-        //根据订单编号查询数据
+//        根据订单编号查询数据
         List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(repayMent.getOrderNo());
         if (hlsCusCshTransactionList.size()==0){
             jsonObject1.put("code","400");
