@@ -188,6 +188,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 }
             }
             if (!flag){
+                hlsBpMasterRole = new HlsBpMasterRole();
                 hlsBpMasterRole.setBpId(bpMaster.getBpId());
                 hlsBpMasterRole.setBpType("TENANT");
                 hlsBpMasterRole.setBpCategory("TENANT");
@@ -482,13 +483,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public String dataAcquisition(String decryptedStr,IRequest iRequest){
         DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(decryptedStr, DataAcquisitionDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
 
-//        首先判断订单状态
+//        首先判断订单是否存在
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(dataAcquisitionDTO.getOrderNo());
         if (hlsCusPrjProject==null){
             jsonObject1.put("code","400");
@@ -498,79 +499,890 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //根据项目id获取租赁物信息,如果为空，那么直接入库，如果不为空，判断订单状态
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
 
-        //租赁物信息
-        HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem1 = null;
         //融资方案相关信息
         FinanceInfo financeInfo = dataAcquisitionDTO.getFinanceInfo();
-//            销售信息
-        SaleInfo saleInfo = dataAcquisitionDTO.getSaleInfo();
+
 //            风控审核相关数据
         String riskInfo = dataAcquisitionDTO.getRiskInfo();
         hlsCusPrjProject.setRiskInfo(riskInfo);
         PreRiskAuditData preRiskAuditData = null;
+        CarInfo carInfo = dataAcquisitionDTO.getCarInfo();
+        SaleInfo saleInfo = dataAcquisitionDTO.getSaleInfo();
         if (riskInfo!=null){
             preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
         }
         if(preRiskAuditData != null){
             hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
         }
-
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        CarInfo carInfo = dataAcquisitionDTO.getCarInfo();
-
-
-        if (hlsCusPrjProjectLeaseItemList.size()>0){
-            hlsCusPrjProjectLeaseItem1 = hlsCusPrjProjectLeaseItemList.get(0);
-        }else{
-            hlsCusPrjProjectLeaseItem1 = new HlsCusPrjProjectLeaseItem();
+        String projectStatus = hlsCusPrjProject.getProjectStatus();
+        //        如果订单状态为放款之后，不允许修改
+        if ("CANCEL".equals(projectStatus)||"CLOSED".equals(projectStatus)){
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","订单已放款，不允许修改");
+            return jsonObject1.toJSONString();
         }
-        //项目id
-        hlsCusPrjProjectLeaseItem1.setProjectId(hlsCusPrjProject.getProjectId());
-//            车架号
-        hlsCusPrjProjectLeaseItem1.setFrameNumber(carInfo.getVin());
-//            车辆出厂日期
+        //如果订单为业务申请之后，放款之前，对字段进行校验
+        //品牌名称、车系名称、车型名称、车辆颜色
+        if ("APPROVED".equals(projectStatus)){
+            //获取数据库的风险数据
+            String riskInfo1 = hlsCusPrjProject.getRiskInfo();
+            if (riskInfo1!=null&&!"".equals(riskInfo1)){
+                //转化为dto
+                PreRiskAuditData preRiskAuditData1  = JSONObject.parseObject(riskInfo1, PreRiskAuditData.class);
+                //判断车系名称与riskInfo中的值是否相同
+                if (!preRiskAuditData1.getCarbrand2().equals(carInfo.getBrandName())){
+                    jsonObject1.put("code","400");
+                    jsonObject1.put("message","品牌名称与riskInfo中的值不同");
+                    return jsonObject1.toJSONString();
+                }
+                if (preRiskAuditData1.getChexi().equals(carInfo.getSeriesName())){
+                    jsonObject1.put("code","400");
+                    jsonObject1.put("message","车系名称与riskInfo中的值不同");
+                    return jsonObject1.toJSONString();
+                }
+                if (preRiskAuditData1.getCartype().equals(carInfo.getModelName())){
+                    jsonObject1.put("code","400");
+                    jsonObject1.put("message","车型名称与riskInfo中的值不同");
+                    return jsonObject1.toJSONString();
+                }
+                if (preRiskAuditData1.getCarcolor().equals(carInfo.getColor())){
+                    jsonObject1.put("code","400");
+                    jsonObject1.put("message","车辆颜色与riskInfo中的值不同");
+                    return jsonObject1.toJSONString();
+                }
+            }
+        }
+
+        if ("NEW".equals(projectStatus)){
+            //根据项目信息设置租赁物信息
+            HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = setLeaseItemByProject(hlsCusPrjProject,hlsCusPrjProjectLeaseItemList,carInfo,financeInfo);
+
+            prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+            if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
+                hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);
+            }else{
+                hlsCusPrjProjectLeaseItemMapper.insertSelective(hlsCusPrjProjectLeaseItem);
+            }
+
+            //保存销售信息
+            PrjProjectLeaseItemSales prjProjectLeaseItemSales = setLeaseItemSalesByLeaseItem(hlsCusPrjProjectLeaseItem,saleInfo);
+
+            //保存保险信息
+            PrjLeaseItemInsurance prjLeaseItemInsurance = setLeaseItemInsuranceByLeaseItem(hlsCusPrjProjectLeaseItem,carInfo);
+
+            //获取租赁物相关信息，并入库
+            //保存报价信息
+            HlsCusPrjQuotation prjQuotation = setQuotationByProject(hlsCusPrjProject,financeInfo);
+
+
+
+
+            if (preRiskAuditData!=null){
+                //进件信息
+                hlsCusPrjProject.setDivision(preRiskAuditData.getProline());
+
+                //保存客户信息
+                HlsCusBpMaster hlsCusBpMaster = setBpMasterByProject(hlsCusPrjProject,preRiskAuditData);
+
+                //保存银行信息
+                HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = setBpMasterBankAccountByBpMaster(hlsCusBpMaster,preRiskAuditData);
+
+                //保存进件信息
+                hlsCusPrjProject = setProjectByPreRiskAuditData(hlsCusPrjProject,preRiskAuditData);
+
+                //保存担保人信息
+                setGuaranteeByPreRiskAuditData(preRiskAuditData,iRequest,hlsCusPrjProject);
+
+                //保存共同承租人信息
+                setTenantSecByPreRiskAuditData(preRiskAuditData,iRequest,hlsCusPrjProject);
+
+                //保存联系人信息
+                setContactByPreRiskAuditData(hlsCusBpMaster,preRiskAuditData);
+
+                //保存租赁物信息
+                hlsCusPrjProjectLeaseItem = setProjectLeaseItemByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
+
+                //保存抵押物信息
+                PrjProjectLeaseItemMortgage prjProjectLeaseItemMortgage = setProjectLeaseItemMortgageByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
+
+                //根据preRiskAuditData，更新prjLeaseItemInsurance信息
+                prjLeaseItemInsurance = updateLeaseItemInsuranceByPreRiskAuditData(prjLeaseItemInsurance,preRiskAuditData);
+
+                //保存车况信息
+                PrjProjectLeaseItemCondition prjProjectLeaseItemCondition = setLeaseItemConditionByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
+
+                //更新报价信息
+                prjQuotation = updateQuotationByPreRiskAuditData(prjQuotation,preRiskAuditData);
+
+
+
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+                prjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
+                if (prjQuotation.getQuotationId()!=null){
+                    hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
+                }else{
+                    hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
+                }
+
+                Example example = new Example(HlsCusPrjProjectLeaseItem.class);
+                example.createCriteria().andEqualTo("projectLeaseItemId",hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+                hlsCusPrjProjectLeaseItemMapper.updateByExample(hlsCusPrjProjectLeaseItem,example);
+//                    hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem1);
+//            prjProjectLeaseItemMortgage.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+                if (prjProjectLeaseItemMortgage.getMortgageId()!=null){
+                    projectLeaseItemMortgageMapper.updateByPrimaryKeySelective(prjProjectLeaseItemMortgage);
+                }else{
+                    projectLeaseItemMortgageMapper.insertSelective(prjProjectLeaseItemMortgage);
+                }
+                if (prjProjectLeaseItemSales.getSalesId()!=null){
+                    projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
+                }else{
+                    projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
+                }
+//            prjProjectLeaseItemCondition.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+                if (prjProjectLeaseItemCondition.getConditionId()!=null){
+                    projectLeaseItemConditionMapper.updateByPrimaryKeySelective(prjProjectLeaseItemCondition);
+                }else{
+                    projectLeaseItemConditionMapper.insertSelective(prjProjectLeaseItemCondition);
+                }
+//            prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+                if (prjLeaseItemInsurance.getInsuranceId()!=null){
+                    prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
+                }else{
+                    prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
+                }
+                hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster);
+//            hlsCusBpMasterBankAccount.setBpId(hlsCusBpMaster.getBpId());
+                if (hlsCusBpMasterBankAccount.getBankAccountId()!=null){
+                    hlsCusBpMasterBankAccountMapper.updateByPrimaryKeySelective(hlsCusBpMasterBankAccount);
+                }else{
+                    hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
+                }
+            }else{
+                if (prjProjectLeaseItemSales.getSalesId()!=null){
+                    projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
+                }else{
+                    projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
+                }
+//            prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+                if (prjLeaseItemInsurance.getInsuranceId()!=null){
+                    prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
+                }else{
+                    prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
+                }
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+//            prjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
+                if (prjQuotation.getQuotationId()!=null){
+                    hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
+                }else{
+                    hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
+                }
+                hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);
+            }
+            //            设置返回状态
+            jsonObject1.put("code","200");
+            jsonObject1.put("message","数据采集成功");
+            return jsonObject1.toJSONString();
+        }
+        //            设置返回状态
+        jsonObject1.put("code","200");
+        jsonObject1.put("message","不允许进行数据采集");
+        return jsonObject1.toJSONString();
+    }
+
+    private HlsCusPrjQuotation updateQuotationByPreRiskAuditData(HlsCusPrjQuotation prjQuotation, PreRiskAuditData preRiskAuditData) {
+        //首付比例
+        prjQuotation.setDownPaymentRatio(Double.valueOf(preRiskAuditData.getPaymentratio()));
+        return prjQuotation;
+    }
+
+    private PrjProjectLeaseItemCondition setLeaseItemConditionByPreRiskAuditData(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem, PreRiskAuditData preRiskAuditData) {
+        PrjProjectLeaseItemCondition prjProjectLeaseItemCondition = null;
+        if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
+            List<PrjProjectLeaseItemCondition> prjProjectLeaseItemConditions = projectLeaseItemConditionMapper.prjProjectLeaseItemConditionByLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+            if (prjProjectLeaseItemConditions.size()>0){
+                prjProjectLeaseItemCondition = prjProjectLeaseItemConditions.get(0);
+            }
+        }
+        if (prjProjectLeaseItemCondition==null){
+            prjProjectLeaseItemCondition = new PrjProjectLeaseItemCondition();
+            prjProjectLeaseItemCondition.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+        }
+        //车况信息
+        //是否年检
+        prjProjectLeaseItemCondition.setIsAnnualInspection(preRiskAuditData.getIscheckyear());
+        //是否水泡
+        prjProjectLeaseItemCondition.setIsWaterDamaged(preRiskAuditData.getSfsp());
+        //是否营转非
+        prjProjectLeaseItemCondition.setIsConversion(preRiskAuditData.getSfyzf());
+        //事故状况
+        prjProjectLeaseItemCondition.setAccidentStatus(preRiskAuditData.getSgzk());
+        //发动机大修
+        prjProjectLeaseItemCondition.setEngineOverhaul(preRiskAuditData.getFdjdx());
+        //是否重大改装车
+        prjProjectLeaseItemCondition.setIsSignificantlyModified(preRiskAuditData.getSfzdgzc());
+        //原车主证件类型
+        prjProjectLeaseItemCondition.setOriginalOwnerCardType(preRiskAuditData.getYuanchezzjlx());
+        //原车主姓名
+        prjProjectLeaseItemCondition.setOriginalOwnerName(preRiskAuditData.getYuanczxm());
+        //原车主证件号
+        prjProjectLeaseItemCondition.setOriginalOwnerCardNum(preRiskAuditData.getYuanchezzjhm());
+        //原车主户籍所在地址
+        prjProjectLeaseItemCondition.setOriginalOwnerAddress(
+                preRiskAuditData.getYuanchezhuhujishengfen()
+                        +preRiskAuditData.getYuanchezhuhujishi()+preRiskAuditData.getCarownersdomicilelast());
+        //维修保养情况
+        prjProjectLeaseItemCondition.setMaintenanceInfo(preRiskAuditData.getBywxqk());
+        //精品加装
+        prjProjectLeaseItemCondition.setPremiumAddOn(preRiskAuditData.getJpjz());
+        return prjProjectLeaseItemCondition;
+    }
+
+    private PrjLeaseItemInsurance updateLeaseItemInsuranceByPreRiskAuditData(PrjLeaseItemInsurance prjLeaseItemInsurance, PreRiskAuditData preRiskAuditData) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        //是否有交强险
+        prjLeaseItemInsurance.setIsCompulsoryInsurance(preRiskAuditData.getSfyjqx());
+        //交强险到期日期
+        Date compulsoryEndDate = null;
+        //车损险到期日期
+        Date vehicleEndDate = null;
+        //第三者责任险到期日期
+        Date thirdEndDate = null;
         try {
-            Date productDate = simpleDateFormat.parse(carInfo.getCarProductionDate());
-            hlsCusPrjProjectLeaseItem1.setProductDate(productDate);
+            compulsoryEndDate = simpleDateFormat.parse(preRiskAuditData.getJqxdqrq());
+            vehicleEndDate = simpleDateFormat.parse(preRiskAuditData.getCsxdqrq());
+            thirdEndDate = simpleDateFormat.parse(preRiskAuditData.getSzxdqrq());
         } catch (ParseException e) {
             e.printStackTrace();
         }
-//            发动机号
-        hlsCusPrjProjectLeaseItem1.setEngineNumber(carInfo.getEngineNumber());
-        //车辆指导价
-        hlsCusPrjProjectLeaseItem1.setListPrice(financeInfo.getCarGuidePrice().doubleValue()/100);
-//            车辆售价
-        hlsCusPrjProjectLeaseItem1.setSellingPrice(financeInfo.getCarSalePrice().doubleValue()/100);
-//            申请融资额
-        hlsCusPrjProjectLeaseItem1.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
+        prjLeaseItemInsurance.setCompulsoryEndDate(compulsoryEndDate);
+        //是否有车损险
+        prjLeaseItemInsurance.setIsVehicleDamage(preRiskAuditData.getSfycsx());
 
-        //dataAcquisitionDTO;
-        //车辆品牌
-        hlsCusPrjProjectLeaseItem1.setBrandC(carInfo.getBrandName());
-        //车系
-        hlsCusPrjProjectLeaseItem1.setSeriesC(carInfo.getSeriesName());
-        //车型
-        hlsCusPrjProjectLeaseItem1.setModelC(carInfo.getModelName());
-        //车辆颜色
-        hlsCusPrjProjectLeaseItem1.setColorC(carInfo.getColor());
-        prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-        if (hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId()!=null){
-            hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem1);
-        }else{
-            hlsCusPrjProjectLeaseItemMapper.insertSelective(hlsCusPrjProjectLeaseItem1);
+        prjLeaseItemInsurance.setVehicleEndDate(vehicleEndDate);
+        //是否有第三者责任险
+        prjLeaseItemInsurance.setIsThirdParty(preRiskAuditData.getSfyszx());
+        prjLeaseItemInsurance.setThirdEndDate(thirdEndDate);
+        return prjLeaseItemInsurance;
+    }
+
+    private PrjProjectLeaseItemMortgage setProjectLeaseItemMortgageByPreRiskAuditData(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem, PreRiskAuditData preRiskAuditData) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        PrjProjectLeaseItemMortgage prjProjectLeaseItemMortgage = null;
+        if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
+            List<PrjProjectLeaseItemMortgage> prjProjectLeaseItemMortgages = projectLeaseItemMortgageMapper.prjProjectLeaseItemMortgageByLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+            if (prjProjectLeaseItemMortgages.size()>0){
+                prjProjectLeaseItemMortgage = prjProjectLeaseItemMortgages.get(0);
+            }
         }
+        if (prjProjectLeaseItemMortgage==null){
+            prjProjectLeaseItemMortgage = new PrjProjectLeaseItemMortgage();
+            prjProjectLeaseItemMortgage.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+        }
+        //抵押次数
+        prjProjectLeaseItemMortgage.setNumberOfMortgages(Integer.valueOf(preRiskAuditData.getDycs()));
+        //过户次数
+        prjProjectLeaseItemMortgage.setNumberOfTransfers(Integer.valueOf(preRiskAuditData.getGhjcs()));
+        //近1年抵押次数
+        prjProjectLeaseItemMortgage.setNumberOfMortgagesOne(Integer.valueOf(preRiskAuditData.getJyndics()));
+        //近1年过户次数
+        prjProjectLeaseItemMortgage.setNumberOfTransfersOne(Integer.valueOf(preRiskAuditData.getLast1yearguohucount()));
+        //近2年过户次数
+        prjProjectLeaseItemMortgage.setNumberOfTransfersTwo(Integer.valueOf(preRiskAuditData.getLast2yearguohucount()));
+        //是否有车辆登记证补领记录
+        prjProjectLeaseItemMortgage.setIsRenewalRecord(preRiskAuditData.getIsregister());
+        //近半年是否有车辆登记证补领记录
+        prjProjectLeaseItemMortgage.setIsHalfRenewalRecord(preRiskAuditData.getIsregisterhy());
+        //上一次抵押登记日期
+        //最近一次解押日期
+        Date lastTransfersDate = null;
+        Date recentlyTransfersDate = null;
+        try {
+            lastTransfersDate = simpleDateFormat.parse(preRiskAuditData.getLastmortgagedate());
+            recentlyTransfersDate = simpleDateFormat.parse(preRiskAuditData.getLastdtecompressiondate());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        prjProjectLeaseItemMortgage.setLastTransfersDate(lastTransfersDate);
+        prjProjectLeaseItemMortgage.setRecentlyTransfersDate(recentlyTransfersDate);
+        //抵押状态
+        prjProjectLeaseItemMortgage.setTransfersStatus(preRiskAuditData.getMortgagestatus());
+        //解押天数
+        prjProjectLeaseItemMortgage.setDaysToRelease(Integer.valueOf(preRiskAuditData.getJyts()));
+        //保存租赁物id
+        return prjProjectLeaseItemMortgage;
+    }
 
+    private HlsCusPrjProjectLeaseItem setProjectLeaseItemByPreRiskAuditData(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem, PreRiskAuditData preRiskAuditData) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        //制造商
+        hlsCusPrjProjectLeaseItem.setManufacturer(preRiskAuditData.getCarfac());
+        //车辆类型
+        hlsCusPrjProjectLeaseItem.setVoitureType(preRiskAuditData.getVehicletype());
+        //车辆准载(定员)
+        hlsCusPrjProjectLeaseItem.setVehicleCapacity(preRiskAuditData.getCarzkcount());
+        //是否进口
+        hlsCusPrjProjectLeaseItem.setIsImport(preRiskAuditData.getSfjk());
+        //燃料类型
+        hlsCusPrjProjectLeaseItem.setFuelType(preRiskAuditData.getRllx());
+        //车辆评估价格
+        hlsCusPrjProjectLeaseItem.setEvaluationValue(Double.valueOf(preRiskAuditData.getClpgjg()));
+        //首次登记日期
+        //转让登记日期
+        Date firstRegistrationDate = null;
+        Date transferRegistrationDate = null;
+        try {
+            firstRegistrationDate = simpleDateFormat.parse(preRiskAuditData.getScdjrq());
+            transferRegistrationDate = simpleDateFormat.parse(preRiskAuditData.getTransferencedate());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        hlsCusPrjProjectLeaseItem.setFirstRegistrationDate(firstRegistrationDate);
+        hlsCusPrjProjectLeaseItem.setTransferRegistrationDate(transferRegistrationDate);
+        //车牌号
+        hlsCusPrjProjectLeaseItem.setLicensePlateNumber(preRiskAuditData.getChepaihao());
+        //车辆使用性质
+        hlsCusPrjProjectLeaseItem.setNatureOfVehicle(preRiskAuditData.getCarnatureofuse());
+//            上牌城市
+        hlsCusPrjProjectLeaseItem.setCityCode(preRiskAuditData.getRegisteredcity());
+        //首次上牌日
+        Date firstPlateDate = null;
+        try {
+            firstPlateDate = simpleDateFormat.parse(preRiskAuditData.getScspr());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        hlsCusPrjProjectLeaseItem.setFirstPlateDate(firstPlateDate);
+        //表显里程
+        hlsCusPrjProjectLeaseItem.setOdometerReading(Integer.valueOf(preRiskAuditData.getBxlc()));
+        //车辆年限
+        hlsCusPrjProjectLeaseItem.setVehicleAge(Integer.valueOf(preRiskAuditData.getCarlife()));
+        //车辆所有人
+        hlsCusPrjProjectLeaseItem.setPropPerson(preRiskAuditData.getCaraffiliation());
+        //租赁物融资金额
+        hlsCusPrjProjectLeaseItem.setLeaseItemAmount(Double.valueOf(preRiskAuditData.getFinancingamount()));
+        //是否安装GPS
+        hlsCusPrjProjectLeaseItem.setGpsIsInstallation(preRiskAuditData.getSfazgps());
+        //贷款用途
+        hlsCusPrjProjectLeaseItem.setLoanPurpose(preRiskAuditData.getUsage());
+        //上牌类型
+        hlsCusPrjProjectLeaseItem.setPlateType(preRiskAuditData.getSptype());
+        //牌照归属
+        hlsCusPrjProjectLeaseItem.setLicensePlateOwnership(preRiskAuditData.getPaizhaogs());
+        //车辆交易价
+        hlsCusPrjProjectLeaseItem.setPrice(Double.valueOf(preRiskAuditData.getCljyjg()));
+        //购置税
+        hlsCusPrjProjectLeaseItem.setPurchaseTax(Double.valueOf(preRiskAuditData.getGouzhis()));
+        //车辆保险金额
+        hlsCusPrjProjectLeaseItem.setInsurancePremium(Double.valueOf(preRiskAuditData.getClbxje()));
+        //GPS费用
+        hlsCusPrjProjectLeaseItem.setGpsFee(Double.valueOf(preRiskAuditData.getGpsfy()));
+        //上牌发票金额
+        hlsCusPrjProjectLeaseItem.setPlateInvoiceAmount(Double.valueOf(preRiskAuditData.getCtac()));
+        //装饰品金额
+        hlsCusPrjProjectLeaseItem.setAccessoryAmount(Double.valueOf(preRiskAuditData.getZspje()));
+        //车辆税额
+        hlsCusPrjProjectLeaseItem.setVehicleTax(Double.valueOf(preRiskAuditData.getCheliangse()));
+        return hlsCusPrjProjectLeaseItem;
+    }
 
+    private void setContactByPreRiskAuditData(HlsCusBpMaster hlsCusBpMaster, PreRiskAuditData preRiskAuditData) {
+        List<HlsBpSpouse> hlsBpSpouseList = hlsBpSpouseMapper.selectByBpId(hlsCusBpMaster.getBpId());
+        if (hlsBpSpouseList.size()==0){
+            //联系人
+            HlsBpSpouse hlsBpSpouse = new HlsBpSpouse();
+            //联系人与承租人关系
+            hlsBpSpouse.setRelationship(preRiskAuditData.getContreleship());
+            //联系人姓名
+            hlsBpSpouse.setPersonName(preRiskAuditData.getContname());
+            //联系人当前居住地址
+            hlsBpSpouse.setAddress(preRiskAuditData.getContaddr());
+            //联系人移动电话
+            hlsBpSpouse.setCellPhone(preRiskAuditData.getPartymobile());
+            hlsBpSpouse.setBpId(hlsCusBpMaster.getBpId());
+            hlsBpSpouseMapper.insertSelective(hlsBpSpouse);
+        }else{
+            HlsBpSpouse hlsBpSpouse = hlsBpSpouseList.get(0);
+            //联系人与承租人关系
+            hlsBpSpouse.setRelationship(preRiskAuditData.getContreleship());
+            //联系人姓名
+            hlsBpSpouse.setPersonName(preRiskAuditData.getContname());
+            //联系人当前居住地址
+            hlsBpSpouse.setAddress(preRiskAuditData.getContaddr());
+            //联系人移动电话
+            hlsBpSpouse.setCellPhone(preRiskAuditData.getPartymobile());
+            hlsBpSpouse.setBpId(hlsCusBpMaster.getBpId());
+            hlsBpSpouseMapper.updateByPrimaryKeySelective(hlsBpSpouse);
+        }
+    }
+
+    private void setTenantSecByPreRiskAuditData(PreRiskAuditData preRiskAuditData, IRequest iRequest, HlsCusPrjProject hlsCusPrjProject) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        //有无共同承租人
+        if ("1".equals(preRiskAuditData.getIscop())){
+            HlsCusBpMaster hlsCusBpMaster2 = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
+            if (hlsCusBpMaster2==null){
+                HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
+                HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
+                hlsCusBpMaster2 = new HlsCusBpMaster();
+                //共同借款人姓名
+                hlsCusBpMaster2.setBpName(preRiskAuditData.getConame());
+                //共同承租人证件类型
+                hlsCusBpMaster2.setIdType(preRiskAuditData.getCocerttype());
+                //共同借款人身份证
+                hlsCusBpMaster2.setIdCardNo(preRiskAuditData.getCoid());
+                //共同借款人手机
+                hlsCusBpMaster2.setPhone(preRiskAuditData.getComobile());
+                //共同承租人居住地址
+                hlsCusBpMaster2.setHouseAddress(preRiskAuditData.getCoaddr());
+                //共同借款人工作单位
+                hlsCusBpMaster2.setWorkingCompany(preRiskAuditData.getCocompany());
+                //共同承租人公司电话
+                hlsCusBpMaster2.setWorkPhone(preRiskAuditData.getCocomtel());
+                //共同借款人公司地址
+                hlsCusBpMaster2.setCompanyAddress(preRiskAuditData.getCocomaddr());
+                hlsCusBpMaster2.setCreationDate(new Date());
+                String format = simpleDateFormat.format(new Date());
+                hlsCusBpMaster2.setCreationDateStr(format);
+                //创建人
+                hlsCusBpMaster2.setCreatedBy(iRequest.getUserId());
+                //来源
+                hlsCusBpMaster2.setSource("1");
+                hlsCusBpMaster2.setBpClass("NP");
+                hlsCusBpMaster2.setBpCategory("TENANT-SEC");
+                hlsCusBpMasterMapper.insertSelective(hlsCusBpMaster2);
+                hlsBpMasterRole.setBpId(hlsCusBpMaster2.getBpId());
+                hlsBpMasterRole.setBpType("TENANT-SEC");
+                hlsBpMasterRole.setBpCategory("TENANT-SEC");
+                hlsBpMasterRole.setEnabledFlag("Y");
+                hlsBpMasterRole.setPrimaryFlag("Y");
+                hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
+                hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+                hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
+                hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
+                hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+            }else{
+                HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectProjectBpByBpId(hlsCusBpMaster2.getBpId());
+                //共同借款人姓名
+                hlsCusBpMaster2.setBpName(preRiskAuditData.getConame());
+                //共同承租人证件类型
+                hlsCusBpMaster2.setIdType(preRiskAuditData.getCocerttype());
+                //共同借款人身份证
+                hlsCusBpMaster2.setIdCardNo(preRiskAuditData.getCoid());
+                //共同借款人手机
+                hlsCusBpMaster2.setPhone(preRiskAuditData.getComobile());
+                //共同承租人居住地址
+                hlsCusBpMaster2.setHouseAddress(preRiskAuditData.getCoaddr());
+                //共同借款人工作单位
+                hlsCusBpMaster2.setWorkingCompany(preRiskAuditData.getCocompany());
+                //共同承租人公司电话
+                hlsCusBpMaster2.setWorkPhone(preRiskAuditData.getCocomtel());
+                //共同借款人公司地址
+                hlsCusBpMaster2.setCompanyAddress(preRiskAuditData.getCocomaddr());
+                hlsCusBpMaster2.setLastUpdatedBy(iRequest.getUserId());
+                hlsCusBpMaster2.setLastUpdateDate(new Date());
+                //来源
+                hlsCusBpMaster2.setSource("1");
+                hlsCusBpMaster2.setBpClass("NP");
+                hlsCusBpMaster2.setBpCategory("TENANT-SEC");
+                hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster2);
+
+                //设置flag判断是否有GUARANTOR
+                Boolean flag = false;
+                List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(hlsCusBpMaster2.getBpId());
+                for (String s : stringList) {
+                    if (s.equals("TENANT-SEC")){
+                        flag = true;
+                    }
+                }
+                if (!flag){
+                    HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
+                    hlsBpMasterRole.setBpId(hlsCusBpMaster2.getBpId());
+                    hlsBpMasterRole.setBpType("TENANT-SEC");
+                    hlsBpMasterRole.setBpCategory("TENANT-SEC");
+                    hlsBpMasterRole.setEnabledFlag("Y");
+                    hlsBpMasterRole.setPrimaryFlag("Y");
+                    hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
+                }
+                if (hlsCusPrjProjectBp==null){
+                    hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+                    hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
+                    hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
+                    hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+                }else{
+                    hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+                    hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
+                    hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
+                    hlsCusPrjProjectBpMapper.updateByPrimaryKeySelective(hlsCusPrjProjectBp);
+                }
+            }
+        }
+    }
+
+    private void setGuaranteeByPreRiskAuditData(PreRiskAuditData preRiskAuditData, IRequest iRequest,HlsCusPrjProject hlsCusPrjProject) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        //有无担保人
+        if ("1".equals(preRiskAuditData.getIssureor())){
+            //首先判断数据库有没有该担保人
+            HlsCusBpMaster hlsCusBpMaster1 = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
+
+            if (hlsCusBpMaster1==null){
+                HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
+                HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
+                hlsCusBpMaster1 = new HlsCusBpMaster();
+                //担保人姓名
+                hlsCusBpMaster1.setBpName(preRiskAuditData.getSurename());
+                //担保人证件类型
+                hlsCusBpMaster1.setIdType(preRiskAuditData.getSurecertype());
+                //担保人身份证
+                hlsCusBpMaster1.setIdCardNo(preRiskAuditData.getSureid());
+                //担保人手机
+                hlsCusBpMaster1.setPhone(preRiskAuditData.getSuremobi());
+                hlsCusBpMaster1.setCreationDate(new Date());
+                String format = simpleDateFormat.format(new Date());
+                hlsCusBpMaster1.setCreationDateStr(format);
+                //创建人
+                hlsCusBpMaster1.setCreatedBy(iRequest.getUserId());
+                //来源
+                hlsCusBpMaster1.setSource("1");
+                hlsCusBpMaster1.setBpClass("NP");
+                hlsCusBpMaster1.setBpCategory("GUARANTOR");
+                hlsCusBpMasterMapper.insertSelective(hlsCusBpMaster1);
+                hlsBpMasterRole.setBpId(hlsCusBpMaster1.getBpId());
+                hlsBpMasterRole.setBpType("GUARANTOR");
+                hlsBpMasterRole.setBpCategory("GUARANTOR");
+                hlsBpMasterRole.setEnabledFlag("Y");
+                hlsBpMasterRole.setPrimaryFlag("Y");
+                hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
+                hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+                hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
+                hlsCusPrjProjectBp.setRefV02("GUARANTOR");
+                hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+            }else{
+                HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectProjectBpByBpId(hlsCusBpMaster1.getBpId());
+                //担保人姓名
+                hlsCusBpMaster1.setBpName(preRiskAuditData.getSurename());
+                //担保人证件类型
+                hlsCusBpMaster1.setIdType(preRiskAuditData.getSurecertype());
+                //担保人身份证
+                hlsCusBpMaster1.setIdCardNo(preRiskAuditData.getSureid());
+                //担保人手机
+                hlsCusBpMaster1.setPhone(preRiskAuditData.getSuremobi());
+                hlsCusBpMaster1.setLastUpdatedBy(iRequest.getUserId());
+                hlsCusBpMaster1.setLastUpdateDate(new Date());
+                //来源
+                hlsCusBpMaster1.setSource("1");
+                hlsCusBpMaster1.setBpClass("NP");
+                hlsCusBpMaster1.setBpCategory("GUARANTOR");
+                hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster1);
+
+                //设置flag判断是否有GUARANTOR
+                Boolean flag = false;
+                List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(hlsCusBpMaster1.getBpId());
+                for (String s : stringList) {
+                    if (s.equals("GUARANTOR")){
+                        flag = true;
+                    }
+                }
+                if (!flag){
+                    HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
+                    hlsBpMasterRole.setBpId(hlsCusBpMaster1.getBpId());
+                    hlsBpMasterRole.setBpType("GUARANTOR");
+                    hlsBpMasterRole.setBpCategory("GUARANTOR");
+                    hlsBpMasterRole.setEnabledFlag("Y");
+                    hlsBpMasterRole.setPrimaryFlag("Y");
+                    hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
+                }
+                if (hlsCusPrjProjectBp==null){
+                    hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+                    hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
+                    hlsCusPrjProjectBp.setRefV02("GUARANTOR");
+                    hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+                }else{
+                    hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+                    hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
+                    hlsCusPrjProjectBp.setRefV02("GUARANTOR");
+                    hlsCusPrjProjectBpMapper.updateByPrimaryKeySelective(hlsCusPrjProjectBp);
+                }
+            }
+        }
+    }
+
+    private HlsCusPrjProject setProjectByPreRiskAuditData(HlsCusPrjProject hlsCusPrjProject, PreRiskAuditData preRiskAuditData) {
+        //实际驾驶人与申请人关系
+        if ("SPOUSE".equals(preRiskAuditData.getSjjsrysqrgx())){
+            hlsCusPrjProject.setDriverAndApplicant("1");
+        }else if ("PARENTS".equals(preRiskAuditData.getSjjsrysqrgx())&&"MOTHER".equals(preRiskAuditData.getSjjsrysqrgx())
+                &&"FATHER".equals(preRiskAuditData.getSjjsrysqrgx())){
+            hlsCusPrjProject.setDriverAndApplicant("2");
+        }else if ("CHILD".equals(preRiskAuditData.getSjjsrysqrgx())){
+            hlsCusPrjProject.setDriverAndApplicant("4");
+        }else if ("RELATIVE".equals(preRiskAuditData.getSjjsrysqrgx())&&"BROTHERS_AND_SISTERS".equals(preRiskAuditData.getSjjsrysqrgx())){
+            hlsCusPrjProject.setDriverAndApplicant("5");
+        }else if ("FRIEND".equals(preRiskAuditData.getSjjsrysqrgx())){
+            hlsCusPrjProject.setDriverAndApplicant("6");
+        }else if ("COLLEAGUE".equals(preRiskAuditData.getSjjsrysqrgx())){
+            hlsCusPrjProject.setDriverAndApplicant("3");
+        }
+        return hlsCusPrjProject;
+    }
+
+    private HlsCusBpMasterBankAccount setBpMasterBankAccountByBpMaster(HlsCusBpMaster hlsCusBpMaster, PreRiskAuditData preRiskAuditData) {
+        HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = null;
+        if (hlsCusBpMaster.getBpId()!=null){
+            hlsCusBpMasterBankAccount = hlsCusBpMasterBankAccountMapper.selectBankByBpId(hlsCusBpMaster.getBpId());
+        }
+        if (hlsCusBpMasterBankAccount==null){
+            hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+            hlsCusBpMasterBankAccount.setBpId(hlsCusBpMaster.getBpId());
+        }
+        //银行卡号
+        hlsCusBpMasterBankAccount.setBankAccountNum(preRiskAuditData.getCardno());
+        return hlsCusBpMasterBankAccount;
+    }
+
+    private HlsCusBpMaster setBpMasterByProject(HlsCusPrjProject hlsCusPrjProject, PreRiskAuditData preRiskAuditData) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        HlsCusBpMaster hlsCusBpMaster = hlsCusBpMasterMapper.selectByProjectId(hlsCusPrjProject.getProjectId());
+        //性别
+        if ("1".equals(preRiskAuditData.getSex())){
+            hlsCusBpMaster.setGender("M");
+        }else{
+            hlsCusBpMaster.setGender("F");
+        }
+        //民族
+        hlsCusBpMaster.setEthnicity(preRiskAuditData.getNation());
+        //出生日期
+        Date dateOfBirth = null;
+        try {
+            dateOfBirth = simpleDateFormat.parse(preRiskAuditData.getBirthdate());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        hlsCusBpMaster.setDateOfBirth(dateOfBirth);
+        //年龄
+        hlsCusBpMaster.setAge(Long.valueOf(preRiskAuditData.getAge()));
+        //国籍
+        hlsCusBpMaster.setNationality(preRiskAuditData.getNationality());
+        //户籍所属省份
+        hlsCusBpMaster.setDomicileProvince(preRiskAuditData.getDomicileshen());
+        //户籍所属市
+        hlsCusBpMaster.setDomicileCity(preRiskAuditData.getHomeaddresspcity());
+        //户籍所属区
+        hlsCusBpMaster.setDomicileDistrict(preRiskAuditData.getDomicilequ());
+        //户籍地址
+        hlsCusBpMaster.setDomicileAddress(preRiskAuditData.getDomicileaddress());
+        //是否本地户籍
+        if ("1".equals(preRiskAuditData.getIslocaldomicile())){
+            hlsCusBpMaster.setDomicileLocalFlag("Y");
+        }else{
+            hlsCusBpMaster.setDomicileLocalFlag("N");
+        }
+        //签发机关
+        hlsCusBpMaster.setIdIssueOrgan(preRiskAuditData.getIssuegov());
+        //是否长期有效
+        if ("1".equals(preRiskAuditData.getIsenable())){
+            hlsCusBpMaster.setIdLongTerm("Y");
+        }else{
+            hlsCusBpMaster.setIdLongTerm("N");
+        }
+        //居住地址省
+        hlsCusBpMaster.setHouseProvince(preRiskAuditData.getHomeaddressprovince());
+        //居住地址市
+        hlsCusBpMaster.setHouseCity(preRiskAuditData.getHomeaddresspcity());
+        //居住地址区县
+        hlsCusBpMaster.setHouseDistrict(preRiskAuditData.getJzdzqx());
+        //居住地址
+        hlsCusBpMaster.setHouseAddress(preRiskAuditData.getHomeaddress());
+        //房产类型
+        hlsCusBpMaster.setHouseType(preRiskAuditData.getHousetype());
+        //婚姻状况
+        if ("10".equals(preRiskAuditData.getMarriage())){
+            hlsCusBpMaster.setMaritalStatus("UNMARRIED");
+        }else if ("20".equals(preRiskAuditData.getMarriage())){
+            hlsCusBpMaster.setMaritalStatus("MARRIED");
+        }else if ("30".equals(preRiskAuditData.getMarriage())){
+            hlsCusBpMaster.setMaritalStatus("WIDOWED");
+        }else if ("40".equals(preRiskAuditData.getMarriage())){
+            hlsCusBpMaster.setMaritalStatus("DIVORCED");
+        }
+        //子女人数
+        hlsCusBpMaster.setNumberOfChildren(Long.valueOf(preRiskAuditData.getChildnum()));
+        //有无驾照
+        if ("1".equals(preRiskAuditData.getIsdriverlicence())){
+            hlsCusBpMaster.setDriverLicenseFlag("Y");
+        }else{
+            hlsCusBpMaster.setDriverLicenseFlag("N");
+        }
+        //驾照类型
+        hlsCusBpMaster.setDriverLicenseType(preRiskAuditData.getDriverlicencetype());
+        //驾照状态
+        hlsCusBpMaster.setDriverLicenseStatus(preRiskAuditData.getDriverstatus());
+        //驾照截止日期
+        Date driverLicenseDeadline = null;
+        try {
+            driverLicenseDeadline = simpleDateFormat.parse(preRiskAuditData.getJzjzrq());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        hlsCusBpMaster.setDriverLicenseDeadline(driverLicenseDeadline);
+        //违章分数
+        hlsCusBpMaster.setViolationScore(Long.valueOf(preRiskAuditData.getWzfs()));
+        //违章罚款
+        hlsCusBpMaster.setViolationFines(Long.valueOf(preRiskAuditData.getWzfk()));
+        //学历
+        if ("10".equals(preRiskAuditData.getDiploma())){
+            hlsCusBpMaster.setHighestDegree("POST_GRADUATE_OR_HIGHER");
+        }else if ("20".equals(preRiskAuditData.getDiploma())){
+            hlsCusBpMaster.setHighestDegree("UNDERGRADUATE");
+        }else if ("30".equals(preRiskAuditData.getDiploma())&&"40".equals(preRiskAuditData.getDiploma())){
+            hlsCusBpMaster.setHighestDegree("PROFESSIONAL_TRAINING");
+        }else if("60".equals(preRiskAuditData.getDiploma())){
+            hlsCusBpMaster.setHighestDegree("SENIOR");
+        }else if ("70".equals(preRiskAuditData.getDiploma())){
+            hlsCusBpMaster.setHighestDegree("JUNIOR");
+        }else if ("80".equals(preRiskAuditData.getDiploma())){
+            hlsCusBpMaster.setHighestDegree("PRIMARY");
+        }
+        //单位名称
+        hlsCusBpMaster.setWorkingCompany(preRiskAuditData.getCompany());
+        //所属行业
+        Long id = hlsCusBpMasterMapper.selectHlsStatClassByCode(preRiskAuditData.getIndustry());
+        hlsCusBpMaster.setEconomicInduClassify(""+id);
+        //单位性质
+        hlsCusBpMaster.setJobNature(preRiskAuditData.getCorpnprop());
+        //职业
+        hlsCusBpMaster.setProfession(preRiskAuditData.getOccu());
+        //当前职位
+        hlsCusBpMaster.setPosition(preRiskAuditData.getPosition());
+        //个人月收入
+        hlsCusBpMaster.setAnnualIncome(Double.valueOf(preRiskAuditData.getSalary())/100);
+        //单位电话
+        hlsCusBpMaster.setWorkPhone(preRiskAuditData.getCompanyphone());
+        //公司所属省份
+        hlsCusBpMaster.setCompanyProvince(preRiskAuditData.getCompanyshen());
+        //公司所属市
+        hlsCusBpMaster.setCompanyCity(preRiskAuditData.getCompanyshi());
+        //公司所属区
+        hlsCusBpMaster.setCompanyDistrict(preRiskAuditData.getCompanyqu());
+        //公司地址
+        hlsCusBpMaster.setCompanyAddress(preRiskAuditData.getCompaddr());
+        //配偶姓名
+        hlsCusBpMaster.setBpNameSp(preRiskAuditData.getSpousename());
+//            配偶性别
+        hlsCusBpMaster.setGenderSp(preRiskAuditData.getSpousesex());
+        //配偶出生日期
+        Date dateOfBirthSp = null;
+        try {
+            dateOfBirthSp = simpleDateFormat.parse(preRiskAuditData.getSpousebir());
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        hlsCusBpMaster.setDateOfBirthSp(dateOfBirthSp);
+        //配偶证件号码
+        hlsCusBpMaster.setIdCardNoSp(preRiskAuditData.getSpouseidcard());
+        //配偶单位地址
+        hlsCusBpMaster.setAddressSp(preRiskAuditData.getSpoucecompaddr());
+        //配偶联系电话
+        hlsCusBpMaster.setSpousePhone(Long.valueOf(preRiskAuditData.getSpousephone()));
+        //配偶公司名称
+        hlsCusBpMaster.setSpouseJobsUnit(preRiskAuditData.getSpousecomp());
+        //配偶公司所属行业
+        Long spId = hlsCusBpMasterMapper.selectHlsStatClassByCode(preRiskAuditData.getSpousecompind());
+        hlsCusBpMaster.setEconomicInduClassify(""+spId);
+        //配偶公司性质
+        hlsCusBpMaster.setCompanyNatureSp(preRiskAuditData.getSpousecomptype());
+        //配偶职业类型
+        hlsCusBpMaster.setProfessionSp(preRiskAuditData.getSpousezylx());
+        //配偶职位
+        hlsCusBpMaster.setJobTitleSp(preRiskAuditData.getSpousezw());
+        return hlsCusBpMaster;
+    }
+
+    private HlsCusPrjQuotation setQuotationByProject(HlsCusPrjProject hlsCusPrjProject, FinanceInfo financeInfo) {
+        HlsCusPrjQuotation prjQuotation = null;
+        if (hlsCusPrjProject.getProjectId()!=null){
+            List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
+            if (hlsCusPrjQuotations.size()>0){
+                prjQuotation = hlsCusPrjQuotations.get(0);
+            }
+        }
+        if (prjQuotation==null){
+            prjQuotation = new HlsCusPrjQuotation();
+            prjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
+            prjQuotation.setSourceDocumentCategory("PRJ_PROJECT");
+            //期次
+            prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
+//            月租
+            prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
+//            利率
+            prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
+//            首付款
+            prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
+            //剩余车辆价款 (分)
+            prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
+            //融资金额
+            prjQuotation.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
+        }else{
+            if (!prjQuotation.getLeaseTimes().equals(Long.valueOf(financeInfo.getTermCount()))&&
+                    !prjQuotation.getPmt().equals(financeInfo.getMonthPayment().doubleValue()/100)&&
+                    !prjQuotation.getIntRate().equals(financeInfo.getRate().doubleValue()/100)&&
+                    prjQuotation.getDownPayment().equals(financeInfo.getFirstPayment().doubleValue()/100) &&
+                    prjQuotation.getSurplusAmount().equals(financeInfo.getCarRestPrice().doubleValue()/100)
+            ){
+                //期次
+                prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
+//            月租
+                prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
+//            利率
+                prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
+//            首付款
+                prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
+                //剩余车辆价款 (分)
+                prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
+            }
+        }
+        return prjQuotation;
+    }
+
+    private PrjLeaseItemInsurance setLeaseItemInsuranceByLeaseItem(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem, CarInfo carInfo) {
+        PrjLeaseItemInsurance prjLeaseItemInsurance = null;
+        if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
+            prjLeaseItemInsurance = prjLeaseItemInsuranceMapper.selectInsByLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+        }else{
+            prjLeaseItemInsurance = new PrjLeaseItemInsurance();
+            prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+        }
+        if (prjLeaseItemInsurance==null){
+            prjLeaseItemInsurance = new PrjLeaseItemInsurance();
+            prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+        }
+        prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+        double compulsoryAmount = carInfo.getMandatoryInsuranceAmount().doubleValue();
+        prjLeaseItemInsurance.setCompulsoryAmount(compulsoryAmount / 100);
+        //商业保险类型
+        prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
+//        //延保金额
+//        prjLeaseItemInsurance.setExtendedWarrantyAmount(Double.valueOf(preRiskAuditData.getYanbaoje())/100);
+//        //车辆保险金额 clbxje
+//        prjLeaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);
+        return prjLeaseItemInsurance;
+    }
+
+    private PrjProjectLeaseItemSales setLeaseItemSalesByLeaseItem(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem,SaleInfo saleInfo) {
+        //            销售信息
         PrjProjectLeaseItemSales prjProjectLeaseItemSales = null;
-        if (hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId()!=null){
-            List<PrjProjectLeaseItemSales> prjProjectLeaseItemSales1 = projectLeaseItemSalesMapper.prjProjectLeaseItemSalesQuery(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
+        if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
+            List<PrjProjectLeaseItemSales> prjProjectLeaseItemSales1 = projectLeaseItemSalesMapper.prjProjectLeaseItemSalesQuery(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
             if (prjProjectLeaseItemSales1.size()>0){
                 prjProjectLeaseItemSales = prjProjectLeaseItemSales1.get(0);
             }else{
                 prjProjectLeaseItemSales = new PrjProjectLeaseItemSales();
+                prjProjectLeaseItemSales.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
             }
         }else{
             prjProjectLeaseItemSales = new PrjProjectLeaseItemSales();
+            prjProjectLeaseItemSales.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
         }
 //            销售方统一社会信用代码
         prjProjectLeaseItemSales.setUnifiedSocialCreditCode(saleInfo.getSellerCode());
@@ -586,665 +1398,47 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         prjProjectLeaseItemSales.setMortgageName(saleInfo.getMortgagorName());
 //            抵押城市名称
         prjProjectLeaseItemSales.setMortgageCity(saleInfo.getMortgageCityName());
-        prjProjectLeaseItemSales.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
+        return prjProjectLeaseItemSales;
+    }
 
-
-        //强制保险金额
-        PrjLeaseItemInsurance prjLeaseItemInsurance = null;
-        if (hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId()!=null){
-            prjLeaseItemInsurance = prjLeaseItemInsuranceMapper.selectInsByLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
+    private HlsCusPrjProjectLeaseItem setLeaseItemByProject(HlsCusPrjProject hlsCusPrjProject, List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList,CarInfo carInfo,FinanceInfo financeInfo) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem  = null;
+        if (hlsCusPrjProjectLeaseItemList.size()>0){
+            hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
         }else{
-            prjLeaseItemInsurance = new PrjLeaseItemInsurance();
+            hlsCusPrjProjectLeaseItem = new HlsCusPrjProjectLeaseItem();
         }
-        if (prjLeaseItemInsurance==null){
-            prjLeaseItemInsurance = new PrjLeaseItemInsurance();
+        //项目id
+        hlsCusPrjProjectLeaseItem.setProjectId(hlsCusPrjProject.getProjectId());
+//            车架号
+        hlsCusPrjProjectLeaseItem.setFrameNumber(carInfo.getVin());
+//            车辆出厂日期
+        try {
+            Date productDate = simpleDateFormat.parse(carInfo.getCarProductionDate());
+            hlsCusPrjProjectLeaseItem.setProductDate(productDate);
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
-        prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-        double compulsoryAmount = carInfo.getMandatoryInsuranceAmount().doubleValue();
-        prjLeaseItemInsurance.setCompulsoryAmount(compulsoryAmount / 100);
-        //商业保险类型
-        prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
-        //延保金额
-        prjLeaseItemInsurance.setExtendedWarrantyAmount(Double.valueOf(preRiskAuditData.getYanbaoje())/100);
-        //车辆保险金额 clbxje
-        prjLeaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);
+//            发动机号
+        hlsCusPrjProjectLeaseItem.setEngineNumber(carInfo.getEngineNumber());
+        //车辆指导价
+        hlsCusPrjProjectLeaseItem.setListPrice(financeInfo.getCarGuidePrice().doubleValue()/100);
+//            车辆售价
+        hlsCusPrjProjectLeaseItem.setSellingPrice(financeInfo.getCarSalePrice().doubleValue()/100);
+//            申请融资额
+        hlsCusPrjProjectLeaseItem.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
 
-        if (prjProjectLeaseItemSales.getSalesId()!=null){
-            projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
-        }else{
-            projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
-        }
-        prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-        if (prjLeaseItemInsurance.getInsuranceId()!=null){
-            prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
-        }else{
-            prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
-        }
+        //车辆品牌
+        hlsCusPrjProjectLeaseItem.setBrandC(carInfo.getBrandName());
+        //车系
+        hlsCusPrjProjectLeaseItem.setSeriesC(carInfo.getSeriesName());
+        //车型
+        hlsCusPrjProjectLeaseItem.setModelC(carInfo.getModelName());
+        //车辆颜色
+        hlsCusPrjProjectLeaseItem.setColorC(carInfo.getColor());
 
-        String projectStatus = hlsCusPrjProject.getProjectStatus();
-        //        如果订单状态为放款之后，不允许修改
-        if ("放款之后".equals(projectStatus)){
-            jsonObject1.put("code","400");
-            jsonObject1.put("message","订单已放款，不允许修改");
-            return jsonObject1.toJSONString();
-        }
-        //如果订单为业务申请之后，放款之前，对字段进行校验
-        //品牌名称、车系名称、车型名称、车辆颜色
-        if ("申请之后,放款之前".equals(projectStatus)){
-            if (preRiskAuditData!=null){
-                if (hlsCusPrjProjectLeaseItemList.size()>0){
-                    //判断车系名称与riskInfo中的值是否相同
-                    if (!hlsCusPrjProjectLeaseItem1.getBrandC().equals(preRiskAuditData.getCarbrand2())){
-                        jsonObject1.put("code","400");
-                        jsonObject1.put("message","品牌名称与riskInfo中的值不同");
-                        return jsonObject1.toJSONString();
-                    }
-                    if (hlsCusPrjProjectLeaseItem1.getSeriesC().equals(preRiskAuditData.getChexi())){
-                        jsonObject1.put("code","400");
-                        jsonObject1.put("message","车系名称与riskInfo中的值不同");
-                        return jsonObject1.toJSONString();
-                    }
-                    if (hlsCusPrjProjectLeaseItem1.getModelC().equals(preRiskAuditData.getCartype())){
-                        jsonObject1.put("code","400");
-                        jsonObject1.put("message","车型名称与riskInfo中的值不同");
-                        return jsonObject1.toJSONString();
-                    }
-                    if (hlsCusPrjProjectLeaseItem1.getColorC().equals(preRiskAuditData.getCarcolor())){
-                        jsonObject1.put("code","400");
-                        jsonObject1.put("message","车辆颜色与riskInfo中的值不同");
-                        return jsonObject1.toJSONString();
-                    }
-                }
-            }
-        }
-
-        //获取租赁物相关信息，并入库
-//            if ("申请之前".equals(projectStatus)){
-
-                HlsCusPrjQuotation prjQuotation = null;
-                if (hlsCusPrjProject.getProjectId()!=null){
-                    List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
-                    if (hlsCusPrjQuotations.size()>0){
-                        prjQuotation = hlsCusPrjQuotations.get(0);
-                    }
-                }
-                if (prjQuotation==null){
-                    prjQuotation = new HlsCusPrjQuotation();
-                    prjQuotation.setSourceDocumentCategory("PRJ_PROJECT");
-                    //期次
-                    prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
-//            月租
-                    prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
-//            利率
-                    prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
-//            首付款
-                    prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
-                    //剩余车辆价款 (分)
-                    prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
-                    //融资金额
-                    prjQuotation.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
-                }else{
-                    if (!prjQuotation.getLeaseTimes().equals(Long.valueOf(financeInfo.getTermCount()))&&
-                            !prjQuotation.getPmt().equals(financeInfo.getMonthPayment().doubleValue()/100)&&
-                            !prjQuotation.getIntRate().equals(financeInfo.getRate().doubleValue()/100)&&
-                            prjQuotation.getDownPayment().equals(financeInfo.getFirstPayment().doubleValue()/100) &&
-                            prjQuotation.getSurplusAmount().equals(financeInfo.getCarRestPrice().doubleValue()/100)
-                    ){
-                        //期次
-                        prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
-//            月租
-                        prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
-//            利率
-                        prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
-//            首付款
-                        prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
-                        //剩余车辆价款 (分)
-                        prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
-                    }
-                }
-
-
-                //品牌
-                hlsCusPrjProjectLeaseItem1.setBrandC(carInfo.getBrandName());
-//            车系
-                hlsCusPrjProjectLeaseItem1.setSeriesC(carInfo.getSeriesName());
-//            车型
-                hlsCusPrjProjectLeaseItem1.setModelC(carInfo.getModelName());
-                //            车辆颜色
-                hlsCusPrjProjectLeaseItem1.setColorC(carInfo.getColor());
-                if (preRiskAuditData!=null){
-                    //进件信息
-                    hlsCusPrjProject.setDivision(preRiskAuditData.getProline());
-                    
-                    HlsCusBpMaster hlsCusBpMaster = hlsCusBpMasterMapper.selectByProjectId(hlsCusPrjProject.getProjectId());
-                    //性别
-                    hlsCusBpMaster.setGender(preRiskAuditData.getSex());
-                    //民族
-                    hlsCusBpMaster.setEthnicity(preRiskAuditData.getNation());
-                    //出生日期
-                    Date dateOfBirth = null;
-                    try {
-                        dateOfBirth = simpleDateFormat.parse(preRiskAuditData.getBirthdate());
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                    hlsCusBpMaster.setDateOfBirth(dateOfBirth);
-                    //年龄
-                    hlsCusBpMaster.setAge(Long.valueOf(preRiskAuditData.getAge()));
-                    //国籍
-                    hlsCusBpMaster.setNationality(preRiskAuditData.getNationality());
-                    //户籍所属省份
-                    hlsCusBpMaster.setDomicileProvince(preRiskAuditData.getDomicileshen());
-                    //户籍所属市
-                    hlsCusBpMaster.setDomicileCity(preRiskAuditData.getHomeaddresspcity());
-                    //户籍所属区
-                    hlsCusBpMaster.setDomicileDistrict(preRiskAuditData.getDomicilequ());
-                    //户籍地址
-                    hlsCusBpMaster.setDomicileAddress(preRiskAuditData.getDomicileaddress());
-                    //是否本地户籍
-                    hlsCusBpMaster.setDomicileLocalFlag(preRiskAuditData.getIslocaldomicile());
-                    //签发机关
-                    hlsCusBpMaster.setIdIssueOrgan(preRiskAuditData.getIssuegov());
-                    //是否长期有效
-                    hlsCusBpMaster.setIdLongTerm(preRiskAuditData.getIsenable());
-                    //居住地址省
-                    hlsCusBpMaster.setHouseProvince(preRiskAuditData.getHomeaddressprovince());
-                    //居住地址市
-                    hlsCusBpMaster.setHouseCity(preRiskAuditData.getHomeaddresspcity());
-                    //居住地址区县
-                    hlsCusBpMaster.setHouseDistrict(preRiskAuditData.getJzdzqx());
-                    //居住地址
-                    hlsCusBpMaster.setHouseAddress(preRiskAuditData.getHomeaddress());
-                    //房产类型
-                    hlsCusBpMaster.setHouseType(preRiskAuditData.getHousetype());
-                    //婚姻状况
-                    hlsCusBpMaster.setMaritalStatus(preRiskAuditData.getMarriage());
-                    //子女人数
-                    hlsCusBpMaster.setNumberOfChildren(Long.valueOf(preRiskAuditData.getChildnum()));
-                    //有无驾照
-                    hlsCusBpMaster.setDriverLicenseFlag(preRiskAuditData.getIsdriverlicence());
-                    //驾照类型
-                    hlsCusBpMaster.setDriverLicenseType(preRiskAuditData.getDriverlicencetype());
-                    //驾照状态
-                    hlsCusBpMaster.setDriverLicenseStatus(preRiskAuditData.getDriverstatus());
-                    //驾照截止日期
-                    Date driverLicenseDeadline = null;
-                    try {
-                        driverLicenseDeadline = simpleDateFormat.parse(preRiskAuditData.getJzjzrq());
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                    hlsCusBpMaster.setDriverLicenseDeadline(driverLicenseDeadline);
-                    //违章分数
-                    hlsCusBpMaster.setViolationScore(Long.valueOf(preRiskAuditData.getWzfs()));
-                    //违章罚款
-                    hlsCusBpMaster.setViolationFines(Long.valueOf(preRiskAuditData.getWzfk()));
-                    //学历
-                    hlsCusBpMaster.setHighestDegree(preRiskAuditData.getDiploma());
-                    //单位名称
-                    hlsCusBpMaster.setWorkingCompany(preRiskAuditData.getCompany());
-                    //所属行业
-                    hlsCusBpMaster.setEconomicInduClassify(preRiskAuditData.getIndustry());
-                    //单位性质
-                    hlsCusBpMaster.setJobNature(preRiskAuditData.getCorpnprop());
-                    //职业
-                    hlsCusBpMaster.setProfession(preRiskAuditData.getOccu());
-                    //当前职位
-                    hlsCusBpMaster.setPosition(preRiskAuditData.getPosition());
-                    //个人月收入
-                    hlsCusBpMaster.setAnnualIncome(Double.valueOf(preRiskAuditData.getSalary())/100);
-                    //单位电话
-                    hlsCusBpMaster.setWorkPhone(preRiskAuditData.getCompanyphone());
-                    //公司所属省份
-                    hlsCusBpMaster.setCompanyProvince(preRiskAuditData.getCompanyshen());
-                    //公司所属市
-                    hlsCusBpMaster.setCompanyCity(preRiskAuditData.getCompanyshi());
-                    //公司所属区
-                    hlsCusBpMaster.setCompanyDistrict(preRiskAuditData.getCompanyqu());
-                    //公司地址
-                    hlsCusBpMaster.setCompanyAddress(preRiskAuditData.getCompaddr());
-
-
-                    HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = null;
-                    if (hlsCusBpMaster.getBpId()!=null){
-                        hlsCusBpMasterBankAccount = hlsCusBpMasterBankAccountMapper.selectBankByBpId(hlsCusBpMaster.getBpId());
-                    }
-                    if (hlsCusBpMasterBankAccount==null){
-                        hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
-                    }
-                    //银行卡号
-                    hlsCusBpMasterBankAccount.setBankAccountNum(preRiskAuditData.getCardno());
-                    //实际驾驶人与申请人关系
-                    hlsCusPrjProject.setDriverAndApplicant(preRiskAuditData.getSjjsrysqrgx());
-                    //有无担保人
-                    if ("1".equals(preRiskAuditData.getIssureor())){
-                        //首先判断数据库有没有该担保人
-                        HlsCusBpMaster hlsCusBpMaster1 = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
-
-                        if (hlsCusBpMaster1==null){
-                            HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
-                            hlsCusBpMaster1 = new HlsCusBpMaster();
-                            //担保人姓名
-                            hlsCusBpMaster1.setBpName(preRiskAuditData.getSurename());
-                            //担保人证件类型
-                            hlsCusBpMaster1.setIdType(preRiskAuditData.getSurecertype());
-                            //担保人身份证
-                            hlsCusBpMaster1.setIdCardNo(preRiskAuditData.getSureid());
-                            //担保人手机
-                            hlsCusBpMaster1.setPhone(preRiskAuditData.getSuremobi());
-                            hlsCusBpMaster1.setCreationDate(new Date());
-                            String format = simpleDateFormat.format(new Date());
-                            hlsCusBpMaster1.setCreationDateStr(format);
-                            //创建人
-                            hlsCusBpMaster1.setCreatedBy(iRequest.getUserId());
-                            //来源
-                            hlsCusBpMaster1.setSource("1");
-                            hlsCusBpMaster1.setBpClass("NP");
-                            hlsCusBpMaster1.setBpCategory("GUARANTOR");
-                            hlsCusBpMasterMapper.insertSelective(hlsCusBpMaster1);
-                            hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                            hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
-                            hlsCusPrjProjectBp.setRefV02("GUARANTOR");
-                            hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
-                        }else{
-                            HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectProjectBpByBpId(hlsCusBpMaster1.getBpId());
-                            //担保人姓名
-                            hlsCusBpMaster1.setBpName(preRiskAuditData.getSurename());
-                            //担保人证件类型
-                            hlsCusBpMaster1.setIdType(preRiskAuditData.getSurecertype());
-                            //担保人身份证
-                            hlsCusBpMaster1.setIdCardNo(preRiskAuditData.getSureid());
-                            //担保人手机
-                            hlsCusBpMaster1.setPhone(preRiskAuditData.getSuremobi());
-                            hlsCusBpMaster1.setLastUpdatedBy(iRequest.getUserId());
-                            hlsCusBpMaster1.setLastUpdateDate(new Date());
-                            //来源
-                            hlsCusBpMaster1.setSource("1");
-                            hlsCusBpMaster1.setBpClass("NP");
-                            hlsCusBpMaster1.setBpCategory("GUARANTOR");
-                            hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster1);
-                            if (hlsCusPrjProjectBp==null){
-                                hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                                hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
-                                hlsCusPrjProjectBp.setRefV02("GUARANTOR");
-                                hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
-                            }else{
-                                hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                                hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
-                                hlsCusPrjProjectBp.setRefV02("GUARANTOR");
-                                hlsCusPrjProjectBpMapper.updateByPrimaryKeySelective(hlsCusPrjProjectBp);
-                            }
-                        }
-                    }
-                    //有无共同承租人
-                    if ("1".equals(preRiskAuditData.getIscop())){
-                        HlsCusBpMaster hlsCusBpMaster2 = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
-                        if (hlsCusBpMaster2==null){
-                            HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
-                            hlsCusBpMaster2 = new HlsCusBpMaster();
-                            //共同借款人姓名
-                            hlsCusBpMaster2.setBpName(preRiskAuditData.getConame());
-                            //共同承租人证件类型
-                            hlsCusBpMaster2.setIdType(preRiskAuditData.getCocerttype());
-                            //共同借款人身份证
-                            hlsCusBpMaster2.setIdCardNo(preRiskAuditData.getCoid());
-                            //共同借款人手机
-                            hlsCusBpMaster2.setPhone(preRiskAuditData.getComobile());
-                            //共同承租人居住地址
-                            hlsCusBpMaster2.setHouseAddress(preRiskAuditData.getCoaddr());
-                            //共同借款人工作单位
-                            hlsCusBpMaster2.setWorkingCompany(preRiskAuditData.getCocompany());
-                            //共同承租人公司电话
-                            hlsCusBpMaster2.setWorkPhone(preRiskAuditData.getCocomtel());
-                            //共同借款人公司地址
-                            hlsCusBpMaster2.setCompanyAddress(preRiskAuditData.getCocomaddr());
-                            hlsCusBpMaster2.setCreationDate(new Date());
-                            String format = simpleDateFormat.format(new Date());
-                            hlsCusBpMaster2.setCreationDateStr(format);
-                            //创建人
-                            hlsCusBpMaster2.setCreatedBy(iRequest.getUserId());
-                            //来源
-                            hlsCusBpMaster2.setSource("1");
-                            hlsCusBpMaster2.setBpClass("NP");
-                            hlsCusBpMaster2.setBpCategory("TENANT-SEC");
-                            hlsCusBpMasterMapper.insertSelective(hlsCusBpMaster2);
-                            hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                            hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
-                            hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
-                            hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
-                        }else{
-                            HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectProjectBpByBpId(hlsCusBpMaster2.getBpId());
-                            //共同借款人姓名
-                            hlsCusBpMaster2.setBpName(preRiskAuditData.getConame());
-                            //共同承租人证件类型
-                            hlsCusBpMaster2.setIdType(preRiskAuditData.getCocerttype());
-                            //共同借款人身份证
-                            hlsCusBpMaster2.setIdCardNo(preRiskAuditData.getCoid());
-                            //共同借款人手机
-                            hlsCusBpMaster2.setPhone(preRiskAuditData.getComobile());
-                            //共同承租人居住地址
-                            hlsCusBpMaster2.setHouseAddress(preRiskAuditData.getCoaddr());
-                            //共同借款人工作单位
-                            hlsCusBpMaster2.setWorkingCompany(preRiskAuditData.getCocompany());
-                            //共同承租人公司电话
-                            hlsCusBpMaster2.setWorkPhone(preRiskAuditData.getCocomtel());
-                            //共同借款人公司地址
-                            hlsCusBpMaster2.setCompanyAddress(preRiskAuditData.getCocomaddr());
-                            hlsCusBpMaster2.setLastUpdatedBy(iRequest.getUserId());
-                            hlsCusBpMaster2.setLastUpdateDate(new Date());
-                            //来源
-                            hlsCusBpMaster2.setSource("1");
-                            hlsCusBpMaster2.setBpClass("NP");
-                            hlsCusBpMaster2.setBpCategory("TENANT-SEC");
-                            hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster2);
-                            if (hlsCusPrjProjectBp==null){
-                                hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                                hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
-                                hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
-                                hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
-                            }else{
-                                hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                                hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
-                                hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
-                                hlsCusPrjProjectBpMapper.updateByPrimaryKeySelective(hlsCusPrjProjectBp);
-                            }
-                        }
-                    }
-                    List<HlsBpSpouse> hlsBpSpouseList = hlsBpSpouseMapper.selectByBpId(hlsCusBpMaster.getBpId());
-                    if (hlsBpSpouseList.size()==0){
-                        //联系人
-                        HlsBpSpouse hlsBpSpouse = new HlsBpSpouse();
-                        //联系人与承租人关系
-                        hlsBpSpouse.setRelationship(preRiskAuditData.getContreleship());
-                        //联系人姓名
-                        hlsBpSpouse.setPersonName(preRiskAuditData.getContname());
-                        //联系人当前居住地址
-                        hlsBpSpouse.setAddress(preRiskAuditData.getContaddr());
-                        //联系人移动电话
-                        hlsBpSpouse.setCellPhone(preRiskAuditData.getPartymobile());
-                        hlsBpSpouse.setBpId(hlsCusBpMaster.getBpId());
-                        hlsBpSpouseMapper.insertSelective(hlsBpSpouse);
-                    }else{
-                        HlsBpSpouse hlsBpSpouse = hlsBpSpouseList.get(0);
-                        //联系人与承租人关系
-                        hlsBpSpouse.setRelationship(preRiskAuditData.getContreleship());
-                        //联系人姓名
-                        hlsBpSpouse.setPersonName(preRiskAuditData.getContname());
-                        //联系人当前居住地址
-                        hlsBpSpouse.setAddress(preRiskAuditData.getContaddr());
-                        //联系人移动电话
-                        hlsBpSpouse.setCellPhone(preRiskAuditData.getPartymobile());
-                        hlsBpSpouse.setBpId(hlsCusBpMaster.getBpId());
-                        hlsBpSpouseMapper.updateByPrimaryKeySelective(hlsBpSpouse);
-                    }
-                    //配偶姓名
-                    hlsCusBpMaster.setBpNameSp(preRiskAuditData.getSpousename());
-//            配偶性别
-                    hlsCusBpMaster.setGenderSp(preRiskAuditData.getSpousesex());
-                    //配偶出生日期
-                    Date dateOfBirthSp = null;
-                    try {
-                        dateOfBirthSp = simpleDateFormat.parse(preRiskAuditData.getSpousebir());
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                    hlsCusBpMaster.setDateOfBirthSp(dateOfBirthSp);
-                    //配偶证件号码
-                    hlsCusBpMaster.setIdCardNoSp(preRiskAuditData.getSpouseidcard());
-                    //配偶单位地址
-                    hlsCusBpMaster.setAddressSp(preRiskAuditData.getSpoucecompaddr());
-                    //配偶联系电话
-                    hlsCusBpMaster.setSpousePhone(Long.valueOf(preRiskAuditData.getSpousephone()));
-                    //配偶公司名称
-                    hlsCusBpMaster.setSpouseJobsUnit(preRiskAuditData.getSpousecomp());
-                    //配偶公司所属行业
-                    hlsCusBpMaster.setInduClassifySp(preRiskAuditData.getSpousecompind());
-                    //配偶公司性质
-                    hlsCusBpMaster.setCompanyNatureSp(preRiskAuditData.getSpousecomptype());
-                    //配偶职业类型
-                    hlsCusBpMaster.setProfessionSp(preRiskAuditData.getSpousezylx());
-                    //配偶职位
-                    hlsCusBpMaster.setJobTitleSp(preRiskAuditData.getSpousezw());
-
-                    //制造商
-                    hlsCusPrjProjectLeaseItem1.setManufacturer(preRiskAuditData.getCarfac());
-                    //车辆类型
-                    hlsCusPrjProjectLeaseItem1.setVoitureType(preRiskAuditData.getVehicletype());
-                    //车辆准载(定员)
-                    hlsCusPrjProjectLeaseItem1.setVehicleCapacity(preRiskAuditData.getCarzkcount());
-                    //是否进口
-                    hlsCusPrjProjectLeaseItem1.setIsImport(preRiskAuditData.getSfjk());
-                    //燃料类型
-                    hlsCusPrjProjectLeaseItem1.setFuelType(preRiskAuditData.getRllx());
-                    //车辆评估价格
-                    hlsCusPrjProjectLeaseItem1.setEvaluationValue(Double.valueOf(preRiskAuditData.getClpgjg()));
-                    //首次登记日期
-                    //转让登记日期
-                    Date firstRegistrationDate = null;
-                    Date transferRegistrationDate = null;
-                    try {
-                        firstRegistrationDate = simpleDateFormat.parse(preRiskAuditData.getScdjrq());
-                        transferRegistrationDate = simpleDateFormat.parse(preRiskAuditData.getTransferencedate());
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                    hlsCusPrjProjectLeaseItem1.setFirstRegistrationDate(firstRegistrationDate);
-                    hlsCusPrjProjectLeaseItem1.setTransferRegistrationDate(transferRegistrationDate);
-                    //车牌号
-                    hlsCusPrjProjectLeaseItem1.setLicensePlateNumber(preRiskAuditData.getChepaihao());
-                    //车辆使用性质
-                    hlsCusPrjProjectLeaseItem1.setNatureOfVehicle(preRiskAuditData.getCarnatureofuse());
-//            上牌城市
-                    hlsCusPrjProjectLeaseItem1.setCityCode(preRiskAuditData.getRegisteredcity());
-                    //首次上牌日
-                    Date firstPlateDate = null;
-                    try {
-                        firstPlateDate = simpleDateFormat.parse(preRiskAuditData.getScspr());
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                    hlsCusPrjProjectLeaseItem1.setFirstPlateDate(firstPlateDate);
-                    //表显里程
-                    hlsCusPrjProjectLeaseItem1.setOdometerReading(Integer.valueOf(preRiskAuditData.getBxlc()));
-                    //车辆年限
-                    hlsCusPrjProjectLeaseItem1.setVehicleAge(Integer.valueOf(preRiskAuditData.getCarlife()));
-                    //车辆所有人
-                    hlsCusPrjProjectLeaseItem1.setPropPerson(preRiskAuditData.getCaraffiliation());
-                    //租赁物融资金额
-                    hlsCusPrjProjectLeaseItem1.setLeaseItemAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
-
-                    PrjProjectLeaseItemMortgage prjProjectLeaseItemMortgage = null;
-                    if (hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId()!=null){
-                        List<PrjProjectLeaseItemMortgage> prjProjectLeaseItemMortgages = projectLeaseItemMortgageMapper.prjProjectLeaseItemMortgageByLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-                        if (prjProjectLeaseItemMortgages.size()>0){
-                            prjProjectLeaseItemMortgage = prjProjectLeaseItemMortgages.get(0);
-                        }
-                    }
-                    if (prjProjectLeaseItemMortgage==null){
-                        prjProjectLeaseItemMortgage = new PrjProjectLeaseItemMortgage();
-                    }
-                    //抵押次数
-                    prjProjectLeaseItemMortgage.setNumberOfMortgages(Integer.valueOf(preRiskAuditData.getDycs()));
-                    //过户次数
-                    prjProjectLeaseItemMortgage.setNumberOfTransfers(Integer.valueOf(preRiskAuditData.getGhjcs()));
-                    //近1年抵押次数
-                    prjProjectLeaseItemMortgage.setNumberOfMortgagesOne(Integer.valueOf(preRiskAuditData.getJyndics()));
-                    //近1年过户次数
-                    prjProjectLeaseItemMortgage.setNumberOfTransfersOne(Integer.valueOf(preRiskAuditData.getLast1yearguohucount()));
-                    //近2年过户次数
-                    prjProjectLeaseItemMortgage.setNumberOfTransfersTwo(Integer.valueOf(preRiskAuditData.getLast2yearguohucount()));
-                    //是否有车辆登记证补领记录
-                    prjProjectLeaseItemMortgage.setIsRenewalRecord(preRiskAuditData.getIsregister());
-                    //近半年是否有车辆登记证补领记录
-                    prjProjectLeaseItemMortgage.setIsHalfRenewalRecord(preRiskAuditData.getIsregisterhy());
-                    //上一次抵押登记日期
-                    //最近一次解押日期
-                    Date lastTransfersDate = null;
-                    Date recentlyTransfersDate = null;
-                    try {
-                        lastTransfersDate = simpleDateFormat.parse(preRiskAuditData.getLastmortgagedate());
-                        recentlyTransfersDate = simpleDateFormat.parse(preRiskAuditData.getLastdtecompressiondate());
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                    prjProjectLeaseItemMortgage.setLastTransfersDate(lastTransfersDate);
-                    prjProjectLeaseItemMortgage.setRecentlyTransfersDate(recentlyTransfersDate);
-                    //抵押状态
-                    prjProjectLeaseItemMortgage.setTransfersStatus(preRiskAuditData.getMortgagestatus());
-                    //解押天数
-                    prjProjectLeaseItemMortgage.setDaysToRelease(Integer.valueOf(preRiskAuditData.getJyts()));
-
-                    //是否有交强险
-                    prjLeaseItemInsurance.setIsCompulsoryInsurance(preRiskAuditData.getSfyjqx());
-                    //交强险到期日期
-                    Date compulsoryEndDate = null;
-                    //车损险到期日期
-                    Date vehicleEndDate = null;
-                    //第三者责任险到期日期
-                    Date thirdEndDate = null;
-                    try {
-                        compulsoryEndDate = simpleDateFormat.parse(preRiskAuditData.getJqxdqrq());
-                        vehicleEndDate = simpleDateFormat.parse(preRiskAuditData.getCsxdqrq());
-                        thirdEndDate = simpleDateFormat.parse(preRiskAuditData.getSzxdqrq());
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                    prjLeaseItemInsurance.setCompulsoryEndDate(compulsoryEndDate);
-                    //是否有车损险
-                    prjLeaseItemInsurance.setIsVehicleDamage(preRiskAuditData.getSfycsx());
-
-                    prjLeaseItemInsurance.setVehicleEndDate(vehicleEndDate);
-                    //是否有第三者责任险
-                    prjLeaseItemInsurance.setIsThirdParty(preRiskAuditData.getSfyszx());
-                    prjLeaseItemInsurance.setThirdEndDate(thirdEndDate);
-
-
-                    PrjProjectLeaseItemCondition prjProjectLeaseItemCondition = null;
-                    if (hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId()!=null){
-                        List<PrjProjectLeaseItemCondition> prjProjectLeaseItemConditions = projectLeaseItemConditionMapper.prjProjectLeaseItemConditionByLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-                        if (prjProjectLeaseItemConditions.size()>0){
-                            prjProjectLeaseItemCondition = prjProjectLeaseItemConditions.get(0);
-                        }
-                    }
-                    if (prjProjectLeaseItemCondition==null){
-                        prjProjectLeaseItemCondition = new PrjProjectLeaseItemCondition();
-                    }
-                    //车况信息
-                    //是否年检
-                    prjProjectLeaseItemCondition.setIsAnnualInspection(preRiskAuditData.getIscheckyear());
-                    //是否安装GPS
-                    hlsCusPrjProjectLeaseItem1.setGpsIsInstallation(preRiskAuditData.getSfazgps());
-                    //贷款用途
-                    hlsCusPrjProjectLeaseItem1.setLoanPurpose(preRiskAuditData.getUsage());
-                    //上牌类型
-                    hlsCusPrjProjectLeaseItem1.setPlateType(preRiskAuditData.getSptype());
-                    //牌照归属
-                    hlsCusPrjProjectLeaseItem1.setLicensePlateOwnership(preRiskAuditData.getPaizhaogs());
-                    //车辆交易价
-                    hlsCusPrjProjectLeaseItem1.setPrice(Double.valueOf(preRiskAuditData.getCljyjg())/100);
-                    //购置税
-                    hlsCusPrjProjectLeaseItem1.setPurchaseTax(Double.valueOf(preRiskAuditData.getGouzhis())/100);
-                    //车辆保险金额
-                    hlsCusPrjProjectLeaseItem1.setInsurancePremium(Double.valueOf(preRiskAuditData.getClbxje())/100);
-                    //GPS费用
-                    hlsCusPrjProjectLeaseItem1.setGpsFee(Double.valueOf(preRiskAuditData.getGpsfy())/100);
-                    //上牌发票金额
-                    hlsCusPrjProjectLeaseItem1.setPlateInvoiceAmount(Double.valueOf(preRiskAuditData.getCtac())/100);
-                    //装饰品金额
-                    hlsCusPrjProjectLeaseItem1.setAccessoryAmount(Double.valueOf(preRiskAuditData.getZspje())/100);
-                    //车辆税额
-                    hlsCusPrjProjectLeaseItem1.setVehicleTax(Double.valueOf(preRiskAuditData.getCheliangse())/100);
-                    //是否水泡
-                    prjProjectLeaseItemCondition.setIsWaterDamaged(preRiskAuditData.getSfsp());
-                    //是否营转非
-                    prjProjectLeaseItemCondition.setIsConversion(preRiskAuditData.getSfyzf());
-                    //事故状况
-                    prjProjectLeaseItemCondition.setAccidentStatus(preRiskAuditData.getSgzk());
-                    //发动机大修
-                    prjProjectLeaseItemCondition.setEngineOverhaul(preRiskAuditData.getFdjdx());
-                    //是否重大改装车
-                    prjProjectLeaseItemCondition.setIsSignificantlyModified(preRiskAuditData.getSfzdgzc());
-                    //原车主证件类型
-                    prjProjectLeaseItemCondition.setOriginalOwnerCardType(preRiskAuditData.getYuanchezzjlx());
-                    //原车主姓名
-                    prjProjectLeaseItemCondition.setOriginalOwnerName(preRiskAuditData.getYuanczxm());
-                    //原车主证件号
-                    prjProjectLeaseItemCondition.setOriginalOwnerCardNum(preRiskAuditData.getYuanchezzjhm());
-                    //原车主户籍所在地址
-                    prjProjectLeaseItemCondition.setOriginalOwnerAddress(
-                            preRiskAuditData.getYuanchezhuhujishengfen()
-                                    +preRiskAuditData.getYuanchezhuhujishi()+preRiskAuditData.getCarownersdomicilelast());
-                    //维修保养情况
-                    prjProjectLeaseItemCondition.setMaintenanceInfo(preRiskAuditData.getBywxqk());
-                    //精品加装
-                    prjProjectLeaseItemCondition.setPremiumAddOn(preRiskAuditData.getJpjz());
-
-                    //首付比例
-                    prjQuotation.setDownPaymentRatio(Double.valueOf(preRiskAuditData.getPaymentratio()));
-                    //尾款比例
-
-                    prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-                    prjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
-                    if (prjQuotation.getQuotationId()!=null){
-                        hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
-                    }else{
-                        hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
-                    }
-
-                    Example example = new Example(HlsCusPrjProjectLeaseItem.class);
-                    example.createCriteria().andEqualTo("projectLeaseItemId",hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-                    hlsCusPrjProjectLeaseItemMapper.updateByExample(hlsCusPrjProjectLeaseItem1,example);
-//                    hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem1);
-                    prjProjectLeaseItemMortgage.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-                    if (prjProjectLeaseItemMortgage.getMortgageId()!=null){
-                        projectLeaseItemMortgageMapper.updateByPrimaryKeySelective(prjProjectLeaseItemMortgage);
-                    }else{
-                        projectLeaseItemMortgageMapper.insertSelective(prjProjectLeaseItemMortgage);
-                    }
-                    prjProjectLeaseItemSales.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-                    if (prjProjectLeaseItemSales.getSalesId()!=null){
-                        projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
-                    }else{
-                        projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
-                    }
-                    prjProjectLeaseItemCondition.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-                    if (prjProjectLeaseItemCondition.getConditionId()!=null){
-                        projectLeaseItemConditionMapper.updateByPrimaryKeySelective(prjProjectLeaseItemCondition);
-                    }else{
-                        projectLeaseItemConditionMapper.insertSelective(prjProjectLeaseItemCondition);
-                    }
-                    prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem1.getProjectLeaseItemId());
-                    if (prjLeaseItemInsurance.getInsuranceId()!=null){
-                        prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
-                    }else{
-                        prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
-                    }
-                    hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster);
-                    hlsCusBpMasterBankAccount.setBpId(hlsCusBpMaster.getBpId());
-                    if (hlsCusBpMasterBankAccount.getBankAccountId()!=null){
-                        hlsCusBpMasterBankAccountMapper.updateByPrimaryKeySelective(hlsCusBpMasterBankAccount);
-                    }else{
-                        hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
-                    }
-                }else{
-                    prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-                    prjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
-                    if (prjQuotation.getQuotationId()!=null){
-                        hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
-                    }else{
-                        hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
-                    }
-                    hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem1);
-                }
-//            }
-
-
-
-
-        //            设置返回状态
-        jsonObject1.put("code","200");
-        jsonObject1.put("message","数据采集成功");
-        return jsonObject1.toJSONString();
+        return hlsCusPrjProjectLeaseItem;
     }
 
     @Override

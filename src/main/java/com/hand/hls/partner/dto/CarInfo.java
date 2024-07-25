@@ -16,13 +16,13 @@ public class CarInfo extends BaseDTO {
     @NotNull(message = "品牌名称不能为空")
     private  String brandName;//品牌名称
 
-    @NotNull(message = "品牌Code不能为空")
+    @NotNull(message = "车系 Code不能为空")
     private  String seriesCode;//车系 Code
 
     @NotNull(message = "车系名称不能为空")
     private  String seriesName;//车系名称
 
-    @NotNull(message = "品牌Code不能为空")
+    @NotNull(message = "车型Code不能为空")
     private  String modelCode;//车型Code
 
     @NotNull(message = "车型名称不能为空")
