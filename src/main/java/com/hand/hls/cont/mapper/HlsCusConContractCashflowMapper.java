@@ -292,4 +292,11 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
      * @return 现金流
      */
     List<HlsCusConContractCashflow> queryAutoDepositCashflowOrderWithoutBlockAmt(HlsCusConContractCashflow cashflow);
+
+    /**
+     * 车辆业务还款计划明细：现金流数据查询
+     * @param cashflow
+     * @return
+     */
+    List<HlsCusConContractCashflow> queryCashflowByContractId(HlsCusConContractCashflow cashflow);
 }

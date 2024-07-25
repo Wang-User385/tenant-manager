@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Author: zhangZiJun
+    Date: 2024/7/24
+    Revision: 1.0
+    Purpose: 
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+
+    <a:view>
+
+        <a:link id="hls_payment_plan_detail_link_id"
+                url="${/request/@context_path}/modules/CONT/PLAN/PLAN001/hls_payment_plan_detail.lview"/>
+
+        <script><![CDATA[
+
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_hls_link_render_record'][record.id + '---' + name] = record;
+            if (name == 'contract_number') {
+                return '<a href="javascript:open_review_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        function open_review_detail_win(record_id, ds_id) {
+            debugger;
+            var ds = $(ds_id);
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['maintain_type'] = 'UPDATE';
+            param['function_usage'] = 'MODIFY';
+            param['url_title'] = '车辆业务还款计划明细';
+            param['function_code'] = 'PLAN001F1';
+            param['winid'] = 'review_detail_winid';
+            hls_doc_get_layout_code(param, 'hls_payment_plan_detail_link_id', ds_id, 'PLAN001');
+        };
+
+
+        //查询时调用(grid,table,gridBox)
+        var load_flag = 1
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            if (ds_id == ds.id) {
+                qpara['created_by'] = '${/session/@user_id}';
+            }
+        };
+
+
+        ]]>
+        </script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

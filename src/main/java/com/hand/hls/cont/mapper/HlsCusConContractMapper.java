@@ -174,4 +174,9 @@ public interface HlsCusConContractMapper extends Mapper<HlsCusConContract> {
     List<HlsCusConContract> findAttachContact(HlsCusConContract hlsCusConContract);
     List<HlsCusConContract> findAttachMortgage(HlsCusConContract hlsCusConContract);
 
+    /**
+     * 车辆还款计划首页数据查询
+     */
+    List<HlsCusConContract> findContractByPayPlan(HlsCusConContract hlsCusConContract);
+
 }

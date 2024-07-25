@@ -8995,4 +8995,39 @@ and con.contract_status in
             when ccc.cf_item = 8 then 5
         end asc, ccc.due_date desc, ccc.times desc
     </select>
+
+
+
+    <select id="queryCashflowByContractId" resultMap="BaseResultMap">
+        SELECT
+            ccc.CASHFLOW_ID,
+            ccc.CONTRACT_ID,
+            ccc.times,
+            ccc.cf_direction,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'HLS.CASHFLOW_DIRECTION' AND sc.CODE_VALUE=ccc.cf_direction ) cf_direction_n,
+            ccc.cf_item,
+            (select h.description from hls_cashflow_item h where h.cf_item = ccc.cf_item)cf_item_n,
+            ccc.due_date,
+            ccc.due_amount,
+            ccc.principal,
+            ccc.interest,
+            (SELECT ccc.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW ccc WHERE ccc.cf_item=9 AND ccc.times=times and ccc.contract_id = ccc.contract_id) penalty,
+            ccc.received_amount,
+            ccc.received_principal,
+            ccc.received_interest,
+            (SELECT ccc.received_amount FROM CON_CONTRACT_CASHFLOW ccc WHERE ccc.cf_item=9 AND ccc.times=times and ccc.contract_id = ccc.contract_id) received_penalty_amount,
+            ccc.due_amount-NVL(ccc.received_amount, 0) unreceived_amount,
+            ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) unreceived_principal,
+            ccc.INTEREST-NVL(ccc.RECEIVED_INTEREST, 0) unreceived_interest,
+            (SELECT ccc.due_amount-NVL(ccc.received_amount, 0) FROM CON_CONTRACT_CASHFLOW ccc WHERE ccc.cf_item=9 AND ccc.times=times and ccc.contract_id = ccc.contract_id)unreceived_penalty_amount,
+            ccc.write_off_flag,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG' AND sc.CODE_VALUE=ccc.write_off_flag ) write_off_flag_n,
+            ccc.outstanding_principal,
+            ccc.overdue_status,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'INV.YES_OR_NO' AND sc.CODE_VALUE=ccc.overdue_status)  overdue_status_n,
+            ccc.overdue_max_days
+        FROM CON_CONTRACT_CASHFLOW ccc
+        WHERE ccc.CONTRACT_ID=#{contractId}
+        order by ccc.contract_id,ccc.cf_item,ccc.times
+    </select>
 </mapper>

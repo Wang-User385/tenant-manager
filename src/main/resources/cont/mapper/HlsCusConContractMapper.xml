@@ -11508,6 +11508,83 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             cca.contract_attachment_category ='MORTGAGE' and cca.contract_id = #{contractId}
     </select>
 
+    <select id="findContractByPayPlan"  resultMap="BaseResultMap" parameterType="com.hand.hls.prj.dto.HlsCusPrjProject">
+        SELECT t.* from(
+        SELECT
+        cc.PROJECT_ID,
+        cc.contract_id,
+        cc.CONTRACT_NUMBER,
+        (
+        SELECT description FROM hls_document_type hdt WHERE hdt.document_category = cc.document_category AND
+        hdt.business_type = cc.business_type
+        AND hdt.document_category = 'PRJ_PROJECT'
+        ) document_type_n,
+        (select m.bp_name from hls_bp_master m where m.bp_id = cc.manufacturer_id) manufacturer_id_n,
+        (select m.bp_name from hls_bp_master m where m.bp_id = cc.bp_id_tenant ) bp_id_tenant_n,
+        ( SELECT bt.description FROM hls_business_type bt WHERE bt.DOCUMENT_CATEGORY='CON_CONTRACT' AND
+        bt.business_type=cc.business_type ) business_type_n,
+        cc.division,
+        (SELECT d.description FROM hls_division d WHERE d.division = pp.division ) division_n,
+        (SELECT fe.NAME FROM FND_EMPLOYEE fe WHERE fe.EMPLOYEE_ID = pp.EMPLOYEE_ID ) employee_id_n,
+        ( SELECT u.unit_name FROM fnd_org_unit u WHERE u.unit_id = pp.unit_id ) unit_id_n,
+        (
+        SELECT
+        h.actual_pay_date
+        FROM
+        csh_payment_req_hd h,
+        csh_payment_req_ln l,
+        con_contract_cashflow cf
+        WHERE
+        h.payment_req_id = l.payment_req_id
+        AND l.source_doc_category = 'CON_CONTRACT'
+        AND l.source_doc_id = cf.contract_id
+        AND l.source_doc_line_id = cf.cashflow_id
+        AND cf.contract_id = cc.contract_id
+        ) actual_pay_date,
+        cc.contract_status,
+        (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.CONTRACT_STATUS' AND
+        sc.CODE_VALUE=cc.contract_status ) contract_status_n,
+        (select lease_times from prj_quotation q where q.source_document_category = 'CON_CONTRACT' and
+        q.source_document_id=cc.contract_id) lease_times,
+        (select finance_amount from prj_quotation q where source_document_category = 'CON_CONTRACT' and
+        q.source_document_id = cc.contract_id)finance_amount,
+        (select sum(nvl(ccc.DUE_AMOUNT, 0)) from con_contract_cashflow ccc where ccc.contract_id =cc.contract_id and
+        ccc.CF_ITEM = 1) total_rental_amount,
+        cc.lease_end_date,
+        (SELECT SUM(ccc.due_amount-nvl(ccc.received_amount,0)) FROM CON_CONTRACT_CASHFLOW ccc WHERE
+        ccc.contract_id=cc.contract_id and ccc.CF_ITEM=1) remain_rental_amount,
+        (SELECT SUM(ccc.principal-nvl(ccc.received_principal,0)) FROM CON_CONTRACT_CASHFLOW ccc WHERE
+        ccc.contract_id=cc.contract_id and ccc.CF_ITEM=1) remain_principal,
+        (CASE WHEN (SELECT count(1) FROM con_contract_cashflow cf WHERE cf.contract_id = cc.contract_id
+        AND cf.cf_item = 1 AND trunc( cf.due_date ) &lt; trunc( SYSDATE ) AND cf.due_amount - nvl( cf.received_amount, 0
+        ) > 0
+        ) > 0 THEN 'Y' ELSE 'N' END) current_overdue_status,
+        (CASE WHEN (SELECT count(1) FROM con_contract_cashflow cf WHERE cf.contract_id = cc.contract_id
+        AND cf.cf_item = 1 AND nvl(cf.overdue_status,'N') = 'Y' ) > 0 THEN '是' ELSE '否' END)history_overdue_status,
+        (SELECT MAX(cf.overdue_max_days) FROM con_contract_cashflow cf WHERE cf.contract_id = cc.contract_id AND
+        cf.cf_item = 1) overdue_max_days,
+        (SELECT sum(DUE_AMOUNT) FROM CON_CONTRACT_CASHFLOW WHERE TIMES=9 AND CONTRACT_ID=cc.contract_id)penalty
+        FROM con_contract cc
+        LEFT JOIN prj_project pp ON cc.project_id = pp.project_id
+        ) t
+        <where>
+            1=1
+            <if test="contractNumber != null">
+                and t.contract_number like concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="contractStatus != null">
+                and t.contract_status = #{contractStatus}
+            </if>
+            <if test="currentOverdueStatus != null">
+                and t.current_overdue_status = #{currentOverdueStatus}
+            </if>
+            <if test="changeType != null">
+                and t.change_type = #{changeType}
+            </if>
+        </where>
+        order by t.contract_id desc
+    </select>
+
 
 
 
