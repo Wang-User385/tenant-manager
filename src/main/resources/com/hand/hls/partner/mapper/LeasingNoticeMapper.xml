@@ -109,14 +109,13 @@
         TO_CHAR(SYSDATE,'yyyy-mm-dd') AS trialTime,
         NVL(SUM(ccc.PRINCIPAL), 0)*100 AS principal,
         NVL(SUM(ccc.INTEREST), 0)*100 AS interest,
-        NVL(SUM(cf.DUE_AMOUNT), 0)*100 AS penalty,
+        0 AS penalty,
         (SELECT NVL(cf1.DUE_AMOUNT, 0)*100 FROM CON_CONTRACT_CASHFLOW cf1 WHERE cf1.CONTRACT_ID = cc.CONTRACT_ID AND cf1.CF_ITEM=8) AS otherFee,
-        NVL(SUM(ccc.DUE_AMOUNT), 0)*100 + NVL(SUM(cf.DUE_AMOUNT), 0) *100 AS payableAmount
+        NVL(SUM(ccc.DUE_AMOUNT), 0)*100  AS payableAmount
         FROM CON_CONTRACT_CASHFLOW ccc
         INNER JOIN CON_CONTRACT cc ON ccc.CONTRACT_ID = cc.CONTRACT_ID
         INNER JOIN hls_penalty_profile_dtl hppd ON hppd.penalty_profile = cc.penalty_profile
         INNER JOIN PRJ_PROJECT pp ON cc.project_id = pp.project_id
-        LEFT JOIN CON_CONTRACT_CASHFLOW cf  ON cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID AND cf.CF_ITEM=9
         WHERE hppd.enabled_flag = 'Y'
         AND cc.contract_status = 'INCEPT'
         AND cc.data_class = 'NORMAL'
