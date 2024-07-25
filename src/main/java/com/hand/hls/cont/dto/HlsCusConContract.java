@@ -398,6 +398,8 @@ public class HlsCusConContract extends ConContract {
     private String purPostFlag;
     private String purStampDutyAccruedAmount;
 
+    private Long mortgageInstanceId;
+
 
     private String printStatus;
 
