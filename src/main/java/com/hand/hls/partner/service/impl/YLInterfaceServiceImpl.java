@@ -938,7 +938,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         //有无共同承租人
         if ("1".equals(preRiskAuditData.getIscop())){
-            HlsCusBpMaster hlsCusBpMaster2 = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
+            List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
+            HlsCusBpMaster hlsCusBpMaster2 = null;
+            if (hlsCusBpMasters.size()>0){
+                hlsCusBpMaster2 = hlsCusBpMasters.get(0);
+            }
             if (hlsCusBpMaster2==null){
                 HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
                 HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
@@ -1042,8 +1046,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //有无担保人
         if ("1".equals(preRiskAuditData.getIssureor())){
             //首先判断数据库有没有该担保人
-            HlsCusBpMaster hlsCusBpMaster1 = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
-
+            List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
+            HlsCusBpMaster hlsCusBpMaster1 = null;
+            if (hlsCusBpMasters.size()>0){
+                hlsCusBpMaster1 = hlsCusBpMasters.get(0);
+            }
             if (hlsCusBpMaster1==null){
                 HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
                 HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
