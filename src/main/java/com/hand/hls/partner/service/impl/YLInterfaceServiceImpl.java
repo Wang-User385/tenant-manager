@@ -134,8 +134,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //如果不存在，就新增
         HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
         HlsBpMasterRole hlsBpMasterRole = null;
-        HlsCusBpMaster bpMaster = hlsCusBpMasterMapper.selectMasterByIdCardNo(placeOrderDTO.getIdCardNo());
-        if (bpMaster==null){
+        HlsCusBpMaster bpMaster = null;;
+        List<HlsCusBpMaster> bpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(placeOrderDTO.getIdCardNo());
+        if (bpMasters.size()==0){
             bpMaster = new HlsCusBpMaster();
             hlsBpMasterRole = new HlsBpMasterRole();
             Map<String, String> params = new HashMap<String, String>();
@@ -172,6 +173,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
 
         }else{
+            bpMaster = bpMasters.get(0);
             if (!placeOrderDTO.getName().equals(bpMaster.getBpName())){
                 bpMaster.setBpName(placeOrderDTO.getName());
             }
@@ -188,6 +190,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 }
             }
             if (!flag){
+                hlsBpMasterRole = new HlsBpMasterRole();
                 hlsBpMasterRole.setBpId(bpMaster.getBpId());
                 hlsBpMasterRole.setBpType("TENANT");
                 hlsBpMasterRole.setBpCategory("TENANT");
@@ -824,9 +827,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     //有无担保人
                     if ("1".equals(preRiskAuditData.getIssureor())){
                         //首先判断数据库有没有该担保人
-                        HlsCusBpMaster hlsCusBpMaster1 = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
+                        HlsCusBpMaster hlsCusBpMaster1 = null;
+                        List<HlsCusBpMaster> hlsCusBpMaster1s = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
 
-                        if (hlsCusBpMaster1==null){
+                        if (hlsCusBpMaster1s.size()==0){
                             HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
                             hlsCusBpMaster1 = new HlsCusBpMaster();
                             //担保人姓名
@@ -852,6 +856,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                             hlsCusPrjProjectBp.setRefV02("GUARANTOR");
                             hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
                         }else{
+                            hlsCusBpMaster1 = hlsCusBpMaster1s.get(0);
                             HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectProjectBpByBpId(hlsCusBpMaster1.getBpId());
                             //担保人姓名
                             hlsCusBpMaster1.setBpName(preRiskAuditData.getSurename());
@@ -883,8 +888,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     }
                     //有无共同承租人
                     if ("1".equals(preRiskAuditData.getIscop())){
-                        HlsCusBpMaster hlsCusBpMaster2 = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
-                        if (hlsCusBpMaster2==null){
+                        HlsCusBpMaster hlsCusBpMaster2 = null;
+                        List<HlsCusBpMaster> hlsCusBpMaster2s = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
+                        if (hlsCusBpMaster2s.size()==0){
                             HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
                             hlsCusBpMaster2 = new HlsCusBpMaster();
                             //共同借款人姓名
@@ -918,6 +924,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                             hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
                             hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
                         }else{
+                            hlsCusBpMaster2 = hlsCusBpMaster2s.get(0);
                             HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectProjectBpByBpId(hlsCusBpMaster2.getBpId());
                             //共同借款人姓名
                             hlsCusBpMaster2.setBpName(preRiskAuditData.getConame());
