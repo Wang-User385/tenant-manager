@@ -11,6 +11,10 @@ import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterRoleMapper;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
+import com.hand.hls.cont.service.IConContractCashflowService;
+import com.hand.hls.csh.dto.HlsCusCshWriteOff;
+import com.hand.hls.csh.service.CshTransactionService;
+import com.hand.hls.csh.service.CshWriteOffService;
 import com.hand.hls.partner.service.IPrjQuotationCalcService;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.bp.dto.HlsBpSpouse;
@@ -44,6 +48,11 @@ import javax.servlet.http.HttpServletRequest;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.hand.hls.sys.utils.OracleUtils.nvl;
+import static com.hand.hls.utils.HlsCusMathUtil.add;
+import static com.hand.hls.utils.HlsCusMathUtil.sub;
 
 @Service
 public class YLInterfaceServiceImpl implements YLInterfaceService {
@@ -96,6 +105,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsCusConContractCashflowMapper conContractCashflowMapper;
     @Autowired
     private IPrjQuotationCalcService prjQuotationCalcService;
+    @Autowired
+    FndCodingRuleValuesService codingRuleValuesService;
+    @Autowired
+    private CshTransactionService cshTransactionService;
+    @Autowired
+    private CshWriteOffService cshWriteOffService;
+    @Autowired
+    private IConContractCashflowService cashflowService;
 
     private static final HashMap<String, HashMap<String,String>> fileTypeMap = new HashMap<String, HashMap<String,String>>();
     private static void putData(String fileType,String documentName,String projectAttachmentCategory){
@@ -446,7 +463,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //根据订单编号和期次获取需要代偿的现金流数据
         HlsCusConContractCashflow conContractCashflow = conContractCashflowMapper.queryClaimsSubrogation(claimsSubrogationDTO);
 
-        if (!ObjectUtils.isEmpty(conContractCashflow)){
+        if (ObjectUtils.isEmpty(conContractCashflow)){
             jsonObject1.put("code","400");
             jsonObject1.put("message","代偿数据不存在");
             return jsonObject1.toJSONString();
@@ -460,7 +477,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         /*for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
             if (hlsCusCshTransaction.getTermNo().equals(claimsSubrogationDTO.getTermNo())){
                 hlsCusCshTransaction.setRepayAmount(claimsSubrogationDTO.getSubstituteAmount());
-                hlsCusCshTransaction.setPaymentMethod("代偿");
+                hlsCusCshTransaction.setPaymentMethod("COMP");
                 hlsCusCshTransactionMapper.insertSelective(hlsCusCshTransaction);
             }
         }*/
@@ -468,7 +485,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         //            设置返回状态
         jsonObject1.put("code","200");
-        jsonObject1.put("message","还款成功");
+        jsonObject1.put("message","成功");
         return jsonObject1.toJSONString();
     }
 
@@ -1487,22 +1504,156 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号查询数据
+        //根据订单编号和日期查询出到期日期
+        Date dueDate = conContractCashflowMapper.queryDueDate(overdueRepurchaseTrialCalculationDTO.getOrderNo(),overdueRepurchaseTrialCalculationDTO.getTrialTime());
+
+
+        //查询出需要回购的现金流数据
+        List<HlsCusConContractCashflow> queryUnReceivedByOrderNoList = conContractCashflowMapper.queryUnReceivedByOrderNo(overdueRepurchaseTrialCalculationDTO.getOrderNo(),dueDate);
+
+
+        if (ObjectUtils.isEmpty(queryUnReceivedByOrderNoList)){
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","回购现金流数据不存在");
+            return jsonObject1.toJSONString();
+        }
+
+
+        Double deductAmount = 0.00;  //抵扣金额
+        Double payableAmount = 0.00;  //应付金额
+        Double principal = 0.00; //总本金
+        Double interest = 0.00; //总利息
+        List<Integer> termNos = new ArrayList<>();  //期次信息
+        List<Integer> deductNos = new ArrayList<>(); //抵扣期次
+
+        for (HlsCusConContractCashflow c : queryUnReceivedByOrderNoList) {
+            termNos.add(c.getTimes().intValue());
+            payableAmount = payableAmount + (c.getDueAmount()-c.getReceivedAmount());
+            principal = principal+ (c.getPrincipal()-c.getReceivedPrincipal());
+            interest = interest + (c.getInterest()-c.getReceivedInterest());
+            if (null != c.getPlanType() && "COMP".equals(c.getPlanType()) && c.getReceivedCompAmount()>0) {
+                deductAmount = deductAmount + c.getReceivedCompAmount();
+                payableAmount = payableAmount - c.getReceivedCompAmount();
+                principal = principal - c.getPrincipal();
+                interest = interest - c.getInterest();
+                deductNos.add(c.getTimes().intValue());
+            }
+            if (c.getDueDate().equals(dueDate)) {
+                payableAmount = payableAmount+c.getOutstandingPrincipal();
+                principal = principal+c.getOutstandingPrincipal();
+            }
+
+        }
+        //试算数据封装：
+        OverdueRepurchaseTrialCalculationDTO trialCalculationDTO = new OverdueRepurchaseTrialCalculationDTO();
+        trialCalculationDTO.setOrderNo(overdueRepurchaseTrialCalculationDTO.getOrderNo());
+        trialCalculationDTO.setPayableAmount((long) (payableAmount*100));
+        trialCalculationDTO.setDeductAmount((long)(deductAmount*100));
+        trialCalculationDTO.setTrialTime(overdueRepurchaseTrialCalculationDTO.getTrialTime());
+        trialCalculationDTO.setTermNos(termNos);
+        trialCalculationDTO.setDeductNos(deductNos);
+        trialCalculationDTO.setPrincipal((long) (principal*100));
+        trialCalculationDTO.setInterest((long) (interest*100));
+        trialCalculationDTO.setPenalty(0L);
+        trialCalculationDTO.setOtherFee(0L);
+
 
 
         //            设置返回状态
         jsonObject1.put("code","200");
         jsonObject1.put("message","试算成功");
+        jsonObject1.put("result",trialCalculationDTO);
         return jsonObject1.toJSONString();
     }
 
     @Override
-    public String overdueRepurchaseRequest(String decryptedStr){
+    public String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest){
         OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseRequestDTO.class);
 
 
         JSONObject jsonObject1 = new JSONObject();
+        Date date = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String dateString = sdf.format(date);
+        //根据订单编号和日期查询出到期日期
+        Date dueDate = conContractCashflowMapper.queryDueDate(overdueRepurchaseRequestDTO.getOrderNo(),dateString);
 
-        //将数据入库
+        //查询出需要回购的现金流数据
+        List<HlsCusConContractCashflow> queryUnReceivedByOrderNoList = conContractCashflowMapper.queryUnReceivedByOrderNo(overdueRepurchaseRequestDTO.getOrderNo(),dueDate);
+
+
+        if (ObjectUtils.isEmpty(queryUnReceivedByOrderNoList)){
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","回购现金流数据不存在");
+            return jsonObject1.toJSONString();
+        }
+
+
+        Double payableAmount = 0.00;  //应付金额
+        Double principal = 0.00; //本金
+        Double interest = 0.00; //利息
+        List<HlsCusConContractCashflow> writeOffList = new ArrayList<>(); //需要自动核销为租金的代偿数据
+        HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow();
+        for (HlsCusConContractCashflow c : queryUnReceivedByOrderNoList) {
+            payableAmount = payableAmount + (c.getDueAmount()-c.getReceivedAmount());
+            principal = principal+ (c.getPrincipal()-c.getReceivedPrincipal());
+            interest = interest + (c.getInterest()-c.getReceivedInterest());
+            if (null != c.getPlanType() && "COMP".equals(c.getPlanType()) && c.getReceivedCompAmount()>0) {
+                payableAmount = payableAmount - c.getReceivedCompAmount();
+                principal = principal - c.getPrincipal();
+                interest = interest - c.getInterest();
+                writeOffList.add(c);
+            }
+            if (c.getDueDate().equals(dueDate)) {
+                payableAmount = payableAmount+c.getOutstandingPrincipal();
+                principal = principal+c.getOutstandingPrincipal();
+                conContractCashflow.setContractId(c.getContractId());
+                conContractCashflow.setQuotationId(c.getQuotationId());
+                conContractCashflow.setCfItem(c.getCfItem());
+                conContractCashflow.setCfType(c.getCfType());
+                conContractCashflow.setCfDirection(c.getCfDirection());
+                conContractCashflow.setCfStatus("RELEASE");
+                conContractCashflow.setTimes(c.getTimes());
+            }
+        }
+        conContractCashflow.setDueDate(date);
+        conContractCashflow.setCalcDate(date);
+        conContractCashflow.setFinIncomeDate(date);
+        conContractCashflow.setDueAmount(payableAmount);
+        conContractCashflow.setPrincipal(principal);
+        conContractCashflow.setInterest(interest);
+        conContractCashflow.setOutstandingPrincipal(0.0);
+        conContractCashflow.setPlanType("REPO");
+        this.conContractCashflowMapper.insertSelective(conContractCashflow);
+
+        //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
+        conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
+
+        //已收代偿自动核销为租金
+        for (HlsCusConContractCashflow cc : writeOffList) {
+            //构造现金事务
+            HlsCusCshTransaction hlsCusCshTransaction = new HlsCusCshTransaction();
+            hlsCusCshTransaction.setTransactionType("RECEIPT");//收款现金事务
+            hlsCusCshTransaction.setBusinessType("RECEIPT");
+            hlsCusCshTransaction.setTransactionAmount(cc.getDueAmount());
+            hlsCusCshTransaction.setCurrencyCode("CNY");
+            hlsCusCshTransaction.setCreationDate(new Date());
+            hlsCusCshTransaction = setCshTransaction(iRequest, hlsCusCshTransaction);
+            cshTransactionService.insertSelective(iRequest, hlsCusCshTransaction);
+
+            //核销
+            HlsCusCshWriteOff cshWriteOff = new HlsCusCshWriteOff();
+            cshWriteOff.setCshWriteOffAmount(cc.getDueAmount());
+            cshWriteOff.setWriteOffDueAmount(cc.getDueAmount());
+            cshWriteOff.setWriteOffPrincipal(cc.getPrincipal());
+            cshWriteOff.setWriteOffInterest(cc.getInterest());
+            cshWriteOff.setCompanyId(iRequest.getCompanyId());
+            cshWriteOff.setCreationDate(new Date());
+            cshWriteOff = setCshWriteOff(cc, cshWriteOff, hlsCusCshTransaction.getTransactionId(), "RECEIPT_CREDIT");
+            cshWriteOff = cshWriteOffService.insertSelective(iRequest, cshWriteOff);
+            //现金流核销
+            updateCashflow(iRequest,cshWriteOff);
+        }
 
 
         //            设置返回状态
@@ -1850,4 +2001,71 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         resJson.put("message","成功");
         return JSONObject.toJSONString(resJson);
     }
+
+    /**
+     * @Title: setCshTransaction
+     * @Discription: 构建现金事务
+     * @Param: [requestCtx, hlsCusCshTransaction]
+     * @Return: com.hand.hls.csh.dto.HlsCusCshTransaction
+     */
+    private HlsCusCshTransaction setCshTransaction(IRequest requestCtx, HlsCusCshTransaction hlsCusCshTransaction) {
+
+        hlsCusCshTransaction.setTransactionCategory("CSH_TRANSACTION");
+        hlsCusCshTransaction.setTransactionNum(codingRuleValuesService.getCodeRuleValue(requestCtx, hlsCusCshTransaction.getTransactionCategory(),
+                "PAYMENT", "PAYMENT", null));
+        hlsCusCshTransaction.setTransactionDate(getAfterMonth(new Date(),0));
+        hlsCusCshTransaction.setPenaltyCalcDate(getAfterMonth(new Date(),0));
+        hlsCusCshTransaction.setCompanyId(requestCtx.getCompanyId());
+        hlsCusCshTransaction.setReversedFlag("N");
+        hlsCusCshTransaction.setPostedFlag("N");
+        hlsCusCshTransaction.setWriteOffFlag("NOT");
+//        hlsCusCshTransaction.setBankAccountId(deposit.getBankAccountId());
+//        hlsCusCshTransaction.setBpBankAccountId(deposit.getBpBankAccountId());
+
+        return hlsCusCshTransaction;
+    }
+
+    /*获取inputDate日期number个月之后的日期*/
+    private static Date getAfterMonth(Date inputDate, int number) {
+        Calendar c = Calendar.getInstance();//获得一个日历的实例
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        c.setTime(inputDate);//设置日历时间
+        c.add(Calendar.MONTH, number);//在日历的月份上增加6个月
+        return c.getTime();
+    }
+
+    /**
+     * @Title: setCshWriteOff
+     * @Discription: 构建核销事务
+     * @Param: [ln, cshWriteOff, cshTransactionId, writeOffType]
+     * @Return: com.hand.hls.csh.dto.HlsCusCshWriteOff
+     */
+    private HlsCusCshWriteOff setCshWriteOff(HlsCusConContractCashflow ln, HlsCusCshWriteOff cshWriteOff, Long cshTransactionId, String writeOffType){
+
+        cshWriteOff.setWriteOffType(writeOffType);
+        cshWriteOff.setWriteOffDate(getAfterMonth(new Date(),0));
+        cshWriteOff.setCshTransactionId(cshTransactionId);
+        cshWriteOff.setReversedFlag("N");
+        cshWriteOff.setCashflowId(ln.getCashflowId());
+        cshWriteOff.setContractId(ln.getContractId());
+        cshWriteOff.setTimes(ln.getTimes());
+        cshWriteOff.setCfItem(ln.getCfItem());
+        cshWriteOff.setCfType(ln.getCfType());
+        cshWriteOff.setWriteOffDocCategory("CON_CONTRACT");
+        cshWriteOff.setImportFlag("N");
+        cshWriteOff.setFirstLeasePayFlag("N");
+
+        return cshWriteOff;
+    }
+    //更新现金流
+    private void updateCashflow(IRequest requestCtx, HlsCusCshWriteOff cshWriteOff) {
+        HlsCusConContractCashflow cashflow = conContractCashflowMapper.selectByPrimaryKey(cshWriteOff.getCashflowId());
+        cashflow.setReceivedAmount(cshWriteOff.getWriteOffDueAmount());
+        cashflow.setReceivedPrincipal(nvl(cshWriteOff.getWriteOffPrincipal(), 0.0));
+        cashflow.setReceivedInterest(nvl(cshWriteOff.getWriteOffInterest(), 0.0));
+        cashflow.setWriteOffFlag("FULL");
+        cashflowService.updateByPrimaryKeySelective(requestCtx, cashflow);
+    }
+
+
 }
