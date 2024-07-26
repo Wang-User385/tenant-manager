@@ -8,11 +8,11 @@ import lombok.Data;
 @Data
 public class RepayPlanRepaidNotifyDto {
     private String termNo; //期次号
-    private Double principal; //本金
-    private Double interest; //利息
-    private Double penalty; //罚息
-    private Double otherFee;  //其他费用
-    private Double total; //总金额
+    private Long principal; //本金
+    private Long interest; //利息
+    private Long penalty; //罚息
+    private Long otherFee;  //其他费用
+    private Long total; //总金额
     private String transactionNo; //结算单号
     private String externalDeductNo; //代扣交易单号
 }
