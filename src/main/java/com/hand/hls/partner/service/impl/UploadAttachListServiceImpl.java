@@ -6,6 +6,8 @@ import com.hand.hap.system.service.impl.BaseServiceImpl;
 import com.hand.hls.atm.service.IFndAttachmentService;
 import com.hand.hls.partner.mapper.UploadAttachListMapper;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,7 +25,7 @@ import java.util.*;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class UploadAttachListServiceImpl extends BaseServiceImpl<UploadAttachList> implements IUploadAttachListService{
-
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
     @Autowired
     private IHlsWsRequestsService logService;
     @Value("${file.upload.dir}")
@@ -69,7 +71,9 @@ public class UploadAttachListServiceImpl extends BaseServiceImpl<UploadAttachLis
         }
         //存储附件
         String filename = file.getOriginalFilename();
-        String path = this.savePath + "/" + fileId;
+        //String path = this.savePath + "/" + fileId;
+        String path = "/u01/hls_attachment/" + fileId;//linux系统路径问题，先暂时写死地址
+        logger.info("附件地址：" + path);
         try {
             File dest = new File(path); // 创建目标文件对象
             file.transferTo(dest); // 将上传的文件保存到目标位置
