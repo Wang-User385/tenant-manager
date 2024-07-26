@@ -7,36 +7,26 @@
 
         <script><![CDATA[
 
+
+
         //查询时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
             debugger;
-            var order_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_order', 'T_OREDE_G');
-            if (ds.id == order_ds_id) {
-                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_business_condition');
-                // console.log($(ds_id).getCurrentRecord().get('condition_id'));
-                var condition_id = '${/parameter/@condition_id}';
-                if (!condition_id){
-                    condition_id = $(ds_id).getCurrentRecord().get('condition_id');
-                }
-                $(order_ds_id).setQueryParameter("condition_id", '${/parameter/@condition_id}');
-                // $(order_ds_id).query();
+            var condition_id = '${/parameter/@condition_id}';
+            var bp_id = '${/parameter/@bp_id}';
+            if (!condition_id && bp_id){
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/get/conditionId?bpId=' + bp_id,
+                    success: function (res) {
+                        condition_id = res.result.record[0];
+                    },
+                    sync: true
+                });
             }
+            $(ds.id).setQueryParameter('condition_id',parseInt(condition_id));
         };
 
 
-        // 保存前调用
-        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
-            // window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
-            debugger;
-            var check_flag = true;
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_business_condition');
-            $(ds_id).getCurrentRecord().set('bp_id', '${/parameter/@bp_id}');
-            var order_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_order', 'T_OREDE_G');
-            if (ds.id ==order_ds_id ){
-                $(order_ds_id).getCurrentRecord().set('condition_id',$(ds_id).getCurrentRecord().get("condition_id"));
-            }
-            return check_flag;
-        };
         //保存成功调用
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
             debugger;
@@ -50,27 +40,108 @@
             var ds_id6 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_tax');
             var record_con = $(ds_id).getCurrentRecord();
             var record_order = $(ds_id3).getCurrentRecord();
-            if (record_con && record_order){
-                var condition_id = record_con.get('condition_id');
+            if (record_con){
+                var condition_id = parseInt(record_con.get('condition_id'));
                 var order_id = record_order.get('order_id');
-                Leaf.request({
-                    url: '${/request/@context_path}/hls/update?conditionId='+condition_id +'&orderId=' + order_id,
-                    success: function (res) {
+                var bp_id = '${/parameter/@bp_id}';
+                if (record_order && condition_id && order_id){
+                    Leaf.request({
+                        url: '${/request/@context_path}/hls/update?conditionId='+condition_id +'&orderId=' + order_id,
+                        success: function (res) {
 
-                    },
-                    sync: true
-                });
+                        },
+                        sync: true
+                    });
+                }
+                if (condition_id){
+                    Leaf.request({
+                        url: '${/request/@context_path}/hls/update/condition?conditionId='+condition_id +'&bpId=' + bp_id,
+                        success: function (res) {
+
+                        },
+                        sync: true
+                    });
+                }
+            }
+            // var record_con1 = $(ds_id).getCurrentRecord();
+            // var  condition_con_id = parseInt(record_con1.get('condition_id'));
+            // $(ds_id).setQueryParameter("condition_id", condition_con_id);
+            // $(ds_id1).setQueryParameter("condition_id", condition_con_id);
+            // $(ds_id2).setQueryParameter("condition_id", condition_con_id);
+            // $(ds_id3).setQueryParameter("condition_id", condition_con_id);
+            // $(ds_id4).setQueryParameter("condition_id", condition_con_id);
+            // $(ds_id5).setQueryParameter("condition_id", condition_con_id);
+            // $(ds_id6).setQueryParameter("condition_id", condition_con_id);
+            // $(ds_id).query();
+            // $(ds_id1).query();
+            // $(ds_id2).query();
+            // $(ds_id3).query();
+            // $(ds_id4).query();
+            // $(ds_id5).query();
+            // $(ds_id6).query();
+        };
+
+        //保存逻辑覆写
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            //忽略保存校验方法
+            var root_ds=$('${/parameter/@bp_seq}${/parameter/@layout_code}_virtual_ds');
+            var before_flag= before_submit();
+            if(before_flag){
+                var winid = '${/parameter/@winid}';
+                var root_record = root_ds.getCurrentRecord();
+                root_ds.setSubmitParameter('layout_code', '${/parameter/@layout_code}');
+                function ON_LAYOUT_DYNAMIC_BEFORE_SAVE(){
+
+                    root_ds.un('beforesubmit',ON_LAYOUT_DYNAMIC_BEFORE_SAVE);
+                    var flag = false;
+                    for (var name in root_record.data) {
+                        if (root_record.data[name].data[0].ds && root_record.data[name].data[0].ds instanceof $L.DataSet) {
+                            var current_record = root_record.data[name].data[0].ds.getCurrentRecord();
+                            flag = window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'](root_record.data[name].data[0].ds, current_record);
+                        }
+                    }
+                    if(!flag){
+                        UN_SUBMIT_REF_FUNCTION();
+                    }
+                    return flag;
+                }
+
+                function UN_SUBMIT_REF_FUNCTION(){
+                    root_ds.un('submitsuccess', ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS);
+                    root_ds.un('submitfailed', ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED);
+                    root_ds.un('submiterror', ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR);
+                }
+
+                function ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS(ds, res) {
+                    UN_SUBMIT_REF_FUNCTION();
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'](ds,root_record,res);
+                    if (typeof(nextStep) == 'function') {
+                        nextStep(ds);
+                    }
+                }
+                function ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED(){
+                    UN_SUBMIT_REF_FUNCTION();
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                }
+                function ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR(){
+                    UN_SUBMIT_REF_FUNCTION();
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                }
+                root_ds.on('beforesubmit',ON_LAYOUT_DYNAMIC_BEFORE_SAVE);
+                root_ds.on('submitsuccess', ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS);
+                root_ds.on('submitfailed', ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED);
+                root_ds.on('submiterror', ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR);
+
+                root_ds.doNewSubmit(null,root_ds.getJsonData());
+            }
+            else{
+                window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             }
 
-
-            $(ds_id).query();
-            $(ds_id1).query();
-            $(ds_id2).query();
-            $(ds_id3).query();
-            $(ds_id4).query();
-            $(ds_id5).query();
-            $(ds_id6).query();
-        };
+        }
 
 
         ]]></script>

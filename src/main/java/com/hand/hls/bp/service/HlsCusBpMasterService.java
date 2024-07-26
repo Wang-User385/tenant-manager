@@ -36,4 +36,7 @@ public interface HlsCusBpMasterService extends IBaseService<HlsCusBpMaster>, Pro
 
     void saveOrder(Long conditionId, Long orderId);
 
+    void saveBusinessCondition(Long conditionId, Long bpId);
+
+    List<Long> getConditionId(Long bpId);
 }

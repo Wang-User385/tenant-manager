@@ -11,6 +11,7 @@ import org.hibernate.validator.constraints.NotEmpty;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import java.util.Date;
 
 @ExtensionAttribute(disable = true)
@@ -105,10 +106,45 @@ public class HlsWsRequests extends BaseDTO {
     private String requestJsonEncrypt;
     private String responseJsonEncrypt;
 
+
     private Long createdBy;
     private Long lastUpdatedBy;
     private Date creationDate;
     private Date lastUpdateDate;
+
+    @Transient
+    private Date requestDateFrom;
+    @Transient
+    private Date requestDateTo;
+
+    @Transient
+    private String returnStatusN;
+
+    public String getReturnStatusN() {
+        return returnStatusN;
+    }
+
+    public void setReturnStatusN(String returnStatusN) {
+        this.returnStatusN = returnStatusN;
+    }
+
+
+    public Date getRequestDateFrom() {
+        return requestDateFrom;
+    }
+
+    public void setRequestDateFrom(Date requestDateFrom) {
+        this.requestDateFrom = requestDateFrom;
+    }
+
+    public Date getRequestDateTo() {
+        return requestDateTo;
+    }
+
+    public void setRequestDateTo(Date requestDateTo) {
+        this.requestDateTo = requestDateTo;
+    }
+
 
     public Long getRecordId() {
         return recordId;

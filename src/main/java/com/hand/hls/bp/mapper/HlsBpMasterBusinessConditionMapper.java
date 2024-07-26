@@ -5,5 +5,5 @@ import com.hand.hls.bp.dto.HlsBpMasterBusinessCondition;
 import java.util.List;
 
 public interface HlsBpMasterBusinessConditionMapper extends Mapper<HlsBpMasterBusinessCondition>{
-    List<HlsBpMasterBusinessCondition> queryAllByBpId(HlsBpMasterBusinessCondition hlsBpMasterBusinessCondition);
+    List<HlsBpMasterBusinessCondition> queryAllByConditionId(HlsBpMasterBusinessCondition hlsBpMasterBusinessCondition);
 }

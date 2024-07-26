@@ -20,6 +20,8 @@
         <result column="RESPONSE_JSON" property="responseJson" jdbcType="VARCHAR" />
         <result column="REQUEST_JSON_ENCRYPT" property="requestJsonEncrypt" jdbcType="VARCHAR" />
         <result column="RESPONSE_JSON_ENCRYPT" property="responseJsonEncrypt" jdbcType="VARCHAR" />
+
+        <result column="return_status_n" property="returnStatusN" jdbcType="VARCHAR"/>
     </resultMap>
 
 
@@ -84,6 +86,35 @@
 
 
     </insert>
+
+    <select id="findByHlsWsRequests" resultMap="BaseResultMap">
+        select hwr.request_date,
+               hwr.request_wsdl_url,
+               hwr.function_name,
+               hwr.return_status,
+               hwr.request_json,
+               hwr.response_json,
+               hwr.REQUEST_JSON_ENCRYPT,
+               hwr.RESPONSE_JSON_ENCRYPT,
+        (select sc.meaning
+        from sys_code_value_b_v sc
+        where sc.code = 'HLS.WS.REQUESTS.STATUS' and sc.code_value = hwr.return_status) return_status_n
+        from hls_ws_requests hwr
+        <where>
+            <if test="functionName != null and functionName != ''">
+               and  function_name like concat(concat('%',#{functionName}),'%')
+            </if>
+            <if test="returnStatus != null and returnStatus != ''">
+                and  return_status = #{returnStatus}
+            </if>
+            <if test="requestDateFrom != null">
+                and  request_date  >= to_date(#{requestDateFrom},'yyyy-mm-dd')
+            </if>
+            <if test="requestDateTo != null">
+                and  request_date <![CDATA[ <= ]]> to_date(#{requestDateTo},'yyyy-mm-dd')  + interval '1' day
+            </if>
+        </where>
+    </select>
 
 
 </mapper>
