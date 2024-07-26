@@ -2,12 +2,48 @@
 <a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
-        <!--        <a:link id="bp100_bp_master_modify_id"-->
-        <!--                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>-->
-
         <script><![CDATA[
+        // Leaf.onReady(function() {
+        //     debugger;
+        //     jQuery('#${/parameter/@layout_code}_T_ORDER_FRIST_hls_bp_master_business_condition_ds').hide();
+        //     jQuery('#${/parameter/@layout_code}_T_BANK_FIRST_hls_bp_master_business_condition_ds').hide();
+        //     jQuery('#${/parameter/@layout_code}_T_SALE_FIRST_hls_bp_master_business_condition_ds').hide();
+        //     jQuery('#${/parameter/@layout_code}_T_RP_FIRST_hls_bp_master_business_condition_ds').hide();
+        //     jQuery('#${/parameter/@layout_code}_T_HY_FIRST_hls_bp_master_business_condition_ds').hide();
+        //     jQuery('#${/parameter/@layout_code}_T_TAX_FIRST_hls_bp_master_business_condition_ds').hide();
+        // });
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            debugger;
+            $jq('#${/parameter/@layout_code}_T_ORDER_FRIST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_BANK_FIRST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_SALE_FIRST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_RP_FIRST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_HY_FIRST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_TAX_FIRST_component_id').hide();//隐藏客户信息组件
+
+        };
 
 
+
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function(ds, qpara, bp_seq) {
+            debugger;
+            var condition_id = '${/parameter/@condition_id}';
+            var bp_id = '${/parameter/@bp_id}';
+            if (!condition_id && bp_id){
+                Leaf.request({
+                    url: '${/request/@context_path}/hls/get/conditionId?bpId=' + bp_id,
+                    success: function (res) {
+                        condition_id = res.result.record[0];
+                    },
+                    sync: true
+                });
+            }
+            qpara['condition_id'] = parseInt(condition_id);
+            qpara['bp_id'] = parseInt(bp_id);
+        };
 
         //查询时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
@@ -23,7 +59,8 @@
                     sync: true
                 });
             }
-            $(ds.id).setQueryParameter('condition_id',parseInt(condition_id));
+            qpara['condition_id'] = parseInt(condition_id);
+            // qpara['bp_id'] = parseInt(bp_id);
         };
 
 
@@ -32,12 +69,7 @@
             debugger;
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_business_condition');
-            var ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_bank');
-            var ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_hydropower');
             var ds_id3 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_order');
-            var ds_id4 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_receive_pay');
-            var ds_id5 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_sale');
-            var ds_id6 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_business_condition_tax');
             var record_con = $(ds_id).getCurrentRecord();
             var record_order = $(ds_id3).getCurrentRecord();
             if (record_con){
@@ -63,22 +95,6 @@
                     });
                 }
             }
-            // var record_con1 = $(ds_id).getCurrentRecord();
-            // var  condition_con_id = parseInt(record_con1.get('condition_id'));
-            // $(ds_id).setQueryParameter("condition_id", condition_con_id);
-            // $(ds_id1).setQueryParameter("condition_id", condition_con_id);
-            // $(ds_id2).setQueryParameter("condition_id", condition_con_id);
-            // $(ds_id3).setQueryParameter("condition_id", condition_con_id);
-            // $(ds_id4).setQueryParameter("condition_id", condition_con_id);
-            // $(ds_id5).setQueryParameter("condition_id", condition_con_id);
-            // $(ds_id6).setQueryParameter("condition_id", condition_con_id);
-            // $(ds_id).query();
-            // $(ds_id1).query();
-            // $(ds_id2).query();
-            // $(ds_id3).query();
-            // $(ds_id4).query();
-            // $(ds_id5).query();
-            // $(ds_id6).query();
         };
 
         //保存逻辑覆写

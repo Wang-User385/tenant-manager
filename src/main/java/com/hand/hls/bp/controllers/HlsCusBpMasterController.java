@@ -215,11 +215,12 @@ public class HlsCusBpMasterController extends BaseController {
         return new ResponseData();
     }
 
-    @RequestMapping(value = "/hls/get/conditionId")
+    @RequestMapping({ "/hls/get/conditionId"})
     @ResponseBody
     public ResponseData getConditionId(@RequestParam("bpId")Long bpId) {
         return new ResponseData(service.getConditionId(bpId));
     }
+
 
 
 
