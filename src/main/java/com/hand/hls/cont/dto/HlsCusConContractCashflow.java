@@ -1136,4 +1136,7 @@ public class HlsCusConContractCashflow extends BaseDTO {
 
     private Double refundCompAmount;   //已退代偿金额
 
+    @Transient
+    private String planTypeN;
+
 }

@@ -1624,10 +1624,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         conContractCashflow.setInterest(interest);
         conContractCashflow.setOutstandingPrincipal(0.0);
         conContractCashflow.setPlanType("REPO");
-        this.conContractCashflowMapper.insertSelective(conContractCashflow);
-
         //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
         conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
+
+        //插入回购现金流
+        this.conContractCashflowMapper.insertSelective(conContractCashflow);
+
+
 
         //已收代偿自动核销为租金
         for (HlsCusConContractCashflow cc : writeOffList) {

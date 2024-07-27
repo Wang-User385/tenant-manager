@@ -386,6 +386,7 @@
         <result column="legal_contract_number" property="legalContractNumber"/>
 
         <result column="plan_type" property="planType" jdbcType="VARCHAR"/>
+        <result column="plan_type_n" property="planTypeN" jdbcType="VARCHAR"/>
         <result column="due_comp_amount" property="dueCompAmount" jdbcType="DECIMAL"/>
         <result column="received_comp_amount" property="receivedCompAmount" jdbcType="DECIMAL"/>
         <result column="refund_comp_amount" property="refundCompAmount" jdbcType="DECIMAL"/>
@@ -9011,7 +9012,7 @@ and con.contract_status in
             ccc.CONTRACT_ID,
             ccc.times,
             ccc.cf_direction,
-            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'HLS.CASHFLOW_DIRECTION' AND sc.CODE_VALUE=ccc.cf_direction ) cf_direction_n,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'HLS.CASHFLOW_DIRECTION' AND sc.CODE_VALUE=ccc.cf_direction ) cf_direction_desc,
             ccc.cf_item,
             (select h.description from hls_cashflow_item h where h.cf_item = ccc.cf_item)cf_item_n,
             ccc.due_date,
@@ -9032,9 +9033,14 @@ and con.contract_status in
             ccc.outstanding_principal,
             ccc.overdue_status,
             (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'INV.YES_OR_NO' AND sc.CODE_VALUE=ccc.overdue_status)  overdue_status_n,
-            ccc.overdue_max_days
+            ccc.overdue_max_days,
+            ccc.PLAN_TYPE,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.PLAN' AND sc.CODE_VALUE=ccc.PLAN_TYPE ) plan_type_n,
+            NVL(ccc.DUE_COMP_AMOUNT, 0) DUE_COMP_AMOUNT,
+            NVL(ccc.RECEIVED_COMP_AMOUNT, 0) RECEIVED_COMP_AMOUNT,
+            NVL(ccc.REFUND_COMP_AMOUNT, 0) REFUND_COMP_AMOUNT
         FROM CON_CONTRACT_CASHFLOW ccc
-        WHERE ccc.CONTRACT_ID=#{contractId}
+        WHERE ccc.CONTRACT_ID=#{contractId} and  ccc.CF_STATUS not in ('BLOCK','CANCEL')
         order by ccc.contract_id,ccc.cf_item,ccc.times
     </select>
 
@@ -9105,6 +9111,8 @@ and con.contract_status in
           AND nvl( ccc.WRITE_OFF_FLAG, 'NOT' ) != 'FULL'
 	      AND ccc.due_amount - nvl( RECEIVED_AMOUNT, 0 ) > 0
 	      AND trunc( ccc.due_date ) &lt;= trunc( #{dueDate} )
+          AND cc.contract_status = 'INCEPT'
+          AND ccc.PLAN_TYPE not in ('ET','REPO')
         AND ccc.cf_item = 1
         ORDER BY
         ccc.times
