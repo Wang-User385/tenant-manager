@@ -600,6 +600,11 @@
         <result column="lease_item_type_n" property="leaseItemTypeN" jdbcType="VARCHAR"/>
         <result column="terminate_type" property="terminateType" jdbcType="VARCHAR"/>
         <result column="terminate_type_n" property="terminateTypeN" jdbcType="VARCHAR"/>
+
+        <result column="zdw_register_status" property="zdwRegisterStatus" jdbcType="VARCHAR"/>
+        <result column="zdw_register_status_n" property="zdwRegisterStatusN" jdbcType="VARCHAR"/>
+
+
     </resultMap>
 
 
@@ -8780,7 +8785,7 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         </where>
         order by tt.contract_id,tt.end_date
     </select>
-    
+
     <select id="selectContractRegistrationReport" parameterType="java.util.Map" resultMap="ReportResultMap">
         select * from(
         select
@@ -11600,6 +11605,48 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             </if>
         </where>
         order by t.contract_id desc
+    </select>
+
+    <select id="findCarEnd" resultMap="BaseResultMap">
+        select
+        cc.contract_id,
+        cc.project_id,
+        cc.contract_number,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.CONTRACT_STATUS' AND sc.CODE_VALUE
+        = cc.contract_status ) contract_status_n,
+        (Select m.bp_name from hls_bp_master m where m.bp_id = cc.tenant_id) tenant_id_n,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.manufacturer_id ) manufacturer_id_n,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'PRODUCT.LEASE_ITEM_TYPE' AND sc.CODE_VALUE
+        = cc.lease_item_type ) lease_item_type_n,
+        (SELECT d.description FROM hls_division d WHERE d.division = cc.division ) division_n,
+        (select finance_amount from prj_quotation q where source_document_category = 'CON_CONTRACT' and
+        q.source_document_id = cc.contract_id) finance_amount,
+        (select lease_times from prj_quotation q where q.source_document_category = 'CON_CONTRACT' and
+        q.source_document_id=cc.contract_id) lease_times,
+        cc.inception_of_lease,
+        cc.pledge_flag,
+        cc.lease_end_date,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.PLEDGE_FLAG' AND sc.CODE_VALUE
+        = cc.pledge_flag ) pledge_flag_n,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.ZDW_REGISTER_STATUS' AND sc.CODE_VALUE
+        = cc.zdw_register_status ) zdw_register_status_n,
+        (SELECT fe.NAME FROM FND_EMPLOYEE fe WHERE fe.EMPLOYEE_ID = cc.EMPLOYEE_ID ) employee_id_n
+        from con_contract cc
+        <where>
+            <if test="contractNumber != null and contractNumber != ''">
+                and   cc.contract_number like concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="pledgeFlag != null and pledgeFlag != ''">
+                and   cc.pledge_flag = #{pledgeFlag}
+            </if>
+            <if test="tenantIdN != null and tenantIdN != '' ">
+                and   (Select m.bp_name from hls_bp_master m where m.bp_id = cc.tenant_id) like concat(concat('%',#{tenantIdN}),'%')
+            </if>
+            <if test="manufacturerIdN != null and manufacturerIdN != ''">
+                and    ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.manufacturer_id ) like concat(concat('%',#{manufacturerIdN}),'%')
+            </if>
+
+        </where>
     </select>
 
 

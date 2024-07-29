@@ -1747,5 +1747,11 @@ public class HlsCusConContract extends ConContract {
     private String terminateTypeN;
 
 
+    private String zdwRegisterStatus;
+
+    @Transient
+    private String zdwRegisterStatusN;
+
+
 
 }
