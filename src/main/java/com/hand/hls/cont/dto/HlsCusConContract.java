@@ -1737,6 +1737,21 @@ public class HlsCusConContract extends ConContract {
     @Transient
     private String currentOverdueStatusN;
 
+    @Transient
+    private String leaseItemTypeN;
+
+    @Transient
+    private String terminateType;
+
+    @Transient
+    private String terminateTypeN;
+
+
+    private String zdwRegisterStatus;
+
+    @Transient
+    private String zdwRegisterStatusN;
+
 
 
 }

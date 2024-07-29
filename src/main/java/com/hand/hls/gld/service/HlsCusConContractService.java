@@ -254,4 +254,6 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
     List<HlsCusConContract> submitWfl(HlsCusConContract dto, IRequest requestCtx,HttpServletRequest request);
 
     void download(Long contractId, String contractAttachmentCategory, HttpServletResponse response, HttpServletRequest request);
+
+    void updateZdwRegisterStatus(Long contractId, HttpServletRequest request);
 }

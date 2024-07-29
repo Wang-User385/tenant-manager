@@ -30,10 +30,10 @@ public interface LeasingNoticeMapper extends Mapper<LeasingNotice> {
     /**
      * 抵押材料审核结果通知
      *
-     * @param projectId
+     * @param contractId
      * @return
      */
-    OrderAuditResultDto queryMortgageMaterialAuditResult(@Param("projectId") Long projectId);
+    OrderAuditResultDto queryMortgageMaterialAuditResult(@Param("contractId") Long contractId);
 
 
     /**

@@ -5,6 +5,7 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.lock.components.DatabaseLockProvider;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.gld.service.HlsCusConContractService;
+import com.hand.hls.partner.service.IYLMessageNoticeService;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class HlsMortgageServiceTask implements JavaDelegate, IActivitiBean {
     @Autowired
     private DatabaseLockProvider databaseLockProvider;
 
+    @Autowired
+    private IYLMessageNoticeService iylMessageNoticeService;
+
 
     @Override
     public void execute(DelegateExecution delegateExecution) {
@@ -53,6 +57,9 @@ public class HlsMortgageServiceTask implements JavaDelegate, IActivitiBean {
         }
         conContract.setMortgageStatus(flag);
         hlsCusConContractService.updateByPrimaryKeySelective(requestCtx, conContract);
+        //调用车辆审核通知接口
+        iylMessageNoticeService.orderAuditResult(contractId,"MORT",requestCtx);
+
 
     }
 }

@@ -172,6 +172,8 @@ public class HlsProductDefinition extends BaseDTO {
 
     @Transient
     private String leaseItemTypeN;;
+    @Transient
+    private Long userId;;
 
 
 }

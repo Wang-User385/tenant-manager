@@ -2,6 +2,7 @@ package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
+import com.hand.hls.csh.dto.HlsCusCshPaymentReqHd;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import com.hand.hls.prj.dto.HlsCusPrjQuotationCashflow;
 import org.apache.ibatis.annotations.Param;
@@ -107,4 +108,15 @@ public interface HlsCusPrjQuotationCashflowMapper extends Mapper<HlsCusPrjQuotat
 
     List<Map> selectQuotationCompareInfo(@Param("quotationId") Long quotationId);
     List<HlsCusPrjQuotationCashflow> queryPrjQuotationCashflowDetailByProjectId1(@Param("projectId") Long projectId);
+
+
+
+    /**
+     * 代扣管理查询
+     */
+    List<HlsCusCshPaymentReqHd> queryWithholding(HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd);
+
+
+
+
 }

@@ -58,7 +58,7 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
                 //放款审核
                 orderAuditResultDto = leasingNoticeMapper.queryLoanAuditResult(projectId);
             } else {
-                //抵押材料审核
+                //抵押材料审核 (此处projectId实际传的是contractId)
                 orderAuditResultDto = leasingNoticeMapper.queryMortgageMaterialAuditResult(projectId);
             }
             if (!ObjectUtils.isEmpty(orderAuditResultDto)) {

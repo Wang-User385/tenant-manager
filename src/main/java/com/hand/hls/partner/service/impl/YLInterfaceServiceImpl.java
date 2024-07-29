@@ -196,7 +196,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setCreationDate(new Date());
             String format = simpleDateFormat.format(new Date());
             bpMaster.setCreationDateStr(format);
-            bpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getOwnerUserId());
+            bpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getUserId());
             bpMaster.setBpCategory("TENANT");
             bpMaster.setBpType("TENANT");
             bpMaster.setSource("1");
@@ -260,6 +260,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest,"PRJ_PROJECT_IMPORT", "PRJLB", "LEASEBACK", params);
 
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
+        hlsCusPrjProject.setManufacturerId(hlsCusBpMasters.get(0).getBpId());
         hlsCusPrjProject.setProjectNumber(codeRuleValue);
         hlsCusPrjProject.setCompanyId(1L);
         hlsCusPrjProject.setTenantId(bpMaster.getBpId());
@@ -1761,7 +1762,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
-            jsonObject1.put("message","回购现金流数据不存在");
+            jsonObject1.put("message","回购现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
             return jsonObject1.toJSONString();
         }
 
@@ -1802,7 +1803,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
-            jsonObject1.put("message","回购现金流数据不存在");
+            jsonObject1.put("message","回购现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
             return jsonObject1.toJSONString();
         }
 

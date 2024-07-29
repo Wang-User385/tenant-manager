@@ -76,10 +76,7 @@ public interface HlsCusCshPaymentReqHdMapper extends Mapper<HlsCusCshPaymentReqH
 
     List<HlsCusCshPaymentReqHd>queryPaymentOther(HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd);
 
-    /**
-     * 代扣管理查询
-     */
-    List<HlsCusCshPaymentReqHd> queryWithholding(HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd);
+
 
 
 }
