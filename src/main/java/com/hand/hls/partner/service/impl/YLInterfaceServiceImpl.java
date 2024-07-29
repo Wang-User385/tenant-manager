@@ -153,7 +153,21 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         JSONObject jsonObject1 = new JSONObject();
-
+        //当前进件业务只有一家合作商，暂时只插入固定的这个合作商
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        //hlsCusBpMaster.setBpName("杭州易靓好车汽车服务有限公司");
+        hlsCusBpMaster.setBpCode("BP202407230057");
+        hlsCusBpMaster.setBpType("MANUFACTURER");
+        List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectHlsBpMaster(hlsCusBpMaster);
+        //根据合作商id，查询产品定义表中的业务经理插入到商业伙伴创建人字段中
+        HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
+        hlsProductDefinition.setBpId(hlsCusBpMasters.get(0).getBpId());
+        List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
+        if (hlsProductDefinitionList.size() == 0){
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","该合作商对应的产品为空，需在产品定义功能中维护新的产品");
+            return jsonObject1.toJSONString();
+        }
         //判断该客户存不存在
         //如果存在，判断名称和电话一不一致，不一致就修改
         //如果不存在，就新增
@@ -178,12 +192,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             } catch (ParseException e) {
                 e.printStackTrace();
             }
+
             bpMaster.setIdIssueDate(idIssueDate);
             bpMaster.setIdExpirationDate(idExpirationDate);
             bpMaster.setCreationDate(new Date());
             String format = simpleDateFormat.format(new Date());
             bpMaster.setCreationDateStr(format);
-            bpMaster.setCreatedBy(iRequest.getUserId());
+            bpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getOwnerUserId());
             bpMaster.setBpCategory("TENANT");
             bpMaster.setBpType("TENANT");
             bpMaster.setSource("1");
@@ -253,22 +268,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProject.setProjectStatus("NEW");
         hlsCusPrjProject.setPreStatus("NEW");
         hlsCusPrjProject.setOrderStatus("START");
-        //当前进件业务只有一家合作商，暂时只插入固定的这个合作商
-        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
-        //hlsCusBpMaster.setBpName("杭州易靓好车汽车服务有限公司");
-        hlsCusBpMaster.setBpCode("BP202407230057");
-        hlsCusBpMaster.setBpType("MANUFACTURER");
-        List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectHlsBpMaster(hlsCusBpMaster);
-        hlsCusPrjProject.setManufacturerId(hlsCusBpMasters.get(0).getBpId());
-        //根据合作商id，查询产品定义表中的业务经理插入到项目表中
-        HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
-        hlsProductDefinition.setBpId(hlsCusBpMasters.get(0).getBpId());
-        List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
-        if (hlsProductDefinitionList.size() == 0){
-            jsonObject1.put("code","400");
-            jsonObject1.put("message","该合作商对应的产品为空，需在产品定义功能中维护新的产品");
-            return jsonObject1.toJSONString();
-        }
         hlsCusPrjProject.setEmployeeId(hlsProductDefinitionList.get(0).getEmployeeId());
         hlsCusPrjProject.setUnitId(hlsProductDefinitionList.get(0).getUnitId());
         hlsCusPrjProject.setLeaseItemType(hlsProductDefinitionList.get(0).getLeaseItemType());
@@ -317,7 +316,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         }
         //修改订单状态
-        hlsCusPrjProject.setProjectStatus("CLOSED");
+        hlsCusPrjProject.setOrderStatus("CLOSED");
         prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         jsonObject1.put("code","200");
         jsonObject1.put("message","取消成功");
@@ -1700,6 +1699,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 //        设置返回信息
                 jsonObject1.put("code","200");
                 jsonObject1.put("message","预审成功");
+                //预审成功更改进件预审状态
+                hlsCusPrjProject.setPreStatus("APPROVED");
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
                 return jsonObject1.toJSONString();
             }
             jsonObject1.put("code","400");
@@ -1712,6 +1714,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 //        设置返回信息
                 jsonObject1.put("code","200");
                 jsonObject1.put("message","审核成功");
+                //返回通过而不是谨慎通过或者拒绝，整个进件正审流程就是审批通过，需更改进件正审状态，也就是进件状态为审批通过
+                hlsCusPrjProject.setProjectStatus("APPROVED");
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
                 return jsonObject1.toJSONString();
             }
             else if ("Reject".equals(s) || "Error".equals(s)){
