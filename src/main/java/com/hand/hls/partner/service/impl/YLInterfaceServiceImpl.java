@@ -196,7 +196,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setCreationDate(new Date());
             String format = simpleDateFormat.format(new Date());
             bpMaster.setCreationDateStr(format);
-            bpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getOwnerUserId());
+            bpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getUserId());
             bpMaster.setBpCategory("TENANT");
             bpMaster.setBpType("TENANT");
             bpMaster.setSource("1");
