@@ -1014,6 +1014,15 @@ public class HlsCusConContractController extends BaseController {
         }
     }
 
+    @RequestMapping("/hls/cus/update/status")
+    @ResponseBody
+    public ResponseData submit(@RequestParam("contractId") Long contractId, HttpServletRequest request) throws ResMessageException {
+        hlsCusConContractService.updateZdwRegisterStatus(contractId, request);
+        return new ResponseData();
+    }
+
+
+
     private void commonLog(ResponseData responseData, String code, String returnStatus, String parameter, HlsWsRequests hlsWsRequests) {
         responseData.setCode(code);
         responseData.setMessage(parameter);
@@ -1045,6 +1054,8 @@ public class HlsCusConContractController extends BaseController {
         String s = JSONObject.toJSONString(param);
         hlsWsRequests.setRequestJson(s);
     }
+
+
 
 
 }

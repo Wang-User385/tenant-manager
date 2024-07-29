@@ -4747,6 +4747,15 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         }
     }
 
+    @Override
+    public void updateZdwRegisterStatus(Long contractId, HttpServletRequest request) {
+        HlsCusConContract hlsCusConContract = new HlsCusConContract();
+        hlsCusConContract.setContractId(contractId);
+        hlsCusConContract =  hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
+        hlsCusConContract.setZdwRegisterStatus("REVOKED");
+        hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
+    }
+
     private void commonLog(ResponseData responseData, String code, String returnStatus, String parameter, HlsWsRequests hlsWsRequests) {
         responseData.setCode(code);
         responseData.setMessage(parameter);
