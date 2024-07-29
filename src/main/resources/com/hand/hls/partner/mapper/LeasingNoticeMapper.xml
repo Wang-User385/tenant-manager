@@ -49,10 +49,10 @@
             pp.PROJECT_NUMBER AS orderNo,
             CASE cc.mortgage_status WHEN 'APPROVED' THEN 'PASS'
                                     ELSE 'REVIEW' END AS status,
-            '暂无工作流，后续sql加上此段逻辑' AS opinion
+            (SELECT ahc.MESSAGE_ FROM ACT_HI_COMMENT ahc WHERE cc.MORTGAGE_INSTANCE_ID=ahc.PROC_INST_ID_ AND ahc.type_ = 'comment' ORDER BY ahc.TIME_ DESC FETCH FIRST 1 ROWS ONLY) AS opinion
         FROM CON_CONTRACT cc
                  INNER JOIN PRJ_PROJECT pp ON cc.PROJECT_ID = pp.PROJECT_ID
-        WHERE pp.PROJECT_ID = #{projectId}
+        WHERE cc.contract_id = #{contractId}
     </select>
 
     <!--易靓放款结果通知-->
@@ -107,19 +107,18 @@
         MAX(pp.PROJECT_NUMBER) AS orderNo,
         LISTAGG(ccc.TIMES, ',') WITHIN GROUP (ORDER BY ccc.CONTRACT_ID) AS termNos,
         TO_CHAR(SYSDATE,'yyyy-mm-dd') AS trialTime,
-        NVL(SUM(ccc.PRINCIPAL), 0)*100 AS principal,
+        (NVL(SUM(ccc.PRINCIPAL), 0)+NVL(MIN(ccc.OUTSTANDING_PRINCIPAL), 0))*100 AS principal,
         NVL(SUM(ccc.INTEREST), 0)*100 AS interest,
         0 AS penalty,
-        (SELECT NVL(cf1.DUE_AMOUNT, 0)*100 FROM CON_CONTRACT_CASHFLOW cf1 WHERE cf1.CONTRACT_ID = cc.CONTRACT_ID AND cf1.CF_ITEM=8) AS otherFee,
-        NVL(SUM(ccc.DUE_AMOUNT), 0)*100  AS payableAmount
+        0 AS otherFee,
+        (NVL(SUM(ccc.DUE_AMOUNT), 0)+NVL(MIN(ccc.OUTSTANDING_PRINCIPAL), 0))*100  AS payableAmount
         FROM CON_CONTRACT_CASHFLOW ccc
         INNER JOIN CON_CONTRACT cc ON ccc.CONTRACT_ID = cc.CONTRACT_ID
-        INNER JOIN hls_penalty_profile_dtl hppd ON hppd.penalty_profile = cc.penalty_profile
         INNER JOIN PRJ_PROJECT pp ON cc.project_id = pp.project_id
-        WHERE hppd.enabled_flag = 'Y'
+        WHERE
         AND cc.contract_status = 'INCEPT'
         AND cc.data_class = 'NORMAL'
-        AND ccc.write_off_flag not in ('FULL')
+        ccc.write_off_flag not in ('FULL')
         AND ccc.cf_direction='INFLOW'
         AND ccc.times not in (0)
         AND ccc.cf_item = 1

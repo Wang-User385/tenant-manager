@@ -1760,7 +1760,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
-            jsonObject1.put("message","回购现金流数据不存在");
+            jsonObject1.put("message","回购现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
             return jsonObject1.toJSONString();
         }
 
@@ -1801,7 +1801,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
-            jsonObject1.put("message","回购现金流数据不存在");
+            jsonObject1.put("message","回购现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
             return jsonObject1.toJSONString();
         }
 

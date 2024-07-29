@@ -34,7 +34,7 @@ public class YLMessageNoticeServiceController extends BaseController {
     public ResponseData orderAuditResult(@RequestBody Map<String, String> map, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        iylMessageNoticeService.orderAuditResult(Long.valueOf(String.valueOf(map.get("projectId"))), map.get("scene"), requestContext);
+        iylMessageNoticeService.orderAuditResult(Long.valueOf(String.valueOf(map.get("contractId"))), map.get("scene"), requestContext);
         return new ResponseData();
     }
 

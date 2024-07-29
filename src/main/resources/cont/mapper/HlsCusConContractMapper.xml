@@ -597,6 +597,9 @@
         <result column="remain_principal" property="remainPrincipal" jdbcType="DECIMAL"/>
         <result column="penalty" property="penalty" jdbcType="DECIMAL"/>
         <result column="current_overdue_status_n" property="currentOverdueStatusN" jdbcType="VARCHAR"/>
+        <result column="lease_item_type_n" property="leaseItemTypeN" jdbcType="VARCHAR"/>
+        <result column="terminate_type" property="terminateType" jdbcType="VARCHAR"/>
+        <result column="terminate_type_n" property="terminateTypeN" jdbcType="VARCHAR"/>
     </resultMap>
 
 
@@ -11525,9 +11528,10 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         WHERE V.enabled_flag = 'Y'
         AND v.document_type = cc.document_type) document_type_n,
         (select m.bp_name from hls_bp_master m where m.bp_id = cc.manufacturer_id) manufacturer_id_n,
-        (select m.bp_name from hls_bp_master m where m.bp_id = cc.bp_id_tenant ) bp_id_tenant_n,
-        ( SELECT bt.description FROM hls_business_type bt WHERE bt.DOCUMENT_CATEGORY='CON_CONTRACT' AND
-        bt.business_type=cc.business_type ) business_type_n,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.tenant_id ) tenant_id_n,
+        cc.lease_item_type,
+        (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'PRODUCT.LEASE_ITEM_TYPE' AND
+        sc.CODE_VALUE=cc.LEASE_ITEM_TYPE ) lease_item_type_n,
         cc.division,
         (SELECT d.description FROM hls_division d WHERE d.division = cc.division ) division_n,
         (SELECT fe.NAME FROM FND_EMPLOYEE fe WHERE fe.EMPLOYEE_ID = cc.EMPLOYEE_ID ) employee_id_n,
@@ -11572,7 +11576,11 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         AND cf.cf_item = 1 AND nvl(cf.overdue_status,'N') = 'Y' and cf.CF_STATUS = 'RELEASE') > 0 THEN '是' ELSE '否' END)history_overdue_status,
         (SELECT MAX(cf.overdue_max_days) FROM con_contract_cashflow cf WHERE cf.contract_id = cc.contract_id AND
         cf.cf_item = 1) overdue_max_days,
-        (SELECT sum(DUE_AMOUNT) FROM CON_CONTRACT_CASHFLOW WHERE TIMES=9 AND CONTRACT_ID=cc.contract_id and CF_STATUS = 'RELEASE')penalty
+        (SELECT sum(DUE_AMOUNT) FROM CON_CONTRACT_CASHFLOW WHERE cf_item=9 AND CONTRACT_ID=cc.contract_id and CF_STATUS = 'RELEASE')penalty,
+        (CASE (SELECT CF_ITEM FROM CON_CONTRACT_CASHFLOW WHERE CONTRACT_ID = cc.CONTRACT_ID AND CF_STATUS  not in ('BLOCK','CANCEL') AND CF_ITEM in (1,11,13) ORDER BY TIMES DESC FETCH FIRST 1 ROWS ONLY)
+        WHEN 1 THEN 'NORMAL' WHEN 11 THEN 'ET' WHEN 13 THEN 'REPO'	END ) terminate_type,
+        (CASE (SELECT CF_ITEM FROM CON_CONTRACT_CASHFLOW WHERE CONTRACT_ID = cc.CONTRACT_ID AND CF_STATUS  not in ('BLOCK','CANCEL') AND CF_ITEM in (1,11,13) ORDER BY TIMES DESC FETCH FIRST 1 ROWS ONLY)
+        WHEN 1 THEN '正常结清' WHEN 11 THEN '提前结清' WHEN 13 THEN '回购'	END ) terminate_type_n
         FROM con_contract cc
         LEFT JOIN prj_project pp ON cc.project_id = pp.project_id
         ) t
@@ -11587,8 +11595,8 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             <if test="currentOverdueStatus != null">
                 and t.current_overdue_status = #{currentOverdueStatus}
             </if>
-            <if test="changeType != null">
-                and t.change_type = #{changeType}
+            <if test="terminateType != null">
+                and t.terminate_type = #{terminateType}
             </if>
         </where>
         order by t.contract_id desc
