@@ -1233,24 +1233,6 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
         return amount;
     }
 
-    @Override
-    public void financeImport(IRequest iRequest, Long headerId, Long paymentReqId) {
-        List<FndInterfaceLines> fndInterfaceLinesList = getInterfaceData(headerId, 0L);
-        for (FndInterfaceLines fndInterfaceLine : fndInterfaceLinesList) {
-
-
-        }
-
-    }
-
-    // 校验字段是否有值
-    public static void validate(String message, Object... objects) {
-        for (int i = 0; i < objects.length; i++) {
-            if (objects[i] == null || "".equals(objects[i]) || "null".equals(objects[i])) {
-                throw new RuntimeException(message);
-            }
-        }
-    }
 
 
 }
