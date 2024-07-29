@@ -318,4 +318,24 @@ public class CshPaymentReqHdController extends BaseController {
 		result.add(this.service.selectByPrimaryKey(requestContext, metadataRelation));
 		return new ResponseData(result);
 	}
+
+	//财务流水导入
+	@RequestMapping(value = "/csh/payment/req/hd/import", method = RequestMethod.POST)
+	public Map<String, Object> cashflowImport(HttpServletRequest request, @RequestParam("headerId") Long headerId, @RequestParam("paymentReqId") Long paymentReqId) throws IOException {
+		IRequest iRequest = createRequestContext(request);
+		Map<String, Object> response = new HashMap<String, Object>();
+		response.put("success", false);
+		try {
+			service.financeImport(iRequest, headerId, paymentReqId);
+			response.put("message", "导入成功");
+			response.put("success", true);
+		} catch (Exception e) {
+			response.put("success", false);
+			response.put("message", "导入失败！" + e.getMessage());
+		}
+		return response;
+	}
+
+
+
 }

@@ -3,12 +3,78 @@
     Author: LI JING ZHOU
     Date: 2024/7/18
     Revision: 1.0
-    Purpose: 
+    Purpose:
 -->
 <a:screen xmlns:a="http://www.leaf-framework.org/application"
           trace="true" dynamiccreateenabled="true">
     <a:view>
+
+        <a:link id="prj_project_detail"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_modify_entrance.lview"/>
+
         <script><![CDATA[
+
+        window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
+            debugger;
+            if (name == 'contract_number' && value) {
+                return '<a href="javascript:open_withholding_win(\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        //发起代扣
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            var records = $(ds_id).getSelected();
+            for (let i = 0; i < records.length(); i++) {
+                var record = records[i];
+                var payment_status = record.get('payment_status');
+                if (!payment_status || payment_status == '0' || payment_status == '2') {
+                    Leaf.showErrorMessage('提示信息', "请勾选交易状态为未发起扣款、扣款失败的数据！");
+                    return;
+                }
+            }
+            Leaf.request({
+                url: '',
+                success: function (res) {
+                    Leaf.showSuccessMessage('提示', '发起代扣成功');
+                },
+                sync: true
+            });
+
+
+        };
+
+        //查询交易状态
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            var records = $(ds_id).getSelected();
+            for (let i = 0; i < records.length(); i++) {
+                var record = records[i];
+                var payment_status = record.get('payment_status');
+                if (!payment_status || payment_status != '0') {
+                    Leaf.showErrorMessage('提示信息', "请勾选交易状态为扣款中的数据！");
+                    return;
+                }
+            }
+            Leaf.request({
+                url: '',
+                success: function (res) {
+                    Leaf.showSuccessMessage('提示', '发起代扣成功');
+                },
+                sync: true
+            });
+
+        };
+
+        function open_withholding_win(ds_id, record_id) {
+            //获取ds
+            var param = $(ds_id).findById(record_id).data;
+            param['url_title'] = '进件明细';
+            param['function_code'] = 'PRJ419F2';
+            param['winid'] = 'hls_withholding_winid';
+            param['function_usage'] = 'QUERY';
+            hls_doc_get_layout_code(param, 'prj_project_detail', ds_id, 'CSH009');
+        }
 
 
         ]]></script>

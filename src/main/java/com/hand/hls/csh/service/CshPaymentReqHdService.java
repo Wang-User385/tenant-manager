@@ -90,4 +90,5 @@ public interface CshPaymentReqHdService extends IBaseService<HlsCusCshPaymentReq
     List<Double> queryActualPaymentAmount(HlsCusCshPaymentReqHd hlscuscshpaymentreqhd);
     List<Double> queryPaymentAmount(HlsCusCshPaymentReqHd hlscuscshpaymentreqhd);
 
+    void financeImport(IRequest iRequest, Long headerId, Long paymentReqId);
 }

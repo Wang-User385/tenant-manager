@@ -245,7 +245,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
 
     @Override
     public HlsCusCshPaymentReqHd create(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) {
-        HlsCusFundingPlan hlsCusFundingPlan =hlsCusFundingPlanMapper.selectByPrimaryKey(hlsCusCshPaymentReqHd.getFundingPlanId());
+        HlsCusFundingPlan hlsCusFundingPlan = hlsCusFundingPlanMapper.selectByPrimaryKey(hlsCusCshPaymentReqHd.getFundingPlanId());
         HlsCusConContract hlsCusConContract = hlsCusConContractMapper.selectByPrimaryKey(hlsCusFundingPlan.getContractId());
         hlsCusCshPaymentReqHd.setPaymentReqStatus("NEW");
         hlsCusCshPaymentReqHd.setTransferStatus("NEW");
@@ -302,6 +302,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
 
         return hlsCusCshPaymentReqHd;
     }
+
     @Override
     public HlsCusCshPaymentReqHd save(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) {
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
@@ -352,13 +353,13 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
         if (hlsCusCshPaymentReqHd.getHlsCusCshPaymentReqLnList() != null) {
             for (HlsCusCshPaymentReqLn hlsCusCshPaymentReqLn : hlsCusCshPaymentReqHd.getHlsCusCshPaymentReqLnList()) {
                 if (hlsCusCshPaymentReqLn.getPaymentReqLnId() != null) {
-                    if("Y".equals(hlsCusCshPaymentReqLn.getIfFromContract())){
+                    if ("Y".equals(hlsCusCshPaymentReqLn.getIfFromContract())) {
                         HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
                         hlsCusPrjProjectBp.setProjectId(hlsCusCshPaymentReqLn.getProjectId());
                         hlsCusPrjProjectBp.setBpId(hlsCusCshPaymentReqLn.getBpId());
                         hlsCusPrjProjectBp.setBpType(hlsCusCshPaymentReqLn.getBpType());
                         List<HlsCusPrjProjectBp> hlsCusPrjProjectBps = hlsCusPrjProjectBpMapper.select(hlsCusPrjProjectBp);
-                        if(hlsCusPrjProjectBps.size()==1&&!HlsCusCheckNull.isNull(hlsCusPrjProjectBps.get(0).getBankAccountId())){
+                        if (hlsCusPrjProjectBps.size() == 1 && !HlsCusCheckNull.isNull(hlsCusPrjProjectBps.get(0).getBankAccountId())) {
                             HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
                             hlsCusBpMasterBankAccount.setBankAccountId(hlsCusPrjProjectBps.get(0).getBankAccountId());
                             hlsCusBpMasterBankAccount = hlsCusBpMasterBankAccountMapper.selectByPrimaryKey(hlsCusBpMasterBankAccount);
@@ -366,7 +367,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
                             hlsCusCshPaymentReqLn.setBpBankAccountName(hlsCusBpMasterBankAccount.getBankAccountName());
                             hlsCusCshPaymentReqLn.setBpBankAccountNum(hlsCusBpMasterBankAccount.getBankAccountNum());
                             hlsCusCshPaymentReqLn.setBpBankBranchName(hlsCusBpMasterBankAccount.getBankFullName());
-                        }else{
+                        } else {
                             hlsCusCshPaymentReqLn.setBpBankAccountId(-1L);
                             hlsCusCshPaymentReqLn.setBpBankAccountName("");
                             hlsCusCshPaymentReqLn.setBpBankAccountNum("");
@@ -478,7 +479,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
 
         FndOrgUnit fndOrgUnit = fndOrgUnitMapper.selectByPrimaryKey(hlsCusCshPaymentReqHd.getHostUnitId());
         String ifAviation = "N";
-        if("BUSINESS_DEPT_AVIATION".equals(fndOrgUnit.getUnitCode())){
+        if ("BUSINESS_DEPT_AVIATION".equals(fndOrgUnit.getUnitCode())) {
             ifAviation = "Y";
         }
         databaseLockProvider.lock(hlsCusCshPaymentReqHd);
@@ -563,7 +564,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
                 HlsCusConContract hlsCusConContract = new HlsCusConContract();
                 hlsCusConContract.setContractId(cusCshPaymentReqHdList.get(0).getContractId());
                 HlsCusConContract hlsCusConContractNew = hlsCusConContractService.selectByPrimaryKey(iRequest, hlsCusConContract);
-                if(!"Y".equalsIgnoreCase(hlsCusConContractNew.getInceptFlag())) {
+                if (!"Y".equalsIgnoreCase(hlsCusConContractNew.getInceptFlag())) {
                     hlsCusConContractNew.setContractStatus("FUNDING");
                 }
                 hlsCusConContractService.updateByPrimaryKeySelective(iRequest, hlsCusConContractNew);
@@ -571,8 +572,9 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
         }
 
     }
+
     @Override
-    public void checkSupplement(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) throws ResMessageException{
+    public void checkSupplement(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) throws ResMessageException {
         List<HlsCusCshPaymentReqHd> hlsCusCshPaymentReqHds = hlsCusCshPaymentReqHdMapper.queryForTransfer(hlsCusCshPaymentReqHd);
         hlsCusCshPaymentReqHd = hlsCusCshPaymentReqHds.get(0);
         Date now = new Date();
@@ -707,13 +709,14 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
             }
         }
     }
+
     @Override
-    public void createEftTransferList(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd){
+    public void createEftTransferList(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) {
         HlsCusFundTransferList fundTransferList = new HlsCusFundTransferList();
         fundTransferList.setSourceDocId(hlsCusCshPaymentReqHd.getPaymentReqId());
         List<HlsCusFundTransferList> fundTransferLists = fundTransferListMapper.select(fundTransferList);
 
-        if(fundTransferLists.size() == 0) {
+        if (fundTransferLists.size() == 0) {
             HlsCusCshPaymentReqLn hlsCusCshPaymentReqLn = new HlsCusCshPaymentReqLn();
             hlsCusCshPaymentReqLn.setPaymentReqId(hlsCusCshPaymentReqHd.getPaymentReqId());
             List<HlsCusCshPaymentReqLn> hlsCusCshPaymentReqLns = hlsCusCshPaymentReqLnMapper.select(hlsCusCshPaymentReqLn);
@@ -774,7 +777,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
                     fileBackLength = (int) new File(copyPath).length();
 
                     //1.保存文件
-                    contextCreateMultipleSave(request,code,paymentId,sysFile,copyPath,fileBackLength,response);
+                    contextCreateMultipleSave(request, code, paymentId, sysFile, copyPath, fileBackLength, response);
 
                     //2.返回结果
                     FndAttachmentMulti fndAttachmentMultiNew = new FndAttachmentMulti();
@@ -786,7 +789,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
                     return fndAttachmentMultiList;
 
                 }
-            }else{
+            } else {
                 throw new HlsCusException("文件模版不存在");
             }
         }
@@ -794,7 +797,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
     }
 
     @Override
-    public void contextCreateMultipleSave(IRequest request, String code, String paymentId,FndAttachment sysFile,String copyPath,int fileLength, HttpServletResponse response) throws Exception {
+    public void contextCreateMultipleSave(IRequest request, String code, String paymentId, FndAttachment sysFile, String copyPath, int fileLength, HttpServletResponse response) throws Exception {
         //查询是否存在过
         FndAttachmentMulti condition = new FndAttachmentMulti();
         condition.setTablePkValue(paymentId);
@@ -815,7 +818,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
             conDocFile.setFilePath(copyPath);
             conDocFile.setFileSize(((Integer) fileLength).longValue());
             fndAttachmentService.updateByPrimaryKeySelective(request, conDocFile);
-        }else{
+        } else {
             conDocFile = new FndAttachment();
             String fileName = sysFile.getFileName().substring(0, sysFile.getFileName().length() - 5).concat(".docx");
             conDocFile.setFileName(fileName);
@@ -843,6 +846,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
             fndAttachmentMultiService.updateByPrimaryKey(request, conDocFileMulti);
         }
     }
+
     @Override
     public HlsCusCshPaymentReqHd cshHdCreate(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) {
 
@@ -852,7 +856,6 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
 /*
         HlsCusConContract hlsCusConContract = hlsCusConContractMapper.selectByPrimaryKey(hlsCusFundingPlan.getContractId());
 */
-
 
 
         hlsCusCshPaymentReqHd.setPaymentReqStatus("NEW");
@@ -890,9 +893,9 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
 
         Long paymentReqId = hlsCusCshPaymentReqHd.getPaymentReqId();
 
-        CshPaymentAttachment cshPaymentAttachment  =new CshPaymentAttachment();
+        CshPaymentAttachment cshPaymentAttachment = new CshPaymentAttachment();
         cshPaymentAttachment.setPaymentReqId(hlsCusCshPaymentReqHd.getPaymentReqId());
-        List<CshPaymentAttachment> cshPaymentAttachments=cshPaymentAttachmentMapper.queryCshPaymentHdFirst(cshPaymentAttachment);
+        List<CshPaymentAttachment> cshPaymentAttachments = cshPaymentAttachmentMapper.queryCshPaymentHdFirst(cshPaymentAttachment);
         /*if(cshPaymentAttachments.get(0).getBpType().equalsIgnoreCase("NP") && cshPaymentAttachments.get(0).getYesNo().equalsIgnoreCase("Y")) {
             List<CshPaymentAttachment> cshPaymentAttachmentsList=cshPaymentAttachmentMapper.queryPayFileFirstNp(cshPaymentAttachment);
 
@@ -934,8 +937,8 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
             }
         }*/
 
-        List<CshPaymentAttachment> cshPaymentAttachmentsList=cshPaymentAttachmentMapper.queryOther(cshPaymentAttachment);
-        for (int i=0;i<cshPaymentAttachmentsList.size();i++) {
+        List<CshPaymentAttachment> cshPaymentAttachmentsList = cshPaymentAttachmentMapper.queryOther(cshPaymentAttachment);
+        for (int i = 0; i < cshPaymentAttachmentsList.size(); i++) {
             CshPaymentAttachment cshPaymentAttachmentLists = new CshPaymentAttachment();
             cshPaymentAttachmentLists.setPaymentReqId(hlsCusCshPaymentReqHd.getPaymentReqId());
             cshPaymentAttachmentLists.setDocumentName(cshPaymentAttachmentsList.get(i).getValueName());
@@ -995,7 +998,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
             fndAttachmentMulti.setTablePkValue(dto.getProjectAttachmentId().toString());
             List<FndAttachmentMulti> multiList = fndAttachmentMultiMapper.select(fndAttachmentMulti);
             //只会有一条数据
-            for(FndAttachmentMulti multi : multiList){
+            for (FndAttachmentMulti multi : multiList) {
                 FndAttachmentMulti attachmentMulti = new FndAttachmentMulti();
                 Map<String, String> map = hlsBeanRefUtilService.getFieldValueMap(multi);
                 hlsBeanRefUtilService.setFieldValue(attachmentMulti, map);
@@ -1008,14 +1011,15 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
                 fndAttachment = fndAttachmentMapper.selectByPrimaryKey(fndAttachment);
                 fndAttachment.setAttachmentId(attachmentMulti.getAttachmentId());
                 fndAttachment.setAttachmentId(null);
-                fndAttachmentService.insert(iRequest,fndAttachment);
+                fndAttachmentService.insert(iRequest, fndAttachment);
                 attachmentMulti.setAttachmentId(fndAttachment.getAttachmentId());
-                fndAttachmentMultiService.updateByPrimaryKeySelective(iRequest,attachmentMulti);
+                fndAttachmentMultiService.updateByPrimaryKeySelective(iRequest, attachmentMulti);
             }
         }
 
         return hlsCusCshPaymentReqHd;
     }
+
     //获取接口表数据
     public List<FndInterfaceLines> getInterfaceData(Long hdId, Long readLine) {
 
@@ -1027,7 +1031,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
     }
 
     @Override
-    public void cshInImport(IRequest iRequest, Long hdId ,Long paymentReqId) throws ExcelException, Exception, ParseException {
+    public void cshInImport(IRequest iRequest, Long hdId, Long paymentReqId) throws ExcelException, Exception, ParseException {
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
         List<FndInterfaceLines> fndInterfaceLinesList = getInterfaceData(hdId, (long) 2);
         for (FndInterfaceLines fndInterfaceLine : fndInterfaceLinesList) {
@@ -1074,11 +1078,11 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
             hlsCusCshPaymentReqLn.setSumDueAmount(Double.parseDouble(OracleUtils.nvl(sumDueAmount, "2")));
             // Date transactionDate = df.parse(validityLc);
 
-            if(validityLc!= null){
+            if (validityLc != null) {
                 hlsCusCshPaymentReqLn.setValidityLc(validityLc);
 
             }
-            if(acceptancePeriod!= null){
+            if (acceptancePeriod != null) {
                 hlsCusCshPaymentReqLn.setAcceptancePeriod(Long.valueOf(acceptancePeriod));
 
             }
@@ -1089,15 +1093,15 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
     }
 
     @Override
-    public List<HlsCusCshPaymentReqHd>dailyrate(HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd, int page, int pagesize) {
+    public List<HlsCusCshPaymentReqHd> dailyrate(HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd, int page, int pagesize) {
         PageHelper.startPage(page, pagesize);
         List<HlsCusCshPaymentReqHd> list = hlsCusCshPaymentReqHdMapper.dailyrate(hlsCusCshPaymentReqHd);
         return list;
     }
 
     @Override
-    public HlsCusCshPaymentReqHd tariffPaymentReqCreate(IRequest iRequest, List<HlsCusConContractCashflow> tariffCashflows) throws Exception{
-        if(tariffCashflows == null || tariffCashflows.size() == 0){
+    public HlsCusCshPaymentReqHd tariffPaymentReqCreate(IRequest iRequest, List<HlsCusConContractCashflow> tariffCashflows) throws Exception {
+        if (tariffCashflows == null || tariffCashflows.size() == 0) {
             throw new HlsCusException("现金流获取失败");
         }
         HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd = new HlsCusCshPaymentReqHd();
@@ -1134,7 +1138,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
         hlsCusCshPaymentReqHd = this.insertSelective(iRequest, hlsCusCshPaymentReqHd);
 
         //创建付款申请行表
-        for(HlsCusConContractCashflow item: tariffCashflows){
+        for (HlsCusConContractCashflow item : tariffCashflows) {
             HlsCusCshPaymentReqLn hlsCusCshPaymentReqLn = new HlsCusCshPaymentReqLn();
             hlsCusCshPaymentReqLn.setPaymentReqId(hlsCusCshPaymentReqHd.getPaymentReqId());
             hlsCusCshPaymentReqLn.setSourceDocCategory("CON_CONTRACT");
@@ -1150,10 +1154,10 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
     }
 
     @Override
-    public List<HlsCusCshPaymentReqHd> submitTariffPaymentReqWfl(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) throws HlsCusException{
+    public List<HlsCusCshPaymentReqHd> submitTariffPaymentReqWfl(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) throws HlsCusException {
         List<HlsCusCshPaymentReqHd> hlsCusCshPaymentReqHds = new ArrayList<>();
-        if(hlsCusCshPaymentReqHd.getPaymentReqId() != null){
-            hlsCusCshPaymentReqHd =this.selectByPrimaryKey(iRequest,hlsCusCshPaymentReqHd);
+        if (hlsCusCshPaymentReqHd.getPaymentReqId() != null) {
+            hlsCusCshPaymentReqHd = this.selectByPrimaryKey(iRequest, hlsCusCshPaymentReqHd);
             hlsCusCshPaymentReqHds.add(hlsCusCshPaymentReqHd);
             //获取申请人
             HlsEmployee employee = employeeMapper.getEmployeeCode(iRequest.getUserId());
@@ -1171,7 +1175,7 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
 
             //修改单据状态
             hlsCusCshPaymentReqHd.setPaymentReqStatus("APPROVING");
-            this.updateByPrimaryKeySelective(iRequest,hlsCusCshPaymentReqHd);
+            this.updateByPrimaryKeySelective(iRequest, hlsCusCshPaymentReqHd);
         }
         return hlsCusCshPaymentReqHds;
     }
@@ -1194,12 +1198,12 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
 
     @Override
     public void tariffPaymentReqApproved(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) {
-        if(hlsCusCshPaymentReqHd.getPaymentReqId() != null){
-            hlsCusCshPaymentReqHd =this.selectByPrimaryKey(iRequest,hlsCusCshPaymentReqHd);
+        if (hlsCusCshPaymentReqHd.getPaymentReqId() != null) {
+            hlsCusCshPaymentReqHd = this.selectByPrimaryKey(iRequest, hlsCusCshPaymentReqHd);
             HlsCusCshPaymentReqLn hlsCusCshPaymentReqLn = new HlsCusCshPaymentReqLn();
             hlsCusCshPaymentReqLn.setPaymentReqId(hlsCusCshPaymentReqHd.getPaymentReqId());
             List<HlsCusCshPaymentReqLn> hlsCusCshPaymentReqLnList = hlsCusCshPaymentReqLnMapper.select(hlsCusCshPaymentReqLn);
-            for (HlsCusCshPaymentReqLn item :hlsCusCshPaymentReqLnList){
+            for (HlsCusCshPaymentReqLn item : hlsCusCshPaymentReqLnList) {
                 item.setBpId(hlsCusCshPaymentReqHd.getBpId());
                 item.setPaymentMethod("TT");
                 item.setBpBankAccountNum(hlsCusCshPaymentReqHd.getBpBankAccountNum());
@@ -1212,20 +1216,41 @@ public class CshPaymentReqHdServiceImpl extends BaseServiceImpl<HlsCusCshPayment
     }
 
     @Override
-    public List<Double> queryActualPaymentAmount(HlsCusCshPaymentReqHd hlscuscshpaymentreqhd){
+    public List<Double> queryActualPaymentAmount(HlsCusCshPaymentReqHd hlscuscshpaymentreqhd) {
         List<Double> actual_amount = new ArrayList<>();
-        if(hlscuscshpaymentreqhd.getPaymentReqId() != null ){
+        if (hlscuscshpaymentreqhd.getPaymentReqId() != null) {
             actual_amount.add(hlsCusCshPaymentReqHdMapper.queryActualPaymentAmount(hlscuscshpaymentreqhd.getPaymentReqId()));
         }
         return actual_amount;
     }
 
     @Override
-    public List<Double> queryPaymentAmount(HlsCusCshPaymentReqHd hlscuscshpaymentreqhd){
+    public List<Double> queryPaymentAmount(HlsCusCshPaymentReqHd hlscuscshpaymentreqhd) {
         List<Double> amount = new ArrayList<>();
-        if(hlscuscshpaymentreqhd.getPaymentReqId() != null ){
+        if (hlscuscshpaymentreqhd.getPaymentReqId() != null) {
             amount.add(hlsCusCshPaymentReqHdMapper.queryPaymentAmount(hlscuscshpaymentreqhd.getPaymentReqId()));
         }
         return amount;
     }
+
+    @Override
+    public void financeImport(IRequest iRequest, Long headerId, Long paymentReqId) {
+        List<FndInterfaceLines> fndInterfaceLinesList = getInterfaceData(headerId, 0L);
+        for (FndInterfaceLines fndInterfaceLine : fndInterfaceLinesList) {
+
+
+        }
+
+    }
+
+    // 校验字段是否有值
+    public static void validate(String message, Object... objects) {
+        for (int i = 0; i < objects.length; i++) {
+            if (objects[i] == null || "".equals(objects[i]) || "null".equals(objects[i])) {
+                throw new RuntimeException(message);
+            }
+        }
+    }
+
+
 }

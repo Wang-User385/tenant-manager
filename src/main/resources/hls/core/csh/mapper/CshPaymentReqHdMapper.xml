@@ -166,6 +166,9 @@
         <result column="manufacturer_name" property="manufacturerName" />
         <result column="id_card_no" property="idCardNo" />
         <result column="phone" property="phone" />
+
+        <result column="tenant_id" property="tenantId" jdbcType="DECIMAL"/>
+        <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR"/>
     </resultMap>
 
     <select id="queryCshPaymentReqHd" resultMap="BaseResultMap" parameterType="com.hand.hls.csh.dto.HlsCusCshPaymentReqHd">
@@ -1913,5 +1916,50 @@ WHERE
             </if>
         </where>
     </select>
+
+
+    <select id="queryWithholding" resultMap="BaseResultMap">
+        select
+        cprh.payment_req_id,
+        cc.project_id,
+        cc.contract_number as project_number,
+        cc.contract_number,
+        cc.tenant_id,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.tenant_id )  tenant_id_n,
+        pqc.due_date,
+        pqc.times,
+        pqc.due_amount,
+        pqc.principal,
+        pqc.interest,
+        pqc.late_fees,
+        pqc.write_off_amount,
+        cprh.bp_bank_account_name,
+        cprh.bp_bank_account_num,
+        cprh.withholding_party,
+        cprh.payment_status,
+        (select sc.meaning
+         from sys_code_value_b_v sc
+         where sc.code = 'CPRH.PAYMENT_STATUS' and sc.code_value = cprh.payment_status) payment_status_n,
+        cprh.post_itfc_msg,
+        (select  ct.transaction_date from  csh_transaction ct where  cc.contract_id = ct.contract_id) transaction_date,
+        pqc.write_off_status,
+        (select sc.meaning
+         from sys_code_value_b_v sc
+         where sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG' and sc.code_value = cprh.write_off_status) write_off_status_n,
+        (select  transaction_num from  csh_transaction ct where  cc.contract_id = ct.contract_id) transaction_num,
+        cprh.whether_transfers,
+        (select sc.meaning
+         from sys_code_value_b_v sc
+         where sc.code = 'SYS.YES_NO' and sc.code_value = cprh.whether_transfers) whether_transfers_n,
+        cprh.whether_suspend_withholding,
+        (select sc.meaning
+         from sys_code_value_b_v sc
+         where sc.code = 'SYS.YES_NO' and sc.code_value = cprh.whether_suspend_withholding_n) whether_suspend_withholding_n
+        from csh_payment_req_hd cprh
+        INNER JOIN con_contract cc ON cprh.source_doc_id = cc.contract_id and cprh.source_doc_type = 'CON_CONTRACT'
+        INNER JOIN prj_quotation pq ON cc.project_id  = pq.document_id and pq.source_document_category = 'CON_CONTRACT'
+        INNER JOIN prj_quotation_cashflow pqc ON pq.quotation_id = pqc.quotation_id
+    </select>
+
 
 </mapper>
