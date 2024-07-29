@@ -864,7 +864,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         //融资方案相关信息
         //月付租金
-        double monthPayment = financeInfo.getMonthPayment().doubleValue();
+        double monthPayment = Double.parseDouble(financeInfo.getMonthPayment());
         double yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
         if (monthPayment!=yfzj){
             flag = true;
@@ -874,25 +874,25 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             flag = true;
         }
         //月付租金
-        double firstPayment = financeInfo.getFirstPayment().doubleValue();
+        double firstPayment = Double.parseDouble(financeInfo.getFirstPayment());
         double sfje = Double.parseDouble(preRiskAuditData.getSfje());
         if (firstPayment!=sfje){
             flag = true;
         }
         //车辆指导价
-        double carGuidePrice = financeInfo.getCarGuidePrice().doubleValue();
+        double carGuidePrice = Double.parseDouble(financeInfo.getCarGuidePrice());
         double cfpp = Double.parseDouble(preRiskAuditData.getCfpp());
         if (carGuidePrice!=cfpp){
             flag = true;
         }
         //车辆售价
-        double carSalePrice = financeInfo.getCarSalePrice().doubleValue();
+        double carSalePrice = Double.parseDouble(financeInfo.getCarSalePrice());
         double clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
         if (carSalePrice!=clxsjg){
             flag = true;
         }
         //申请融资额
-        double applyLoanAmount = financeInfo.getApplyLoanAmount().doubleValue();
+        double applyLoanAmount = Double.parseDouble(financeInfo.getApplyLoanAmount());
         double financingamount = Double.parseDouble(preRiskAuditData.getFinancingamount());
         if (applyLoanAmount!=financingamount){
             flag = true;
@@ -1611,46 +1611,46 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //期次
             prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
 //            月租
-            prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
+            prjQuotation.setPmt(Double.valueOf(financeInfo.getMonthPayment())/100);
 //            利率
-            prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
+            prjQuotation.setIntRate(Double.valueOf(financeInfo.getRate()));
 //            首付款
-            prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
+            prjQuotation.setDownPayment(Double.valueOf(financeInfo.getFirstPayment())/100);
             //剩余车辆价款 (分)
-            prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
+            prjQuotation.setSurplusAmount(Double.valueOf(financeInfo.getCarRestPrice())/100);
             //融资金额
-            prjQuotation.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
+            prjQuotation.setFinanceAmount(Double.valueOf(financeInfo.getApplyLoanAmount())/100);
         }else{
             if (prjQuotation.getLeaseTimes()!=null&&prjQuotation.getPmt()!=null&&prjQuotation.getIntRate()!=null
             &&prjQuotation.getDownPayment()!=null&&prjQuotation.getSurplusAmount()!=null){
                 if (!prjQuotation.getLeaseTimes().equals(Long.valueOf(financeInfo.getTermCount()))&&
-                        !prjQuotation.getPmt().equals(financeInfo.getMonthPayment().doubleValue()/100)&&
-                        !prjQuotation.getIntRate().equals(financeInfo.getRate().doubleValue()/100)&&
-                        !prjQuotation.getDownPayment().equals(financeInfo.getFirstPayment().doubleValue()/100) &&
-                        !prjQuotation.getSurplusAmount().equals(financeInfo.getCarRestPrice().doubleValue()/100)
+                        !prjQuotation.getPmt().equals(Double.parseDouble(financeInfo.getMonthPayment())/100)&&
+                        !prjQuotation.getIntRate().equals(Double.parseDouble(financeInfo.getRate())/100)&&
+                        !prjQuotation.getDownPayment().equals(Double.parseDouble(financeInfo.getFirstPayment())/100) &&
+                        !prjQuotation.getSurplusAmount().equals(Double.parseDouble(financeInfo.getCarRestPrice())/100)
                 ){
                     //期次
                     prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
 //            月租
-                    prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
+                    prjQuotation.setPmt(Double.parseDouble(financeInfo.getMonthPayment())/100);
 //            利率
-                    prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
+                    prjQuotation.setIntRate(Double.parseDouble(financeInfo.getRate()));
 //            首付款
-                    prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
+                    prjQuotation.setDownPayment(Double.parseDouble(financeInfo.getFirstPayment())/100);
                     //剩余车辆价款 (分)
-                    prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
+                    prjQuotation.setSurplusAmount(Double.parseDouble(financeInfo.getCarRestPrice())/100);
                 }
             }else{
                 //期次
                 prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
 //            月租
-                prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
+                prjQuotation.setPmt(Double.parseDouble(financeInfo.getMonthPayment())/100);
 //            利率
-                prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
+                prjQuotation.setIntRate(Double.parseDouble(financeInfo.getRate()));
 //            首付款
-                prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
+                prjQuotation.setDownPayment(Double.parseDouble(financeInfo.getFirstPayment())/100);
                 //剩余车辆价款 (分)
-                prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
+                prjQuotation.setSurplusAmount(Double.parseDouble(financeInfo.getCarRestPrice())/100);
             }
         }
         return prjQuotation;
@@ -1670,7 +1670,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
         //强制保险金额
-        double compulsoryAmount = carInfo.getMandatoryInsuranceAmount().doubleValue();
+        double compulsoryAmount = Double.parseDouble(carInfo.getMandatoryInsuranceAmount());
         prjLeaseItemInsurance.setCompulsoryAmount(compulsoryAmount / 100);
         //商业保险类型
         prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
@@ -1731,11 +1731,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            发动机号
         hlsCusPrjProjectLeaseItem.setEngineNumber(carInfo.getEngineNumber());
         //车辆指导价
-        hlsCusPrjProjectLeaseItem.setListPrice(financeInfo.getCarGuidePrice().doubleValue()/100);
+        double d  = Double.parseDouble(financeInfo.getApplyLoanAmount());
+        hlsCusPrjProjectLeaseItem.setListPrice(Double.parseDouble(financeInfo.getCarGuidePrice())/100);
 //            车辆售价
-        hlsCusPrjProjectLeaseItem.setSellingPrice(financeInfo.getCarSalePrice().doubleValue()/100);
+        hlsCusPrjProjectLeaseItem.setSellingPrice(Double.parseDouble(financeInfo.getCarSalePrice())/100);
 //            申请融资额
-        hlsCusPrjProjectLeaseItem.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
+        hlsCusPrjProjectLeaseItem.setFinanceAmount(Double.parseDouble(financeInfo.getApplyLoanAmount())/100);
 
         //车辆品牌
         hlsCusPrjProjectLeaseItem.setBrandC(carInfo.getBrandName());
