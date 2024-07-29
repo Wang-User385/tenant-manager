@@ -25,7 +25,6 @@ import com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
 import com.hand.hls.credit.service.TongDunService;
-import com.hand.hls.csh.dto.CshPaymentReqHd;
 import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
 import com.hand.hls.fnd.dto.HlsProductDefinition;
@@ -48,7 +47,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.hand.hls.sys.utils.OracleUtils.nvl;
 import static com.hand.hls.utils.HlsCusMathUtil.add;
@@ -578,26 +576,44 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if (riskInfo1!=null&&!"".equals(riskInfo1)){
                 //转化为dto
                 PreRiskAuditData preRiskAuditData1  = JSONObject.parseObject(riskInfo1, PreRiskAuditData.class);
-                //判断车系名称与riskInfo中的值是否相同
-                if (!preRiskAuditData1.getCarbrand2().equals(carInfo.getBrandName())){
-                    jsonObject1.put("code","400");
-                    jsonObject1.put("message","品牌名称与riskInfo中的值不同");
-                    return jsonObject1.toJSONString();
+                //获取合作方传的风控信息进行校验
+                PreRiskAuditData preRiskAuditData = null;
+                if (riskInfo!=null){
+                    preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
                 }
-                if (preRiskAuditData1.getChexi().equals(carInfo.getSeriesName())){
-                    jsonObject1.put("code","400");
-                    jsonObject1.put("message","车系名称与riskInfo中的值不同");
-                    return jsonObject1.toJSONString();
+                if (preRiskAuditData!=null){
+                    //将业务数据与风险数据进行校验
+                    Boolean flag = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
+                    //如果校验不通过直接返回
+                    if (flag){
+                        //            设置返回状态
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","业务数据有风控数据不一致");
+                        return jsonObject1.toJSONString();
+                    }
                 }
-                if (preRiskAuditData1.getCartype().equals(carInfo.getModelName())){
-                    jsonObject1.put("code","400");
-                    jsonObject1.put("message","车型名称与riskInfo中的值不同");
-                    return jsonObject1.toJSONString();
-                }
-                if (preRiskAuditData1.getCarcolor().equals(carInfo.getColor())){
-                    jsonObject1.put("code","400");
-                    jsonObject1.put("message","车辆颜色与riskInfo中的值不同");
-                    return jsonObject1.toJSONString();
+                if (preRiskAuditData1!=null){
+                    //判断车系名称与riskInfo中的值是否相同
+                    if (!preRiskAuditData1.getCarbrand2().equals(carInfo.getBrandName())){
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","品牌名称与riskInfo中的值不同");
+                        return jsonObject1.toJSONString();
+                    }
+                    if (preRiskAuditData1.getChexi().equals(carInfo.getSeriesName())){
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","车系名称与riskInfo中的值不同");
+                        return jsonObject1.toJSONString();
+                    }
+                    if (preRiskAuditData1.getCartype().equals(carInfo.getModelName())){
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","车型名称与riskInfo中的值不同");
+                        return jsonObject1.toJSONString();
+                    }
+                    if (preRiskAuditData1.getCarcolor().equals(carInfo.getColor())){
+                        jsonObject1.put("code","400");
+                        jsonObject1.put("message","车辆颜色与riskInfo中的值不同");
+                        return jsonObject1.toJSONString();
+                    }
                 }
             }
             //根据项目信息设置部分租赁物信息
@@ -632,6 +648,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if ("NEW".equals(projectStatus)||"REJECTED".equals(projectStatus)){
                 if ("START".equals(orderStatus)){
 
+                    PreRiskAuditData preRiskAuditData = null;
+                    if (riskInfo!=null){
+                        preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
+                    }
+                    if (preRiskAuditData!=null){
+                        //将业务数据与风险数据进行校验
+                        Boolean flag = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
+                        //如果校验不通过直接返回
+                        if (flag){
+                            //            设置返回状态
+                            jsonObject1.put("code","400");
+                            jsonObject1.put("message","业务数据有风控数据不一致");
+                            return jsonObject1.toJSONString();
+                        }
+                    }
+
                     //根据项目信息设置租赁物信息
                     HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = setLeaseItemByProject(hlsCusPrjProject,hlsCusPrjProjectLeaseItemList,carInfo,financeInfo);
 
@@ -653,14 +685,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     HlsCusPrjQuotation prjQuotation = setQuotationByProject(hlsCusPrjProject,financeInfo);
 
 
-                    PreRiskAuditData preRiskAuditData = null;
-                    if (riskInfo!=null){
-                        preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
-                    }
-                    if(preRiskAuditData != null){
-                        hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
-                    }
+
                     if (preRiskAuditData!=null){
+
+                        hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
+
                         //进件信息
                         hlsCusPrjProject.setDivision(preRiskAuditData.getProline());
 
@@ -776,10 +805,87 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         return jsonObject1.toJSONString();
     }
 
+    private Boolean checkData(SaleInfo saleInfo, CarInfo carInfo, FinanceInfo financeInfo, PreRiskAuditData preRiskAuditData) {
+        Boolean flag = false;
+        //经销商名称
+        if (!saleInfo.getSalesCityName().equals(preRiskAuditData.getDealername())){
+            flag = true;
+        }
+        //车辆品牌
+        if (!carInfo.getBrandName().equals(preRiskAuditData.getCarbrand2())){
+            flag = true;
+        }
+        //车辆型号
+        if (!carInfo.getModelName().equals(preRiskAuditData.getCartype())){
+            flag = true;
+        }
+        //车系
+        if (!carInfo.getSeriesName().equals(preRiskAuditData.getChexi())){
+            flag = true;
+        }
+        //车辆颜色
+        if (!carInfo.getColor().equals(preRiskAuditData.getCarcolor())){
+            flag = true;
+        }
+        //车辆出厂日期
+        if (!carInfo.getCarProductionDate().equals(preRiskAuditData.getCardateofproduction())){
+            flag = true;
+        }
+        //融资方案相关信息
+        //月付租金
+        double monthPayment = financeInfo.getMonthPayment().doubleValue();
+        double yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
+        if (monthPayment!=yfzj){
+            flag = true;
+        }
+        //利率
+        if (!financeInfo.getRate().equals(preRiskAuditData.getNhll())){
+            flag = true;
+        }
+        //月付租金
+        double firstPayment = financeInfo.getFirstPayment().doubleValue();
+        double sfje = Double.parseDouble(preRiskAuditData.getSfje());
+        if (firstPayment!=sfje){
+            flag = true;
+        }
+        //车辆指导价
+        double carGuidePrice = financeInfo.getCarGuidePrice().doubleValue();
+        double cfpp = Double.parseDouble(preRiskAuditData.getCfpp());
+        if (carGuidePrice!=cfpp){
+            flag = true;
+        }
+        //车辆售价
+        double carSalePrice = financeInfo.getCarSalePrice().doubleValue();
+        double clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
+        if (carSalePrice!=clxsjg){
+            flag = true;
+        }
+        //申请融资额
+        double applyLoanAmount = financeInfo.getApplyLoanAmount().doubleValue();
+        double financingamount = Double.parseDouble(preRiskAuditData.getFinancingamount());
+        if (applyLoanAmount!=financingamount){
+            flag = true;
+        }
+        //期数
+        if (!financeInfo.getTermCount().equals(preRiskAuditData.getShenqingqixain())){
+            flag = true;
+        }
+        return flag;
+    }
+
     private PrjProjectLeaseItemSales partSaveLeaseItemSales(PrjProjectLeaseItemSales prjProjectLeaseItemSales, PreRiskAuditData preRiskAuditData) {
-        //根据国标码，获取省id
-//        selectProvinceIdByCode(preRiskAuditData.get);
-        prjProjectLeaseItemSales.getProvinceId();
+        //经销商所在省份
+        prjProjectLeaseItemSales.setProvinceId(Integer.valueOf(preRiskAuditData.getDealerprovince()));
+        //经销商所在城市
+        prjProjectLeaseItemSales.setCityId(Integer.valueOf(preRiskAuditData.getDealercity()));
+        //经销商所属区县
+        prjProjectLeaseItemSales.setDistrictId(Integer.valueOf(preRiskAuditData.getDealerqu()));
+        //经销商所属大区
+        prjProjectLeaseItemSales.setDealerAddress(preRiskAuditData.getDealerdaqu());
+        //经销商名称
+        prjProjectLeaseItemSales.setDealerName(preRiskAuditData.getDealername());
+        //
+        prjProjectLeaseItemSales.setDealerNumber(preRiskAuditData.getDealerid());
         return prjProjectLeaseItemSales;
     }
 
