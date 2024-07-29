@@ -259,8 +259,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         //创建报价信息
         HlsCusPrjQuotation hlsCusPrjQuotation = new HlsCusPrjQuotation();
+        HlsProductDefinition hlsProductDefinition1 = hlsProductDefinitionList.get(0);
         hlsCusPrjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
-        hlsCusPrjQuotation.setPriceList(placeOrderDTO.getProductCode());
+        hlsCusPrjQuotation.setSourceDocumentCategory("PRJ_PROJECT");
+        hlsCusPrjQuotation.setPriceList(hlsProductDefinition1.getPriceList());
         hlsCusPrjQuotationMapper.insertSelective(hlsCusPrjQuotation);
 
         //创建关联人信息
@@ -427,7 +429,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 compensatoryTrialCalculation1.setPenalty(0L);
 //            设置返回数据
                 jsonObject1.put("code","200");
-                jsonObject1.put("message","还款成功");
+                jsonObject1.put("message","试算成功");
                 jsonObject1.put("result",compensatoryTrialCalculation1);
                 return jsonObject1.toJSONString();
             }
@@ -468,7 +470,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         //            设置返回状态
         jsonObject1.put("code","200");
-        jsonObject1.put("message","还款成功");
+        jsonObject1.put("message","代偿成功");
         return jsonObject1.toJSONString();
     }
 
@@ -508,7 +510,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         //            设置返回状态
         jsonObject1.put("code","200");
-        jsonObject1.put("message","还款成功");
+        jsonObject1.put("message","提前结清成功");
         return jsonObject1.toJSONString();
     }
 
@@ -526,7 +528,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             jsonObject1.put("message","订单不存在");
             return jsonObject1.toJSONString();
         }
-        //根据项目id获取租赁物信息,如果为空，那么直接入库，如果不为空，判断订单状态
+        //根据项目id获取租赁物信息
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
 
         //融资方案相关信息
@@ -535,24 +537,24 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            风控审核相关数据
         String riskInfo = dataAcquisitionDTO.getRiskInfo();
         hlsCusPrjProject.setRiskInfo(riskInfo);
-        PreRiskAuditData preRiskAuditData = null;
+
         CarInfo carInfo = dataAcquisitionDTO.getCarInfo();
         SaleInfo saleInfo = dataAcquisitionDTO.getSaleInfo();
-        if (riskInfo!=null){
-            preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
-        }
-        if(preRiskAuditData != null){
-            hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
-        }
+
+        //进件状态
         String projectStatus = hlsCusPrjProject.getProjectStatus();
-        //        如果订单状态为放款之后，不允许修改
-        if ("CANCEL".equals(projectStatus)||"CLOSED".equals(projectStatus)){
+        //订单状态
+        String orderStatus = hlsCusPrjProject.getOrderStatus();
+        //预审状态
+        String preStatus = hlsCusPrjProject.getPreStatus();
+        //预审状态为审批中、订单状态是起租或者关闭、进件状态为审批中不能进行数据采集
+        if ("APPROVING".equals(preStatus)||"APPROVING".equals(projectStatus)||"INCEPT".equals(orderStatus)||"CLOSED".equals(orderStatus)){
+            //            设置返回状态
             jsonObject1.put("code","400");
-            jsonObject1.put("message","订单已放款，不允许修改");
+            jsonObject1.put("message","不允许进行数据采集");
             return jsonObject1.toJSONString();
         }
-        //如果订单为业务申请之后，放款之前，对字段进行校验
-        //品牌名称、车系名称、车型名称、车辆颜色
+        //进件状态为审批通过，进行校验，校验通过后只修改部分信息
         if ("APPROVED".equals(projectStatus)){
             //获取数据库的风险数据
             String riskInfo1 = hlsCusPrjProject.getRiskInfo();
@@ -581,11 +583,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     return jsonObject1.toJSONString();
                 }
             }
-        }
-
-        if ("NEW".equals(projectStatus)){
-            //根据项目信息设置租赁物信息
-            HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = setLeaseItemByProject(hlsCusPrjProject,hlsCusPrjProjectLeaseItemList,carInfo,financeInfo);
+            //根据项目信息设置部分租赁物信息
+            HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = partSaveLeaseItemByProject(hlsCusPrjProject,hlsCusPrjProjectLeaseItemList,carInfo);
 
             prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
             if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
@@ -594,132 +593,211 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 hlsCusPrjProjectLeaseItemMapper.insertSelective(hlsCusPrjProjectLeaseItem);
             }
 
-            //保存销售信息
+            //保存部分销售信息
             PrjProjectLeaseItemSales prjProjectLeaseItemSales = setLeaseItemSalesByLeaseItem(hlsCusPrjProjectLeaseItem,saleInfo);
 
             //保存保险信息
             PrjLeaseItemInsurance prjLeaseItemInsurance = setLeaseItemInsuranceByLeaseItem(hlsCusPrjProjectLeaseItem,carInfo);
 
-            //获取租赁物相关信息，并入库
-            //保存报价信息
-            HlsCusPrjQuotation prjQuotation = setQuotationByProject(hlsCusPrjProject,financeInfo);
-
-
-
-
-            if (preRiskAuditData!=null){
-                //进件信息
-                hlsCusPrjProject.setDivision(preRiskAuditData.getProline());
-
-                //保存客户信息
-                HlsCusBpMaster hlsCusBpMaster = setBpMasterByProject(hlsCusPrjProject,preRiskAuditData);
-
-                //保存银行信息
-                HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = setBpMasterBankAccountByBpMaster(hlsCusBpMaster,preRiskAuditData);
-
-                //保存进件信息
-                hlsCusPrjProject = setProjectByPreRiskAuditData(hlsCusPrjProject,preRiskAuditData);
-
-                //保存担保人信息
-                setGuaranteeByPreRiskAuditData(preRiskAuditData,iRequest,hlsCusPrjProject);
-
-                //保存共同承租人信息
-                setTenantSecByPreRiskAuditData(preRiskAuditData,iRequest,hlsCusPrjProject);
-
-                //保存联系人信息
-                setContactByPreRiskAuditData(hlsCusBpMaster,preRiskAuditData);
-
-                //保存租赁物信息
-                hlsCusPrjProjectLeaseItem = setProjectLeaseItemByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
-
-                //保存抵押物信息
-                PrjProjectLeaseItemMortgage prjProjectLeaseItemMortgage = setProjectLeaseItemMortgageByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
-
-                //根据preRiskAuditData，更新prjLeaseItemInsurance信息
-                prjLeaseItemInsurance = updateLeaseItemInsuranceByPreRiskAuditData(prjLeaseItemInsurance,preRiskAuditData);
-
-                //保存车况信息
-                PrjProjectLeaseItemCondition prjProjectLeaseItemCondition = setLeaseItemConditionByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
-
-                //更新报价信息
-                prjQuotation = updateQuotationByPreRiskAuditData(prjQuotation,preRiskAuditData);
-
-
-
-                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-                prjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
-                if (prjQuotation.getQuotationId()!=null){
-                    hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
-                }else{
-                    hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
-                }
-                prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
-                Example example = new Example(HlsCusPrjProjectLeaseItem.class);
-                example.createCriteria().andEqualTo("projectLeaseItemId",hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
-                hlsCusPrjProjectLeaseItemMapper.updateByExample(hlsCusPrjProjectLeaseItem,example);
-//                    hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem1);
-//            prjProjectLeaseItemMortgage.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
-                if (prjProjectLeaseItemMortgage.getMortgageId()!=null){
-                    projectLeaseItemMortgageMapper.updateByPrimaryKeySelective(prjProjectLeaseItemMortgage);
-                }else{
-                    projectLeaseItemMortgageMapper.insertSelective(prjProjectLeaseItemMortgage);
-                }
-                if (prjProjectLeaseItemSales.getSalesId()!=null){
-                    projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
-                }else{
-                    projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
-                }
-//            prjProjectLeaseItemCondition.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
-                if (prjProjectLeaseItemCondition.getConditionId()!=null){
-                    projectLeaseItemConditionMapper.updateByPrimaryKeySelective(prjProjectLeaseItemCondition);
-                }else{
-                    projectLeaseItemConditionMapper.insertSelective(prjProjectLeaseItemCondition);
-                }
-//            prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
-                if (prjLeaseItemInsurance.getInsuranceId()!=null){
-                    prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
-                }else{
-                    prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
-                }
-                hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster);
-//            hlsCusBpMasterBankAccount.setBpId(hlsCusBpMaster.getBpId());
-                if (hlsCusBpMasterBankAccount.getBankAccountId()!=null){
-                    hlsCusBpMasterBankAccountMapper.updateByPrimaryKeySelective(hlsCusBpMasterBankAccount);
-                }else{
-                    hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
-                }
+            if (prjProjectLeaseItemSales.getSalesId()!=null){
+                projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
             }else{
-                if (prjProjectLeaseItemSales.getSalesId()!=null){
-                    projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
-                }else{
-                    projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
-                }
-//            prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
-                if (prjLeaseItemInsurance.getInsuranceId()!=null){
-                    prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
-                }else{
-                    prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
-                }
-                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-//            prjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
-                if (prjQuotation.getQuotationId()!=null){
-                    hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
-                }else{
-                    hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
-                }
-
-                prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
-                hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);
+                projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
             }
-            //            设置返回状态
-            jsonObject1.put("code","200");
-            jsonObject1.put("message","数据采集成功");
-            return jsonObject1.toJSONString();
+            if (prjLeaseItemInsurance.getInsuranceId()!=null){
+                prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
+            }else{
+                prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
+            }
         }
+        //预审状态为:新建、审批拒绝、审批通过,进件状态为：新建、审批拒绝,订单状态为新建，可以进行数据采集
+        if ("NEW".equals(preStatus)||"REJECTED".equals(preStatus)||"APPROVED".equals(preStatus)){
+            if ("NEW".equals(projectStatus)||"REJECTED".equals(projectStatus)){
+                if ("START".equals(orderStatus)){
+
+                    //根据项目信息设置租赁物信息
+                    HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = setLeaseItemByProject(hlsCusPrjProject,hlsCusPrjProjectLeaseItemList,carInfo,financeInfo);
+
+                    prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+                    if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
+                        hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);
+                    }else{
+                        hlsCusPrjProjectLeaseItemMapper.insertSelective(hlsCusPrjProjectLeaseItem);
+                    }
+
+                    //保存销售信息
+                    PrjProjectLeaseItemSales prjProjectLeaseItemSales = setLeaseItemSalesByLeaseItem(hlsCusPrjProjectLeaseItem,saleInfo);
+
+                    //保存保险信息
+                    PrjLeaseItemInsurance prjLeaseItemInsurance = setLeaseItemInsuranceByLeaseItem(hlsCusPrjProjectLeaseItem,carInfo);
+
+                    //获取租赁物相关信息，并入库
+                    //保存报价信息
+                    HlsCusPrjQuotation prjQuotation = setQuotationByProject(hlsCusPrjProject,financeInfo);
+
+
+                    PreRiskAuditData preRiskAuditData = null;
+                    if (riskInfo!=null){
+                        preRiskAuditData  = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
+                    }
+                    if(preRiskAuditData != null){
+                        hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
+                    }
+                    if (preRiskAuditData!=null){
+                        //进件信息
+                        hlsCusPrjProject.setDivision(preRiskAuditData.getProline());
+
+                        //保存客户信息
+                        HlsCusBpMaster hlsCusBpMaster = setBpMasterByProject(hlsCusPrjProject,preRiskAuditData);
+
+                        //部分保存保险信息
+                        prjLeaseItemInsurance = partSaveLeaseItemInsurance(prjLeaseItemInsurance,preRiskAuditData);
+
+                        //部分保存销售方信息
+                        prjProjectLeaseItemSales = partSaveLeaseItemSales(prjProjectLeaseItemSales,preRiskAuditData);
+
+                        //保存银行信息
+                        HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = setBpMasterBankAccountByBpMaster(hlsCusBpMaster,preRiskAuditData);
+
+                        //保存进件信息
+                        hlsCusPrjProject = setProjectByPreRiskAuditData(hlsCusPrjProject,preRiskAuditData);
+
+                        //保存担保人信息
+                        setGuaranteeByPreRiskAuditData(preRiskAuditData,iRequest,hlsCusPrjProject);
+
+                        //保存共同承租人信息
+                        setTenantSecByPreRiskAuditData(preRiskAuditData,iRequest,hlsCusPrjProject);
+
+                        //保存联系人信息
+                        setContactByPreRiskAuditData(hlsCusBpMaster,preRiskAuditData);
+
+                        //保存租赁物信息
+                        hlsCusPrjProjectLeaseItem = setProjectLeaseItemByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
+
+                        //保存抵押物信息
+                        PrjProjectLeaseItemMortgage prjProjectLeaseItemMortgage = setProjectLeaseItemMortgageByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
+
+                        //根据preRiskAuditData，更新prjLeaseItemInsurance信息
+                        prjLeaseItemInsurance = updateLeaseItemInsuranceByPreRiskAuditData(prjLeaseItemInsurance,preRiskAuditData);
+
+                        //保存车况信息
+                        PrjProjectLeaseItemCondition prjProjectLeaseItemCondition = setLeaseItemConditionByPreRiskAuditData(hlsCusPrjProjectLeaseItem,preRiskAuditData);
+
+                        //更新报价信息
+                        prjQuotation = updateQuotationByPreRiskAuditData(prjQuotation,preRiskAuditData);
+
+
+                        prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+                        prjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
+                        if (prjQuotation.getQuotationId()!=null){
+                            hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
+                        }else{
+                            hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
+                        }
+                        prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
+                        Example example = new Example(HlsCusPrjProjectLeaseItem.class);
+                        example.createCriteria().andEqualTo("projectLeaseItemId",hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+                        hlsCusPrjProjectLeaseItemMapper.updateByExample(hlsCusPrjProjectLeaseItem,example);
+                        if (prjProjectLeaseItemMortgage.getMortgageId()!=null){
+                            projectLeaseItemMortgageMapper.updateByPrimaryKeySelective(prjProjectLeaseItemMortgage);
+                        }else{
+                            projectLeaseItemMortgageMapper.insertSelective(prjProjectLeaseItemMortgage);
+                        }
+                        if (prjProjectLeaseItemSales.getSalesId()!=null){
+                            projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
+                        }else{
+                            projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
+                        }
+                        if (prjProjectLeaseItemCondition.getConditionId()!=null){
+                            projectLeaseItemConditionMapper.updateByPrimaryKeySelective(prjProjectLeaseItemCondition);
+                        }else{
+                            projectLeaseItemConditionMapper.insertSelective(prjProjectLeaseItemCondition);
+                        }
+                        if (prjLeaseItemInsurance.getInsuranceId()!=null){
+                            prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
+                        }else{
+                            prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
+                        }
+                        hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster);
+                        if (hlsCusBpMasterBankAccount.getBankAccountId()!=null){
+                            hlsCusBpMasterBankAccountMapper.updateByPrimaryKeySelective(hlsCusBpMasterBankAccount);
+                        }else{
+                            hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
+                        }
+                        //            设置返回状态
+                        jsonObject1.put("code","200");
+                        jsonObject1.put("message","数据采集成功");
+                        return jsonObject1.toJSONString();
+                    }else{
+                        if (prjProjectLeaseItemSales.getSalesId()!=null){
+                            projectLeaseItemSalesMapper.updateByPrimaryKeySelective(prjProjectLeaseItemSales);
+                        }else{
+                            projectLeaseItemSalesMapper.insertSelective(prjProjectLeaseItemSales);
+                        }
+                        if (prjLeaseItemInsurance.getInsuranceId()!=null){
+                            prjLeaseItemInsuranceMapper.updateByPrimaryKeySelective(prjLeaseItemInsurance);
+                        }else{
+                            prjLeaseItemInsuranceMapper.insertSelective(prjLeaseItemInsurance);
+                        }
+                        prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+                        if (prjQuotation.getQuotationId()!=null){
+                            hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
+                        }else{
+                            hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
+                        }
+
+                        prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
+                        hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);
+                    }
+                }
+            }
+        }
+
         //            设置返回状态
         jsonObject1.put("code","200");
-        jsonObject1.put("message","不允许进行数据采集");
+        jsonObject1.put("message","数据采集成功");
         return jsonObject1.toJSONString();
+    }
+
+    private PrjProjectLeaseItemSales partSaveLeaseItemSales(PrjProjectLeaseItemSales prjProjectLeaseItemSales, PreRiskAuditData preRiskAuditData) {
+        //根据国标码，获取省id
+//        selectProvinceIdByCode(preRiskAuditData.get);
+        prjProjectLeaseItemSales.getProvinceId();
+        return prjProjectLeaseItemSales;
+    }
+
+    private PrjLeaseItemInsurance partSaveLeaseItemInsurance(PrjLeaseItemInsurance prjLeaseItemInsurance, PreRiskAuditData preRiskAuditData) {
+
+        //延保金额
+        prjLeaseItemInsurance.setExtendedWarrantyAmount(Double.valueOf(preRiskAuditData.getYanbaoje())/100);
+        //车辆保险金额 clbxje
+        prjLeaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);
+        return prjLeaseItemInsurance;
+    }
+
+    private HlsCusPrjProjectLeaseItem partSaveLeaseItemByProject(HlsCusPrjProject hlsCusPrjProject, List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList, CarInfo carInfo) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem  = null;
+        if (hlsCusPrjProjectLeaseItemList.size()>0){
+            hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
+        }else{
+            hlsCusPrjProjectLeaseItem = new HlsCusPrjProjectLeaseItem();
+        }
+        //项目id
+        hlsCusPrjProjectLeaseItem.setProjectId(hlsCusPrjProject.getProjectId());
+//            车架号
+        hlsCusPrjProjectLeaseItem.setFrameNumber(carInfo.getVin());
+//            车辆出厂日期
+        try {
+            Date productDate = simpleDateFormat.parse(carInfo.getCarProductionDate());
+            hlsCusPrjProjectLeaseItem.setProductDate(productDate);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+//            发动机号
+        hlsCusPrjProjectLeaseItem.setEngineNumber(carInfo.getEngineNumber());
+
+        return hlsCusPrjProjectLeaseItem;
     }
 
     private HlsCusPrjQuotation updateQuotationByPreRiskAuditData(HlsCusPrjQuotation prjQuotation, PreRiskAuditData preRiskAuditData) {
@@ -924,7 +1002,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //联系人
             HlsBpSpouse hlsBpSpouse = new HlsBpSpouse();
             //联系人与承租人关系
-            hlsBpSpouse.setRelationship(preRiskAuditData.getContreleship());
+            if ("SPOUSE".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("1");
+            }else if ("PARENTS".equals(preRiskAuditData.getContreleship())&&"MOTHER".equals(preRiskAuditData.getContreleship())
+                    &&"FATHER".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("2");
+            }else if ("CHILD".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("4");
+            }else if ("RELATIVE".equals(preRiskAuditData.getContreleship())&&"BROTHERS_AND_SISTERS".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("5");
+            }else if ("FRIEND".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("6");
+            }else if ("COLLEAGUE".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("3");
+            }
             //联系人姓名
             hlsBpSpouse.setPersonName(preRiskAuditData.getContname());
             //联系人当前居住地址
@@ -936,7 +1027,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }else{
             HlsBpSpouse hlsBpSpouse = hlsBpSpouseList.get(0);
             //联系人与承租人关系
-            hlsBpSpouse.setRelationship(preRiskAuditData.getContreleship());
+            if ("SPOUSE".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("1");
+            }else if ("PARENTS".equals(preRiskAuditData.getContreleship())&&"MOTHER".equals(preRiskAuditData.getContreleship())
+                    &&"FATHER".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("2");
+            }else if ("CHILD".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("4");
+            }else if ("RELATIVE".equals(preRiskAuditData.getContreleship())&&"BROTHERS_AND_SISTERS".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("5");
+            }else if ("FRIEND".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("6");
+            }else if ("COLLEAGUE".equals(preRiskAuditData.getContreleship())){
+                hlsBpSpouse.setRelationship("3");
+            }
             //联系人姓名
             hlsBpSpouse.setPersonName(preRiskAuditData.getContname());
             //联系人当前居住地址
@@ -1328,7 +1432,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusBpMaster.setSpouseJobsUnit(preRiskAuditData.getSpousecomp());
         //配偶公司所属行业
         Long spId = hlsCusBpMasterMapper.selectHlsStatClassByCode(preRiskAuditData.getSpousecompind());
-        hlsCusBpMaster.setEconomicInduClassify(""+spId);
+        hlsCusBpMaster.setInduClassifySp(""+spId);
         //配偶公司性质
         hlsCusBpMaster.setCompanyNatureSp(preRiskAuditData.getSpousecomptype());
         //配偶职业类型
@@ -1363,12 +1467,26 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //融资金额
             prjQuotation.setFinanceAmount(financeInfo.getApplyLoanAmount().doubleValue()/100);
         }else{
-            if (!prjQuotation.getLeaseTimes().equals(Long.valueOf(financeInfo.getTermCount()))&&
-                    !prjQuotation.getPmt().equals(financeInfo.getMonthPayment().doubleValue()/100)&&
-                    !prjQuotation.getIntRate().equals(financeInfo.getRate().doubleValue()/100)&&
-                    prjQuotation.getDownPayment().equals(financeInfo.getFirstPayment().doubleValue()/100) &&
-                    prjQuotation.getSurplusAmount().equals(financeInfo.getCarRestPrice().doubleValue()/100)
-            ){
+            if (prjQuotation.getLeaseTimes()!=null&&prjQuotation.getPmt()!=null&&prjQuotation.getIntRate()!=null
+            &&prjQuotation.getDownPayment()!=null&&prjQuotation.getSurplusAmount()!=null){
+                if (!prjQuotation.getLeaseTimes().equals(Long.valueOf(financeInfo.getTermCount()))&&
+                        !prjQuotation.getPmt().equals(financeInfo.getMonthPayment().doubleValue()/100)&&
+                        !prjQuotation.getIntRate().equals(financeInfo.getRate().doubleValue()/100)&&
+                        !prjQuotation.getDownPayment().equals(financeInfo.getFirstPayment().doubleValue()/100) &&
+                        !prjQuotation.getSurplusAmount().equals(financeInfo.getCarRestPrice().doubleValue()/100)
+                ){
+                    //期次
+                    prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
+//            月租
+                    prjQuotation.setPmt(financeInfo.getMonthPayment().doubleValue()/100);
+//            利率
+                    prjQuotation.setIntRate(financeInfo.getRate().doubleValue());
+//            首付款
+                    prjQuotation.setDownPayment(financeInfo.getFirstPayment().doubleValue()/100);
+                    //剩余车辆价款 (分)
+                    prjQuotation.setSurplusAmount(financeInfo.getCarRestPrice().doubleValue()/100);
+                }
+            }else{
                 //期次
                 prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));
 //            月租
@@ -1397,14 +1515,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
         }
         prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
+        //强制保险金额
         double compulsoryAmount = carInfo.getMandatoryInsuranceAmount().doubleValue();
         prjLeaseItemInsurance.setCompulsoryAmount(compulsoryAmount / 100);
         //商业保险类型
         prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
-//        //延保金额
-//        prjLeaseItemInsurance.setExtendedWarrantyAmount(Double.valueOf(preRiskAuditData.getYanbaoje())/100);
-//        //车辆保险金额 clbxje
-//        prjLeaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);
         return prjLeaseItemInsurance;
     }
 
