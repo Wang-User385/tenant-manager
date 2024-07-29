@@ -9486,6 +9486,8 @@ WHERE
         <result column="investment_status" property="investment_status"/>
         <result column="investment_status_n" property="investment_status_n"/>
         <result column="payment_result_n" property="payment_result_n"/>
+        <result column="lease_item_type" property="lease_item_type"/>
+        <result column="lease_item_type_n" property="lease_item_type_n"/>
     </resultMap>
 
     <!--项目报告维护-->
@@ -9780,7 +9782,7 @@ WHERE
         pp.GUARANTEE_SIGNED_FLAG,
         ( SELECT s.MEANING FROM sys_code_value_b_v s WHERE s.CODE = 'GUARANTEE_SIGNED_FLAG' AND s.code_value = pp.guarantee_signed_flag ) guarantee_signed_flag_n,
         pp.lease_organization,
-        ( SELECT fou.UNIT_NAME FROM fnd_org_unit fou WHERE pp.LEASE_ORGANIZATION = fou.UNIT_CODE AND fou.ENABLED_FLAG = 'Y' ) lease_organization_n,
+        ( SELECT fou.UNIT_NAME FROM fnd_org_unit fou WHERE pp.unit_id = fou.unit_id AND fou.ENABLED_FLAG = 'Y' ) lease_organization_n,
         ( SELECT v.meaning FROM sys_code_value_b_v v WHERE v.CODE = 'SIGN_METHOD' AND v.code_value = pp.sign_type ) sign_type_n,
         hdt.description document_type_n,
         ( SELECT fe.NAME FROM fnd_employee fe WHERE fe.employee_id = pp.employee_id ) employee_id_n,
@@ -9867,7 +9869,13 @@ WHERE
         AND v.code_id = b.code_id
         AND v.value = nvl( pp.SIGN_STATUS, 'NEW' )) sign_status_n,
         pp.order_status,
-        decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n
+        decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n,
+        pp.lease_item_type,
+        (SELECT v.meaning
+        FROM sys_code_value_b v, sys_code_b b
+        WHERE b.CODE = 'PRODUCT.LEASE_ITEM_TYPE'
+        AND v.code_id = b.code_id
+        AND v. VALUE = pp.lease_item_type) lease_item_type_n
         FROM
         prj_project pp
         LEFT JOIN hls_bp_master hbm ON pp.TENANT_ID = hbm.bp_id
@@ -9875,8 +9883,7 @@ WHERE
         LEFT JOIN prj_quotation pq ON pp.PROJECT_ID = pq.source_document_id
         ) v
         <where>
-            v.PROJECT_STATUS IN ('APPROVED','BUSINESSAPPROVED')
-            and v.DOCUMENT_TYPE IN ('PRJL','PRJLB')
+            v.PROJECT_STATUS = 'APPROVED'
             <if test="createdBy!=null">
                 and (v.created_by = #{createdBy} or EXISTS (SELECT
                 1
@@ -10361,7 +10368,7 @@ WHERE
         pp.lease_organization,
         (select fou.UNIT_NAME
         from fnd_org_unit fou
-        where pp.LEASE_ORGANIZATION=fou.UNIT_CODE
+        where pp.unit_id = fou.unit_id
         and fou.ENABLED_FLAG='Y')                    lease_organization_n,
 
         pp.division,
@@ -10450,7 +10457,6 @@ WHERE
         On pp.DOCUMENT_TYPE = hdt.document_type
         <where>
             pp.PROJECT_STATUS = 'APPROVED'
-            and pp.DOCUMENT_TYPE IN ('PRJL', 'PRJLB')
             <if test="createdBy!=null">
                 and (exists(
                 select 1
@@ -10766,6 +10772,8 @@ WHERE
         <result column="finance_amount" property="finance_amount"/>
         <result column="id_card_no" property="id_card_no"/>
         <result column="unit_id_n" property="unit_id_n"/>
+        <result column="lease_item_type_n" property="lease_item_type_n"/>
+        <result column="lease_item_type" property="lease_item_type"/>
     </resultMap>
     <select id="prjRpLModifyQuery" resultMap="PrjRpLModifyQueryMap">
         SELECT pp.project_id,
@@ -12906,7 +12914,13 @@ WHERE
         '关闭') order_status_n,
         pp.driver_and_applicant,
         pp.process_instance_id,
-        pp.approved_date
+        pp.approved_date,
+        pp.lease_item_type,
+        (SELECT v.meaning
+        FROM sys_code_value_b v, sys_code_b b
+        WHERE b.CODE = 'PRODUCT.LEASE_ITEM_TYPE'
+        AND v.code_id = b.code_id
+        AND v. VALUE = pp.lease_item_type) lease_item_type_n
         FROM prj_project pp
         LEFT JOIN hls_bp_master hbm
         ON pp.TENANT_ID = hbm.bp_id) v
@@ -13064,7 +13078,13 @@ WHERE
                 from prj_quotation pq
                 where pq.source_document_id = pp.project_id
                   and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
-                  and rownum = 1) down_payment
+                  and rownum = 1) down_payment,
+               pp.lease_item_type,
+               (SELECT v.meaning
+                FROM sys_code_value_b v, sys_code_b b
+                WHERE b.CODE = 'PRODUCT.LEASE_ITEM_TYPE'
+                  AND v.code_id = b.code_id
+                  AND v. VALUE = pp.lease_item_type) lease_item_type_n
         FROM prj_project pp
                  LEFT JOIN hls_bp_master hbm
                            ON hbm.bp_id = pp.tenant_id
@@ -13084,7 +13104,7 @@ WHERE
             hbm.bp_code,
             ppb.bp_categroy bp_category,
             (select bc.description from hls_bp_category bc where bc.bp_category = ppb.bp_categroy) bp_category_n,
-            ppb.ref_v02
+            decode(ppb.ref_v02,'GUARANTOR','担保人','TENANT-SEC','共同承租人') ref_v02
         FROM
             prj_project pp LEFT JOIN prj_project_bp ppb ON ppb.PROJECT_ID = pp.PROJECT_ID LEFT JOIN hls_bp_master hbm ON hbm.bp_id = ppb.bp_id
         WHERE
