@@ -260,6 +260,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest,"PRJ_PROJECT_IMPORT", "PRJLB", "LEASEBACK", params);
 
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
+        hlsCusPrjProject.setManufacturerId(hlsCusBpMasters.get(0).getBpId());
         hlsCusPrjProject.setProjectNumber(codeRuleValue);
         hlsCusPrjProject.setCompanyId(1L);
         hlsCusPrjProject.setTenantId(bpMaster.getBpId());
