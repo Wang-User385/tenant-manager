@@ -130,7 +130,10 @@ public class HlsCusCshPaymentReqHd extends CshPaymentReqHd {
      */
     @Transient
     private String businessFlag;
-
+    @Transient
+    private Long tenantId;
+    @Transient
+    private String tenantIdN;
 
 
 
