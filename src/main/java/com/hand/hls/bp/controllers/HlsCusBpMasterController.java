@@ -208,6 +208,20 @@ public class HlsCusBpMasterController extends BaseController {
         service.saveOrder(conditionId,orderId);
         return new ResponseData();
     }
+    @RequestMapping({"/hls/update/condition"})
+    @ResponseBody
+    public ResponseData saveBusinessCondition(@RequestParam("conditionId")Long conditionId,@RequestParam("bpId")Long bpId) {
+        service.saveBusinessCondition(conditionId,bpId);
+        return new ResponseData();
+    }
+
+    @RequestMapping({ "/hls/get/conditionId"})
+    @ResponseBody
+    public ResponseData getConditionId(@RequestParam("bpId")Long bpId) {
+        return new ResponseData(service.getConditionId(bpId));
+    }
+
+
 
 
 

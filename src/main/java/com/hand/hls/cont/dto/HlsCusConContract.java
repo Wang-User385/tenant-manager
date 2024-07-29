@@ -398,6 +398,8 @@ public class HlsCusConContract extends ConContract {
     private String purPostFlag;
     private String purStampDutyAccruedAmount;
 
+    private Long mortgageInstanceId;
+
 
     private String printStatus;
 
@@ -1719,6 +1721,21 @@ public class HlsCusConContract extends ConContract {
 
     @Transient
     private Double contractAttachmentId;
+
+    @Transient
+    private Double totalRentalAmount;
+
+    @Transient
+    private Double remainRentalAmount;
+
+    @Transient
+    private Double remainPrincipal;
+
+    @Transient
+    private Double penalty;
+
+    @Transient
+    private String currentOverdueStatusN;
 
 
 

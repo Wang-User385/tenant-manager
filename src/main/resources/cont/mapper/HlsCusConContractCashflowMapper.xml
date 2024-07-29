@@ -386,6 +386,7 @@
         <result column="legal_contract_number" property="legalContractNumber"/>
 
         <result column="plan_type" property="planType" jdbcType="VARCHAR"/>
+        <result column="plan_type_n" property="planTypeN" jdbcType="VARCHAR"/>
         <result column="due_comp_amount" property="dueCompAmount" jdbcType="DECIMAL"/>
         <result column="received_comp_amount" property="receivedCompAmount" jdbcType="DECIMAL"/>
         <result column="refund_comp_amount" property="refundCompAmount" jdbcType="DECIMAL"/>
@@ -9011,7 +9012,7 @@ and con.contract_status in
             ccc.CONTRACT_ID,
             ccc.times,
             ccc.cf_direction,
-            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'HLS.CASHFLOW_DIRECTION' AND sc.CODE_VALUE=ccc.cf_direction ) cf_direction_n,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'HLS.CASHFLOW_DIRECTION' AND sc.CODE_VALUE=ccc.cf_direction ) cf_direction_desc,
             ccc.cf_item,
             (select h.description from hls_cashflow_item h where h.cf_item = ccc.cf_item)cf_item_n,
             ccc.due_date,
@@ -9032,9 +9033,14 @@ and con.contract_status in
             ccc.outstanding_principal,
             ccc.overdue_status,
             (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'INV.YES_OR_NO' AND sc.CODE_VALUE=ccc.overdue_status)  overdue_status_n,
-            ccc.overdue_max_days
+            ccc.overdue_max_days,
+            ccc.PLAN_TYPE,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.PLAN' AND sc.CODE_VALUE=ccc.PLAN_TYPE ) plan_type_n,
+            NVL(ccc.DUE_COMP_AMOUNT, 0) DUE_COMP_AMOUNT,
+            NVL(ccc.RECEIVED_COMP_AMOUNT, 0) RECEIVED_COMP_AMOUNT,
+            NVL(ccc.REFUND_COMP_AMOUNT, 0) REFUND_COMP_AMOUNT
         FROM CON_CONTRACT_CASHFLOW ccc
-        WHERE ccc.CONTRACT_ID=#{contractId}
+        WHERE ccc.CONTRACT_ID=#{contractId} and  ccc.CF_STATUS not in ('BLOCK','CANCEL')
         order by ccc.contract_id,ccc.cf_item,ccc.times
     </select>
 
@@ -9052,28 +9058,74 @@ and con.contract_status in
 
 
     <!--根据订单编号和试算日期获取到最大的已到期应收日期-->
-    <select id="queryDueDate" resultType="java.util.Date" parameterType="com.hand.hls.partner.dto.ClaimsSubrogationDTO">
+    <select id="queryDueDate" resultType="java.util.Date" parameterType="java.lang.String">
         SELECT
             MIN(ccc.DUE_DATE)
         FROM CON_CONTRACT_CASHFLOW ccc
                  LEFT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
                  LEFT JOIN PRJ_PROJECT pp ON pp.project_id = cc.project_id
         WHERE pp.PROJECT_NUMBER = #{orderNo}
-          AND trunc(ccc.DUE_DATE) >= TRUNC(SYSDATE)
+          AND TO_CHAR(ccc.DUE_DATE,'yyyy-mm-dd') >= #{trialTime}
     </select>
 
 
-    <!--查询出所有除已收（核销）的现金流数据-->
-    <select id="queryUnReceivedByOrderNo" resultMap="BaseResultMap" parameterType="java.lang.String">
+    <!--查询出需要回购的现金流数据-->
+    <select id="queryUnReceivedByOrderNo" resultMap="BaseResultMap">
         SELECT
-            ccc.*
-        FROM CON_CONTRACT_CASHFLOW ccc
-                 LEFT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
-                 LEFT JOIN PRJ_PROJECT pp ON pp.project_id = cc.project_id
-        WHERE pp.PROJECT_NUMBER = #{orderNo}
-          AND ccc.TIMES=#{termNo} and nvl(ccc.WRITE_OFF_FLAG,'NOT') != 'FULL'
-          AND ccc.due_amount-nvl(RECEIVED_AMOUNT,0) > 0
+            ccc.CASHFLOW_ID,
+            ccc.CONTRACT_ID,
+            ccc.QUOTATION_ID,
+            ccc.CF_ITEM,
+            ccc.CF_TYPE,
+            ccc.CF_DIRECTION,
+            ccc.CF_STATUS,
+            ccc.TIMES,
+            ccc.DUE_DATE,
+            ccc.CALC_DATE,
+            ccc.FIN_INCOME_DATE,
+            NVL(DUE_AMOUNT, 0) DUE_AMOUNT,
+            NVL(NET_DUE_AMOUNT,0) NET_DUE_AMOUNT,
+            NVL(VAT_DUE_AMOUNT, 0) VAT_DUE_AMOUNT,
+            NVL(PRINCIPAL, 0) PRINCIPAL,
+            nvl(NET_PRINCIPAL,0) NET_PRINCIPAL,
+            NVL(VAT_PRINCIPAL, 0) VAT_PRINCIPAL,
+            NVL(INTEREST, 0) INTEREST,
+            NVL(NET_INTEREST, 0) NET_INTEREST,
+            NVL(VAT_INTEREST, 0) VAT_INTEREST,
+            ccc.WRITE_OFF_FLAG,
+            NVL(ccc.RECEIVED_AMOUNT, 0) RECEIVED_AMOUNT,
+            NVL(ccc.RECEIVED_PRINCIPAL, 0) RECEIVED_PRINCIPAL,
+            NVL(ccc.RECEIVED_INTEREST, 0) RECEIVED_INTEREST,
+            NVL(ccc.OUTSTANDING_PRINCIPAL, 0) OUTSTANDING_PRINCIPAL,
+            ccc.PLAN_TYPE,
+            NVL(ccc.DUE_COMP_AMOUNT, 0) DUE_COMP_AMOUNT,
+            NVL(ccc.RECEIVED_COMP_AMOUNT, 0) RECEIVED_COMP_AMOUNT,
+            NVL(ccc.REFUND_COMP_AMOUNT, 0) REFUND_COMP_AMOUNT
+
+        FROM
+            CON_CONTRACT_CASHFLOW ccc
+                LEFT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
+                LEFT JOIN PRJ_PROJECT pp ON pp.project_id = cc.project_id
+        WHERE
+            pp.PROJECT_NUMBER = #{orderNo}
+          AND nvl( ccc.WRITE_OFF_FLAG, 'NOT' ) != 'FULL'
+	      AND ccc.due_amount - nvl( RECEIVED_AMOUNT, 0 ) > 0
+	      AND trunc( ccc.due_date ) &lt;= trunc( #{dueDate} )
+          AND cc.contract_status = 'INCEPT'
+          AND ccc.PLAN_TYPE not in ('ET','REPO')
+        AND ccc.cf_item = 1
+        ORDER BY
+        ccc.times
     </select>
+
+    <update id="updateCashflowBlock" parameterType="java.lang.Long">
+        UPDATE CON_CONTRACT_CASHFLOW ccc
+        SET CF_STATUS = 'BLOCK'
+        WHERE ccc.CONTRACT_ID = #{contractId}
+          AND nvl( ccc.WRITE_OFF_FLAG, 'NOT' ) != 'FULL'
+        AND ccc.due_amount - nvl( RECEIVED_AMOUNT, 0 ) > 0
+        AND NVL(ccc.RECEIVED_COMP_AMOUNT, 0) = 0
+    </update>
 
 
 </mapper>

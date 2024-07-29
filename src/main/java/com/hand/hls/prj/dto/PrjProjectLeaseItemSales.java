@@ -32,6 +32,10 @@ public class PrjProjectLeaseItemSales extends BaseDTO {
     public static final String FIELD_PROVINCE_ID = "mortgageCity";//省
     public static final String FIELD_CITY_ID = "mortgageCity";//市
     public static final String FIELD_DISTRICT_ID = "mortgageCity";//区/县
+    public static final String FIELD_DEALER_ADDRESS = "dealerAddress";//经销商所在地
+    public static final String FIELD_DEALER_SOCIAL_CREDIT_CODE = "dealerSocialCreditCode";//经销商统一社会信用代码
+    public static final String FIELD_DEALER_NAME = "dealerName";//经销商名称
+    public static final String FIELD_DEALER_NUMBER = "dealerNumber";//经销商编号
 
 
     @Id
@@ -54,16 +58,17 @@ public class PrjProjectLeaseItemSales extends BaseDTO {
 
     private String mortgageCity; //抵押城市名称
 
-    private String salesNumber; //经销商编号
+    private String salesNumber; //销售方编号
 
     private Integer provinceId; //省
 
     private Integer cityId; //市
 
     private Integer districtId; //区/县
-    @Transient
-    private  String salesAddress;//经销商所在地
-
+    private  String  dealerAddress;//经销商所在地
+    private  String  dealerSocialCreditCode;//经销商统一社会信用代码
+    private  String  dealerName;//经销商名称
+    private  String  dealerNumber;//经销商编号
 
     public PrjProjectLeaseItemSales() {
     }

@@ -30,7 +30,7 @@ public interface YLInterfaceService {
 
     String overdueRepurchaseTrialCalculation(String decryptedStr);
 
-    String overdueRepurchaseRequest(String decryptedStr);
+    String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest);
 
     String queryWithholdingState(String decryptedStr);
 

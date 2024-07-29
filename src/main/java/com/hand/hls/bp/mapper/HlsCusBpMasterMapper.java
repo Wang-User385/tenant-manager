@@ -146,4 +146,10 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
     Long selectHlsStatClassByCode(@Param("industry")String industry);
 
     void saveOrder(@Param("conditionId") Long conditionId, @Param("orderId")Long orderId);
+
+    void saveBusinessCondition(@Param("conditionId")Long conditionId, @Param("bpId")Long bpId);
+
+    List<Long> getConditionId(@Param("bpId") Long bpId);
+
+    List<HlsCusBpMaster> getMasterDetail(HlsCusBpMaster hlsCusBpMaster);
 }

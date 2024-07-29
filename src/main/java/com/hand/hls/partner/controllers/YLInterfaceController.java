@@ -400,7 +400,7 @@ public class YLInterfaceController extends BaseController {
         String resStr = null;
         String returnStatus = "S";
         try{
-            resStr = ylInterfaceService.overdueRepurchaseRequest(hlsWsRequests.getRequestJson());
+            resStr = ylInterfaceService.overdueRepurchaseRequest(hlsWsRequests.getRequestJson(),iRequest);
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";

@@ -3,6 +3,7 @@ package com.hand.hls.cont.mapper;
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.partner.dto.ClaimsSubrogationDTO;
+import com.hand.hls.partner.dto.OverdueRepurchaseTrialCalculationDTO;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import org.apache.ibatis.annotations.Param;
@@ -310,15 +311,21 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
 
     /**
      * 根据订单编号和试算日期获取到最大的已到期应收日期
-     * @param claimsSubrogationDTO
+     * @param trialTime
      * @return
      */
-    Date queryDueDate(ClaimsSubrogationDTO claimsSubrogationDTO);
+    Date queryDueDate(@Param("orderNo")String orderNo ,@Param("trialTime")String trialTime);
 
     /**
-     * 查询出所有除已收（核销）的现金流数据
+     * 查询出需要回购的现金流数据
      * @param orderNo
      * @return
      */
-    List<HlsCusConContractCashflow> queryUnReceivedByOrderNo(@Param("orderNo")String orderNo);
+    List<HlsCusConContractCashflow> queryUnReceivedByOrderNo(@Param("orderNo")String orderNo,@Param("dueDate")Date dueDate);
+
+
+    /**
+     * 冻结现金流
+     */
+    void updateCashflowBlock(@Param("contractId")Long contractId);
 }

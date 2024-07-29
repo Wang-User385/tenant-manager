@@ -15,13 +15,13 @@ public class AssetNeedSubstituteDto {
 
     private String trialTime; //试算时间
 
-    private Double principal;  //本金
+    private Long principal;  //本金
 
-    private Double interest;  //利息
+    private Long interest;  //利息
 
-    private Double penalty; //罚息
+    private Long penalty; //罚息
 
-    private Double payableAmount; //应付金额
+    private Long payableAmount; //应付金额
 
     private Long cashflowId;   //现金流ID
 }
