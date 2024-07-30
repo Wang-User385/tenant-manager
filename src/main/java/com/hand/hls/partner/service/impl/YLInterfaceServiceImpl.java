@@ -233,14 +233,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         //step3: 获取当前客户所有的项目，判断项目状态
         List<HlsCusPrjProject> list = prjProjectMapper.selectProjectByIdCardNo(placeOrderDTO.getIdCardNo());
-        list.stream().forEach(x->{
-            if (!"CLOSED".equals(x.getProjectStatus())||!"CANCEL".equals(x.getProjectStatus())||
-                    !"REJECTED".equals(x.getProjectStatus())){
-                returnJson.put("code","400");
-                returnJson.put("message","存在在途单");
-            }
-        });
-        if ("400".equals(returnJson.getString("code"))){
+        if(list.size() > 0){
+            returnJson.put("code","400");
+            returnJson.put("message","存在在途单");
             throw new HlsCusException(returnJson.toJSONString());
         }
 
@@ -285,33 +280,29 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     @Transactional
-    public String closeOrder(String decryptedStr){
-
+    public String closeOrder(String decryptedStr) throws HlsCusException {
         CloseOrderDTO closeOrderDTO = JSONObject.parseObject(decryptedStr, CloseOrderDTO.class);
-        JSONObject jsonObject1 = new JSONObject();
+        JSONObject returnJson = new JSONObject();
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(closeOrderDTO.getOrderNo());
-//        CshPaymentReqHd cshPaymentReqHd =prjProjectMapper.selectPaymentByOrderNo(closeOrderDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            jsonObject1.put("code","100003");
-            jsonObject1.put("message","订单不存在");
-            return jsonObject1.toJSONString();
+            returnJson.put("code","100003");
+            returnJson.put("message","订单不存在");
+            throw new HlsCusException(returnJson.toJSONString());
         }else{
             String projectStatus = hlsCusPrjProject.getProjectStatus();
-            if ("APPROVING".equals(projectStatus)||"Y".equals(hlsCusPrjProject.getLoanInitialLease())
-//                    || "APPROVING".equals(cshPaymentReqHd.getPaymentReqStatusDesc())
-            ){
-                jsonObject1.put("code","100101");
-                jsonObject1.put("message","订单状态和操作不相符");
-                return jsonObject1.toJSONString();
+            if ("APPROVING".equals(projectStatus)||"Y".equals(hlsCusPrjProject.getLoanInitialLease())){
+                returnJson.put("code","100101");
+                returnJson.put("message","订单状态和操作不相符");
+                throw new HlsCusException(returnJson.toJSONString());
             }
         }
         //修改订单状态
         hlsCusPrjProject.setOrderStatus("CLOSED");
         prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-        jsonObject1.put("code","200");
-        jsonObject1.put("message","取消成功");
-        return jsonObject1.toJSONString();
+        returnJson.put("code","200");
+        returnJson.put("message","取消成功");
+        return returnJson.toJSONString();
     }
 
     @Override
