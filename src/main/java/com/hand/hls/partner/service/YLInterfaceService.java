@@ -15,11 +15,11 @@ public interface YLInterfaceService {
 
     String closeOrder(String decryptedStr) throws HlsCusException;
 
-    String queryOrder(String decryptedStr);
+    String queryOrder(String decryptedStr) throws HlsCusException;
 
-    String repayment(String decryptedStr);
+    String repayment(String decryptedStr) throws HlsCusException;
 
-    String compensatoryTrialCalculation(String decryptedStr);
+    String compensatoryTrialCalculation(String decryptedStr) throws HlsCusException;
 
     String claimsSubrogation(String decryptedStr) throws HlsCusException;
 

@@ -38,7 +38,6 @@ import com.hand.hls.prj.mapper.*;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
 import hls.core.utils.exception.HlsCusException;
-import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -51,8 +50,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static com.hand.hls.sys.utils.OracleUtils.nvl;
-import static com.hand.hls.utils.HlsCusMathUtil.add;
-import static com.hand.hls.utils.HlsCusMathUtil.sub;
 
 @Service
 public class YLInterfaceServiceImpl implements YLInterfaceService {
@@ -307,70 +304,66 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String queryOrder(String decryptedStr){
+    public String queryOrder(String decryptedStr) throws HlsCusException {
         QueryOrderDTO queryOrderDTO = JSONObject.parseObject(decryptedStr, QueryOrderDTO.class);
-        JSONObject jsonObject1 = new JSONObject();
+        JSONObject returnJson = new JSONObject();
 
         //根据订单编号查询相对应的还款信息,判断订单存不存在，不存在直接返回
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(queryOrderDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            jsonObject1.put("code","100003");
-            jsonObject1.put("message","订单不存在");
-            return jsonObject1.toJSONString();
+            returnJson.put("code","100003");
+            returnJson.put("message","订单不存在");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        List<RepayPlanTermInfoDTO> repayPlanTermInfoDTOList = prjProjectMapper.selectRepayPlanByOrderNo(queryOrderDTO.getOrderNo());
+        QueryOrder queryOrder = prjProjectMapper.selectQueryOrderByOrderNo(queryOrderDTO.getOrderNo());
+        if(queryOrder==null){
+            queryOrder = new QueryOrder();
+        }
+        queryOrder.setRepayPlanTermInfoDTOList(repayPlanTermInfoDTOList);
+        queryOrder.setStatus("NORMAL");
+        //订单存在，判断合同状态是否为起租后状态、结清状态
+        //如果是，则返回数据，如果不是，返回错误
+        String contractStatus = prjProjectMapper.selectContractByOrderNo(queryOrderDTO.getOrderNo());
+        if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus)){
+            returnJson.put("code","200");
+            returnJson.put("message","查询成功");
+            return returnJson.toJSONString();
         }else{
-            List<RepayPlanTermInfoDTO> repayPlanTermInfoDTOList = prjProjectMapper.selectRepayPlanByOrderNo(queryOrderDTO.getOrderNo());
-            QueryOrder queryOrder = prjProjectMapper.selectQueryOrderByOrderNo(queryOrderDTO.getOrderNo());
-            if(queryOrder==null){
-                queryOrder = new QueryOrder();
-            }
-            queryOrder.setRepayPlanTermInfoDTOList(repayPlanTermInfoDTOList);
-            queryOrder.setStatus("NORMAL");
-//            订单存在，判断合同状态是否为起租后状态、结清状态
-//            如果是，则返回数据，如果不是，返回错误
-            String contractStatus = prjProjectMapper.selectContractByOrderNo(queryOrderDTO.getOrderNo());
-            if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus)){
-                jsonObject1.put("code","200");
-                jsonObject1.put("message","查询成功");
-                return jsonObject1.toJSONString();
-            }else{
-                jsonObject1.put("code","100101");
-                jsonObject1.put("message","订单状态和操作不相符");
-                return jsonObject1.toJSONString();
-            }
+            returnJson.put("code","100101");
+            returnJson.put("message","订单状态和操作不相符");
+            throw new HlsCusException(returnJson.toJSONString());
         }
     }
 
     @Override
     @Transactional
-    public String repayment(String decryptedStr){
+    public String repayment(String decryptedStr) throws HlsCusException {
         RepayMent repayMent = JSONObject.parseObject(decryptedStr, RepayMent.class);
+        JSONObject returnJson = new JSONObject();
 
-        JSONObject jsonObject1 = new JSONObject();
-
-//        根据订单编号查询数据
         List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(repayMent.getOrderNo());
         if (hlsCusCshTransactionList.size()==0){
-            jsonObject1.put("code","400");
-            jsonObject1.put("message","查询数据为空");
-            return jsonObject1.toJSONString();
+            returnJson.put("code","400");
+            returnJson.put("message","查询数据为空");
+            throw new HlsCusException(returnJson.toJSONString());
         }
         List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
-        //保存数据到事务表
         for (TermRepayDetailApplyDTO termRepayDetailApplyDTO : termRepayDetailApplyDTOList) {
             //判断还款方式是否为蚂蚁链代扣，如果是则判断结算单号、代扣交易单号是否为空
             if ("蚂蚁链代扣".equals(repayMent.getRepayType())){
                 if (termRepayDetailApplyDTO.getTransactionNo()==null){
-                    jsonObject1.put("code","400");
-                    jsonObject1.put("message","结算单号为空");
-                    return jsonObject1.toJSONString();
+                    returnJson.put("code","400");
+                    returnJson.put("message","结算单号为空");
+                    return returnJson.toJSONString();
                 }
                 if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
-                    jsonObject1.put("code","400");
-                    jsonObject1.put("message","代扣交易单号为空");
-                    return jsonObject1.toJSONString();
+                    returnJson.put("code","400");
+                    returnJson.put("message","代扣交易单号为空");
+                    return returnJson.toJSONString();
                 }
             }
-//            将数据保存入库
+            //将数据保存入库
             for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
                 if (hlsCusCshTransaction.getTermNo().equals(termRepayDetailApplyDTO.getTermNo())){
                     hlsCusCshTransaction.setRepayPrincipal(termRepayDetailApplyDTO.getRepayPrincipal());
@@ -384,52 +377,46 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         }
 
-        //设置返回状态
-        jsonObject1.put("code","200");
-        jsonObject1.put("message","还款成功");
-        return jsonObject1.toJSONString();
+        returnJson.put("code","200");
+        returnJson.put("message","还款成功");
+        return returnJson.toJSONString();
     }
 
     @Override
-    public String compensatoryTrialCalculation(String decryptedStr){
-
+    public String compensatoryTrialCalculation(String decryptedStr) throws HlsCusException {
         CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(decryptedStr, CompensatoryTrialCalculationDTO.class);
-
-        JSONObject jsonObject1 = new JSONObject();
+        JSONObject returnJson = new JSONObject();
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            jsonObject1.put("code","400");
-            jsonObject1.put("message","订单不存在");
-            return jsonObject1.toJSONString();
+            returnJson.put("code","400");
+            returnJson.put("message","订单不存在");
+            throw new HlsCusException(returnJson.toJSONString());
         }
+        //计算本金、利息、罚息、应付金额
+        CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(compensatoryTrialCalculationDTO);
+        if (compensatoryTrialCalculation1==null){
+            returnJson.put("code","400");
+            returnJson.put("message","数据不存在");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        //判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
+        if (compensatoryTrialCalculationDTO.getTrialTime()==null){
+            compensatoryTrialCalculation1.setTrialTime(String.valueOf(new Date()));
+        }else{
+            compensatoryTrialCalculation1.setTrialTime(compensatoryTrialCalculationDTO.getTrialTime());
+        }
+        //设置返回订单号
+        compensatoryTrialCalculation1.setOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
+        //设置返回期次号
+        compensatoryTrialCalculation1.setTermNo(compensatoryTrialCalculationDTO.getTermNo());
+        //罚息暂时为0
+        compensatoryTrialCalculation1.setPenalty(0L);
 
-//            计算本金、利息、罚息、应付金额
-            CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(compensatoryTrialCalculationDTO);
-
-            if (compensatoryTrialCalculation1==null){
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","数据不存在");
-                return jsonObject1.toJSONString();
-            }else{
-                //            判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
-                if (compensatoryTrialCalculationDTO.getTrialTime()==null){
-                    compensatoryTrialCalculation1.setTrialTime(String.valueOf(new Date()));
-                }else{
-                    compensatoryTrialCalculation1.setTrialTime(compensatoryTrialCalculationDTO.getTrialTime());
-                }
-                //设置返回订单号
-                compensatoryTrialCalculation1.setOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
-//            设置返回期次号
-                compensatoryTrialCalculation1.setTermNo(compensatoryTrialCalculationDTO.getTermNo());
-                //罚息暂时为0
-                compensatoryTrialCalculation1.setPenalty(0L);
-//            设置返回数据
-                jsonObject1.put("code","200");
-                jsonObject1.put("message","试算成功");
-                jsonObject1.put("result",compensatoryTrialCalculation1);
-                return jsonObject1.toJSONString();
-            }
+        returnJson.put("code","200");
+        returnJson.put("message","试算成功");
+        returnJson.put("result",compensatoryTrialCalculation1);
+        return returnJson.toJSONString();
     }
 
     @Override
