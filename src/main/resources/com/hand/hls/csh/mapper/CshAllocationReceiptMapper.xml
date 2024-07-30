@@ -30,6 +30,8 @@
         <result column="description" property="description" jdbcType="VARCHAR"/>
         <result column="contract_number" property="contractNumber" jdbcType="VARCHAR"/>
         <result column="contract_name" property="contractName" jdbcType="VARCHAR"/>
+        <result column="refund_centre_amount" property="refundCentreAmount" jdbcType="DECIMAL"/>
+
 
     </resultMap>
     <select id="receiptQuery" parameterType="com.hand.hls.csh.dto.CshAllocationReceipt" resultMap="BaseResultMap">
@@ -51,7 +53,15 @@
         FROM csh_transaction cs
         WHERE cs.source_doc_id = t1.advance_csh_trx_id
         AND cs.transaction_type = 'REFUND'),
-        0) AS refund_amount
+        0) AS refund_amount,
+        ( SELECT
+        NVL(sum(ctr.REFUND_AMOUNT), 0)
+        FROM
+        csh_transaction_refund ctr
+        WHERE
+        ctr.refund_status = 'APPROVING'
+        AND ctr.TRANSACTION_ID = t1.TRANSACTION_ID
+        )  refund_centre_amount
         from (select ttt.*,
         cb.bank_name,
         car.receipt_id,car.allocation_id,car.advance_receipt_amount
