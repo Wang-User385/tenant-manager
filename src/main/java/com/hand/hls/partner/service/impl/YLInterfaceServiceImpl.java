@@ -2136,8 +2136,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             fndAttachmentMapper.insertSelective(insertAttach);
 
             FndAttachmentMulti insertMulti = new FndAttachmentMulti();
-            insertMulti.setTableName(multi.getTableName());
-            insertMulti.setTablePkValue(multi.getTablePkValue());
+            insertMulti.setTableName("PRJ_PROJECT_ATTACHMENT");
+            insertMulti.setTablePkValue(prjAttachment.getProjectAttachmentId().toString());
             insertMulti.setAttachmentId(insertAttach.getAttachmentId());
             insertMulti.setCreatedBy(RequestHelper.getCurrentRequest().getUserId());
             insertMulti.setCreationDate(new Date());
