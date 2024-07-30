@@ -12,6 +12,7 @@ import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.partner.util.RsaAesUtils;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
+import hls.core.utils.exception.HlsCusException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +40,8 @@ public class YLInterfaceController extends BaseController {
         HlsWsRequests hlsWsRequests = null;
         try {
             hlsWsRequests = this.insertLogs("GT-YL-B001-下单",jsonObject,request);
+        } catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         } catch (Exception e) {
             e.printStackTrace();
             JSONObject resJson = new JSONObject();

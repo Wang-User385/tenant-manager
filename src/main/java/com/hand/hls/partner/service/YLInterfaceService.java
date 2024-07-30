@@ -4,13 +4,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.partner.dto.*;
+import hls.core.utils.exception.HlsCusException;
 
 
 import javax.servlet.http.HttpServletRequest;
 import java.text.ParseException;
 
 public interface YLInterfaceService {
-    String placeOrder(String decryptedStr,IRequest iRequest);
+    String placeOrder(String decryptedStr,IRequest iRequest) throws HlsCusException;
 
     String closeOrder(String decryptedStr);
 

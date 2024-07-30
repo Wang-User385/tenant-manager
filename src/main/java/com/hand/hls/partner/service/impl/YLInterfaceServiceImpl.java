@@ -37,6 +37,7 @@ import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.*;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
+import hls.core.utils.exception.HlsCusException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -145,15 +146,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     @Transactional
-    public String placeOrder(String decryptedStr,IRequest iRequest) {
-
+    public String placeOrder(String decryptedStr,IRequest iRequest) throws HlsCusException {
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(decryptedStr, PlaceOrderDTO.class);
+        JSONObject returnJson = new JSONObject();
 
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        JSONObject jsonObject1 = new JSONObject();
         //当前进件业务只有一家合作商，暂时只插入固定的这个合作商
         HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
-        //hlsCusBpMaster.setBpName("杭州易靓好车汽车服务有限公司");
         hlsCusBpMaster.setBpCode("BP202407230057");
         hlsCusBpMaster.setBpType("MANUFACTURER");
         List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectHlsBpMaster(hlsCusBpMaster);
@@ -162,40 +160,47 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsProductDefinition.setBpId(hlsCusBpMasters.get(0).getBpId());
         List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
         if (hlsProductDefinitionList.size() == 0){
-            jsonObject1.put("code","400");
-            jsonObject1.put("message","该合作商对应的产品为空，需在产品定义功能中维护新的产品");
-            return jsonObject1.toJSONString();
+            returnJson.put("code","400");
+            returnJson.put("message","该合作商对应的产品为空，需在产品定义功能中维护新的产品");
+            throw new HlsCusException(returnJson.toJSONString());
         }
-        //判断该客户存不存在
-        //如果存在，判断名称和电话一不一致，不一致就修改
-        //如果不存在，就新增
-        HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
-        HlsBpMasterRole hlsBpMasterRole = null;
-        HlsCusBpMaster bpMaster = null;;
+        //step1:新增或更新hls_bp_master
+        HlsCusBpMaster bpMaster = new HlsCusBpMaster();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        Date idIssueDate = null;
+        Date idExpirationDate = null;
+        try{
+            idIssueDate = simpleDateFormat.parse(placeOrderDTO.getIdissue());
+        }catch (ParseException e) {
+            e.printStackTrace();
+            returnJson.put("code","400");
+            returnJson.put("message","证件签发日期格式错误");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        try {
+            if("长期".equals(placeOrderDTO.getIdexp())){
+                idExpirationDate = simpleDateFormat.parse(Long.parseLong(placeOrderDTO.getIdissue().substring(0,3)) + 100 + placeOrderDTO.getIdissue().substring(4,18));
+            }else{
+                idExpirationDate = simpleDateFormat.parse(placeOrderDTO.getIdexp());
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+            returnJson.put("code","400");
+            returnJson.put("message","证件到期日期格式错误");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        bpMaster.setIdIssueDate(idIssueDate);
+        bpMaster.setIdExpirationDate(idExpirationDate);
+        bpMaster.setBpName(placeOrderDTO.getName());
+        bpMaster.setPhone(placeOrderDTO.getMobile());
+
         List<HlsCusBpMaster> bpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(placeOrderDTO.getIdCardNo());
         if (bpMasters.size()==0){
-            bpMaster = new HlsCusBpMaster();
-            hlsBpMasterRole = new HlsBpMasterRole();
-            Map<String, String> params = new HashMap<String, String>();
-            String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest, "HLS_BP_MASTER", "NP", "NP", params);
+            String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest, "HLS_BP_MASTER", "NP", "NP", new HashMap<String, String>());
             bpMaster.setBpCode(codeRuleValue);
-            bpMaster.setBpName(placeOrderDTO.getName());
             bpMaster.setIdCardNo(placeOrderDTO.getIdCardNo());
-            bpMaster.setPhone(placeOrderDTO.getMobile());
-            Date idExpirationDate = null;
-            Date idIssueDate = null;
-            try {
-                idExpirationDate = simpleDateFormat.parse(placeOrderDTO.getIdexp());
-                idIssueDate = simpleDateFormat.parse(placeOrderDTO.getIdissue());
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-
-            bpMaster.setIdIssueDate(idIssueDate);
-            bpMaster.setIdExpirationDate(idExpirationDate);
             bpMaster.setCreationDate(new Date());
-            String format = simpleDateFormat.format(new Date());
-            bpMaster.setCreationDateStr(format);
+            bpMaster.setCreationDateStr(simpleDateFormat.format(new Date()));
             bpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getUserId());
             bpMaster.setBpCategory("TENANT");
             bpMaster.setBpType("TENANT");
@@ -203,63 +208,48 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setBpClass("NP");
             bpMaster.setIdType("ID_CARD");
             hlsCusBpMasterMapper.insertSelective(bpMaster);
+        }else{
+            bpMaster.setBpId(bpMasters.get(0).getBpId());
+            hlsCusBpMasterMapper.updateByPrimaryKeySelective(bpMaster);
+        }
+        //step2:新增hls_bp_master_role
+        HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
+        Boolean flag = false;
+        List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(bpMaster.getBpId());
+        for (String s : stringList) {
+            if (s.equals("TENANT")){
+                flag = true;
+            }
+        }
+        if (!flag){
+            hlsBpMasterRole = new HlsBpMasterRole();
             hlsBpMasterRole.setBpId(bpMaster.getBpId());
             hlsBpMasterRole.setBpType("TENANT");
             hlsBpMasterRole.setBpCategory("TENANT");
             hlsBpMasterRole.setEnabledFlag("Y");
             hlsBpMasterRole.setPrimaryFlag("Y");
             hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
-
-        }else{
-            bpMaster = bpMasters.get(0);
-            if (!placeOrderDTO.getName().equals(bpMaster.getBpName())){
-                bpMaster.setBpName(placeOrderDTO.getName());
-            }
-            if (!placeOrderDTO.getMobile().equals(bpMaster.getPhone())){
-                bpMaster.setPhone(placeOrderDTO.getMobile());
-            }
-            hlsCusBpMasterMapper.updateByPrimaryKeySelective(bpMaster);
-            //设置flag判断是否有TENANT
-            Boolean flag = false;
-            List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(bpMaster.getBpId());
-            for (String s : stringList) {
-                if (s.equals("TENANT")){
-                    flag = true;
-                }
-            }
-            if (!flag){
-                hlsBpMasterRole = new HlsBpMasterRole();
-                hlsBpMasterRole.setBpId(bpMaster.getBpId());
-                hlsBpMasterRole.setBpType("TENANT");
-                hlsBpMasterRole.setBpCategory("TENANT");
-                hlsBpMasterRole.setEnabledFlag("Y");
-                hlsBpMasterRole.setPrimaryFlag("Y");
-                hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
-            }
         }
 
-//        获取当前客户所有的项目，判断项目状态
+        //step3: 获取当前客户所有的项目，判断项目状态
         List<HlsCusPrjProject> list = prjProjectMapper.selectProjectByIdCardNo(placeOrderDTO.getIdCardNo());
         list.stream().forEach(x->{
-//            如果项目是取消、拒绝、结束允许下单，否则不允许
             if (!"CLOSED".equals(x.getProjectStatus())||!"CANCEL".equals(x.getProjectStatus())||
                     !"REJECTED".equals(x.getProjectStatus())){
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","存在在途单");
+                returnJson.put("code","400");
+                returnJson.put("message","存在在途单");
             }
         });
-//        判断循环之后的结果，如果不允许创建，返回信息
-        if ("400".equals(jsonObject1.getString("code"))){
-            return jsonObject1.toJSONString();
+        if ("400".equals(returnJson.getString("code"))){
+            throw new HlsCusException(returnJson.toJSONString());
         }
 
-        //获取订单编号,将订单编号入库
-        /*编码规则*/
+        //step4: 新增prj_project
+        HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
         Map<String, String> params = new HashMap<String, String>();
         params.put("PARAMETER_01","YL");
         String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest,"PRJ_PROJECT_IMPORT", "PRJLB", "LEASEBACK", params);
 
-        HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
         hlsCusPrjProject.setManufacturerId(hlsCusBpMasters.get(0).getBpId());
         hlsCusPrjProject.setProjectNumber(codeRuleValue);
         hlsCusPrjProject.setCompanyId(1L);
@@ -272,25 +262,25 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProject.setLeaseItemType(hlsProductDefinitionList.get(0).getLeaseItemType());
         prjProjectMapper.insertSelective(hlsCusPrjProject);
 
-        //创建报价信息
+        //step5: 新增prj_quotation
         HlsCusPrjQuotation hlsCusPrjQuotation = new HlsCusPrjQuotation();
-        HlsProductDefinition hlsProductDefinition1 = hlsProductDefinitionList.get(0);
         hlsCusPrjQuotation.setSourceDocumentId(hlsCusPrjProject.getProjectId());
         hlsCusPrjQuotation.setSourceDocumentCategory("PRJ_PROJECT");
-        hlsCusPrjQuotation.setPriceList(hlsProductDefinition1.getPriceList());
+        hlsCusPrjQuotation.setPriceList(hlsProductDefinitionList.get(0).getPriceList());
         hlsCusPrjQuotationMapper.insertSelective(hlsCusPrjQuotation);
 
-        //创建关联人信息
+        //step6: 新增prj_project_bp
+        HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
         hlsCusPrjProjectBp.setBpId(bpMaster.getBpId());
         hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
         hlsCusPrjProjectBp.setBpCategroy("TENANT");
         hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
 
-        //        设置返回信息
-        jsonObject1.put("code","200");
-        jsonObject1.put("message","下单成功");
-        jsonObject1.put("orderNo",codeRuleValue);
-        return jsonObject1.toJSONString();
+        //step7: 返回信息
+        returnJson.put("code","200");
+        returnJson.put("message","下单成功");
+        returnJson.put("orderNo",codeRuleValue);
+        return returnJson.toJSONString();
     }
 
     @Override
