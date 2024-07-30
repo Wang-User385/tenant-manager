@@ -840,9 +840,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private Boolean checkData(SaleInfo saleInfo, CarInfo carInfo, FinanceInfo financeInfo, PreRiskAuditData preRiskAuditData) {
         Boolean flag = false;
         //经销商名称
-        if (!saleInfo.getSalesCityName().equals(preRiskAuditData.getDealername())){
+        /*if (!saleInfo.getSalesCityName().equals(preRiskAuditData.getDealername())){
             flag = true;
-        }
+        }*/
         //车辆品牌
         if (!carInfo.getBrandName().equals(preRiskAuditData.getCarbrand2())){
             flag = true;
@@ -865,8 +865,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         //融资方案相关信息
         //月付租金
-        double monthPayment = Double.parseDouble(financeInfo.getMonthPayment());
-        double yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
+        double monthPayment = Double.parseDouble(financeInfo.getMonthPayment())/100;
+        double yfzj = 0D;
+        if(StringUtils.isNotEmpty(preRiskAuditData.getYfzj()) && preRiskAuditData.getYfzj() != null){
+            yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
+        }
         if (monthPayment!=yfzj){
             flag = true;
         }
@@ -875,25 +878,31 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             flag = true;
         }
         //月付租金
-        double firstPayment = Double.parseDouble(financeInfo.getFirstPayment());
-        double sfje = Double.parseDouble(preRiskAuditData.getSfje());
+        double firstPayment = Double.parseDouble(financeInfo.getFirstPayment())/100;
+        double sfje = 0D;
+        if(StringUtils.isNotEmpty(preRiskAuditData.getSfje()) && preRiskAuditData.getSfje() != null){
+            sfje = Double.parseDouble(preRiskAuditData.getSfje());
+        }
         if (firstPayment!=sfje){
             flag = true;
         }
         //车辆指导价
-        double carGuidePrice = Double.parseDouble(financeInfo.getCarGuidePrice());
+        double carGuidePrice = Double.parseDouble(financeInfo.getCarGuidePrice())/100;
         double cfpp = Double.parseDouble(preRiskAuditData.getCfpp());
         if (carGuidePrice!=cfpp){
             flag = true;
         }
         //车辆售价
-        double carSalePrice = Double.parseDouble(financeInfo.getCarSalePrice());
-        double clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
+        double carSalePrice = Double.parseDouble(financeInfo.getCarSalePrice())/100;
+        double clxsjg = 0D;
+        if(StringUtils.isNotEmpty(preRiskAuditData.getClxsjg()) && preRiskAuditData.getClxsjg() != null){
+            clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
+        }
         if (carSalePrice!=clxsjg){
             flag = true;
         }
         //申请融资额
-        double applyLoanAmount = Double.parseDouble(financeInfo.getApplyLoanAmount());
+        double applyLoanAmount = Double.parseDouble(financeInfo.getApplyLoanAmount())/100;
         double financingamount = Double.parseDouble(preRiskAuditData.getFinancingamount());
         if (applyLoanAmount!=financingamount){
             flag = true;
@@ -907,11 +916,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     private PrjProjectLeaseItemSales partSaveLeaseItemSales(PrjProjectLeaseItemSales prjProjectLeaseItemSales, PreRiskAuditData preRiskAuditData) {
         //经销商所在省份
-        prjProjectLeaseItemSales.setProvinceId(Integer.valueOf(preRiskAuditData.getDealerprovince()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getDealerprovince()) && preRiskAuditData.getDealerprovince() != null){
+            prjProjectLeaseItemSales.setProvinceId(Integer.valueOf(preRiskAuditData.getDealerprovince()));
+        }
         //经销商所在城市
-        prjProjectLeaseItemSales.setCityId(Integer.valueOf(preRiskAuditData.getDealercity()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getDealercity()) && preRiskAuditData.getDealercity() != null){
+            prjProjectLeaseItemSales.setCityId(Integer.valueOf(preRiskAuditData.getDealercity()));
+        }
         //经销商所属区县
-        prjProjectLeaseItemSales.setDistrictId(Integer.valueOf(preRiskAuditData.getDealerqu()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getDealerqu()) && preRiskAuditData.getDealerqu() != null){
+            prjProjectLeaseItemSales.setDistrictId(Integer.valueOf(preRiskAuditData.getDealerqu()));
+        }
         //经销商所属大区
         prjProjectLeaseItemSales.setDealerAddress(preRiskAuditData.getDealerdaqu());
         //经销商名称
@@ -924,9 +939,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private PrjLeaseItemInsurance partSaveLeaseItemInsurance(PrjLeaseItemInsurance prjLeaseItemInsurance, PreRiskAuditData preRiskAuditData) {
 
         //延保金额
-        prjLeaseItemInsurance.setExtendedWarrantyAmount(Double.valueOf(preRiskAuditData.getYanbaoje())/100);
+        if(StringUtils.isNotEmpty(preRiskAuditData.getYanbaoje()) && preRiskAuditData.getYanbaoje() != null){
+            prjLeaseItemInsurance.setExtendedWarrantyAmount(Double.valueOf(preRiskAuditData.getYanbaoje())/100);
+        }
         //车辆保险金额 clbxje
-        prjLeaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);
+        if(StringUtils.isNotEmpty(preRiskAuditData.getClbxje()) && preRiskAuditData.getClbxje() != null){
+            prjLeaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);
+        }
         return prjLeaseItemInsurance;
     }
 
@@ -1014,9 +1033,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //第三者责任险到期日期
         Date thirdEndDate = null;
         try {
-            compulsoryEndDate = simpleDateFormat.parse(preRiskAuditData.getJqxdqrq());
-            vehicleEndDate = simpleDateFormat.parse(preRiskAuditData.getCsxdqrq());
-            thirdEndDate = simpleDateFormat.parse(preRiskAuditData.getSzxdqrq());
+            if(StringUtils.isNotEmpty(preRiskAuditData.getJqxdqrq()) && preRiskAuditData.getJqxdqrq() != null){
+                compulsoryEndDate = simpleDateFormat.parse(preRiskAuditData.getJqxdqrq());
+            }
+            if(StringUtils.isNotEmpty(preRiskAuditData.getCsxdqrq()) && preRiskAuditData.getCsxdqrq() != null){
+                vehicleEndDate = simpleDateFormat.parse(preRiskAuditData.getCsxdqrq());
+            }
+            if(StringUtils.isNotEmpty(preRiskAuditData.getSzxdqrq()) && preRiskAuditData.getSzxdqrq() != null){
+                thirdEndDate = simpleDateFormat.parse(preRiskAuditData.getSzxdqrq());
+            }
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -1045,15 +1070,25 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             prjProjectLeaseItemMortgage.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
         }
         //抵押次数
-        prjProjectLeaseItemMortgage.setNumberOfMortgages(Integer.valueOf(preRiskAuditData.getDycs()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getDycs()) && preRiskAuditData.getDycs() != null){
+            prjProjectLeaseItemMortgage.setNumberOfMortgages(Integer.valueOf(preRiskAuditData.getDycs()));
+        }
         //过户次数
-        prjProjectLeaseItemMortgage.setNumberOfTransfers(Integer.valueOf(preRiskAuditData.getGhjcs()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getGhjcs()) && preRiskAuditData.getGhjcs() != null){
+            prjProjectLeaseItemMortgage.setNumberOfTransfers(Integer.valueOf(preRiskAuditData.getGhjcs()));
+        }
         //近1年抵押次数
-        prjProjectLeaseItemMortgage.setNumberOfMortgagesOne(Integer.valueOf(preRiskAuditData.getJyndics()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getJyndics()) && preRiskAuditData.getJyndics() != null){
+            prjProjectLeaseItemMortgage.setNumberOfMortgagesOne(Integer.valueOf(preRiskAuditData.getJyndics()));
+        }
         //近1年过户次数
-        prjProjectLeaseItemMortgage.setNumberOfTransfersOne(Integer.valueOf(preRiskAuditData.getLast1yearguohucount()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getLast1yearguohucount()) && preRiskAuditData.getLast1yearguohucount() != null){
+            prjProjectLeaseItemMortgage.setNumberOfTransfersOne(Integer.valueOf(preRiskAuditData.getLast1yearguohucount()));
+        }
         //近2年过户次数
-        prjProjectLeaseItemMortgage.setNumberOfTransfersTwo(Integer.valueOf(preRiskAuditData.getLast2yearguohucount()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getLast2yearguohucount()) && preRiskAuditData.getLast2yearguohucount() != null){
+            prjProjectLeaseItemMortgage.setNumberOfTransfersTwo(Integer.valueOf(preRiskAuditData.getLast2yearguohucount()));
+        }
         //是否有车辆登记证补领记录
         prjProjectLeaseItemMortgage.setIsRenewalRecord(preRiskAuditData.getIsregister());
         //近半年是否有车辆登记证补领记录
@@ -1063,8 +1098,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         Date lastTransfersDate = null;
         Date recentlyTransfersDate = null;
         try {
-            lastTransfersDate = simpleDateFormat.parse(preRiskAuditData.getLastmortgagedate());
-            recentlyTransfersDate = simpleDateFormat.parse(preRiskAuditData.getLastdtecompressiondate());
+            if(StringUtils.isNotEmpty(preRiskAuditData.getLastmortgagedate()) && preRiskAuditData.getLastmortgagedate() != null){
+                lastTransfersDate = simpleDateFormat.parse(preRiskAuditData.getLastmortgagedate());
+            }
+            if(StringUtils.isNotEmpty(preRiskAuditData.getLastdtecompressiondate()) && preRiskAuditData.getLastdtecompressiondate() != null){
+                recentlyTransfersDate = simpleDateFormat.parse(preRiskAuditData.getLastdtecompressiondate());
+            }
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -1073,7 +1112,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //抵押状态
         prjProjectLeaseItemMortgage.setTransfersStatus(preRiskAuditData.getMortgagestatus());
         //解押天数
-        prjProjectLeaseItemMortgage.setDaysToRelease(Integer.valueOf(preRiskAuditData.getJyts()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getJyts()) && preRiskAuditData.getJyts() != null){
+            prjProjectLeaseItemMortgage.setDaysToRelease(Integer.valueOf(preRiskAuditData.getJyts()));
+        }
         //保存租赁物id
         return prjProjectLeaseItemMortgage;
     }
@@ -1091,14 +1132,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //燃料类型
         hlsCusPrjProjectLeaseItem.setFuelType(preRiskAuditData.getRllx());
         //车辆评估价格
-        hlsCusPrjProjectLeaseItem.setEvaluationValue(Double.valueOf(preRiskAuditData.getClpgjg()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getClpgjg()) && preRiskAuditData.getClpgjg() != null){
+            hlsCusPrjProjectLeaseItem.setEvaluationValue(Double.valueOf(preRiskAuditData.getClpgjg()));
+        }
         //首次登记日期
         //转让登记日期
         Date firstRegistrationDate = null;
         Date transferRegistrationDate = null;
         try {
-            firstRegistrationDate = simpleDateFormat.parse(preRiskAuditData.getScdjrq());
-            transferRegistrationDate = simpleDateFormat.parse(preRiskAuditData.getTransferencedate());
+            if(StringUtils.isNotEmpty(preRiskAuditData.getScdjrq()) && preRiskAuditData.getScdjrq() != null){
+                firstRegistrationDate = simpleDateFormat.parse(preRiskAuditData.getScdjrq());
+            }
+            if(StringUtils.isNotEmpty(preRiskAuditData.getTransferencedate()) && preRiskAuditData.getTransferencedate() != null){
+                transferRegistrationDate = simpleDateFormat.parse(preRiskAuditData.getTransferencedate());
+            }
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -1113,15 +1160,21 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //首次上牌日
         Date firstPlateDate = null;
         try {
-            firstPlateDate = simpleDateFormat.parse(preRiskAuditData.getScspr());
+            if(StringUtils.isNotEmpty(preRiskAuditData.getScspr()) && preRiskAuditData.getScspr() != null){
+                firstPlateDate = simpleDateFormat.parse(preRiskAuditData.getScspr());
+            }
         } catch (ParseException e) {
             e.printStackTrace();
         }
         hlsCusPrjProjectLeaseItem.setFirstPlateDate(firstPlateDate);
         //表显里程
-        hlsCusPrjProjectLeaseItem.setOdometerReading(Integer.valueOf(preRiskAuditData.getBxlc()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getBxlc()) && preRiskAuditData.getBxlc() != null){
+            hlsCusPrjProjectLeaseItem.setOdometerReading(Integer.valueOf(preRiskAuditData.getBxlc()));
+        }
         //车辆年限
-        hlsCusPrjProjectLeaseItem.setVehicleAge(Integer.valueOf(preRiskAuditData.getCarlife()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getCarlife()) && preRiskAuditData.getCarlife() != null){
+            hlsCusPrjProjectLeaseItem.setVehicleAge(Integer.valueOf(preRiskAuditData.getCarlife()));
+        }
         //车辆所有人
         hlsCusPrjProjectLeaseItem.setPropPerson(preRiskAuditData.getCaraffiliation());
         //租赁物融资金额
@@ -1135,19 +1188,33 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //牌照归属
         hlsCusPrjProjectLeaseItem.setLicensePlateOwnership(preRiskAuditData.getPaizhaogs());
         //车辆交易价
-        hlsCusPrjProjectLeaseItem.setPrice(Double.valueOf(preRiskAuditData.getCljyjg()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getCljyjg()) && preRiskAuditData.getCljyjg() != null){
+            hlsCusPrjProjectLeaseItem.setPrice(Double.valueOf(preRiskAuditData.getCljyjg()));
+        }
         //购置税
-        hlsCusPrjProjectLeaseItem.setPurchaseTax(Double.valueOf(preRiskAuditData.getGouzhis()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getGouzhis()) && preRiskAuditData.getGouzhis() != null){
+            hlsCusPrjProjectLeaseItem.setPurchaseTax(Double.valueOf(preRiskAuditData.getGouzhis()));
+        }
         //车辆保险金额
-        hlsCusPrjProjectLeaseItem.setInsurancePremium(Double.valueOf(preRiskAuditData.getClbxje()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getClbxje()) && preRiskAuditData.getClbxje() != null){
+            hlsCusPrjProjectLeaseItem.setInsurancePremium(Double.valueOf(preRiskAuditData.getClbxje()));
+        }
         //GPS费用
-        hlsCusPrjProjectLeaseItem.setGpsFee(Double.valueOf(preRiskAuditData.getGpsfy()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getGpsfy()) && preRiskAuditData.getGpsfy() != null){
+            hlsCusPrjProjectLeaseItem.setGpsFee(Double.valueOf(preRiskAuditData.getGpsfy()));
+        }
         //上牌发票金额
-        hlsCusPrjProjectLeaseItem.setPlateInvoiceAmount(Double.valueOf(preRiskAuditData.getCtac()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getCtac()) && preRiskAuditData.getCtac() != null){
+            hlsCusPrjProjectLeaseItem.setPlateInvoiceAmount(Double.valueOf(preRiskAuditData.getCtac()));
+        }
         //装饰品金额
-        hlsCusPrjProjectLeaseItem.setAccessoryAmount(Double.valueOf(preRiskAuditData.getZspje()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getZspje()) && preRiskAuditData.getZspje() != null){
+            hlsCusPrjProjectLeaseItem.setAccessoryAmount(Double.valueOf(preRiskAuditData.getZspje()));
+        }
         //车辆税额
-        hlsCusPrjProjectLeaseItem.setVehicleTax(Double.valueOf(preRiskAuditData.getCheliangse()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getCheliangse()) && preRiskAuditData.getCheliangse() != null){
+            hlsCusPrjProjectLeaseItem.setVehicleTax(Double.valueOf(preRiskAuditData.getCheliangse()));
+        }
         return hlsCusPrjProjectLeaseItem;
     }
 
@@ -1505,7 +1572,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             hlsCusBpMaster.setMaritalStatus("DIVORCED");
         }
         //子女人数
-        hlsCusBpMaster.setNumberOfChildren(Long.valueOf(preRiskAuditData.getChildnum()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getChildnum()) && preRiskAuditData.getChildnum() != null){
+            hlsCusBpMaster.setNumberOfChildren(Long.valueOf(preRiskAuditData.getChildnum()));
+        }
         //有无驾照
         if ("1".equals(preRiskAuditData.getIsdriverlicence())){
             hlsCusBpMaster.setDriverLicenseFlag("Y");
@@ -1525,9 +1594,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         hlsCusBpMaster.setDriverLicenseDeadline(driverLicenseDeadline);
         //违章分数
-        hlsCusBpMaster.setViolationScore(Long.valueOf(preRiskAuditData.getWzfs()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getWzfs()) && preRiskAuditData.getWzfs() != null){
+            hlsCusBpMaster.setViolationScore(Long.valueOf(preRiskAuditData.getWzfs()));
+        }
         //违章罚款
-        hlsCusBpMaster.setViolationFines(Long.valueOf(preRiskAuditData.getWzfk()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getWzfk()) && preRiskAuditData.getWzfk() != null){
+            hlsCusBpMaster.setViolationFines(Long.valueOf(preRiskAuditData.getWzfk()));
+        }
         //学历
         if ("10".equals(preRiskAuditData.getDiploma())){
             hlsCusBpMaster.setHighestDegree("POST_GRADUATE_OR_HIGHER");
@@ -1554,7 +1627,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //当前职位
         hlsCusBpMaster.setPosition(preRiskAuditData.getPosition());
         //个人月收入
-        hlsCusBpMaster.setAnnualIncome(Double.valueOf(preRiskAuditData.getSalary())/100);
+        if(StringUtils.isNotEmpty(preRiskAuditData.getSalary()) && preRiskAuditData.getSalary() != null){
+            hlsCusBpMaster.setAnnualIncome(Double.valueOf(preRiskAuditData.getSalary())/100);
+        }
         //单位电话
         hlsCusBpMaster.setWorkPhone(preRiskAuditData.getCompanyphone());
         //公司所属省份
@@ -1572,6 +1647,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //配偶出生日期
         Date dateOfBirthSp = null;
         try {
+            if(StringUtils.isNotEmpty(preRiskAuditData.getSpousebir()) && preRiskAuditData.getSpousebir() != null)
             dateOfBirthSp = simpleDateFormat.parse(preRiskAuditData.getSpousebir());
         } catch (ParseException e) {
             e.printStackTrace();
@@ -1582,7 +1658,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //配偶单位地址
         hlsCusBpMaster.setAddressSp(preRiskAuditData.getSpoucecompaddr());
         //配偶联系电话
-        hlsCusBpMaster.setSpousePhone(Long.valueOf(preRiskAuditData.getSpousephone()));
+        if(StringUtils.isNotEmpty(preRiskAuditData.getSpousephone()) && preRiskAuditData.getSpousephone() != null){
+            hlsCusBpMaster.setSpousePhone(Long.valueOf(preRiskAuditData.getSpousephone()));
+        }
         //配偶公司名称
         hlsCusBpMaster.setSpouseJobsUnit(preRiskAuditData.getSpousecomp());
         //配偶公司所属行业
@@ -1671,7 +1749,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         prjLeaseItemInsurance.setProjectLeaseItemId(hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
         //强制保险金额
-        double compulsoryAmount = Double.parseDouble(carInfo.getMandatoryInsuranceAmount());
+        double compulsoryAmount = 0D;
+        if(StringUtils.isNotEmpty(carInfo.getMandatoryInsuranceAmount()) && carInfo.getMandatoryInsuranceAmount() != null){
+            compulsoryAmount = Double.parseDouble(carInfo.getMandatoryInsuranceAmount());
+        }
         prjLeaseItemInsurance.setCompulsoryAmount(compulsoryAmount / 100);
         //商业保险类型
         prjLeaseItemInsurance.setCommercialInsurance(carInfo.getCommercialInsuranceType());
@@ -1732,7 +1813,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            发动机号
         hlsCusPrjProjectLeaseItem.setEngineNumber(carInfo.getEngineNumber());
         //车辆指导价
-        double d  = Double.parseDouble(financeInfo.getApplyLoanAmount());
         hlsCusPrjProjectLeaseItem.setListPrice(Double.parseDouble(financeInfo.getCarGuidePrice())/100);
 //            车辆售价
         hlsCusPrjProjectLeaseItem.setSellingPrice(Double.parseDouble(financeInfo.getCarSalePrice())/100);
