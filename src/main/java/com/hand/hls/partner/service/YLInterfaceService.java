@@ -13,7 +13,7 @@ import java.text.ParseException;
 public interface YLInterfaceService {
     String placeOrder(String decryptedStr,IRequest iRequest) throws HlsCusException;
 
-    String closeOrder(String decryptedStr);
+    String closeOrder(String decryptedStr) throws HlsCusException;
 
     String queryOrder(String decryptedStr);
 
