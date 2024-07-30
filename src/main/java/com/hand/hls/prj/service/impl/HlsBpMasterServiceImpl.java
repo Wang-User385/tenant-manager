@@ -235,7 +235,7 @@ public class HlsBpMasterServiceImpl extends BaseServiceImpl<HlsBpMaster> impleme
     }
 
     @Override
-    public Boolean validIdCardNo2(IRequest iRequest, Long bpId, String idCardNo) {
+    public Boolean validIdCardNo2(IRequest iRequest, String idCardNo) {
         Example example = new Example(HlsCusBpMaster.class);
         example.createCriteria().andEqualTo("idCardNo", idCardNo);
         List<HlsCusBpMaster> hlsCusBpMaster = hlsBpMasterMapper.selectByExample(example);

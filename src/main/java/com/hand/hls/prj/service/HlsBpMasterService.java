@@ -100,5 +100,5 @@ public interface HlsBpMasterService extends IBaseService<HlsBpMaster> {
 
     Boolean validRegCertNumber(IRequest requestCtx, Long bpId, String regNumber);
 
-    Boolean validIdCardNo2(IRequest requestCtx, Long bpId, String idCardNo);
+    Boolean validIdCardNo2(IRequest requestCtx,  String idCardNo);
 }
