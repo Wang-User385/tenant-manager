@@ -235,6 +235,16 @@ public class HlsBpMasterServiceImpl extends BaseServiceImpl<HlsBpMaster> impleme
     }
 
     @Override
+    public Boolean validIdCardNo2(IRequest iRequest, Long bpId, String idCardNo) {
+        Example example = new Example(HlsCusBpMaster.class);
+        example.createCriteria().andEqualTo("idCardNo", idCardNo);
+        List<HlsCusBpMaster> hlsCusBpMaster = hlsBpMasterMapper.selectByExample(example);
+        return hlsCusBpMaster.size() == 0;
+    }
+
+
+
+    @Override
     public Boolean validBpName(IRequest iRequest, Long bpId, String bpName) {
         bpName = bpName.replace(" ","");
         iRequest.setAttribute("wflRuleControlFlag", "Y");

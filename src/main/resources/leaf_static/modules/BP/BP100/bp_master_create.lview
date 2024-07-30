@@ -12,6 +12,7 @@
                 url="${/request/@context_path}/modules/BP/BP100/bp_master_product_detail.lview"/>
         <script><![CDATA[
 
+
         //天眼查
         window['${/parameter/@layout_code}_user_button6_layout_dynamic_click'] = function () {
             debugger;
@@ -493,6 +494,7 @@
 
         Leaf.onReady(function () {
             debugger;
+            jQuery('#${/parameter/@layout_code}_user_button3').hide();
             var hls_bp_master_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
             var hls_bp_master_record = $(hls_bp_master_ds_id).getCurrentRecord();
 
@@ -956,14 +958,14 @@
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
             debugger;
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-            // var hp_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
-            // var hp_ds_id_record = $(hp_ds_id).getCurrentRecord();
-            // //如果是启用的用户则隐藏按钮
-            // if (hp_ds_id_record.get('enabled_flag') === 'Y'){
-            //     jQuery('#${/parameter/@layout_code}_user_button1').hide();
-            // }else {
-            //     jQuery('#${/parameter/@layout_code}_user_button1').show();
-            // }
+            var hp_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var hp_ds_id_record = $(hp_ds_id).getCurrentRecord();
+            //如果是启用的用户则隐藏按钮
+            if (hp_ds_id_record.get('enabled_flag') === 'Y'){
+                jQuery('#${/parameter/@layout_code}_user_button1').hide();
+            }else {
+                jQuery('#${/parameter/@layout_code}_user_button1').show();
+            }
 
 
 
@@ -1089,6 +1091,8 @@
             // var spouse_ds_id = '${/parameter/@layout_code}_F_SPOUSE_hls_bp_master_ds';
             $(ds_id).getCurrentRecord().set('source', '0');
             var record_cur = $(ds_id).getCurrentRecord();
+            var bp_id_all = record_cur.get('bp_id');
+
 
             if(record_cur.get('domicile_district') != null){
                 var  do_district_id  =  record_cur.get('domicile_district');
@@ -1252,16 +1256,36 @@
                         window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                         return false;
                     }
+                    var id_card_no_flag = false;
+                        jQuery.ajax({
+                            type: 'GET',
+                            url: "${/request/@context_path}/hls/bp/master/validIdCardNo2?bpId=" + bp_id_all + "&idCardNo=" + id_card_no,
+                            async: false,
+                            success: function (args) {
+                                debugger
+                                if (args.success) {
+                                    id_card_no_flag = true;
+                                }
+                            }
+                        });
+                        if (!id_card_no_flag) {
+                            if (ds_id == ds.id) {
+                                Leaf.showErrorMessage('提示', "证件号码重复！");
+                            }
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            return false;
+                        }
+
                 }
                 //创建时首次保存不会校验身份证号
-                checkIdCardNo();
-                if (!is_idno_valid) {
-                    if (ds_id == ds.id) {
-                        Leaf.showMessage('${l:PROMPT_MESSAGE}', "身份证号重复！");
-                    }
-                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                    return false;
-                }
+                // checkIdCardNo();
+                // if (!is_idno_valid) {
+                //     if (ds_id == ds.id) {
+                //         Leaf.showMessage('${l:PROMPT_MESSAGE}', "身份证号重复！");
+                //     }
+                //     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                //     return false;
+                // }
                 //手机号校验
                 var phone = basicRec.get('phone');
                 var family_phone = basicRec.get('family_phone');

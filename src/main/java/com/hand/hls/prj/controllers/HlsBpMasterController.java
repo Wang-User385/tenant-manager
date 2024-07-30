@@ -263,6 +263,20 @@ public class HlsBpMasterController extends BaseController {
         }
     }
 
+    @RequestMapping("/hls/bp/master/validIdCardNo2")
+    public ResponseData validIdCardNo2(HttpServletRequest request,
+                                      @RequestParam Long bpId,
+                                      @RequestParam String idCardNo) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        Boolean flag = hlsBpMasterService.validIdCardNo2(requestCtx, bpId, idCardNo);
+        if (flag) {
+            return new ResponseData(true);
+        } else {
+            return new ResponseData(false);
+        }
+    }
+
     /**
      * 校验法人商业伙伴重复性
      */
