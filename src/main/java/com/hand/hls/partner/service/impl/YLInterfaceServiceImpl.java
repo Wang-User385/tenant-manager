@@ -2144,9 +2144,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
     }
 
-    public String imageSync(String decryptedStr){
+    public String imageSync(String decryptedStr) throws HlsCusException {
         ImageSyncDTO imageSyncDTO = JSONObject.parseObject(decryptedStr, ImageSyncDTO.class);
-        JSONObject resJson = new JSONObject();
+        JSONObject returnJson = new JSONObject();
 
         String orderNo = imageSyncDTO.getOrderNo();
         List<File> files = imageSyncDTO.getFiles();
@@ -2158,14 +2158,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             String fileId = file.getFileId();
             UploadAttachList uploadAttachList = uploadAttachListMapper.selectByFileId(fileId);
             if(uploadAttachList == null){
-                resJson.put("success",false);
-                resJson.put("message","fileId[" + fileId + "]不存在");
-                return JSONObject.toJSONString(resJson);
+                returnJson.put("success",false);
+                returnJson.put("message","fileId[" + fileId + "]不存在");
+                throw new HlsCusException(returnJson.toJSONString());
             }
             if(!"Y".equals(uploadAttachList.getUploadFlag())){
-                resJson.put("success",false);
-                resJson.put("message","fileId[" + fileId + "]影像文件未上传");
-                return JSONObject.toJSONString(resJson);
+                returnJson.put("success",false);
+                returnJson.put("message","fileId[" + fileId + "]影像文件未上传");
+                throw new HlsCusException(returnJson.toJSONString());
             }
             //step2 根据文件类型，检查单据是否可以更新
             String fileType = file.getFileType();
@@ -2195,9 +2195,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 //预审前
                 String preStatus = hlsCusPrjProject.getPreStatus();
                 if(StringUtils.isNotEmpty(preStatus) && !"NEW".equals(preStatus)){
-                    resJson.put("success",false);
-                    resJson.put("message","fileId[" + fileId + "],进件已完成预审，“个人信息采集及使用授权协议”不允许同步");
-                    return JSONObject.toJSONString(resJson);
+                    returnJson.put("success",false);
+                    returnJson.put("message","fileId[" + fileId + "],进件已完成预审，“个人信息采集及使用授权协议”不允许同步");
+                    throw new HlsCusException(returnJson.toJSONString());
                 }
             }else if("TRADE".equals(fileType) || "CAR_SERVICE".equals(fileType) || "CAR_HANDOVER_AND_PAY_CONFIRMx0".equals(fileType) || "LEASE".equals(fileType)
                     || "NOTICEx0".equals(fileType) || "OWNERSHIP_STATEMENT".equals(fileType) || "CONFIRM_PAYMENT_DELEGATION".equals(fileType) || "AUTHORIZATIONx0".equals(fileType)
@@ -2206,9 +2206,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 //放款前
                 String investmentStatus = hlsCusPrjProject.getInvestmentStatus();
                 if(StringUtils.isNotEmpty(investmentStatus) && !"NEW".equals(investmentStatus) && !"REJECTED".equals(investmentStatus)){
-                    resJson.put("success",false);
-                    resJson.put("message","fileId[" + fileId + "],进件投放审查流程中/投放审查通过，“申请放款前相关材料”不允许同步");
-                    return JSONObject.toJSONString(resJson);
+                    returnJson.put("success",false);
+                    returnJson.put("message","fileId[" + fileId + "],进件投放审查流程中/投放审查通过，“申请放款前相关材料”不允许同步");
+                    throw new HlsCusException(returnJson.toJSONString());
                 }
             }else if("REGISTRATION_CERTIFICATE_MORTGAGED".equals(fileType)){
                 //抵押材料审核前
@@ -2245,9 +2245,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         }
 
-        resJson.put("success",true);
-        resJson.put("message","成功");
-        return JSONObject.toJSONString(resJson);
+        returnJson.put("success",true);
+        returnJson.put("message","成功");
+        return JSONObject.toJSONString(returnJson);
     }
 
     /**

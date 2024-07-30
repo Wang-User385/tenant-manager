@@ -41,5 +41,5 @@ public interface YLInterfaceService {
 
     String businessApplication(String decryptedStr,HttpServletRequest request);
 
-    String imageSync(String decryptedStr);
+    String imageSync(String decryptedStr) throws HlsCusException;
 }
