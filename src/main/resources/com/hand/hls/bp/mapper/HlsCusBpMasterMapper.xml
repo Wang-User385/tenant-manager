@@ -6453,4 +6453,188 @@ select hbm.bp_id value_code,
         </where>
     </select>
 
+
+    <select id="queryCusBpMasterDetails2" parameterType="com.hand.hls.bp.dto.HlsCusBpMaster" resultMap="BaseResultMap">
+        select * from (
+        SELECT bm.bp_id,
+        bm.bp_name,
+        bm.BP_ENG_NAME,
+        bm.BP_CODE,
+        bm.BP_CLASS,
+        (SELECT   hbt.description value_name FROM hls_business_type hbt WHERE hbt.document_category = 'HLS_BP_MASTER' AND hbt.business_type = bm.BP_CLASS) BP_CLASS_N,
+        bm.EXTRA_NAM,
+        bm.CREATION_DATE,
+        bm.ENABLED_FLAG,
+        bm.CREATED_BY,
+        (SELECT s.description
+        FROM SYS_USER s
+        WHERE S.user_id=bm.created_by) NAME,
+        (SELECT MIN(FOU.UNIT_NAME)
+        FROM SYS_USER_ALLOCATION SUA
+        LEFT JOIN FND_EMPLOYEE_ASSIGNS FEA ON SUA.EMPLOYEE_ASSIGN_ID = FEA.EMPLOYEE_ASSIGN_ID
+        LEFT JOIN FND_ORG_UNIT FOU ON FEA.UNIT_ID=FOU.UNIT_ID
+        WHERE SUA.COMPANY_ID = FEA.COMPANY_ID
+        AND SUA.COMPANY_ID = FOU.COMPANY_ID
+        AND SUA.USER_ID = bm.CREATED_BY) UNIT_NAME,
+        (SELECT MIN(FOU.UNIT_ID)
+        FROM SYS_USER_ALLOCATION SUA
+        LEFT JOIN FND_EMPLOYEE_ASSIGNS FEA ON SUA.EMPLOYEE_ASSIGN_ID = FEA.EMPLOYEE_ASSIGN_ID
+        LEFT JOIN FND_ORG_UNIT FOU ON FEA.UNIT_ID=FOU.UNIT_ID
+        WHERE SUA.COMPANY_ID = FEA.COMPANY_ID
+        AND SUA.COMPANY_ID = FOU.COMPANY_ID
+        AND SUA.USER_ID = bm.CREATED_BY) unit_id,
+        CASE
+        WHEN bm.ASSOCIATED_DIVISION IS NULL THEN
+        'N'
+        ELSE
+        bm.ASSOCIATED_DIVISION
+        END AS ASSOCIATED_DIVISION,
+        (select sc.meaning
+        from sys_code_value_b_v sc
+        where sc.code = 'BP.BP_MASTER_ROLE'
+        AND sc.CODE_VALUE = bm.bp_type) description,
+        bm.business_area,
+        (select sc.meaning
+        from sys_code_value_b_v sc
+        where sc.code = 'HLS211_NATIONALITY'
+        and sc.code_value = bm.nationality) nationality_n,
+        bm.bp_type,
+        bm.economic_indu_classify,
+        decode((select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'FND.INDUSTRY_2'
+        and sc.code_value = bm.economic_indu_classify),null,
+        (SELECT t.description
+        FROM hls_stat_class t
+        WHERE t.class_usage = 'BIZ_PARTNER'
+        AND t.enabled_flag = 'Y'
+        and to_char(t.CLASS_ID) = bm.economic_indu_classify)) economic_indu_classify_n,
+        (select c.country_name
+        from fnd_country c
+        where c.country = bm.business_area) business_area_n,
+        'asda' as group_company_n,
+        'qwew' as visit_information,
+        'zxcx' AS change_record,
+        bm.group_companies,
+        to_char(bm.CREATION_DATE, 'yyyy-mm-dd') AS CREATION_DATE_STR,
+        bm.retail_flag,
+        bm.source,
+        (select sc.meaning value_name
+        from sys_code_value_b_v sc
+        where sc.code = 'SOURCE' and sc.code_value = bm.source ) source_n
+        FROM hls_bp_master bm
+        WHERE bm.BP_APPROVE_STATUS is null or bm.BP_APPROVE_STATUS='APPROVED'
+        ORDER BY bm.bp_name ASC) tt
+        <where>
+            <!--            <if test="createdBy!=null and createdBy!=''">-->
+            <!--                and (/*非零售客户权限*/-->
+            <!--                    (nvl(tt.retail_flag,'N') ='N' AND (-->
+            <!--                    #{request.userId}=tt.created_by-->
+            <!--                    OR-->
+            <!--                    exists(-->
+            <!--                    select 1 from fnd_org_unit a1,fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4-->
+            <!--                    where a3.employee_id=a2.employee_id-->
+            <!--                    and a3.unit_id=a1.unit_id-->
+            <!--                    and a4.position_id=a3.position_id-->
+            <!--                    and a4.chief_position_flag='Y'-->
+            <!--                    and employee_code=#{request.employeeCode}-->
+            <!--                    AND A1.UNIT_ID IN(-->
+            <!--                    select b.unit_id-->
+            <!--                    from sys_user_allocation a,fnd_employee_assigns b-->
+            <!--                    where a.user_id=tt.created_by-->
+            <!--                    AND a.employee_assign_id=b.employee_assign_id))-->
+            <!--                    or #{request.employeeCode} in('ADMIN','HULITING')))-->
+            <!--                    /*零售客户权限*/-->
+            <!--                    OR-->
+            <!--                    (nvl(tt.retail_flag,'N') ='Y'-->
+            <!--                    AND ( #{request.userId}=tt.created_by-->
+            <!--                    or exists(-->
+            <!--                    select 1-->
+            <!--                    from fnd_org_unit a1,  sys_user_allocation a,fnd_employee_assigns b-->
+            <!--                    where a.user_id=#{createdBy}-->
+            <!--                    and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID-->
+            <!--                    and b.unit_id =a1.unit_id-->
+            <!--                    and a1.unit_code != 'BUSINESS_DEPT_MANUFACTURER')-->
+            <!--                    ))-->
+            <!--                )-->
+            <!--            </if>-->
+            <!--            <if test="createdBy==null or createdBy==''">-->
+            <!--                and (/*非零售客户权限*/-->
+            <!--                (nvl(tt.retail_flag,'N') ='N' AND (-->
+            <!--                #{request.userId}=tt.created_by-->
+            <!--                OR-->
+            <!--                exists(-->
+            <!--                select 1 from fnd_org_unit a1,fnd_employee a2,fnd_employee_assigns a3,FND_ORG_POSITION a4-->
+            <!--                where a3.employee_id=a2.employee_id-->
+            <!--                and a3.unit_id=a1.unit_id-->
+            <!--                and a4.position_id=a3.position_id-->
+            <!--                and a4.chief_position_flag='Y'-->
+            <!--                and employee_code=#{request.employeeCode}-->
+            <!--                AND A1.UNIT_ID IN(-->
+            <!--                select b.unit_id-->
+            <!--                from sys_user_allocation a,fnd_employee_assigns b-->
+            <!--                where a.user_id=tt.created_by-->
+            <!--                AND a.employee_assign_id=b.employee_assign_id))-->
+            <!--                or #{request.employeeCode} in('ADMIN','HULITING')))-->
+            <!--                /*零售客户权限*/-->
+            <!--                OR-->
+            <!--                (nvl(tt.retail_flag,'N') ='Y'-->
+            <!--                AND (-->
+            <!--                (exists(-->
+            <!--                select 1-->
+            <!--                from sys_user_allocation a,fnd_employee_assigns b-->
+            <!--                where a.user_id= #{request.userId}-->
+            <!--                and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID-->
+            <!--                and b.position_id in(select b1.position_id-->
+            <!--                from sys_user_allocation a1,fnd_employee_assigns b1-->
+            <!--                where a1.user_id=tt.created_by-->
+            <!--                and a1.EMPLOYEE_ASSIGN_ID=b1.EMPLOYEE_ASSIGN_ID)))-->
+            <!--                or exists(-->
+            <!--                select 1-->
+            <!--                from fnd_org_unit a1,  sys_user_allocation a,fnd_employee_assigns b-->
+            <!--                where a.user_id= #{request.userId}-->
+            <!--                and a.EMPLOYEE_ASSIGN_ID=b.EMPLOYEE_ASSIGN_ID-->
+            <!--                and b.unit_id =a1.unit_id-->
+            <!--                and a1.unit_code != 'BUSINESS_DEPT_MANUFACTURER')-->
+            <!--                ))-->
+            <!--                )-->
+            <!--            </if>-->
+
+            <if test="bpName!=null and bpName!=''">
+                AND tt.bp_name LIKE concat(concat('%',#{bpName}),'%')
+            </if>
+            <if test="bpCode!=null and bpCode!=''">
+                AND tt.bp_code LIKE concat(concat('%',#{bpCode}),'%')
+            </if>
+            <if test="extraNam!=null and extraNam!=''">
+                AND tt.EXTRA_NAM LIKE concat(concat('%',#{extraNam}),'%')
+            </if>
+            <if test="bpClass!=null and bpClass!=''">
+                AND tt.bp_class = #{bpClass}
+            </if>
+            <if test="bpClass == null">
+                AND tt.bp_class = 'ORG'
+            </if>
+            <if test="bpType!=null and bpType!=''">
+                AND tt.bp_type = #{bpType}
+            </if>
+            <if test="name!=null and name!=''">
+                AND tt.name LIKE concat(concat('%',#{name}),'%')
+            </if>
+            <if test="unitName!=null and unitName!=''">
+                AND tt.unit_name LIKE concat(concat('%',#{unitName}),'%')
+            </if>
+            <if test="enabledFlag!=null and enabledFlag!=&quot;ALL&quot;">
+                AND tt.enabled_flag = #{enabledFlag}
+            </if>
+            <if test="associatedDivision!=null and associatedDivision!=''">
+                AND tt.associated_division = #{associatedDivision}
+            </if>
+            <if test="unitId!=null and unitName!=''">
+                AND tt.unit_id LIKE concat(concat('%',#{unitId}),'%')
+            </if>
+        </where>
+    </select>
+
+
 </mapper>

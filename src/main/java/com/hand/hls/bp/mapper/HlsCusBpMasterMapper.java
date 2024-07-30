@@ -95,6 +95,7 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
      */
     List<HlsCusBpMaster> queryCusBpMasterDetails(HlsCusBpMaster hlsCusBpMaster);
 
+
     List<HlsCusBpMaster> queryCusBpMasterDetails1(HlsCusBpMaster hlsCusBpMaster);
 
     /**
@@ -152,4 +153,6 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
     List<Long> getConditionId(@Param("bpId") Long bpId);
 
     List<HlsCusBpMaster> getMasterDetail(HlsCusBpMaster hlsCusBpMaster);
+
+    List<HlsCusBpMaster> queryCusBpMasterDetails2(HlsCusBpMaster hlsCusBpMaster);
 }

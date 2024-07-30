@@ -1762,6 +1762,9 @@ public class HlsCusConContract extends ConContract {
 
     private String pledgeDescription;
 
+    @Transient
+    private Long writeOffStatusC;
+
 
 
 }

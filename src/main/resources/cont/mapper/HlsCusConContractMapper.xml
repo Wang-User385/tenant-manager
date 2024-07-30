@@ -608,6 +608,7 @@
         <result column="PLEDGE_INSTITUTION" property="pledgeInstitution" jdbcType="VARCHAR"/>
         <result column="PLEDGE_DATE" property="pledgeDate" jdbcType="DATE"/>
         <result column="PLEDGE_DESCRIPTION" property="pledgeDescription" jdbcType="VARCHAR"/>
+        <result column="write_off_status_c" property="writeOffStatusC" jdbcType="DECIMAL"/>
 
 
     </resultMap>
@@ -11614,6 +11615,8 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
 
     <select id="findCarEnd" resultMap="BaseResultMap">
         select
+        (select count(*) from prj_quotation q INNER JOIN prj_quotation_cashflow pqc ON q.quotation_id = pqc.quotation_id where source_document_category = 'CON_CONTRACT' and
+        q.source_document_id = cc.contract_id and pqc.write_off_status != 'FULL'  ) write_off_status_c,
         cc.contract_id,
         cc.project_id,
         cc.contract_number as project_number,

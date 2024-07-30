@@ -820,13 +820,6 @@
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             debugger;
-            var hls_role_ds_id_l = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_role');
-
-
-
-
-
-
             var check_flag = true;
             // var ds_id = '${/parameter/@layout_code}_F_BASIC_hls_bp_master_ds';
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
@@ -1011,7 +1004,7 @@
                         return false;
                     }
                 }
-                debugger;
+
                 var bp_id_check_num = basicRec.get('bp_id');
                 var reg_number_02 = basicRec.get('register_cert_num');
                 jQuery.ajax({
@@ -1029,10 +1022,29 @@
                 });
                 if (!is_regno_valid) {
                     if (ds_id == ds.id) {
-                        Leaf.showMessage('提示', "登记注册号码重复！");
+                        Leaf.showErrorMessage('提示', "登记注册号码重复！");
                     }
                     return false;
                 }
+
+                var hls_role_ds_id_l = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_role');
+                var role_records_l = $(hls_role_ds_id_l).getAll();
+                var hash_set = new Set();
+                for (let i = 0; i < role_records_l.length; i++) {
+                    var cur_record_l = role_records_l[i];
+                    var val_l = cur_record_l.get('bp_type');
+                    if (!hash_set.has(val_l)){
+                        hash_set.add(val_l);
+                    }else {
+                        Leaf.showMessage('提示', "角色信息的商业伙伴类型不能重复！");
+                        return false;
+                    }
+
+                }
+
+
+
+
                 //地址信息校验
                 var addr_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_address');
                 var addRec = $(addr_ds_id).getAll();

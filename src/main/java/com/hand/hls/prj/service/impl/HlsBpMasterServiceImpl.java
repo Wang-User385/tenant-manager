@@ -193,7 +193,8 @@ public class HlsBpMasterServiceImpl extends BaseServiceImpl<HlsBpMaster> impleme
         Example example = new Example(HlsCusBpMaster.class);
         example.createCriteria().andEqualTo("registerCertNum", regNumber);
         List<HlsCusBpMaster> hlsCusBpMaster = hlsBpMasterMapper.selectByExample(example);
-        return hlsCusBpMaster.size() == 0;
+        if (hlsCusBpMaster.size() > 1)return false;
+        return hlsCusBpMaster.size() == 0 || hlsCusBpMaster.get(0).getBpId().longValue() == bpId.longValue();
     }
 
     @Override
