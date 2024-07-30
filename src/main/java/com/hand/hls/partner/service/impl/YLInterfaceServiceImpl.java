@@ -463,7 +463,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String advancesSettleTrialCalculation(String decryptedStr){
+    public String advancesSettleTrialCalculation(String decryptedStr)throws HlsCusException{
         AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(decryptedStr, AdvancesSettleComputeDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
@@ -478,7 +478,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
             jsonObject1.put("message","现金流数据不存在，请查看合同状态是否为起租和合同结束，或者该订单是否已经做过回购或提前结清！");
-            return jsonObject1.toJSONString();
+            throw new HlsCusException(jsonObject1.toJSONString());
         }
 
         //试算数据封装：
@@ -502,7 +502,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     @Transactional
-    public String advancesSettleRequest(String decryptedStr){
+    public String advancesSettleRequest(String decryptedStr) throws HlsCusException{
 
         AdvancesSettleRequestDTO advancesSettleRequestDTO = JSONObject.parseObject(decryptedStr, AdvancesSettleRequestDTO.class);
 
@@ -518,7 +518,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
             jsonObject1.put("message","现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
-            return jsonObject1.toJSONString();
+            throw new HlsCusException(jsonObject1.toJSONString());
         }
 
         HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
@@ -1805,7 +1805,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String overdueRepurchaseTrialCalculation(String decryptedStr){
+    public String overdueRepurchaseTrialCalculation(String decryptedStr) throws HlsCusException{
         OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseTrialCalculationDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
@@ -1816,7 +1816,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
             jsonObject1.put("message","回购现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
-            return jsonObject1.toJSONString();
+            throw new HlsCusException(jsonObject1.toJSONString());
         }
 
         //试算数据封装：
@@ -1842,7 +1842,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest){
+    public String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest) throws HlsCusException{
         OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseRequestDTO.class);
 
 
@@ -1857,7 +1857,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
             jsonObject1.put("message","回购现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
-            return jsonObject1.toJSONString();
+            throw new HlsCusException(jsonObject1.toJSONString());
         }
 
 

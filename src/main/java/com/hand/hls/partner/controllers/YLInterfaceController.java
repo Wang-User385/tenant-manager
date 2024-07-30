@@ -268,6 +268,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.advancesSettleTrialCalculation(hlsWsRequests.getRequestJson());
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";
@@ -303,6 +305,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.advancesSettleRequest(hlsWsRequests.getRequestJson());
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";
@@ -373,6 +377,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.overdueRepurchaseTrialCalculation(hlsWsRequests.getRequestJson());
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";
@@ -408,6 +414,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.overdueRepurchaseRequest(hlsWsRequests.getRequestJson(),iRequest);
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";

@@ -23,15 +23,15 @@ public interface YLInterfaceService {
 
     String claimsSubrogation(String decryptedStr) throws HlsCusException;
 
-    String advancesSettleTrialCalculation(String decryptedStr);
+    String advancesSettleTrialCalculation(String decryptedStr) throws HlsCusException;
 
-    String advancesSettleRequest(String decryptedStr);
+    String advancesSettleRequest(String decryptedStr) throws HlsCusException;
 
     String dataAcquisition(String decryptedStr,IRequest iRequest) throws Exception;
 
-    String overdueRepurchaseTrialCalculation(String decryptedStr);
+    String overdueRepurchaseTrialCalculation(String decryptedStr) throws HlsCusException;
 
-    String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest);
+    String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest) throws HlsCusException;
 
     String queryWithholdingState(String decryptedStr);
 
