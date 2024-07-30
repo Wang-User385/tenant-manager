@@ -52,6 +52,7 @@ import java.util.*;
 import static com.hand.hls.sys.utils.OracleUtils.nvl;
 
 @Service
+@Transactional(rollbackFor = Exception.class)
 public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Autowired
@@ -143,7 +144,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsProductDefinitionMapper hlsProductDefinitionMapper;
 
     @Override
-    @Transactional
     public String placeOrder(String decryptedStr,IRequest iRequest) throws HlsCusException {
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(decryptedStr, PlaceOrderDTO.class);
         JSONObject returnJson = new JSONObject();
@@ -277,7 +277,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    @Transactional
     public String closeOrder(String decryptedStr) throws HlsCusException {
         CloseOrderDTO closeOrderDTO = JSONObject.parseObject(decryptedStr, CloseOrderDTO.class);
         JSONObject returnJson = new JSONObject();
@@ -337,7 +336,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    @Transactional
     public String repayment(String decryptedStr) throws HlsCusException {
         RepayMent repayMent = JSONObject.parseObject(decryptedStr, RepayMent.class);
         JSONObject returnJson = new JSONObject();
@@ -420,7 +418,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    @Transactional
     public String claimsSubrogation(String decryptedStr) throws HlsCusException{
         ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.parseObject(decryptedStr, ClaimsSubrogationDTO.class);
 
@@ -489,7 +486,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    @Transactional
     public String advancesSettleRequest(String decryptedStr) throws HlsCusException{
 
         AdvancesSettleRequestDTO advancesSettleRequestDTO = JSONObject.parseObject(decryptedStr, AdvancesSettleRequestDTO.class);
@@ -523,7 +519,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
     public String dataAcquisition(String decryptedStr,IRequest iRequest) throws Exception {
         DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(decryptedStr, DataAcquisitionDTO.class);
 
@@ -2151,6 +2146,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
     }
 
+    @Override
     public String imageSync(String decryptedStr) throws HlsCusException {
         ImageSyncDTO imageSyncDTO = JSONObject.parseObject(decryptedStr, ImageSyncDTO.class);
         JSONObject returnJson = new JSONObject();
