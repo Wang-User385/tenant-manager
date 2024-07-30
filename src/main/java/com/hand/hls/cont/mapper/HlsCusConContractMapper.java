@@ -183,4 +183,11 @@ public interface HlsCusConContractMapper extends Mapper<HlsCusConContract> {
      * 车辆业务合同结束查询
      */
     List<HlsCusConContract> findCarEnd(HlsCusConContract hlsCusConContract);
+
+    /**
+     * 车辆业务合同结束租赁物解押明细
+     */
+
+    List<HlsCusConContract> findCarEndDetail(HlsCusConContract hlsCusConContract);
+
 }

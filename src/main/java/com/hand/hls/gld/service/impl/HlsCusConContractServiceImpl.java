@@ -4756,6 +4756,24 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
     }
 
+    @Override
+    public void updateContractStatus(Long contractId, HttpServletRequest request) {
+        HlsCusConContract hlsCusConContract = new HlsCusConContract();
+        hlsCusConContract.setContractId(contractId);
+        hlsCusConContract =  hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
+        hlsCusConContract.setContractStatus("TERMINATE");
+        hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
+    }
+
+    @Override
+    public void confirm(Long contractId, HttpServletRequest request) {
+        HlsCusConContract hlsCusConContract = new HlsCusConContract();
+        hlsCusConContract.setContractId(contractId);
+        hlsCusConContract =  hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
+        hlsCusConContract.setPledgeFlag("Y");
+        hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
+    }
+
     private void commonLog(ResponseData responseData, String code, String returnStatus, String parameter, HlsWsRequests hlsWsRequests) {
         responseData.setCode(code);
         responseData.setMessage(parameter);

@@ -256,4 +256,8 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
     void download(Long contractId, String contractAttachmentCategory, HttpServletResponse response, HttpServletRequest request);
 
     void updateZdwRegisterStatus(Long contractId, HttpServletRequest request);
+
+    void updateContractStatus(Long contractId, HttpServletRequest request);
+
+    void confirm(Long contractId, HttpServletRequest request);
 }

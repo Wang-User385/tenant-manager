@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Author: LI JING ZHOU
+    Date: 2024/7/29
+    Revision: 1.0
+    Purpose:
+-->
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+          trace="true">
+
+    <a:view>
+
+
+        <script><![CDATA[
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'info') {   //跟进情况  附件
+                var link_function1 = 'upload';
+                return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('contract_id') + '\');">附件</a>';
+            }
+        };
+
+        window['upload'] = function (ds_id, record_id, pk_id) {
+            debugger;
+            var tableName = 'CON_CONTRACT_ATTACHMENT';
+            var base_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_CAR_F1');
+            var base_record;
+            var con_contract_attachment_id;
+            base_record = $(base_ds_id2).findById(record_id);
+            con_contract_attachment_id = base_record.get('contract_attachment_id');
+            if (!con_contract_attachment_id) {
+                $L.showInfoMessage("提示", "请先保存再上传附件!");
+                return;
+            }
+            var url = '${/request/@context_path}/uploadFile.lview';
+            var win = new Leaf.Window({
+                id: 'MORT001F3_open_attachment_prj_winid3',
+                url: url,
+                params: {
+                    'header_id': con_contract_attachment_id,
+                    'table_name': tableName,
+                    winid: 'MORT001F3_open_attachment_prj_winid3'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                $(ds_id).query();
+            });
+
+
+        };
+
+        //一键下载
+        window['${/parameter/@layout_code}_G_CAR_F1_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            debugger;
+            var contract_id = parseInt('${/parameter/@contract_id}');
+            var down_url ="${/request/@context_path}/hls/con/contract/download?contract_id=" + contract_id + "&contract_attachment_category=MORTGAGE" ;
+            location.href = down_url;
+        }
+
+        //确认解押
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            window['${/parameter/@bp_seq}${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract');
+            var ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment');
+            var record = $(ds_id).getCurrentRecord();
+            var contract_id = record.get('contract_id');
+            Leaf.request({
+                url: '${/request/@context_path}/confirm?contractId='+contract_id,
+                success: function (res) {
+                    $(ds_id).submit();
+                    $(ds_id1).submit();
+                    $(ds_id).query();
+                    $(ds_id1).query();
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                error: function (){
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (){
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true
+            });
+
+
+
+        };
+
+
+        ]]>
+        </script>
+        <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
+    </a:view>
+</a:screen>

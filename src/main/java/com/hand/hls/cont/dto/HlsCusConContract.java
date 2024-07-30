@@ -1752,6 +1752,16 @@ public class HlsCusConContract extends ConContract {
     @Transient
     private String zdwRegisterStatusN;
 
+    private String pledgePerson;
+
+    private String pledgeLocation;
+
+    private String pledgeInstitution;
+
+    private Date pledgeDate;
+
+    private String pledgeDescription;
+
 
 
 }

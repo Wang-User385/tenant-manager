@@ -1016,8 +1016,24 @@ public class HlsCusConContractController extends BaseController {
 
     @RequestMapping("/hls/cus/update/status")
     @ResponseBody
-    public ResponseData submit(@RequestParam("contractId") Long contractId, HttpServletRequest request) throws ResMessageException {
+    public ResponseData updateStatus(@RequestParam("contractId") Long contractId, HttpServletRequest request) throws ResMessageException {
         hlsCusConContractService.updateZdwRegisterStatus(contractId, request);
+        return new ResponseData();
+    }
+
+
+
+    @RequestMapping("/hls/update/contract/status")
+    @ResponseBody
+    public ResponseData updateContractStatus(@RequestParam("contractId") Long contractId, HttpServletRequest request) throws ResMessageException {
+        hlsCusConContractService.updateContractStatus(contractId, request);
+        return new ResponseData();
+    }
+
+    @RequestMapping("/confirm")
+    @ResponseBody
+    public ResponseData confirm(@RequestParam("contractId") Long contractId, HttpServletRequest request) throws ResMessageException {
+        hlsCusConContractService.confirm(contractId, request);
         return new ResponseData();
     }
 
