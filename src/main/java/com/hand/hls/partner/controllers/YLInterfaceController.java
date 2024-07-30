@@ -556,6 +556,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.businessApplication(hlsWsRequests.getRequestJson(),request);
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";

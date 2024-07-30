@@ -39,7 +39,7 @@ public interface YLInterfaceService {
 
     String recoverWithholding(String decryptedStr);
 
-    String businessApplication(String decryptedStr,HttpServletRequest request);
+    String businessApplication(String decryptedStr,HttpServletRequest request) throws HlsCusException;
 
     String imageSync(String decryptedStr) throws HlsCusException;
 }

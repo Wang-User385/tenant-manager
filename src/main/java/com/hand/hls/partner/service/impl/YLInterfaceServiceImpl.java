@@ -38,6 +38,7 @@ import com.hand.hls.prj.mapper.*;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
 import hls.core.utils.exception.HlsCusException;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -1993,102 +1994,86 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String businessApplication(String decryptedStr,HttpServletRequest request){
+    public String businessApplication(String decryptedStr,HttpServletRequest request) throws HlsCusException {
         BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(decryptedStr, BusinessApplicationDTO.class);
-
-
-        JSONObject jsonObject1 = new JSONObject();
+        JSONObject returnJson = new JSONObject();
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(businessApplicationDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            jsonObject1.put("code","100003");
-            jsonObject1.put("message","订单不存在");
-            return jsonObject1.toJSONString();
+            returnJson.put("code","100003");
+            returnJson.put("message","订单不存在");
+            throw new HlsCusException(returnJson.toJSONString());
         }
         //根据action，执行操作
         String action = businessApplicationDTO.getAction();
         if ("PRE_RISK".equals(action)){
             String s = tongDunService.preliminaryValid(hlsCusPrjProject.getProjectId(), request);
 //            校验客户信息查询授权书是否已经上传
-
-
             if ("Accept".equals(s)){
-                //        设置返回信息
-                jsonObject1.put("code","200");
-                jsonObject1.put("message","预审成功");
-                //预审成功更改进件预审状态
                 hlsCusPrjProject.setPreStatus("APPROVED");
                 prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-                return jsonObject1.toJSONString();
+                returnJson.put("code","200");
+                returnJson.put("message","预审成功");
+                return returnJson.toJSONString();
+            }else{
+                returnJson.put("code","400");
+                returnJson.put("message","预审失败");
+                throw new HlsCusException(returnJson.toJSONString());
             }
-            jsonObject1.put("code","400");
-            jsonObject1.put("message","预审失败");
-            return jsonObject1.toJSONString();
-        }
-        else if ("APPLY_PRE_RISK".equals(action)){
+        }else if ("APPLY_PRE_RISK".equals(action)){
             String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
             if ("Accept".equals(s)){
-                //        设置返回信息
-                jsonObject1.put("code","200");
-                jsonObject1.put("message","审核成功");
-                //返回通过而不是谨慎通过或者拒绝，整个进件正审流程就是审批通过，需更改进件正审状态，也就是进件状态为审批通过
                 hlsCusPrjProject.setProjectStatus("APPROVED");
                 prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-                return jsonObject1.toJSONString();
+                returnJson.put("code","200");
+                returnJson.put("message","审核成功");
+                return returnJson.toJSONString();
+            }else if ("Reject".equals(s) || "Error".equals(s)){
+                returnJson.put("code","400");
+                returnJson.put("message","审核失败");
+                throw new HlsCusException(returnJson.toJSONString());
             }
-            else if ("Reject".equals(s) || "Error".equals(s)){
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","审核失败");
-                return jsonObject1.toJSONString();
-            }
-        }
-        else if ("RE_APPLY_PRE_RISK".equals(action)){
+        }else if ("RE_APPLY_PRE_RISK".equals(action)){
             String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
             if ("Accept".equals(s)){
-                //        设置返回信息
-                jsonObject1.put("code","200");
-                jsonObject1.put("message","审核成功");
-                return jsonObject1.toJSONString();
+                returnJson.put("code","200");
+                returnJson.put("message","审核成功");
+                return returnJson.toJSONString();
+            }else if ("Reject".equals(s) || "Error".equals(s)){
+                returnJson.put("code","400");
+                returnJson.put("message","审核失败");
+                throw new HlsCusException(returnJson.toJSONString());
             }
-            else if ("Reject".equals(s) || "Error".equals(s)){
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","审核失败");
-                return jsonObject1.toJSONString();
-            }
-        }
-        else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
-//            申请代扣签约
-        }
-        else if ("APPLY_LOAN".equals(action)||"RE_APPLY_LOAN".equals(action)){
-            //申请放款
-            String riskInfo = hlsCusPrjProject.getRiskInfo();
+        }else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
+            //申请代扣签约
+        }else if ("APPLY_LOAN".equals(action)||"RE_APPLY_LOAN".equals(action)){
             //获取riskinfo数据
-            PreRiskAuditData preRiskAuditData = JSONObject.parseObject(riskInfo, PreRiskAuditData.class);
+            PreRiskAuditData preRiskAuditData = JSONObject.parseObject(hlsCusPrjProject.getRiskInfo(), PreRiskAuditData.class);
             if (preRiskAuditData==null){
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","riskinfo信息不能为空");
-                return jsonObject1.toJSONString();
+                returnJson.put("code","400");
+                returnJson.put("message","riskinfo信息不能为空");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+            //获取报价
+            List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
+            if (hlsCusPrjQuotations.size()==0){
+                returnJson.put("code","400");
+                returnJson.put("message","报价不能为空");
+                throw new HlsCusException(returnJson.toJSONString());
             }
             //获取租赁物信息
             List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
-            //获取报价
-            List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
+            if (hlsCusPrjProjectLeaseItemList.size()==0){
+                returnJson.put("code","400");
+                returnJson.put("message","租赁物不能为空");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
             //获取附件
             List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.queryByProjectId(hlsCusPrjProject.getProjectId());
-            if (hlsCusPrjQuotations.size()==0){
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","报价不能为空");
-                return jsonObject1.toJSONString();
-            }
-            if (hlsCusPrjProjectLeaseItemList.size()==0){
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","租赁物不能为空");
-                return jsonObject1.toJSONString();
-            }
             if (hlsCusPrjProjectAttachments.size()==0){
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","附件不能为空");
-                return jsonObject1.toJSONString();
+                returnJson.put("code","400");
+                returnJson.put("message","附件不能为空");
+                throw new HlsCusException(returnJson.toJSONString());
             }
             HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
             HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
@@ -2102,39 +2087,33 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     preRiskAuditData.getYfzj().equals(hlsCusPrjQuotation.getPmt())&&
                     preRiskAuditData.getNhll().equals(hlsCusPrjQuotation.getIntRate())&&
                     preRiskAuditData.getSfje().equals(hlsCusPrjQuotation.getDownPayment())){
-                if (hlsCusPrjProjectAttachments.size()>0){
-                    //获取审批通过日的毫秒值
-                    long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
-                    //获取当前时间毫秒值
-                    long nowTime = new Date().getTime();
-                    //计算间隔的时间
-                    long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
-                    if ("APPLY_LOAN".equals(action)){
-                        if (days>=30){
-                            jsonObject1.put("code","400");
-                            jsonObject1.put("message","审批通过超过三十天");
-                            return jsonObject1.toJSONString();
-                        }
-                    }else if ("RE_APPLY_LOAN".equals(action)){
-                        if (days>=50){
-                            jsonObject1.put("code","400");
-                            jsonObject1.put("message","再次审批通过超过五十天");
-                            return jsonObject1.toJSONString();
-                        }
+                //获取审批通过日的毫秒值
+                long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
+                //获取当前时间毫秒值
+                long nowTime = new Date().getTime();
+                //计算间隔的时间
+                long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
+                if ("APPLY_LOAN".equals(action)){
+                    if (days>=30){
+                        returnJson.put("code","400");
+                        returnJson.put("message","审批通过超过三十天");
+                        throw new HlsCusException(returnJson.toJSONString());
                     }
-
+                }else if ("RE_APPLY_LOAN".equals(action)){
+                    if (days>=50){
+                        returnJson.put("code","400");
+                        returnJson.put("message","再次审批通过超过五十天");
+                        throw new HlsCusException(returnJson.toJSONString());
+                    }
                 }
             }
-        }
-        else{
+        }else{
             //抵押材料审核
         }
 
-
-        //            设置返回状态
-        jsonObject1.put("code","200");
-        jsonObject1.put("message","业务申请成功");
-        return jsonObject1.toJSONString();
+        returnJson.put("code","200");
+        returnJson.put("message","业务申请成功");
+        return returnJson.toJSONString();
     }
 
     private void replaceAttach(HlsCusPrjProjectAttachment prjAttachment,String fileId){
