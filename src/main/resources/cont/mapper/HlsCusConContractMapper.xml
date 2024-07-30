@@ -11520,7 +11520,17 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
     <select id="findAttachMortgage" resultMap="BaseResultMap">
         SELECT
             cca.CONTRACT_ATTACHMENT_ID,
-            document_name,
+            (
+                SELECT
+                    LISTAGG(file_name,',') WITHIN GROUP (ORDER BY file_name) as document_name
+        FROM
+            fnd_atm_attachment_multi faam,
+            fnd_atm_attachment fat
+        WHERE
+            cca.CONTRACT_ATTACHMENT_ID = faam.table_pk_value
+          AND faam.attachment_id = fat.attachment_id
+          AND faam.table_name = 'CON_CONTRACT_ATTACHMENT' and cca.contract_attachment_category = 'MORTGAGE'  and cca.contract_id = #{contractId}
+            ) document_name,
             ( SELECT max( m.creation_date ) FROM fnd_atm_attachment_multi m WHERE m.table_name = 'CON_CONTRACT_ATTACHMENT' AND m.table_pk_value = contract_attachment_id ) upload_date
         FROM
             con_contract_attachment cca
