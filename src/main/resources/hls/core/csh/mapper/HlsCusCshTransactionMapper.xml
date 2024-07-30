@@ -157,6 +157,7 @@
         <result column="import_date" property="importDate"/>
         <result column="reversed_description" property="reversedDescription"/>
         <result column="refund_amount" property="refundAmount"/>
+        <result column="refund_centre_amount" property="refundCentreAmount"/>
         <result column="un_write_off_amount" property="unWriteOffAmount"/>
 
         <result column="un_write_off_amount_from" property="unWriteOffAmountFrom"/>
@@ -217,6 +218,9 @@
         <result column="rent_due_date" property="rentDueDate" jdbcType="DATE"/>
         <result column="credit_principal" property="creditPrincipal"/>
         <result column="credit_interest" property="creditInterest"/>
+        <result column="primary_transaction_id" property="primaryTransactionId" jdbcType="DECIMAL"/>
+        <result column="primary_transaction_num" property="primaryTransactionNum" jdbcType="VARCHAR"/>
+        <result column="is_allocation_flag_n" property="isAllocationFlagN" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="collectionDetailsMap" type="com.hand.hls.csh.dto.HlsCusCshTransaction">
@@ -1715,7 +1719,7 @@
     <select id="detailQueryNewBusiness" resultMap="BaseResultMap">
         select  ttt1.*
         from ( select t1.*,
-        nvl(t1.transaction_amount-nvl(t1.refund_amount,0)-nvl(t1.write_off_amount,0)-nvl(t1.frozen_amount,0),0)   un_write_off_amount,
+        nvl(t1.transaction_amount-nvl(t1.refund_amount,0)-nvl(t1.write_off_amount,0)-nvl(t1.frozen_amount,0)-nvl(t1.refund_centre_amount,0),0)   un_write_off_amount,
         ( CASE WHEN t1.ctr_refund_flag = 0 THEN 'N' ELSE 'Y' END ) AS refund_flag,
         ( CASE WHEN t1.ctr_refund_flag = 0 THEN '否' ELSE '是' END ) AS refund_flag_n
         from (
@@ -1736,6 +1740,14 @@
         ctr.refund_status = 'APPROVED'
         AND ctr.TRANSACTION_ID = tran.TRANSACTION_ID
         )  refund_amount,
+        ( SELECT
+        sum(ctr.REFUND_AMOUNT)
+        FROM
+        csh_transaction_refund ctr
+        WHERE
+        ctr.refund_status = 'APPROVING'
+        AND ctr.TRANSACTION_ID = tran.TRANSACTION_ID
+        )  refund_centre_amount,
         (tran.transaction_amount - tran.write_off_due_amount) un_write_off_due_amount
         from (SELECT t.*,
         (select ctr.REFUND_STATUS
@@ -1791,7 +1803,10 @@
         csh_allocation_receipt car where car.transaction_id = t.transaction_id),-1) allocation_id_str,
         ( case when (select COUNT(1) from csh_allocation ca,csh_allocation_receipt car where car.transaction_id =
         t.transaction_id and ca.allocation_id = car.allocation_id and ca.allocation_status =
-        'N') = 0 then '否' else '是' end )is_allocation_flag,
+        'N') = 0 then 'N' else 'Y' end )is_allocation_flag,
+        ( case when (select COUNT(1) from csh_allocation ca,csh_allocation_receipt car where car.transaction_id =
+        t.transaction_id and ca.allocation_id = car.allocation_id and ca.allocation_status =
+        'N') = 0 then '否' else '是' end )is_allocation_flag_n,
         nvl((SELECT SUM(cwo.write_off_due_amount)
         FROM csh_write_off o, csh_write_off cwo
         WHERE o.csh_transaction_id = t.transaction_id
@@ -1810,7 +1825,8 @@
         nvl(t.write_off_amount, 0) write_off_due_amount,
         nvl((select  sum(ctr.REFUND_AMOUNT) from csh_transaction_refund  ctr  where ctr.TRANSACTION_ID=t.TRANSACTION_ID
         and ctr.REFUND_STATUS in ('APPROVING','APPROVED')
-        and ctr.PAYMENT_REFUND_STATUS !='PAID'),0)   frozen_amount
+        and ctr.PAYMENT_REFUND_STATUS !='PAID'),0)   frozen_amount,
+        (select ct.transaction_num from csh_transaction ct where ct.transaction_id = t.primary_transaction_id) primary_transaction_num
 
 
         FROM csh_transaction t,
@@ -1826,7 +1842,7 @@
 
         <where>
             ttt1.transaction_type in ('RECEIPT','DEDUCTION','ADVANCE_RECEIPT')
-            and ttt1.is_allocation_flag = '否'
+            /*and ttt1.is_allocation_flag = '否'*/
             <if test="transactionType!=null">
                 and ttt1.transaction_type = #{transactionType}
             </if>
@@ -1892,6 +1908,9 @@
             <if test="canRefund!=null">
                 and (ttt1.reversed_flag = 'N' AND 'Y' = #{canRefund} and ttt1.is_allocation_flag = '否' and ttt1.write_off_flag
                 != 'FULL')
+            </if>
+            <if test="isAllocationFlag!=null">
+                and   ttt1.is_allocation_flag = #{isAllocationFlag}
             </if>
 
         </where>
