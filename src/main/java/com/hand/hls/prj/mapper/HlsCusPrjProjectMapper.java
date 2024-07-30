@@ -6,6 +6,7 @@ import com.hand.hls.csh.dto.CshTransaction;
 import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
+import com.hand.hls.prj.dto.HlsCusPrjProjectAttachment;
 import com.hand.hls.prj.dto.HlsCusPrjProjectBp;
 import org.apache.ibatis.annotations.Param;
 import uncertain.composite.CompositeMap;
@@ -286,4 +287,9 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     List<Map> prjProjectItemListQuery(Map prjRpModifyMap);
 
     String selectContractByOrderNo(@Param("orderNo") String orderNo);
+
+    List<HlsCusPrjProjectAttachment> prjProjectAttachExQuery(HlsCusPrjProject hlsCusPrjProject);
+    List<HlsCusPrjProjectAttachment> prjProjectAttachCOQuery(HlsCusPrjProject hlsCusPrjProject);
+    List<HlsCusPrjProjectAttachment> prjProjectAttachMoQuery(HlsCusPrjProject hlsCusPrjProject);
+
 }

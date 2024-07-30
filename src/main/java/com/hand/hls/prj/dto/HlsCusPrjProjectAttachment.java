@@ -116,6 +116,10 @@ public class HlsCusPrjProjectAttachment extends BaseDTO {
     @Transient
     private String fileNumber;
     @Transient
+    private String fileNum;
+    @Transient
+    private Date creationDate;
+    @Transient
     private String attachmentId;
     @Transient
     private Long attachmentIdList;
@@ -332,6 +336,24 @@ public class HlsCusPrjProjectAttachment extends BaseDTO {
 
     @Transient
     private String[] fileIds;
+
+    public String getFileNum() {
+        return fileNum;
+    }
+
+    public void setFileNum(String fileNum) {
+        this.fileNum = fileNum;
+    }
+
+    @Override
+    public Date getCreationDate() {
+        return creationDate;
+    }
+
+    @Override
+    public void setCreationDate(Date creationDate) {
+        this.creationDate = creationDate;
+    }
 
     public Date getUploadDate() {
         return uploadDate;

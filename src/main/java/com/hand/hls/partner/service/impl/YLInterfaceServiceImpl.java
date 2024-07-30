@@ -588,12 +588,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 }
                 if (preRiskAuditData!=null){
                     //将业务数据与风险数据进行校验
-                    Boolean flag = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
+                    String message = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
                     //如果校验不通过直接返回
-                    if (flag){
+                    if (!message.isEmpty()){
                         //            设置返回状态
                         jsonObject1.put("code","400");
-                        jsonObject1.put("message","业务数据有风控数据不一致");
+                        jsonObject1.put("message","业务数据与风控数据不一致："+message);
                         return jsonObject1.toJSONString();
                     }
                 }
@@ -659,12 +659,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     }
                     if (preRiskAuditData!=null){
                         //将业务数据与风险数据进行校验
-                        Boolean flag = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
+                        String message = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
                         //如果校验不通过直接返回
-                        if (flag){
+                        if (!message.isEmpty()){
                             //            设置返回状态
                             jsonObject1.put("code","400");
-                            jsonObject1.put("message","业务数据有风控数据不一致");
+                            jsonObject1.put("message","业务数据与风控数据不一致:"+message);
                             return jsonObject1.toJSONString();
                         }
                     }
@@ -693,7 +693,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
                     if (preRiskAuditData!=null){
 
-                        hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount())/100);
+                        hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount()));
 
                         //进件信息
                         hlsCusPrjProject.setDivision(preRiskAuditData.getProline());
@@ -746,6 +746,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                             hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
                         }
                         prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
+                        //计算后再次比对月还款额
+                        List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
+                        if (hlsCusPrjQuotations.size()>0){
+                            prjQuotation = hlsCusPrjQuotations.get(0);
+                            //将业务数据与风险数据进行校验
+                            String message = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
+                            //如果校验不通过直接返回
+                            if (!message.isEmpty()){
+                                 //设置返回状态
+                                 jsonObject1.put("code","400");
+                                 jsonObject1.put("message","业务数据与风控数据不一致:"+message);
+                                 return jsonObject1.toJSONString();
+                            }
+                        }
                         Example example = new Example(HlsCusPrjProjectLeaseItem.class);
                         example.createCriteria().andEqualTo("projectLeaseItemId",hlsCusPrjProjectLeaseItem.getProjectLeaseItemId());
                         hlsCusPrjProjectLeaseItemMapper.updateByExample(hlsCusPrjProjectLeaseItem,example);
@@ -810,31 +824,31 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         return jsonObject1.toJSONString();
     }
 
-    private Boolean checkData(SaleInfo saleInfo, CarInfo carInfo, FinanceInfo financeInfo, PreRiskAuditData preRiskAuditData) {
-        Boolean flag = false;
+    private String checkData(SaleInfo saleInfo, CarInfo carInfo, FinanceInfo financeInfo, PreRiskAuditData preRiskAuditData) {
+        StringBuilder message=new StringBuilder();
         //经销商名称
         /*if (!saleInfo.getSalesCityName().equals(preRiskAuditData.getDealername())){
             flag = true;
         }*/
         //车辆品牌
         if (!carInfo.getBrandName().equals(preRiskAuditData.getCarbrand2())){
-            flag = true;
+            message.append("车辆品牌、");
         }
         //车辆型号
         if (!carInfo.getModelName().equals(preRiskAuditData.getCartype())){
-            flag = true;
+            message.append("车辆型号、");
         }
         //车系
         if (!carInfo.getSeriesName().equals(preRiskAuditData.getChexi())){
-            flag = true;
+            message.append("车系、");
         }
         //车辆颜色
         if (!carInfo.getColor().equals(preRiskAuditData.getCarcolor())){
-            flag = true;
+            message.append("车辆颜色、");
         }
         //车辆出厂日期
         if (!carInfo.getCarProductionDate().equals(preRiskAuditData.getCardateofproduction())){
-            flag = true;
+            message.append("车辆出厂日期、");
         }
         //融资方案相关信息
         //月付租金
@@ -844,26 +858,26 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
         }
         if (monthPayment!=yfzj){
-            flag = true;
+            message.append("月付租金、");
         }
         //利率
         if (!financeInfo.getRate().equals(preRiskAuditData.getNhll())){
-            flag = true;
+            message.append("利率、");
         }
-        //月付租金
+        //首付款
         double firstPayment = Double.parseDouble(financeInfo.getFirstPayment())/100;
         double sfje = 0D;
         if(StringUtils.isNotEmpty(preRiskAuditData.getSfje()) && preRiskAuditData.getSfje() != null){
             sfje = Double.parseDouble(preRiskAuditData.getSfje());
         }
         if (firstPayment!=sfje){
-            flag = true;
+            message.append("首付款、");
         }
         //车辆指导价
         double carGuidePrice = Double.parseDouble(financeInfo.getCarGuidePrice())/100;
         double cfpp = Double.parseDouble(preRiskAuditData.getCfpp());
         if (carGuidePrice!=cfpp){
-            flag = true;
+            message.append("车辆指导价、");
         }
         //车辆售价
         double carSalePrice = Double.parseDouble(financeInfo.getCarSalePrice())/100;
@@ -872,19 +886,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
         }
         if (carSalePrice!=clxsjg){
-            flag = true;
+            message.append("车辆售价、");
         }
         //申请融资额
         double applyLoanAmount = Double.parseDouble(financeInfo.getApplyLoanAmount())/100;
         double financingamount = Double.parseDouble(preRiskAuditData.getFinancingamount());
         if (applyLoanAmount!=financingamount){
-            flag = true;
+            message.append("申请融资额、");
         }
         //期数
         if (!financeInfo.getTermCount().equals(preRiskAuditData.getShenqingqixain())){
-            flag = true;
+            message.append("期数");
         }
-        return flag;
+        return message.toString();
     }
 
     private PrjProjectLeaseItemSales partSaveLeaseItemSales(PrjProjectLeaseItemSales prjProjectLeaseItemSales, PreRiskAuditData preRiskAuditData) {
@@ -950,6 +964,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsCusPrjQuotation updateQuotationByPreRiskAuditData(HlsCusPrjQuotation prjQuotation, PreRiskAuditData preRiskAuditData) {
         //首付比例
         prjQuotation.setDownPaymentRatio(Double.valueOf(preRiskAuditData.getPaymentratio()));
+        //GPS费用
+        if(StringUtils.isNotEmpty(preRiskAuditData.getGpsfy()) && preRiskAuditData.getGpsfy() != null){
+            prjQuotation.setGpsAmount(Double.valueOf(preRiskAuditData.getGpsfy()));
+        }
         return prjQuotation;
     }
 
@@ -1650,6 +1668,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     private HlsCusPrjQuotation setQuotationByProject(HlsCusPrjProject hlsCusPrjProject, FinanceInfo financeInfo) {
         HlsCusPrjQuotation prjQuotation = null;
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         if (hlsCusPrjProject.getProjectId()!=null){
             List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
             if (hlsCusPrjQuotations.size()>0){
@@ -1691,6 +1710,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     prjQuotation.setDownPayment(Double.parseDouble(financeInfo.getFirstPayment())/100);
                     //剩余车辆价款 (分)
                     prjQuotation.setSurplusAmount(Double.parseDouble(financeInfo.getCarRestPrice())/100);
+                    //融资金额
+                    prjQuotation.setFinanceAmount(Double.valueOf(financeInfo.getApplyLoanAmount())/100);
+                    //币种
+                    prjQuotation.setCurrency("CNY");
+                    //起息日期
+                    try {
+                        Date startRentDate = simpleDateFormat.parse(financeInfo.getStartRentDate());
+                        prjQuotation.setLeaseStartDate(startRentDate);
+                    }catch (ParseException e) {
+                        e.printStackTrace();
+                    }
                 }
             }else{
                 //期次
@@ -1703,6 +1733,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 prjQuotation.setDownPayment(Double.parseDouble(financeInfo.getFirstPayment())/100);
                 //剩余车辆价款 (分)
                 prjQuotation.setSurplusAmount(Double.parseDouble(financeInfo.getCarRestPrice())/100);
+                //融资金额
+                prjQuotation.setFinanceAmount(Double.valueOf(financeInfo.getApplyLoanAmount())/100);
+                //币种
+                prjQuotation.setCurrency("CNY");
+                //起息日期
+                try {
+                    Date startRentDate = simpleDateFormat.parse(financeInfo.getStartRentDate());
+                    prjQuotation.setLeaseStartDate(startRentDate);
+                }catch (ParseException e) {
+                    e.printStackTrace();
+                }
             }
         }
         return prjQuotation;
