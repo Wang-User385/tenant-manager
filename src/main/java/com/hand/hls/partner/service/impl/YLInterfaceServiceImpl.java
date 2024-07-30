@@ -433,7 +433,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     @Transactional
-    public String claimsSubrogation(String decryptedStr){
+    public String claimsSubrogation(String decryptedStr) throws HlsCusException{
         ClaimsSubrogationDTO claimsSubrogationDTO = JSONObject.parseObject(decryptedStr, ClaimsSubrogationDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
@@ -447,21 +447,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (ObjectUtils.isEmpty(conContractCashflow)){
             jsonObject1.put("code","400");
             jsonObject1.put("message","代偿数据不存在");
-            return jsonObject1.toJSONString();
+            throw new HlsCusException(jsonObject1.toJSONString());
        }
 
         //将代偿数据入库
         conContractCashflow.setPlanType("COMP");
         conContractCashflow.setDueCompAmount(Double.valueOf(claimsSubrogationDTO.getSubstituteAmount())/100);
         conContractCashflowMapper.updateByPrimaryKeySelective(conContractCashflow);
-//            将数据保存入库
-        /*for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
-            if (hlsCusCshTransaction.getTermNo().equals(claimsSubrogationDTO.getTermNo())){
-                hlsCusCshTransaction.setRepayAmount(claimsSubrogationDTO.getSubstituteAmount());
-                hlsCusCshTransaction.setPaymentMethod("COMP");
-                hlsCusCshTransactionMapper.insertSelective(hlsCusCshTransaction);
-            }
-        }*/
 
 
         //            设置返回状态

@@ -21,7 +21,7 @@ public interface YLInterfaceService {
 
     String compensatoryTrialCalculation(String decryptedStr);
 
-    String claimsSubrogation(String decryptedStr);
+    String claimsSubrogation(String decryptedStr) throws HlsCusException;
 
     String advancesSettleTrialCalculation(String decryptedStr);
 
