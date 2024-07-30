@@ -188,6 +188,13 @@ public class HlsBpMasterServiceImpl extends BaseServiceImpl<HlsBpMaster> impleme
         }
         return true;
     }
+    @Override
+    public Boolean validRegCertNumber(IRequest iRequest, Long bpId, String regNumber) {
+        Example example = new Example(HlsCusBpMaster.class);
+        example.createCriteria().andEqualTo("registerCertNum", regNumber);
+        List<HlsCusBpMaster> hlsCusBpMaster = hlsBpMasterMapper.selectByExample(example);
+        return hlsCusBpMaster.size() == 0;
+    }
 
     @Override
     public Boolean validRegNumber1(IRequest var1, Long bpId, String regNumber) {

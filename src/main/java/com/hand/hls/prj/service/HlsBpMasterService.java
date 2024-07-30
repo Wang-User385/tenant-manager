@@ -98,4 +98,5 @@ public interface HlsBpMasterService extends IBaseService<HlsBpMaster> {
     List<HlsBpMaster> bpManufacturerPartnerLovQuery();
 
 
+    Boolean validRegCertNumber(IRequest requestCtx, Long bpId, String regNumber);
 }
