@@ -288,8 +288,8 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
 
     String selectContractByOrderNo(@Param("orderNo") String orderNo);
 
-    List<HlsCusPrjProjectAttachment> prjProjectAttachExQuery(HlsCusPrjProject hlsCusPrjProject);
-    List<HlsCusPrjProjectAttachment> prjProjectAttachCOQuery(HlsCusPrjProject hlsCusPrjProject);
-    List<HlsCusPrjProjectAttachment> prjProjectAttachMoQuery(HlsCusPrjProject hlsCusPrjProject);
+    List<Map>  prjProjectAttachExQuery(HlsCusPrjProject hlsCusPrjProject);
+    List<Map>  prjProjectAttachCoQuery(HlsCusPrjProject hlsCusPrjProject);
+    List<Map>  prjProjectAttachMoQuery(HlsCusPrjProject hlsCusPrjProject);
 
 }

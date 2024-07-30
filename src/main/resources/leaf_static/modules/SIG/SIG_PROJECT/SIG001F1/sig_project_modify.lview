@@ -426,6 +426,18 @@
             }
             else if (name == 'bill_information' && !record.isNew) {
                 return '<a style="color: red;" href="javascript:sig001_open_invoice_information(\'' + record.ds.id + '\',\'' + record.id + '\')">' + config_record.get('prompt') + '</a>';
+            } else if (name == 'file_names' && record.isNew) {
+                return null;
+            } else if (name == 'file_names' && !record.isNew) {
+
+                var table_name = record.get("project_attachment_category");
+                var th_back_flag = record.get("th_back_flag");
+                var document_name  = record.get("document_name");
+                if (record.get('file_num') > 1) {
+                    return '<a href="javascript:PRJ419_open_attach(\'' + record.get('project_attachment_id') + '\',\''+'PRJ_PROJECT_ATTACHMENT' + '\',\''+ document_name +'\',\''+ th_back_flag +'\')">附件' + '(' +record.get("file_num") + ')' + '</a>';
+                } else {
+                    return '<a href="javascript:PRJ419_open_attach(\'' + record.get('project_attachment_id') + '\',\''+'PRJ_PROJECT_ATTACHMENT' + '\',\''+ document_name +'\',\''+ th_back_flag +'\')">附件</a>';
+                }
             }
             return value;
         };
@@ -492,6 +504,47 @@
             });
         }
 
+        function PRJ419_open_attach(project_attachment_id, table_name,document_name,th_back_flag) {
+            debugger;
+            var url;
+            var function_usage = '${/parameter/@function_usage}';
+            var parent_layout_code = '${/parameter/@parent_layout_code}';
+            var submit_hide = '${/parameter/@submit_hide}';
+            var work_flow = '${/parameter/@work_flow}';
+            var node_id = '${/parameter/@node_id}';
+            if (function_usage === 'QUERY'&&('${/parameter/@sign_status}'!='REJECTED'&&'${/parameter/@sign_status}'!='NEW')) {
+                url = '${/request/@context_path}/downloadFile.lview';
+            } else {
+                url = '${/request/@context_path}/uploadFile.lview';
+            }
+            win = new Leaf.Window({
+                id: 'PRJ419_open_attachment_winid',
+                url: url,
+                params: {
+                    header_id: project_attachment_id,
+                    table_name: table_name,
+                    winid: 'PRJ419_open_attachment_winid',
+                    function_usage: function_usage
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                debugger
+                var ds_id;
+                if (currentDivision === 'PHOTOVOLTAIC_DEVICES' || manufacturerCode == 'C000004453') {
+                    ds_id = "${/parameter/@layout_code}_C_TH_PRJ_BASIC_INFO_prj_project_attachment_ds";
+                } else {
+                    ds_id = "${/parameter/@layout_code}_C_PRJ_BASIC_INFO_prj_project_attachment_ds";
+                }
+                $(ds_id).query();
+                if(parent_layout_code=='PRJ329'){
+                    record.getField('document_name').setReadOnly(false);
+                    record.getField('description').setReadOnly(false);
+                }
+            });
+        }
         //报价
         function sig001_open_price(dsId,record_id, quotationId) {
             if ($(dsId).validate()) {

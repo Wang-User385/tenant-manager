@@ -2155,7 +2155,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         List<File> files = imageSyncDTO.getFiles();
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(orderNo);
         Long projectId = hlsCusPrjProject.getProjectId();
-
+        Boolean signFlag = false;
         for(File file : files){
             //step1 影像文件是否已上传
             String fileId = file.getFileId();
@@ -2206,6 +2206,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     || "NOTICEx0".equals(fileType) || "OWNERSHIP_STATEMENT".equals(fileType) || "CONFIRM_PAYMENT_DELEGATION".equals(fileType) || "AUTHORIZATIONx0".equals(fileType)
                     || "MORTGAGE".equals(fileType) || "LICENSE_FRONT_IMGS".equals(fileType) || "DRIVEN_LICENSE_SUB".equals(fileType) || "REGISTRATION_CERTIFICATE".equals(fileType)
                     || "PERSON_AND_CAR".equals(fileType) || "LICENSE_AND_PICK_UP_IMG".equals(fileType) || "VEHICLE_CERTIFICATE".equals(fileType) || "INSURANCE_POLICYx0".equals(fileType)){
+                //文件类型是LEASE，附件就是 融资租赁合同
+                if("LEASE".equals(fileType)){
+                    signFlag = true;
+                }
                 //放款前
                 String investmentStatus = hlsCusPrjProject.getInvestmentStatus();
                 if(StringUtils.isNotEmpty(investmentStatus) && !"NEW".equals(investmentStatus) && !"REJECTED".equals(investmentStatus)){
@@ -2246,6 +2250,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 //结清后
             }
 
+        }
+        if(signFlag){
+            //修改签约状态
+            hlsCusPrjProject.setSignStatus("SIGN");
+            prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         }
 
         returnJson.put("success",true);

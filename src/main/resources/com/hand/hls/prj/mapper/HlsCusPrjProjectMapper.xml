@@ -9858,16 +9858,7 @@ WHERE
         = pp.partners_contract_status
         ) partners_contract_status_n,
         pp.sign_status,
-        (
-        SELECT
-        v.meaning
-        FROM
-        sys_code_value_b v,
-        sys_code_b b
-        WHERE
-        b.CODE = 'SIGN_STATUS'
-        AND v.code_id = b.code_id
-        AND v.value = nvl( pp.SIGN_STATUS, 'NEW' )) sign_status_n,
+        decode(pp.sign_status,'NEW','未签约','SIGN','已签约','未签约') sign_status_n,
         pp.order_status,
         decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n,
         pp.lease_item_type,
@@ -10774,6 +10765,8 @@ WHERE
         <result column="unit_id_n" property="unit_id_n"/>
         <result column="lease_item_type_n" property="lease_item_type_n"/>
         <result column="lease_item_type" property="lease_item_type"/>
+        <result column="phone" property="phone"/>
+        <result column="color_c" property="color_c"/>
     </resultMap>
     <select id="prjRpLModifyQuery" resultMap="PrjRpLModifyQueryMap">
         SELECT pp.project_id,
@@ -10790,8 +10783,6 @@ WHERE
                pp.project_status,
                pp.chance_id,
                to_date(to_char(pp.creation_date,'yyyy-mm-dd'),'yyyy-mm-dd') create_date,
-               <!--pp.employee_id,-->
-        <!--(select hbme.employee_id from HLS_BP_MASTER_EMPLOYEE hbme where hbme.bp_id=pp.manufacturer_id and hbme.primary_flag='Y' and hbme.enabled_flag='Y') employee_id,-->
         decode(
         (
         SELECT
@@ -10864,18 +10855,6 @@ WHERE
                (SELECT t1.description
                 FROM hls_lease_channel t1
                 WHERE t1.lease_channel = pp.lease_channel) lease_channel_n,
-               <!--(SELECT fe.NAME
-                FROM fnd_employee fe
-                WHERE fe.employee_id = pp.employee_id) employee_id_n,
-               (SELECT fe.mobile
-                FROM fnd_employee fe
-                WHERE fe.employee_id = pp.employee_id) mobile,
-        (SELECT fe.NAME
-        FROM fnd_employee fe
-        WHERE fe.employee_id = (select hbme.employee_id from HLS_BP_MASTER_EMPLOYEE hbme where hbme.bp_id=pp.manufacturer_id and hbme.primary_flag='Y' and hbme.enabled_flag='Y')) employee_id_n,
-        (SELECT fe.mobile
-        FROM fnd_employee fe
-        WHERE fe.employee_id = (select hbme.employee_id from HLS_BP_MASTER_EMPLOYEE hbme where hbme.bp_id=pp.manufacturer_id and hbme.primary_flag='Y' and hbme.enabled_flag='Y')) mobile,-->
         (SELECT fe.NAME
         FROM fnd_employee fe
         WHERE fe.employee_id = decode((select fe.COMPANY_ID from FND_EMPLOYEE fe,sys_user su where su.user_id=pp.CREATED_BY and su.DESCRIPTION=fe.name),'248',(select fe.employee_id from FND_EMPLOYEE fe,sys_user su where su.user_id=pp.CREATED_BY and su.DESCRIPTION=fe.name),(select hbme.employee_id from HLS_BP_MASTER_EMPLOYEE hbme where hbme.bp_id=pp.manufacturer_id and hbme.primary_flag='Y' and hbme.enabled_flag='Y'))) employee_id_n,
@@ -10998,7 +10977,24 @@ WHERE
                decode(pp.pre_status,'NEW','新建','APPROVING','审批中','APPROVED','审批通过','CLOSED','关闭') pre_status_n,
                pp.order_status,
                decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n,
-               pp.driver_and_applicant
+               pp.driver_and_applicant,
+               hbm.id_card_no,
+               hbm.phone,
+               pp.finance_amount,
+               (select pq.lease_times from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                  and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                  and rownum =1) lease_times,
+               (select pq.down_payment from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                  and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                  and rownum =1) down_payment,
+               (select li.color_c from prj_project_lease_item li where li.project_id=pp.project_id and rownum =1) color_c,
+               (SELECT v.meaning
+                FROM sys_code_value_b v, sys_code_b b
+                WHERE b.CODE = 'PRODUCT.LEASE_ITEM_TYPE'
+                  AND v.code_id = b.code_id
+                  AND v. VALUE = pp.lease_item_type) lease_item_type_n
         FROM prj_project pp
                  LEFT JOIN hls_bp_master hbm
                            ON hbm.bp_id = pp.tenant_id
@@ -11730,7 +11726,6 @@ WHERE
         <result column="project_attachment_category" property="project_attachment_category"/>
         <result column="attachment_id" property="attachment_id"/>
         <result column="file_name" property="file_name"/>
-        <result column="PROJECT_ATTACHMENT_CATEGORY" property="projectAttachmentCategory" jdbcType="VARCHAR"/>
         <result column="source_id" property="source_id"/>
         <result column="source_id_n" property="source_id_n"/>
         <result column="source_rule_id" property="source_rule_id"/>
@@ -11739,6 +11734,8 @@ WHERE
         <result column="upload_person_id" property="upload_person_id"/>
         <result column="file_num" property="file_num"/>
         <result column="creation_date" property="creation_date"/>
+        <result column="attachment_sum" property="attachment_sum"/>
+        <result column="attachment_id_n" property="attachment_id_n"/>
     </resultMap>
 
     <select id="prjProjectAttachQuery" resultMap="PrjProjectAttachQueryMap">
@@ -13188,48 +13185,68 @@ WHERE
     <!--投放审查 审核材料-->
     <select id="prjProjectAttachExQuery" resultMap="PrjProjectAttachQueryMap">
         Select ppa.project_id,
-        ppa.project_attachment_id,
-        ppa.document_name,
-        ppa.description,
-        ppa.source_id,
-        ppa.upload_person_id,
-        ppa.source_rule_id,
-        ppa.attach_code,
-        ppa.th_back_flag,
-        (Select t.templet_name
-        From hls_doc_file_templet t
-        Where t.templet_id = ppa.source_id) source_id_n,
-        ppa.project_attachment_category,
-        (Select to_char(wm_concat(faa.file_name)) modelName
-        From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
-        Where faam.attachment_id = faa.attachment_id
-        And faam.table_pk_value = ppa.project_attachment_id
-        And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) file_names,
-        (
-        SELECT
-        to_char(
-        wm_concat ( faa.attachment_id )) modelName
-        FROM
-        fnd_atm_attachment faa,
-        fnd_atm_attachment_multi faam
-        WHERE
-        faam.attachment_id = faa.attachment_id
-        AND faam.table_pk_value = ppa.project_attachment_id
-        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
-        AND ROWNUM &lt;= 10
-        )  file_attachment_id,
-        (
-        SELECT
-        count(1)
-        FROM
-        fnd_atm_attachment faa,
-        fnd_atm_attachment_multi faam
-        WHERE
-        faam.attachment_id = faa.attachment_id
-        AND faam.table_pk_value = ppa.project_attachment_id
-        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
-        )  file_num,
-        ppa.creation_date
+                ppa.project_attachment_id,
+                ppa.document_name,
+                ppa.description,
+                ppa.source_id,
+                ppa.upload_person_id,
+                ppa.source_rule_id,
+                ppa.attach_code,
+                ppa.th_back_flag,
+                (Select t.templet_name
+                From hls_doc_file_templet t
+                Where t.templet_id = ppa.source_id) source_id_n,
+                ppa.project_attachment_category,
+                (Select to_char(wm_concat(faa.file_name)) modelName
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                And faam.table_pk_value = ppa.project_attachment_id
+                And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) file_names,
+                (
+                SELECT
+                to_char(
+                wm_concat ( faa.attachment_id )) modelName
+                FROM
+                fnd_atm_attachment faa,
+                fnd_atm_attachment_multi faam
+                WHERE
+                faam.attachment_id = faa.attachment_id
+                AND faam.table_pk_value = ppa.project_attachment_id
+                AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                AND ROWNUM &lt;= 10
+                )  file_attachment_id,
+                (
+                SELECT
+                count(1)
+                FROM
+                fnd_atm_attachment faa,
+                fnd_atm_attachment_multi faam
+                WHERE
+                faam.attachment_id = faa.attachment_id
+                AND faam.table_pk_value = ppa.project_attachment_id
+                AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                )  file_num,
+                ppa.creation_date,
+               (select wm_concat(fat.file_name)
+                from fnd_atm_attachment fat, fnd_atm_attachment_multi faam
+                where fat.attachment_id = faam.attachment_id
+                  and faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id) file_name,
+               (select nvl(count(faa.attachment_id), 0)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_sum,
+               (select max(faa.attachment_id)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_id,
+               (select wm_concat(faa.attachment_id)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_id_n
         From prj_project_attachment ppa
         Where ppa.project_id = #{projectId}
           and ppa.project_attachment_category = 'EXAMINE'
@@ -13237,48 +13254,68 @@ WHERE
     <!--投放审查合同、协议文件-->
     <select id="prjProjectAttachCoQuery" resultMap="PrjProjectAttachQueryMap">
         Select ppa.project_id,
-        ppa.project_attachment_id,
-        ppa.document_name,
-        ppa.description,
-        ppa.source_id,
-        ppa.upload_person_id,
-        ppa.source_rule_id,
-        ppa.attach_code,
-        ppa.th_back_flag,
-        (Select t.templet_name
-        From hls_doc_file_templet t
-        Where t.templet_id = ppa.source_id) source_id_n,
-        ppa.project_attachment_category,
-        (Select to_char(wm_concat(faa.file_name)) modelName
-        From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
-        Where faam.attachment_id = faa.attachment_id
-        And faam.table_pk_value = ppa.project_attachment_id
-        And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) file_names,
-        (
-        SELECT
-        to_char(
-        wm_concat ( faa.attachment_id )) modelName
-        FROM
-        fnd_atm_attachment faa,
-        fnd_atm_attachment_multi faam
-        WHERE
-        faam.attachment_id = faa.attachment_id
-        AND faam.table_pk_value = ppa.project_attachment_id
-        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
-        AND ROWNUM &lt;= 10
-        )  file_attachment_id,
-        (
-        SELECT
-        count(1)
-        FROM
-        fnd_atm_attachment faa,
-        fnd_atm_attachment_multi faam
-        WHERE
-        faam.attachment_id = faa.attachment_id
-        AND faam.table_pk_value = ppa.project_attachment_id
-        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
-        )  file_num,
-        ppa.creation_date
+                ppa.project_attachment_id,
+                ppa.document_name,
+                ppa.description,
+                ppa.source_id,
+                ppa.upload_person_id,
+                ppa.source_rule_id,
+                ppa.attach_code,
+                ppa.th_back_flag,
+                (Select t.templet_name
+                From hls_doc_file_templet t
+                Where t.templet_id = ppa.source_id) source_id_n,
+                ppa.project_attachment_category,
+                (Select to_char(wm_concat(faa.file_name)) modelName
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                And faam.table_pk_value = ppa.project_attachment_id
+                And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) file_names,
+                (
+                SELECT
+                to_char(
+                wm_concat ( faa.attachment_id )) modelName
+                FROM
+                fnd_atm_attachment faa,
+                fnd_atm_attachment_multi faam
+                WHERE
+                faam.attachment_id = faa.attachment_id
+                AND faam.table_pk_value = ppa.project_attachment_id
+                AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                AND ROWNUM &lt;= 10
+                )  file_attachment_id,
+                (
+                SELECT
+                count(1)
+                FROM
+                fnd_atm_attachment faa,
+                fnd_atm_attachment_multi faam
+                WHERE
+                faam.attachment_id = faa.attachment_id
+                AND faam.table_pk_value = ppa.project_attachment_id
+                AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                )  file_num,
+                ppa.creation_date,
+               (select wm_concat(fat.file_name)
+                from fnd_atm_attachment fat, fnd_atm_attachment_multi faam
+                where fat.attachment_id = faam.attachment_id
+                  and faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id) file_name,
+               (select nvl(count(faa.attachment_id), 0)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_sum,
+               (select max(faa.attachment_id)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_id,
+               (select wm_concat(faa.attachment_id)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_id_n
         From prj_project_attachment ppa
         Where ppa.project_id = #{projectId}
           and ppa.project_attachment_category = 'CONTRACT'
@@ -13286,48 +13323,68 @@ WHERE
     <!--投放审查 抵质押材料-->
     <select id="prjProjectAttachMoQuery" resultMap="PrjProjectAttachQueryMap">
         Select ppa.project_id,
-        ppa.project_attachment_id,
-        ppa.document_name,
-        ppa.description,
-        ppa.source_id,
-        ppa.upload_person_id,
-        ppa.source_rule_id,
-        ppa.attach_code,
-        ppa.th_back_flag,
-        (Select t.templet_name
-        From hls_doc_file_templet t
-        Where t.templet_id = ppa.source_id) source_id_n,
-        ppa.project_attachment_category,
-        (Select to_char(wm_concat(faa.file_name)) modelName
-        From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
-        Where faam.attachment_id = faa.attachment_id
-        And faam.table_pk_value = ppa.project_attachment_id
-        And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) file_names,
-        (
-        SELECT
-        to_char(
-        wm_concat ( faa.attachment_id )) modelName
-        FROM
-        fnd_atm_attachment faa,
-        fnd_atm_attachment_multi faam
-        WHERE
-        faam.attachment_id = faa.attachment_id
-        AND faam.table_pk_value = ppa.project_attachment_id
-        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
-        AND ROWNUM &lt;= 10
-        )  file_attachment_id,
-        (
-        SELECT
-        count(1)
-        FROM
-        fnd_atm_attachment faa,
-        fnd_atm_attachment_multi faam
-        WHERE
-        faam.attachment_id = faa.attachment_id
-        AND faam.table_pk_value = ppa.project_attachment_id
-        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
-        )  file_num,
-        ppa.creation_date
+               ppa.project_attachment_id,
+               ppa.document_name,
+               ppa.description,
+               ppa.source_id,
+               ppa.upload_person_id,
+               ppa.source_rule_id,
+               ppa.attach_code,
+               ppa.th_back_flag,
+               (Select t.templet_name
+                From hls_doc_file_templet t
+                Where t.templet_id = ppa.source_id) source_id_n,
+               ppa.project_attachment_category,
+               (Select to_char(wm_concat(faa.file_name)) modelName
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) file_names,
+               (
+                   SELECT
+                       to_char(
+                               wm_concat ( faa.attachment_id )) modelName
+                   FROM
+                       fnd_atm_attachment faa,
+                       fnd_atm_attachment_multi faam
+                   WHERE
+                       faam.attachment_id = faa.attachment_id
+                     AND faam.table_pk_value = ppa.project_attachment_id
+                     AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                     AND ROWNUM &lt;= 10
+               )  file_attachment_id,
+               (
+                   SELECT
+                       count(1)
+                   FROM
+                       fnd_atm_attachment faa,
+                       fnd_atm_attachment_multi faam
+                   WHERE
+                       faam.attachment_id = faa.attachment_id
+                     AND faam.table_pk_value = ppa.project_attachment_id
+                     AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+               )  file_num,
+               ppa.creation_date,
+               (select wm_concat(fat.file_name)
+                from fnd_atm_attachment fat, fnd_atm_attachment_multi faam
+                where fat.attachment_id = faam.attachment_id
+                  and faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id) file_name,
+               (select nvl(count(faa.attachment_id), 0)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_sum,
+               (select max(faa.attachment_id)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_id,
+               (select wm_concat(faa.attachment_id)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_id_n
         From prj_project_attachment ppa
         Where ppa.project_id = #{projectId}
           and ppa.project_attachment_category = 'MORTGAGE'
