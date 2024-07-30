@@ -179,7 +179,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         try {
             if("长期".equals(placeOrderDTO.getIdexp())){
-                idExpirationDate = simpleDateFormat.parse(Long.parseLong(placeOrderDTO.getIdissue().substring(0,3)) + 100 + placeOrderDTO.getIdissue().substring(4,18));
+                idExpirationDate = simpleDateFormat.parse(Long.parseLong(placeOrderDTO.getIdissue().substring(0,4)) + 100 + placeOrderDTO.getIdissue().substring(4,18));
             }else{
                 idExpirationDate = simpleDateFormat.parse(placeOrderDTO.getIdexp());
             }

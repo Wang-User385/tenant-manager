@@ -40,8 +40,6 @@ public class YLInterfaceController extends BaseController {
         HlsWsRequests hlsWsRequests = null;
         try {
             hlsWsRequests = this.insertLogs("GT-YL-B001-下单",jsonObject,request);
-        } catch(HlsCusException e){
-            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         } catch (Exception e) {
             e.printStackTrace();
             JSONObject resJson = new JSONObject();
@@ -54,6 +52,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.placeOrder(hlsWsRequests.getRequestJson(),iRequest);
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";
