@@ -224,6 +224,21 @@ public class HlsBpMasterController extends BaseController {
         }
     }
 
+    @RequestMapping("/hls/bp/master/validRegCertNumber")
+    public ResponseData validRegCertNumber(HttpServletRequest request,
+                                       @RequestParam Long bpId,
+                                       @RequestParam String regNumber) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        Boolean flag = hlsBpMasterService.validRegCertNumber(requestCtx, bpId, regNumber);
+        if (flag) {
+            return new ResponseData(true);
+        } else {
+            return new ResponseData(false);
+        }
+    }
+
+
     @RequestMapping({"/hls/bp/master/validRegNumber1"})
     public ResponseData validRegNumber1(HttpServletRequest request, @RequestParam Long bpId, @RequestParam String regNumber) {
         IRequest requestCtx = this.createRequestContext(request);

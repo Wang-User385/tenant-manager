@@ -666,7 +666,8 @@
             var swift = basicRec.get('swift');
             var overseas_customer_name = basicRec.get('overseas_customer_name');
             var business_scope = basicRec.get('business_scope');
-
+            var bp_id_check_num = basicRec.get('bp_id');
+            var reg_number_02 = basicRec.get('register_cert_num');
             if ('${/parameter/@bp_class}' == 'ORG') {
                 //登记注册号码校验
                 var registration_num_type = basicRec.get('registration_num_type');
@@ -681,6 +682,19 @@
                         return false;
                     }
                 }
+                jQuery.ajax({
+                    type: 'GET',
+                    url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id_check_num + "&regNumber=" + reg_number_02,
+                    async: false,
+                    success: function (args) {
+                        // alert(args);
+                        if (args.success) {
+                            is_regno_valid = true;
+                        } else {
+                            is_regno_valid = false;
+                        }
+                    }
+                });
                 if (!is_regno_valid) {
                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                     //if (ds_id == ds.id) {
@@ -806,6 +820,13 @@
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             debugger;
+            var hls_role_ds_id_l = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master_role');
+
+
+
+
+
+
             var check_flag = true;
             // var ds_id = '${/parameter/@layout_code}_F_BASIC_hls_bp_master_ds';
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
@@ -985,14 +1006,30 @@
                 if (registration_num_type == '07') {
                     if (!CheckSocialCreditCode(register_cert_num)) {
                         if (ds_id == ds.id) {
-                            Leaf.showMessage('提示', '统一社会信用代码有误，请重新输入！');
+                            Leaf.showErrorMessage('错误', '统一社会信用代码有误，请重新输入！');
                         }
                         return false;
                     }
                 }
+                debugger;
+                var bp_id_check_num = basicRec.get('bp_id');
+                var reg_number_02 = basicRec.get('register_cert_num');
+                jQuery.ajax({
+                    type: 'GET',
+                    url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id_check_num + "&regNumber=" + reg_number_02,
+                    async: false,
+                    success: function (args) {
+                        // alert(args);
+                        if (args.success) {
+                            is_regno_valid = true;
+                        } else {
+                            is_regno_valid = false;
+                        }
+                    }
+                });
                 if (!is_regno_valid) {
                     if (ds_id == ds.id) {
-                        Leaf.showMessage('${l:PROMPT_MESSAGE}', "登记注册号码重复！");
+                        Leaf.showMessage('提示', "登记注册号码重复！");
                     }
                     return false;
                 }
