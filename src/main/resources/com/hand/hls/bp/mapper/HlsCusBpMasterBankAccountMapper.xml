@@ -408,4 +408,68 @@
             hls_bp_master_bank_account ba
         where ba.bp_id = #{bpId}
     </select>
+
+    <resultMap id="BankAccountInfoMap" type="map" >
+        <result column="bp_id" property="bp_id"/>
+        <result column="bank_account_num" property="bank_account_num"/>
+        <result column="bank_account_name" property="bank_account_name"/>
+        <result column="bank_full_name" property="bank_full_name" />
+        <result column="bank_branch_name" property="bank_branch_name" />
+        <result column="bank_account_id" property="bank_account_id" />
+        <result column="bp_name" property="bp_name" />
+        <result column="currency" property="currency" />
+        <result column="country" property="country" />
+        <result column="REMARKS" property="REMARKS" />
+        <result column="province" property="province" />
+        <result column="city" property="city" />
+        <result column="district" property="district" />
+        <result column="debt_bank_id" property="debt_bank_id" />
+        <result column="debt_bank_name" property="debt_bank_name" />
+        <result column="debt_bank_code" property="debt_bank_code" />
+        <result column="debt_flag" property="debt_flag" />
+        <result column="bank_account_type" property="bank_account_type" />
+    </resultMap>
+    <!--进件明细查询收款账户信息-->
+    <select id="queryBankAccountInfo" resultMap="BankAccountInfoMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
+        SELECT ba.bank_account_id,
+               ba.bp_id,
+               ba.bank_account_num,
+               ba.bank_account_name,
+               ba.currency,
+               ba.country,
+               ba.REMARKS,
+               (select fp.description
+                from fnd_province fp
+                where fp.province = ba.province) province,
+               (select fc.description
+                from fnd_city fc
+                where fc.city = ba.city) city,
+               (select fd.description
+                from fnd_district fd
+                where fd.district = ba.district) district,
+               ba.debt_bank_id,
+               (select hdb.BANK_NAME
+                from hls_debt_deduction_bank hdb
+                where hdb.BANK_ID = ba.debt_bank_id) debt_bank_name,
+               (select hdb.BANK_CODE
+                from hls_debt_deduction_bank hdb
+                where hdb.BANK_ID = ba.debt_bank_id) debt_bank_code,
+               ba.debt_flag,
+               ba.bank_account_type,
+               ba.bank_branch_name,
+               ba.bank_full_name,
+               (select bm.bp_name
+                from hls_bp_master bm
+                where bm.bp_id = ba.bp_id) bp_name
+        FROM prj_project pp
+                 left join hls_bp_master_bank_account ba
+                           on ba.bp_id = pp.manufacturer_id
+                 left join hls_product_definition pd
+                           on pd.bp_id = pp.manufacturer_id
+        where pd.payment_bp_type = 'MANUFACTURER'
+          and ba.enabled_flag = 'Y'
+          and pd.enabled_flag = 'Y'
+          and pp.project_Id = #{projectId}
+          and rownum=1
+    </select>
 </mapper>
