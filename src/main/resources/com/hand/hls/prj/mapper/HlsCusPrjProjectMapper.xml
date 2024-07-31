@@ -423,6 +423,8 @@
         <result column="risk_info" property="riskInfo" jdbcType="CLOB"/>
         <result column="bank_account_name" property="bankAccountName" jdbcType="VARCHAR"/>
         <result column="bank_full_name" property="bankFullName" jdbcType="VARCHAR"/>
+        <result column="incept_type" property="inceptType" jdbcType="VARCHAR"/>
+        <result column="incept_type_n" property="inceptTypeN" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="prjHomePageGetAllStatusProjectCountMap" type="java.util.Map">
@@ -9624,24 +9626,22 @@ WHERE
         pp.division,
         ( SELECT t.description FROM hls_division t WHERE t.division = pp.division AND t.enabled_flag = 'Y' ) division_n,
         pp.partners_contract_status,
-        (
-        SELECT
-        sv.MEANING
-        FROM
-        sys_code_value_b sv,
-        sys_code_b b
-        WHERE
-        b.CODE = 'SY_CONTRACT_STATUS'
+        (SELECT sv.MEANING
+        FROM sys_code_value_b sv,
+             sys_code_b b
+        WHERE b.CODE = 'SY_CONTRACT_STATUS'
         AND sv.code_id = b.code_id
-        AND sv.
-        VALUE
-        = pp.partners_contract_status
-        ) partners_contract_status_n,
+        AND sv.VALUE= pp.partners_contract_status) partners_contract_status_n,
         pp.pre_status,
         decode(pp.pre_status,'NEW','新建','APPROVING','审批中','APPROVED','审批通过','CLOSED','关闭') pre_status_n,
         pp.order_status,
         decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n,
-        pp.driver_and_applicant
+        (SELECT sv.MEANING
+        FROM sys_code_value_b sv,
+        sys_code_b b
+        WHERE b.CODE = 'DRIVER_AND_APPLICANT'
+        AND sv.code_id = b.code_id
+        AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant
         FROM
         prj_project pp
         LEFT JOIN hls_bp_master hbm ON pp.TENANT_ID = hbm.bp_id
@@ -10442,7 +10442,12 @@ WHERE
         sys_code_b b
         Where b.CODE = 'INVESTMENT_STATUS'
         and v.code_id = b.code_id
-        And v.value = nvl(pp.investment_status, 'NEW')) investment_status_n
+        And v.value = nvl(pp.investment_status, 'NEW')) investment_status_n,
+        (SELECT v.meaning
+        FROM sys_code_value_b v, sys_code_b b
+        WHERE b.CODE = 'PRODUCT.LEASE_ITEM_TYPE'
+        AND v.code_id = b.code_id
+        AND v. VALUE = pp.lease_item_type) lease_item_type_n
         From prj_project pp
         Left Join hls_bp_master hbm
         On pp.TENANT_ID = hbm.bp_id
@@ -10979,8 +10984,13 @@ WHERE
                decode(pp.pre_status,'NEW','新建','APPROVING','审批中','APPROVED','审批通过','CLOSED','关闭') pre_status_n,
                pp.order_status,
                decode(pp.order_status,'START','开启','INCEPT','起租','CLOSED','关闭') order_status_n,
-               pp.driver_and_applicant,
-               hbm.id_card_no,
+               (SELECT sv.MEANING
+                FROM sys_code_value_b sv,
+                     sys_code_b b
+                WHERE b.CODE = 'DRIVER_AND_APPLICANT'
+                  AND sv.code_id = b.code_id
+                  AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant,
+            hbm.id_card_no,
                hbm.phone,
                pp.finance_amount,
                (select pq.lease_times from prj_quotation pq
@@ -11474,6 +11484,7 @@ WHERE
         <result column="lease_start_date" property="lease_start_date"/>
         <result column="lease_end_date" property="lease_end_date"/>
         <result column="currency" property="currency"/>
+        <result column="incept_type_n" property="incept_type_n"/>
     </resultMap>
 
     <!--项目报告 报价-->
@@ -11610,7 +11621,15 @@ WHERE
                     FND_CURRENCY FC
                 WHERE
                     FC.ENABLED_FLAG = 'Y'
-                  AND FC.CURRENCY_CODE = pq.currency) currency
+                  AND FC.CURRENCY_CODE = pq.currency) currency,
+               (SELECT B2.MEANING
+                FROM SYS_CODE_B B1, SYS_CODE_VALUE_B B2
+                WHERE B1.CODE = 'PRODUCT.INCEPT_TYPE'
+                  AND B1.CODE_ID = B2.CODE_ID
+                  AND B2.VALUE = (select pp.incept_type
+                                    from prj_project pp
+                                    where pp.project_id=pq.source_document_id
+                                      and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT')) incept_type_n
         from prj_quotation pq
                  LEFT JOIN hls_business_type hbt
                            ON pq.business_type = hbt.business_type
@@ -12925,7 +12944,12 @@ WHERE
         '起租',
         'CLOSED',
         '关闭') order_status_n,
-        pp.driver_and_applicant,
+        (SELECT sv.MEANING
+        FROM sys_code_value_b sv,
+        sys_code_b b
+        WHERE b.CODE = 'DRIVER_AND_APPLICANT'
+        AND sv.code_id = b.code_id
+        AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant,
         pp.process_instance_id,
         pp.approved_date,
         pp.lease_item_type,
@@ -13074,7 +13098,12 @@ WHERE
                       '起租',
                       'CLOSED',
                       '关闭') order_status_n,
-               pp.driver_and_applicant,
+               (SELECT sv.MEANING
+                FROM sys_code_value_b sv,
+                     sys_code_b b
+                WHERE b.CODE = 'DRIVER_AND_APPLICANT'
+                  AND sv.code_id = b.code_id
+                  AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant,
                hbm.id_card_no,
                pp.finance_amount,
                (select pq.lease_times
@@ -13184,6 +13213,75 @@ WHERE
           and ppl.project_id = #{projectId}
     </select>
 
+    <!--进件明细 审核材料-->
+    <select id="prjProjectAttachPreExQuery" resultMap="PrjProjectAttachQueryMap">
+        Select ppa.project_id,
+                ppa.project_attachment_id,
+                ppa.document_name,
+                ppa.description,
+                ppa.source_id,
+                ppa.upload_person_id,
+                ppa.source_rule_id,
+                ppa.attach_code,
+                ppa.th_back_flag,
+                (Select t.templet_name
+                From hls_doc_file_templet t
+                Where t.templet_id = ppa.source_id) source_id_n,
+                ppa.project_attachment_category,
+                (Select to_char(wm_concat(faa.file_name)) modelName
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                And faam.table_pk_value = ppa.project_attachment_id
+                And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) file_names,
+                (
+                SELECT
+                to_char(
+                wm_concat ( faa.attachment_id )) modelName
+                FROM
+                fnd_atm_attachment faa,
+                fnd_atm_attachment_multi faam
+                WHERE
+                faam.attachment_id = faa.attachment_id
+                AND faam.table_pk_value = ppa.project_attachment_id
+                AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                AND ROWNUM &lt;= 10
+                )  file_attachment_id,
+                (
+                SELECT
+                count(1)
+                FROM
+                fnd_atm_attachment faa,
+                fnd_atm_attachment_multi faam
+                WHERE
+                faam.attachment_id = faa.attachment_id
+                AND faam.table_pk_value = ppa.project_attachment_id
+                AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                )  file_num,
+                ppa.creation_date,
+               (select wm_concat(fat.file_name)
+                from fnd_atm_attachment fat, fnd_atm_attachment_multi faam
+                where fat.attachment_id = faam.attachment_id
+                  and faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id) file_name,
+               (select nvl(count(faa.attachment_id), 0)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_sum,
+               (select max(faa.attachment_id)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_id,
+               (select wm_concat(faa.attachment_id)
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id) attachment_id_n
+        From prj_project_attachment ppa
+        Where ppa.project_id = #{projectId}
+          and ppa.project_attachment_category in ('EXAMINE','PRE_EXAMINE')
+    </select>
     <!--投放审查 审核材料-->
     <select id="prjProjectAttachExQuery" resultMap="PrjProjectAttachQueryMap">
         Select ppa.project_id,
@@ -13251,7 +13349,7 @@ WHERE
                   and faa.source_pk_value = faam.record_id) attachment_id_n
         From prj_project_attachment ppa
         Where ppa.project_id = #{projectId}
-          and ppa.project_attachment_category = 'EXAMINE'
+          and ppa.project_attachment_category = 'LOAN'
     </select>
     <!--投放审查合同、协议文件-->
     <select id="prjProjectAttachCoQuery" resultMap="PrjProjectAttachQueryMap">

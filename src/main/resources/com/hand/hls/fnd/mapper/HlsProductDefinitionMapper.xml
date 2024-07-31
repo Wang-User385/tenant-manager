@@ -78,6 +78,8 @@
         <result column="lease_item_type_n" property="leaseItemTypeN" jdbcType="VARCHAR"/>
         <result column="lease_item_type" property="leaseItemType" jdbcType="VARCHAR"/>
         <result column="user_id" property="userId" jdbcType="DECIMAL"/>
+        <result column="incept_type" property="inceptType" jdbcType="DECIMAL"/>
+        <result column="incept_type_n" property="inceptTypeN" jdbcType="DECIMAL"/>
     </resultMap>
 
     <select id="selectHlsProductDefinitionList" resultMap="BaseResultMap">
@@ -193,7 +195,12 @@
         FROM SYS_CODE_B B1, SYS_CODE_VALUE_B B2
         WHERE B1.CODE = 'DISCOUNT_TIMES'
         AND B1.CODE_ID = B2.CODE_ID
-        AND B2.VALUE = hpd.rental_discount_times) rental_discount_times_n
+        AND B2.VALUE = hpd.rental_discount_times) rental_discount_times_n,
+        (SELECT B2.MEANING
+        FROM SYS_CODE_B B1, SYS_CODE_VALUE_B B2
+        WHERE B1.CODE = 'PRODUCT.INCEPT_TYPE'
+        AND B1.CODE_ID = B2.CODE_ID
+        AND B2.VALUE = hpd.incept_type) incept_type_n
         FROM hls_product_definition hpd) v
         <where>  v.document_type = 'PRODUCT_DEFINITION'
         and v.business_type = 'PRODUCT_DEFINITION'
@@ -249,6 +256,8 @@
         <result column="lease_charge_discount_rule_n" property="lease_charge_discount_rule_n" />
         <result column="rental_discount_times_n" property="rental_discount_times_n" />
         <result column="payment_bp_type" property="payment_bp_type" />
+        <result column="incept_type_n" property="incept_type_n" />
+        <result column="incept_type" property="incept_type" />
     </resultMap>
 
     <select id="selectHlsProductDefinitionInfo" resultMap="HlsProductDefinitionInfoMap">
@@ -318,7 +327,13 @@
                (select hpdp.DEFAULT_VALUE
                 from hls_product_definition_para hpdp
                 where hpdp.definition_id = hpd.definition_id
-                  and hpdp.product_para = 'RESIDUAL_VALUE') default_residual_value
+                  and hpdp.product_para = 'RESIDUAL_VALUE') default_residual_value,
+               hpd.incept_type,
+               (SELECT B2.MEANING
+                FROM SYS_CODE_B B1, SYS_CODE_VALUE_B B2
+                WHERE B1.CODE = 'PRODUCT.INCEPT_TYPE'
+                  AND B1.CODE_ID = B2.CODE_ID
+                  AND B2.VALUE = hpd.incept_type) incept_type_n
         from hls_product_definition hpd
         where hpd.enabled_flag = 'Y'
           and hpd.definition_id = #{definitionId}

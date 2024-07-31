@@ -1764,6 +1764,10 @@ public class HlsCusConContract extends ConContract {
 
     @Transient
     private Long writeOffStatusC;
+    @Transient
+    private String inceptTypeN;
+    @Transient
+    private String inceptType;
 
 
 

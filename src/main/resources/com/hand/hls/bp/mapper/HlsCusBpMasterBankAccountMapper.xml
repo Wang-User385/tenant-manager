@@ -428,13 +428,19 @@
         <result column="debt_bank_code" property="debt_bank_code" />
         <result column="debt_flag" property="debt_flag" />
         <result column="bank_account_type" property="bank_account_type" />
+        <result column="invest_date" property="invest_date" />
     </resultMap>
     <!--进件明细查询收款账户信息-->
     <select id="queryBankAccountInfo" resultMap="BankAccountInfoMap" parameterType="com.hand.hls.bp.dto.HlsCusBpMasterBankAccount">
         SELECT pp.bank_account_num,
                pp.bank_account_name,
                pp.bank_branch_name,
-               pp.bank_full_name
+               pp.bank_full_name,
+               (select pq.lease_start_date
+                from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                  and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                  and rownum = 1) invest_date
         FROM prj_project pp
         where pp.project_Id = #{projectId}
     </select>

@@ -35,6 +35,8 @@ import com.hand.hls.partner.mapper.UploadAttachListMapper;
 import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.*;
+import com.hand.hls.sys.dto.SysDocumentList;
+import com.hand.hls.sys.mapper.SysDocumentListMapper;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
 import hls.core.utils.exception.HlsCusException;
@@ -111,6 +113,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private CshWriteOffService cshWriteOffService;
     @Autowired
     private IConContractCashflowService cashflowService;
+    @Autowired
+    private SysDocumentListMapper sysDocumentListMapper;
 
     @Autowired
     private HlsProductDefinitionMapper hlsProductDefinitionMapper;
@@ -225,6 +229,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProject.setEmployeeId(hlsProductDefinitionList.get(0).getEmployeeId());
         hlsCusPrjProject.setUnitId(hlsProductDefinitionList.get(0).getUnitId());
         hlsCusPrjProject.setLeaseItemType(hlsProductDefinitionList.get(0).getLeaseItemType());
+        hlsCusPrjProject.setInceptType(hlsProductDefinitionList.get(0).getInceptType());
         prjProjectMapper.insertSelective(hlsCusPrjProject);
 
         //step5: 新增prj_quotation
@@ -240,6 +245,18 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
         hlsCusPrjProjectBp.setBpCategroy("TENANT");
         hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+
+        //新增附件信息
+        HlsCusPrjProjectAttachment prjAttachment = new HlsCusPrjProjectAttachment();
+        SysDocumentList sysDocumentList = new SysDocumentList();
+        List<SysDocumentList> sysDocumentLists = sysDocumentListMapper.selectSysDocumentList(sysDocumentList);
+        for (int i = 0; i < sysDocumentLists.size(); i++) {
+            prjAttachment.setProjectId(hlsCusPrjProject.getProjectId());
+            prjAttachment.setProjectAttachmentCategory(sysDocumentLists.get(i).getDocumentCategory());
+            prjAttachment.setDocumentName(sysDocumentLists.get(i).getDocumentListName());
+            prjAttachment.setAttachmentCode(sysDocumentLists.get(i).getDocumentType());
+            hlsCusPrjProjectAttachmentMapper.insertSelective(prjAttachment);
+        }
 
         //step7: 返回信息
         returnJson.put("code","200");
@@ -491,7 +508,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String dataAcquisition(String decryptedStr,IRequest iRequest) throws Exception {
+    public String dataAcquisition(String decryptedStr,IRequest iRequest) throws HlsCusException {
         DataAcquisitionDTO dataAcquisitionDTO = JSONObject.parseObject(decryptedStr, DataAcquisitionDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
@@ -501,7 +518,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (hlsCusPrjProject==null){
             jsonObject1.put("code","400");
             jsonObject1.put("message","订单不存在");
-            return jsonObject1.toJSONString();
+            throw new HlsCusException(jsonObject1.toJSONString());
         }
         //根据项目id获取租赁物信息
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
@@ -527,7 +544,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //            设置返回状态
             jsonObject1.put("code","400");
             jsonObject1.put("message","不允许进行数据采集");
-            return jsonObject1.toJSONString();
+            throw new HlsCusException(jsonObject1.toJSONString());
         }
         //查询项目对应的产品定义中投放类型是合作商的银行账户信息
         HlsCusBpMasterBankAccount bankAccountInfo = hlsCusBpMasterBankAccountMapper.queryBankAccountInfoById(hlsCusPrjProject.getProjectId());
@@ -551,7 +568,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         //            设置返回状态
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","业务数据与风控数据不一致："+message);
-                        return jsonObject1.toJSONString();
+                        throw new HlsCusException(jsonObject1.toJSONString());
                     }
                 }
                 if (preRiskAuditData1!=null){
@@ -559,22 +576,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     if (!preRiskAuditData1.getCarbrand2().equals(carInfo.getBrandName())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","品牌名称与riskInfo中的值不同");
-                        return jsonObject1.toJSONString();
+                        throw new HlsCusException(jsonObject1.toJSONString());
                     }
                     if (preRiskAuditData1.getChexi().equals(carInfo.getSeriesName())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车系名称与riskInfo中的值不同");
-                        return jsonObject1.toJSONString();
+                        throw new HlsCusException(jsonObject1.toJSONString());
                     }
                     if (preRiskAuditData1.getCartype().equals(carInfo.getModelName())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车型名称与riskInfo中的值不同");
-                        return jsonObject1.toJSONString();
+                        throw new HlsCusException(jsonObject1.toJSONString());
                     }
                     if (preRiskAuditData1.getCarcolor().equals(carInfo.getColor())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车辆颜色与riskInfo中的值不同");
-                        return jsonObject1.toJSONString();
+                        throw new HlsCusException(jsonObject1.toJSONString());
                     }
                 }
             }
@@ -626,7 +643,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                             //            设置返回状态
                             jsonObject1.put("code","400");
                             jsonObject1.put("message","业务数据与风控数据不一致:"+message);
-                            return jsonObject1.toJSONString();
+                            throw new HlsCusException(jsonObject1.toJSONString());
                         }
                     }
 
@@ -710,7 +727,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         }else{
                             hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
                         }
-                        prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
+                        try{
+                            prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
+                        }catch (Exception e){
+                            e.printStackTrace();
+                            //设置返回状态
+                            jsonObject1.put("code","400");
+                            jsonObject1.put("message","报价计算异常，请联系管理员");
+                            throw new HlsCusException(jsonObject1.toJSONString());
+                        }
                         //计算后再次比对月还款额
                         List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
                         if (hlsCusPrjQuotations.size()>0){
@@ -722,7 +747,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                                  //设置返回状态
                                  jsonObject1.put("code","400");
                                  jsonObject1.put("message","业务数据与风控数据不一致:"+message);
-                                 return jsonObject1.toJSONString();
+                                throw new HlsCusException(jsonObject1.toJSONString());
                             }
                         }
                         Example example = new Example(HlsCusPrjProjectLeaseItem.class);
@@ -775,8 +800,29 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         }else{
                             hlsCusPrjQuotationMapper.insertSelective(prjQuotation);
                         }
-
-                        prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
+                        try{
+                            prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
+                        }catch (Exception e){
+                            e.printStackTrace();
+                            //设置返回状态
+                            jsonObject1.put("code","400");
+                            jsonObject1.put("message","报价计算异常，请联系管理员");
+                            throw new HlsCusException(jsonObject1.toJSONString());
+                        }
+                        //计算后再次比对月还款额
+                        List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
+                        if (hlsCusPrjQuotations.size()>0){
+                            prjQuotation = hlsCusPrjQuotations.get(0);
+                            //将业务数据与风险数据进行校验
+                            String message = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
+                            //如果校验不通过直接返回
+                            if (!message.isEmpty()){
+                                //设置返回状态
+                                jsonObject1.put("code","400");
+                                jsonObject1.put("message","业务数据与风控数据不一致:"+message);
+                                throw new HlsCusException(jsonObject1.toJSONString());
+                            }
+                        }
                         hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);
                     }
                 }
@@ -2166,10 +2212,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     || "NOTICEx0".equals(fileType) || "OWNERSHIP_STATEMENT".equals(fileType) || "CONFIRM_PAYMENT_DELEGATION".equals(fileType) || "AUTHORIZATIONx0".equals(fileType)
                     || "MORTGAGE".equals(fileType) || "LICENSE_FRONT_IMGS".equals(fileType) || "DRIVEN_LICENSE_SUB".equals(fileType) || "REGISTRATION_CERTIFICATE".equals(fileType)
                     || "PERSON_AND_CAR".equals(fileType) || "LICENSE_AND_PICK_UP_IMG".equals(fileType) || "VEHICLE_CERTIFICATE".equals(fileType) || "INSURANCE_POLICYx0".equals(fileType)){
-                //文件类型是LEASE，附件就是 融资租赁合同
-                if("LEASE".equals(fileType)){
-                    signFlag = true;
-                }
                 //放款前
                 String investmentStatus = hlsCusPrjProject.getInvestmentStatus();
                 if(StringUtils.isNotEmpty(investmentStatus) && !"NEW".equals(investmentStatus) && !"REJECTED".equals(investmentStatus)){
@@ -2191,6 +2233,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 returnJson.put("success",false);
                 returnJson.put("message","该进件的fileType[" + fileType + "]清单不存在！");
                 throw new HlsCusException(returnJson.toJSONString());
+            }
+            //附件有合同相关的，就修改签约状态
+            if(prjAttachment.getProjectAttachmentCategory().equals("CONTRACT")){
+                signFlag = true;
             }
             this.replaceAttach(prjAttachment,file.getFileId());
         }

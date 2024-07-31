@@ -609,6 +609,8 @@
         <result column="PLEDGE_DATE" property="pledgeDate" jdbcType="DATE"/>
         <result column="PLEDGE_DESCRIPTION" property="pledgeDescription" jdbcType="VARCHAR"/>
         <result column="write_off_status_c" property="writeOffStatusC" jdbcType="DECIMAL"/>
+        <result column="incept_type" property="inceptType" jdbcType="DECIMAL"/>
+        <result column="incept_type_n" property="inceptTypeN" jdbcType="DECIMAL"/>
 
 
     </resultMap>
@@ -11352,8 +11354,12 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             p.contract_number as contract_number_p,
             p.contract_name as contract_name_p,
             (select hbm.bp_name from hls_bp_master hbm where hbm.bp_id=p.tenant_id) as bp_name,
-            cc.incept_flag,
-            case when cc.incept_flag = 'Y' then '起租' else '新建' end as incept_flag_n,
+            pp.incept_type,
+            (select scv.MEANING
+            from sys_code_b sc,sys_code_value_b scv
+            where sc.CODE_ID = scv.CODE_ID
+            and sc.CODE = 'PRODUCT.INCEPT_TYPE'
+            and scv.value =  pp.incept_type) incept_type_n,
             p.loan_initial_lease,
             (select scv.MEANING
             from sys_code_b sc,sys_code_value_b scv

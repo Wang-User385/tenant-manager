@@ -344,6 +344,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.dataAcquisition(hlsWsRequests.getRequestJson(),iRequest);
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";
@@ -353,6 +355,7 @@ public class YLInterfaceController extends BaseController {
             resStr = JSONObject.toJSONString(resJson);
         }
         return this.updateLogs(hlsWsRequests,resStr,returnStatus);
+
     }
 
     @RequestMapping(

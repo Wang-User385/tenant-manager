@@ -238,7 +238,9 @@ public class HlsCusPrjProject extends PrjProject {
     private Date priceReviewDate;
 
     private Long priceReviewPerson;
-
+    private String inceptType;
+    @Transient
+    private String inceptTypeN;
     @Transient
     private String isLowRiskN;
     @Transient
