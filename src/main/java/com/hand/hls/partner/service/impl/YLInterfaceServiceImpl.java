@@ -557,6 +557,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             jsonObject1.put("message","不允许进行数据采集");
             return jsonObject1.toJSONString();
         }
+        //查询项目对应的产品定义中投放类型是合作商的银行账户信息
+        HlsCusBpMasterBankAccount bankAccountInfo = hlsCusBpMasterBankAccountMapper.queryBankAccountInfoById(hlsCusPrjProject.getProjectId());
         //进件状态为审批通过，进行校验，校验通过后只修改部分信息
         if ("APPROVED".equals(projectStatus)){
             //获取数据库的风险数据
@@ -606,7 +608,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
             //根据项目信息设置部分租赁物信息
             HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = partSaveLeaseItemByProject(hlsCusPrjProject,hlsCusPrjProjectLeaseItemList,carInfo);
-
+            //更新项目信息中的账户信息
+            hlsCusPrjProject.setBankAccountNum(bankAccountInfo.getBankAccountNum());
+            hlsCusPrjProject.setBankAccountName(bankAccountInfo.getBankAccountName());
+            hlsCusPrjProject.setBankFullName(bankAccountInfo.getBankFullName());
+            hlsCusPrjProject.setBankBranchName(bankAccountInfo.getBankBranchName());
             prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
             if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
                 hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);
@@ -654,7 +660,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
                     //根据项目信息设置租赁物信息
                     HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = setLeaseItemByProject(hlsCusPrjProject,hlsCusPrjProjectLeaseItemList,carInfo,financeInfo);
-
+                    //更新项目信息中的账户信息
+                    hlsCusPrjProject.setBankAccountNum(bankAccountInfo.getBankAccountNum());
+                    hlsCusPrjProject.setBankAccountName(bankAccountInfo.getBankAccountName());
+                    hlsCusPrjProject.setBankFullName(bankAccountInfo.getBankFullName());
+                    hlsCusPrjProject.setBankBranchName(bankAccountInfo.getBankBranchName());
                     prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
                     if (hlsCusPrjProjectLeaseItem.getProjectLeaseItemId()!=null){
                         hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(hlsCusPrjProjectLeaseItem);

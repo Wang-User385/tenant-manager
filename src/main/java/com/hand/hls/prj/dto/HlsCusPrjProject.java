@@ -87,10 +87,6 @@ public class HlsCusPrjProject extends PrjProject {
     @Transient
     private String bankAccountIdN;
     @Transient
-    private String bankAccountNum;
-    @Transient
-    private String bankBranchName;
-    @Transient
     private String tenantIdN;
     @Transient
     private String overdueStatusN;
@@ -190,6 +186,10 @@ public class HlsCusPrjProject extends PrjProject {
     private String powerfulPerson;
 
     private String fiveCategories;
+    private String bankAccountNum;//银行卡号（进件收款信息）
+    private String bankAccountName;//账户名（进件收款信息）
+    private String bankFullName;//开户银行（进件收款信息）
+    private String bankBranchName;//开户支行（进件收款信息）
 
     @Transient
     private String fiveCategoriesN;

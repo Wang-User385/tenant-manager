@@ -34,4 +34,6 @@ public interface HlsCusBpMasterBankAccountMapper extends HlsBpMasterBankAccountM
     HlsCusBpMasterBankAccount selectBankByBpId(@Param("bpId") Long bpId);
 
     List<Map> queryBankAccountInfo(HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount);
+
+    HlsCusBpMasterBankAccount queryBankAccountInfoById(@Param("projectId") Long bpId);
 }
