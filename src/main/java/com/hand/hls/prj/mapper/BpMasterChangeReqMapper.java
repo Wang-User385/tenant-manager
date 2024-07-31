@@ -2,6 +2,7 @@ package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.prj.dto.BpMasterChangeReq;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -11,4 +12,5 @@ public interface BpMasterChangeReqMapper extends Mapper<BpMasterChangeReq>{
 
     List<BpMasterChangeReq> queryChangeNewStatusNum(BpMasterChangeReq req);
 
+    Long getHistoryIdByChangeReqId(@Param("changeReqId") Long changeReqId);
 }

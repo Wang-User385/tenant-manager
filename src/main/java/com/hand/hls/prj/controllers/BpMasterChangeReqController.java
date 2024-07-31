@@ -6,8 +6,11 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
+import com.hand.hls.bp.dto.HlsSysDocumentHistoryDetail;
 import com.hand.hls.prj.dto.BpMasterChangeReq;
 import com.hand.hls.prj.service.IBpMasterChangeReqService;
+import com.hand.hls.sys.dto.SysDocumentHistoryDetail;
+import com.hand.hls.sys.mapper.SysDocumentHistoryDetailMapper;
 import leaf.bean.LeafRequestData;
 import leaf.service.validation.ParameterNullException;
 import org.apache.commons.lang3.StringUtils;
@@ -176,5 +179,12 @@ public class BpMasterChangeReqController extends BaseController {
         }
 
         return responseData;
+    }
+
+
+    @RequestMapping(value = "/get/master/history")
+    @ResponseBody
+    public ResponseData getMasterHistory(HttpServletRequest request, @RequestParam("changeReqId")Long changeReqId) {
+        return new ResponseData(service.getMasterHistory(changeReqId));
     }
 }

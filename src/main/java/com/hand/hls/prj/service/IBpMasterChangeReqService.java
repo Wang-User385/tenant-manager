@@ -4,6 +4,7 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.core.ProxySelf;
 import com.hand.hap.system.service.IBaseService;
 import com.hand.hls.prj.dto.BpMasterChangeReq;
+import com.hand.hls.sys.dto.SysDocumentHistoryDetail;
 import leaf.service.validation.ParameterNullException;
 import org.springframework.stereotype.Service;
 
@@ -40,4 +41,11 @@ public interface IBpMasterChangeReqService extends IBaseService<BpMasterChangeRe
      * @throws ParameterNullException
      */
     void createHistory(Long documentId, String documentCategory, Long bpId) throws ParameterNullException;
+
+    /**
+     * 获取历史版本数据
+     * @param changeReqId
+     * @return
+     */
+    List<String> getMasterHistory(Long changeReqId);
 }

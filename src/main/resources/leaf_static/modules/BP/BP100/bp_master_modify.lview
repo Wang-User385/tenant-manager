@@ -237,25 +237,89 @@
             var record = $(hls_bp_master_ds_id).getCurrentRecord();
             var bp_id1 = record.get("bp_id");
             var register_cert_num = record.get('register_cert_num');
+            var registration_num_type = record.get('registration_num_type');
+            var id_card_no = record.get('id_card_no');
+            var id_type = record.get('id_type');
             if (!$(hls_bp_master_ds_id).validate()){
                 return;
             }
-            var flag = false;
-            jQuery.ajax({
-                type: 'GET',
-                url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id1 + "&regNumber=" + register_cert_num,
-                async: false,
-                success: function (args) {
-                    if (args.success) {
-                        flag = true;
-                    } else {
-                        flag = false;
+            if (record.get('bp_class') == 'ORG'){
+                //登记注册号码校验
+                if (registration_num_type == '07') {
+                    if (!CheckSocialCreditCode(register_cert_num)) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showErrorMessage('提示', '统一社会信用代码有误，请重新输入！');
+                        return ;
                     }
                 }
-            });
-            if (!flag){
-                Leaf.showErrorMessage('提示', '登记注册号码重复！', null, 200, 100);
-                return;
+                var flag = false;
+                jQuery.ajax({
+                    type: 'GET',
+                    url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id1 + "&regNumber=" + register_cert_num,
+                    async: false,
+                    success: function (args) {
+                        if (args.success) {
+                            flag = true;
+                        } else {
+                            flag = false;
+                        }
+                    }
+                });
+                if (!flag){
+                    Leaf.showErrorMessage('提示', '登记注册号码重复！', null, 200, 100);
+                    return;
+                }
+            }
+            var phone = record.get('phone');
+            var spouse_phone = record.get('spouse_phone');
+            var id_card_no_sp = record.get('id_card_no_sp');
+            if (record.get('bp_class') == 'NP'){
+                var phoneCheck = /^[1][3,4,5,7,8,9][0-9]{9}$/;
+                if (phoneCheck.test(phone) === false) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showErrorMessage("提示", "基本信息中手机号格式错误!", null);
+                    return ;
+                }
+                if (spouse_phone != null) {
+                    if (phoneCheck.test(spouse_phone) === false) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showErrorMessage("提示", "配偶信息中配偶电话格式错误!", null);
+                        return ;
+                    }
+                }
+                if (id_type == 'ID_CARD') {
+                    var reg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+                    if (reg.test(id_card_no) === false) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showErrorMessage("提示", "证件号码格式错误!", null);
+                        return ;
+                    }
+                }
+                if (id_card_no_sp){
+                    var reg1 = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+                    if (reg1.test(id_card_no_sp) === false) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showErrorMessage("提示", "配偶证件号码格式错误!", null);
+                        return ;
+                    }
+                }
+                var flag_t = false;
+                jQuery.ajax({
+                    type: 'GET',
+                    url: "${/request/@context_path}/hls/bp/master/validIdCardNo?bpId=" + bp_id1 + "&idCardNo=" + id_card_no,
+                    async: false,
+                    success: function (args) {
+                        if (args.success) {
+                            flag_t = true;
+                        } else {
+                            flag_t = false;
+                        }
+                    }
+                });
+                if (!flag_t){
+                    Leaf.showErrorMessage('提示', '证件号号码重复！', null, 200, 100);
+                    return;
+                }
             }
             if (!bp_id1){
                 Leaf.showErrorMessage('提示', '请先保存数据！', null, 200, 100);
@@ -336,15 +400,15 @@
             if('${/parameter/@wflRuleControlFlag}' == 'Y'){
                 ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
             }
-
-
         }
+
+
 
         var is_regno_valid = true;
         var is_idno_valid = true;
 
         Leaf.onReady(function () {
-            debugger
+            debugger;
             //控制主角色不能删除
             $('${/parameter/@layout_code}_G_ROLE_hls_bp_master_role_ds').on('beforeremove', function (ds, records) {
                 for (var i = 0; i < records.length; i++) {

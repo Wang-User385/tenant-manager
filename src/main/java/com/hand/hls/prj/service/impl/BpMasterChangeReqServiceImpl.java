@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.account.mapper.UserMapper;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.lock.components.DatabaseLockProvider;
+import com.hand.hap.mybatis.entity.Example;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
 import com.hand.hls.bp.dto.*;
 import com.hand.hls.bp.mapper.*;
@@ -15,6 +16,8 @@ import com.hand.hls.prj.dto.HlsBpMaster;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.prj.mapper.*;
 import com.hand.hls.prj.service.IBpMasterChangeReqService;
+import com.hand.hls.sys.dto.SysDocumentHistoryDetail;
+import com.hand.hls.sys.mapper.SysDocumentHistoryDetailMapper;
 import com.hand.hls.sys.service.ISysDocumentHistoryService;
 import com.hand.hls.sys.utils.SysDocumentHistoryUtils;
 import com.hand.hls.utils.ResMessageException;
@@ -32,11 +35,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChangeReq> implements IBpMasterChangeReqService {
 
+    @Autowired
+    private SysDocumentHistoryDetailMapper sysDocumentHistoryDetailMapper;
+
+    @Autowired
+    private BpMasterChangeReqMapper bpMasterChangeReqMapper;
     @Autowired
     private DatabaseLockProvider databaseLockProvider;
     @Autowired
@@ -310,6 +319,15 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
         });
         //通用创建历史留痕接口
         sysDocumentHistoryService.createHistory(documentCategory, documentId, datas);
+    }
+
+
+    @Override
+    public List<String> getMasterHistory(Long changeReqId) {
+        Long historyId =  bpMasterChangeReqMapper.getHistoryIdByChangeReqId(changeReqId);
+        Example example = new Example(SysDocumentHistoryDetail.class);
+        example.createCriteria().andEqualTo("historyId", historyId);
+        return sysDocumentHistoryDetailMapper.selectByExample(example).stream().map(SysDocumentHistoryDetail::getHistoryData).collect(Collectors.toList());
     }
 
     public List<Map<String, Object>> getDatas(Long bpId) throws ParameterNullException {
