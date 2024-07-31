@@ -42,10 +42,5 @@ public interface IBpMasterChangeReqService extends IBaseService<BpMasterChangeRe
      */
     void createHistory(Long documentId, String documentCategory, Long bpId) throws ParameterNullException;
 
-    /**
-     * 获取历史版本数据
-     * @param changeReqId
-     * @return
-     */
-    List<String> getMasterHistory(Long changeReqId);
+
 }

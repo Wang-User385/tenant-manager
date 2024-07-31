@@ -182,9 +182,5 @@ public class BpMasterChangeReqController extends BaseController {
     }
 
 
-    @RequestMapping(value = "/get/master/history")
-    @ResponseBody
-    public ResponseData getMasterHistory(HttpServletRequest request, @RequestParam("changeReqId")Long changeReqId) {
-        return new ResponseData(service.getMasterHistory(changeReqId));
-    }
+
 }

@@ -322,13 +322,6 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
     }
 
 
-    @Override
-    public List<String> getMasterHistory(Long changeReqId) {
-        Long historyId =  bpMasterChangeReqMapper.getHistoryIdByChangeReqId(changeReqId);
-        Example example = new Example(SysDocumentHistoryDetail.class);
-        example.createCriteria().andEqualTo("historyId", historyId);
-        return sysDocumentHistoryDetailMapper.selectByExample(example).stream().map(SysDocumentHistoryDetail::getHistoryData).collect(Collectors.toList());
-    }
 
     public List<Map<String, Object>> getDatas(Long bpId) throws ParameterNullException {
         //开始数据组装
