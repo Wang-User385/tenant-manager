@@ -39,7 +39,7 @@ public class CshAllocationAdvanceController extends BaseController {
         RequestHelper.setCurrentRequest(requestContext);
         JSONObject param = (JSONObject) requestData.get("parameter");
         CshAllocationAdvance dto = param.toJavaObject(CshAllocationAdvance.class);
-        List<CshAllocationAdvance> advanceList = service.select(requestContext, dto, pagenum, pagesize);
+        List<CshAllocationAdvance> advanceList = service.queryAllocationAdvance(dto, pagenum, pagesize);
         advanceList.stream().forEach(advance -> {
             advance.setWriteOffTypeDesc("收款核销预收款");
         });

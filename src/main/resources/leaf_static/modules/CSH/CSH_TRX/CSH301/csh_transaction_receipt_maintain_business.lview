@@ -657,6 +657,39 @@
 
 
 
+
+        //确认核销核销
+        function csh301_transaction_confirm_write_off() {
+            debugger;
+            var ds = $('csh_transaction_receipt_maintain_result_ds');
+            var records = ds.getSelected();
+            if (records.length == 0) {
+                Leaf.showMessage('提示！', '请选择一条记录！');
+                return;
+            }
+
+
+            for (var i = 0; i < records.length; i++) {
+                var refund_status = records[i].get('refund_status');
+                if (refund_status == 'APPROVING') {
+                    Leaf.showMessage('提示！', '在退款流程中不允许核销！');
+                    return;
+                }
+
+                if (records[i].get("is_allocation_flag") == 'N') {
+                    Leaf.showMessage('提示！', '只能核销以匹配待确认的单据！');
+                    return;
+                }
+
+                if (records[i].get('un_write_off_amount_from') == 0) {
+                    Leaf.showMessage('提示！', '剩余可核销金额为0不能进行后续操作！');
+                    return;
+                }
+            }
+        }
+
+
+
         function csh301_transaction_batch_reverse() {
             var win = new Leaf.Window({
                 id: 'transaction_batch_writeoff_reverse_winId',
