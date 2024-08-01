@@ -74,7 +74,7 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
 
     public void prjCreateCon(Long projectId){
         //step1 创建合同
-        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(2110L);
+        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
         Map<String, String> map = hlsBeanRefUtilService.getFieldValueMap(prjProject);
 
         HlsCusConContract newContract = new HlsCusConContract();
