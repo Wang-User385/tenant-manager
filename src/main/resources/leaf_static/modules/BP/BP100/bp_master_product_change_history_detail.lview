@@ -4,6 +4,72 @@
     <a:view>
         <script><![CDATA[
 
+        //查询时调用(form,fieldboxcolumn)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
+            debugger
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var documentId = '${/parameter/@change_req_id}';
+            var documentCategory = '${/parameter/@document_category}';
+
+            if (ds.queryurl.indexOf('history_flag') === -1) {
+                ds.queryurl = splitparameter(splitparameter(ds.queryurl, 'document_id', documentId), 'document_history_flag', 'Y');
+            }
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        };
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            debugger
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            var documentId = '${/parameter/@change_req_id}';
+            var documentCategory = '${/parameter/@document_category}';
+            if('${/parameter/@wflRuleControlFlag}' == 'Y'){
+                ds.queryurl = ds.queryurl + '&wflRuleControlFlag=Y';
+            }
+
+            if('${/parameter/@status}' == 'APPROVED'){
+                ds.setQueryParameter('__preVersion', "Y");
+            }
+
+            if (ds.queryurl.indexOf('history_flag') === -1) {
+                ds.queryurl = splitparameter(splitparameter(ds.queryurl, 'document_id', documentId), 'document_history_flag', 'Y');
+            }
+            if (ds.submiturl) {
+                var submitUrl = ds.submiturl;
+                if (submitUrl.indexOf('document_history_flag') === -1) {
+                    var obj = urlSearch(submitUrl);
+                    obj.document_id = documentId;
+                    obj.document_history_flag = 'Y';
+                    obj.document_category = documentCategory;
+                    submitUrl = submitUrl.split('?')[0];
+                    for (var k in obj) {
+                        submitUrl = splitparameter(submitUrl, k, obj[k]);
+                    }
+                }
+                ds.submiturl = submitUrl;
+            }
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+        }
+
+        function urlSearch(url) {
+            var obj = {};
+            var name, value;
+            var str = url; //取得整个地址栏
+            var num = str.indexOf("?");
+            str = str.substr(num + 1); //取得所有参数   stringvar.substr(start [, length ]
+
+            var arr = str.split("&"); //各个参数放到数组里
+            for (var i = 0; i < arr.length; i++) {
+                num = arr[i].indexOf("=");
+                if (num > 0) {
+                    name = arr[i].substring(0, num);
+                    value = arr[i].substr(num + 1);
+                    obj[name] = value;
+                }
+            }
+            return obj;
+        }
+
         ]]></script>
 
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>

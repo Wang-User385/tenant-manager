@@ -90,4 +90,6 @@ public interface CshTransactionService extends IBaseService<HlsCusCshTransaction
      * 金额释放
      */
     void releaseAmountNewTransaction(IRequest iRequest, long transactionId, double amount);
+
+    void transactionImport(IRequest iRequest, Long headerId);
 }

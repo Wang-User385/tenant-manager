@@ -332,6 +332,7 @@ public class HlsCusCshTransaction extends CshTransaction {
     @Transient
     private String allocationFlagN;
 
+
     @Transient
     private String allocationFlag;
 
@@ -339,6 +340,11 @@ public class HlsCusCshTransaction extends CshTransaction {
     private  Double remainingAmountFrom;
     @Transient
     private  Double remainingAmountTo;
+
+
+
+
+    private Date transactionDate;
 
     public HlsCusCshTransaction() {
     }

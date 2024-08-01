@@ -23,10 +23,12 @@ import com.hand.hls.csh.dto.*;
 import com.hand.hls.csh.exception.BeyondAmountLimitException;
 import com.hand.hls.csh.mapper.*;
 import com.hand.hls.csh.service.*;
+import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.fct.dto.HlsCusFctQuotationCashflow;
 import com.hand.hls.fct.service.HlsCusFctQuotationCashflowService;
 import com.hand.hls.fnd.dto.FndInterfaceLines;
 import com.hand.hls.fnd.dto.HLSCurrency;
+import com.hand.hls.fnd.dto.HlsCashflowItem;
 import com.hand.hls.fnd.dto.HlsEmployee;
 import com.hand.hls.fnd.mapper.FndInterfaceLinesMapper;
 import com.hand.hls.fnd.mapper.HLSCurrencyMapper;
@@ -48,6 +50,7 @@ import org.apache.ibatis.annotations.Update;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
@@ -130,6 +133,9 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
 
     @Autowired
     private HlsCusBpMasterMapper hlsCusBpMasterMapper;
+
+    @Autowired
+    private FndCodingRuleValuesService fndCodingRuleValuesService;
 
 
     @Autowired
@@ -1985,4 +1991,102 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
     public void releaseAmountNewTransaction(IRequest iRequest, long transactionId, double amount) {
         releaseAmount(iRequest,transactionId,amount);
     }
+
+
+    @Autowired
+    private HlsCusBpMasterBankAccountMapper hlsCusBpMasterBankAccountMapper;
+    @Override
+    public void transactionImport(IRequest iRequest, Long headerId) {
+        List<FndInterfaceLines> fndInterfaceLinesList = getInterfaceData(headerId, 0L);
+        for (FndInterfaceLines fndInterfaceLine : fndInterfaceLinesList) {
+            HlsCusCshTransaction cshTransaction = new HlsCusCshTransaction();
+
+            String transactionDate = fndInterfaceLine.getAttributes_1();
+            String transactionAmount = fndInterfaceLine.getAttributes_2();
+            String bankAccountNum = fndInterfaceLine.getAttributes_3();
+            String bankSlipNum = fndInterfaceLine.getAttributes_4();
+            String comments = fndInterfaceLine.getAttributes_5();
+            String bpNo = fndInterfaceLine.getAttributes_6();
+//            String paymentMethod = fndInterfaceLine.getAttributes_7();
+            String paymentMethod = "OTHER";
+            String bpBankAccountNum = fndInterfaceLine.getAttributes_8();
+            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:收款时间不能为空", transactionDate);
+            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:收款金额不能为空", transactionAmount);
+            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:收款账户不能为空", bankAccountNum);
+            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:商业伙伴编号不能为空", bpNo);
+            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:对方账户不能为空", bpBankAccountNum);
+
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            Example example = new Example(HlsCusBpMaster.class);
+            example.createCriteria().andEqualTo("bpCode",bpNo);
+            List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectByExample(example);
+            if (hlsCusBpMasters.size() != 1){
+                throw new RuntimeException("数据中存在非法数据");
+            }
+            Long bpId = hlsCusBpMasters.get(0).getBpId();
+            Long companyId = hlsCusBpMasters.get(0).getCompanyId();
+            example = new Example(HlsCusBpMasterBankAccount.class);
+            example.createCriteria().andEqualTo("bpId",bpId);
+            List<HlsCusBpMasterBankAccount> hlsCusBpMasterBankAccounts = hlsCusBpMasterBankAccountMapper.selectByExample(example);
+            boolean flag = false;
+            Long bankAccountId = null;
+            for (HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount : hlsCusBpMasterBankAccounts) {
+                if (bankAccountNum.equals(hlsCusBpMasterBankAccount.getBankAccountNum())){
+                    flag = true;
+                    bankAccountId = hlsCusBpMasterBankAccount.getBankAccountId();
+                    break;
+                }
+            }
+            if (!flag){
+                throw new RuntimeException("商业伙伴收款账户未录入");
+            }
+
+            example = new Example(HlsCusBpMasterBankAccount.class);
+            example.createCriteria().andEqualTo("bankAccountNum",bpBankAccountNum);
+            hlsCusBpMasterBankAccounts = hlsCusBpMasterBankAccountMapper.selectByExample(example);
+            if (hlsCusBpMasterBankAccounts == null || hlsCusBpMasterBankAccounts.size() == 0){
+                throw new RuntimeException("对方账户未录入");
+            }
+            if (hlsCusBpMasterBankAccounts.size() > 1){
+                throw new RuntimeException("对方账户被多人录入");
+            }
+
+            try {
+                cshTransaction.setTransactionDate(simpleDateFormat.parse(transactionDate));
+            } catch (ParseException e) {
+                throw new RuntimeException("时间格式报错");
+            }
+//            cshTransaction.setBpId(1L);
+            cshTransaction.setBpId(bpId);
+            cshTransaction.setPaymentMethod(paymentMethod);
+            cshTransaction.setTransactionAmount(Double.parseDouble(transactionAmount));
+            cshTransaction.setBankSlipNum(bankSlipNum);
+            cshTransaction.setComments(comments);
+            cshTransaction.setBankAccountId(bankAccountId);
+//            cshTransaction.setBankAccountId(1L);
+            cshTransaction.setBpBankAccountNum(bpBankAccountNum);
+            cshTransaction.setCompanyId(companyId);
+//            cshTransaction.setCompanyId(1L);
+            setExtraInfo(cshTransaction,iRequest);
+            self().insertSelective(iRequest,cshTransaction);
+        }
+    }
+    public static final String DOCUMENT_CATEGORY = "CSH_TRANSACTION";
+
+    public static final String DOCUMENT_TYPE = "RECEIPT";
+
+    public static final String BUSINESS_TYPE = "RECEIPT";
+    private void setExtraInfo(HlsCusCshTransaction cshTransaction,IRequest requestCtx){
+        //后台生成编码规则
+        Map<String, String> params = new HashMap<>();
+        String transactionNum = fndCodingRuleValuesService.getCodeRuleValue(requestCtx, DOCUMENT_CATEGORY, DOCUMENT_TYPE, BUSINESS_TYPE, params);
+        cshTransaction.setTransactionNum(transactionNum);
+        cshTransaction.setTransactionCategory(DOCUMENT_CATEGORY);
+        cshTransaction.setTransactionType(DOCUMENT_TYPE);
+        cshTransaction.setBusinessType(BUSINESS_TYPE);
+        cshTransaction.setPenaltyCalcDate(cshTransaction.getTransactionDate());
+        cshTransaction.setReversedFlag("N");
+        cshTransaction.setPostedFlag("N");
+    }
+
 }

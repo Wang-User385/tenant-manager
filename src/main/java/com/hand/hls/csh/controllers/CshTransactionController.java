@@ -657,4 +657,23 @@ public class CshTransactionController extends BaseController {
         service.updateDepositDeductMethod(requestCtx,transactionList);
         return new ResponseData(true);
     }
+
+
+    //导入
+    @RequestMapping(value = "/csh/transaction/import", method = RequestMethod.POST)
+    public Map<String, Object> transactionImport(HttpServletRequest request, @RequestParam("headerId") Long headerId) throws IOException {
+        IRequest iRequest = createRequestContext(request);
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("success", false);
+        try {
+            service.transactionImport(iRequest, headerId);
+            response.put("message", "导入成功");
+            response.put("success", true);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "导入失败！" + e.getMessage());
+        }
+        return response;
+    }
+
 }
