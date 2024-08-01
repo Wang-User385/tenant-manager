@@ -64,6 +64,7 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         if("APPROVED".equals(result)){
             prjCreateCon(projectId);
             hlsCusPrjProject.setInvestmentStatus("APPROVED");
+            hlsCusPrjProject.setSignDate(new Date());
             hlsCusPrjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         }else if("REJECTED".equals(result)){
             hlsCusPrjProject.setInvestmentStatus("REJECTED");

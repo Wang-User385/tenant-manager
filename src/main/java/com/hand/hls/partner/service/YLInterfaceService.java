@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.partner.dto.*;
+import com.hand.hls.utils.ResMessageException;
 import hls.core.utils.exception.HlsCusException;
 
 
@@ -39,7 +40,7 @@ public interface YLInterfaceService {
 
     String recoverWithholding(String decryptedStr);
 
-    String businessApplication(String decryptedStr,HttpServletRequest request) throws HlsCusException;
+    String businessApplication(String decryptedStr, HttpServletRequest request, IRequest iRequest) throws HlsCusException, ResMessageException;
 
     String imageSync(String decryptedStr) throws HlsCusException;
 }

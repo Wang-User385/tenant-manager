@@ -190,6 +190,7 @@ public class HlsCusPrjProject extends PrjProject {
     private String bankAccountName;//账户名（进件收款信息）
     private String bankFullName;//开户银行（进件收款信息）
     private String bankBranchName;//开户支行（进件收款信息）
+    private Long investmentInstanceId;//投放审查流程id
 
     @Transient
     private String fiveCategoriesN;
@@ -782,6 +783,9 @@ public class HlsCusPrjProject extends PrjProject {
     @Transient
     private Long quotationId;
 
+
+    private Date signDate;
+
     public Date getSignDate() {
         return signDate;
     }
@@ -789,9 +793,6 @@ public class HlsCusPrjProject extends PrjProject {
     public void setSignDate(Date signDate) {
         this.signDate = signDate;
     }
-
-
-    private Date signDate;
 
     public String getSignDescription() {
         return signDescription;

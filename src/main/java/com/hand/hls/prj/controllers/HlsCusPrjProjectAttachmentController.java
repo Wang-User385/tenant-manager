@@ -9,9 +9,12 @@ import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.atm.dto.FndAttachment;
 import com.hand.hls.bp.dto.HlsCusSysFile;
+import com.hand.hls.cont.dto.HlsCusConContract;
+import com.hand.hls.cont.dto.HlsCusConFloatingRateReqLn;
 import com.hand.hls.fct.service.HlsCusFctProjectAttachmentService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectAttachment;
+import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectAttachmentMapper;
 import com.hand.hls.prj.service.HlsCusPrjProjectAttachmentService;
 import com.hand.hls.prj.service.HlsCusPrjProjectService;
@@ -190,15 +193,18 @@ public class HlsCusPrjProjectAttachmentController extends BaseController {
         return new ResponseData(list);
     }
 
-    @RequestMapping("/ct/prj/project/sign/content/{projectId}")
+    @RequestMapping("/ct/prj/project/sign/content")
     @ResponseBody
-    public ResponseData selectContractAttachmentInfo(HttpServletRequest request, @PathVariable String projectId)
+    public ResponseData selectContractAttachmentInfo(HlsCusPrjQuotation dto,@RequestParam("projectId") String projectId,  @ModelAttribute("_request_data") LeafRequestData requestData,HttpServletRequest request,@RequestParam(defaultValue = "1") int pagenum, @RequestParam(defaultValue = "10") int pagesize)
             throws WflSecurityException {
         IRequest iRequest = createRequestContext(request);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject dto1 = param.toJavaObject(HlsCusPrjProject.class);
         HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment = new HlsCusPrjProjectAttachment();
-        hlsCusPrjProjectAttachment.setProjectId(Long.parseLong(projectId));
-        List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.selectContractAttachmentInfo(hlsCusPrjProjectAttachment);
+        hlsCusPrjProjectAttachment.setProjectId(dto1.getProjectId());
+        List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = service.selectContractAttachmentInfo(iRequest, hlsCusPrjProjectAttachment, pagenum, pagesize);
         return new ResponseData(hlsCusPrjProjectAttachments);
+
     }
     @RequestMapping("/ct/prj/project/sign/contentFileList")
     @ResponseBody

@@ -560,7 +560,7 @@ public class YLInterfaceController extends BaseController {
         String resStr = null;
         String returnStatus = "S";
         try{
-            resStr = ylInterfaceService.businessApplication(hlsWsRequests.getRequestJson(),request);
+            resStr = ylInterfaceService.businessApplication(hlsWsRequests.getRequestJson(),request,iRequest);
         }catch(HlsCusException e){
             return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){

@@ -1,5 +1,6 @@
 package com.hand.hls.partner.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
@@ -9,6 +10,7 @@ import com.hand.hls.atm.dto.FndAttachmentMulti;
 import com.hand.hls.atm.mapper.FndAttachmentMapper;
 import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterRoleMapper;
+import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
 import com.hand.hls.cont.service.IConContractCashflowService;
@@ -37,8 +39,11 @@ import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.*;
 import com.hand.hls.sys.dto.SysDocumentList;
 import com.hand.hls.sys.mapper.SysDocumentListMapper;
+import com.hand.hls.utils.ResMessageException;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
+import com.hand.hls.wfl.service.IActivitiCommonService;
+import com.hand.hls.wfl.service.IActivitiStartService;
 import hls.core.utils.exception.HlsCusException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -118,7 +123,31 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Autowired
     private HlsProductDefinitionMapper hlsProductDefinitionMapper;
+    @Autowired
+    private IActivitiStartService activitiStartService;
+    /**
+     * 工作流相关的常量
+     */
+    //换行符
+    private static final String BR = "<br>";
+    /**
+     * 用于代码获取工作流提交的实现类
+     */
+    private static final String PROJECT_SIGN_WORK_FLOW = "ADVERTISING_REVIEW_WORK_FLOW";
+    private static final String PROJECT = "project";
+    private static final String PROJECT_NAME = "projectName";
+    private static final String DOCUMENT_ID = "documentId";
+    private static final String WORKFLOW_TYPE = "workFlowType";
+    private static final String DOCUMENT_NUMBER = "documentNumber";
+    private static final String LEASE_CHANNEL = "leaseChannel";
 
+    //流程编码
+    private final static String WORK_FLOW = "ADVERTISING_REVIEW_WORK_FLOW";
+    //流程分类
+    private final static String DEMO_NAME = "ADVERTISING_REVIEW_WORK_FLOW";
+    private final static String DOCUMENT_NAME = "投放审查工作流";
+    private final static String DOCUMENT_CATEGORY = "CON_CONTRACT";
+    private final static String DOCUMENT_TYPE = " CONLB";
     @Override
     public String placeOrder(String decryptedStr,IRequest iRequest) throws HlsCusException {
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(decryptedStr, PlaceOrderDTO.class);
@@ -578,17 +607,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         jsonObject1.put("message","品牌名称与riskInfo中的值不同");
                         throw new HlsCusException(jsonObject1.toJSONString());
                     }
-                    if (preRiskAuditData1.getChexi().equals(carInfo.getSeriesName())){
+                    if (!preRiskAuditData1.getChexi().equals(carInfo.getSeriesName())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车系名称与riskInfo中的值不同");
                         throw new HlsCusException(jsonObject1.toJSONString());
                     }
-                    if (preRiskAuditData1.getCartype().equals(carInfo.getModelName())){
+                    if (!preRiskAuditData1.getCartype().equals(carInfo.getModelName())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车型名称与riskInfo中的值不同");
                         throw new HlsCusException(jsonObject1.toJSONString());
                     }
-                    if (preRiskAuditData1.getCarcolor().equals(carInfo.getColor())){
+                    if (!preRiskAuditData1.getCarcolor().equals(carInfo.getColor())){
                         jsonObject1.put("code","400");
                         jsonObject1.put("message","车辆颜色与riskInfo中的值不同");
                         throw new HlsCusException(jsonObject1.toJSONString());
@@ -2004,7 +2033,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String businessApplication(String decryptedStr,HttpServletRequest request) throws HlsCusException {
+    public String businessApplication(String decryptedStr,HttpServletRequest request,IRequest iRequest) throws HlsCusException, ResMessageException {
         BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(decryptedStr, BusinessApplicationDTO.class);
         JSONObject returnJson = new JSONObject();
 
@@ -2091,12 +2120,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     preRiskAuditData.getChexi().equals(hlsCusPrjProjectLeaseItem.getSeriesC())&&
                     preRiskAuditData.getCartype().equals(hlsCusPrjProjectLeaseItem.getModelC())&&
                     preRiskAuditData.getCarcolor().equals(hlsCusPrjProjectLeaseItem.getColorC())&&
-                    preRiskAuditData.getFinancingamount().equals(hlsCusPrjProjectLeaseItem.getFinanceAmount())&&
-                    preRiskAuditData.getClxsjg().equals(hlsCusPrjProjectLeaseItem.getSellingPrice())&&
-                    preRiskAuditData.getCfpp().equals(hlsCusPrjProjectLeaseItem.getListPrice())&&
-                    preRiskAuditData.getYfzj().equals(hlsCusPrjQuotation.getPmt())&&
-                    preRiskAuditData.getNhll().equals(hlsCusPrjQuotation.getIntRate())&&
-                    preRiskAuditData.getSfje().equals(hlsCusPrjQuotation.getDownPayment())){
+                    (Double.compare(Double.valueOf(preRiskAuditData.getFinancingamount()),hlsCusPrjProjectLeaseItem.getFinanceAmount()) == 0)&&
+                    (Double.compare(Double.valueOf(preRiskAuditData.getClxsjg()),hlsCusPrjProjectLeaseItem.getSellingPrice()) == 0)&&
+                    (Double.compare(Double.valueOf(preRiskAuditData.getCfpp()),hlsCusPrjProjectLeaseItem.getListPrice()) == 0)&&
+                    (Double.compare(Double.valueOf(preRiskAuditData.getYfzj()),hlsCusPrjQuotation.getPmt()) == 0)&&
+                    (Double.compare(Double.valueOf(preRiskAuditData.getNhll()),hlsCusPrjQuotation.getIntRate()) == 0)&&
+                    (Double.compare(Double.valueOf(preRiskAuditData.getSfje()),hlsCusPrjQuotation.getDownPayment()) == 0)){
                 //获取审批通过日的毫秒值
                 long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
                 //获取当前时间毫秒值
@@ -2109,6 +2138,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         returnJson.put("message","审批通过超过三十天");
                         throw new HlsCusException(returnJson.toJSONString());
                     }
+                    //发起投放审查流程前先校验
+                    dateCheck(hlsCusPrjProject);
+                    //发起投放审查流程
+                    signWorkFlowSubmit(iRequest, hlsCusPrjProject);
+                    hlsCusPrjProject.setInvestmentStatus("APPROVING");
+                    prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
                 }else if ("RE_APPLY_LOAN".equals(action)){
                     if (days>=50){
                         returnJson.put("code","400");
@@ -2116,6 +2151,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         throw new HlsCusException(returnJson.toJSONString());
                     }
                 }
+            }else{
+                returnJson.put("code","400");
+                returnJson.put("message","风控与业务数据不一致");
+                throw new HlsCusException(returnJson.toJSONString());
             }
         }else{
             //抵押材料审核
@@ -2387,5 +2426,63 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         return calculationResultsDto;
     }
 
+    /**
+     * 进件投放审查工作流提交
+     * @param iRequest 请求
+     * @param project 进件投放审查申请数据
+     * @param workFlowType 用于代码获取工作流提交的实现类
+     */
+    private void signWorkFlowSubmit(IRequest iRequest, HlsCusPrjProject project){
+        List<HlsCusPrjProject> list = new ArrayList<>();
+        Map<String, Object> map = new HashMap<>();
 
+        list.add(project);
+
+        String bpName = prjProjectMapper.selectTenantNameByProject(project);
+        map.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW);
+        map.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME);
+        map.put(IActivitiCommonService.BUSINESS_KEY, project.getProjectId());
+        map.put("projectId", project.getProjectId());
+        //单据类别
+        map.put("documentCategory",DOCUMENT_CATEGORY);
+        //单据类型
+        map.put("documentType", DOCUMENT_TYPE);
+        //单据名称
+        map.put("documentName", DOCUMENT_NAME);
+        //单据编号
+        map.put("documentNumber", project.getProjectNumber());
+        //设置工作流参数
+        JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(project));
+        map.put(PROJECT, jsonObject.toString());
+        map.put(PROJECT_NAME, bpName);
+        map.put(DOCUMENT_TYPE, "CON");
+        map.put(DOCUMENT_ID, project.getProjectId());
+        map.put("workFlowType", WORK_FLOW);
+        //map.put(WORKFLOW_TYPE, workFlowType);
+        //map.put(DOCUMENT_NAME, bpName);
+        //map.put(DOCUMENT_NUMBER, project.getProjectNumber());
+        //map.put(LEASE_CHANNEL, project.getLeaseChannel());
+        //map.put("manufacturerId", project.getManufacturerId());
+        /*iRequest.setUserId(Long.valueOf(10001));
+        iRequest.setCompanyId(Long.valueOf(1));
+        iRequest.setEmployeeCode("ADMIN");
+        iRequest.setRoleId(Long.valueOf(10146));
+        iRequest.setUserName("admin");
+        iRequest.setEmployeeName("管理员");*/
+        activitiStartService.start(iRequest, list, map);
+    }
+
+    private List<PrjProjectApproval> dateCheck(HlsCusPrjProject dto) throws ResMessageException {
+        /**
+         * 提交时校验
+         */
+        HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
+        hlsCusPrjProject.setProjectId(dto.getProjectId());
+        HlsCusPrjProject hlsCusPrjProjectList = prjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
+        if ("APPROVING".equals(hlsCusPrjProjectList.getInvestmentStatus()) ) {
+            throw new ResMessageException("已经提交了申请,无需重复提交!");
+        }
+
+        return null;
+    }
 }

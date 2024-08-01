@@ -208,4 +208,11 @@ public class HlsCusPrjProjectAttachmentServiceImpl extends BaseServiceImpl<HlsCu
         return true;
     }
 
+    @Override
+    public List<HlsCusPrjProjectAttachment> selectContractAttachmentInfo(IRequest iRequest, HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment, int page, int pageSize) {
+        PageHelper.startPage(page, pageSize);
+        List<HlsCusPrjProjectAttachment> list = hlsCusPrjProjectAttachmentMapper.selectContractAttachmentInfo(hlsCusPrjProjectAttachment);
+        return list;
+    }
+
 }

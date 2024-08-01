@@ -79,4 +79,6 @@ public interface HlsCusPrjProjectAttachmentService extends IBaseService<HlsCusPr
 
     boolean deleteAttachment(Long attachmentId);
 
+    List<HlsCusPrjProjectAttachment> selectContractAttachmentInfo(IRequest iRequest, HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment, int page, int pageSize);
+
 }
