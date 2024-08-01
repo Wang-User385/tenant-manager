@@ -9129,4 +9129,79 @@ and con.contract_status in
     </update>
 
 
+
+    <!--核销为预收款选择代扣现金流数据-->
+    <select id="queryContractCashflowForCompLov" resultMap="BaseResultMap"
+            resultType="com.hand.hls.cont.dto.HlsCusConContractCashflow">
+        select t1.*
+        from (SELECT ccc.cashflow_id,
+        ccc.due_amount,
+        ccc.DUE_AMOUNT-nvl(ccc.RECEIVED_AMOUNT,0)  AS surplus_amount,
+        ccc.CF_DIRECTION,
+        ccc.cf_type,
+        ccc.cf_item,
+        ccc.times,
+        ccc.due_date,
+        to_char(ccc.due_date, 'yyyy-MM-dd') as due_date_format,
+        (SELECT ci.description
+        FROM hls_cashflow_item ci
+        WHERE ci.cf_type = ccc.cf_type
+        AND ci.cf_item = ccc.cf_item)                                     AS cf_item_n,
+        cc.contract_id,
+        cc.contract_number,
+        cc.contract_status,
+        cc.tenant_id                                                         AS bp_id,
+        (SELECT m.bp_name FROM hls_bp_master m WHERE m.bp_id = cc.tenant_id) AS bp_name
+        FROM con_contract_cashflow ccc,
+        con_contract cc
+        WHERE ccc.contract_id = cc.contract_id
+        AND ccc.cf_item = 1
+        AND ccc.cf_type = 1
+        AND ccc.PLAN_TYPE = 'COMP'
+        AND nvl(ccc.write_off_flag,'NOT') != 'FULL'
+        AND cc.contract_status = 'INCEPT') t1
+        WHERE
+        1 = 1
+        <if test="contractId!=null">
+            and t1.contract_id = #{contractId}
+        </if>
+        <if test="bpName!=null">
+            and t1.bp_name like concat('%',concat(#{bpName},'%'))
+        </if>
+        <if test="contractNumber!=null">
+            and t1.contract_number like concat('%',concat(#{contractNumber},'%') )
+        </if>
+        <if test="notCashflowIds!=null">
+            and t1.cashflow_id not in
+            <foreach collection="notCashflowIds" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="inCashflowIds!=null">
+            and t1.cashflow_id in
+            <foreach collection="inCashflowIds" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        <if test="surplusAmountFlag!=null">
+            and ('Y' = #{surplusAmountFlag} and t1.surplus_amount >0)
+        </if>
+        <if test="cfItem!=null">
+            and t1.cf_item = #{cfItem}
+        </if>
+        <if test="cfItemN!=null">
+            and t1.cf_item_n like concat('%',concat(#{cfItemN},'%'))
+        </if>
+        <if test="dueDateFrom!=null">
+            AND to_char(t1.due_date,'YYYY-MM-DD') &gt;= to_char(#{dueDateFrom},'YYYY-MM-DD')
+
+        </if>
+        <if test="dueDateTo!=null">
+            AND to_char(t1.due_date,'YYYY-MM-DD') &lt;= to_char(#{dueDateTo},'YYYY-MM-DD')
+
+        </if>
+        order by t1.contract_number,t1.times
+    </select>
+
+
 </mapper>

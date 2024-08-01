@@ -328,4 +328,11 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
      * 冻结现金流
      */
     void updateCashflowBlock(@Param("contractId")Long contractId);
+
+    /**
+     * 核销为预收款选择代扣现金流数据
+     * @param conContractCashflow
+     * @return
+     */
+    List<HlsCusConContractCashflow> queryContractCashflowForCompLov(HlsCusConContractCashflow conContractCashflow);
 }

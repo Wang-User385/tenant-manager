@@ -310,12 +310,12 @@ public class HlsCusCshTransaction extends CshTransaction {
     private Long termNo;
 
     @Transient
-    private Double refundCentreAmount; //退款中金额
+    private Double refundingAmount; //退款中金额
 
-    private Long primaryTransactionId;  //原收款事务ID
+    private Long sourceTransactionId;  //原收款事务ID
 
     @Transient
-    private String primaryTransactionNum;   //原收款编号
+    private String sourceTransactionNum;   //原收款编号
 
     @Transient
     private String isAllocationFlagN; // 是否已匹配待确认

@@ -592,4 +592,139 @@ public class ConContractCashflowController extends BaseController {
     }
 
 
+    /**
+     * 收款管理-业务功能 核销为预收款：代偿
+     */
+    @RequestMapping(value = "/contract/cashflow/comp/queryLov")
+    @ResponseBody
+    public ResponseData compQuery(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,
+                                     HttpServletRequest request, HttpServletResponse response,
+                                     HlsCusConContractCashflow hlsCusConContractCashflow,
+                                     @RequestParam(defaultValue = DEFAULT_PAGE) int pagenum,
+                                     @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pagesize) {
+        JSONObject param = (JSONObject) requestData.get("parameter");
+
+        String sortName=null;
+        String sortOrder=null;
+        if(param.get("sort_name")!=null){
+            sortName = param.get("sort_name").toString();
+        }
+        if(param.get("sort_name")!=null){
+            sortOrder=param.get("sort_order").toString();
+        }
+
+
+        HlsCusConContractCashflow metadataRelation = param.toJavaObject(HlsCusConContractCashflow.class);
+        //二期功能：接收多选伪LOV页面的查询参数
+        String multiNotCashflowIdsStr = metadataRelation.getNotCashflowIdsStr();
+        String multiInCashflowIdsStr = metadataRelation.getInCashflowIdsStr();
+        if (multiNotCashflowIdsStr != null && !"".equals(multiNotCashflowIdsStr)) {
+            List<Long> notCashflowIds = new ArrayList<>();
+
+            String[] str = multiNotCashflowIdsStr.split(",");
+
+            for (int i = 0; i < str.length; i++) {
+                if (!"undefined".equals(str[i])) {
+                    notCashflowIds.add(Long.parseLong(str[i]));
+                }
+            }
+            if (notCashflowIds.size() > 0) {
+                metadataRelation.setNotCashflowIds(notCashflowIds);
+            }
+        }
+
+        if (multiInCashflowIdsStr != null && !"".equals(multiInCashflowIdsStr)) {
+            List<Long> inCashflowIds = new ArrayList<>();
+            String[] str = multiInCashflowIdsStr.split(",");
+
+            for (int i = 0; i < str.length; i++) {
+                inCashflowIds.add(Long.parseLong(str[i]));
+            }
+            metadataRelation.setInCashflowIds(inCashflowIds);
+        }
+
+        //用来接收setLovPara 参数
+        String notCashflowIdsStr = hlsCusConContractCashflow.getNotCashflowIdsStr();
+        String inCashflowIdsStr = hlsCusConContractCashflow.getInCashflowIdsStr();
+        if (notCashflowIdsStr != null && !"".equals(notCashflowIdsStr)) {
+            List<Long> notCashflowIds = new ArrayList<>();
+
+            String[] str = notCashflowIdsStr.split(",");
+
+            for (int i = 0; i < str.length; i++) {
+                if (!"undefined".equals(str[i])) {
+                    notCashflowIds.add(Long.parseLong(str[i]));
+                }
+            }
+            if (notCashflowIds.size() > 0) {
+                metadataRelation.setNotCashflowIds(notCashflowIds);
+            }
+        }
+
+        if (inCashflowIdsStr != null && !"".equals(inCashflowIdsStr)) {
+            List<Long> inCashflowIds = new ArrayList<>();
+            String[] str = inCashflowIdsStr.split(",");
+
+            for (int i = 0; i < str.length; i++) {
+                inCashflowIds.add(Long.parseLong(str[i]));
+            }
+            metadataRelation.setInCashflowIds(inCashflowIds);
+        }
+        if (hlsCusConContractCashflow.getContractId() != null) {
+            metadataRelation.setContractId(hlsCusConContractCashflow.getContractId());
+        }
+
+        if (hlsCusConContractCashflow.getCfStatus() != null) {
+            metadataRelation.setCfStatus(hlsCusConContractCashflow.getCfStatus());
+        }
+
+        if (hlsCusConContractCashflow.getCfDirection() != null) {
+            metadataRelation.setCfDirection(hlsCusConContractCashflow.getCfDirection());
+        }
+        if (hlsCusConContractCashflow.getSurplusAmountFlag() != null) {
+            metadataRelation.setSurplusAmountFlag(hlsCusConContractCashflow.getSurplusAmountFlag());
+        }
+        if (hlsCusConContractCashflow.getCfItem() != null) {
+            metadataRelation.setCfItem(hlsCusConContractCashflow.getCfItem());
+        }
+
+        if (hlsCusConContractCashflow.getCfType() != null) {
+            metadataRelation.setCfType(hlsCusConContractCashflow.getCfType());
+        }
+
+
+        if (hlsCusConContractCashflow.getDueDateFrom() != null) {
+            metadataRelation.setDueDateFrom(hlsCusConContractCashflow.getDueDateFrom());
+        }
+
+        if (hlsCusConContractCashflow.getDueDateTo() != null) {
+            metadataRelation.setDueDateTo(hlsCusConContractCashflow.getDueDateTo());
+        }
+
+        if (hlsCusConContractCashflow.getCfItemN() != null) {
+            metadataRelation.setCfItemN(hlsCusConContractCashflow.getCfItemN());
+        }
+
+        IRequest requestCtx = createRequestContext(request);
+
+        String orderBy = null;
+        if(sortName!=null){
+            if(orderBy==null){
+                orderBy=sortName+" "+sortOrder;
+            }else {
+                orderBy = orderBy + " " + sortName + " " + sortOrder;
+            }
+        }
+        PageHelper.startPage(pagenum,pagesize);
+        if(StringUtils.isNotEmpty(orderBy)){
+            PageHelper.orderBy(orderBy);
+        }
+
+        List<HlsCusConContractCashflow> list=hlsCusConContractCashflowMapper.queryContractCashflowForCompLov(metadataRelation);
+
+
+        return new ResponseData(list);
+    }
+
+
 }

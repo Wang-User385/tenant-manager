@@ -157,7 +157,7 @@
         <result column="import_date" property="importDate"/>
         <result column="reversed_description" property="reversedDescription"/>
         <result column="refund_amount" property="refundAmount"/>
-        <result column="refund_centre_amount" property="refundCentreAmount"/>
+        <result column="refunding_amount" property="refundingAmount"/>
         <result column="un_write_off_amount" property="unWriteOffAmount"/>
 
         <result column="un_write_off_amount_from" property="unWriteOffAmountFrom"/>
@@ -218,8 +218,8 @@
         <result column="rent_due_date" property="rentDueDate" jdbcType="DATE"/>
         <result column="credit_principal" property="creditPrincipal"/>
         <result column="credit_interest" property="creditInterest"/>
-        <result column="primary_transaction_id" property="primaryTransactionId" jdbcType="DECIMAL"/>
-        <result column="primary_transaction_num" property="primaryTransactionNum" jdbcType="VARCHAR"/>
+        <result column="source_transaction_id" property="sourceTransactionId" jdbcType="DECIMAL"/>
+        <result column="source_transaction_num" property="sourceTransactionNum" jdbcType="VARCHAR"/>
         <result column="is_allocation_flag_n" property="isAllocationFlagN" jdbcType="VARCHAR"/>
     </resultMap>
 
@@ -1719,7 +1719,7 @@
     <select id="detailQueryNewBusiness" resultMap="BaseResultMap">
         select  ttt1.*
         from ( select t1.*,
-        nvl(t1.transaction_amount-nvl(t1.refund_amount,0)-nvl(t1.write_off_amount,0)-nvl(t1.frozen_amount,0)-nvl(t1.refund_centre_amount,0),0)   un_write_off_amount,
+        nvl(t1.transaction_amount-nvl(t1.refund_amount,0)-nvl(t1.write_off_amount,0)-nvl(t1.frozen_amount,0)-nvl(t1.refunding_amount,0),0)   un_write_off_amount,
         ( CASE WHEN t1.ctr_refund_flag = 0 THEN 'N' ELSE 'Y' END ) AS refund_flag,
         ( CASE WHEN t1.ctr_refund_flag = 0 THEN '否' ELSE '是' END ) AS refund_flag_n
         from (
@@ -1747,7 +1747,7 @@
         WHERE
         ctr.refund_status = 'APPROVING'
         AND ctr.TRANSACTION_ID = tran.TRANSACTION_ID
-        )  refund_centre_amount,
+        )  refunding_amount,
         (tran.transaction_amount - tran.write_off_due_amount) un_write_off_due_amount
         from (SELECT t.*,
         (select ctr.REFUND_STATUS
@@ -1826,7 +1826,7 @@
         nvl((select  sum(ctr.REFUND_AMOUNT) from csh_transaction_refund  ctr  where ctr.TRANSACTION_ID=t.TRANSACTION_ID
         and ctr.REFUND_STATUS in ('APPROVING','APPROVED')
         and ctr.PAYMENT_REFUND_STATUS !='PAID'),0)   frozen_amount,
-        (select ct.transaction_num from csh_transaction ct where ct.transaction_id = t.primary_transaction_id) primary_transaction_num
+        (select ct.transaction_num from csh_transaction ct where ct.transaction_id = t.source_transaction_id) source_transaction_num
 
 
         FROM csh_transaction t,

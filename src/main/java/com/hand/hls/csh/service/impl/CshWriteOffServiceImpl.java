@@ -2257,6 +2257,8 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             allocationAdvance.setBpName(advance.getBpName());
             allocationAdvance.setWriteOffDueAmount(advance.getWriteOffDueAmount());
             allocationAdvance.setWriteOffType(advance.getWriteOffType());
+            allocationAdvance.setContractId(advance.getContractId());
+            allocationAdvance.setCashflowId(advance.getCashflowId());
             advanceService.insertSelective(iRequest, allocationAdvance);
             //2.新增一条预收款记录写入csh_transaction表中
             //TODO 赋值确定
@@ -2285,6 +2287,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 insertCshTransaction.setSourceDocId(allocationAdvance.getAllocationId());
                 insertCshTransaction.setSourceDocLineId(allocationAdvance.getAdvanceId());
                 insertCshTransaction.setWriteOffFlag("NOT");
+                insertCshTransaction.setSourceTransactionId(cusCshTransaction.getTransactionId());
                 insertCshTransaction.setComments(cusCshTransaction.getComments());
                 //收款编号
                 getTransactionNumAdvance(iRequest, insertCshTransaction);

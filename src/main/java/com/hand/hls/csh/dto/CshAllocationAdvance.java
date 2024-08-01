@@ -38,6 +38,12 @@ public class CshAllocationAdvance extends BaseDTO {
      @Length(max = 200)
      private String bpName;
 
+
+
+     private Long contractId;
+
+     private Long cashflowId;
+
     @Transient
     private String writeOffTypeDesc;
 
@@ -97,4 +103,21 @@ public class CshAllocationAdvance extends BaseDTO {
     public void setWriteOffTypeDesc(String writeOffTypeDesc) {
         this.writeOffTypeDesc = writeOffTypeDesc;
     }
+
+    public Long getContractId() {
+        return contractId;
+    }
+
+    public void setContractId(Long contractId) {
+        this.contractId = contractId;
+    }
+
+    public Long getCashflowId() {
+        return cashflowId;
+    }
+
+    public void setCashflowId(Long cashflowId) {
+        this.cashflowId = cashflowId;
+    }
+
 }
