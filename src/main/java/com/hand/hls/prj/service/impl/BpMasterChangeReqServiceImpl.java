@@ -46,6 +46,9 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
 
     @Autowired
     private BpMasterChangeReqMapper bpMasterChangeReqMapper;
+
+    @Autowired
+    private HlsBpMasterBusinessConditionMapper hlsBpMasterBusinessConditionMapper;
     @Autowired
     private DatabaseLockProvider databaseLockProvider;
     @Autowired
@@ -321,6 +324,15 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
         sysDocumentHistoryService.createHistory(documentCategory, documentId, datas);
     }
 
+    @Override
+    public List<Long> count(Long bpId) {
+        Example example = new Example(HlsBpMasterBusinessCondition.class);
+        example.createCriteria().andEqualTo("bpId",bpId);
+        int count = hlsBpMasterBusinessConditionMapper.selectCountByExample(example);
+        List<Long> counts = new ArrayList<>();
+        counts.add((long) count);
+        return counts;
+    }
 
 
     public List<Map<String, Object>> getDatas(Long bpId) throws ParameterNullException {
@@ -368,7 +380,31 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
 //        datas.addAll(getBpCustlawsuit(bpId));
         //其他重大信息
 //        datas.addAll(getBpCustevent(bpId));
+
+        //生产经营信息
+        Example example = new Example(HlsBpMasterBusinessCondition.class);
+        example.createCriteria().andEqualTo("bpId",bpId);
+        int count = hlsBpMasterBusinessConditionMapper.selectCountByExample(example);
+        if (count == 1){
+            datas.addAll(getBusinessInfo(bpId));
+        }
+
         return datas;
+    }
+
+
+
+    private List<Map<String, Object>> getBusinessInfo(Long bpId) throws ParameterNullException {
+        HlsBpMasterBusinessCondition hlsBpMasterBusinessCondition=new HlsBpMasterBusinessCondition();
+        hlsBpMasterBusinessCondition.setBpId(bpId);
+        List<HlsBpMasterBusinessCondition> ans = hlsBpMasterBusinessConditionMapper.queryAllByConditionId(hlsBpMasterBusinessCondition);
+        List<Map<String, Object>> list = new ArrayList<>();
+        try {
+            list = SysDocumentHistoryUtils.initRecords("hls_bp_master_business_condition", "condition_id", "hls_bp_master", bpId.toString(), ans);
+        } catch (ResMessageException e) {
+            logger.warn("getBusinessInfo {}", e.getMessage());
+        }
+        return list;
     }
 
     private List<Map<String, Object>> getBpInfo(Long bpId) throws ParameterNullException {

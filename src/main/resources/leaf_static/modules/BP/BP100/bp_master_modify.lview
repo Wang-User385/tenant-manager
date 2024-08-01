@@ -240,6 +240,7 @@
             var registration_num_type = record.get('registration_num_type');
             var id_card_no = record.get('id_card_no');
             var id_type = record.get('id_type');
+            var condition_id = record.get('condition_id');
             if (!$(hls_bp_master_ds_id).validate()){
                 return;
             }
@@ -251,24 +252,25 @@
                         Leaf.showErrorMessage('提示', '统一社会信用代码有误，请重新输入！');
                         return ;
                     }
-                }
-                var flag = false;
-                jQuery.ajax({
-                    type: 'GET',
-                    url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id1 + "&regNumber=" + register_cert_num,
-                    async: false,
-                    success: function (args) {
-                        if (args.success) {
-                            flag = true;
-                        } else {
-                            flag = false;
+                    var flag = false;
+                    jQuery.ajax({
+                        type: 'GET',
+                        url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id1 + "&regNumber=" + register_cert_num,
+                        async: false,
+                        success: function (args) {
+                            if (args.success) {
+                                flag = true;
+                            } else {
+                                flag = false;
+                            }
                         }
+                    });
+                    if (!flag){
+                        Leaf.showErrorMessage('提示', '统一社会信用代码重复！', null, 200, 100);
+                        return;
                     }
-                });
-                if (!flag){
-                    Leaf.showErrorMessage('提示', '登记注册号码重复！', null, 200, 100);
-                    return;
                 }
+
             }
             var phone = record.get('phone');
             var spouse_phone = record.get('spouse_phone');
@@ -441,7 +443,7 @@
                         }
                         jQuery.ajax({
                             type: 'GET',
-                            url: "${/request/@context_path}/hls/bp/master/validRegNumber?bpId=" + bp_id + "&regNumber=" + reg_number,
+                            url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id + "&regNumber=" + reg_number,
                             async: false,
                             success: function (args) {
                                 // alert(args);
@@ -1113,7 +1115,7 @@
                 });
                 if (!is_regno_valid) {
                     if (ds_id == ds.id) {
-                        Leaf.showErrorMessage('提示', "登记注册号码重复！");
+                        Leaf.showErrorMessage('提示', "统一社会信用代码重复！");
                     }
                     return false;
                 }

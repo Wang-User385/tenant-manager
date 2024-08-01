@@ -43,4 +43,5 @@ public interface IBpMasterChangeReqService extends IBaseService<BpMasterChangeRe
     void createHistory(Long documentId, String documentCategory, Long bpId) throws ParameterNullException;
 
 
+    List<Long> count(Long bpId);
 }

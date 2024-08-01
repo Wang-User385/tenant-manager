@@ -4,6 +4,8 @@
     <a:view>
         <a:link id="prj320_bp_master_assign_id"
                 url="${/request/@context_path}/modules/BP/BP100/hls_bp_master_assign_approver.lview"/>
+        <a:link id="${/parameter/@layout_code}_bp_master_product_detail_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_product_detail.lview"/>
         <script><![CDATA[
         //天眼查
         window['${/parameter/@layout_code}_user_button6_layout_dynamic_click'] = function () {
@@ -143,6 +145,37 @@
                 window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             }
         }
+
+        window['${/parameter/@layout_code}_user_button8_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            var record = $(ds_id).getCurrentRecord();
+            var bp_id1 = record.get("bp_id");
+            if (!bp_id1){
+                Leaf.showErrorMessage('提示', '请先保存数据！', null, 200, 100);
+                return;
+            }
+            var  param = {};
+            param['change_req_id'] = '${/parameter/@change_req_id}';
+            param['document_category'] = 'HLS_BP_MASTER_CHANGE';
+            param['bp_class'] = '${/parameter/@bp_class}';
+            param['bp_project_flag'] = '${/parameter/@bp_project_flag}';
+            param['bp_contract_flag'] = '${/parameter/@bp_contract_flag}';
+            param['condition_id'] = record.get('condition_id');
+            param['bp_id'] = record.get('bp_id');
+            console.log(record.get('bp_id'));
+            param['url_title'] = '生产经营情况维护明细页面';
+            param['function_code'] = 'BP100F7';  // BP100F2
+            param['winid'] = 'hls_bp_master_business_condition_winid';
+            if ('${/parameter/@function_usage}' === 'QUERY'){
+                param['function_usage'] = 'QUERY';
+                // param['function_usage'] = 'READONLY';
+            }else {
+                param['maintain_type'] = 'UPDATE';
+                param['function_usage'] = 'MODIFY';
+            }
+            hls_doc_get_layout_code(param, '${/parameter/@layout_code}_bp_master_product_detail_id', ds_id, 'BP100F1');
+        };
 
         //保存submitsuccess调用
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {

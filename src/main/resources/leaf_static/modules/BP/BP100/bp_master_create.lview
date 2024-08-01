@@ -591,8 +591,8 @@
                         }
                         jQuery.ajax({
                             type: 'GET',
-                            url: "${/request/@context_path}/hls/bp/master/validRegNumber?bpId=" + bp_id + "&regNumber=" + reg_number,
-                            async: false,
+                            url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id + "&regNumber=" + reg_number,
+                            sync: true,
                             success: function (args) {
                                 // alert(args);
                                 if (args.success) {
@@ -960,13 +960,50 @@
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             var hp_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
             var hp_ds_id_record = $(hp_ds_id).getCurrentRecord();
+            var bp_id_2 = hp_ds_id_record.get('bp_id');
             //如果是启用的用户则隐藏按钮
             if (hp_ds_id_record.get('enabled_flag') === 'Y'){
                 jQuery('#${/parameter/@layout_code}_user_button1').hide();
             }else {
                 jQuery('#${/parameter/@layout_code}_user_button1').show();
             }
+            var count = -1;
 
+            Leaf.request({
+                url: '${/request/@context_path}/hls/change/count?bpId='+bp_id_2,
+                success: function (res) {
+                   count = res.result.record[0];
+                },
+                sync: true
+            });
+
+            if (count == 0){
+                Leaf.Masker.mask(Ext.getBody(), '正在生成版本信息，请稍等...');
+                Leaf.request({
+                    url: "${/request/@context_path}/hls/bp/master/change/request/submit",
+                    para: {"bp_id": bp_id_2},
+                    success: function (res) {
+                        if (res.success) {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                            Leaf.Masker.unmask(Ext.getBody());
+                            Leaf.showInfoMessage("提示", "保存成功!", function () {
+                                // $(hls_bp_master_ds_id).setQueryParameter('bp_id', bp_id);
+                                // $(hls_bp_master_ds_id).query();
+                            });
+                        }
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.Masker.unmask(Ext.getBody());
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
 
 
 
@@ -1187,11 +1224,11 @@
                         return false;
                     }
                     checkCreditCode();
-                    var bp_id_check_num = basicRec.get('bp_id');
+                    // var bp_id_check_num = basicRec.get('bp_id');
                     var reg_number_02 = basicRec.get('register_cert_num');
                     jQuery.ajax({
                         type: 'GET',
-                        url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id_check_num + "&regNumber=" + reg_number_02,
+                        url: "${/request/@context_path}/hls/bp/master/validRegCertNumber2?regNumber=" + reg_number_02,
                         async: false,
                         success: function (args) {
                             // alert(args);
@@ -1201,10 +1238,11 @@
                                 is_regno_valid = false;
                             }
                         }
+
                     });
                     if (!is_regno_valid) {
                         if (ds_id == ds.id) {
-                            Leaf.showErrorMessage('提示', "登记注册号码重复！");
+                            Leaf.showErrorMessage('提示', "统一社会信用代码重复！");
                         }
                         window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                         return false;
@@ -1487,7 +1525,7 @@
                     }
                     jQuery.ajax({
                         type: 'GET',
-                        url: "${/request/@context_path}/hls/bp/master/validRegNumber?bpId=" + bp_id + "&regNumber=" + reg_number,
+                        url: "${/request/@context_path}/hls/bp/master/validRegCertNumber?bpId=" + bp_id + "&regNumber=" + reg_number,
                         async: false,
                         success: function (args) {
                             // alert(args);
