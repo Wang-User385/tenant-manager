@@ -955,6 +955,7 @@
             <a:dataSet id="write_off_flag_ds" lookupCode="CON.CASHFLOW_WRITE_OFF_FLAG"/>
             <a:dataSet id="write_off_match_flag_ds" lookupCode="CON.WRITE_OFF_MATCH_FLAG"/>
             <a:dataSet id="transaction_type_n_ds" lookupCode="CSH301_TRANSACTION_TYPE"/>
+            <a:dataSet id="allocation_flag_n_ds" lookupCode="SYS.YES_NO"/>
 
             <a:dataSet id="csh_transaction_receipt_maintain_query_ds" autoCreate="true">
                 <a:fields>
@@ -975,6 +976,15 @@
                              returnField="refund_flag" valueField="code_value"/>
                     <a:field name="refund_flag"/>
                     <a:field name="transaction_type" />
+                    <a:field name="allocation_flag_n" displayField="code_value_name" options="allocation_flag_n_ds"
+                             returnField="allocation_flag" valueField="code_value"/>
+                    <a:field name="allocation_flag"/>
+                    <a:field name="remaining_amount_from"/>
+                    <a:field name="remaining_amount_to"/>
+
+
+
+
                 </a:fields>
             </a:dataSet>
             <a:dataSet id="csh_transaction_receipt_maintain_result_ds" autoPageSize="true" autoQuery="true"
@@ -1000,6 +1010,7 @@
                     <a:field name="match_status"/>
                     <a:field name="advance_csh_trx_id"/>
                     <a:field name="reversed_date" datatype="date"/>
+                    <a:field name="source_transaction_id_n"/>
                 </a:fields>
             </a:dataSet>
 
@@ -1022,6 +1033,8 @@
                              returnField="refund_flag" valueField="code_value"/>
                     <a:field name="refund_flag"/>
                     <a:field name="transaction_type" defaultValue="ADVANCE_RECEIPT"/>
+
+
                 </a:fields>
             </a:dataSet>
 
@@ -1116,7 +1129,7 @@
                                 <a:gridButton click="csh301_transaction_query" text="HLS.QUERY"/>
                                 <a:gridButton click="csh301_transaction_reset" text="HLS.RESET"/>
                                 <a:gridButton click="csh301_transaction_add" text="收款新增"/>
-                                <!--<a:gridButton click="csh301_transaction_receipt_import" text="收款新增导入"/>-->
+                                <a:gridButton click="csh301_transaction_receipt_import" text="收款新增导入"/>
                                 <!-- <a:gridButton click="csh301_transaction_manual_allocation" text="核销确认"/> -->
                                 <a:gridButton click="csh301_transaction_reverse" text="收款反冲"/>
                             </a:screenTopToolbar>
@@ -1127,9 +1140,12 @@
                                 <a:comboBox name="reversed_flag_n"
                                             bindTarget="csh_transaction_receipt_maintain_query_ds"
                                             prompt="是否反冲"/>
-                                <a:comboBox name="refund_flag_n"
+                                <a:comboBox name="transaction_type_n"
                                             bindTarget="csh_transaction_receipt_maintain_query_ds"
-                                            prompt="是否退款"/>
+                                            prompt="现金事务类型"/>
+<!--                                <a:comboBox name="refund_flag_n"-->
+<!--                                            bindTarget="csh_transaction_receipt_maintain_query_ds"-->
+<!--                                            prompt="是否退款"/>-->
                                 <a:comboBox name="write_off_flag_n"
                                             bindTarget="csh_transaction_receipt_maintain_query_ds"
                                             prompt="核销状态"/>
@@ -1145,20 +1161,21 @@
                                 <a:numberField name="transaction_amount_to"
                                                bindTarget="csh_transaction_receipt_maintain_query_ds"
                                                prompt="收款金额到(元)"/>
-                                <a:numberField name="un_write_off_amount_from"
+                                <a:numberField name="remaining_amount_from"
                                                bindTarget="csh_transaction_receipt_maintain_query_ds"
-                                               prompt="未核销金额从(元)"/>
-                                <a:numberField name="un_write_off_amount_to"
+                                               prompt="剩余可核销金额从（元）"/>
+                                <a:numberField name="remaining_amount_to"
                                                bindTarget="csh_transaction_receipt_maintain_query_ds"
-                                               prompt="未核销金额到(元)"/>
+                                               prompt="剩余可核销金额到（元）"/>
                                 <a:textField name="bp_name" bindTarget="csh_transaction_receipt_maintain_query_ds"
                                              prompt="收款对象"/>
                                 <a:textField name="bank_slip_num"
                                              bindTarget="csh_transaction_receipt_maintain_query_ds"
-                                             prompt="流水号"/>
-                                <a:comboBox name="transaction_type_n"
+                                             prompt="银行流水"/>
+                                <a:comboBox name="allocation_flag_n"
                                             bindTarget="csh_transaction_receipt_maintain_query_ds"
-                                            prompt="现金事务类型"/>
+                                            prompt="是否已匹配待确认"/>
+
                             </a:fieldSet>
                         </a:form>
 
@@ -1174,35 +1191,45 @@
                                 <a:column name="transaction_num" prompt="收款编号" width="120"
                                           renderer="allocation_renderer"/>
                                 <a:column name="transaction_type_n" prompt="现金事务类型" align="center" width="80"/>
+                                <a:column name="source_transaction_id_n" prompt="原收款编号" align="center" width="120"/>
                                 <a:column name="transaction_date" align="center" prompt="收款日期" width="100"
                                           renderer="Leaf.formatDate"/>
                                 <a:column name="bp_name" prompt="收款对象" width="200"/>
                                 <a:column name="transaction_amount" prompt="收款金额(元)" renderer="Leaf.formatMoney"
                                           align="right"
                                           width="120"/>
-                                <a:column name="write_off_flag_desc" prompt="核销状态" width="100"/>
-                                <a:column name="write_off_due_amount" prompt="已核销金额(元)"
+                                <a:column name="write_off_flag_n" prompt="核销状态" width="100"/>
+                                <a:column name="write_off_amount" prompt="已核销金额(元)"
                                           align="right" renderer="write_off_detail_renderer"
                                           width="120"/>
-                                <a:column name="credit_principal" prompt="本金(元)" align="right" renderer="Leaf.formatMoney" width="120"/>
-                                <a:column name="credit_interest" prompt="利息(元)" align="right" renderer="Leaf.formatMoney" width="120"/>
-                                <a:column name="is_allocation_flag" prompt="是否已匹配待确认" align="center" width="100"/>
-                                <a:column name="un_write_off_due_amount" prompt="剩余可核销金额(元)"
+                                <a:column name="refund_amount" prompt="已退款金额"
+                                          align="right" renderer="Leaf.formatMoney"
+                                          width="120"/>
+                                <a:column name="refunding_amount" prompt="退款中金额"
+                                          align="right" renderer="Leaf.formatMoney"
+                                          width="120"/>
+<!--                                <a:column name="credit_principal" prompt="本金(元)" align="right" renderer="Leaf.formatMoney" width="120"/>-->
+<!--                                <a:column name="credit_interest" prompt="利息(元)" align="right" renderer="Leaf.formatMoney" width="120"/>-->
+                                <a:column name="allocation_flag_n" prompt="是否已匹配待确认" align="center" width="100"/>
+<!--                                <a:column name="un_write_off_due_amount" prompt="剩余可核销金额(元)"-->
+<!--                                          align="right" renderer="Leaf.formatMoney"-->
+<!--                                          width="120"/>-->
+                                <a:column name="remaining_amount" prompt="剩余可核销金额(元)"
                                           align="right" renderer="Leaf.formatMoney"
                                           width="120"/>
                                 <a:column name="bank_account_name" prompt="入账户名" width="200"/>
                                 <a:column name="bank_account_num" prompt="入账账号" width="200"/>
-                                <a:column name="bank_branch_name" prompt="入账银行" width="250"/>
+<!--                                <a:column name="bank_branch_name" prompt="入账银行" width="250"/>-->
+                                <a:column name="bank_full_name" prompt="入账银行" width="250"/>
                                 <a:column name="bank_slip_num" prompt="银行流水" width="120"/>
-                                <a:column name="description" prompt="摘要" width="120"/>
-
+                                <a:column name="bp_bank_account_name" prompt="对方账户" width="120"/>
+                                <a:column name="bp_bank_account_num" prompt="对方账号" width="120"/>
+                                <a:column name="bp_bank_name" prompt="银行名称" width="120"/>
+                                <a:column name="comments" prompt="摘要" width="120"/>
                                 <a:column name="reversed_flag_n" prompt="是否反冲" align="center" width="80"/>
-
                                 <a:column name="reversed_date" prompt="反冲日期" align="center" renderer="Leaf.formatDate"
                                           width="80"/>
                                 <a:column name="reversed_description" prompt="反冲描述" width="120"/>
-
-
                             </a:columns>
                         </a:grid>
                     </a:tab>

@@ -320,6 +320,25 @@ public class HlsCusCshTransaction extends CshTransaction {
     @Transient
     private String isAllocationFlagN; // 是否已匹配待确认
 
+    @Transient
+    private String sourceTransactionIdN;
+
+    @Transient
+    private Double remainingAmount;
+
+    @Transient
+    private String bankFullName;
+
+    @Transient
+    private String allocationFlagN;
+
+    @Transient
+    private String allocationFlag;
+
+    @Transient
+    private  Double remainingAmountFrom;
+    @Transient
+    private  Double remainingAmountTo;
 
     public HlsCusCshTransaction() {
     }

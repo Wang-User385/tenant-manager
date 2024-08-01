@@ -345,6 +345,7 @@
         <result column="IF_TO_ZX_FLAG" jdbcType="VARCHAR" property="ifToZxFlag"/>
         <result column="IF_TO_ZX_FLAG_N" jdbcType="VARCHAR" property="ifToZxFlagN"/>
 
+
         <result column="SUBSISTING_STATUS_N" property="subsistingStatusN" jdbcType="VARCHAR"/>
         <result column="SUBSISTING_STATUS" property="subsistingStatus" jdbcType="VARCHAR"/>
         <result column="lessor_n" property="lessorN" jdbcType="VARCHAR"/>
@@ -454,7 +455,6 @@
         <result column="company_district_n" property="companyDistrictN" jdbcType="VARCHAR"/>
         <result column="company_province_n" property="companyProvinceN" jdbcType="VARCHAR"/>
         <result column="company_city_n" property="companyCityN" jdbcType="VARCHAR"/>
-
     </resultMap>
 
     <select id="queryBpTenant"  parameterType="com.hand.hls.bp.dto.HlsCusBpMaster" resultMap="BaseResultMap">
@@ -4246,6 +4246,7 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
 
     <select id="queryCusBpMasterDetails" parameterType="com.hand.hls.bp.dto.HlsCusBpMaster" resultMap="BaseResultMap">
         select
+        '湖北省武汉市' test_f,
         hbm.*,
         (SELECT v.meaning
         FROM sys_code_value_b_v v
@@ -4688,36 +4689,33 @@ to_char(hm.valid_from,'yyyy-mm-dd hh24:mi:ss') valid_from,
 
         (
         SELECT
-        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
-        FROM
-        FND_CITY fc
-        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
-        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        WHERE
-        hbm.company_district = fd1.district
+        CONCAT(
+        CONCAT(
+        ( SELECT DESCRIPTION FROM FND_PROVINCE fp1 WHERE TO_CHAR( hbm1.company_province ) = TO_CHAR( fp1.PROVINCE ) ),
+        ( SELECT DESCRIPTION FROM FND_CITY fc1 WHERE TO_CHAR( hbm1.company_city ) = TO_CHAR( fc1.CITY ) )
+        ),
+        ( SELECT DESCRIPTION FROM FND_DISTRICT fd1 WHERE TO_CHAR( hbm1.company_district ) = TO_CHAR( fd1.DISTRICT ) )
+        ) FROM 	hls_bp_master hbm1 where  hbm1.bp_id = #{bpId}
         ) company_district_n,
         (
         SELECT
-        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
-        FROM
-        FND_CITY fc
-        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
-        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        WHERE
-        hbm.house_district = fd1.district
+        CONCAT(
+        CONCAT(
+        ( SELECT DESCRIPTION FROM FND_PROVINCE fp1 WHERE TO_CHAR( hbm1.house_province ) = TO_CHAR( fp1.PROVINCE ) ),
+        ( SELECT DESCRIPTION FROM FND_CITY fc1 WHERE TO_CHAR( hbm1.house_city ) = TO_CHAR( fc1.CITY ) )
+        ),
+        ( SELECT DESCRIPTION FROM FND_DISTRICT fd1 WHERE TO_CHAR( hbm1.house_district ) = TO_CHAR( fd1.DISTRICT ) )
+        ) FROM 	hls_bp_master hbm1 where  hbm1.bp_id = #{bpId}
         ) house_district_n,
         (
         SELECT
-        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
-        FROM
-        FND_CITY fc
-        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
-        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        WHERE
-        TO_CHAR(hbm.domicile_district) =  TO_CHAR(fd1.district)
+        CONCAT(
+        CONCAT(
+        ( SELECT DESCRIPTION FROM FND_PROVINCE fp1 WHERE TO_CHAR( hbm.domicile_province ) = TO_CHAR( fp1.PROVINCE ) ),
+        ( SELECT DESCRIPTION FROM FND_CITY fc1 WHERE TO_CHAR( hbm.domicile_city ) = TO_CHAR( fc1.CITY ) )
+        ),
+        ( SELECT DESCRIPTION FROM FND_DISTRICT fd1 WHERE TO_CHAR( hbm.DOMICILE_DISTRICT ) = TO_CHAR( fd1.DISTRICT ) )
+        )  FROM 	hls_bp_master hbm1 where  hbm1.bp_id = #{bpId}
         ) domicile_district_n,
 
         (SELECT

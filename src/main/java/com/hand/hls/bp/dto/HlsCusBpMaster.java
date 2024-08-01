@@ -819,6 +819,7 @@ public class HlsCusBpMaster extends BaseDTO {
     private String companyCityN;
 
 
+
     @Transient
     private String induClassifySpN;
 

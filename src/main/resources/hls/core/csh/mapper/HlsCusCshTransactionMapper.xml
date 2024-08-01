@@ -221,6 +221,14 @@
         <result column="source_transaction_id" property="sourceTransactionId" jdbcType="DECIMAL"/>
         <result column="source_transaction_num" property="sourceTransactionNum" jdbcType="VARCHAR"/>
         <result column="is_allocation_flag_n" property="isAllocationFlagN" jdbcType="VARCHAR"/>
+
+
+
+
+        <result column="source_transaction_id_n" property="sourceTransactionIdN" jdbcType="VARCHAR"/>
+        <result column="remaining_amount" property="remainingAmount" jdbcType="DECIMAL"/>
+        <result column="bank_full_name" property="bankFullName" jdbcType="VARCHAR"/>
+        <result column="allocation_flag_n" property="allocationFlagN" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="collectionDetailsMap" type="com.hand.hls.csh.dto.HlsCusCshTransaction">
@@ -1985,8 +1993,8 @@
         END match_status,
         hbm.bp_name,
         nvl(t.transaction_amount, 0) - nvl(t.write_off_amount, 0) AS un_write_off_amount_pre,
-        cba.bank_account_name,
-        cba.bank_account_num,
+--         cba.bank_account_name,
+--         cba.bank_account_num,
         cb.bank_name,
         cba.bank_branch_name,
         (nvl(t.transaction_amount, 0) -
@@ -2033,7 +2041,67 @@
         (select sum(cac.INTEREST)
         from csh_allocation_receipt car,CSH_ALLOCATION_CREDIT cac
         where car.transaction_id = t.transaction_id
-        and cac.allocation_id = car.allocation_id) credit_interest
+        and cac.allocation_id = car.allocation_id) credit_interest,
+        ( SELECT ct.transaction_num FROM csh_transaction ct WHERE ct.transaction_id = t.source_transaction_id ) source_transaction_id_n,
+        (
+        SELECT
+        scvb.MEANING
+        FROM
+        SYS_CODE_B scb,
+        SYS_CODE_VALUE_B scvb
+        WHERE
+        scb.code = 'CON.CASHFLOW_WRITE_OFF_FLAG'
+        AND scb.CODE_ID = scvb.CODE_ID
+        AND scvb.VALUE = t.WRITE_OFF_FLAG
+        ) write_off_flag_n,
+        ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ) refunding_amount,
+        nvl( t.transaction_amount, 0 ) - nvl( t.write_off_amount, 0 ) - nvl(
+        ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ),
+        0
+        ) - nvl(
+        ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ),
+        0
+        ) remaining_amount ,
+
+        (
+        CASE
+
+        WHEN (
+        SELECT
+        COUNT( 1 )
+        FROM
+        csh_allocation ca,
+        csh_allocation_receipt car
+        WHERE
+        car.transaction_id = t.transaction_id
+        AND ca.allocation_id = car.allocation_id
+        AND ca.allocation_status = 'N'
+        ) = 0 THEN
+        '否' ELSE '是'
+        END
+        ) allocation_flag_n,
+
+        (select ba.bank_account_name from
+        hls_bp_master_bank_account ba
+        where ba.bank_account_id=
+        t.bank_account_id and
+        ba.enabled_flag='Y'
+        ) bank_account_name,
+        (select ba.bank_account_num from
+        hls_bp_master_bank_account ba
+        where ba.bank_account_id=
+        t.bank_account_id and
+        ba.enabled_flag='Y'
+        ) bank_account_num,
+        (select ba.bank_full_name from
+        hls_bp_master_bank_account ba
+        where ba.bank_account_id=
+        bank_account_id and
+        ba.enabled_flag='Y'
+        ) bank_full_name
+
+
+
 
 
         FROM csh_transaction t,
@@ -2115,6 +2183,37 @@
             <if test="canRefund!=null">
                 and (ttt1.reversed_flag = 'N' AND 'Y' = #{canRefund} and ttt1.is_allocation_flag = '否' and ttt1.write_off_flag
                 != 'FULL')
+            </if>
+            <if test="remainingAmountFrom != null">
+                and   (nvl( ttt1.transaction_amount, 0 ) - nvl( ttt1.write_off_amount, 0 ) - nvl(
+                ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
+                0
+                ) - nvl(
+                ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
+                0
+                )) &gt;= #{remainingAmountFrom}
+            </if>
+            <if test="remainingAmountTo != null">
+                and   (nvl( ttt1.transaction_amount, 0 ) - nvl( ttt1.write_off_amount, 0 ) - nvl(
+                ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
+                0
+                ) - nvl(
+                ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
+                0
+                )) &lt;= #{remainingAmountTo}
+            </if>
+            <if test="allocation_flag != null and allocation_flag != ''">
+                and (
+                SELECT
+                ca.allocation_status
+                FROM
+                csh_allocation ca,
+                csh_allocation_receipt car
+                WHERE
+                car.transaction_id = ttt1.transaction_id
+                AND ca.allocation_id = car.allocation_id
+                AND ca.allocation_status = 'N'
+                ) = #{allocationFlagN}
             </if>
 
         </where>

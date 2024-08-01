@@ -9,14 +9,11 @@ import com.hand.hap.mybatis.entity.Example;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
 import com.hand.hls.bp.dto.*;
 import com.hand.hls.bp.mapper.*;
-import com.hand.hls.fin.dto.BpMasterAttachment;
-import com.hand.hls.fin.mapper.BpMasterAttachmentMapper;
 import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.dto.HlsBpMaster;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.prj.mapper.*;
 import com.hand.hls.prj.service.IBpMasterChangeReqService;
-import com.hand.hls.sys.dto.SysDocumentHistoryDetail;
 import com.hand.hls.sys.mapper.SysDocumentHistoryDetailMapper;
 import com.hand.hls.sys.service.ISysDocumentHistoryService;
 import com.hand.hls.sys.utils.SysDocumentHistoryUtils;
@@ -35,7 +32,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
@@ -109,6 +105,20 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
     private HlsCusBpSeniorPersionMapper hlsCusBpSeniorPersionMapper;
     @Autowired
     private HlsBpAssetsListMapper hlsBpAssetsListMapper;
+
+    @Autowired
+    private HlsBusinessConditionOrderMapper hlsBusinessConditionOrderMapper;
+    @Autowired
+    private HlsBusinessConditionBankMapper hlsBusinessConditionBankMapper;
+    @Autowired
+    private HlsBusinessConditionTaxMapper hlsBusinessConditionTaxMapper;
+    @Autowired
+    private HlsBusinessConditionReceivePayMapper hlsBusinessConditionReceivePayMapper;
+    @Autowired
+    private HlsBusinessConditionHydropowerMapper hlsBusinessConditionHydropowerMapper;
+    @Autowired
+    private HlsBusinessConditionSaleMapper hlsBusinessConditionSaleMapper;
+
 
 
     public static final String DOCUMENT_CATEGORY_BP_CHANGE = "HLS_BP_MASTER_CHANGE";
@@ -320,6 +330,19 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
             meta.put("parentBaseTable", "hls_bp_master");
             meta.put("parentPkValue", bpId.toString());
         });
+        List<Map<String,Object>> datasBusiness = getBusinessDatas(bpId);
+        if (datasBusiness.size() != 0){
+            Example example = new Example(HlsBpMasterBusinessCondition.class);
+            example.createCriteria().andEqualTo("bpId",bpId);
+            List<HlsBpMasterBusinessCondition> hlsBpMasterBusinessConditions =
+                    hlsBpMasterBusinessConditionMapper.selectByExample(example);
+            Long conditionId = hlsBpMasterBusinessConditions.get(0).getConditionId();
+            datas.forEach(item -> {
+                Map<String, String> meta = (Map<String, String>) item.get("meta");
+                meta.put("parentBaseTable", "hls_bp_master_business_condition");
+                meta.put("parentPkValue", conditionId.toString());
+            });
+        }
         //通用创建历史留痕接口
         sysDocumentHistoryService.createHistory(documentCategory, documentId, datas);
     }
@@ -388,10 +411,103 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
         if (count == 1){
             datas.addAll(getBusinessInfo(bpId));
         }
-
         return datas;
     }
 
+    private List<Map<String, Object>> getBusinessDatas(Long bpId) throws ParameterNullException {
+        //开始数据组装
+        List<Map<String, Object>> datas = new ArrayList<>();
+        Example example = new Example(HlsBpMasterBusinessCondition.class);
+        example = new Example(HlsBpMasterBusinessCondition.class);
+        example.createCriteria().andEqualTo(" bpId",bpId);
+        List<HlsBpMasterBusinessCondition> hlsBpMasterBusinessConditions =
+                hlsBpMasterBusinessConditionMapper.selectByExample(example);
+        if (hlsBpMasterBusinessConditions.size() != 1)return datas;
+        Long conditionId = hlsBpMasterBusinessConditions.get(0).getConditionId();
+        datas.addAll(getOrderInfo(conditionId));
+        datas.addAll(getBankInfo(conditionId));
+        datas.addAll(getTaxInfo(conditionId));
+        datas.addAll(getSaleInfo(conditionId));
+        datas.addAll(getHydropowerInfo(conditionId));
+        datas.addAll(getReceivePayInfo(conditionId));
+        return datas;
+    }
+
+    private List<Map<String, Object>>  getOrderInfo(Long conditionId) throws ParameterNullException {
+        HlsBusinessConditionOrder hlsBusinessConditionOrder = new HlsBusinessConditionOrder();
+        hlsBusinessConditionOrder.setConditionId(conditionId);
+        List<HlsBusinessConditionOrder> ans = hlsBusinessConditionOrderMapper.queryAllByConditionId(hlsBusinessConditionOrder);
+        List<Map<String, Object>> list = new ArrayList<>();
+        try {
+            list = SysDocumentHistoryUtils.initRecords("hls_business_condition_order", "order_id", "hls_bp_master_business_condition", conditionId.toString(), ans);
+        } catch (ResMessageException e) {
+            logger.warn("getOrderInfo {}", e.getMessage());
+        }
+        return list;
+    }
+
+    private List<Map<String, Object>>  getBankInfo(Long conditionId) throws ParameterNullException {
+        HlsBusinessConditionBank hlsBusinessConditionBank = new HlsBusinessConditionBank();
+        hlsBusinessConditionBank.setConditionId(conditionId);
+        List<HlsBusinessConditionBank> ans = hlsBusinessConditionBankMapper.queryAllByConditionId(hlsBusinessConditionBank);
+        List<Map<String, Object>> list = new ArrayList<>();
+        try {
+            list = SysDocumentHistoryUtils.initRecords("hls_business_condition_bank", "bank_id", "hls_bp_master_business_condition", conditionId.toString(), ans);
+        } catch (ResMessageException e) {
+            logger.warn("getBankInfo {}", e.getMessage());
+        }
+        return list;
+    }
+
+    private List<Map<String, Object>>  getTaxInfo(Long conditionId) throws ParameterNullException {
+        HlsBusinessConditionTax hlsBusinessConditionTax = new HlsBusinessConditionTax();
+        hlsBusinessConditionTax.setConditionId(conditionId);
+        List<HlsBusinessConditionTax> ans = hlsBusinessConditionTaxMapper.queryAllByConditionId(hlsBusinessConditionTax);
+        List<Map<String, Object>> list = new ArrayList<>();
+        try {
+            list = SysDocumentHistoryUtils.initRecords("hls_business_condition_tax", "tax_id", "hls_bp_master_business_condition", conditionId.toString(), ans);
+        } catch (ResMessageException e) {
+            logger.warn("getTaxInfo {}", e.getMessage());
+        }
+        return list;
+    }
+
+    private List<Map<String, Object>>  getSaleInfo(Long conditionId) throws ParameterNullException {
+        HlsBusinessConditionSale hlsBusinessConditionSale = new HlsBusinessConditionSale();
+        hlsBusinessConditionSale.setConditionId(conditionId);
+        List<HlsBusinessConditionSale> ans = hlsBusinessConditionSaleMapper.queryAllByConditionId(hlsBusinessConditionSale);
+        List<Map<String, Object>> list = new ArrayList<>();
+        try {
+            list = SysDocumentHistoryUtils.initRecords("hls_business_condition_sale", "sale_id", "hls_bp_master_business_condition", conditionId.toString(), ans);
+        } catch (ResMessageException e) {
+            logger.warn("getSaleInfo {}", e.getMessage());
+        }
+        return list;
+    }
+    private List<Map<String, Object>>  getHydropowerInfo(Long conditionId) throws ParameterNullException {
+        HlsBusinessConditionHydropower hlsBusinessConditionHydropower = new HlsBusinessConditionHydropower();
+        hlsBusinessConditionHydropower.setConditionId(conditionId);
+        List<HlsBusinessConditionHydropower> ans = hlsBusinessConditionHydropowerMapper.queryAllByConditionId(hlsBusinessConditionHydropower);
+        List<Map<String, Object>> list = new ArrayList<>();
+        try {
+            list = SysDocumentHistoryUtils.initRecords("hls_business_condition_hydropower", "hydropower_id", "hls_bp_master_business_condition", conditionId.toString(), ans);
+        } catch (ResMessageException e) {
+            logger.warn("getHydropowerInfo {}", e.getMessage());
+        }
+        return list;
+    }
+    private List<Map<String, Object>>  getReceivePayInfo(Long conditionId) throws ParameterNullException {
+        HlsBusinessConditionReceivePay hlsBusinessConditionReceivePay = new HlsBusinessConditionReceivePay();
+        hlsBusinessConditionReceivePay.setConditionId(conditionId);
+        List<HlsBusinessConditionReceivePay> ans = hlsBusinessConditionReceivePayMapper.queryAllByConditionId(hlsBusinessConditionReceivePay);
+        List<Map<String, Object>> list = new ArrayList<>();
+        try {
+            list = SysDocumentHistoryUtils.initRecords("hls_business_condition_receive_pay", "receive_pay_id", "hls_bp_master_business_condition", conditionId.toString(), ans);
+        } catch (ResMessageException e) {
+            logger.warn("getReceivePayInfo {}", e.getMessage());
+        }
+        return list;
+    }
 
 
     private List<Map<String, Object>> getBusinessInfo(Long bpId) throws ParameterNullException {
