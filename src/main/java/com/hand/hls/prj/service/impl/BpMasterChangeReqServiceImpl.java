@@ -337,11 +337,12 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
             List<HlsBpMasterBusinessCondition> hlsBpMasterBusinessConditions =
                     hlsBpMasterBusinessConditionMapper.selectByExample(example);
             Long conditionId = hlsBpMasterBusinessConditions.get(0).getConditionId();
-            datas.forEach(item -> {
+            datasBusiness.forEach(item -> {
                 Map<String, String> meta = (Map<String, String>) item.get("meta");
                 meta.put("parentBaseTable", "hls_bp_master_business_condition");
                 meta.put("parentPkValue", conditionId.toString());
             });
+            datas.addAll(datasBusiness);
         }
         //通用创建历史留痕接口
         sysDocumentHistoryService.createHistory(documentCategory, documentId, datas);
@@ -418,8 +419,7 @@ public class BpMasterChangeReqServiceImpl extends BaseServiceImpl<BpMasterChange
         //开始数据组装
         List<Map<String, Object>> datas = new ArrayList<>();
         Example example = new Example(HlsBpMasterBusinessCondition.class);
-        example = new Example(HlsBpMasterBusinessCondition.class);
-        example.createCriteria().andEqualTo(" bpId",bpId);
+        example.createCriteria().andEqualTo("bpId",bpId);
         List<HlsBpMasterBusinessCondition> hlsBpMasterBusinessConditions =
                 hlsBpMasterBusinessConditionMapper.selectByExample(example);
         if (hlsBpMasterBusinessConditions.size() != 1)return datas;

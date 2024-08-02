@@ -1,16 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="false"
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
         <script><![CDATA[
 
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function(ds, record, config_records, bp_seq) {
+            debugger;
+            $jq('#${/parameter/@layout_code}_T_ORDER_FRIST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_BANK_FIRST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_SALE_FIRST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_RP_FIRST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_HY_FIRST_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_TAX_FIRST_component_id').hide();//隐藏客户信息组件
+
+        };
+
+
         //查询时调用(form,fieldboxcolumn)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_query'] = function (ds, qpara, bp_seq) {
-            debugger
+            debugger;
             window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            if (!qpara['condition_id']){
+                qpara['condition_id'] = -1;
+            }
             var documentId = '${/parameter/@change_req_id}';
             var documentCategory = '${/parameter/@document_category}';
-
             if (ds.queryurl.indexOf('history_flag') === -1) {
                 ds.queryurl = splitparameter(splitparameter(ds.queryurl, 'document_id', documentId), 'document_history_flag', 'Y');
             }
@@ -19,8 +34,12 @@
 
         //查询时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
-            debugger
+            debugger;
             window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            qpara['condition_id'] = '${/parameter/@condition_id}';
+            if (!qpara['condition_id']){
+                qpara['condition_id'] = -1;
+            }
             var documentId = '${/parameter/@change_req_id}';
             var documentCategory = '${/parameter/@document_category}';
             if('${/parameter/@wflRuleControlFlag}' == 'Y'){
@@ -71,7 +90,6 @@
         }
 
         ]]></script>
-
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
     </a:view>
 </a:screen>
