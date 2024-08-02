@@ -34,11 +34,11 @@ public interface YLInterfaceService {
 
     String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest) throws HlsCusException;
 
-    String queryWithholdingState(String decryptedStr);
+    String queryWithholdingState(String decryptedStr) throws HlsCusException;
 
-    String stopWithholding(String decryptedStr);
+    String stopWithholding(String decryptedStr) throws HlsCusException;
 
-    String recoverWithholding(String decryptedStr);
+    String recoverWithholding(String decryptedStr) throws HlsCusException;
 
     String businessApplication(String decryptedStr, HttpServletRequest request, IRequest iRequest) throws HlsCusException, ResMessageException;
 

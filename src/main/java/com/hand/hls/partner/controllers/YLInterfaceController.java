@@ -487,6 +487,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.queryWithholdingState(hlsWsRequests.getRequestJson());
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";
@@ -522,6 +524,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.stopWithholding(hlsWsRequests.getRequestJson());
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";
@@ -557,6 +561,8 @@ public class YLInterfaceController extends BaseController {
         String returnStatus = "S";
         try{
             resStr = ylInterfaceService.recoverWithholding(hlsWsRequests.getRequestJson());
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
             e.printStackTrace();
             returnStatus = "E";
@@ -579,6 +585,8 @@ public class YLInterfaceController extends BaseController {
         HlsWsRequests hlsWsRequests = null;
         try {
             hlsWsRequests = this.insertLogs("GT-YL-B004-业务申请",jsonObject,request);
+        }catch(HlsCusException e){
+            return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e) {
             e.printStackTrace();
             JSONObject resJson = new JSONObject();

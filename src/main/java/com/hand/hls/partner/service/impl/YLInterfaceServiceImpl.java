@@ -1986,7 +1986,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String queryWithholdingState(String decryptedStr){
+    public String queryWithholdingState(String decryptedStr) throws HlsCusException {
         QueryWithholdingStateDTO queryWithholdingStateDTO = JSONObject.parseObject(decryptedStr, QueryWithholdingStateDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
@@ -2001,7 +2001,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String stopWithholding(String decryptedStr){
+    public String stopWithholding(String decryptedStr) throws HlsCusException {
         StopWithholdingDTO stopWithholdingDTO = JSONObject.parseObject(decryptedStr, StopWithholdingDTO.class);
 
 
@@ -2017,7 +2017,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String recoverWithholding(String decryptedStr){
+    public String recoverWithholding(String decryptedStr) throws HlsCusException {
         RecoverWithholdingDTO recoverWithholdingDTO = JSONObject.parseObject(decryptedStr, RecoverWithholdingDTO.class);
 
 
@@ -2063,6 +2063,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
             if ("Accept".equals(s)){
                 hlsCusPrjProject.setProjectStatus("APPROVED");
+                hlsCusPrjProject.setApprovedDate(new Date());
                 prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
                 returnJson.put("code","200");
                 returnJson.put("message","审核成功");
@@ -2150,6 +2151,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         returnJson.put("message","再次审批通过超过五十天");
                         throw new HlsCusException(returnJson.toJSONString());
                     }
+                    //再次发起投放审查流程前就不再校验是否在流程中了
+                    //发起投放审查流程
+                    signWorkFlowSubmit(iRequest, hlsCusPrjProject);
+                    hlsCusPrjProject.setInvestmentStatus("APPROVING");
+                    prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
                 }
             }else{
                 returnJson.put("code","400");

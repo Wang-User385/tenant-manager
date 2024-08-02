@@ -16,7 +16,7 @@
         <a:link id="sig001f1_prj_get_quotation_number_link_id" url="${/request/@context_path}/prj/create/quotation/number"/>
 
 
-        <a:link id="prj306_bp_master_modify_id"
+        <a:link id="prj306_bp_master_incept_modify_id"
                 url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
         <a:link id="sig100_sign_count_link_id" url="${/request/@context_path}/modules/SIG/SIG_TASK/SIG100F1/sign_count.lview"/>
         <a:link id="prj316f2_prj_get_divison_id"
@@ -404,6 +404,30 @@
 
         window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
             if (name == 'project_number' && !record.isNew) {
+                debugger;
+                //SIG001F1_F_PRJ_BASIC_INFO_PRJ_PROJECT_PROJECT_NUMBER
+                var element_num =document.getElementById('${/parameter/@layout_code}_F_PRJ_BASIC_INFO_PRJ_PROJECT_PROJECT_NUMBER');
+                //给业务编号加样式
+                element_num.className = 'item-input-wrap item-readOnly';
+                element_num.style.display='flex';
+                element_num.style.alignItems='center';
+                element_num.style.color = '#ccc';
+                element_num.style.height = '24px';
+                element_num.style.textIndent = '2px';
+                element_num.style.border = '1px solid';
+                element_num.classList.remove('item-multiTextField');
+                var element_prompt =element_num.parentNode.parentNode.childNodes[0];
+                // 创建一个新的标签
+                var newTag = document.createElement("div");
+                newTag.innerHTML = '业务编号';
+                newTag.style.color = '#4B505A';
+                newTag.style.minWidth = '56px';
+                newTag.style.textAlign = 'right';
+                newTag.style.paddingLeft = '5px';
+                newTag.style.paddingRight = '5px';
+                newTag.style.paddingTop = '1px';
+                // 将新创建的标签添加到获取到的元素中
+                element_prompt.append(newTag);
                 return '<a href="javascript:open_project_info_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
             } else if (name == 'bp_info_link' && !record.isNew) {
                 return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:red">查看承租人</span></a>';
@@ -450,18 +474,16 @@
         function open_project_info_win(ds_id, record_id) {
             debugger;
             var record = $(ds_id).findById(record_id);
-            var param = record.data;
+            var params = record.data;
+            var param = {};
+            param['project_id'] = params.project_id;
+            param['project_number'] =params.project_number;
             param['url_title'] = '进件明细';
             param['function_code'] = 'PRJ419F2';
-            param['winid'] = 'project_modify_winid';
+            param['winid'] = 'project_incept_modify_winid';
             param['maintain_type'] = 'READONLY';
             param['function_usage'] = 'QUERY';
-            param['submit_hide'] = true;
-            if( param['document_type'] === 'PRJL' ||param['document_type'] === 'PRJLB'){
-                hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
-            }else{
-                hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
-            }
+            hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
 
         }
         //附件
@@ -608,7 +630,7 @@
             }
             param['function_usage'] = 'QUERY';
             param['winid'] = 'bp_master_modify_winid';
-            hls_doc_get_layout_code(param, 'prj306_bp_master_modify_id', null, 'PRJ306');
+            hls_doc_get_layout_code(param, 'prj306_bp_master_incept_modify_id', null, 'PRJ306');
         }
 
         function sig001_open_insurance_information(ds_id, record_id) {
