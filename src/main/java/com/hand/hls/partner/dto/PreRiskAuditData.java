@@ -2,8 +2,8 @@ package com.hand.hls.partner.dto;
 
 import com.hand.hap.system.dto.BaseDTO;
 import lombok.Data;
+import org.hibernate.validator.constraints.NotBlank;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 //风控审核原始数据
@@ -16,19 +16,31 @@ public class PreRiskAuditData extends BaseDTO {
     private  String cardno;//银行卡号
 
     @NotNull(message = "性别不能为空")
+    @NotBlank(message = "性别不能为空")
     private  String sex;//性别
+
     @NotNull(message = "民族不能为空")
+    @NotBlank(message = "民族不能为空")
     private  String nation;//民族
+
     @NotNull(message = "出生日期不能为空")
+    @NotBlank(message = "出生日期不能为空")
     private  String birthdate;//出生日期
+
     @NotNull(message = "年龄不能为空")
+    @NotBlank(message = "年龄不能为空")
     private  String age;//年龄
 
     @NotNull(message = "国籍不能为空")
+    @NotBlank(message = "国籍不能为空")
     private  String nationality;//国籍
+
     @NotNull(message = "户籍所属省份不能为空")
+    @NotBlank(message = "户籍所属省份不能为空")
     private  String domicileshen;//户籍所属省份
+
     @NotNull(message = "户籍所属市不能为空")
+    @NotBlank(message = "户籍所属市不能为空")
     private  String domicileshi;//户籍所属市
 
     private  String domicilequ;//户籍所属区
@@ -40,13 +52,19 @@ public class PreRiskAuditData extends BaseDTO {
     private  String issuegov;//签发机关
 
     private  String isenable;//是否长期有效
+
     @NotNull(message = "居住地址省不能为空")
+    @NotBlank(message = "居住地址省不能为空")
     private  String homeaddressprovince;//居住地址省
+
     @NotNull(message = "居住地址市不能为空")
+    @NotBlank(message = "居住地址市不能为空")
     private  String homeaddresspcity;//居住地址市
 
     private  String jzdzqx;//居住地址区县
+
     @NotNull(message = "居住地址不能为空")
+    @NotBlank(message = "居住地址不能为空")
     private  String homeaddress;//居住地址
 
     private  String housetype;//房产类型
@@ -54,13 +72,19 @@ public class PreRiskAuditData extends BaseDTO {
     private  String marriage;//婚姻状况
 
     private  String childnum;//子女人数
+
     @NotNull(message = "有无驾照不能为空")
+    @NotBlank(message = "有无驾照不能为空")
     private  String isdriverlicence;//有无驾照
+
     @NotNull(message = "驾照类型不能为空")
+    @NotBlank(message = "驾照类型不能为空")
     private  String driverlicencetype;//驾照类型
 
     private  String driverstatus;//驾照状态
+
     @NotNull(message = "驾照截止日期不能为空")
+    @NotBlank(message = "驾照截止日期不能为空")
     private  String jzjzrq;//驾照截止日期
 
     private  String wzfs;//违章分数
@@ -82,9 +106,13 @@ public class PreRiskAuditData extends BaseDTO {
     private  String salary;//个人月收入
 
     private  String companyphone;//单位电话
+
     @NotNull(message = "公司所属省份不能为空")
+    @NotBlank(message = "公司所属省份不能为空")
     private  String companyshen;//公司所属省份
+
     @NotNull(message = "公司所属市不能为空")
+    @NotBlank(message = "公司所属市不能为空")
     private  String companyshi;//公司所属市
 
     private  String companyqu;//公司所属区
@@ -164,9 +192,13 @@ public class PreRiskAuditData extends BaseDTO {
     private  String dealername;//经销商名称
 
     private  String dealerriskl;//经销商风险等级
+
     @NotNull(message = "经销商所在省份不能为空")
+    @NotBlank(message = "经销商所在省份不能为空")
     private  String dealerprovince;//经销商所在省份
+
     @NotNull(message = "经销商所在城市不能为空")
+    @NotBlank(message = "经销商所在城市不能为空")
     private  String dealercity;//经销商所在城市
 
     private  String dealerqu;//经销商所属区县
@@ -176,17 +208,23 @@ public class PreRiskAuditData extends BaseDTO {
     private  String carfac;//制造商
 
     private  String vehicletype;//车辆类型（小型普通客车）
+
     @NotNull(message = "车辆品牌不能为空")
+    @NotBlank(message = "车辆品牌不能为空")
     private  String carbrand2;//车辆品牌
 
     private  String cartype;//车辆型号
+
     @NotNull(message = "车系不能为空")
+    @NotBlank(message = "车系不能为空")
     private  String chexi;//车系
 
     private  String carcolor;//车辆颜色
 
     private  String dangwei;//档位形式
-    @NotNull(message = "车辆准载不能为空")
+
+    @NotNull(message = "车辆准载（定员）不能为空")
+    @NotBlank(message = "车辆准载（定员）不能为空")
     private  String carzkcount;//车辆准载（定员）
 
     private  String sfjk;//是否进口
@@ -208,7 +246,9 @@ public class PreRiskAuditData extends BaseDTO {
     private  String chepaihao;//车牌号
 
     private  String carnatureofuse;//车辆使用性质
+
     @NotNull(message = "上牌城市不能为空")
+    @NotBlank(message = "上牌城市不能为空")
     private  String registeredcity;//上牌城市
 
     private  String scspr;//首次上牌日
@@ -260,13 +300,17 @@ public class PreRiskAuditData extends BaseDTO {
     private  String cddcpmc;//车抵贷产品名称
 
     private  String usage;//贷款用途
+
     @NotNull(message = "融资金额不能为空")
+    @NotBlank(message = "融资金额不能为空")
     private  String financingamount;//融资金额
 
     private  String zpzlxmzj;//核批租赁项目总价
 
     private  String applyloanamount;//借款申请金额
+
     @NotNull(message = "申请期限不能为空")
+    @NotBlank(message = "申请期限不能为空")
     private  String shenqingqixain;//申请期限
 
     private  String sgzk;//事故状况
@@ -308,11 +352,15 @@ public class PreRiskAuditData extends BaseDTO {
     private  String sfje;//首付金额
 
     private  String clxsjg;//车辆销售价格
+
     @NotNull(message = "车辆厂商指导价格不能为空")
+    @NotBlank(message = "车辆厂商指导价格不能为空")
     private  String cfpp;//车辆厂商指导价格
 
     private  String rzll;//融资利率
+
     @NotNull(message = "首付比例不能为空")
+    @NotBlank(message = "首付比例不能为空")
     private  String paymentratio;//首付比例
 
     private  String wkbl;//尾款比例
@@ -344,7 +392,9 @@ public class PreRiskAuditData extends BaseDTO {
     private  String qtfy;//其他费用
 
     private  String yongjin;//佣金
+
     @NotNull(message = "月还款额不能为空")
+    @NotBlank(message = "月还款额不能为空")
     private  String yhke;//月还款额
 
     private  String clbxje;//车辆保险金额
