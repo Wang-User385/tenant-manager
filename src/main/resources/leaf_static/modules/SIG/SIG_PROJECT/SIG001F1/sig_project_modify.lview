@@ -26,6 +26,8 @@
         <a:link id="report_auth_query_link_id" url="${/request/@context_path}/report/auth/query"/>
         <a:link id="credit_service_query_link" url="${/request/@context_path}/credit/service/query"/>
         <a:link id="credit_service_get_token_link" url="${/request/@context_path}/credit/service/get/token"/>
+        <a:link id="PRJ419_project_modify_new_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_modify_new.lview"/>
         <style>
             .wfl_sign_calc{
                 float: right;
@@ -401,7 +403,9 @@
         }
 
         window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
-            if (name == 'bp_info_link' && !record.isNew) {
+            if (name == 'project_number' && !record.isNew) {
+                return '<a href="javascript:open_project_info_win(\'' + record.ds.id + '\',\'' + record.id + '\')">' + value + '</a>';
+            } else if (name == 'bp_info_link' && !record.isNew) {
                 return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:red">查看承租人</span></a>';
             } else if (name == 'bp_supplier_link' && !record.isNew) {
                 return '<a href="javascript:open_bp_modify_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:red">查看供应商</span></a>';
@@ -433,7 +437,7 @@
                 var table_name = record.get("project_attachment_category");
                 var th_back_flag = record.get("th_back_flag");
                 var document_name  = record.get("document_name");
-                if (record.get('file_num') > 1) {
+                if (record.get('file_num') > 0) {
                     return '<a href="javascript:PRJ419_open_attach(\'' + record.get('project_attachment_id') + '\',\''+'PRJ_PROJECT_ATTACHMENT' + '\',\''+ document_name +'\',\''+ th_back_flag +'\')">附件' + '(' +record.get("file_num") + ')' + '</a>';
                 } else {
                     return '<a href="javascript:PRJ419_open_attach(\'' + record.get('project_attachment_id') + '\',\''+'PRJ_PROJECT_ATTACHMENT' + '\',\''+ document_name +'\',\''+ th_back_flag +'\')">附件</a>';
@@ -442,6 +446,24 @@
             return value;
         };
 
+
+        function open_project_info_win(ds_id, record_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '进件明细';
+            param['function_code'] = 'PRJ419F2';
+            param['winid'] = 'project_modify_winid';
+            param['maintain_type'] = 'READONLY';
+            param['function_usage'] = 'QUERY';
+            param['submit_hide'] = true;
+            if( param['document_type'] === 'PRJL' ||param['document_type'] === 'PRJLB'){
+                hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
+            }else{
+                hls_doc_get_layout_code(param, 'PRJ419_project_modify_new_id', ds_id, 'PRJ419');
+            }
+
+        }
         //附件
         var win;
 
