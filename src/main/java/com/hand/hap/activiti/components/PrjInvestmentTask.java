@@ -1,6 +1,7 @@
 package com.hand.hap.activiti.components;
 
 import com.hand.hap.activiti.custom.IActivitiBean;
+import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
 import com.hand.hls.cont.dto.HlsCusConContract;
@@ -12,6 +13,7 @@ import com.hand.hls.csh.dto.HlsCusCshPaymentReqLn;
 import com.hand.hls.csh.mapper.HlsCusCshPaymentReqHdMapper;
 import com.hand.hls.csh.mapper.HlsCusCshPaymentReqLnMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
+import com.hand.hls.partner.service.IYLMessageNoticeService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import com.hand.hls.prj.dto.HlsCusPrjQuotationCashflow;
@@ -52,6 +54,8 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
     private HlsCusCshPaymentReqLnMapper hlsCusCshPaymentReqLnMapper;
     @Autowired
     FndCodingRuleValuesService codingRuleValuesService;
+    @Autowired
+    IYLMessageNoticeService messageNoticeService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -59,6 +63,7 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         Long projectId = Long.parseLong(execution.getProcessInstanceBusinessKey());
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
         hlsCusPrjProject.setProjectId(projectId);
+        IRequest requestCtx = (IRequest) execution.getVariable("iRequest");
 
         String result = (String) execution.getVariable("approveResult");
         if("APPROVED".equals(result)){
@@ -70,6 +75,10 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
             hlsCusPrjProject.setInvestmentStatus("REJECTED");
             hlsCusPrjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         }
+
+        //调用通知
+        messageNoticeService.orderAuditResult(projectId,"LOAN_AUDIT",requestCtx);
+
 
     }
 

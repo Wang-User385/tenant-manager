@@ -3601,4 +3601,19 @@
             </if>-->
         </where>
     </select>
+
+    <!--根据代偿租金的合同ID和现金流ID查询出对应的核销事务数据-->
+    <select id="queryTransactionByCashflowId" resultMap="BaseResultMap">
+        SELECT
+            ct.*,
+            (select m.bp_name from hls_bp_master m where m.bp_id = ct.bp_id) bp_name
+        FROM CSH_TRANSACTION ct
+        WHERE ct.SOURCE_TRANSACTION_ID in (
+            select  ct.TRANSACTION_ID from csh_transaction ct
+            INNER JOIN csh_allocation_receipt car on ct.TRANSACTION_ID = car.TRANSACTION_ID
+            INNER JOIN csh_allocation ca ON car.allocation_id = ca.allocation_id
+            INNER JOIN CSH_ALLOCATION_ADVANCE caa ON caa.allocation_id = ca.allocation_id
+            WHERE caa.CONTRACT_ID = #{contractId} AND caa.CASHFLOW_ID=#{cashflowId}
+        )
+    </select>
 </mapper>

@@ -46,7 +46,7 @@ public class LeasingNoticeServiceImpl extends BaseServiceImpl<LeasingNotice> imp
             } else if (leasingNoticeNew.getSourceType().indexOf("n002") != -1) {
                 messageNoticeService.orderLoanResult(leasingNoticeNew.getSourceId(), iRequest);
             } else if (leasingNoticeNew.getSourceType().indexOf("n003") != -1) {
-                messageNoticeService.orderClosedNotify(leasingNoticeNew.getSourceId(), iRequest);
+                messageNoticeService.orderClosedNotify(iRequest);
             } else if (leasingNoticeNew.getSourceType().indexOf("n004") != -1) {
                 messageNoticeService.repayPlanCreatedNotify(leasingNoticeNew.getSourceId(), iRequest);
             } else if (leasingNoticeNew.getSourceType().indexOf("n005") != -1) {

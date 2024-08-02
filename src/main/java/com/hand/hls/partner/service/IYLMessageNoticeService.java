@@ -28,10 +28,10 @@ public interface IYLMessageNoticeService {
     /**
      * 易靓关单结果通知
      *
-     * @param projectId
+     * @param
      * @return
      */
-    void orderClosedNotify(Long projectId, IRequest iRequest);
+    void orderClosedNotify(IRequest iRequest);
 
 
     /**

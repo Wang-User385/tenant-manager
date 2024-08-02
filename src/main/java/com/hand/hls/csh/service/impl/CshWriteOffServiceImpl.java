@@ -1810,7 +1810,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         });
 
         //二期功能：核销为保证金
-        List<CshAllocationDeposit> allocationDepositList = cshTransactionList.get(0).getCshAllocationDepositList();
+        /*List<CshAllocationDeposit> allocationDepositList = cshTransactionList.get(0).getCshAllocationDepositList();*/
         //保证金待核销金额汇总
         Double allocationDepositWriteOffAmountTotal = 0D;
 
@@ -1829,7 +1829,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         if (CollectionUtils.isNotEmpty(cshTransactionList.get(0).getCshWriteOffList())){
             writeOffTypeFlag = CREDIT;
             cshWriteOffList = cshTransactionList.get(0).getCshWriteOffList();
-        }else if (CollectionUtils.isNotEmpty(allocationDepositList)){
+        }/*else if (CollectionUtils.isNotEmpty(allocationDepositList)){
             for (CshAllocationDeposit deposit : allocationDepositList){
                 HlsCusCshWriteOff writeOffCopy = new HlsCusCshWriteOff();
                 BeanRefUtils.beanToBean(deposit, writeOffCopy, hlsBeanRefUtilService);
@@ -1837,7 +1837,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             }
             allocationDepositWriteOffAmountTotal = round(allocationDepositList.stream().collect(Collectors.summingDouble(CshAllocationDeposit::getWriteOffDueAmount)), 2);
             writeOffTypeFlag = DEPOSIT;
-        }
+        }*/
 
         Double canWriteOffAmountTotal = round(cshWriteOffList.stream().collect(Collectors.summingDouble(HlsCusCshWriteOff::getWriteOffDueAmount)), 2);
 
@@ -1955,9 +1955,9 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         self().writeOff(iRequest, hlsCusCshWriteOffs, session);
 
         //二期功能：核销为保证金后，对原有对合同现金流进行保证金补足
-        if(DEPOSIT.equals(writeOffTypeFlag)){
+       /* if(DEPOSIT.equals(writeOffTypeFlag)){
             makeUpTheContractDeposit(iRequest, allocationDepositList);
-        }
+        }*/
 
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -2031,11 +2031,11 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             }*/
 
             //二期功能：核销为保证金处理逻辑
-            if(CollectionUtils.isNotEmpty(allocationDepositList)){
+            /*if(CollectionUtils.isNotEmpty(allocationDepositList)){
                 for (CshAllocationDeposit deposit : allocationDepositList){
                     depositService.updateByPrimaryKeySelective(iRequest, deposit);
                 }
-            }
+            }*/
         }
 
     }
@@ -2174,9 +2174,9 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             }
 
             //2023-01-03 二期增加：核销为保证金处理
-            if ("DEPOSIT".equals(transactionTypeFlag)){
+            /*if ("DEPOSIT".equals(transactionTypeFlag)){
                 handleAllocationDeposit(iRequest, allocationDepositList, cshAllocation);
-            }
+            }*/
         } else {
 
             CshAllocation cshAllocation = new CshAllocation();
@@ -2260,6 +2260,13 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             allocationAdvance.setContractId(advance.getContractId());
             allocationAdvance.setCashflowId(advance.getCashflowId());
             advanceService.insertSelective(iRequest, allocationAdvance);
+
+            //修改现金流已收代偿金额
+            HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow();
+            conContractCashflow.setCashflowId(advance.getCashflowId());
+            conContractCashflow.setReceivedCompAmount(advance.getWriteOffDueAmount());
+            hlsCusConContractCashflowService.updateByPrimaryKeySelective(iRequest,conContractCashflow);
+
             //2.新增一条预收款记录写入csh_transaction表中
             //TODO 赋值确定
             for (HlsCusCshTransaction cusCshTransaction : cshTransactionList){
@@ -2270,7 +2277,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 insertCshTransaction.setBusinessType(TRANSACTION_TYPE_ADVANCE_RECEIPT);
                 insertCshTransaction.setTransactionDate(cusCshTransaction.getTransactionDate());
                 insertCshTransaction.setCompanyId(cusCshTransaction.getCompanyId());
-                insertCshTransaction.setTransactionAmount(advance.getWriteOffDueAmount());
+                insertCshTransaction.setTransactionAmount(cusCshTransaction.getTransactionAmount()-nvl(cusCshTransaction.getWriteOffAmount(),0.0));
                 insertCshTransaction.setCurrencyCode(cusCshTransaction.getCurrencyCode());
                 insertCshTransaction.setPaymentMethod(cusCshTransaction.getPaymentMethod());
                 insertCshTransaction.setBankAccountId(cusCshTransaction.getBankAccountId());

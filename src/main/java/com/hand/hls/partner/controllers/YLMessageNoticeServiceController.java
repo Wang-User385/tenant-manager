@@ -65,10 +65,10 @@ public class YLMessageNoticeServiceController extends BaseController {
      */
     @RequestMapping(value = "/order/close/notify/notice", method = {RequestMethod.POST})
     @ResponseBody
-    public ResponseData orderClosedNotify(@RequestBody Map<String, String> map, HttpServletRequest request) {
+    public ResponseData orderClosedNotify(HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        iylMessageNoticeService.orderClosedNotify(Long.valueOf(String.valueOf(map.get("projectId"))), requestContext);
+        iylMessageNoticeService.orderClosedNotify(requestContext);
         return new ResponseData();
     }
 

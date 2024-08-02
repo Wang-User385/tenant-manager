@@ -431,7 +431,7 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject overdueRepurchaseRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
+    public JSONObject overdueRepurchaseRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request, HttpSession session) {
         IRequest iRequest = createRequestContext(request);
         RequestHelper.setCurrentRequest(iRequest);
 
@@ -449,7 +449,7 @@ public class YLInterfaceController extends BaseController {
         String resStr = null;
         String returnStatus = "S";
         try{
-            resStr = ylInterfaceService.overdueRepurchaseRequest(hlsWsRequests.getRequestJson(),iRequest);
+            resStr = ylInterfaceService.overdueRepurchaseRequest(hlsWsRequests.getRequestJson(),iRequest ,session);
         }catch(HlsCusException e){
             return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){

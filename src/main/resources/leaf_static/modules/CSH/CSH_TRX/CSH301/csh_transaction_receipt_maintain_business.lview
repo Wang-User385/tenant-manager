@@ -422,63 +422,9 @@
             });
         }
 
-        function csh301_open_attach(csh_attachment_id, table_name) {
-            var url = '${/request/@context_path}/downloadFile.lview';
-            win = new Leaf.Window({
-                id: 'csh301_open_attachment_winid',
-                url: url,
-                params: {
-                    header_id: csh_attachment_id,
-                    table_name: 'CSH_TRANSACTION_ATTACHMENT',
-                    winid: 'csh301_open_attachment_winid'
-                },
-                title: '文件上传下载',
-                width: 800,
-                height: 475
-            });
-            win.on('close', function () {
-                csh301_transaction_query();
-            });
-        }
 
 
-        function csh301_transaction_receipt_import() {
-            var win = new Leaf.Window({
-                id: 'csh_receipt_import_win_id',
-                params: {
-                    winid: 'csh_receipt_import_win_id'
-                },
 
-                url: '${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_maintain_before.lview',
-                title: '收款新增导入',
-                fullScreen: false,
-                width: 500,
-                height: 400,
-                draggable: true
-            });
-            win.on('close', function () {
-                csh301_transaction_query();
-            });
-
-        }
-
-        function csh301_transaction_cashflow_import() {
-            var win = new Leaf.Window({
-                id: 'csh_cashflow_import_win_id',
-                params: {
-                    winid: 'csh_cashflow_import_win_id'
-                },
-                url: '${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_cashflow_import.lview',
-                title: '收款新增(君成银行)导入',
-                fullScreen: false,
-                width: 500,
-                height: 400,
-                draggable: true
-            });
-            win.on('close', function () {
-                csh301_transaction_query();
-            });
-        }
 
         function write_off_detail_renderer(value, record, name) {
 
@@ -656,37 +602,6 @@
         }
 
 
-
-
-        //确认核销核销
-        function csh301_transaction_confirm_write_off() {
-            debugger;
-            var ds = $('csh_transaction_receipt_maintain_result_ds');
-            var records = ds.getSelected();
-            if (records.length == 0) {
-                Leaf.showMessage('提示！', '请选择一条记录！');
-                return;
-            }
-
-
-            for (var i = 0; i < records.length; i++) {
-                var refund_status = records[i].get('refund_status');
-                if (refund_status == 'APPROVING') {
-                    Leaf.showMessage('提示！', '在退款流程中不允许核销！');
-                    return;
-                }
-
-                if (records[i].get("is_allocation_flag") == 'N') {
-                    Leaf.showMessage('提示！', '只能核销以匹配待确认的单据！');
-                    return;
-                }
-
-                if (records[i].get('un_write_off_amount_from') == 0) {
-                    Leaf.showMessage('提示！', '剩余可核销金额为0不能进行后续操作！');
-                    return;
-                }
-            }
-        }
 
 
 
@@ -877,17 +792,8 @@
                                 <a:screenTitle/>
                                 <a:gridButton click="csh301_transaction_query" text="HLS.QUERY"/>
                                 <a:gridButton click="csh301_transaction_reset" text="HLS.RESET"/>
-                                <!--<a:gridButton click="csh301_transaction_add" text="收款新增"/>
-                                <a:gridButton click="csh301_transaction_receipt_import" text="收款新增导入"/>
-                                <a:gridButton click="csh301_transaction_reverse" text="收款反冲"/>-->
                                 <a:gridButton click="csh301_transaction_auto_allocation" text="自动匹配"/>
                                 <a:gridButton click="csh301_transaction_manual_allocation" text="手工分配核销"/>
-                                <a:gridButton click="csh301_transaction_confirm_write_off" text="确认核销"/>
-                               <!-- <a:gridButton click="csh301_transaction_delete" text="收款删除"/>
-                                <a:gridButton click="csh301_transaction_cashflow_import" text="收款新增(君成银行)"/>-->
-
-                                <!--<a:gridButton click="csh301_transaction_batch_reverse" text="批量核销反冲"/>-->
-                                <!--<a:gridButton click="test_sharing" text="测试收益分摊"/>-->
                             </a:screenTopToolbar>
                             <a:hBox labelWidth="140">
                                 <a:textField name="transaction_num"
@@ -963,12 +869,6 @@
                                 <a:column name="write_off_due_amount" prompt="已核销金额(元)"
                                           align="right" renderer="write_off_detail_renderer"
                                           width="120"/>
-                                <!--<a:column name="refund_status_desc" prompt="退款申请审批状态" width="120"/>-->
-                                <!--<a:column name="refund_flag_n" prompt="是否退款" align="center" width="80"/>
-                                <a:column name="refund_status_desc" prompt="退款申请审批状态" width="120"/>
-                                <a:column name="advance_csh_trx_id" prompt="退款申请记录" align="center" width="100"
-                                          renderer="refund_apply_renderer"/>
-                                -->
                                 <a:column name="refund_amount" prompt="已退款金额" renderer="Leaf.formatMoney"
                                           align="right"
                                           width="120"/>
@@ -983,20 +883,11 @@
                                 <a:column name="bank_account_num" prompt="入账账号" width="200"/>
                                 <a:column name="bank_branch_name" prompt="入账银行" width="250"/>
                                 <a:column name="bank_slip_num" prompt="银行流水" width="120"/>
-
-
-                                <!--20221107-update:二期功能添加虚拟账号、商业伙伴等5个字段-->
                                 <a:column name="bp_bank_account_name" prompt="对方账户" width="200"/>
                                 <a:column name="bp_bank_account_num" prompt="对方账号" width="200"/>
                                 <a:column name="bp_bank_name" prompt="银行名称" width="200"/>
                                 <a:column name="description" prompt="摘要" width="120"/>
-                                <!--<a:column name="virtual_account_num" prompt="虚拟账号" width="200"/>
-                                <a:column name="virtual_account_name" prompt="虚拟账号名称" width="250"/>
-                                <a:column name="bp_name" prompt="商业伙伴名称" width="200"/>
-                                <a:column name="bp_type" prompt="商业伙伴类型" width="120"/>-->
-
                                 <a:column name="reversed_flag_n" prompt="是否反冲" align="center" width="80"/>
-
                                 <a:column name="reversed_date" prompt="反冲日期" align="center" renderer="Leaf.formatDate"
                                           width="80"/>
                                 <a:column name="reversed_description" prompt="反冲描述" width="120"/>

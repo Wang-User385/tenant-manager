@@ -7,6 +7,7 @@ import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.mapper.LeasingNoticeMapper;
 import com.hand.hls.partner.service.ILeasingNoticeService;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
+import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import org.springframework.util.ObjectUtils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -102,20 +104,22 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
     /**
      * 易靓关单结果通知
      *
-     * @param projectId
+     * @param
      * @return
      */
     @Override
-    public void orderClosedNotify(Long projectId, IRequest iRequest) {
+    public void orderClosedNotify(IRequest iRequest) {
         LeasingNotice leasingNotice = new LeasingNotice();
-        leasingNotice.setSourceId(projectId);
         leasingNotice.setSourceType("n003");
         leasingNotice.setResendFlag("N");
         try {
-            //通过主键ID获取订单编号
-            String orderNo = hlsCusPrjProjectMapper.getBusinessApplyNoByProjectId(projectId);
+            //获取需要关单的数据
+            List<HlsCusPrjProject> orderClosedList = leasingNoticeMapper.queryOrderClosedList();
+            List<String> orderNos = orderClosedList.stream()
+                    .map(HlsCusPrjProject::getProjectNumber)
+                    .collect(Collectors.toList());
             Map<String, Object> mapParam = new HashMap<>();
-            mapParam.put("orderNo", orderNo);
+            mapParam.put("orderNo", orderNos);
             mapParam.put("uniqueId", getUniqueId());
             leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
             //消息推送

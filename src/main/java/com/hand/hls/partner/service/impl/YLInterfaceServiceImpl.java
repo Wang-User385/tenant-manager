@@ -13,10 +13,10 @@ import com.hand.hls.bp.mapper.HlsCusBpMasterRoleMapper;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
+import com.hand.hls.cont.service.HlsCusConContractCashflowService;
 import com.hand.hls.cont.service.IConContractCashflowService;
-import com.hand.hls.csh.dto.HlsCusCshWriteOff;
-import com.hand.hls.csh.service.CshTransactionService;
-import com.hand.hls.csh.service.CshWriteOffService;
+import com.hand.hls.csh.dto.*;
+import com.hand.hls.csh.service.*;
 import com.hand.hls.partner.service.IPrjQuotationCalcService;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.bp.dto.HlsBpSpouse;
@@ -27,7 +27,6 @@ import com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
 import com.hand.hls.credit.service.TongDunService;
-import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
 import com.hand.hls.fnd.dto.HlsProductDefinition;
 import com.hand.hls.fnd.mapper.HlsProductDefinitionMapper;
@@ -52,10 +51,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
+import com.hand.hls.utils.HlsCusMathUtil;
 import static com.hand.hls.sys.utils.OracleUtils.nvl;
 
 @Service
@@ -125,6 +125,16 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsProductDefinitionMapper hlsProductDefinitionMapper;
     @Autowired
     private IActivitiStartService activitiStartService;
+    @Autowired
+    private HlsCusCshTransactionMapper transactionMapper;
+    @Autowired
+    private HlsCusConContractCashflowService contractCashflowService;
+    @Autowired
+    private ICshAllocationService cshAllocationService;
+    @Autowired
+    private ICshAllocationReceiptService cshAllocationReceiptService;
+    @Autowired
+    private ICshAllocationCreditService cshAllocationCreditService;
     /**
      * 工作流相关的常量
      */
@@ -452,6 +462,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             jsonObject1.put("message","代偿数据不存在");
             throw new HlsCusException(jsonObject1.toJSONString());
        }
+        if (!Objects.equals((long) (conContractCashflow.getDueAmount()*100), claimsSubrogationDTO.getSubstituteAmount())) {
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","代偿金额不匹配！");
+            throw new HlsCusException(jsonObject1.toJSONString());
+        }
+
+
 
         //将代偿数据入库
         conContractCashflow.setPlanType("COMP");
@@ -480,7 +497,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
-            jsonObject1.put("message","现金流数据不存在，请查看合同状态是否为起租和合同结束，或者该订单是否已经做过回购或提前结清！");
+            jsonObject1.put("message","现金流数据不存在，请查看该订单是否已经做过回购或提前结清！");
             throw new HlsCusException(jsonObject1.toJSONString());
         }
 
@@ -519,14 +536,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
-            jsonObject1.put("message","现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
+            jsonObject1.put("message","现金流数据不存在，请查看该订单是否已经做过回购或提前结清！");
+            throw new HlsCusException(jsonObject1.toJSONString());
+        }
+
+        if (!Objects.equals((long) (calculationResultsDto.getPayableAmount()*100), advancesSettleRequestDTO.getPayableAmount())) {
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","提前结清金额与计算金额不匹配！");
             throw new HlsCusException(jsonObject1.toJSONString());
         }
 
         HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
         //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
         conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
-        //插入回购现金流
+        //插入提前结清现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
 
 
@@ -1896,7 +1919,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
-            jsonObject1.put("message","回购现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
+            jsonObject1.put("message","回购现金流数据不存在，请查看该订单是否已经做过回购或提前结清！");
             throw new HlsCusException(jsonObject1.toJSONString());
         }
 
@@ -1923,7 +1946,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest) throws HlsCusException{
+    public String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest, HttpSession session) throws HlsCusException{
         OverdueRepurchaseRequestDTO overdueRepurchaseRequestDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseRequestDTO.class);
 
 
@@ -1937,10 +1960,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if (ObjectUtils.isEmpty(calculationResultsDto)){
             jsonObject1.put("code","400");
-            jsonObject1.put("message","回购现金流数据不存在，请查看合同状态是否为起租或合同结束，或者该订单是否已经做过回购或提前结清！");
+            jsonObject1.put("message","回购现金流数据不存在，请查看该订单是否已经做过回购或提前结清！");
             throw new HlsCusException(jsonObject1.toJSONString());
         }
 
+        if (!Objects.equals((long) (calculationResultsDto.getPayableAmount()*100), overdueRepurchaseRequestDTO.getBuybackAmount())) {
+            jsonObject1.put("code","400");
+            jsonObject1.put("message","回购金额与计算金额不匹配！");
+            throw new HlsCusException(jsonObject1.toJSONString());
+        }
 
         HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
 
@@ -1950,34 +1978,83 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //插入回购现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
 
-
-
+        List<HlsCusCshWriteOff> hlsCusCshWriteOffs = new ArrayList<>();
+        List<HlsCusCshTransaction> transactionList = new ArrayList<>();
         //已收代偿自动核销为租金
         for (HlsCusConContractCashflow cc : calculationResultsDto.getWriteOffList()) {
-            //构造现金事务
-            HlsCusCshTransaction hlsCusCshTransaction = new HlsCusCshTransaction();
-            hlsCusCshTransaction.setTransactionType("RECEIPT");//收款现金事务
-            hlsCusCshTransaction.setBusinessType("RECEIPT");
-            hlsCusCshTransaction.setTransactionAmount(cc.getDueAmount());
-            hlsCusCshTransaction.setCurrencyCode("CNY");
-            hlsCusCshTransaction.setCreationDate(new Date());
-            hlsCusCshTransaction = setCshTransaction(iRequest, hlsCusCshTransaction);
-            cshTransactionService.insertSelective(iRequest, hlsCusCshTransaction);
+            //根据现金流查询代偿现金事务数据
+            transactionList = transactionMapper.queryTransactionByCashflowId(cc.getContractId(),cc.getCashflowId());
 
-            //核销
-            HlsCusCshWriteOff cshWriteOff = new HlsCusCshWriteOff();
-            cshWriteOff.setCshWriteOffAmount(cc.getDueAmount());
-            cshWriteOff.setWriteOffDueAmount(cc.getDueAmount());
-            cshWriteOff.setWriteOffPrincipal(cc.getPrincipal());
-            cshWriteOff.setWriteOffInterest(cc.getInterest());
-            cshWriteOff.setCompanyId(iRequest.getCompanyId());
-            cshWriteOff.setCreationDate(new Date());
-            cshWriteOff = setCshWriteOff(cc, cshWriteOff, hlsCusCshTransaction.getTransactionId(), "RECEIPT_CREDIT");
-            cshWriteOff = cshWriteOffService.insertSelective(iRequest, cshWriteOff);
+            //初始化剩余未核销金额
+            transactionList.stream().forEach(item -> {
+                        Double unWriteOffAmount = HlsCusMathUtil.sub(item.getTransactionAmount()-nvl(item.getWriteOffAmount(),0.0), nvl(item.getAdvanceReceiptAmount(),0.0), 2);
+                        item.setAllocationAmount(unWriteOffAmount);
+                    }
+            );
+
+            Double allocationAmount = 0.00;
+            for (HlsCusCshTransaction cshTransaction : transactionList) {
+                Double receiptAllocationAmount = cshTransaction.getAllocationAmount();
+                Double writeOffDueAmount = HlsCusMathUtil.sub(cc.getDueAmount(), allocationAmount, 2);
+                //核销
+                HlsCusCshWriteOff cshWriteOff = new HlsCusCshWriteOff();
+                cshWriteOff.setCshWriteOffAmount(cshTransaction.getTransactionAmount());
+                cshWriteOff.setWriteOffDueAmount(cshTransaction.getTransactionAmount());
+                cshWriteOff.setDueAmount(cshTransaction.getTransactionAmount());
+                cshWriteOff.setCompanyId(iRequest.getCompanyId());
+                cshWriteOff.setCreationDate(new Date());
+                cshWriteOff.setWriteOffPrincipal(cc.getPrincipal());
+                cshWriteOff.setWriteOffInterest(cc.getInterest());
+                cshWriteOff = setCshWriteOff(cc, cshWriteOff, cshTransaction.getTransactionId(), "RECEIPT_CREDIT");
+
+                //如果 收款剩余未核销金额 大于等于 债权剩余待核销金额 且 债权剩余待核销金额 大于0
+                if (receiptAllocationAmount >= writeOffDueAmount && writeOffDueAmount > 0) {
+                    //收款剩余未核销金额  逐步减少
+                    cshTransaction.setAllocationAmount(HlsCusMathUtil.sub(cshTransaction.getAllocationAmount(), writeOffDueAmount, 2));
+                    //债权剩余待核销金额 逐步增长
+                    allocationAmount = HlsCusMathUtil.add(allocationAmount, writeOffDueAmount, 2);
+                    hlsCusCshWriteOffs.add(cshWriteOff);
+
+                }//如果  收款剩余未核销金额 小于等于 债权剩余待核销金额 且 金额大于0  同时 债权剩余待核销金额 大于0
+                else if (receiptAllocationAmount < writeOffDueAmount && receiptAllocationAmount > 0 && writeOffDueAmount > 0) {
+                    //设置核销本金 和 核销利息
+                    //如何核销金额小于待核销金额   优先核销利息 再核销本金
+                    if (cc.getInterest() >= receiptAllocationAmount) {
+                        cshWriteOff.setWriteOffInterest(receiptAllocationAmount);
+                        cc.setPrincipal(0.0);
+                        cc.setInterest(HlsCusMathUtil.sub(cc.getInterest(),receiptAllocationAmount));
+                    } else {
+                        cshWriteOff.setWriteOffPrincipal(HlsCusMathUtil.sub(receiptAllocationAmount, nvl(cshWriteOff.getWriteOffInterest(),0.0), 2));
+                        cc.setInterest(0.0);
+                        cc.setPrincipal(HlsCusMathUtil.sub(cc.getPrincipal(),cshWriteOff.getWriteOffPrincipal()));
+                    }
+                    hlsCusCshWriteOffs.add(cshWriteOff);
+                    //收款剩余未核销金额  逐步减少
+                    cshTransaction.setAllocationAmount(0.0);
+                    //债权剩余待核销金额 逐步增长
+                    allocationAmount = HlsCusMathUtil.add(allocationAmount, receiptAllocationAmount, 2);
+                }
+
+                HlsCusCshTransaction transaction = new HlsCusCshTransaction();
+                transaction.setTransactionId(cshTransaction.getTransactionId());
+                transaction.setContractId(cc.getContractId());
+                cshTransactionService.updateByPrimaryKeySelective(iRequest, cshTransaction);
+
+            }
+
             //现金流核销
-            updateCashflow(iRequest,cshWriteOff);
-        }
+            try {
+                cshWriteOffService.writeOff(iRequest, hlsCusCshWriteOffs, session);
+            }catch (Exception e) {
+                jsonObject1.put("code","400");
+                jsonObject1.put("message","代偿租金核销失败！"+e.getMessage());
+                throw new HlsCusException(jsonObject1.toJSONString());
+            }
 
+            //插入 分配相关表
+            saveAllocation(transactionList,cc,iRequest);
+
+        }
 
         //            设置返回状态
         jsonObject1.put("code","200");
@@ -2348,6 +2425,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         cshWriteOff.setWriteOffDocCategory("CON_CONTRACT");
         cshWriteOff.setImportFlag("N");
         cshWriteOff.setFirstLeasePayFlag("N");
+        cshWriteOff.setCf_direction(ln.getCfDirection());
+        cshWriteOff.setContractName(ln.getContractName());
+        cshWriteOff.setContractNumber(ln.getContractNumber());
+        cshWriteOff.setCalcDate(new Date());
 
         return cshWriteOff;
     }
@@ -2490,5 +2571,37 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
 
         return null;
+    }
+
+    /**
+     * 插入分配相关表
+     * @param transactionList
+     * @param cc
+     * @param iRequest
+     */
+    private void saveAllocation (List<HlsCusCshTransaction> transactionList,HlsCusConContractCashflow cc,IRequest iRequest) {
+        CshAllocation cshAllocation = new CshAllocation();
+        cshAllocation.setAllocationNumber(codingRuleValuesService.getCodeRuleValue(iRequest, "CSH_TRX",
+                "ALLOCATION", "ALLOCATION", null));
+        cshAllocation.setAllocationDate(new Date());
+        cshAllocation.setAllocationSource("MANUAL");
+        cshAllocation.setAllocationStatus("N");
+        cshAllocationService.insertSelective(iRequest, cshAllocation);
+
+        for (HlsCusCshTransaction transaction : transactionList) {
+            CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
+            cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
+            cshAllocationReceipt.setTransactionId(transaction.getTransactionId());
+            cshAllocationReceipt.setAdvanceReceiptAmount(transaction.getAdvanceReceiptAmount());
+            cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
+        }
+
+        CshAllocationCredit cshAllocationCredit = new CshAllocationCredit();
+        cshAllocationCredit.setAllocationId(cshAllocation.getAllocationId());
+        cshAllocationCredit.setCashflowId(cc.getCashflowId());
+        cshAllocationCredit.setDueAmount(cc.getDueAmount());
+        cshAllocationCredit.setPrincipal(cc.getPrincipal());
+        cshAllocationCredit.setInterest(cc.getInterest());
+        cshAllocationCreditService.insertSelective(iRequest, cshAllocationCredit);
     }
 }

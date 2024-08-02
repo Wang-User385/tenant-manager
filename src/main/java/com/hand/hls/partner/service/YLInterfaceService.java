@@ -9,6 +9,7 @@ import hls.core.utils.exception.HlsCusException;
 
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.text.ParseException;
 
 public interface YLInterfaceService {
@@ -32,7 +33,7 @@ public interface YLInterfaceService {
 
     String overdueRepurchaseTrialCalculation(String decryptedStr) throws HlsCusException;
 
-    String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest) throws HlsCusException;
+    String overdueRepurchaseRequest(String decryptedStr, IRequest iRequest, HttpSession session) throws HlsCusException;
 
     String queryWithholdingState(String decryptedStr) throws HlsCusException;
 

@@ -64,4 +64,12 @@ public interface HlsCusCshTransactionMapper extends CshTransactionMapper<HlsCusC
     List<HlsCusCshTransaction> queryDeductCshTransaction(HlsCusCshTransaction var1);
 
     List<HlsCusCshTransaction> queryDepositDeductMethod(HlsCusCshTransaction hlsCusCshTransaction);
+
+    /**
+     * 根据代偿租金的合同ID和现金流ID查询出对应的核销事务数据
+     * @param contractId
+     * @param cashflowId
+     * @return
+     */
+    List<HlsCusCshTransaction> queryTransactionByCashflowId(@Param("contractId") Long contractId, @Param("cashflowId") Long cashflowId);
 }

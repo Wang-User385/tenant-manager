@@ -11,9 +11,27 @@
         <a:link id="csh301_transaction_receipt_allocation_save_link"
                 url="${/request/@context_path}/csh/write/off/allocation/save"/>
 
+        <a:link id="csh301_transaction_receipt_allocation_confirm_link"
+                url="${/request/@context_path}/csh/write/off/allocation/confirm"/>
+
+        <a:link id="csh_transaction_receipt_allocation_business_multilov_link_id"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_business_multilov.lview"/>
+
         <script type="text/javascript"><![CDATA[
 
-        //可核销金额
+        var WRITE_OFF_TYPE = 'RECEIPT_CREDIT';
+
+        var multilovDatas;
+
+        function before_select_event(tabPanel, index, tab) {
+            if (index === 0) {
+                WRITE_OFF_TYPE = 'RECEIPT_CREDIT';
+            } else if (index === 1) {
+                WRITE_OFF_TYPE = 'RECEIPT_ADVANCE_RECEIPT';
+            }
+        }
+
+                //可核销金额
         function get_can_write_off_amount() {
             var ds = $('csh_transaction_allocation_receipt_ds');
             var credit_ds = $('csh_transaction_allocation_credit_ds');
@@ -97,7 +115,65 @@
         }
 
         function csh301_transaction_receipt_allocation_credit_add(){
-            $('csh_transaction_allocation_credit_grid_id').showEditorByRecord($('csh_transaction_allocation_credit_ds').create());
+            //$('csh_transaction_allocation_credit_grid_id').showEditorByRecord($('csh_transaction_allocation_credit_ds').create());
+            //二期功能：核销债权改为弹窗支持多选
+            // 新增时排除之前选择的现金流
+            debugger
+            var ds = $('csh_transaction_allocation_credit_ds');
+            var records = ds.getAll();
+            var mutlilov_not_cashflow_ids_str = '';
+
+            if (records.length >= 1) {
+                for (var i = 0; i < records.length; i++) {
+                    if (i == 0) {
+                        mutlilov_not_cashflow_ids_str = records[i].get("cashflow_id")
+                    } else {
+                        mutlilov_not_cashflow_ids_str = mutlilov_not_cashflow_ids_str + ',' + records[i].get("cashflow_id");
+                    }
+                }
+            }
+            // 利用合同编码判断是否零售，零售编码以PRJ开头
+            let info = $('csh_transaction_allocation_receipt_ds').getAll()[0].data;
+            console.log(info);
+            debugger;
+            let creditFlag = 'Y';
+            if (info &&  info.contract_number && info.contract_number.indexOf('PRJ') < 0){
+                creditFlag = 'N';
+            }
+            var url = $('csh_transaction_receipt_allocation_business_multilov_link_id').getUrl();
+            new Leaf.Window({
+                id: "allocation_receipt_add_select_id",
+                url: url,
+                title: '合同编号选择',
+                params: {
+                    winId:'allocation_receipt_add_select_id',
+                    mutlilov_not_cashflow_ids_str: mutlilov_not_cashflow_ids_str,
+                    creditFlag:creditFlag
+                },
+                fullScreen: false,
+                draggable: true,
+                closeable: true,
+                width: 850,
+                height: 650
+            }).on('close', function () {
+                //把值放到dataset中
+                if (multilovDatas !== undefined && multilovDatas.length > 0){
+                    var ds = $('csh_transaction_allocation_credit_ds');
+                    for (let i = 0; i < multilovDatas.length; i++) {
+                        var due_date_format = multilovDatas[i].get('due_date_format');
+                        var surplus_principal = multilovDatas[i].get('surplus_principal');
+                        var surplus_interest = multilovDatas[i].get('surplus_interest');
+                        multilovDatas[i].set('deal_date',due_date_format);
+                        multilovDatas[i].set('due_date',due_date_format);
+                        multilovDatas[i].set('write_off_principal',surplus_principal);
+                        multilovDatas[i].set('write_off_interest',surplus_interest);
+                        ds.add(multilovDatas[i]);
+                    }
+                }
+                //清空数据
+                multilovDatas = [];
+                mutlilov_not_cashflow_ids_str = '';
+            });
         }
         function csh301_transaction_receipt_allocation_credit_delete(){
             //释放 债权剩余待核销金额汇总
@@ -206,6 +282,78 @@
                 scope: this
             });
         }
+
+        //确认核销按钮
+        function csh301_transaction_receipt_allocation_confirm() {
+            var record = $('csh_transaction_allocation_credit_ds').getCurrentRecord();
+            var record1 = $('csh_transaction_allocation_advance_ds').getCurrentRecord();
+
+
+            if (record != null) {
+                if(record.dirty){
+                    Leaf.showErrorMessage('提示', '债权核销有未保存数据，请保存之后再核销！');
+                    return;
+                }
+            }
+
+            if (record1 != null) {
+                if(record1.dirty){
+                    Leaf.showErrorMessage('提示', '债权核销有未保存数据，请保存之后再核销！');
+                    return;
+                }
+            }
+            debugger;
+            //收款
+            var receipt_ds = $('csh_transaction_allocation_receipt_ds');
+            var records = receipt_ds.getAll();
+
+            //债权
+            var credit_ds = $('csh_transaction_allocation_credit_ds');
+            var credit_records = credit_ds.getAll();
+
+            credit_records.forEach(function (record) {
+                record.dirty = true;
+            });
+            var credit_data = credit_ds.getJsonData();
+
+            //预收款
+            var advance_ds = $('csh_transaction_allocation_advance_ds');
+            var advance_data = advance_ds.getJsonData();
+
+            var saveData = [];
+            for (var i = 0; i < records.length; i++) {
+                records[i].set('allocation_source', 'MANUAL');
+                //预收款
+                records[i].data.csh_allocation_advance_list = advance_data;
+                //债权
+                records[i].data.csh_write_off_list = credit_data;
+                saveData.push(records[i].data);
+            }
+            var winId = '${/parameter/@winId}';
+            Leaf.Masker.mask($(winId).wrap, '提交中。。');
+            Leaf.request({
+                url: $('csh301_transaction_receipt_allocation_confirm_link').getUrl(),
+                para: saveData,
+                success: function (res) {
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                    Leaf.Masker.unmask($(winId).wrap);
+                    csh301_transaction_receipt_allocation_back();
+                },
+                failure: function () {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                error: function () {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                scope: this
+            });
+
+
+        }
+
         function receipt_transaction_num_lov_before_event(lov){
             var ds = $('csh_transaction_allocation_receipt_ds');
             var records = ds.getAll();
@@ -295,11 +443,13 @@
             }
             //给收款grid contract_number 租金支付表编号 赋值
             //收款
-            var receipt_ds = $('csh_transaction_allocation_receipt_ds');
-            var records = receipt_ds.getAll();
-            for(var i = 0 ; i < records.length; i++){
-                records[i].set("contract_id",r1.get('contract_id'));
-                records[i].set("contract_number",r1.get('contract_number'));
+            if('${/parameter/@transaction_type}' == 'RECEIPT') {
+                var receipt_ds = $('csh_transaction_allocation_receipt_ds');
+                var records = receipt_ds.getAll();
+                for (var i = 0; i < records.length; i++) {
+                    records[i].set("contract_id", r1.get('contract_id'));
+                    records[i].set("contract_number", r1.get('contract_number'));
+                }
             }
         }
 
@@ -334,7 +484,6 @@
 
         function allocation_credit_ds_update_event(ds, record, name, value, oldValue) {
             var write_off_due_amount = record.get('write_off_due_amount') || 0;
-
             //更新剩余可核销金额
             if (name == 'write_off_due_amount') {
                 var surplus_amount = record.get('surplus_amount') || 0;
@@ -344,6 +493,10 @@
                 if (minus(value, surplus_amount) > 0) {
                     Leaf.showErrorMessage('提示', '金额超过剩余金额！', null, 200, 100);
                     return;
+                }
+                if(surplus_interest ==0 && surplus_principal ==0){
+                    record.set('write_off_principal', 0);
+                    record.set('write_off_interest',  0);
                 } else if (minus(value, surplus_amount) <= 0 && minus(value, surplus_interest) <= 0) {
                     record.set('write_off_principal', 0);
                     record.set('write_off_interest', value || 0);
@@ -376,7 +529,6 @@
                 }
             } else if (name == 'write_off_principal') {
                 record.set('write_off_interest', minus(write_off_due_amount, value));
-
             } else if (name == 'write_off_interest') {
                 record.set('write_off_principal', minus(write_off_due_amount, value));
             }
@@ -622,10 +774,6 @@
         <a:screenBody>
             <a:screenTopToolbar>
                 <a:gridButton click="csh301_transaction_receipt_allocation_back" text="返回"/>
-                <!--<a:gridButton click="csh301_transaction_receipt_allocation_receipt_add" text="收款新增"/>
-                <a:gridButton click="csh301_transaction_receipt_allocation_receipt_delete" text="收款删除"/>
-                <a:gridButton click="csh301_transaction_receipt_allocation_credit_add" text="债权新增"/>
-                <a:gridButton click="csh301_transaction_receipt_allocation_credit_delete" text="债权删除"/>-->
                 <a:gridButton click="csh301_transaction_receipt_allocation_save" text="保存"/>
                 <a:gridButton click="csh301_transaction_receipt_allocation_confirm" text="确认核销"/>
             </a:screenTopToolbar>
@@ -652,8 +800,6 @@
                         <a:column name="transaction_num" prompt="收款编号" width="120" editor="receipt_editor_lov"/>
                         <a:column name="transaction_date" align="center" prompt="交易日期" width="100"
                                   renderer="Leaf.formatDate"/>
-                        <!--<a:column name="import_date" align="center" prompt="导入日期" width="150"
-                                  renderer="Leaf.formatDate"/>-->
                         <a:column name="bp_name" prompt="收款对象" width="200"/>
                         <a:column name="transaction_amount" prompt="收款金额" renderer="Leaf.formatMoney"
                                   align="right"
@@ -664,9 +810,9 @@
                         <a:column name="un_write_off_amount" prompt="剩余可核销金额"
                                   align="right" renderer="Leaf.formatMoney"
                                   width="120"/>
-                        <a:column name="advance_receipt_amount" prompt="待处理款项金额" editor="receipt_editor_nf"
+                        <!--<a:column name="advance_receipt_amount" prompt="待处理款项金额" editor="receipt_editor_nf"
                                   align="right" renderer="Leaf.formatMoney"
-                                  width="120"/>
+                                  width="120"/>-->
                         <a:column name="refund_amount" prompt="已退金额" align="right" renderer="refund_renderer"
                                   width="100"/>
                         <a:column name="refunding_amount" prompt="退款中金额" align="right" renderer="refund_renderer"
@@ -718,9 +864,9 @@
                                               align="right" renderer="Leaf.formatMoney" footerRenderer="sum_footrender"
                                               width="150" editor="credit_editor_nf"/>
                                     <a:column name="write_off_principal" prompt="本金" align="right" footerRenderer="sum_footrender"
-                                              renderer="Leaf.formatMoney" width="150" editor="credit_editor_nf"/>
+                                              renderer="Leaf.formatMoney" width="150"/>
                                     <a:column name="write_off_interest" prompt="利息" align="right" footerRenderer="sum_footrender"
-                                              renderer="Leaf.formatMoney" width="150" editor="credit_editor_nf"/>
+                                              renderer="Leaf.formatMoney" width="150"/>
                                 </a:columns>
                                 <a:editors>
                                     <a:lov id="credit_editor_lov">
@@ -757,7 +903,7 @@
                                 <a:editors>
                                     <a:numberField id="advance_credit_editor_nf" allowNegative="false">
                                         <a:events>
-                                            <a:event name="change" handler="advance_credit_editor_nf_change"/>
+                                            <!--<a:event name="change" handler="advance_credit_editor_nf_change"/>-->
                                         </a:events>
                                     </a:numberField>
                                     <a:lov id="deposit_contract_number_editor">

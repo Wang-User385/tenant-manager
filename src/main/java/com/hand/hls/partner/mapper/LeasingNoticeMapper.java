@@ -2,6 +2,7 @@ package com.hand.hls.partner.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.partner.dto.*;
+import com.hand.hls.prj.dto.HlsCusPrjProject;
 import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Param;
 
@@ -43,6 +44,11 @@ public interface LeasingNoticeMapper extends Mapper<LeasingNotice> {
      * @return
      */
     OrderLoanResultDto queryOrderLoanResult(@Param("projectId") Long projectId);
+
+    /**
+     * 关单结果通知
+     */
+    List<HlsCusPrjProject> queryOrderClosedList();
 
 
     /**
