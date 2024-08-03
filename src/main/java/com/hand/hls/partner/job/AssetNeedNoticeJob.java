@@ -25,6 +25,9 @@ public class AssetNeedNoticeJob extends AbstractJob {
         //调用消息推送接口，推送逾期超过30天未超过85天的现金流数据
         IRequest request = (IRequest) context.getMergedJobDataMap().get("requestContext");
         iylMessageNoticeService.assetNeedBuyback(null, request);
+
+        //关单结果通知
+        iylMessageNoticeService.orderClosedNotify(request);
         } catch (Exception e) {
             if (logger.isErrorEnabled()) {
                 logger.error(e.getMessage(), e);

@@ -27,7 +27,7 @@
                 WHEN 'REJECTED' THEN 'REJECT'
                 WHEN 'APPROVED_RETURN'   THEN 'REVIEW'
                 END AS status,
-            '暂无工作流，后续sql加上此段逻辑' AS opinion
+            (SELECT ahc.MESSAGE_ FROM ACT_HI_COMMENT ahc WHERE pp.PROCESS_INSTANCE_ID=ahc.PROC_INST_ID_ AND ahc.type_ = 'comment' ORDER BY ahc.TIME_ DESC FETCH FIRST 1 ROWS ONLY) AS opinion
         FROM PRJ_PROJECT pp WHERE pp.PROJECT_ID = #{projectId}
     </select>
 
@@ -39,7 +39,7 @@
                 WHEN 'APPROVED' THEN'PASS'
                 WHEN 'REJECTED'   THEN 'REVIEW'
                 END AS status,
-            '暂无工作流，后续sql加上此段逻辑' AS opinion
+            (SELECT ahc.MESSAGE_ FROM ACT_HI_COMMENT ahc WHERE pp.INVESTMENT_INSTANCE_ID=ahc.PROC_INST_ID_ AND ahc.type_ = 'comment' ORDER BY ahc.TIME_ DESC FETCH FIRST 1 ROWS ONLY) AS opinion
         FROM PRJ_PROJECT pp WHERE pp.PROJECT_ID = #{projectId}
     </select>
 
@@ -74,10 +74,30 @@
     <!--关单结果-->
     <select id="queryOrderClosedList" resultType="com.hand.hls.prj.dto.HlsCusPrjProject">
         SELECT
-            pp.*
-        FROM PRJ_PROJECT pp
-        WHERE  pp.PROJECT_STATUS = 'APPROVED'
-            trunc(sysdate) - 30  > trunc(pp.CREATION_DATE)
+            t.*
+        FROM (
+            SELECT
+                pp.PROJECT_ID,
+                pp.PROJECT_NAME,
+                pp.PROJECT_NUMBER,
+                pp.PROJECT_STATUS,
+                pp.CREATION_DATE,
+                pp.INVESTMENT_STATUS,
+                (SELECT
+                     max( END_TIME_ )
+                 FROM
+                     ACT_HI_PROCINST ahp
+                 WHERE
+                     ahp.BUSINESS_KEY_ = pp.PROJECT_ID
+                   and pp.project_status='APPROVED' AND INSTR( ahp.PROC_DEF_ID_, 'FORMAL_APPROVAL_WORK_FLOW' ) > 0
+                )  approved_time
+            FROM
+                PRJ_PROJECT pp
+             ) t
+        WHERE
+            (NVL(t.PROJECT_STATUS, 'NEW') NOT IN ('APPROVED','APPROVING') AND trunc( SYSDATE ) - 30 > trunc(t.CREATION_DATE))
+           OR (t.PROJECT_STATUS = 'APPROVED' AND NVL(t.INVESTMENT_STATUS, 'NEW') NOT IN ('APPROVED','APPROVING')
+            AND trunc( SYSDATE ) - 50 > trunc(t.approved_time))
     </select>
 
 
