@@ -9161,7 +9161,18 @@ and con.contract_status in
         AND ccc.cf_type = 1
         AND ccc.PLAN_TYPE = 'COMP'
         AND nvl(ccc.write_off_flag,'NOT') != 'FULL'
-        AND cc.contract_status = 'INCEPT') t1
+        AND cc.contract_status = 'INCEPT'
+        and not exists(select 1
+        from CSH_ALLOCATION_ADVANCE caa,
+        CSH_ALLOCATION_RECEIPT car,
+        CSH_TRANSACTION ct,
+        CSH_ALLOCATION ca
+        where caa.CASHFLOW_ID = ccc.cashflow_id
+        and caa.ALLOCATION_ID = car.ALLOCATION_ID
+        and car.TRANSACTION_ID = ct.TRANSACTION_ID
+        and ct.REVERSED_FLAG = 'N'
+        and ca.ALLOCATION_ID = car.ALLOCATION_ID
+        and ca.ALLOCATION_STATUS = 'N')) t1
         WHERE
         1 = 1
         <if test="contractId!=null">
