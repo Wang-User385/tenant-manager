@@ -216,6 +216,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             bpMaster.setBpId(bpMasters.get(0).getBpId());
             hlsCusBpMasterMapper.updateByPrimaryKeySelective(bpMaster);
         }
+
         //step2:新增hls_bp_master_role
         HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
         Boolean flag = false;
@@ -260,6 +261,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProject.setUnitId(hlsProductDefinitionList.get(0).getUnitId());
         hlsCusPrjProject.setLeaseItemType(hlsProductDefinitionList.get(0).getLeaseItemType());
         hlsCusPrjProject.setInceptType(hlsProductDefinitionList.get(0).getInceptType());
+
+        HlsCusBpMasterBankAccount bankAccountInfo = hlsCusBpMasterBankAccountMapper.selectBankByBpId(hlsCusBpMasters.get(0).getBpId());
+        hlsCusPrjProject.setBankAccountNum(bankAccountInfo.getBankAccountNum());
+        hlsCusPrjProject.setBankAccountName(bankAccountInfo.getBankAccountName());
+        hlsCusPrjProject.setBankFullName(bankAccountInfo.getBankFullName());
+        hlsCusPrjProject.setBankBranchName(bankAccountInfo.getBankBranchName());
         prjProjectMapper.insertSelective(hlsCusPrjProject);
 
         //step5: 新增prj_quotation
@@ -276,7 +283,32 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProjectBp.setBpCategroy("TENANT");
         hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
 
-        //新增附件信息
+        //step7： 新增prj_project_lease_item
+        HlsCusPrjProjectLeaseItem leaseItem = new HlsCusPrjProjectLeaseItem();
+        leaseItem.setProjectId(hlsCusPrjProject.getProjectId());
+        hlsCusPrjProjectLeaseItemMapper.insertSelective(leaseItem);
+
+        //step8： 新增prj_lease_item_sales
+        PrjProjectLeaseItemSales leaseItemSales = new PrjProjectLeaseItemSales();
+        leaseItemSales.setProjectLeaseItemId(leaseItem.getProjectLeaseItemId());
+        projectLeaseItemSalesMapper.insertSelective(leaseItemSales);
+
+        //step9： 新增prj_lease_item_insurance
+        PrjLeaseItemInsurance leaseItemInsurance = new PrjLeaseItemInsurance();
+        leaseItemInsurance.setProjectLeaseItemId(leaseItem.getProjectLeaseItemId());
+        prjLeaseItemInsuranceMapper.insertSelective(leaseItemInsurance);
+
+        //step10： 新增prj_lease_item_mortgage
+        PrjProjectLeaseItemMortgage leaseItemMortgages = new PrjProjectLeaseItemMortgage();
+        leaseItemMortgages.setProjectLeaseItemId(leaseItem.getProjectLeaseItemId());
+        projectLeaseItemMortgageMapper.insertSelective(leaseItemMortgages);
+
+        //step11： 新增prj_lease_item_condition
+        PrjProjectLeaseItemCondition leaseItemConditions = new PrjProjectLeaseItemCondition();
+        leaseItemConditions.setProjectLeaseItemId(leaseItem.getProjectLeaseItemId());
+        projectLeaseItemConditionMapper.insertSelective(leaseItemConditions);
+
+        //step12： 新增prj_project_attachment
         HlsCusPrjProjectAttachment prjAttachment = new HlsCusPrjProjectAttachment();
         SysDocumentList sysDocumentList = new SysDocumentList();
         List<SysDocumentList> sysDocumentLists = sysDocumentListMapper.selectSysDocumentList(sysDocumentList);
@@ -288,7 +320,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             hlsCusPrjProjectAttachmentMapper.insertSelective(prjAttachment);
         }
 
-        //step7: 返回信息
+        //step13: 返回信息
         returnJson.put("code","200");
         returnJson.put("message","下单成功");
         returnJson.put("orderNo",codeRuleValue);
@@ -1176,17 +1208,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
 
         //step9: 保存担保人信息、保存共同承租人信息 待整理
-        // 下单时，需插入prj_quotation
-        // prj_project_lease_item prj_lease_item_sales prj_lease_item_insurance prj_lease_item_mortgage prj_lease_item_condition
-        //插入项目对应的产品定义中投放类型是合作商的银行账户信息
-        HlsCusBpMasterBankAccount bankAccountInfo = hlsCusBpMasterBankAccountMapper.queryBankAccountInfoById(hlsCusPrjProject.getProjectId());
-        //更新项目信息中的账户信息
-        hlsCusPrjProject.setBankAccountNum(bankAccountInfo.getBankAccountNum());
-        hlsCusPrjProject.setBankAccountName(bankAccountInfo.getBankAccountName());
-        hlsCusPrjProject.setBankFullName(bankAccountInfo.getBankFullName());
-        hlsCusPrjProject.setBankBranchName(bankAccountInfo.getBankBranchName());
-        prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-
         // 报价计算以及校验逻辑待补充
         try{
             prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
