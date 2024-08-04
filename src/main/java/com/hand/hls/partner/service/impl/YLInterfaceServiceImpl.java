@@ -858,7 +858,131 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
     }
 
-    public void setRiskData(PreRiskAuditData preRiskAuditData,HlsCusPrjProject hlsCusPrjProject,HlsCusPrjQuotation prjQuotation,
+    private void saveGuarantee(PreRiskAuditData preRiskAuditData,HlsCusPrjProject hlsCusPrjProject) {
+        //step1：保存hls_bp_master
+        List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
+        HlsCusBpMaster guaBpMaster = null;
+        if (hlsCusBpMasters.isEmpty()){
+            guaBpMaster = new HlsCusBpMaster();
+            guaBpMaster.setCreationDateStr(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+            guaBpMaster.setSource("1");
+            guaBpMaster.setBpClass("NP");
+            guaBpMaster.setBpCategory("GUARANTOR");
+        }else{
+            guaBpMaster = hlsCusBpMasters.get(0);
+        }
+        guaBpMaster.setBpName(preRiskAuditData.getSurename());//担保人姓名
+        guaBpMaster.setIdType(preRiskAuditData.getSurecertype());//担保人证件类型
+        guaBpMaster.setIdCardNo(preRiskAuditData.getSureid());//担保人身份证
+        guaBpMaster.setPhone(preRiskAuditData.getSuremobi());//担保人手机
+
+        if(guaBpMaster.getBpId() == null){
+            hlsCusBpMasterMapper.insertSelective(guaBpMaster);
+
+        }else{
+            hlsCusBpMasterMapper.updateByPrimaryKeySelective(guaBpMaster);
+        }
+
+        //step2：保存hls_bp_master_role
+        Boolean flag = false;
+        List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(guaBpMaster.getBpId());
+        for (String s : stringList) {
+            if (s.equals("GUARANTOR")){
+                flag = true;
+            }
+        }
+        if (!flag){
+            HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
+            hlsBpMasterRole.setBpId(guaBpMaster.getBpId());
+            hlsBpMasterRole.setBpType("GUARANTOR");
+            hlsBpMasterRole.setBpCategory("GUARANTOR");
+            hlsBpMasterRole.setEnabledFlag("Y");
+            if(stringList.isEmpty()){
+                hlsBpMasterRole.setPrimaryFlag("Y");
+            }
+            hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
+        }
+
+        //step3：保存prj_project_bp
+        HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectGurProjectBp(hlsCusPrjProject.getProjectId());
+        if(hlsCusPrjProjectBp == null){
+            hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+            hlsCusPrjProjectBp.setBpCategroy("GUARANTOR");
+            hlsCusPrjProjectBp.setBpId(guaBpMaster.getBpId());
+            hlsCusPrjProjectBp.setRefV02(preRiskAuditData.getDbryczrgx());//担保人与承租人关系
+            hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+        }else{
+            hlsCusPrjProjectBp.setBpId(guaBpMaster.getBpId());
+            hlsCusPrjProjectBp.setRefV02(preRiskAuditData.getDbryczrgx());//担保人与承租人关系
+            hlsCusPrjProjectBpMapper.updateByPrimaryKeySelective(hlsCusPrjProjectBp);
+        }
+    }
+
+    private void saveSecTenant(PreRiskAuditData preRiskAuditData, HlsCusPrjProject hlsCusPrjProject) {
+        //step1：保存hls_bp_master
+        List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
+        HlsCusBpMaster secTenantBpMaster = null;
+        if (hlsCusBpMasters.isEmpty()){
+            secTenantBpMaster = new HlsCusBpMaster();
+            secTenantBpMaster.setCreationDateStr(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+            secTenantBpMaster.setSource("1");
+            secTenantBpMaster.setBpClass("NP");
+            secTenantBpMaster.setBpCategory("TENANT-SEC");
+        }else{
+            secTenantBpMaster = hlsCusBpMasters.get(0);
+        }
+        secTenantBpMaster.setBpName(preRiskAuditData.getConame());//共同借款人姓名
+        secTenantBpMaster.setIdType(preRiskAuditData.getCocerttype());//共同承租人证件类型
+        secTenantBpMaster.setIdCardNo(preRiskAuditData.getCoid());//共同借款人身份证
+        secTenantBpMaster.setPhone(preRiskAuditData.getComobile());//共同借款人手机
+        secTenantBpMaster.setHouseAddress(preRiskAuditData.getCoaddr());//共同承租人居住地址
+        secTenantBpMaster.setWorkingCompany(preRiskAuditData.getCocompany());//共同借款人工作单位
+        secTenantBpMaster.setWorkPhone(preRiskAuditData.getCocomtel());//共同承租人公司电话
+        secTenantBpMaster.setCompanyAddress(preRiskAuditData.getCocomaddr());//共同借款人公司地址
+
+        if(secTenantBpMaster.getBpId() == null){
+            hlsCusBpMasterMapper.insertSelective(secTenantBpMaster);
+
+        }else{
+            hlsCusBpMasterMapper.updateByPrimaryKeySelective(secTenantBpMaster);
+        }
+
+        //step2：保存hls_bp_master_role
+        Boolean flag = false;
+        List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(secTenantBpMaster.getBpId());
+        for (String s : stringList) {
+            if (s.equals("TENANT-SEC")){
+                flag = true;
+            }
+        }
+        if (!flag){
+            HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
+            hlsBpMasterRole.setBpId(secTenantBpMaster.getBpId());
+            hlsBpMasterRole.setBpType("TENANT-SEC");
+            hlsBpMasterRole.setBpCategory("TENANT-SEC");
+            hlsBpMasterRole.setEnabledFlag("Y");
+            if(stringList.isEmpty()){
+                hlsBpMasterRole.setPrimaryFlag("Y");
+            }
+            hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
+        }
+
+        //step3：保存prj_project_bp
+        HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectSecTenantProjectBp(hlsCusPrjProject.getProjectId());
+        if(hlsCusPrjProjectBp == null){
+            hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
+            hlsCusPrjProjectBp.setBpCategroy("TENANT-SEC");
+            hlsCusPrjProjectBp.setBpId(secTenantBpMaster.getBpId());
+            hlsCusPrjProjectBp.setRefV02(preRiskAuditData.getCorelation());//共同借款人社会关系
+            hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+        }else{
+            hlsCusPrjProjectBp.setBpId(secTenantBpMaster.getBpId());
+            hlsCusPrjProjectBp.setRefV02(preRiskAuditData.getCorelation());//共同借款人社会关系
+            hlsCusPrjProjectBpMapper.updateByPrimaryKeySelective(hlsCusPrjProjectBp);
+        }
+    }
+
+    private void setRiskData(PreRiskAuditData preRiskAuditData,HlsCusPrjProject hlsCusPrjProject,HlsCusPrjQuotation prjQuotation,
                             HlsCusPrjProjectLeaseItem leaseItem,PrjProjectLeaseItemSales leaseItemSales,PrjLeaseItemInsurance leaseItemInsurance,
                             PrjProjectLeaseItemMortgage leaseItemMortgages,PrjProjectLeaseItemCondition leaseItemConditions,
                             HlsCusBpMaster bpMaster,HlsCusBpMasterBankAccount bpMasterBankAccount,HlsBpSpouse bpMasterSpouse) throws HlsCusException {
@@ -929,22 +1053,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         bpMaster.setCompanyDistrict(preRiskAuditData.getCompanyqu());//公司所属区
         bpMaster.setCompanyAddress(preRiskAuditData.getCompaddr());//公司地址
         hlsCusPrjProject.setDriverAndApplicant(preRiskAuditData.getSjjsrysqrgx());//实际驾驶人与申请人关系
-        //有无担保人
-        //担保人与承租人关系
-        //担保人姓名
-        //担保人证件类型
-        //担保人身份证
-        //担保人手机
-        //有无共同承租人
-        //共同借款人社会关系
-        //共同借款人姓名
-        //共同承租人证件类型
-        //共同借款人身份证
-        //共同借款人手机
-        //共同承租人居住地址
-        //共同借款人工作单位
-        //共同承租人公司电话
-        //共同借款人公司地址
+
+        if ("1".equals(preRiskAuditData.getIssureor())){
+            saveGuarantee(preRiskAuditData,hlsCusPrjProject);//有无担保人
+        }
+
+        if ("1".equals(preRiskAuditData.getIscop())){
+            saveSecTenant(preRiskAuditData,hlsCusPrjProject);//有无共同承租人
+        }
+
         //直系亲属关系
         bpMaster.setBpNameSp(preRiskAuditData.getSpousename());//配偶姓名
         bpMaster.setIdCardNoSp(preRiskAuditData.getSpouseidcard());//配偶身份证
@@ -1207,13 +1324,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             hlsBpSpouseMapper.updateByPrimaryKeySelective(bpMasterSpouse);
         }
 
-        //step9: 保存担保人信息、保存共同承租人信息 待整理
-        // 报价计算以及校验逻辑待补充
+        //step9: 报价计算
         try{
             prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
         }catch (Exception e){
             e.printStackTrace();
-            //设置返回状态
             returnJson.put("code","400");
             returnJson.put("message","报价计算异常，请联系管理员");
             throw new HlsCusException(returnJson.toJSONString());
@@ -1233,211 +1348,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 //            }
 //        }
 
-        setGuaranteeByPreRiskAuditData(preRiskAuditData,iRequest,hlsCusPrjProject);//保存担保人信息
-        setTenantSecByPreRiskAuditData(preRiskAuditData,iRequest,hlsCusPrjProject);//保存共同承租人信息
-
         returnJson.put("code","200");
         returnJson.put("message","数据采集成功");
         return returnJson.toJSONString();
-    }
-
-    private void setGuaranteeByPreRiskAuditData(PreRiskAuditData preRiskAuditData, IRequest iRequest,HlsCusPrjProject hlsCusPrjProject) {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        //有无担保人
-        if ("1".equals(preRiskAuditData.getIssureor())){
-            //首先判断数据库有没有该担保人
-            List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
-            HlsCusBpMaster hlsCusBpMaster1 = null;
-            if (hlsCusBpMasters.size()>0){
-                hlsCusBpMaster1 = hlsCusBpMasters.get(0);
-            }
-            if (hlsCusBpMaster1==null){
-                HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
-                HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
-                hlsCusBpMaster1 = new HlsCusBpMaster();
-                //担保人姓名
-                hlsCusBpMaster1.setBpName(preRiskAuditData.getSurename());
-                //担保人证件类型
-                hlsCusBpMaster1.setIdType(preRiskAuditData.getSurecertype());
-                //担保人身份证
-                hlsCusBpMaster1.setIdCardNo(preRiskAuditData.getSureid());
-                //担保人手机
-                hlsCusBpMaster1.setPhone(preRiskAuditData.getSuremobi());
-                hlsCusBpMaster1.setCreationDate(new Date());
-                String format = simpleDateFormat.format(new Date());
-                hlsCusBpMaster1.setCreationDateStr(format);
-                //创建人
-                hlsCusBpMaster1.setCreatedBy(iRequest.getUserId());
-                //来源
-                hlsCusBpMaster1.setSource("1");
-                hlsCusBpMaster1.setBpClass("NP");
-                hlsCusBpMaster1.setBpCategory("GUARANTOR");
-                hlsCusBpMasterMapper.insertSelective(hlsCusBpMaster1);
-                hlsBpMasterRole.setBpId(hlsCusBpMaster1.getBpId());
-                hlsBpMasterRole.setBpType("GUARANTOR");
-                hlsBpMasterRole.setBpCategory("GUARANTOR");
-                hlsBpMasterRole.setEnabledFlag("Y");
-                hlsBpMasterRole.setPrimaryFlag("Y");
-                hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
-                hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
-                hlsCusPrjProjectBp.setRefV02("GUARANTOR");
-                hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
-            }else{
-                HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectProjectBpByBpId(hlsCusBpMaster1.getBpId());
-                //担保人姓名
-                hlsCusBpMaster1.setBpName(preRiskAuditData.getSurename());
-                //担保人证件类型
-                hlsCusBpMaster1.setIdType(preRiskAuditData.getSurecertype());
-                //担保人身份证
-                hlsCusBpMaster1.setIdCardNo(preRiskAuditData.getSureid());
-                //担保人手机
-                hlsCusBpMaster1.setPhone(preRiskAuditData.getSuremobi());
-                hlsCusBpMaster1.setLastUpdatedBy(iRequest.getUserId());
-                hlsCusBpMaster1.setLastUpdateDate(new Date());
-                //来源
-                hlsCusBpMaster1.setSource("1");
-                hlsCusBpMaster1.setBpClass("NP");
-                hlsCusBpMaster1.setBpCategory("GUARANTOR");
-                hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster1);
-
-                //设置flag判断是否有GUARANTOR
-                Boolean flag = false;
-                List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(hlsCusBpMaster1.getBpId());
-                for (String s : stringList) {
-                    if (s.equals("GUARANTOR")){
-                        flag = true;
-                    }
-                }
-                if (!flag){
-                    HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
-                    hlsBpMasterRole.setBpId(hlsCusBpMaster1.getBpId());
-                    hlsBpMasterRole.setBpType("GUARANTOR");
-                    hlsBpMasterRole.setBpCategory("GUARANTOR");
-                    hlsBpMasterRole.setEnabledFlag("Y");
-                    hlsBpMasterRole.setPrimaryFlag("Y");
-                    hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
-                }
-                if (hlsCusPrjProjectBp==null){
-                    hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                    hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
-                    hlsCusPrjProjectBp.setRefV02("GUARANTOR");
-                    hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
-                }else{
-                    hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                    hlsCusPrjProjectBp.setBpId(hlsCusBpMaster1.getBpId());
-                    hlsCusPrjProjectBp.setRefV02("GUARANTOR");
-                    hlsCusPrjProjectBpMapper.updateByPrimaryKeySelective(hlsCusPrjProjectBp);
-                }
-            }
-        }
-    }
-
-    private void setTenantSecByPreRiskAuditData(PreRiskAuditData preRiskAuditData, IRequest iRequest, HlsCusPrjProject hlsCusPrjProject) {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        //有无共同承租人
-        if ("1".equals(preRiskAuditData.getIscop())){
-            List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
-            HlsCusBpMaster hlsCusBpMaster2 = null;
-            if (hlsCusBpMasters.size()>0){
-                hlsCusBpMaster2 = hlsCusBpMasters.get(0);
-            }
-            if (hlsCusBpMaster2==null){
-                HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
-                HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
-                hlsCusBpMaster2 = new HlsCusBpMaster();
-                //共同借款人姓名
-                hlsCusBpMaster2.setBpName(preRiskAuditData.getConame());
-                //共同承租人证件类型
-                hlsCusBpMaster2.setIdType(preRiskAuditData.getCocerttype());
-                //共同借款人身份证
-                hlsCusBpMaster2.setIdCardNo(preRiskAuditData.getCoid());
-                //共同借款人手机
-                hlsCusBpMaster2.setPhone(preRiskAuditData.getComobile());
-                //共同承租人居住地址
-                hlsCusBpMaster2.setHouseAddress(preRiskAuditData.getCoaddr());
-                //共同借款人工作单位
-                hlsCusBpMaster2.setWorkingCompany(preRiskAuditData.getCocompany());
-                //共同承租人公司电话
-                hlsCusBpMaster2.setWorkPhone(preRiskAuditData.getCocomtel());
-                //共同借款人公司地址
-                hlsCusBpMaster2.setCompanyAddress(preRiskAuditData.getCocomaddr());
-                hlsCusBpMaster2.setCreationDate(new Date());
-                String format = simpleDateFormat.format(new Date());
-                hlsCusBpMaster2.setCreationDateStr(format);
-                //创建人
-                hlsCusBpMaster2.setCreatedBy(iRequest.getUserId());
-                //来源
-                hlsCusBpMaster2.setSource("1");
-                hlsCusBpMaster2.setBpClass("NP");
-                hlsCusBpMaster2.setBpCategory("TENANT-SEC");
-                hlsCusBpMasterMapper.insertSelective(hlsCusBpMaster2);
-                hlsBpMasterRole.setBpId(hlsCusBpMaster2.getBpId());
-                hlsBpMasterRole.setBpType("TENANT-SEC");
-                hlsBpMasterRole.setBpCategory("TENANT-SEC");
-                hlsBpMasterRole.setEnabledFlag("Y");
-                hlsBpMasterRole.setPrimaryFlag("Y");
-                hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
-                hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
-                hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
-                hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
-            }else{
-                HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectProjectBpByBpId(hlsCusBpMaster2.getBpId());
-                //共同借款人姓名
-                hlsCusBpMaster2.setBpName(preRiskAuditData.getConame());
-                //共同承租人证件类型
-                hlsCusBpMaster2.setIdType(preRiskAuditData.getCocerttype());
-                //共同借款人身份证
-                hlsCusBpMaster2.setIdCardNo(preRiskAuditData.getCoid());
-                //共同借款人手机
-                hlsCusBpMaster2.setPhone(preRiskAuditData.getComobile());
-                //共同承租人居住地址
-                hlsCusBpMaster2.setHouseAddress(preRiskAuditData.getCoaddr());
-                //共同借款人工作单位
-                hlsCusBpMaster2.setWorkingCompany(preRiskAuditData.getCocompany());
-                //共同承租人公司电话
-                hlsCusBpMaster2.setWorkPhone(preRiskAuditData.getCocomtel());
-                //共同借款人公司地址
-                hlsCusBpMaster2.setCompanyAddress(preRiskAuditData.getCocomaddr());
-                hlsCusBpMaster2.setLastUpdatedBy(iRequest.getUserId());
-                hlsCusBpMaster2.setLastUpdateDate(new Date());
-                //来源
-                hlsCusBpMaster2.setSource("1");
-                hlsCusBpMaster2.setBpClass("NP");
-                hlsCusBpMaster2.setBpCategory("TENANT-SEC");
-                hlsCusBpMasterMapper.updateByPrimaryKeySelective(hlsCusBpMaster2);
-
-                //设置flag判断是否有GUARANTOR
-                Boolean flag = false;
-                List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(hlsCusBpMaster2.getBpId());
-                for (String s : stringList) {
-                    if (s.equals("TENANT-SEC")){
-                        flag = true;
-                    }
-                }
-                if (!flag){
-                    HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
-                    hlsBpMasterRole.setBpId(hlsCusBpMaster2.getBpId());
-                    hlsBpMasterRole.setBpType("TENANT-SEC");
-                    hlsBpMasterRole.setBpCategory("TENANT-SEC");
-                    hlsBpMasterRole.setEnabledFlag("Y");
-                    hlsBpMasterRole.setPrimaryFlag("Y");
-                    hlsCusBpMasterRoleMapper.insertSelective(hlsBpMasterRole);
-                }
-                if (hlsCusPrjProjectBp==null){
-                    hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                    hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
-                    hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
-                    hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
-                }else{
-                    hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-                    hlsCusPrjProjectBp.setBpId(hlsCusBpMaster2.getBpId());
-                    hlsCusPrjProjectBp.setRefV02("TENANT-SEC");
-                    hlsCusPrjProjectBpMapper.updateByPrimaryKeySelective(hlsCusPrjProjectBp);
-                }
-            }
-        }
     }
 
     @Override

@@ -53,5 +53,7 @@ public interface HlsCusPrjProjectBpMapper extends Mapper<HlsCusPrjProjectBp> {
     Long getBpIdByProjectId(@Param("projectId") Long projectId);
 
 
-    HlsCusPrjProjectBp selectProjectBpByBpId(@Param("bpId") Long bpId);
+    HlsCusPrjProjectBp selectGurProjectBp(@Param("projectId") Long projectId);
+
+    HlsCusPrjProjectBp selectSecTenantProjectBp(@Param("projectId") Long projectId);
 }
