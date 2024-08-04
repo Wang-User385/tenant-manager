@@ -3,9 +3,14 @@ package com.hand.hap.activiti.components;
 import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
+import com.hand.hls.bp.dto.HlsCusBpMaster;
+import com.hand.hls.bp.dto.HlsCusBpMasterBankAccount;
+import com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper;
+import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
+import com.hand.hls.cont.dto.HlsCusHlsBpMasterBankAccount;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
 import com.hand.hls.csh.dto.HlsCusCshPaymentReqHd;
@@ -56,6 +61,10 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
     FndCodingRuleValuesService codingRuleValuesService;
     @Autowired
     IYLMessageNoticeService messageNoticeService;
+    @Autowired
+    private HlsCusBpMasterMapper hlsCusBpMasterMapper;
+    @Autowired
+    private HlsCusBpMasterBankAccountMapper bankAccountmapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -86,6 +95,10 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         //step1 创建合同
         HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
         Map<String, String> map = hlsBeanRefUtilService.getFieldValueMap(prjProject);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(prjProject.getTenantId());
+        List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectHlsBpMasterById(hlsCusBpMaster);
+        HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = bankAccountmapper.selectBankByBpId(prjProject.getManufacturerId());
 
         HlsCusPrjQuotation prjQuotation = new HlsCusPrjQuotation();
         prjQuotation.setSourceDocumentCategory("PRJ_PROJECT");
@@ -135,6 +148,18 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         reqHd.setSourceDocType("CON_CONTRACT_CASHFLOW");
         reqHd.setSourceDocId(equiCashflow.getCashflowId());
         reqHd.setCreationDate(new Date());
+        reqHd.setPaymentApprovedStatus("PAYING");
+        reqHd.setPaymentType("PAYMENT");
+        reqHd.setBpId(hlsCusBpMasters.get(0).getBpId());
+        reqHd.setBpName(hlsCusBpMasters.get(0).getBpName());
+        reqHd.setApplyPayDate(prjQuotation.getLeaseStartDate());
+        reqHd.setBankAccountId(hlsCusBpMasterBankAccount.getBankAccountId());
+        reqHd.setBpBankAccountName(hlsCusBpMasterBankAccount.getBankAccountName());
+        reqHd.setBpBankAccountNum(hlsCusBpMasterBankAccount.getBankAccountNum());
+        reqHd.setBpBankName(hlsCusBpMasterBankAccount.getBankFullName());
+        reqHd.setBpBankBranchName(hlsCusBpMasterBankAccount.getBankBranchName());
+        reqHd.setEmployeeId(prjProject.getEmployeeId());
+        reqHd.setUnitId(prjProject.getUnitId());
         hlsCusCshPaymentReqHdMapper.insertSelective(reqHd);
 
         HlsCusCshPaymentReqLn reqLn = new HlsCusCshPaymentReqLn();

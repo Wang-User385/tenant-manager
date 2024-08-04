@@ -93,4 +93,9 @@ public interface HlsCusPrjProjectAttachmentMapper extends Mapper<HlsCusPrjProjec
     HlsCusPrjProjectAttachment selectAttachYl(@Param("projectId") Long projectId,
                                               @Param("attachmentCode") String attachmentCode);
 
+    Integer selectAttachMultiYlByCode(@Param("projectId") Long projectId,
+                                      @Param("attachmentCode") String attachmentCode,
+                                      @Param("tableName") String tableName,
+                                      @Param("attachmentCategory") String attachmentCategory);
+
 }

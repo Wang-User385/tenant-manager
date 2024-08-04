@@ -374,6 +374,12 @@ public class HlsCusCshPaymentReqHd extends CshPaymentReqHd {
     private String phone;
     @Transient
     private Long contractId;
+    @Transient
+    private String bp_bank_name;
+    @Transient
+    private String bp_bank_account_name;
+    @Transient
+    private String bp_bank_account_num;
 
     public Long getUnitId() {
         return unitId;

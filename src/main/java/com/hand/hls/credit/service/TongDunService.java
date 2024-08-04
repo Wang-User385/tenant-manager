@@ -1,5 +1,7 @@
 package com.hand.hls.credit.service;
 
+import hls.core.utils.exception.HlsCusException;
+
 import javax.servlet.http.HttpServletRequest;
 
 /**
@@ -16,7 +18,7 @@ public interface TongDunService {
     //Reject：拒绝
     //Repeat: 重复审批订单
     //Error：参数异常
-    String preliminaryValid(Long projectId, HttpServletRequest request);
+    String preliminaryValid(Long projectId, HttpServletRequest request) throws HlsCusException;
 
 
     //正审
@@ -25,6 +27,6 @@ public interface TongDunService {
     //Review：人工审核
     //Repeat: 重复审批订单
     //Error：参数异常
-    String interlocutoryValid(Long projectId, HttpServletRequest request);
+    String interlocutoryValid(Long projectId, HttpServletRequest request) throws HlsCusException;
 
 }

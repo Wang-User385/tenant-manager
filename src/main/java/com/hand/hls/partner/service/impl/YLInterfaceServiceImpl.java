@@ -4,16 +4,13 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
-import com.hand.hap.mybatis.entity.Example;
 import com.hand.hls.atm.dto.FndAttachment;
 import com.hand.hls.atm.dto.FndAttachmentMulti;
 import com.hand.hls.atm.mapper.FndAttachmentMapper;
 import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterRoleMapper;
-import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
-import com.hand.hls.cont.service.HlsCusConContractCashflowService;
 import com.hand.hls.cont.service.IConContractCashflowService;
 import com.hand.hls.csh.dto.*;
 import com.hand.hls.csh.service.*;
@@ -39,8 +36,6 @@ import com.hand.hls.prj.mapper.*;
 import com.hand.hls.sys.dto.SysDocumentList;
 import com.hand.hls.sys.mapper.SysDocumentListMapper;
 import com.hand.hls.utils.ResMessageException;
-import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
-import com.hand.hls.web.logs.service.IHlsWsRequestsService;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
 import hls.core.utils.exception.HlsCusException;
@@ -69,10 +64,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     @Autowired
     private HlsCusPrjProjectMapper prjProjectMapper;
     @Autowired
-    private HlsCusConContractMapper conContractMapper;
-    @Autowired
-    private HlsWsRequestsMapper hlsWsRequestsMapper;
-    @Autowired
     private HlsCusBpMasterMapper hlsCusBpMasterMapper;
     @Autowired
     private FndCodingRuleValuesService fndCodingRuleValuesService;
@@ -94,8 +85,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private HlsCusPrjProjectBpMapper hlsCusPrjProjectBpMapper;
     @Autowired
     private ProjectLeaseItemConditionMapper projectLeaseItemConditionMapper;
-    @Autowired
-    private IHlsWsRequestsService logService;
     @Autowired
     private TongDunService tongDunService;
     @Autowired
@@ -131,8 +120,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private IActivitiStartService activitiStartService;
     @Autowired
     private HlsCusCshTransactionMapper transactionMapper;
-    @Autowired
-    private HlsCusConContractCashflowService contractCashflowService;
     @Autowired
     private ICshAllocationService cshAllocationService;
     @Autowired
@@ -465,7 +452,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             jsonObject1.put("code","400");
             jsonObject1.put("message","代偿数据不存在");
             throw new HlsCusException(jsonObject1.toJSONString());
-       }
+        }
         if (!Objects.equals((long) (conContractCashflow.getDueAmount()*100), claimsSubrogationDTO.getSubstituteAmount())) {
             jsonObject1.put("code","400");
             jsonObject1.put("message","代偿金额不匹配！");
@@ -1191,14 +1178,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //step9: 保存担保人信息、保存共同承租人信息 待整理
         // 下单时，需插入prj_quotation
         // prj_project_lease_item prj_lease_item_sales prj_lease_item_insurance prj_lease_item_mortgage prj_lease_item_condition
-        // 插入项目对应的产品定义中投放类型是合作商的银行账户信息
-        //        HlsCusBpMasterBankAccount bankAccountInfo = hlsCusBpMasterBankAccountMapper.queryBankAccountInfoById(hlsCusPrjProject.getProjectId());
-        //		            //更新项目信息中的账户信息
-        //            hlsCusPrjProject.setBankAccountNum(bankAccountInfo.getBankAccountNum());
-        //            hlsCusPrjProject.setBankAccountName(bankAccountInfo.getBankAccountName());
-        //            hlsCusPrjProject.setBankFullName(bankAccountInfo.getBankFullName());
-        //            hlsCusPrjProject.setBankBranchName(bankAccountInfo.getBankBranchName());
-        //            prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+        //插入项目对应的产品定义中投放类型是合作商的银行账户信息
+        HlsCusBpMasterBankAccount bankAccountInfo = hlsCusBpMasterBankAccountMapper.queryBankAccountInfoById(hlsCusPrjProject.getProjectId());
+        //更新项目信息中的账户信息
+        hlsCusPrjProject.setBankAccountNum(bankAccountInfo.getBankAccountNum());
+        hlsCusPrjProject.setBankAccountName(bankAccountInfo.getBankAccountName());
+        hlsCusPrjProject.setBankFullName(bankAccountInfo.getBankFullName());
+        hlsCusPrjProject.setBankBranchName(bankAccountInfo.getBankBranchName());
+        prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
 
         // 报价计算以及校验逻辑待补充
         try{
@@ -1650,8 +1637,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             String s = tongDunService.preliminaryValid(hlsCusPrjProject.getProjectId(), request);
 //            校验客户信息查询授权书是否已经上传
             if ("Accept".equals(s)){
-                hlsCusPrjProject.setPreStatus("APPROVED");
-                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+                /*hlsCusPrjProject.setPreStatus("APPROVED");
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);*/
                 returnJson.put("code","200");
                 returnJson.put("message","预审成功");
                 return returnJson.toJSONString();
@@ -1669,9 +1656,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 returnJson.put("code","200");
                 returnJson.put("message","审核成功");
                 return returnJson.toJSONString();
-            }else if ("Reject".equals(s) || "Error".equals(s)){
+            }else if ("Reject".equals(s)){
                 returnJson.put("code","400");
-                returnJson.put("message","审核失败");
+                returnJson.put("message","同盾请求接口返回审批拒绝");
+                throw new HlsCusException(returnJson.toJSONString());
+            }else if ("Review".equals(s)){
+                returnJson.put("code","400");
+                returnJson.put("message","同盾请求接口返回谨慎通过，已发起进件正审流程");
                 throw new HlsCusException(returnJson.toJSONString());
             }
         }else if ("RE_APPLY_PRE_RISK".equals(action)){
@@ -1688,6 +1679,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
             //申请代扣签约
         }else if ("APPLY_LOAN".equals(action)||"RE_APPLY_LOAN".equals(action)){
+            //申请放款前，校验（合同、协议文件、抵质押材料）的相关附件是否已经上传
+            String multiMessage = checkAttachMulti(hlsCusPrjProject.getProjectId());
+            //如果校验不通过直接返回
+            if (!multiMessage.isEmpty()){
+                //设置返回状态
+                returnJson.put("code","400");
+                returnJson.put("message","该进件项目的:"+multiMessage.substring(0, multiMessage.length() - 1)+"附件未上传");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
             //获取riskinfo数据
             PreRiskAuditData preRiskAuditData = JSONObject.parseObject(hlsCusPrjProject.getRiskInfo(), PreRiskAuditData.class);
             if (preRiskAuditData==null){
@@ -1710,12 +1710,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 throw new HlsCusException(returnJson.toJSONString());
             }
             //获取附件
-            List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.queryByProjectId(hlsCusPrjProject.getProjectId());
+            /*List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.queryByProjectId(hlsCusPrjProject.getProjectId());
             if (hlsCusPrjProjectAttachments.size()==0){
                 returnJson.put("code","400");
                 returnJson.put("message","附件不能为空");
                 throw new HlsCusException(returnJson.toJSONString());
-            }
+            }*/
             HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
             HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
             if (preRiskAuditData.getCarbrand2().equals(hlsCusPrjProjectLeaseItem.getBrandC())&&
@@ -1752,7 +1752,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         returnJson.put("message","再次审批通过超过五十天");
                         throw new HlsCusException(returnJson.toJSONString());
                     }
-                    //再次发起投放审查流程前就不再校验是否在流程中了
+                    //再次发起投放审查流程前先校验有没有流程中的
+                    dateCheck(hlsCusPrjProject);
                     //发起投放审查流程
                     signWorkFlowSubmit(iRequest, hlsCusPrjProject);
                     hlsCusPrjProject.setInvestmentStatus("APPROVING");
@@ -1763,6 +1764,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 returnJson.put("message","风控与业务数据不一致");
                 throw new HlsCusException(returnJson.toJSONString());
             }
+
         }else{
             //抵押材料审核
         }
@@ -1829,7 +1831,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         List<File> files = imageSyncDTO.getFiles();
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(orderNo);
         Long projectId = hlsCusPrjProject.getProjectId();
-        Boolean signFlag = false;
         for(File file : files){
             //step1 影像文件是否已上传
             String fileId = file.getFileId();
@@ -1880,18 +1881,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 returnJson.put("message","该进件的fileType[" + fileType + "]清单不存在！");
                 throw new HlsCusException(returnJson.toJSONString());
             }
-            //附件有合同相关的，就修改签约状态
-            if(prjAttachment.getProjectAttachmentCategory().equals("CONTRACT")){
-                signFlag = true;
-            }
             this.replaceAttach(prjAttachment,file.getFileId());
         }
-        if(signFlag){
+        //查询附件有合同相关的，就修改签约状态
+        Integer ConAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, null,"'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(ConAttachMulti > 0){
             //修改签约状态
             hlsCusPrjProject.setSignStatus("SIGN");
             prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         }
-
         returnJson.put("success",true);
         returnJson.put("message","成功");
         return JSONObject.toJSONString(returnJson);
@@ -2083,15 +2081,18 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         activitiStartService.start(iRequest, list, map);
     }
 
-    private List<PrjProjectApproval> dateCheck(HlsCusPrjProject dto) throws ResMessageException {
+    private List<PrjProjectApproval> dateCheck(HlsCusPrjProject dto) throws HlsCusException {
         /**
          * 提交时校验
          */
+        JSONObject returnJson = new JSONObject();
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
         hlsCusPrjProject.setProjectId(dto.getProjectId());
         HlsCusPrjProject hlsCusPrjProjectList = prjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
         if ("APPROVING".equals(hlsCusPrjProjectList.getInvestmentStatus()) ) {
-            throw new ResMessageException("已经提交了申请,无需重复提交!");
+            returnJson.put("success",false);
+            returnJson.put("message","已经提交了申请,无需重复提交!");
+            throw new HlsCusException(returnJson.toJSONString());
         }
 
         return null;
@@ -2127,5 +2128,90 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         cshAllocationCredit.setPrincipal(cc.getPrincipal());
         cshAllocationCredit.setInterest(cc.getInterest());
         cshAllocationCreditService.insertSelective(iRequest, cshAllocationCredit);
+    }
+    private String checkAttachMulti(Long projectId){
+        Integer attachMulti = 0;
+        StringBuilder message = new StringBuilder();
+        //汽车买卖合同附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "TRADE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《汽车买卖合同附件》、");
+        }
+        //车辆服务协议附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_SERVICE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《车辆服务协议》、");
+        }
+        //汽车交付确认书附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_HANDOVER_AND_PAY_CONFIRM","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《汽车交付确认书》、");
+        }
+        //融资租赁合同附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LEASE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《融资租赁合同》、");
+        }
+        //客户告知函附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "NOTICE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《客户告知函》、");
+        }
+        //租赁物所有权转移接受确认函附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "OWNERSHIP_STATEMENT","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《租赁物所有权转移接受确认函》、");
+        }
+        //委托付款确认书附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CONFIRM_PAYMENT_DELEGATION","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《委托付款确认书》、");
+        }
+        //授权委托书（抵押物）附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "AUTHORIZATION","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《授权委托书（抵押物）》、");
+        }
+        //车辆抵押合同附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "MORTGAGE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        if(attachMulti == 0){
+            message.append("《车辆抵押合同》、");
+        }
+        //行驶证正面附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_FRONT_IMGS","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        if(attachMulti == 0){
+            message.append("《行驶证正面》、");
+        }
+        //驾照主副页附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "DRIVEN_LICENSE_SUB","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        if(attachMulti == 0){
+            message.append("《驾照主副页》、");
+        }
+        //登记证附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "REGISTRATION_CERTIFICATE","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        if(attachMulti == 0){
+            message.append("《登记证》、");
+        }
+        //承租人、车辆、业务员合影附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "PERSON_AND_CAR","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        if(attachMulti == 0){
+            message.append("《承租人、车辆、业务员合影》、");
+        }
+        //行驶证+车钥匙+身份证+前挡风玻璃vin码+提车确认单图片附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_AND_PICK_UP_IMG","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        if(attachMulti == 0){
+            message.append("《行驶证+车钥匙+身份证+前挡风玻璃vin码+提车确认单图片》、");
+        }
+        //车辆合格证附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "VEHICLE_CERTIFICATE","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        if(attachMulti == 0){
+            message.append("《车辆合格证》、");
+        }
+        //保险（车辆保险单）-支持多张,最多6张附件是否上传
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "INSURANCE_POLICY","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        if(attachMulti == 0){
+            message.append("《保险（车辆保险单）-支持多张,最多6张》、");
+        }
+        return message.toString();
     }
 }

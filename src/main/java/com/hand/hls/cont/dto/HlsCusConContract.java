@@ -1768,6 +1768,10 @@ public class HlsCusConContract extends ConContract {
     private String inceptTypeN;
     @Transient
     private String inceptType;
+    @Transient
+    private String paymentApprovedAtatus;
+    @Transient
+    private String paymentApprovedAtatusN;
 
 
 

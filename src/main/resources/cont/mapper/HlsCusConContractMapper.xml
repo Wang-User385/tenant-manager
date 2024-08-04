@@ -611,6 +611,8 @@
         <result column="write_off_status_c" property="writeOffStatusC" jdbcType="DECIMAL"/>
         <result column="incept_type" property="inceptType" jdbcType="DECIMAL"/>
         <result column="incept_type_n" property="inceptTypeN" jdbcType="DECIMAL"/>
+        <result column="payment_approved_status" property="paymentApprovedAtatus" jdbcType="DECIMAL"/>
+        <result column="payment_approved_status_n" property="paymentApprovedAtatusN" jdbcType="DECIMAL"/>
 
 
     </resultMap>
@@ -11389,14 +11391,21 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             and hbt.document_category = 'CONTRACT') business_type_n,
             p.finance_amount,
             (SELECT fou.unit_name FROM fnd_org_unit fou WHERE fou.unit_id = p.unit_id ) AS unit_id_n,
-            cprh.payment_req_id
+            cprh.payment_req_id,
+            cc.lease_item_type,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'PRODUCT.LEASE_ITEM_TYPE' AND
+            sc.CODE_VALUE=cc.LEASE_ITEM_TYPE ) lease_item_type_n,
+            cprh.payment_approved_status,
+            (SELECT meaning
+            FROM sys_code_value_b_v
+            WHERE CODE = 'PAYMENT_APPROVED_STATUS'
+            AND code_value = cprh.PAYMENT_APPROVED_STATUS) AS payment_approved_status_n
             from
             prj_project p, con_contract cc, prj_quotation pq, csh_payment_req_hd cprh
 
             where p.project_id = cc.project_id
               and cc.quotation_id = pq.quotation_id
-              and cc.contract_id = cprh.source_contract_id
-              and p.data_type = 'NORMAL') v
+              and cc.contract_id = cprh.source_contract_id) v
         <where>
                 <!--and p.investment_status = 'APPROVED'-->
                 <if test="manufacturerIdN != null">

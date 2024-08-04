@@ -8,6 +8,7 @@ import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.app.event.service.impl.AppWflTodoNoticeServiceImpl;
 import com.hand.hls.credit.dto.HlsCusConCreditWhiteList;
 import com.hand.hls.credit.service.TongDunService;
+import hls.core.utils.exception.HlsCusException;
 import leaf.bean.LeafRequestData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -51,7 +52,11 @@ public class TongDunTestController extends BaseController {
     public ResponseData test(@PathVariable(value = "projectId") Long projectId, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        System.out.println(tongDunService.preliminaryValid(projectId, request));
+        try{
+            System.out.println(tongDunService.preliminaryValid(projectId, request));
+        }catch (HlsCusException e) {
+            e.printStackTrace();
+        }
         return new ResponseData();
     }
 
@@ -62,7 +67,11 @@ public class TongDunTestController extends BaseController {
     public ResponseData test02(@RequestParam(value = "projectId") Long projectId, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        tongDunService.interlocutoryValid(projectId,request);
+        try {
+            tongDunService.interlocutoryValid(projectId,request);
+        } catch (HlsCusException e) {
+            e.printStackTrace();
+        }
 //        tongDunService.preliminaryValid(projectId,request);
         return new ResponseData();
     }

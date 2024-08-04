@@ -1591,8 +1591,7 @@ WHERE
         and rownum = 1) line
         left join CON_CONTRACT con
         on con.CONTRACT_ID = line.SOURCE_DOC_ID) project_id
-        FROM csh_payment_req_hd cprh
-        where cprh.SOURCE_CONTRACT_ID is null) v
+        FROM csh_payment_req_hd cprh) v
         <where>
 
              <!--V.payment_req_status in ('APPROVED')-->
@@ -1707,209 +1706,120 @@ WHERE
     <!-- 零售业务 付款支付头查询-->
     <select id="retailPaymentHeadReqDetail" parameterType="com.hand.hls.csh.dto.HlsCusCshPaymentReqHd"
             resultMap="BaseResultMap">
-
-        select cprh.payment_req_id,
-               cprh.company_id,
-               cprh.document_type,
-               cprh.document_category,
-               cprh.business_type,
-               cprh.payment_req_number,
-               cprh.payment_req_date,
-               cprh.payment_req_status,
-               cprh.apply_pay_date,
-               cprh.amount,
-               cprh.currency,
-               cprh.description,
-               cprh.process_instance_id,
-               cprh.object_version_number,
-               cprh.request_id,
-               cprh.program_id,
-               cprh.created_by,
-               cprh.creation_date,
-               cprh.last_updated_by,
-               cprh.last_update_date,
-               cprh.last_update_login,
-               cprh.bp_bank_account_id,
-               cprh.bp_bank_name,
-               cprh.bp_bank_branch_name,
-               cprh.bp_bank_account_num,
-               cprh.bp_bank_account_name,
-               cprh.source_doc_id,
-               cprh.source_doc_type,
-               cprh.deduct_flag,
-               cprh.source_doc_line_id,
-               cprh.deduct_write_off_flag,
-               cprh.pay_amount,
-               cprh.funding_plan_id,
-               cprh.transfer_status,
-               cprh.con_end_task,
-               cprh.eft_process_instance_id,
-               cprh.trial,
-               cprh.recheck,
-               cprh.proposed_launch_date,
-               cprh.project_name,
-               cprh.finance_amount,
-               cprh.sum_toufang_amount,
-               cprh.contract_balance,
-               cprh.employee_id,
-               cprh.unit_id,
-               cprh.plan_id,
-               cprh.plan_date_amount,
-               cprh.loan_type,
-               cprh.payment_type,
-               cprh.payment_approved_status,
-               cprh.financial_agent_id,
-               cprh.financial_unit_id,
-               cprh.remaining_amount,
-               cprh.accumulated_payment_amount,
-               cprh.actual_pay_date,
-               cprh.payment_process_instance_id,
-               cprh.contract_currency_id,
-               cprh.actual_hd_pay_amount,
-               cprh.send_flag,
-               cprh.loan_total_amount,
-               (cprh.AMOUNT - nvl((select sum(dt.DEDUCT_AMOUNT)
-                                 from CSH_PAYMENT_REQ_LN cprl,
-                                      CSH_PAYMENT_REQ_DT dt
-                                 where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                                   and cprl.PAYMENT_REQ_LN_ID = dt.PAYMENT_REQ_LN_ID), 0)) as after_deduct_amount,
-               cprh.source_contract_id,
-               cprh.bank_account_id,
-               cprh.bp_id,
-               /*(SELECT hbm.bp_name
-                FROM hls_bp_master hbm
-                WHERE hbm.bp_id = cprh.BP_ID)                                              AS bp_name,*/
-               cprh.authority_rule_string,
-               cprh.payment_status,
-               cprh.com_cost_rate,
-               cprh.other,
-               cprh.post_itfc_flag,
-               cprh.post_approved_date,
-               cprh.itfc_document,
-               cprh.post_itfc_code,
-               cprh.post_itfc_msg,
-
-
-                (select t.APPROVAL_NUMBER
-                from prj_project_approval t
-                where t.project_id = (select con.PROJECT_ID
-                from (select cprl.SOURCE_DOC_ID
-                from CSH_PAYMENT_REQ_LN cprl
-                where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID and rownum = 1) line
-                left join CON_CONTRACT con on con.CONTRACT_ID = line.SOURCE_DOC_ID)
-                and t.data_class = 'NORMAL'
-                and rownum = 1)                                                                       APPROVAL_NUMBER,
-
-                (SELECT fou.unit_name
-                FROM fnd_org_unit fou
-                WHERE fou.unit_id = (select prj.UNIT_ID
-                from (select cprl.SOURCE_DOC_ID
-                from CSH_PAYMENT_REQ_LN cprl
+         select cprh.payment_req_id,
+                cprh.company_id,
+                cprh.document_type,
+                cprh.document_category,
+                cprh.business_type,
+                cprh.payment_req_number,
+                cprh.payment_req_date,
+                cprh.payment_req_status,
+                cprh.apply_pay_date,
+                cprh.amount,
+                cprh.currency,
+                cprh.description,
+                cprh.process_instance_id,
+                cprh.object_version_number,
+                cprh.request_id,
+                cprh.program_id,
+                cprh.created_by,
+                cprh.creation_date,
+                cprh.last_updated_by,
+                cprh.last_update_date,
+                cprh.last_update_login,
+                cprh.bp_bank_account_id,
+                cprh.bp_bank_name,
+                cprh.bp_bank_branch_name,
+                cprh.bp_bank_account_num,
+                cprh.bp_bank_account_name,
+                cprh.source_doc_id,
+                cprh.source_doc_type,
+                cprh.deduct_flag,
+                cprh.source_doc_line_id,
+                cprh.deduct_write_off_flag,
+                cprh.pay_amount,
+                cprh.funding_plan_id,
+                cprh.transfer_status,
+                cprh.con_end_task,
+                cprh.eft_process_instance_id,
+                cprh.trial,
+                cprh.recheck,
+                cprh.proposed_launch_date,
+                cprh.project_name,
+                cprh.finance_amount,
+                cprh.sum_toufang_amount,
+                cprh.contract_balance,
+                cprh.employee_id,
+                cprh.unit_id,
+                cprh.plan_id,
+                cprh.plan_date_amount,
+                cprh.loan_type,
+                cprh.payment_type,
+                cprh.payment_approved_status,
+                cprh.financial_agent_id,
+                cprh.financial_unit_id,
+                cprh.remaining_amount,
+                cprh.accumulated_payment_amount,
+                cprh.actual_pay_date,
+                cprh.payment_process_instance_id,
+                cprh.contract_currency_id,
+                cprh.actual_hd_pay_amount,
+                cprh.send_flag,
+                cprh.loan_total_amount,
+                (cprh.AMOUNT -
+                nvl((select sum(dt.DEDUCT_AMOUNT)
+                from CSH_PAYMENT_REQ_LN cprl, CSH_PAYMENT_REQ_DT dt
                 where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                and rownum = 1) line
-                left join CON_CONTRACT con on con.CONTRACT_ID = line.SOURCE_DOC_ID
-                left join PRJ_PROJECT prj on prj.PROJECT_ID = con.PROJECT_ID
-                ))                                                                                      unit_name,
-
-                (
-                SELECT fe.NAME
-                FROM fnd_employee fe
-                WHERE fe.employee_id = (select prj.employee_id
-                from (select cprl.SOURCE_DOC_ID
-                from CSH_PAYMENT_REQ_LN cprl
-                where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID and rownum = 1) line
-                left join CON_CONTRACT con on con.CONTRACT_ID = line.SOURCE_DOC_ID
-                left join PRJ_PROJECT prj on prj.PROJECT_ID = con.PROJECT_ID
-                )
-                )                                                                                        project_manager_name,
-
-                (
-                select s.description
-                from sys_user s
-                where s.user_id = (select prj.ASSIST_PROJECT_MANAGER
-                from (select cprl.SOURCE_DOC_ID
-                from CSH_PAYMENT_REQ_LN cprl
-                where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                and rownum = 1) line
-                left join CON_CONTRACT con on con.CONTRACT_ID = line.SOURCE_DOC_ID
-                left join PRJ_PROJECT prj on prj.PROJECT_ID = con.PROJECT_ID)
-                )                                                                                        ASSIST_PROJECT_MANAGER,
-
-
-               cprh.payment_method,
-               (
-                 SELECT scv.meaning
-                 FROM sys_code_b scb,
-                      sys_code_value_b scv
-                 WHERE scb.CODE = 'CSH.PAYMENT_METHOD'
-                   AND scb.CODE_ID = scv.CODE_ID
-                   and scv.value = cprh.payment_method
-               )                                                                              payment_method_n,
-                (select prj.project_number
-                   from (select cprl.SOURCE_DOC_ID
-                           from CSH_PAYMENT_REQ_LN cprl
-                          where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                            and cprl.source_doc_category = 'CON_CONTRACT'
-                            and rownum = 1) line
-                   left join CON_CONTRACT con
-                        on con.CONTRACT_ID = line.SOURCE_DOC_ID
-                   left join PRJ_PROJECT prj
-                        on prj.PROJECT_ID = con.PROJECT_ID) project_number,
+                and cprl.PAYMENT_REQ_LN_ID = dt.PAYMENT_REQ_LN_ID),
+                0)) as after_deduct_amount,
+                cprh.source_contract_id,
+                cprh.bank_account_id,
+                cprh.bp_id,
+                cprh.authority_rule_string,
+                cprh.payment_status,
+                cprh.com_cost_rate,
+                cprh.other,
+                cprh.post_itfc_flag,
+                cprh.post_approved_date,
+                cprh.itfc_document,
+                cprh.post_itfc_code,
+                cprh.post_itfc_msg,
+                cprh.payment_method,
+                (SELECT scv.meaning
+                FROM sys_code_b scb, sys_code_value_b scv
+                WHERE scb.CODE = 'CSH.PAYMENT_METHOD'
+                AND scb.CODE_ID = scv.CODE_ID
+                and scv.value = cprh.payment_method) payment_method_n,
+                (select con.contract_number
+                from CON_CONTRACT con
+                where con.CONTRACT_ID = cprh.source_contract_id) project_number,
                 (select hbv.bp_name
-                   from hls_bp_master hbv
-                  where hbv.bp_id = (select prj.manufacturer_id
-                                       from (select cprl.SOURCE_DOC_ID
-                                               from CSH_PAYMENT_REQ_LN cprl
-                                              where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                                                and cprl.source_doc_category = 'CON_CONTRACT'
-                                                and rownum = 1) line
-                                       left join CON_CONTRACT con
-                                            on con.CONTRACT_ID = line.SOURCE_DOC_ID
-                                       left join PRJ_PROJECT prj
-                                            on prj.PROJECT_ID = con.PROJECT_ID)) manufacturer_name,
-                (select hbv.bp_name
-                   from hls_bp_master hbv
-                  where hbv.bp_id = (select prj.tenant_id
-                                       from (select cprl.SOURCE_DOC_ID
-                                               from CSH_PAYMENT_REQ_LN cprl
-                                              where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                                                and cprl.source_doc_category = 'CON_CONTRACT'
-                                                and rownum = 1) line
-                                        left join CON_CONTRACT con
-                                            on con.CONTRACT_ID = line.SOURCE_DOC_ID
-                                        left join PRJ_PROJECT prj
-                                            on prj.PROJECT_ID = con.PROJECT_ID)) bp_name,
+                from hls_bp_master hbv
+                where hbv.bp_id =
+                (select con.manufacturer_id
+                from CON_CONTRACT con
+                where con.CONTRACT_ID = cprh.source_contract_id)) manufacturer_name,
+                cprh.bp_name,
                 (select hbv.id_card_no
-                   from hls_bp_master hbv
-                  where hbv.bp_id = (select prj.tenant_id
-                                       from (select cprl.SOURCE_DOC_ID
-                                               from CSH_PAYMENT_REQ_LN cprl
-                                              where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                                                and cprl.source_doc_category = 'CON_CONTRACT'
-                                                and rownum = 1) line
-                                        left join CON_CONTRACT con
-                                            on con.CONTRACT_ID = line.SOURCE_DOC_ID
-                                        left join PRJ_PROJECT prj
-                                            on prj.PROJECT_ID = con.PROJECT_ID)) id_card_no,
+                from hls_bp_master hbv
+                where hbv.bp_id =
+                (select con.tenant_id
+                from CON_CONTRACT con
+                where con.CONTRACT_ID = cprh.source_contract_id)) id_card_no,
                 (select hbv.phone
-                   from hls_bp_master hbv
-                  where hbv.bp_id = (select prj.tenant_id
-                                       from (select cprl.SOURCE_DOC_ID
-                                               from CSH_PAYMENT_REQ_LN cprl
-                                              where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                                                and cprl.source_doc_category = 'CON_CONTRACT'
-                                                and rownum = 1) line
-                                        left join CON_CONTRACT con
-                                            on con.CONTRACT_ID = line.SOURCE_DOC_ID
-                                        left join PRJ_PROJECT prj
-                                            on prj.PROJECT_ID = con.PROJECT_ID)) phone,
+                from hls_bp_master hbv
+                where hbv.bp_id =
+                (select con.tenant_id
+                from CON_CONTRACT con
+                where con.CONTRACT_ID = cprh.source_contract_id)) phone,
                 (select cprl.SOURCE_DOC_ID
-                   from CSH_PAYMENT_REQ_LN cprl
-                 where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
-                  and cprl.source_doc_category = 'CON_CONTRACT'
-                  and rownum = 1) contract_id
-
-        from csh_payment_req_hd cprh
+                from CSH_PAYMENT_REQ_LN cprl
+                where cprl.PAYMENT_REQ_ID = cprh.PAYMENT_REQ_ID
+                and cprl.source_doc_category = 'CON_CONTRACT'
+                and rownum = 1) contract_id,
+                (SELECT fou.unit_name FROM fnd_org_unit fou WHERE fou.unit_id = cprh.unit_id) unit_name,
+                (SELECT FE.NAME FROM fnd_employee fe WHERE fe.EMPLOYEE_ID = cprh.EMPLOYEE_ID ) project_manager_name
+                from csh_payment_req_hd cprh
         <where>
             <if test="paymentReqId!=null and paymentReqId!=''">
                 and cprh.payment_req_Id=#{paymentReqId}
