@@ -10,6 +10,4 @@ import java.util.List;
 public interface YLCshTransferPaymentDtoMapper extends Mapper<YLCshTransferPaymentDto>{
     List<YLCshTransferPaymentDto> findAll(YLCshTransferPaymentDto ylCshTransferPaymentDto);
 
-    YLCshTransferPaymentDto findByPaymentId(YLCshTransferPaymentDto ylCshTransferPaymentDto);
-
 }

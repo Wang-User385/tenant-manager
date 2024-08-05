@@ -33,4 +33,14 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         }
         return res;
     }
+
+    @Override
+    public List<YLCshTransferPaymentDto> updateAndVerification(List<YLCshTransferPaymentDto> ylCshTransferPaymentDtoList) {
+        ylCshTransferPaymentDtoList.forEach(ylCshTransferPaymentDto -> {
+
+            ylCshTransferPaymentDto.setTransferPaymentStatus("CONFIRMED");
+            ylCshTransferPaymentDtoMapper.updateByPrimaryKey(ylCshTransferPaymentDto);
+        });
+        return ylCshTransferPaymentDtoList;
+    }
 }

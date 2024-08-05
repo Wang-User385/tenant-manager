@@ -33,4 +33,15 @@ public class YLCshTransferPaymentController extends BaseController {
     }
 
 
+    @RequestMapping(value = "/yl/csh/confirm")
+    @ResponseBody
+    public ResponseData confirm(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONArray param = (JSONArray) requestData.get("parameter");
+        List<YLCshTransferPaymentDto> ylCshTransferPaymentDtoList = param.toJavaList(YLCshTransferPaymentDto.class);
+        return new ResponseData(service.updateAndVerification(ylCshTransferPaymentDtoList));
+    }
+
+
 }
