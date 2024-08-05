@@ -146,16 +146,13 @@ public class HlsCusPrjQuotationCashflowServiceImpl extends BaseServiceImpl<HlsCu
         if (prjQuotation.getSourceDocumentCategory() != null && prjQuotation.getSourceDocumentCategory().equals("CON_CONTRACT")) {
             modles = "cont";
         }
-//        if (prjQuotation.getSourceDocumentCategory() != null && prjQuotation.getSourceDocumentCategory().equals("CON_FLOATING_RATE_REQ")) {
-//            modles = "cont";
-//        }
 
-        //读取行配置的现金流
+        //删除这个quotation项下现金流(只删除在价目表配置中存在的现金流)
+        prjQuotationCashflowMapper.deleteRentByQuotationId(prjQuotation);
+
+        //读取行配置的现金流，生成现金流
         List<Object> ObjectList = hlsCusCalcExcelImportUtilService.getExcelToCalcLnTable(requestContext, prjQuotation.getSheets(), prjQuotation.getPriceList(), modles, Integer.parseInt(prjQuotation.getLeaseTimes().toString()), prjQuotation.getSourceDocumentCategory());
-
-
         List<HlsCusPrjQuotationCashflow> prjQuotationCashflowList = new ArrayList<>();
-
         for (int i = 0; i < ObjectList.size(); i++) {
             String s = JSON.toJSONString(ObjectList.get(i));
             HlsCusPrjQuotationCashflow prjQuotationCashflow = JSON.parseObject(s, HlsCusPrjQuotationCashflow.class);
@@ -163,92 +160,16 @@ public class HlsCusPrjQuotationCashflowServiceImpl extends BaseServiceImpl<HlsCu
             prjQuotationCashflow.setDueDate(nvl(prjQuotationCashflow.getDueDate(),prjQuotationCashflow.getCalcDate()));
             prjQuotationCashflow.setCalcDate(prjQuotationCashflow.getCalcDate());
             prjQuotationCashflow.setFinIncomeDate(prjQuotationCashflow.getCalcDate());
-
-            //设置租前期现金的cftype，cfitem
-            if(BEFORE_RENT_STAGE_TYPE.equals(prjQuotationCashflow.getStageType())){
-                prjQuotationCashflow.setCfType(BEFORE_RENT_CF);
-                prjQuotationCashflow.setCfItem(BEFORE_RENT_CF);
-            }
-
-            //新增
-            prjQuotationCashflow.set__status(DTOStatus.ADD);
-
-            //头配置现金流特殊处理（设备款）
-            if(prjQuotationCashflow.getCfStatus() != null && "HEAD_CASH_FLOW".equals(prjQuotationCashflow.getCfStatus())){
-                prjQuotationCashflow.setDueDate(prjQuotation.getFirstReleaseDate());
-                prjQuotationCashflow.setTimes(0L);
-                prjQuotationCashflow.setFinIncomeDate(prjQuotation.getFirstReleaseDate());
-                prjQuotationCashflow.setOutstandingPrincipal(prjQuotation.getLeaseItemAmount());
-                // 2023-07-27 首付款outstandingPrincipal从financeAmount取
-                if(prjQuotationCashflow.getCfItem()==2L){
-                    prjQuotationCashflow.setOutstandingPrincipal(prjQuotation.getFinanceAmount());
-                }
-                prjQuotationCashflow.setCalcDate(prjQuotation.getFirstReleaseDate());
-
-                //直租计算税额 一般融资租赁-直租
-                if("LEASE".equals(prjQuotation.getBusinessType()) || "一般融资租赁-直租".equals(prjQuotation.getBusinessTypeN())) {
-                    if (prjQuotation.getVatRate() == null) {
-                        throw new HlsCusException("税率不能为空!");
-                    }
-                    if(prjQuotationCashflow.getCfItem() == 2){
-                        prjQuotationCashflow.setNetDueAmount(prjQuotation.getNetDownPayment());
-                        prjQuotationCashflow.setVatDueAmount(prjQuotation.getVatDownPayment());
-                    }else{
-                        Double netDueAmount = CalculateUtil.div(prjQuotation.getLeaseItemAmount(), (CalculateUtil.add(1D, prjQuotation.getVatRate())), 2);
-                        Double vatDueAmount = CalculateUtil.sub(prjQuotation.getLeaseItemAmount(), netDueAmount);
-                        prjQuotationCashflow.setNetDueAmount(netDueAmount);
-                        prjQuotationCashflow.setVatDueAmount(vatDueAmount);
-                    }
-                }else{
-                    if(prjQuotationCashflow.getCfItem() == 2){
-                        prjQuotationCashflow.setNetDueAmount(prjQuotation.getNetDownPayment());
-                        prjQuotationCashflow.setVatDueAmount(prjQuotation.getVatDownPayment());
-                    }else{
-                        prjQuotationCashflow.setVatDueAmount(prjQuotationCashflow.getDueAmount() - nvl(prjQuotationCashflow.getNetDueAmount(),0D));
-                        prjQuotationCashflow.setNetDueAmount( nvl(prjQuotationCashflow.getNetDueAmount(),prjQuotationCashflow.getDueAmount()));
-                    }
-
-                }
-            }
-            //下达
             prjQuotationCashflow.setCfStatus("RELEASE");
+            prjQuotationCashflow.set__status(DTOStatus.ADD);
             prjQuotationCashflowList.add(prjQuotationCashflow);
         }
+        this.batchUpdate(requestContext, prjQuotationCashflowList);
 
-
-
-        //删除这个quotation项下现金流(只删除在价目表配置中存在的现金流)
-        prjQuotationCashflowMapper.deleteRentByQuotationId(prjQuotation);
-        for (HlsCusPrjQuotationCashflow dt : prjQuotationCashflowList) {
-            dt.set__status(DTOStatus.ADD);
-            dt.setQuotationId(prjQuotation.getQuotationId());
-        }
-        self().batchUpdate(requestContext, prjQuotationCashflowList);
-
-
-        //单次放款设备款单独处理
-        autoCreateLeaseItemAmount(requestContext,prjQuotation);
-
+        //节假日日期调整
         if(prjQuotation.getHolidayAdjust() != null && "Y".equals(prjQuotation.getHolidayAdjust())) {
             cashSkipWorkday(requestContext, prjQuotationCashflowList);
         }
-
-        //插入留购金
-        insertResidualValue(requestContext,prjQuotation);
-
-        //根据修改后的日期刷新保证金跟费用的due_date
-        HlsCusPrjQuotationCashflow cashflow = new HlsCusPrjQuotationCashflow();
-        cashflow.setQuotationId(prjQuotation.getQuotationId());
-        cashflow.setDueDate(prjQuotation.getFirstReleaseDate());
-        prjQuotationCashflowMapper.updatePrjQuotationCashflowDuedate(cashflow);
-
-        //刷新返还现金流的日期和期数
-        cashflow.setDueDate(prjQuotation.getLeaseEndDate());
-        cashflow.setTimes(prjQuotation.getLeaseTimes());
-        prjQuotationCashflowMapper.updatePrjQuotationCashflowReturnDuedate(cashflow);
-
-        //更新费用方案基准金额
-        updateCalcBase(requestContext,prjQuotation);
 
         return prjQuotationCashflowList;
     }
@@ -318,23 +239,6 @@ public class HlsCusPrjQuotationCashflowServiceImpl extends BaseServiceImpl<HlsCu
         }
         return prjQuotationCashflowList;
     }
-
-    //更新费用方案基准金额
-    void updateCalcBase(IRequest requestContext, HlsCusPrjQuotation quotation) {
-        quotation = hlsCusPrjQuotationService.selectByPrimaryKey(requestContext,quotation);
-
-        HlsCusPrjQuotationCashflow cashflow = new HlsCusPrjQuotationCashflow();
-        cashflow.setQuotationId(quotation.getQuotationId());
-        List<HlsCusPrjQuotationCashflow> list = prjQuotationCashflowMapper.queryPrjCalcBaseCashflow(cashflow);
-        for (HlsCusPrjQuotationCashflow item : list) {
-            if ("RELEASE".equals(item.getCalcBase())) {
-                item.setCalcBaseAmount(quotation.getFinanceAmount());
-                item.setDueAmount(quotation.getFinanceAmount() * item.getCalcRatio());
-                self().updateByPrimaryKeySelective(requestContext, item);
-            }
-        }
-    }
-
 
     public static LocalDate DateToLocaleDate(Date date) {
 
@@ -455,7 +359,6 @@ public class HlsCusPrjQuotationCashflowServiceImpl extends BaseServiceImpl<HlsCu
 
             }
         }
-        updateLeaseItemByPaynote(iRequest,quotation);
     }
 
     void updateLeaseItemAmountTax(HlsCusPrjQuotationCashflow cashflow,HlsCusPrjQuotation quotation,Double dueAmount,Double baseAmount) throws HlsCusException {
@@ -481,56 +384,6 @@ public class HlsCusPrjQuotationCashflowServiceImpl extends BaseServiceImpl<HlsCu
             cashflow.setNetBaseAmount(baseAmount);
             cashflow.setVatBaseAmount(0D);
         }
-
-    }
-
-    void updateLeaseItemByPaynote(IRequest iRequest,HlsCusPrjQuotation quotation) throws HlsCusException {
-
-        //查询承兑汇票的现金流及对应放款日期的设备款现金流，先查询承兑手续费
-        HlsCusPrjQuotationCashflow cashflow = new HlsCusPrjQuotationCashflow();
-        cashflow.setQuotationId(quotation.getQuotationId());
-
-        List<HlsCusPrjQuotationCashflow> feeCashflowList = prjQuotationCashflowMapper.selectPaynoteLeaseChageCashflow(cashflow);
-
-        for(HlsCusPrjQuotationCashflow fee: feeCashflowList){
-
-            //查询对应的承兑现金流
-            cashflow.setQuotationCashflowId(fee.getSourceCashflowId());
-            cashflow = prjQuotationCashflowMapper.selectByPrimaryKey(cashflow);
-
-            if(cashflow == null){
-                throw new HlsCusException("承兑现金流数据异常，请检查数据!");
-            }
-
-            //查询对应的设备款
-            HlsCusPrjQuotationCashflow leaseCashflow = new HlsCusPrjQuotationCashflow();
-            leaseCashflow.setQuotationId(quotation.getQuotationId());
-            leaseCashflow.setDueDate(fee.getDueDate());
-            List<HlsCusPrjQuotationCashflow> leaseCashflowList = prjQuotationCashflowMapper.selectLeaseItemPaynoteCashflow(leaseCashflow);
-            if(CollectionUtils.isEmpty(leaseCashflowList) || leaseCashflowList.size() != 1){
-                throw new HlsCusException("根据承兑现金流的放款日期找不到对应的放款现金流,请检查数据！");
-            }
-            leaseCashflow = leaseCashflowList.get(0);
-
-            Double dueAmount = CalculateUtil.sub(leaseCashflow.getBaseAmount(),cashflow.getDueAmount());
-            leaseCashflow.setDueAmount(dueAmount);
-            if(checkQuotationIsLease(quotation)) {
-                if (quotation.getVatRate() == null) {
-                    throw new HlsCusException("税率不能为空!");
-                }
-                Double netDueAmount = CalculateUtil.div(dueAmount, (CalculateUtil.add(1D, quotation.getVatRate())), 2);
-                Double vatDueAmount = CalculateUtil.sub(dueAmount, netDueAmount);
-                leaseCashflow.setNetDueAmount(netDueAmount);
-                leaseCashflow.setVatDueAmount(vatDueAmount);
-            }else {
-                leaseCashflow.setDueAmount(dueAmount);
-                leaseCashflow.setNetDueAmount(dueAmount);
-            }
-            self().updateByPrimaryKeySelective(iRequest,leaseCashflow);
-
-        }
-
-
 
     }
 

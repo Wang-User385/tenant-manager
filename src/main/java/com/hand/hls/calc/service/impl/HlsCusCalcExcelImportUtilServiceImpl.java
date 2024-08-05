@@ -320,21 +320,10 @@ public class HlsCusCalcExcelImportUtilServiceImpl extends BaseServiceImpl<HlsCal
         List<Object> objectList = new ArrayList<>();
 
         //获取数组
-        //String[][][] excelArray = parseExcelJsonToArray(requestContext, jsonStr);
         Map result = parseExcelJsonToMap(requestContext, jsonStr);
         String[][][] excelArray = (String[][][]) result.get("excel");
         Map sheetInfo = (Map) result.get("sheetInfo");
 
-        //调息价目表判断
-        if("CON_FLOATING_RATE_REQ".equalsIgnoreCase(sourceDocumentCategory)){
-            if("GECALCULATOR_PMT_JC".equalsIgnoreCase(priceList) || "CON_CHANGE_PMT_JC".equalsIgnoreCase(priceList) ){
-                priceList = "ADJUST_RATE_PMT_JC";
-            }else if("GECALCULATOR_LP_JC".equalsIgnoreCase(priceList) || "CON_CHANGE_LP_JC".equalsIgnoreCase(priceList)){
-                priceList = "ADJUST_RATE_LP_JC";
-            }else if("GECALCULATOR_CASUAL_JC".equalsIgnoreCase(priceList) || "CON_CHANGE_CASUAL_JC".equalsIgnoreCase(priceList)){
-                priceList = "ADJUST_RATE_CASUAL_JC";
-            }
-        }
         //dto全路径
         String path = "com.hand.hls." + models + ".dto";
 
@@ -354,12 +343,8 @@ public class HlsCusCalcExcelImportUtilServiceImpl extends BaseServiceImpl<HlsCal
         configLn.setTableType("SINGLE");
         List<HlsPriceListConfigLn> hlsPriceListConfigLnListHdCloumn = hlsPriceListConfigLnMapper.selectHlsPriceListConfiglineByPriceList(configLn);
 
-
         String objectName = "";
-        String cashflowIrrAfterTax = "0";
-        String cashflowIrr = "0";;
         for(HlsPriceListConfigHd configHd:hlsPriceListConfigHdSingleList) {
-
             int multiLineFrom;
             int multiLineto;
             try {
@@ -376,7 +361,6 @@ public class HlsCusCalcExcelImportUtilServiceImpl extends BaseServiceImpl<HlsCal
             hlsPriceListConfigLn.setSheetName(configHd.getSheetName());
             List<HlsPriceListConfigLn> hlsPriceListConfigLnList = hlsPriceListConfigLnMapper.selectHlsPriceListConfiglineByPriceList(hlsPriceListConfigLn);
 
-
             //根据表名获取对应dto类名
             String tableName = underline2Camel(hlsPriceListConfigHdSingleList.get(0).getTableName());
             if (sourceDocumentCategory != null && sourceDocumentCategory.equals("CON_CONTRACT")) {
@@ -385,31 +369,15 @@ public class HlsCusCalcExcelImportUtilServiceImpl extends BaseServiceImpl<HlsCal
             }
             objectName = tableName.substring(0, 1).toUpperCase() + tableName.substring(1);
 
-
             int distance = multiLineto - multiLineFrom;
-            int cellNum;
             for(int i = 0; i <= distance; i++){
-                //取 第零期 cashflowIrrAfterTax cashflowIrr金额
-                if(i < ((ArrayList) hlsPriceListConfigLnList).size() && hlsPriceListConfigLnList.get(i) != null && hlsPriceListConfigLnList.get(i).getColumnName().equals("CASHFLOW_IRR_AFTER_TAX")){
-                    cellNum = excelColStrToNum(hlsPriceListConfigLnList.get(i).getColumnCode().toUpperCase());
-                    cashflowIrrAfterTax =  excelArray[0][multiLineFrom-1][cellNum-1] ;
-                }
-                if(i < ((ArrayList) hlsPriceListConfigLnList).size() && hlsPriceListConfigLnList.get(i) != null && hlsPriceListConfigLnList.get(i).getColumnName().equals("CASHFLOW_IRR")){
-                    cellNum = excelColStrToNum(hlsPriceListConfigLnList.get(i).getColumnCode().toUpperCase());
-                    cashflowIrr = excelArray[0][multiLineFrom-1][cellNum-1] ;
-                }
-
                 //插入行表对应现金流
                 for (int j = 0; j < hlsPriceListConfigLnList.size(); j++) {
-
                     //获取sheet索引
                     int sheetIndex = (int) sheetInfo.get(hlsPriceListConfigLnList.get(j).getSheetName());
-
                     //获取行表上的dueamount，含税不含税期数等字段
                     Map map = getCalcLineObject(excelArray, multiLineFrom, i, hlsPriceListConfigLnList.get(j), sheetIndex);
-
                     if (map.size() > 0) {
-
                         //将非创建现金流字段同步到行上
                         setNoCashflowCloToMap(map, excelArray, multiLineFrom, i, hlsPriceListConfigLnList, sheetIndex);
                         Class onwClass = Class.forName(path + ".HlsCus" + objectName);
@@ -418,26 +386,23 @@ public class HlsCusCalcExcelImportUtilServiceImpl extends BaseServiceImpl<HlsCal
                         objectList.add(o);
                     }
                 }
-
             }
 
-        }
-
-        for(int i = 0; i < hlsPriceListConfigLnListHdCloumn.size(); i++){
-
-            //获取头配置上面的现金流
-            int sheetIndex = (int) sheetInfo.get(hlsPriceListConfigLnListHdCloumn.get(i).getSheetName());
-            Map map = getCalcHeaderObeject(excelArray, hlsPriceListConfigLnListHdCloumn.get(i),sheetIndex);
-            if (map.size() > 0) {
-                map.put("cfStatus","HEAD_CASH_FLOW");
-                Class onwClass = Class.forName(path + "." + objectName);
-                Object o = onwClass.newInstance();
-                map.put("cashflowIrr",cashflowIrr);
-                map.put("cashflowIrrAfterTax",cashflowIrrAfterTax);
-                hlsBeanRefUtilService.setFieldValue(o, map);
-                objectList.add(o);
+            for(int i = 0; i < hlsPriceListConfigLnListHdCloumn.size(); i++){
+                //获取头配置上面的现金流
+                int sheetIndex = (int) sheetInfo.get(hlsPriceListConfigLnListHdCloumn.get(i).getSheetName());
+                Map map = getCalcHeaderObeject(excelArray, hlsPriceListConfigLnListHdCloumn.get(i),sheetIndex);
+                if (map.size() > 0) {
+                    //将非创建现金流字段同步到行上
+                    setNoCashflowCloToMap(map, excelArray, multiLineFrom, 0, hlsPriceListConfigLnList, sheetIndex);
+                    Class onwClass = Class.forName(path + ".HlsCus" + objectName);
+                    Object o = onwClass.newInstance();
+                    hlsBeanRefUtilService.setFieldValue(o, map);
+                    objectList.add(o);
+                }
             }
         }
+
 
         return objectList;
     }
