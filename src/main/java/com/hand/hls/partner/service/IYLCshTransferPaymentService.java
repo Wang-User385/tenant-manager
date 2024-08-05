@@ -10,5 +10,5 @@ import java.util.List;
 
 public interface IYLCshTransferPaymentService extends IBaseService<YLCshTransferPaymentDto>, ProxySelf<IYLCshTransferPaymentService> {
 
-    List<YLCshTransferPaymentDto> updateTransferStatus(IRequest requestCtx,List<YLCshTransferPaymentDto> list);
+    List<YLCshTransferPaymentDto> updateTransferStatus(IRequest requestCtx , List<YLCshTransferPaymentDto> list);
 }

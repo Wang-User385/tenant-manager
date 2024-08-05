@@ -3,7 +3,8 @@ package com.hand.hls.partner.dto;
 import com.hand.hap.mybatis.annotation.ExtensionAttribute;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
-
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
@@ -13,7 +14,7 @@ import java.util.Date;
 
 @Data
 @ExtensionAttribute(disable = true)
-@Table(name = "YL_CSH_TRANSFER_PAYMENT")
+@Table(name = "yl_csh_transfer_payment")
 public class YLCshTransferPaymentDto extends BaseDTO {
 
     public static final String FIELD_PAYMENT_ID = "paymentId";
@@ -28,7 +29,8 @@ public class YLCshTransferPaymentDto extends BaseDTO {
     public static final String FIELD_TRANSFER_PAYMENT_STATUS = "transferPaymentStatus";
     public static final String FIELD_BANK_STATEMENT = "bankStatement";
 
-
+    @Id
+    @GeneratedValue
     private Long paymentId;
 
     private Long contractId;
