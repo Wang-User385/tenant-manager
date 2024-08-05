@@ -3141,6 +3141,17 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         String writeOffType = cshWriteOffList.stream().findFirst().orElse(new HlsCusCshWriteOff()).getWriteOffType();
         if ("PAYMENT_DEBT".equalsIgnoreCase(writeOffType)) {
             saveWriteOffType(iRequest, hlsCusCshWriteOffLists);
+            //更新现金流表
+            HlsCusConContractCashflow hlsCusConContractCashflow = new HlsCusConContractCashflow();
+            hlsCusConContractCashflow.setContractId(hlsCusCshPaymentReqHd.getSourceContractId());
+            hlsCusConContractCashflow.setReceivedAmount(actPaymentAmount);
+            hlsCusConContractCashflow.setWriteOffFlag("FULL");
+            hlsCusConContractCashflowMapper.updateCashflowByinfo(hlsCusConContractCashflow);
+            //更新合同表
+            HlsCusConContract hlsCusConContract = new HlsCusConContract();
+            hlsCusConContract.setContractId(hlsCusCshPaymentReqHd.getSourceContractId());
+            hlsCusConContract.setContractStatus("INCEPT");
+            hlsCusConContractService.updateByPrimaryKeySelective(iRequest,hlsCusConContract);
         }
 
         //保证金退还现金流支付时，不进行quotationReCalc重新报价
@@ -3276,17 +3287,23 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         Long paymentReqId = hlsCusCshPaymentReqHd.getPaymentReqId();
         jeTrxCshTransactionPayment(transactionList, hlsCusCshPaymentReqHd.getSourceContractId(),paymentReqId);
         jeTrxPayEqipment(hlsCusCshWriteOffLists, hlsCusCshPaymentReqHd.getSourceContractId());
+
+
+        HlsCusConContract hlsCusConContract = new HlsCusConContract();
+        hlsCusConContract.setContractId(hlsCusCshPaymentReqHd.getSourceContractId());
+        HlsCusConContract hlsCusConContract1 = hlsCusConContractService.selectByPrimaryKey(iRequest, hlsCusConContract);
         //修改进件订单状态
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
+        hlsCusPrjProject.setProjectId(hlsCusConContract1.getProjectId());
         hlsCusPrjProject.setOrderStatus("INCEPT");
-        prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+        prjProjectMapper.updateWflProject(hlsCusPrjProject);
         //修改付款表状态
         HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd1 = new HlsCusCshPaymentReqHd();
         hlsCusCshPaymentReqHd1.setPaymentReqId(hlsCusCshPaymentReqHd.getPaymentReqId());
         CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount2 = new CshPaymentReqLnBankAccount();
-        cshPaymentReqLnBankAccount2.setPaymentReqId(paymentReqId);
+        cshPaymentReqLnBankAccount2.setPaymentReqLnId(paymentReqId);
         cshPaymentReqLnBankAccount2.setPaymentStatus("PAID");
-        cshPaymentReqLnBankAccountMapper.updateByPrimaryKeySelective(cshPaymentReqLnBankAccount2);
+        cshPaymentReqLnBankAccountMapper.updateCshPaymentReqLnBankAccountByLn(cshPaymentReqLnBankAccount2);
 
     }
 

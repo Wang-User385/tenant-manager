@@ -82,4 +82,5 @@ public interface CshPaymentReqLnBankAccountMapper extends Mapper<CshPaymentReqLn
     List<CshPaymentReqLnBankAccount>  selectRefundCshPaymentReqLnBankAccount(CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount);
 
 
+    void updateCshPaymentReqLnBankAccountByLn(CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount);
 }

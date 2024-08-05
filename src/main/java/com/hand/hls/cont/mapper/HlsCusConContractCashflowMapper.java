@@ -335,4 +335,6 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
      * @return
      */
     List<HlsCusConContractCashflow> queryContractCashflowForCompLov(HlsCusConContractCashflow conContractCashflow);
+
+    void updateCashflowByinfo(HlsCusConContractCashflow hlsCusConContractCashflow);
 }
