@@ -126,6 +126,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private ICshAllocationReceiptService cshAllocationReceiptService;
     @Autowired
     private ICshAllocationCreditService cshAllocationCreditService;
+    @Autowired
+    private HlsCusPrjQuotationCashflowMapper hlsCusPrjQuotationCashflowMapper;
     /**
      * 工作流相关的常量
      */
@@ -1443,20 +1445,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("message","报价计算异常，请联系管理员");
             throw new HlsCusException(returnJson.toJSONString());
         }
-        //计算后再次比对月还款额
-//        List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
-//        if (hlsCusPrjQuotations.size()>0){
-//            prjQuotation = hlsCusPrjQuotations.get(0);
-//            //将业务数据与风险数据进行校验
-//            String message = checkData(saleInfo,carInfo,financeInfo,preRiskAuditData);
-//            //如果校验不通过直接返回
-//            if (!message.isEmpty()){
-//                //设置返回状态
-//                jsonObject1.put("code","400");
-//                jsonObject1.put("message","业务数据与风控数据不一致:"+message);
-//                throw new HlsCusException(jsonObject1.toJSONString());
-//            }
-//        }
+
+        //step10：计算后再次比对月还款额
+        HlsCusPrjQuotationCashflow quoCashflow = new HlsCusPrjQuotationCashflow();
+        quoCashflow.setQuotationId(prjQuotation.getQuotationId());
+        quoCashflow.setTimes(1L);
+        quoCashflow.setCfItem(1L);
+        List<HlsCusPrjQuotationCashflow> quoCashflowList = hlsCusPrjQuotationCashflowMapper.select(quoCashflow);
+        if(!quoCashflowList.isEmpty()){
+            double dueAmount = quoCashflowList.get(0).getDueAmount();
+            double pmt = prjQuotation.getPmt();
+            if(dueAmount != pmt){
+                returnJson.put("code","400");
+                returnJson.put("message","报价计算的月租金与传输的月租金不一致！");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+        }
 
         returnJson.put("code","200");
         returnJson.put("message","数据采集成功");
