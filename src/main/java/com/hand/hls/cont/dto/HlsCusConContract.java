@@ -1705,7 +1705,7 @@ public class HlsCusConContract extends ConContract {
     private String phone;
 
     @Transient
-    private Double frameNumber;
+    private String frameNumber;
 
     @Transient
     private String brandC;

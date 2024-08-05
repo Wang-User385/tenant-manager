@@ -585,7 +585,7 @@
         <result column="upload_date" property="uploadDate" jdbcType="DATE"/>
         <result column="id_card_no" property="idCardNo" jdbcType="VARCHAR"/>
         <result column="phone" property="phone" jdbcType="VARCHAR"/>
-        <result column="frame_number" property="frameNumber" jdbcType="DECIMAL"/>
+        <result column="frame_number" property="frameNumber" jdbcType="VARCHAR"/>
         <result column="brand_c" property="brandC" jdbcType="VARCHAR"/>
         <result column="model_c" property="modelC" jdbcType="VARCHAR"/>
         <result column="color_c" property="colorC" jdbcType="VARCHAR"/>
@@ -11428,22 +11428,29 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         SELECT
         cc.contract_id,
         cc.CONTRACT_NUMBER,
-        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.tenant_id ) tenant_id_n,
-        ( SELECT m.id_card_no FROM hls_bp_master m WHERE m.bp_id = cc.BP_ID_TENANT ) id_card_no,
-        ( SELECT m.phone FROM hls_bp_master m WHERE m.bp_id = bp_id_tenant ) phone,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
+        ( SELECT m.id_card_no FROM hls_bp_master m WHERE m.bp_id = pp.tenant_id ) id_card_no,
+        ( SELECT m.phone FROM hls_bp_master m WHERE m.bp_id = pp.tenant_id ) phone,
         ( SELECT bt.description FROM hls_business_type bt WHERE bt.DOCUMENT_CATEGORY = 'CON_CONTRACT' AND bt.business_type = cc.business_type ) business_type_n,
         ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.manufacturer_id ) manufacturer_id_n,
-        cc.driver_and_applicant,
-        ( SELECT i.frame_number FROM con_contract_lease_item i WHERE i.contract_id = cc.contract_id ) frame_number,
-        ( SELECT i.model_c FROM con_contract_lease_item i WHERE i.contract_id = cc.contract_id ) brand_c,
-        ( SELECT i.color_c FROM con_contract_lease_item i WHERE i.contract_id = cc.contract_id ) color_c,
-        ( SELECT i.list_price FROM con_contract_lease_item i WHERE i.contract_id = cc.contract_id ) list_price,
-        ( SELECT finance_amount FROM prj_quotation q WHERE q.source_document_category = 'CON_CONTRACT' AND q.source_document_id = contract_id ) finance_amount,
-        ( SELECT lease_times FROM prj_quotation q WHERE q.source_document_category = 'CON_CONTRACT' AND q.source_document_id = cc.contract_id ) lease_times,
-        ( SELECT down_payment FROM prj_quotation q WHERE q.source_document_category = 'CON_CONTRACT' AND q.source_document_id = cc.contract_id ) down_payment ,
-        ( SELECT pmt  FROM prj_quotation q WHERE q.source_document_category = 'CON_CONTRACT' AND q.source_document_id = cc.contract_id) pmt
+        (SELECT sv.MEANING
+        FROM sys_code_value_b sv,
+        sys_code_b b
+        WHERE b.CODE = 'DRIVER_AND_APPLICANT'
+        AND sv.code_id = b.code_id
+        AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant,
+        ( SELECT i.frame_number FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) frame_number,
+        ( SELECT i.model_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) model_c,
+        ( SELECT i.brand_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) brand_c,
+        ( SELECT i.color_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) color_c,
+        ( SELECT i.list_price FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) list_price,
+        ( SELECT finance_amount FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) finance_amount,
+        ( SELECT lease_times FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) lease_times,
+        ( SELECT down_payment FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) down_payment ,
+        ( SELECT pmt  FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id) pmt
         FROM
         CON_CONTRACT cc
+        left join prj_project pp on cc.project_id=pp.project_id
         where
         1=1
         <if test="contractId != null">
@@ -11590,13 +11597,14 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         cc.contract_status,
         (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.CONTRACT_STATUS' AND
         sc.CODE_VALUE=cc.contract_status ) contract_status_n,
-        (select lease_times from prj_quotation q where q.source_document_category = 'CON_CONTRACT' and
-        q.source_document_id=cc.contract_id) lease_times,
-        (select finance_amount from prj_quotation q where source_document_category = 'CON_CONTRACT' and
-        q.source_document_id = cc.contract_id)finance_amount,
+        (select lease_times from prj_quotation q where q.source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id=pp.PROJECT_ID) lease_times,
+        (select finance_amount from prj_quotation q where source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id = pp.PROJECT_ID) finance_amount,
         (select sum(nvl(ccc.DUE_AMOUNT, 0)) from con_contract_cashflow ccc where ccc.contract_id =cc.contract_id and
         ccc.CF_ITEM = 1 and ccc.CF_STATUS = 'RELEASE') total_rental_amount,
-        cc.lease_end_date,
+        (select lease_end_date from prj_quotation q where source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id = pp.PROJECT_ID) lease_end_date,
         (SELECT SUM(ccc.due_amount-nvl(ccc.received_amount,0)) FROM CON_CONTRACT_CASHFLOW ccc WHERE
         ccc.contract_id=cc.contract_id and ccc.CF_ITEM=1 and ccc.CF_STATUS = 'RELEASE') remain_rental_amount,
         (SELECT SUM(ccc.principal-nvl(ccc.received_principal,0)) FROM CON_CONTRACT_CASHFLOW ccc WHERE
