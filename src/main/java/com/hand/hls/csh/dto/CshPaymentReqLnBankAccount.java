@@ -11,8 +11,7 @@ import javax.persistence.Table;
 import com.hand.hap.system.dto.BaseDTO;
 
 import javax.persistence.Transient;
-import javax.validation.constraints.NotNull;
-import java.sql.Date;
+import java.util.Date;
 
 @ExtensionAttribute(disable=true)
 

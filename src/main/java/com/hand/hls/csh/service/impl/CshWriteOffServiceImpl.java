@@ -281,8 +281,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
     @Resource
     private  CshTransactionRefundService cshTransactionRefundService;
 
-
-
     /**
      * 付款反冲 1、插入核销反冲记录 csh_write_off 可能为多条 2、更改csh_transaction原核销记录核销标志、日期
      *
@@ -2377,9 +2375,18 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd = new HlsCusCshPaymentReqHd();
         Long paymentReqId = hlsCusCshPaymentTran.getPaymentReqId();
         hlsCusCshPaymentReqHd.setPaymentReqId(paymentReqId);
-        hlsCusCshPaymentReqHd.setActualPayDate(hlsCusCshPaymentTran.getTransactionDate());
         hlsCusCshPaymentReqHd = cshPaymentReqHdService.selectByPrimaryKey(iRequest, hlsCusCshPaymentReqHd);
         hlsCusCshPaymentReqHd = hlsCusCshPaymentReqHdMapper.retailPaymentQuery(hlsCusCshPaymentReqHd).get(0);
+        hlsCusCshPaymentReqHd.setActualPayDate(hlsCusCshPaymentTran.getTransactionDate());
+        CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount = new CshPaymentReqLnBankAccount();
+        cshPaymentReqLnBankAccount.setPaymentReqId(paymentReqId);
+        List<CshPaymentReqLnBankAccount> reqLnBankAccounts = cshPaymentReqLnBankAccountMapper.selectCshPaymentReqLnBankAccount(cshPaymentReqLnBankAccount);
+        for (int i = 0; i <reqLnBankAccounts.size() ; i++) {
+            cshPaymentReqLnBankAccount.setCshBankId(reqLnBankAccounts.get(i).getCshBankId());
+            cshPaymentReqLnBankAccount.setPaymentAmount(reqLnBankAccounts.get(i).getActualPaymentAmount());
+            cshPaymentReqLnBankAccount.setActualPaymentDate(hlsCusCshPaymentTran.getTransactionDate());
+            cshPaymentReqLnBankAccountMapper.updateByPrimaryKeySelective(cshPaymentReqLnBankAccount);
+        }
 
 
         Double paymentAmount =  0D;
@@ -2390,7 +2397,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             compareAmount = hlsCusCshPaymentReqHd.getAfterDeductAmount();
         }else {
             paymentAmount =  hlsCusCshPaymentReqHdMapper.queryPaymentAmount(hlsCusCshPaymentReqHd.getPaymentReqId());
-            compareAmount = hlsCusCshPaymentReqHd.getLoanTotalAmount();
+            compareAmount = hlsCusCshPaymentReqHd.getAfterDeductAmount();
         }
 
         if(compareAmount > paymentAmount){
@@ -3143,8 +3150,8 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 updateConCashflowAfterWriteOff(cshWriteOff);
             }
         }else{
-
-            HlsCusPrjQuotation hlsCusPrjQuotations = new HlsCusPrjQuotation();
+        //进件放款不改变报价信息
+           /* HlsCusPrjQuotation hlsCusPrjQuotations = new HlsCusPrjQuotation();
             if (BUSINESS_FLAG_RETAIL.equals(hlsCusCshPaymentReqHd.getBusinessFlag())){
                 //二期功能：零售业务
                 HlsCusConContract hlsCusConContract = new HlsCusConContract();
@@ -3242,7 +3249,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
                 }
 
-            }
+            }*/
         }
 
 
@@ -3269,6 +3276,18 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         Long paymentReqId = hlsCusCshPaymentReqHd.getPaymentReqId();
         jeTrxCshTransactionPayment(transactionList, hlsCusCshPaymentReqHd.getSourceContractId(),paymentReqId);
         jeTrxPayEqipment(hlsCusCshWriteOffLists, hlsCusCshPaymentReqHd.getSourceContractId());
+        //修改进件订单状态
+        HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
+        hlsCusPrjProject.setOrderStatus("INCEPT");
+        prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+        //修改付款表状态
+        HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd1 = new HlsCusCshPaymentReqHd();
+        hlsCusCshPaymentReqHd1.setPaymentReqId(hlsCusCshPaymentReqHd.getPaymentReqId());
+        CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount2 = new CshPaymentReqLnBankAccount();
+        cshPaymentReqLnBankAccount2.setPaymentReqId(paymentReqId);
+        cshPaymentReqLnBankAccount2.setPaymentStatus("PAID");
+        cshPaymentReqLnBankAccountMapper.updateByPrimaryKeySelective(cshPaymentReqLnBankAccount2);
+
     }
 
     public void retailPayment(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd,HlsCusCshPaymentReqLn reqLn) throws Exception {
@@ -3391,7 +3410,9 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             // 当前会出现Excel上期数的值(value)为空，返回 期数未取到 的报错，并且会删除原来的合同现金流，导致支付失败。
             // 因此对于二期的合同支付，跳过报价重算逻辑
             if (!CON_CONTRACT.equals(cusPrjQuotations.getSourceDocumentCategory())){
-                hlsCusPrjQuotationService.quotationReCalc(iRequest, cusPrjQuotations.getQuotationId(), true);
+                if(!"PRJ_PROJECT".equals(cusPrjQuotations.getSourceDocumentCategory())) {
+                    hlsCusPrjQuotationService.quotationReCalc(iRequest, cusPrjQuotations.getQuotationId(), true);
+                }
             }
             HlsCusPrjQuotationCashflow prjQuotationCashflowParameter = new HlsCusPrjQuotationCashflow();
             prjQuotationCashflowParameter.setQuotationId(cusPrjQuotations.getQuotationId());
