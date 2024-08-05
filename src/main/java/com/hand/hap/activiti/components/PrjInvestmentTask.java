@@ -113,6 +113,9 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         newContract.setBusinessType("LEASEBACK");
         newContract.setQuotationId(prjQuotation.getQuotationId());
         newContract.setCreationDate(new Date());
+        newContract.setVatRate(prjQuotation.getIntRate());
+        newContract.setIntRate(prjQuotation.getIntRate());
+        newContract.setLeaseItemAmount(newContract.getFinanceAmount());
         hlsCusConContractMapper.insertSelective(newContract);
         //step2 创建合同现金流
         HlsCusPrjQuotationCashflow prjQuoCashflow = new HlsCusPrjQuotationCashflow();
