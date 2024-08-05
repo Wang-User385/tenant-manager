@@ -13,7 +13,84 @@
         <result column="CONFIRM_DATE" property="confirmDate" jdbcType="DATE" />
         <result column="TRANSFER_PAYMENT_STATUS" property="transferPaymentStatus" jdbcType="VARCHAR" />
         <result column="BANK_STATEMENT" property="bankStatement" jdbcType="VARCHAR" />
+
+
+
+
+        <result column="contract_number" property="contractNumber" jdbcType="VARCHAR" />
+        <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR" />
+        <result column="times" property="times" jdbcType="DECIMAL" />
+        <result column="transfer_payment_status_n" property="transferPaymentStatusN" jdbcType="VARCHAR" />
+        <result column="transaction_num" property="transactionNum" jdbcType="VARCHAR" />
+        <result column="write_off_flag_n" property="writeOffFlagN" jdbcType="VARCHAR" />
+        <result column="project_id" property="projectId" jdbcType="DECIMAL" />
+
+
+
     </resultMap>
+
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+            yctp.PAYMENT_ID,
+            (SELECT pp.project_id from prj_project pp where pp.project_number = cc.contract_number) project_id,
+            cc.contract_number,
+            ( SELECT bm.bp_name FROM hls_bp_master bm WHERE bm.bp_id = cc.tenant_id AND cc.contract_id = yctp.contract_id ) tenant_id_n,
+            yctp.repay_date,
+            ( SELECT cf.times FROM con_contract_cashflow cf WHERE cf.cashflow_id = yctp.cashflow_id ) times,
+            ROUND( nvl( yctp.repay_amount, 0 ), 2 ) repay_amount,
+            ROUND( nvl( yctp.repay_principal, 0 ), 2 ) repay_principal,
+            ROUND( nvl( yctp.repay_interest, 0 ), 2 ) repay_interest,
+            ROUND( nvl( yctp.repay_penalty, 0 ), 2 ) repay_penalty,
+            yctp.confirm_date,
+            yctp.transfer_payment_status,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CSH.TRANSFER_PAYMENT_STATUS' AND sc.code_value = yctp.transfer_payment_status ) transfer_payment_status_n,
+            yctp.bank_statement,
+            ( SELECT ct.transaction_num FROM csh_transaction ct, csh_write_off cw WHERE ct.transaction_id = cw.csh_transaction_id AND cw.cashflow_id = yctp.cashflow_id ) transaction_num,
+            (
+                SELECT
+                    sc.meaning
+                FROM
+                    sys_code_value_b_v sc
+                WHERE
+                    sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG'
+                  AND sc.code_value = ( SELECT ct.write_off_flag FROM csh_transaction ct, csh_write_off cw WHERE ct.transaction_id = cw.csh_transaction_id AND cw.cashflow_id = yctp.cashflow_id )
+            ) write_off_flag_n
+        FROM
+            yl_csh_transfer_payment yctp
+                INNER JOIN con_contract cc ON yctp.contract_id = cc.contract_id
+        <where>
+            <if test="contractNumber != null and contractNum != ''">
+               and cc.contract_number like concat(concat('%',#{contractNumber}),'%')
+            </if>
+            <if test="tenantIdN != null and tenantIdN != ''">
+               and ( SELECT bm.bp_name FROM hls_bp_master bm WHERE bm.bp_id = cc.tenant_id AND cc.contract_id = yctp.contract_id ) like concat(concat('%',#{tenantIdN}),'%')
+            </if>
+            <if test="transactionNum != null and transactionNum != ''">
+               and  ( SELECT ct.transaction_num FROM csh_transaction ct, csh_write_off cw WHERE ct.transaction_id = cw.csh_transaction_id AND cw.cashflow_id = yctp.cashflow_id ) like concat(concat('%',#{transactionNum}),'%')
+            </if>
+            <if test="transferPaymentStatus != null and transferPaymentStatus != ''">
+                and yctp.transfer_payment_status = #{transferPaymentStatus}
+            </if>
+            <if test="repayDateFrom != null">
+                and yctp.repay_date  >=  #{repayDateFrom}
+            </if>
+            <if test="repayDateTo != null">
+                and yctp.repay_date <![CDATA[ <= ]]> TO_DATE(TO_CHAR(#{repayDateTo}+1-1/24/60/60,'yyyy-mm-dd HH24:MI:SS'),'yyyy-mm-dd HH24:MI:SS')
+            </if>
+            <if test="writeOffFlagN != null and writeOffFlagN != ''">
+                and  ( SELECT ct.write_off_flag FROM csh_transaction ct, csh_write_off cw WHERE ct.transaction_id = cw.csh_transaction_id AND cw.cashflow_id = yctp.cashflow_id ) = #{writeOffFlagN}
+            </if>
+
+        </where>
+    </select>
+
+    <select id="findByPaymentId" resultMap="BaseResultMap">
+        select yctp.*
+        FROM
+            yl_csh_transfer_payment yctp
+        where yctp.payment_id = #{paymentId}
+    </select>
+
 
 
 </mapper>
