@@ -6,6 +6,7 @@ import com.hand.hls.calc.service.HlsCusCalcExcelImportUtilService;
 import com.hand.hls.calc.service.QuotationCommon;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
+import com.hand.hls.prj.dto.HlsCusPrjQuotationCashflow;
 import com.hand.hls.prj.dto.HlsCusPrjQuotationDetails;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
@@ -17,6 +18,7 @@ import com.hand.hls.prj.service.HlsCusPrjQuotationService;
 import com.hand.hls.req.dto.HlsCusChangeReqInfo;
 import com.hand.hls.req.mapper.HlsCusChangeReqInfoMapper;
 import com.hand.hls.req.service.HlsCusChangeReqInfoService;
+import com.hand.hls.utils.HlsCusXirr;
 import hls.core.utils.exception.HlsCusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -90,7 +93,6 @@ public class PrjProjectQuotationServiceImpl implements QuotationCommon {
         prjQuotationDto.setSourceDocumentId(prjQuotation.getSourceDocumentId());
         prjQuotationDto.setQuotationId(prjQuotation.getQuotationId());
         prjQuotationDto.setDataClass(prjQuotation.getDataClass());
-        //待补充程序计算xirr的逻辑
         hlsCusPrjQuotationService.updateByPrimaryKeySelective(iRequest,prjQuotationDto);
 
         HlsCusPrjQuotationDetails prjQuotationDetails = new HlsCusPrjQuotationDetails();
@@ -109,6 +111,20 @@ public class PrjProjectQuotationServiceImpl implements QuotationCommon {
 
         //保存现金流表
         hlsCusPrjQuotationCashflowService.saveCalc2PrjQuotationCashflow(iRequest, prjQuotationDto);
+
+        //计算xirr
+        List<HlsCusPrjQuotationCashflow> cashflowList = hlsCusPrjQuotationCashflowMapper.selectCashflowForXirr(prjQuotationDto.getQuotationId());
+        double[] dueAmountList = new double[cashflowList.size()];
+        Date[] dueAmountDateList = new Date[cashflowList.size()];
+        for(int i = 0;i<cashflowList.size();i++){
+            HlsCusPrjQuotationCashflow cashflow = cashflowList.get(i);
+            dueAmountList[i] = cashflow.getCashflowIrr();
+            dueAmountDateList[i] = cashflow.getDueDate();
+        }
+        Double xirr = HlsCusXirr.Newtons_method(0.1, dueAmountList, dueAmountDateList);
+        prjQuotationDto.setXirr(xirr);
+        hlsCusPrjQuotationService.updateByPrimaryKeySelective(iRequest,prjQuotationDto);
+
         return prjQuotationDto;
     }
 }

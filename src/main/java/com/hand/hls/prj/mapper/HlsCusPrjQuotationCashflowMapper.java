@@ -116,6 +116,7 @@ public interface HlsCusPrjQuotationCashflowMapper extends Mapper<HlsCusPrjQuotat
      */
     List<HlsCusCshPaymentReqHd> queryWithholding(HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd);
 
+    List<HlsCusPrjQuotationCashflow> selectCashflowForXirr(@Param("quotationId") Long quotationId);
 
 
 
