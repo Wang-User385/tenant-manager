@@ -242,4 +242,24 @@ public class CshTransactionRefundController extends BaseController {
         result.add(cshTransactionRefundService.selectByPrimaryKey(requestContext, refund));
         return new ResponseData(result);
     }
+
+
+    /**
+     * 退款申请提交按钮
+     * @param refundId
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    @RequestMapping(value = "/csh/transaction/refund/with-lines/submit/new")
+    @ResponseBody
+    public ResponseData refundSubmitNew(Long refundId, HttpServletRequest request) throws Exception {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        requestCtx.setAttribute("authorityRuleFlag", "N");
+        return cshTransactionRefundService.refundSubmitNew(requestCtx, refundId);
+    }
+
+
+
 }

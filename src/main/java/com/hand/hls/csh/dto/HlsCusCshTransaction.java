@@ -340,6 +340,8 @@ public class HlsCusCshTransaction extends CshTransaction {
     private  Double remainingAmountFrom;
     @Transient
     private  Double remainingAmountTo;
+    @Transient
+    private String transactionTypeDesc;
 
 
 

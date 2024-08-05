@@ -356,4 +356,23 @@ public class CshTransactionRefundServiceImpl extends BaseServiceImpl<HlsCusCshTr
         List<HlsCusCshTransactionRefund> refundList = self().batchUpdate(iRequest, list);
         return refundList;
     }
+
+
+    @Override
+    public ResponseData refundSubmitNew(IRequest iRequest, Long refundId) throws Exception {
+        ResponseData responseData = new ResponseData(false);
+        //通过申请单ID修改单据支付状态为待支付
+        HlsCusCshTransactionRefund transactionRefund = new HlsCusCshTransactionRefund();
+        transactionRefund.setRefundId(refundId);
+        transactionRefund.setPaymentRefundStatus(HlsConstantUtil.SlipStatus.PAYING);
+
+        //直接将单据状态设置为审批通过，为了不影响原来页面的只读判断
+        transactionRefund.setRefundStatus("APPROVED");
+        this.updateByPrimaryKeySelective(iRequest,transactionRefund);
+        List<HlsCusCshTransactionRefund> list = new ArrayList<>(1);
+        list.add(transactionRefund);
+        responseData.setRows(list);
+        responseData.setSuccess(true);
+        return responseData;
+    }
 }

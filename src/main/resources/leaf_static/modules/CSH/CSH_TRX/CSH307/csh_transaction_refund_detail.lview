@@ -9,7 +9,7 @@
     <a:view>
         <script src="${/request/@context_path}/javascripts/calculate.js" type="text/javascript"/>
         <a:link id="csh_transaction_refund_save_link" url="${/request/@context_path}/csh/transaction/refund/with-lines/save"/>
-        <a:link id="csh_transaction_refund_submit_link" url="${/request/@context_path}/csh/transaction/refund/with-lines/submit"/>
+        <a:link id="csh_transaction_refund_submit_link" url="${/request/@context_path}/csh/transaction/refund/with-lines/submit/new"/>
         <a:link id="transaction_query_link_detail"
                         url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_query.lview"/>
         <a:link id="transaction_modify_link_detail"
@@ -127,7 +127,7 @@
                     var form_ds = $('csh_transaction_refund_detail_form_ds').getAt(0);
                     var bp_id = form_ds.get('bp_id');
                     var bp_bank_account_id = form_ds.get('bp_bank_account_id');
-                    var payment_method = form_ds.get('payment_method');
+                    /*var payment_method = form_ds.get('payment_method');*/
 
                     if(!bp_id){
                         Leaf.showMessage('提示！', '付款对象必填！');
@@ -137,10 +137,10 @@
                         Leaf.showMessage('提示！', '付款对象账户必选！');
                         return false;
                     }
-                    if(!payment_method){
+                    /*if(!payment_method){
                         Leaf.showMessage('提示！', '付款方式必选！');
                         return false;
-                    }
+                    }*/
                     var grid_ds = $('csh_transaction_refund_detail_grid_ds');
                     if (grid_ds.validate()) {
                         var datas = grid_ds.getAll();
@@ -414,6 +414,7 @@
                             ln_record.set('currency_code', result_records[i].get('currency_code'));
                             ln_record.set('currency_code_desc', result_records[i].get('currency_code_desc'));
                             ln_record.set('bp_name_tenant', result_records[i].get('payment_bp_name'));
+                            ln_record.set('bp_name', result_records[i].get('bp_name'));
                             ln_record.set('contract_id', result_records[i].get('contract_id'));
                             ln_record.set('contract_number', result_records[i].get('contract_number'));
                             ln_record.set('write_off_amount', result_records[i].get('write_off_amount'));
@@ -447,6 +448,7 @@
                 transaction_num_editor : function(lov){
                     var datas = $('csh_transaction_refund_detail_grid_ds').getAll();
                     var not_in_transaction_ids = '';
+                    debugger;
                     if(datas.length > 0){
                         for(var i = 0; i < datas.length; i++){
                             if(!!datas[i].get('transaction_id')){
@@ -578,12 +580,12 @@
                         <a:field name="bp_bank_name" readOnly="true"/>
                         <a:field name="currency_code" defaultValue="${/parameter/@currency_code}"/>
                         <a:field name="payment_method" required="true"/>
-                        <a:field name="payment_method_n" options="payment_method_combobox_ds"
+                        <!--<a:field name="payment_method_n" options="payment_method_combobox_ds"
                                  displayField="code_value_name"
                                  valueField="code_value"
                                  returnField="payment_method"
                                  required="true"/>
-                        <a:field name="description"/>
+                        <a:field name="description"/>-->
                     </a:fields>
                     <a:events>
                         <a:event name="query" handler="viewModel.form.form_query_event"/>
@@ -598,9 +600,10 @@
                         <a:field name="transaction_num" autoComplete="true" required="true" lovGridHeight="350"
                                  lovHeight="550" lovLabelWidth="90" lovWidth="1000"
                                  lovService="/csh/transaction/query/lov~hls.layout.dto.LovCshTransactionDto"
-                                 title="现金事务编号" prompt="现金事务编号">
+                                 title="收款编号" prompt="收款编号">
                             <a:mapping>
                                 <a:map from="transaction_num" to="transaction_num"/>
+                                <a:map from="bp_name" to="bp_name"/>
                                 <a:map from="transaction_type" to="transaction_type"/>
                                 <a:map from="transaction_type_desc" to="transaction_type_desc"/>
                                 <a:map from="transaction_date" to="transaction_date"/>
@@ -611,6 +614,7 @@
                                 <a:map from="bp_name_tenant" to="bp_payment_name"/>
                                 <a:map from="contract_id" to="contract_id"/>
                                 <a:map from="can_return_amount" to="can_return_amount"/>
+                                <a:map from="can_return_amount" to="refund_amount"/>
                                 <a:map from="transaction_id" to="transaction_id"/>
                             </a:mapping>
                         </a:field>
@@ -627,83 +631,88 @@
             <a:screenTopToolbar>
                 <a:gridButton click="viewModel.methods.go_back" text="HLS.RETURN"/>
                 <a:gridButton id="csh_transaction_refund_detail_form_button_save" click="viewModel.methods.save" text="HLS.SAVE"/>
-                <a:gridButton click="viewModel.methods.submit" text="提交审批"/>
+                <a:gridButton click="viewModel.methods.submit" text="提交"/>
             </a:screenTopToolbar>
             <a:form labelWidth="100" marginWidth="20" height="130">
-                <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
-                    <a:textField name="refund_number" prompt="申请编号" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
-                    <a:datePicker name="refund_date" prompt="申请日期" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
-                    <a:numberField name="refund_amount" prompt="申请总金额" width="200" renderer="Leaf.formatMoney" bindTarget="csh_transaction_refund_detail_form_ds"/>
-                </a:hBox>
-                <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
-                    <a:lov name="bp_name" id="bp_name" prompt="付款对象" width="200" bindTarget="csh_transaction_refund_detail_form_ds">
-                        <a:events>
-                            <a:event name="beforetriggerclick" handler="viewModel.form.bp_name_lov_event"/>
-                            <a:event name="commit" handler="viewModel.form.bp_name_lov_commit_event"/>
-                        </a:events>
-                    </a:lov>
-                    <a:lov name="bp_bank_account_name" id="bp_bank_account_name" prompt="付款对象账户" width="200" bindTarget="csh_transaction_refund_detail_form_ds">
-                        <a:events>
-                            <a:event name="beforetriggerclick" handler="viewModel.form.bp_bank_account_name_event"/>
-                        </a:events>
-                    </a:lov>
-                    <a:textField name="bp_bank_account_num" prompt="付款对象账号" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
-                </a:hBox>
-                <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40" id="fileuplowd">
-                    <a:textField name="bp_bank_name" prompt="付款账户银行" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
-                    <a:comboBox name="payment_method_n" prompt="付款方式" width="200"
-                                bindTarget="csh_transaction_refund_detail_form_ds">
-                        <a:events>
-                            <a:event name="change" handler="viewModel.form.payment_method_n_handler_change_event"/>
-                        </a:events>
-                    </a:comboBox>
-                </a:hBox>
-                <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
-                    <a:textArea name="description" bindTarget="csh_transaction_refund_detail_form_ds" prompt="备注"
-                                width="997" id="approval_comment_ta" maxLength="2000">
-                        <a:events>
-                            <a:event name="change" handler="viewModel.form.onChange_approval_comment_ta"/>
-                            <a:event name="keypress" handler="viewModel.form.onKeyPress_approval_comment_ta"/>
-                        </a:events>
-                    </a:textArea>
-                </a:hBox>
-                <div id="comment_wordLeft" style="margin-left: 50px;"></div>
+                <a:fieldSet title="付款信息" marginWidth="50">
+                    <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
+                        <a:textField name="refund_number" prompt="退款申请编号" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                        <a:numberField name="refund_amount" prompt="申请总金额" width="200" renderer="Leaf.formatMoney" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                        <a:datePicker name="refund_date" prompt="申请退款日期" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                        <a:lov name="bp_name" id="bp_name" prompt="收款对象" width="200" bindTarget="csh_transaction_refund_detail_form_ds">
+                            <a:events>
+                                <a:event name="beforetriggerclick" handler="viewModel.form.bp_name_lov_event"/>
+                                <a:event name="commit" handler="viewModel.form.bp_name_lov_commit_event"/>
+                            </a:events>
+                        </a:lov>
+                    </a:hBox>
+                    <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
+
+                        <a:lov name="bp_bank_account_name" id="bp_bank_account_name" prompt="收款账户名" width="200" bindTarget="csh_transaction_refund_detail_form_ds">
+                            <a:events>
+                                <a:event name="beforetriggerclick" handler="viewModel.form.bp_bank_account_name_event"/>
+                            </a:events>
+                        </a:lov>
+                        <a:textField name="bp_bank_account_num" prompt="收款银行账号" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                        <a:textField name="bp_bank_name" prompt="收款银行" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                    </a:hBox>
+<!--                    <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40" id="fileuplowd">
+                        <a:comboBox name="payment_method_n" prompt="付款方式" width="200"
+                                    bindTarget="csh_transaction_refund_detail_form_ds">
+                            <a:events>
+                                <a:event name="change" handler="viewModel.form.payment_method_n_handler_change_event"/>
+                            </a:events>
+                        </a:comboBox>
+                    </a:hBox>-->
+                    <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
+                        <a:textArea name="description" bindTarget="csh_transaction_refund_detail_form_ds" prompt="备注"
+                                    width="997" id="approval_comment_ta" maxLength="2000">
+                            <a:events>
+                                <a:event name="change" handler="viewModel.form.onChange_approval_comment_ta"/>
+                                <a:event name="keypress" handler="viewModel.form.onKeyPress_approval_comment_ta"/>
+                            </a:events>
+                        </a:textArea>
+                    </a:hBox>
+                    <div id="comment_wordLeft" style="margin-left: 50px;"></div>
+                </a:fieldSet>
             </a:form>
-            <a:grid bindTarget="csh_transaction_refund_detail_grid_ds" id="csh_transaction_refund_detail_grid" marginHeight="193" marginWidth="80" navBar="true">
-                <a:toolBar>
-                    <!--<a:button type="add" click="viewModel.grid.add"/>-->
-                    <a:button text="新增" id="refund_detail_grid_add" click="viewModel.grid.add"/>
-                    <a:button type="delete"/>
-                </a:toolBar>
-                <a:columns>
-                    <a:column name="transaction_num" prompt="现金事务编号" width="120" editor="transaction_num_editor"/>
-                    <a:column name="transaction_type_desc" prompt="现金事务类型" width="120"/>
-                    <a:column name="contract_number" prompt="合同编号" width="200"/>
-                    <a:column name="bp_payment_name" prompt="承租人(或预收款挂账对象)" width="230"/>
-                    <!--<a:column name="bp_name" prompt="付款对象" width="300"/>-->
-                    <!--<a:column name="bp_bank_account_name" prompt="付款账户" width="150"/>-->
-                    <!--<a:column name="bp_bank_account_num" prompt="付款账号" width="150"/>-->
-                    <!--<a:column name="bp_bank_name" prompt="付款账户银行" width="150"/>-->
-                    <a:column name="refund_date" align="center" width="100" renderer="Leaf.formatDate" prompt="付款日期" editor="csh_transaction_refund_date_editor"/>
-                    <a:column name="refund_amount" align="right" width="100" renderer="Leaf.formatMoney" prompt="付款金额" editor="csh_transaction_refund_amount_editor"/>
-                    <a:column name="currency_code_desc" prompt="币种"/>
-                    <a:column name="write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已核销金额"/>
-                    <a:column name="return_write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已退款金额"/>
-                    <a:column name="can_return_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="可退款金额"/>
-                    <a:column name="payment_method_n" width="120" prompt="付款方式"/>
-                    <a:column name="transaction_id" prompt="" width="120" renderer="receipt_add_update_renderer_detail" align="center"/>
-                </a:columns>
-                <a:editors>
-                    <a:lov id="transaction_num_editor">
-                        <a:events>
-                            <a:event name="beforetriggerclick" handler="viewModel.grid.transaction_num_editor"/>
-                            <a:event name="commit" handler="viewModel.grid.transaction_num_submit_editor"/>
-                        </a:events>
-                    </a:lov>
-                    <a:numberField id="csh_transaction_refund_amount_editor" />
-                    <a:datePicker id="csh_transaction_refund_date_editor" />
-                </a:editors>
-            </a:grid>
+            <a:fieldSet title="收款信息" width="750">
+                <a:grid bindTarget="csh_transaction_refund_detail_grid_ds" id="csh_transaction_refund_detail_grid" marginHeight="193" marginWidth="80" navBar="true">
+                    <a:toolBar>
+                        <!--<a:button type="add" click="viewModel.grid.add"/>-->
+                        <a:button text="新增" id="refund_detail_grid_add" click="viewModel.grid.add"/>
+                        <a:button type="delete"/>
+                    </a:toolBar>
+                    <a:columns>
+                        <a:column name="transaction_num" prompt="收款编号" width="120" editor="transaction_num_editor"/>
+                        <a:column name="transaction_type_desc" prompt="现金事务类型" width="120"/>
+                        <!--<a:column name="contract_number" prompt="合同编号" width="200"/>
+                        <a:column name="bp_payment_name" prompt="承租人(或预收款挂账对象)" width="230"/>-->
+                        <a:column name="bp_name" prompt="收款对象" width="300"/>
+                        <!--<a:column name="bp_bank_account_name" prompt="付款账户" width="150"/>-->
+                        <!--<a:column name="bp_bank_account_num" prompt="付款账号" width="150"/>-->
+                        <!--<a:column name="bp_bank_name" prompt="付款账户银行" width="150"/>-->
+                        <!--<a:column name="refund_date" align="center" width="100" renderer="Leaf.formatDate" prompt="付款日期" editor="csh_transaction_refund_date_editor"/>-->
+                        <a:column name="transaction_amount" align="right" width="100" renderer="Leaf.formatMoney" prompt="收款金额" />
+                        <a:column name="refund_amount" align="right" width="100" renderer="Leaf.formatMoney" prompt="本次申请退款金额金额" editor="csh_transaction_refund_amount_editor"/>
+                        <a:column name="write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已核销金额"/>
+                        <a:column name="return_write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已退款金额"/>
+                        <a:column name="can_return_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="可退款金额"/>
+                        <!--<a:column name="payment_method_n" width="120" prompt="付款方式"/>-->
+                        <a:column name="transaction_id" prompt="" width="120" renderer="receipt_add_update_renderer_detail" align="center"/>
+                    </a:columns>
+                    <a:editors>
+                        <a:lov id="transaction_num_editor">
+                            <a:events>
+                                <a:event name="beforetriggerclick" handler="viewModel.grid.transaction_num_editor"/>
+                                <a:event name="commit" handler="viewModel.grid.transaction_num_submit_editor"/>
+                            </a:events>
+                        </a:lov>
+                        <a:numberField id="csh_transaction_refund_amount_editor" />
+                        <a:datePicker id="csh_transaction_refund_date_editor" />
+                    </a:editors>
+                </a:grid>
+            </a:fieldSet>
         </a:screenBody>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
     </a:view>

@@ -27,6 +27,8 @@
         <result column="can_return_amount" property="canReturnAmount" jdbcType="DECIMAL"/>
         <result column="block_amount" property="blockAmount" jdbcType="DECIMAL"/>
         <result column="return_write_off_amount" property="returnWriteOffAmount" jdbcType="DECIMAL"/>
+        <result column="refunding_amount" property="refundingAmount" jdbcType="DECIMAL"/>
+
 
 
 
@@ -93,6 +95,9 @@
         <result column="ACTUAL_PAYMENT_DATE" property="actualPaymentDate" jdbcType="DATE"/>
         <result column="COMPANY_SPV" property="companySpv" jdbcType="BIGINT"/>
         <result column="COMPANY_SPV_n" property="companySpvN" jdbcType="VARCHAR"/>
+        <result column="bp_type" property="bpType" jdbcType="VARCHAR"/>
+        <result column="bp_type_n" property="bpTypeN" jdbcType="VARCHAR"/>
+
 
     </resultMap>
 
@@ -108,15 +113,15 @@
         cc.manufacturer_id,
         (Select hm.bp_name
         From hls_bp_master hm
-        Where hm.bp_id = cc.manufacturer_id)               manufacturer_id_n,
+        Where hm.bp_id = cc.manufacturer_id) manufacturer_id_n,
         cc.bp_id_vender,
         (Select hm.bp_name
         From hls_bp_master hm
-        Where hm.bp_id = cc.bp_id_vender)                  bp_id_vender_n,
+        Where hm.bp_id = cc.bp_id_vender) bp_id_vender_n,
         cc.factory_id,
         (Select hm.bp_name
         From hls_bp_master hm
-        Where hm.bp_id = cc.factory_id)                    factory_id_n,
+        Where hm.bp_id = cc.factory_id) factory_id_n,
         ct.TRANSACTION_DATE,
         ct.TRANSACTION_AMOUNT,
 
@@ -125,7 +130,7 @@
         (nvl(ct.transaction_amount, 0) -
         (Select nvl(Sum(nvl(line.REFUND_AMOUNT, 0)), 0)
         From CSH_TRANSACTION_REFUND_LN line,
-        CSH_TRANSACTION_REFUND      r
+        CSH_TRANSACTION_REFUND r
         Where line.refund_id = r.refund_id
         And r.refund_status In ('NEW', 'REJECTED')
         And line.SOURCE_TRANSACTION_ID = ct.TRANSACTION_ID) -
@@ -140,7 +145,15 @@
         Where ll.refund_id = r.refund_id
         And r.refund_status = 'APPROVED'
         And ll.SOURCE_TRANSACTION_ID = ct.TRANSACTION_ID
-        )                                                   as return_write_off_amount,
+        ) as return_write_off_amount,
+        ( SELECT
+        nvl(sum(ctr.REFUND_AMOUNT),0)
+        FROM
+        csh_transaction_refund ctr
+        WHERE
+        ctr.refund_status = 'APPROVING'
+        AND ctr.TRANSACTION_ID = ct.TRANSACTION_ID
+        ) refunding_amount,
 
         ct.CURRENCY_CODE,
         ct.BANK_ACCOUNT_ID,
@@ -148,23 +161,23 @@
         (Select cba.BANK_ACCOUNT_NUM
         From CSH_BANK_ACCOUNT cba
         Where cba.BANK_ACCOUNT_ID = ct.BANK_ACCOUNT_ID) As BANK_ACCOUNT_NUM,
-        nvl(ct.WRITE_OFF_AMOUNT, 0)                      As WRITE_OFF_AMOUNT,
+        nvl(ct.WRITE_OFF_AMOUNT, 0) As WRITE_OFF_AMOUNT,
 
         (Select m.BP_NAME
         From HLS_BP_MASTER m
-        Where m.BP_ID = ct.BP_ID)                       As bp_name,
+        Where m.BP_ID = ct.BP_ID) As bp_name,
         (Select scvb.MEANING
         From SYS_CODE_B scb
         Left Join SYS_CODE_VALUE_B scvb
         On scb.CODE = 'CSH301_TRANSACTION_TYPE'
         And scb.CODE_ID = scvb.CODE_ID
-        Where scvb.VALUE = ct.TRANSACTION_TYPE)         As transaction_type_desc,
+        Where scvb.VALUE = ct.TRANSACTION_TYPE) As transaction_type_desc,
         (Select scvb.MEANING
         From SYS_CODE_B scb
         Left Join SYS_CODE_VALUE_B scvb
         On scb.CODE = 'CHS.CURRENCY_TYPE'
         And scb.CODE_ID = scvb.CODE_ID
-        Where scvb.VALUE = ct.CURRENCY_CODE)            As currency_code_desc,
+        Where scvb.VALUE = ct.CURRENCY_CODE) As currency_code_desc,
 
 
         decode((Select Count(1)
@@ -175,7 +188,7 @@
         And ccc.WRITE_OFF_FLAG != 'FULL'),
         0,
         'Y',
-        'N')                                         is_terminate,
+        'N') is_terminate,
         (Select scvb.MEANING
         From SYS_CODE_B scb
         Left Join SYS_CODE_VALUE_B scvb
@@ -190,7 +203,19 @@
         And ccc.WRITE_OFF_FLAG != 'FULL'),
         0,
         'Y',
-        'N'))                              As is_terminate_n
+        'N')) As is_terminate_n,
+        (
+        select bm.bp_type from hls_bp_master bm where bm.bp_id=ct.bp_id
+        )bp_type,
+        (select hbt.description
+        from hls_bp_master hbm
+        left join hls_bp_type hbt
+        on hbm.bp_type = hbt.bp_type
+        where hbm.bp_id = ct.bp_id) as bp_name_category,
+        ct.bp_bank_name,
+        ct.bp_bank_account_name,
+        ct.bp_bank_account_num,
+        ct.bank_slip_num
         From csh_transaction ct
         Left Join con_contract cc
         On ct.CONTRACT_ID = cc.contract_id
@@ -253,6 +278,21 @@
                 <bind name="isTerminateN" value="'%'+isTerminateN+'%'"/>
                 and t1.is_terminate_n like #{isTerminateN}
             </if>
+            <if test="bpName != null">
+                <bind name="bpName" value="'%'+bpName+'%'"/>
+                AND t1.bp_name like #{bpName}
+            </if>
+            <if test="bpBankAccountName != null">
+                <bind name="bpBankAccountName" value="'%'+bpBankAccountName+'%'"/>
+                AND t1.bp_bank_account_name like #{bpBankAccountName}
+            </if>
+            <if test="bpBankAccountNum != null">
+                <bind name="bpBankAccountNum" value="'%'+bpBankAccountNum+'%'"/>
+                AND t1.bp_bank_account_num like #{bpBankAccountNum}
+            </if>
+            <if test="bpType != null">
+                AND t1.bp_type = #{bpType}
+            </if>
         </where>
     </select>
 
@@ -292,7 +332,11 @@
         cba.BANK_ACCOUNT_NAME BP_BANK_ACCOUNT_NAME,
         ctr.BP_BANK_ACCOUNT_ID,
         cba.BANK_ACCOUNT_NUM BP_BANK_ACCOUNT_NUM,
-        cba.bank_full_name bp_bank_name
+        cba.bank_full_name bp_bank_name,
+        (SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.code = 'PAYMENT_REFUND_STATUS_NEW'
+        AND v.code_value = ctr.PAYMENT_REFUND_STATUS) payment_refund_status_n
         from csh_transaction_refund ctr, hls_bp_master_bank_account cba
         where cba.BANK_ACCOUNT_ID = ctr.BP_BANK_ACCOUNT_ID
         order by ctr.refund_id desc) t1
@@ -320,6 +364,18 @@
             </if>
             <if test="refundAmountTo != null">
                 and t1.refund_amount &lt;= #{refundAmountTo}
+            </if>
+            <if test="bpName != null">
+                <bind name="bpName" value="'%'+bpName+'%'"/>
+                AND t1.bp_name like #{bpName}
+            </if>
+            <if test="bpBankAccountName != null">
+                <bind name="bpBankAccountName" value="'%'+bpBankAccountName+'%'"/>
+                AND t1.bp_bank_account_name like #{bpBankAccountName}
+            </if>
+            <if test="bpBankAccountNum != null">
+                <bind name="bpBankAccountNum" value="'%'+bpBankAccountNum+'%'"/>
+                AND t1.bp_bank_account_num like #{bpBankAccountNum}
             </if>
         </where>
 
@@ -592,10 +648,19 @@
         WHERE cwo.csh_transaction_id = ct.transaction_id
         AND cwo.reversed_flag = 'N'
         AND cwo.write_off_type = 'REFUND')                                                          return_write_off_amount,
+        ( SELECT
+        sum(ctr.REFUND_AMOUNT)
+        FROM
+        csh_transaction_refund ctr
+        WHERE
+        ctr.refund_status = 'APPROVING'
+        AND ctr.TRANSACTION_ID = ct.TRANSACTION_ID
+        )  refunding_amount,
         (nvl(ct.transaction_amount, 0) - nvl(ct.block_amount, 0) - (SELECT nvl(SUM(cwo.csh_write_off_amount), 0)
         FROM csh_write_off cwo
         WHERE cwo.csh_transaction_id = ct.transaction_id
-        AND cwo.reversed_flag = 'N')) AS can_return_amount
+        AND cwo.reversed_flag = 'N')) AS can_return_amount,
+        (select bm.bp_name from hls_bp_master bm where bm.bp_id=ct.bp_id) bp_name
         FROM csh_transaction_refund_ln ctrl
         INNER JOIN csh_transaction ct ON ct.TRANSACTION_ID = ctrl.SOURCE_TRANSACTION_ID
         LEFT JOIN con_contract cc ON ct.contract_id = cc.contract_id

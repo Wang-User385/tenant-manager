@@ -21,6 +21,8 @@ public class LovCshTransactionDto {
     private Double writeOffAmount;
     @LovField(prompt = "剩余可核销金额", field = "un_write_off_amount", forDisplay = true, displayWidth = 120, displayAlign = "right")
     private Double unWriteOffAmount;
+    @LovField(prompt = "现金事务类型", field = "transaction_type_desc", forDisplay = true, displayWidth = 120, displayAlign = "right")
+    private String transactionTypeDesc;
 
 
 }

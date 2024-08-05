@@ -179,4 +179,11 @@ public class HlsCusCshTransactionRefund extends CshTransactionRefund{
      */
     @Transient
     private Long sourceTransactionId;
+
+    @Transient
+    private String refundingAmount;   // 退款中金额
+    @Transient
+    private String bpType;  //对象类别
+    @Transient
+    private String bpTypeN; //对象类别
 }

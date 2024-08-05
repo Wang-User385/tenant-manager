@@ -50,14 +50,6 @@
             var is_terminate_count = 0;
 
             for (var i = 0; i < records.length; i++) {
-                //if((records[i].get('transaction_type') === 'ADVANCE_RECEIPT') && (records[i].get('bank_account_id') !== bank_account_id)){
-                //    Leaf.showMessage('${l:PROMPT_MESSAGE}', '预收款的来源账号不同, 不可同时选择!', null, 250, 100);
-                //    return;
-                //}
-                // if((records[i].get('transaction_type') === 'DEPOSIT') && (records[i].get('payment_bp_id') !== payment_bp_id)){
-                //     Leaf.showMessage('${l:PROMPT_MESSAGE}', '保证金的付款对象不同, 不可同时选择!', null, 250, 100);
-                //     return;
-                // }
                 //字段“是否已还清”为“否”不可发起保证金退款申请创建，并提示“承租人下有应收款项未收到，不能发起保证金退款流程!”。
                 if (records[i].get('is_terminate') === 'N' && records[i].get('transaction_type') === 'DEPOSIT'){
                     is_terminate_count += 1;
@@ -120,7 +112,7 @@
                 transaction_type = 'PERFORMANCE_BOND';
             }else{
                 var payment_bp_id = records[0].get('payment_bp_id'),
-                    payment_bp_name = records[0].get('payment_bp_name'),
+                    bp_name = records[0].get('bp_name'),
                     bank_account_id = records[0].get('bank_account_id');
                 transaction_type = 'OTHERS';
             }
@@ -134,7 +126,7 @@
                 params: {
                     win_id: 'csh_transaction_refund_create_win_id',
                     bp_id : payment_bp_id,
-                    bp_name : payment_bp_name,
+                    bp_name : bp_name,
                     currency_code: currency_code,
                     total_can_return_amount : total_can_return_amount,
                     transaction_ids : transaction_ids.join(','),
@@ -312,8 +304,8 @@
         <a:screenBody>
             <a:dataSets>
                 <a:dataSet id="csh_transaction_type_ds" lookupCode="CSH301_TRANSACTION_TYPE"/>
-                <a:dataSet id="is_terminate_ds" lookupCode="SYS.YES_NO"/>
-                <a:dataSet id="refund_status_ds" lookupCode="HLS_WFL_STATUS"/>
+                <a:dataSet id="bp_type_n_ds" lookupCode="BP.MASTER_CATEGORY"/>
+                <a:dataSet id="refund_status_ds" lookupCode="PAYMENT_REFUND_STATUS_NEW"/>
                 <a:dataSet id="csh_transaction_refund_create_ds">
                     <a:fields>
                         <a:field name="contract_number"/>
@@ -324,25 +316,9 @@
                         <a:field name="transaction_amount_to"/>
                         <a:field name="transaction_type_desc" returnField="transaction_type" valueField="code_value" displayField="code_value_name" prompt="现金事务类型" options="csh_transaction_type_ds"/>
                         <a:field name="posted_flag"/>
-                        <a:field name="is_terminate_n" returnField="is_terminate" valueField="code_value" displayField="code_value_name" prompt="是否已还清" options="is_terminate_ds"/>
+                        <a:field name="bp_type_n" returnField="bp_type" valueField="code_value" displayField="code_value_name" prompt="对象类别" options="bp_type_n_ds"/>
                         <a:field name="bp_id_tenant_n"/>
                         <a:field name="bp_id_vender_n"/>
-                        <a:field name="manufacturer_id_n" autoComplete="true" lovGridHeight="360" lovHeight="510"
-                                 lovLabelWidth="100" lovService="/hls/bp/master/manufacturer/query~com.hand.hls.prj.dto.BpManufacturerInfoLov"
-                                 lovWidth="600"
-                                 title="厂商/合作方">
-                            <a:mapping>
-                                <a:map from="bp_name" to="manufacturer_id_n"/>
-                            </a:mapping>
-                        </a:field>
-                        <a:field name="factory_id_n" autoComplete="true" lovGridHeight="360" lovHeight="600"
-                                 lovLabelWidth="100" lovService="/hls/bp/master/vender/query~com.hand.hls.prj.dto.BpVenderInfoLov"
-                                 lovWidth="600"
-                                 title="主机厂/合作方">
-                            <a:mapping>
-                                <a:map from="bp_name" to="factory_id_n"/>
-                            </a:mapping>
-                        </a:field>
                     </a:fields>
                 </a:dataSet>
                 <a:dataSet id="csh_transaction_refund_create_result_ds" autoPageSize="true" autoQuery="false"
@@ -365,7 +341,7 @@
                         <a:field name="refund_amount_to"/>
                         <a:field name="bp_name"/>
                         <a:field name="bp_id" />
-                        <a:field name="refund_status_desc" returnField="refund_status" valueField="code_value" displayField="code_value_name" prompt="单据状态" options="refund_status_ds"/>
+                        <a:field name="payment_refund_status_n" returnField="refund_status" valueField="code_value" displayField="code_value_name" prompt="单据状态" options="refund_status_ds"/>
                     </a:fields>
                 </a:dataSet>
                 <a:dataSet id="csh_transaction_refund_modify_home_grid_ds" autoPageSize="true" autoQuery="false"
@@ -388,58 +364,49 @@
                             <a:gridButton click="csh_transaction_refund_create" text="创建"/>
                         </a:screenTopToolbar>
                         <a:form column="4" labelWidth="100">
-                            <a:textField name="contract_number" bindTarget="csh_transaction_refund_create_ds"
-                                         prompt="合同编号" width="160"/>
+                            <!--<a:textField name="contract_number" bindTarget="csh_transaction_refund_create_ds"
+                                         prompt="合同编号" width="160"/>-->
                             <a:textField name="transaction_num" bindTarget="csh_transaction_refund_create_ds"
-                                         prompt="现金事务编号" width="160"/>
+                                         prompt="收款编号" width="160"/>
+                            <a:textField name="bp_name" bindTarget="csh_transaction_refund_create_ds"
+                                         prompt="收款对象" width="160"/>
+                            <a:textField name="bp_bank_account_name" bindTarget="csh_transaction_refund_create_ds"
+                                         prompt="收款对象账户" width="160"/>
+                            <a:textField name="bp_bank_account_num" bindTarget="csh_transaction_refund_create_ds"
+                                         prompt="收款对象账号" width="160"/>
                             <a:datePicker name="transaction_date_from" bindTarget="csh_transaction_refund_create_ds"
-                                          prompt="付款日期从" width="160"/>
+                                          prompt="收款日期从" width="160"/>
                             <a:datePicker name="transaction_date_to" bindTarget="csh_transaction_refund_create_ds"
-                                          prompt="付款日期到" width="160"/>
-                            <a:comboBox name="transaction_type_desc" bindTarget="csh_transaction_refund_create_ds"
-                                        prompt="现金事物类型" width="160"/>
-                            <a:numberField name="transaction_amount_from" bindTarget="csh_transaction_refund_create_ds"
-                                           prompt="付款金额从" width="160"/>
-                            <a:numberField name="transaction_amount_to" bindTarget="csh_transaction_refund_create_ds"
-                                           prompt="付款金额到" width="160"/>
-                            <a:comboBox name="is_terminate_n" bindTarget="csh_transaction_refund_create_ds"
-                                        prompt="是否已还清" width="160"/>
-                            <a:textField name="bp_id_tenant_n" bindTarget="csh_transaction_refund_create_ds"
-                                         prompt="承租人" width="160"/>
-                            <a:textField name="bp_id_vender_n" bindTarget="csh_transaction_refund_create_ds"
-                                         prompt="经销商" width="160"/>
-                            <a:lov name="manufacturer_id_n" bindTarget="csh_transaction_refund_create_ds"
-                                   prompt="合作方" width="160"/>
-                            <a:lov name="factory_id_n" bindTarget="csh_transaction_refund_create_ds"
-                                   prompt="主机厂" width="160"/>
+                                          prompt="收款日期到" width="160"/>
+                            <a:comboBox name="bp_type_n" bindTarget="csh_transaction_refund_create_ds"
+                                        prompt="对象类别" width="160"/>
                         </a:form>
                         <a:grid bindTarget="csh_transaction_refund_create_result_ds" marginHeight="193" marginWidth="80"
                                 navBar="true">
                             <a:columns>
-                                <a:column name="transaction_num" prompt="现金事务编号" width="120"
+                                <a:column name="transaction_num" prompt="收款编号" width="120"
                                           renderer="receipt_add_update_renderer"/>
                                 <a:column name="transaction_type_desc" prompt="现金事务类型" width="120"/>
-                                <a:column name="contract_number" prompt="合同编号" width="250"/>
-                                <a:column name="is_terminate_n" prompt="是否已还清" width="100"/>
-                                <a:column name="bp_id_tenant_n" prompt="承租人" width="250"/>
-                                <a:column name="manufacturer_id_n" prompt="厂商" width="250"/>
-                                <a:column name="bp_id_vender_n" prompt="经销商" width="250"/>
-                                <a:column name="factory_id_n" prompt="主机厂" width="250"/>
-                                <a:column name="payment_bp_name" prompt="付款对象" width="250"/>
-                                <a:column name="bank_account_num" prompt="来源账号" width="250"/>
+                                <a:column name="bp_name_category" prompt="对象类别" width="100"/>
+                                <a:column name="bp_name" prompt="收款对象" width="250"/>
+                                <a:column name="bp_bank_name" prompt="收款银行" width="250"/>
+                                <a:column name="bp_bank_account_name" prompt="收款对象账户" width="250"/>
+                                <a:column name="bp_bank_account_num" prompt="收款对象账号" width="250"/>
+                                <a:column name="bank_slip_num" prompt="银行流水" width="250"/>
+
                                 <a:column name="transaction_date" align="center" width="100"
-                                          renderer="Leaf.formatDate" prompt="付款日期"/>
+                                          renderer="Leaf.formatDate" prompt="收款日期"/>
                                 <a:column name="transaction_amount" align="right" width="100"
-                                          renderer="Leaf.formatMoney" prompt="付款金额"/>
+                                          renderer="Leaf.formatMoney" prompt="收款金额"/>
                                 <a:column name="currency_code_desc" prompt="币种"/>
                                 <a:column name="write_off_amount" align="right" renderer="Leaf.formatMoney" width="120"
                                           prompt="已核销金额"/>
                                 <a:column name="return_write_off_amount" align="right" renderer="Leaf.formatMoney" width="120"
                                           prompt="已退款金额"/>
-                                <a:column name="block_amount" align="right" renderer="Leaf.formatMoney" width="120"
-                                          prompt="已冻结金额"/>
                                 <a:column name="can_return_amount" align="right" renderer="Leaf.formatMoney" width="120"
                                           prompt="可退款金额"/>
+                                <a:column name="refunding_amount" align="right" renderer="Leaf.formatMoney" width="120"
+                                          prompt="退款中金额"/>
                             </a:columns>
                         </a:grid>
                     </a:tab>
@@ -452,35 +419,38 @@
                             <!--<a:gridButton click="csh_transaction_refund_cancel" text="取消"/>-->
                         </a:screenTopToolbar>
                         <a:form column="4" labelWidth="100">
-                            <a:textField name="refund_num" bindTarget="csh_transaction_refund_modify_home_form_ds"
-                                         prompt="申请编号" width="160"/>
-                            <a:textField name="bp_name" bindTarget="csh_transaction_refund_modify_home_form_ds"
-                                         prompt="付款对象" width="160"/>
-                            <a:datePicker name="refund_date_from" bindTarget="csh_transaction_refund_modify_home_form_ds"
-                                          prompt="申请日期从" width="160"/>
-                            <a:datePicker name="refund_date_to" bindTarget="csh_transaction_refund_modify_home_form_ds"
-                                          prompt="申请日期到" width="160"/>
+                            <a:textField name="refund_number" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                         prompt="退款申请编号" width="160"/>
                             <a:numberField name="refund_amount_from" bindTarget="csh_transaction_refund_modify_home_form_ds"
-                                           prompt="申请总金额从" width="160"/>
+                                           prompt="退款金额从" width="160"/>
                             <a:numberField name="refund_amount_to" bindTarget="csh_transaction_refund_modify_home_form_ds"
-                                           prompt="申请总金额到" width="160"/>
-                            <a:comboBox name="refund_status_desc" bindTarget="csh_transaction_refund_modify_home_form_ds"
-                                        prompt="单据状态" width="160"/>
+                                           prompt="退款金额到" width="160"/>
+                            <a:comboBox name="payment_refund_status_n" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                        prompt="支付单状态" width="160"/>
+                            <a:textField name="bp_name" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                         prompt="收款对象" width="160"/>
+                            <a:textField name="bp_bank_account_name" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                         prompt="收款对象账户" width="160"/>
+                            <a:textField name="bp_bank_account_num" bindTarget="csh_transaction_refund_modify_home_form_ds"
+                                         prompt="收款对象账号" width="160"/>
+
+
                         </a:form>
                         <a:grid bindTarget="csh_transaction_refund_modify_home_grid_ds" marginHeight="193"
                                 marginWidth="80" navBar="true">
                             <a:columns>
-                                <a:column name="refund_number" prompt="申请编号" width="150" renderer="refund_num_renderer"/>
-                                <a:column name="refund_date" prompt="申请日期" width="120" renderer="Leaf.formatDate"
-                                          align="center"/>
-                                <a:column name="bp_name" prompt="付款对象" width="300"/>
+                                <a:column name="refund_number" prompt="退款申请编号" width="150" renderer="refund_num_renderer"/>
                                 <a:column name="bp_name_category" prompt="对象类别" width="120"/>
-                                <a:column name="bp_bank_account_name" prompt="付款对象账户" width="300"/>
-                                <a:column name="bp_bank_account_num" prompt="付款对象账号" width="200"/>
-                                <a:column name="bp_bank_name" prompt="付款对象银行" width="200"/>
-                                <a:column name="refund_amount" prompt="申请总金额" width="120" align="right"
+                                <a:column name="bp_name" prompt="收款对象" width="300"/>
+                                <a:column name="bp_bank_name" prompt="收款对象银行" width="200"/>
+                                <a:column name="bp_bank_account_name" prompt="收款对象账户" width="300"/>
+                                <a:column name="bp_bank_account_num" prompt="收款对象账号" width="200"/>
+                                <a:column name="refund_date" prompt="申请退款日期" width="120" renderer="Leaf.formatDate"
+                                          align="center"/>
+                                <a:column name="refund_amount" prompt="退款金额" width="120" align="right"
                                           renderer="Leaf.formatMoney"/>
-                                <a:column name="refund_status_desc" width="100" prompt="单据状态"/>
+                                <!--<a:column name="refund_status_desc" width="100" prompt="单据状态"/>-->
+                                <a:column name="payment_refund_status_n" width="100" prompt="支付单状态"/>
                             </a:columns>
                         </a:grid>
                     </a:tab>

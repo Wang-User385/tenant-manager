@@ -99,4 +99,13 @@ public interface CshTransactionRefundService extends IBaseService<HlsCusCshTrans
     List<HlsCusCshTransactionRefund> saveLn(IRequest iRequest, List<HlsCusCshTransactionRefund> list) throws ResMessageException;
     List<HlsCusCshTransactionRefund> cshPaymentTransactionRefundQuery(HlsCusCshTransactionRefund hlsCusCshTransactionRefund, int page, int pagesize,String sortName,String sortOrder);
 
+
+    /**
+     * 退款申请提交按钮
+     * @param iRequest
+     * @param refundId
+     * @return
+     * @throws Exception
+     */
+    ResponseData refundSubmitNew(IRequest iRequest, Long refundId) throws Exception;
 }
