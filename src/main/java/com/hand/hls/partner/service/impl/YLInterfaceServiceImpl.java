@@ -653,12 +653,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         StringBuilder message=new StringBuilder();
         //销售信息
-        if (!saleInfo.getSellerName().equals(preRiskAuditData.getDealername())){
+        /*if (!saleInfo.getSellerName().equals(preRiskAuditData.getDealername())){
             message.append("销售方统一社会信用代码名称 ");
-        }
-        if (!saleInfo.getSalesCityCode().equals(preRiskAuditData.getDealercity())){
+        }*/
+        /*if (!saleInfo.getSalesCityCode().equals(preRiskAuditData.getDealercity())){
             message.append("销售城市code ");
-        }
+        }*/
 
         //租赁物相关信息
         if (!carInfo.getBrandName().equals(preRiskAuditData.getCarbrand2())){
@@ -679,7 +679,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             message.append("期数 ");
         }
         double monthPayment = Double.parseDouble(financeInfo.getMonthPayment())/100;
-        double yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
+        double yfzj = 0D;
+        //double yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
+        if(StringUtils.isNotEmpty(preRiskAuditData.getYfzj()) && preRiskAuditData.getYfzj() != null){
+            yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
+        }
         if (monthPayment!=yfzj){
             message.append("月租(分) ");
         }
@@ -687,7 +691,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             message.append("利率 ");
         }
         double firstPayment = Double.parseDouble(financeInfo.getFirstPayment())/100;
-        double sfje = Double.parseDouble(preRiskAuditData.getSfje());
+        //double sfje = Double.parseDouble(preRiskAuditData.getSfje());
+        double sfje = 0D;
+        if(StringUtils.isNotEmpty(preRiskAuditData.getSfje()) && preRiskAuditData.getSfje() != null){
+            sfje = Double.parseDouble(preRiskAuditData.getSfje());
+        }
         if (firstPayment!=sfje){
             message.append("首付款(分) ");
         }
@@ -697,7 +705,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             message.append("车辆指导价(分) ");
         }
         double carSalePrice = Double.parseDouble(financeInfo.getCarSalePrice())/100;
-        double clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
+        //double clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
+        double clxsjg = 0D;
+        if(StringUtils.isNotEmpty(preRiskAuditData.getClxsjg()) && preRiskAuditData.getClxsjg() != null){
+            clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
+        }
         if (carSalePrice!=clxsjg){
             message.append("车辆售价(分) ");
         }
@@ -720,7 +732,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                              HlsCusPrjQuotation prjQuotation,HlsCusPrjProjectLeaseItem leaseItem,PrjProjectLeaseItemSales leaseItemSales) throws HlsCusException {
         StringBuilder message=new StringBuilder();
         //销售信息
-        if(!saleInfo.getSellerCode().equals(leaseItemSales.getUnifiedSocialCreditCode())){
+        /*if(!saleInfo.getSellerCode().equals(leaseItemSales.getUnifiedSocialCreditCode())){
             message.append("销售方统一社会信用代码 ");
         }
         if(!saleInfo.getSellerName().equals(leaseItemSales.getDealerName())){
@@ -798,7 +810,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("code","400");
             returnJson.put("message","正审已通过，不允许修改：" + message.toString());
             throw new HlsCusException(returnJson.toJSONString());
-        }
+        }*/
     }
 
     private void setBusinessData(SaleInfo saleInfo, CarInfo carInfo, FinanceInfo financeInfo,
@@ -1282,6 +1294,27 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //step5: 与数据库里的数据比对（正审通过后，投放审查前）
         String projectStatus = hlsCusPrjProject.getProjectStatus();//正审状态
         String investmentStatus = hlsCusPrjProject.getInvestmentStatus();//投放审查状态
+        //订单状态
+        String orderStatus = hlsCusPrjProject.getOrderStatus();
+        //预审状态为审批中、订单状态是起租或者关闭、进件状态为审批中不能进行数据采集
+        if ("APPROVING".equals(projectStatus)){
+            //设置返回状态
+            returnJson.put("code","400");
+            returnJson.put("message","正审状态为审批中，不允许进行数据采集");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        if ("INCEPT".equals(orderStatus)){
+            //设置返回状态
+            returnJson.put("code","400");
+            returnJson.put("message","订单状态为已起租，不允许进行数据采集");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        if ("CLOSED".equals(orderStatus)){
+            //设置返回状态
+            returnJson.put("code","400");
+            returnJson.put("message","订单状态为已关闭，不允许进行数据采集");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
         if("APPROVED".equals(projectStatus)){
             if("APPROVING".equals(investmentStatus)){
                 returnJson.put("code","400");
