@@ -1933,9 +1933,33 @@ and pqc.quotation_id=#{quotationId}
             <if test="contractNumber!=null">
                 AND t.contract_number LIKE CONCAT(concat('%', #{contractNumber}), '%')
             </if>
-            <if test="totalWriteOffFlag!=null">
-                AND t.total_write_off_flag like concat(concat('%',#{totalWriteOffFlag}),'%')
-
+            <if test="totalWriteOffFlagN!=null">
+                AND (SELECT
+                MAX(
+                CASE
+                WHEN c.total_write_off_amount = 0 THEN '未核销'
+                WHEN c.total_due_amount > c.total_write_off_amount THEN '部分核销'
+                WHEN c.total_due_amount = c.total_write_off_amount THEN '完全核销'
+                END
+                )
+                FROM (
+                SELECT
+                ccc.*,
+                ROUND(ccc.principal + ccc.interest +
+                NVL((SELECT cf.due_amount
+                FROM con_contract_cashflow cf
+                WHERE cf.contract_id = ccc.contract_id AND
+                cf.times = ccc.times AND
+                cf.cf_item = 9), 0), 2) AS total_due_amount,
+                ROUND(ccc.received_amount +
+                NVL((SELECT cf.received_amount
+                FROM con_contract_cashflow cf
+                WHERE cf.contract_id = ccc.contract_id AND
+                cf.times = ccc.times AND
+                cf.cf_item = 9), 0), 2) AS total_write_off_amount
+                FROM CON_CONTRACT_CASHFLOW ccc
+                ) c
+                WHERE c.cashflow_id = t.cashflow_id) LIKE CONCAT(concat('%',#{totalWriteOffFlagN}),'%')
             </if>
             <if test="dueDate!=null">
                 AND TO_CHAR(t.due_date, 'yyyy-MM-dd') = #{dueDate}
@@ -1944,7 +1968,7 @@ and pqc.quotation_id=#{quotationId}
                 AND t.transaction_num LIKE CONCAT(concat('%', #{transactionNum}), '%')
             </if>
             <if test="stopWithholdFlag!=null">
-                AND t.stop_withhold_flag = #{stopWithholdFlag}
+                AND stop_withhold_flag = #{stopWithholdFlag}
             </if>
         </where>
         order by t.times,t.cf_item
