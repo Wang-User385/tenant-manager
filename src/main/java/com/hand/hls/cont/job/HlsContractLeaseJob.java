@@ -49,7 +49,7 @@ public class HlsContractLeaseJob extends AbstractJob  {
     @Autowired
     private IContractFinanceIncomeService iContractFinanceIncomeService;
 
-//合同起租定时任务
+
     @Override
     public void safeExecute(JobExecutionContext jobExecutionContext) throws Exception {
 
