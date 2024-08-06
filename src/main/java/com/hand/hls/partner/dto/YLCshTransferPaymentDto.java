@@ -11,6 +11,7 @@ import javax.persistence.Transient;
 import com.hand.hap.system.dto.BaseDTO;
 
 import java.util.Date;
+import java.util.List;
 
 @Data
 @ExtensionAttribute(disable = true)
@@ -81,5 +82,14 @@ public class YLCshTransferPaymentDto extends BaseDTO {
 
     @Transient
     private Long projectId;
+
+    @Transient
+    private String paymentIdStr;
+
+    @Transient
+    private List<Long> paymentIdS;
+
+    @Transient
+    private String extraBankStatement;
 
 }
