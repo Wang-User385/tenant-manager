@@ -2029,6 +2029,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         Double payableAmount = 0.00;  //应付金额
         Double principal = 0.00; //总本金
         Double interest = 0.00; //总利息
+        Double penalty = 0.00; //总罚息
         List<Integer> termNos = new ArrayList<>();  //期次信息
         List<Integer> deductNos = new ArrayList<>(); //抵扣期次
         List<HlsCusConContractCashflow> writeOffList = new ArrayList<>(); //需要自动核销为租金的代偿数据
@@ -2037,6 +2038,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //回购不涉及到罚息金额
             if (c.getCfItem().equals(9L) && "REPO".equals(type)) {
                 continue;
+            }
+            if (c.getCfItem().equals(9L) && "ET".equals(type)) {
+                penalty = penalty + c.getDueAmount();
             }
             termNos.add(c.getTimes().intValue());
             payableAmount = payableAmount + (c.getDueAmount()-c.getReceivedAmount());
@@ -2076,6 +2080,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         calculationResultsDto.setPayableAmount(payableAmount);
         calculationResultsDto.setPrincipal(principal);
         calculationResultsDto.setInterest(interest);
+        calculationResultsDto.setPenalty(penalty);
         calculationResultsDto.setDeductAmount(deductAmount);
         calculationResultsDto.setTermNos(termNos);
         calculationResultsDto.setDeductNos(deductNos);
