@@ -85,4 +85,10 @@ public interface LeasingNoticeMapper extends Mapper<LeasingNotice> {
      */
     List<RepayPlanRepaidNotifyDto> queryTerm(@Param("projectId") Long projectId);
 
+    /**
+     * 信息通知记录
+     * @return
+     */
+  List<LeasingNotice> qureyLeasingNotice();
+
 }
