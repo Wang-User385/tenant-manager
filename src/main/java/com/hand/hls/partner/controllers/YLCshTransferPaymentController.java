@@ -1,6 +1,7 @@
 package com.hand.hls.partner.controllers;
 import com.hand.hls.partner.dto.YLCshTransferPaymentDto;
 import com.hand.hls.partner.service.IYLCshTransferPaymentService;
+import hls.core.utils.exception.HlsCusException;
 import org.springframework.stereotype.Controller;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.core.IRequest;
@@ -40,7 +41,8 @@ public class YLCshTransferPaymentController extends BaseController {
         RequestHelper.setCurrentRequest(requestCtx);
         JSONArray param = (JSONArray) requestData.get("parameter");
         List<YLCshTransferPaymentDto> ylCshTransferPaymentDtoList = param.toJavaList(YLCshTransferPaymentDto.class);
-        return new ResponseData(service.updateAndVerification(requestCtx,ylCshTransferPaymentDtoList));
+        service.updateAndVerification(requestCtx,request,ylCshTransferPaymentDtoList);
+        return new ResponseData();
     }
 
 
