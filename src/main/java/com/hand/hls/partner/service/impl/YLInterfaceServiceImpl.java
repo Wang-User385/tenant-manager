@@ -380,6 +380,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus)){
             returnJson.put("code","200");
             returnJson.put("message","查询成功");
+            returnJson.put("result",queryOrder);
             return returnJson.toJSONString();
         }else{
             returnJson.put("code","100101");
@@ -576,7 +577,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
         //插入提前结清现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
-
+        //插入罚息
+        HlsCusConContractCashflow conContractCashflowPenalty = calculationResultsDto.getContractCashflowPenalty();
+        if (!ObjectUtils.isEmpty(conContractCashflowPenalty)) {
+            //插入提前结清现金流
+            this.conContractCashflowMapper.insertSelective(conContractCashflowPenalty);
+        }
 
         //            设置返回状态
         jsonObject1.put("code","200");
@@ -1275,9 +1281,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         leaseItemConditions.setOriginalOwnerCardType(preRiskAuditData.getYuanchezzjlx());//原车主证件类型
         leaseItemConditions.setOriginalOwnerName(preRiskAuditData.getYuanczxm());//原车主姓名
         leaseItemConditions.setOriginalOwnerCardNum(preRiskAuditData.getYuanchezzjhm());//原车主证件号
-        leaseItemConditions.setOriginalOwnerAddress(
-                preRiskAuditData.getYuanchezhuhujishengfen()
-                        +preRiskAuditData.getYuanchezhuhujishi()+preRiskAuditData.getCarownersdomicilelast());//原车主户籍所在省份 原车主户籍所在市 原车主户籍所在区县
+        //leaseItemConditions.setOriginalOwnerAddress(
+        //        preRiskAuditData.getYuanchezhuhujishengfen()
+        //                +preRiskAuditData.getYuanchezhuhujishi()+preRiskAuditData.getCarownersdomicilelast());//原车主户籍所在省份 原车主户籍所在市 原车主户籍所在区县
+        leaseItemConditions.setProvinceCode(preRiskAuditData.getYuanchezhuhujishengfen());//原车主户籍所在省份
+        leaseItemConditions.setCityCode(preRiskAuditData.getYuanchezhuhujishi());//原车主户籍所在市
+        leaseItemConditions.setDistrictCode(preRiskAuditData.getCarownersdomicilelast());//原车主户籍所在区县
         leaseItemConditions.setMaintenanceInfo(preRiskAuditData.getBywxqk());//维修保养情况
         leaseItemConditions.setPremiumAddOn(preRiskAuditData.getJpjz());//精品加装
         //月付租金
@@ -1316,7 +1325,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //佣金
         //月还款额
         if(StringUtils.isNotEmpty(preRiskAuditData.getClbxje()) && preRiskAuditData.getClbxje() != null){
-            leaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);//车辆保险金额
+            leaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje()));//车辆保险金额
         }
     }
 
@@ -1417,6 +1426,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 bpMaster,bpMasterBankAccount,bpMasterSpouse);
 
         //step8: 更新数据
+        hlsCusPrjProject.setRiskInfo(dataAcquisitionDTO.getRiskInfo());
         prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
         hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(leaseItem);
@@ -1472,6 +1482,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseTrialCalculationDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
+        if (overdueRepurchaseTrialCalculationDTO.getTrialTime() == null){
+            overdueRepurchaseTrialCalculationDTO.setTrialTime(String.valueOf(new Date()));
+        }
 
         CalculationResultsDto calculationResultsDto = calculationResult(overdueRepurchaseTrialCalculationDTO.getOrderNo(),overdueRepurchaseTrialCalculationDTO.getTrialTime(),
                 "REPO",13L,null);
@@ -1523,7 +1536,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             throw new HlsCusException(jsonObject1.toJSONString());
         }
 
-        if (!Objects.equals((long) (calculationResultsDto.getPayableAmount()*100), overdueRepurchaseRequestDTO.getBuybackAmount())) {
+        if (!Objects.equals((long) (calculationResultsDto.getPayableAmount()*100), overdueRepurchaseRequestDTO.getPayableAmount())) {
             jsonObject1.put("code","400");
             jsonObject1.put("message","回购金额与计算金额不匹配！");
             throw new HlsCusException(jsonObject1.toJSONString());
@@ -1932,7 +1945,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             this.replaceAttach(prjAttachment,file.getFileId());
         }
         //查询附件有合同相关的，就修改签约状态
-        Integer ConAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, null,"'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        Integer ConAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, null,"PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(ConAttachMulti > 0){
             //修改签约状态
             hlsCusPrjProject.setSignStatus("SIGN");
@@ -2028,14 +2041,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         Double payableAmount = 0.00;  //应付金额
         Double principal = 0.00; //总本金
         Double interest = 0.00; //总利息
+        Double penalty = 0.00; //总罚息
         List<Integer> termNos = new ArrayList<>();  //期次信息
         List<Integer> deductNos = new ArrayList<>(); //抵扣期次
         List<HlsCusConContractCashflow> writeOffList = new ArrayList<>(); //需要自动核销为租金的代偿数据
-        HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow();
+        HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow(); //回购或者提前结清现金流
+        Long times = Long.MAX_VALUE;
         for (HlsCusConContractCashflow c : queryUnReceivedByOrderNoList) {
+            if (c.getTimes() < times) {
+                times = c.getTimes();
+            }
             //回购不涉及到罚息金额
             if (c.getCfItem().equals(9L) && "REPO".equals(type)) {
                 continue;
+            }
+            if (c.getCfItem().equals(9L) && "ET".equals(type)) {
+                penalty = penalty + c.getDueAmount();
             }
             termNos.add(c.getTimes().intValue());
             payableAmount = payableAmount + (c.getDueAmount()-c.getReceivedAmount());
@@ -2058,11 +2079,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 conContractCashflow.setCfType(11L);
                 conContractCashflow.setCfDirection(c.getCfDirection());
                 conContractCashflow.setCfStatus("RELEASE");
-                conContractCashflow.setTimes(c.getTimes());
             }
 
         }
         conContractCashflow.setDueDate(date);
+        conContractCashflow.setTimes(times);
         conContractCashflow.setCalcDate(date);
         conContractCashflow.setFinIncomeDate(date);
         conContractCashflow.setDueAmount(payableAmount);
@@ -2075,11 +2096,29 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         calculationResultsDto.setPayableAmount(payableAmount);
         calculationResultsDto.setPrincipal(principal);
         calculationResultsDto.setInterest(interest);
+        calculationResultsDto.setPenalty(penalty);
         calculationResultsDto.setDeductAmount(deductAmount);
         calculationResultsDto.setTermNos(termNos);
         calculationResultsDto.setDeductNos(deductNos);
         calculationResultsDto.setWriteOffList(writeOffList);
         calculationResultsDto.setConContractCashflow(conContractCashflow);
+
+        //提前结清生成罚息现金流
+        if ("ET".equals(type) && penalty > 0){
+            HlsCusConContractCashflow conContractCashflowByPenalty = new HlsCusConContractCashflow();
+            conContractCashflowByPenalty.setContractId(queryUnReceivedByOrderNoList.get(0).getContractId());
+            conContractCashflowByPenalty.setCfItem(9L);
+            conContractCashflowByPenalty.setCfType(9L);
+            conContractCashflowByPenalty.setCfDirection("INFLOW");
+            conContractCashflowByPenalty.setCfStatus("RELEASE");
+            conContractCashflowByPenalty.setTimes(times);
+            conContractCashflowByPenalty.setDueAmount(penalty);
+            conContractCashflowByPenalty.setDueDate(date);
+            conContractCashflowByPenalty.setCalcDate(date);
+            conContractCashflowByPenalty.setFinIncomeDate(date);
+            calculationResultsDto.setContractCashflowPenalty(conContractCashflowByPenalty);
+        }
+
         return calculationResultsDto;
     }
 
@@ -2181,82 +2220,82 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         Integer attachMulti = 0;
         StringBuilder message = new StringBuilder();
         //汽车买卖合同附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "TRADE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "TRADE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《汽车买卖合同附件》、");
         }
         //车辆服务协议附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_SERVICE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_SERVICE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《车辆服务协议》、");
         }
         //汽车交付确认书附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_HANDOVER_AND_PAY_CONFIRM","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_HANDOVER_AND_PAY_CONFIRM","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《汽车交付确认书》、");
         }
         //融资租赁合同附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LEASE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LEASE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《融资租赁合同》、");
         }
         //客户告知函附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "NOTICE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "NOTICE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《客户告知函》、");
         }
         //租赁物所有权转移接受确认函附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "OWNERSHIP_STATEMENT","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "OWNERSHIP_STATEMENT","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《租赁物所有权转移接受确认函》、");
         }
         //委托付款确认书附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CONFIRM_PAYMENT_DELEGATION","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CONFIRM_PAYMENT_DELEGATION","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《委托付款确认书》、");
         }
         //授权委托书（抵押物）附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "AUTHORIZATION","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "AUTHORIZATION","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《授权委托书（抵押物）》、");
         }
         //车辆抵押合同附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "MORTGAGE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "MORTGAGE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《车辆抵押合同》、");
         }
         //行驶证正面附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_FRONT_IMGS","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_FRONT_IMGS","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《行驶证正面》、");
         }
         //驾照主副页附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "DRIVEN_LICENSE_SUB","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "DRIVEN_LICENSE_SUB","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《驾照主副页》、");
         }
         //登记证附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "REGISTRATION_CERTIFICATE","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "REGISTRATION_CERTIFICATE","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《登记证》、");
         }
         //承租人、车辆、业务员合影附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "PERSON_AND_CAR","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "PERSON_AND_CAR","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《承租人、车辆、业务员合影》、");
         }
         //行驶证+车钥匙+身份证+前挡风玻璃vin码+提车确认单图片附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_AND_PICK_UP_IMG","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_AND_PICK_UP_IMG","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《行驶证+车钥匙+身份证+前挡风玻璃vin码+提车确认单图片》、");
         }
         //车辆合格证附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "VEHICLE_CERTIFICATE","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "VEHICLE_CERTIFICATE","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《车辆合格证》、");
         }
         //保险（车辆保险单）-支持多张,最多6张附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "INSURANCE_POLICY","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "INSURANCE_POLICY","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《保险（车辆保险单）-支持多张,最多6张》、");
         }

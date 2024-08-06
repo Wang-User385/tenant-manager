@@ -4,10 +4,12 @@ import com.hand.hap.activiti.service.IActivitiService;
 import com.hand.hap.core.IRequest;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.gld.service.HlsCusConContractService;
+import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.wfl.components.WflGetProcessInstanceComponents;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import org.activiti.rest.service.api.runtime.process.ProcessInstanceCreateRequest;
+import org.activiti.rest.service.api.runtime.process.ProcessInstanceResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +47,13 @@ public class HlsMortgageActivitiStartServiceImpl implements IActivitiCommonServi
     @Override
     public void process(IRequest iRequest, List list, Map params) {
         ProcessInstanceCreateRequest processInstanceCreateRequest = wflGetProcessInstanceComponents.getProcessInstance(iRequest, params);
-        activitiService.startProcess(iRequest, processInstanceCreateRequest);
+        ProcessInstanceResponse processInstanceResponse = activitiService.startProcess(iRequest, processInstanceCreateRequest);
+
+        HlsCusConContract conContract = new HlsCusConContract();
+        conContract.setMortgageInstanceId(Long.valueOf(processInstanceResponse.getId()));
+        conContract.setContractId(((HlsCusConContract) list.get(0)).getContractId());
+        conContract.setMortgageStatus("APPROVING");
+        hlsCusConContractService.updateByPrimaryKeySelective(iRequest,conContract);
     }
 
 

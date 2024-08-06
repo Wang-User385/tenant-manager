@@ -10769,6 +10769,7 @@ WHERE
         <result column="order_status" property="order_status"/>
         <result column="order_status_n" property="order_status_n"/>
         <result column="driver_and_applicant" property="driver_and_applicant"/>
+        <result column="driver_and_applicant_n" property="driver_and_applicant_n"/>
         <result column="pmt" property="pmt"/>
         <result column="down_payment" property="down_payment"/>
         <result column="down_payment_ratio" property="down_payment_ratio"/>
@@ -11628,7 +11629,7 @@ WHERE
                     FND_CURRENCY FC
                 WHERE
                     FC.ENABLED_FLAG = 'Y'
-                  AND FC.CURRENCY_CODE = pq.currency) currency,
+                  AND FC.CURRENCY_CODE = nvl(pq.currency, 'CNY')) currency,
                (SELECT B2.MEANING
                 FROM SYS_CODE_B B1, SYS_CODE_VALUE_B B2
                 WHERE B1.CODE = 'PRODUCT.INCEPT_TYPE'
@@ -13106,12 +13107,13 @@ WHERE
                       '起租',
                       'CLOSED',
                       '关闭') order_status_n,
+               pp.driver_and_applicant,
                (SELECT sv.MEANING
                 FROM sys_code_value_b sv,
                      sys_code_b b
                 WHERE b.CODE = 'DRIVER_AND_APPLICANT'
                   AND sv.code_id = b.code_id
-                  AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant,
+                  AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant_n,
                hbm.id_card_no,
                pp.finance_amount,
                (select pq.lease_times
@@ -13144,7 +13146,7 @@ WHERE
     <select id="prjProjectBpInfoQuery" resultMap="PrjProjectBpTenantQueryMap">
         SELECT
             pp.project_id,
-            pp.TENANT_ID bp_id,
+            hbm.bp_id,
             ppb.PRJ_BP_ID,
             hbm.bp_name tenant_name,
             hbm.bp_class,

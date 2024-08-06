@@ -33,4 +33,6 @@ public interface HlsCusCshWriteOffMapper extends CshWriteOffMapper<HlsCusCshWrit
     List<HlsCusCshWriteOff> selectAdvancedWriteOff(HlsCusCshWriteOff cusCshWriteOff);
 
     List<HlsCusCshWriteOff> selectCashflowTrans(HlsCusCshWriteOff cusCshWriteOff);
+
+    HlsCusCshWriteOff getHlsCusCshWriteOffByContractIdAndTransactionId(@Param("contractId") Long contractId, @Param("transactionId") Long transactionId);
 }

@@ -2087,6 +2087,7 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
         cshTransaction.setPenaltyCalcDate(cshTransaction.getTransactionDate());
         cshTransaction.setReversedFlag("N");
         cshTransaction.setPostedFlag("N");
+        cshTransaction.setCurrencyCode("CNY");
     }
 
 }

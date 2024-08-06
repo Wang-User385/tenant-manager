@@ -131,10 +131,12 @@
         <result column="transfer_registration_date" property="transferRegistrationDate" jdbcType="DATE" />
         <result column="plate_type" property="plateType" jdbcType="VARCHAR" />
         <result column="nature_of_vehicle" property="natureOfVehicle" jdbcType="VARCHAR" />
+        <result column="nature_of_vehicle_n" property="natureOfVehicleN" jdbcType="VARCHAR" />
         <result column="first_plate_date" property="firstPlateDate" jdbcType="DATE" />
         <result column="license_plate_ownership" property="licensePlateOwnership" jdbcType="VARCHAR" />
         <result column="odometer_reading" property="odometerReading" jdbcType="DECIMAL" />
         <result column="gps_is_installation" property="gpsIsInstallation" jdbcType="VARCHAR" />
+        <result column="gps_is_installation_n" property="gpsIsInstallationN" jdbcType="VARCHAR" />
         <result column="gps_fee" property="gpsFee" jdbcType="DECIMAL" />
         <result column="plate_invoice_amount" property="plateInvoiceAmount" jdbcType="DECIMAL" />
         <result column="accessory_amount" property="accessoryAmount" jdbcType="DECIMAL" />
@@ -142,6 +144,7 @@
         <result column="prop_person" property="propPerson" jdbcType="VARCHAR" />
         <result column="vehicle_tax" property="vehicleTax" jdbcType="DECIMAL" />
         <result column="fuel_type" property="fuelType" jdbcType="VARCHAR" />
+        <result column="fuel_type_n" property="fuelTypeN" jdbcType="VARCHAR" />
         <result column="is_import" property="isImport" jdbcType="VARCHAR" />
         <result column="color_c" property="colorC" jdbcType="VARCHAR" />
         <result column="finance_amount" property="financeAmount" jdbcType="VARCHAR" />
@@ -207,6 +210,11 @@
         hcli.plate_type,
         hcli.license_plate_number,
         hcli.nature_of_vehicle,
+        ( SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'CON_NATURE_VEHICLE'
+        AND v.code_value = hcli.nature_of_vehicle
+        AND v.ENABLED_FLAG = 'Y') nature_of_vehicle_n,
         hcli.city_code,
         /*(select f.description
         from fnd_city f
@@ -216,6 +224,11 @@
         hcli.license_plate_ownership,
         hcli.odometer_reading,
         hcli.gps_is_installation,
+        ( SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'SYS.YES_NO'
+        AND v.code_value = hcli.gps_is_installation
+        AND v.ENABLED_FLAG = 'Y') gps_is_installation_n,
         hcli.gps_fee,
         hcli.plate_invoice_amount,
         hcli.accessory_amount,
@@ -224,6 +237,11 @@
         hcli.purchase_tax,
         hcli.vehicle_tax,
         hcli.fuel_type,
+        ( SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'FUEL_TYPE'
+        AND v.code_value = hcli.fuel_type
+        AND v.ENABLED_FLAG = 'Y') fuel_type_n,
         hcli.is_import
         from prj_project_lease_item hcli
         <where>

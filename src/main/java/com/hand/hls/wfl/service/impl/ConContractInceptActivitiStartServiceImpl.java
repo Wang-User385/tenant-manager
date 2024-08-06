@@ -24,7 +24,7 @@ import java.util.Map;
  */
 @Service
 @Transactional
-public class conContractInceptActivitiStartServiceImpl implements IActivitiCommonService {
+public class ConContractInceptActivitiStartServiceImpl implements IActivitiCommonService {
     private static final String WORK_FLOW_TYPE = "ADVERTISING_REVIEW_WORK_FLOW";
 
 

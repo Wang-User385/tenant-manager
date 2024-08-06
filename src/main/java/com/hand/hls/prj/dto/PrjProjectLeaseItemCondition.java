@@ -9,6 +9,7 @@ import lombok.Setter;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import java.util.Date;
 
@@ -44,6 +45,8 @@ public class PrjProjectLeaseItemCondition extends BaseDTO {
     private String isConversion; //是否营转非
 
     private String accidentStatus; //事故状况
+    @Transient
+    private String accidentStatusN; //事故状况
 
     private String isAnnualInspection; //是否年检
     private String isSignificantlyModified; //是否重大改装车
@@ -54,6 +57,11 @@ public class PrjProjectLeaseItemCondition extends BaseDTO {
     private String originalOwnerName; //原车主姓名
     private String originalOwnerCardNum; //原车主证件号
     private String originalOwnerAddress; //原车主户籍所在地
+    @Transient
+    private String originalOwnerAddressN; //原车主户籍所在地
+    private String provinceCode; //原车主户籍所在省份
+    private String cityCode; //原车主户籍所在市
+    private String districtCode; //原车主户籍所在区县
 
     public PrjProjectLeaseItemCondition() {
     }

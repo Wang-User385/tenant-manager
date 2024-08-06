@@ -80,6 +80,9 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
             hlsCusPrjProject.setInvestmentStatus("APPROVED");
             hlsCusPrjProject.setSignDate(new Date());
             hlsCusPrjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+
+            //审批通过调用还款计划生成通知
+            messageNoticeService.repayPlanCreatedNotify(projectId,requestCtx);
         }else if("REJECTED".equals(result)){
             hlsCusPrjProject.setInvestmentStatus("REJECTED");
             hlsCusPrjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
