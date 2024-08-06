@@ -694,6 +694,7 @@ public class HlsCusPrjQuotation extends PrjQuotation {
     private Long principalPaymentDate;
 
     private Double vatRateRepay;
+    private Double surplusAmount;
 
     private String rentalDiscountTimes;
     @Transient

@@ -749,7 +749,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if(!saleInfo.getSellerName().equals(leaseItemSales.getDealerName())){
             message.append("销售方统一社会信用代码名称 ");
         }
-        if(!saleInfo.getSalesCityCode().equals(leaseItemSales.getCityId())){
+        if(!saleInfo.getSalesCityCode().equals(leaseItemSales.getCityId().toString())){
             message.append("销售城市code ");
         }
 
@@ -780,7 +780,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             message.append("月租(分) ");
         }
 
-        double rate = Double.parseDouble(financeInfo.getRate());
+        double rate = Double.parseDouble(financeInfo.getRate())/100;
         double intRate = prjQuotation.getIntRate();
         if(Double.compare(rate,intRate) != 0){
             message.append("利率 ");
@@ -837,7 +837,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         leaseItemSales.setMortgageName(saleInfo.getMortgagorName());//抵押人名称
         leaseItem.setCityCode(saleInfo.getLicensePlateCityCode());//上牌城市Code（国标码）
         leaseItemSales.setMortgageCity(saleInfo.getMortgageCityName());//抵押城市名称
-        //leaseItemSales.setCityId(saleInfo.getSalesCityCode());//销售城市code
+        //leaseItemSales.setCityId(Integer.valueOf(saleInfo.getSalesCityCode()));//销售城市code
 
         //租赁物相关信息
         leaseItem.setBrandC(carInfo.getBrandName());//品牌名称

@@ -580,7 +580,7 @@ public class PrjQuotationCalcServiceImpl extends BaseServiceImpl<HlsCusPrjQuotat
         //年利率
         Map map1 = new HashMap();
         map1.put("field", "int_rate");
-        map1.put("value", doubleDataTran(quotationMap.get("int_rate")));
+        map1.put("value", doubleDataTran(quotationMap.get("int_rate"))/100);
         mapList.add(map1);
         //租赁期数
         Map map2 = new HashMap();
