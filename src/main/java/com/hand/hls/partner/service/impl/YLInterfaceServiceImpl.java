@@ -415,17 +415,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 }
             }
             //将数据保存入库
-            for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
-                if (hlsCusCshTransaction.getTermNo().equals(termRepayDetailApplyDTO.getTermNo())){
-                    hlsCusCshTransaction.setRepayPrincipal(termRepayDetailApplyDTO.getRepayPrincipal());
-                    hlsCusCshTransaction.setRepayInterest(termRepayDetailApplyDTO.getRepayInterest());
-                    hlsCusCshTransaction.setRepayAmount(termRepayDetailApplyDTO.getRepayAmount());
-                    hlsCusCshTransaction.setPaymentMethod(repayMent.getRepayType());
-                    hlsCusCshTransaction.setTransactionNo(termRepayDetailApplyDTO.getTransactionNo());
-                    hlsCusCshTransaction.setExternalDeductNo(termRepayDetailApplyDTO.getExternalDeductNo());
-                    hlsCusCshTransactionMapper.insertSelective(hlsCusCshTransaction);
-                }
-            }
+//            for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
+//                if (hlsCusCshTransaction.getTermNo().equals(termRepayDetailApplyDTO.getTermNo())){
+//                    hlsCusCshTransaction.setRepayPrincipal(termRepayDetailApplyDTO.getRepayPrincipal());
+//                    hlsCusCshTransaction.setRepayInterest(termRepayDetailApplyDTO.getRepayInterest());
+//                    hlsCusCshTransaction.setRepayAmount(termRepayDetailApplyDTO.getRepayAmount());
+//                    hlsCusCshTransaction.setPaymentMethod(repayMent.getRepayType());
+//                    hlsCusCshTransaction.setTransactionNo(termRepayDetailApplyDTO.getTransactionNo());
+//                    hlsCusCshTransaction.setExternalDeductNo(termRepayDetailApplyDTO.getExternalDeductNo());
+//                    hlsCusCshTransactionMapper.insertSelective(hlsCusCshTransaction);
+//                }
+//            }
         }
 
         returnJson.put("code","200");

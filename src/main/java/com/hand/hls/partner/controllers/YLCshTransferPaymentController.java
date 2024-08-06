@@ -40,7 +40,7 @@ public class YLCshTransferPaymentController extends BaseController {
         RequestHelper.setCurrentRequest(requestCtx);
         JSONArray param = (JSONArray) requestData.get("parameter");
         List<YLCshTransferPaymentDto> ylCshTransferPaymentDtoList = param.toJavaList(YLCshTransferPaymentDto.class);
-        return new ResponseData(service.updateAndVerification(ylCshTransferPaymentDtoList));
+        return new ResponseData(service.updateAndVerification(requestCtx,ylCshTransferPaymentDtoList));
     }
 
 

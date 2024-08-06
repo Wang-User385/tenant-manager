@@ -12,6 +12,6 @@ public interface IYLCshTransferPaymentService extends IBaseService<YLCshTransfer
 
     List<YLCshTransferPaymentDto> updateTransferStatus(IRequest requestCtx , List<YLCshTransferPaymentDto> list);
 
-    List<YLCshTransferPaymentDto> updateAndVerification(List<YLCshTransferPaymentDto> ylCshTransferPaymentDtoList);
+    List<YLCshTransferPaymentDto> updateAndVerification( IRequest requestCtx , List<YLCshTransferPaymentDto> ylCshTransferPaymentDtoList);
 
 }
