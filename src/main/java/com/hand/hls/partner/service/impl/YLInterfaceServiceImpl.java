@@ -1473,6 +1473,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseTrialCalculationDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
+        if (overdueRepurchaseTrialCalculationDTO.getTrialTime() == null){
+            overdueRepurchaseTrialCalculationDTO.setTrialTime(String.valueOf(new Date()));
+        }
 
         CalculationResultsDto calculationResultsDto = calculationResult(overdueRepurchaseTrialCalculationDTO.getOrderNo(),overdueRepurchaseTrialCalculationDTO.getTrialTime(),
                 "REPO",13L,null);
