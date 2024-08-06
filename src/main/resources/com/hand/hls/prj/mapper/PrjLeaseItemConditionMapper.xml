@@ -8,6 +8,7 @@
         <result column="IS_WATER_DAMAGED" property="isWaterDamaged" jdbcType="VARCHAR" />
         <result column="IS_CONVERSION" property="isConversion" jdbcType="VARCHAR" />
         <result column="ACCIDENT_STATUS" property="accidentStatus" jdbcType="VARCHAR" />
+        <result column="ACCIDENT_STATUS_N" property="accidentStatusN" jdbcType="VARCHAR" />
         <result column="IS_ANNUAL_INSPECTION" property="isAnnualInspection" jdbcType="VARCHAR" />
         <result column="IS_SIGNIFICANTLY_MODIFIED" property="isSignificantlyModified" jdbcType="VARCHAR" />
         <result column="ENGINE_OVERHAUL" property="engineOverhaul" jdbcType="VARCHAR" />
@@ -17,6 +18,7 @@
         <result column="ORIGINAL_OWNER_NAME" property="originalOwnerName" jdbcType="VARCHAR" />
         <result column="ORIGINAL_OWNER_CARD_NUM" property="originalOwnerCardNum" jdbcType="VARCHAR" />
         <result column="ORIGINAL_OWNER_ADDRESS" property="originalOwnerAddress" jdbcType="VARCHAR" />
+        <result column="ORIGINAL_OWNER_ADDRESS_N" property="originalOwnerAddressN" jdbcType="VARCHAR" />
     </resultMap>
 
     <select id="prjProjectLeaseItemConditionQuery" resultMap="BaseResultMap">
@@ -26,6 +28,11 @@
             decode(co.IS_WATER_DAMAGED,'1','是','2','否',' ') IS_WATER_DAMAGED,
             decode(co.IS_CONVERSION,'1','是','2','否',' ') IS_CONVERSION,
             co.ACCIDENT_STATUS,
+            ( SELECT v.meaning
+              FROM sys_code_value_b_v v
+              WHERE v.CODE = 'ACCIDENT_STATUS'
+                AND v.code_value = co.ACCIDENT_STATUS
+                AND v.ENABLED_FLAG = 'Y') ACCIDENT_STATUS_N,
             decode(co.IS_ANNUAL_INSPECTION,'1','是','2','否',' ') IS_ANNUAL_INSPECTION,
             decode(co.IS_SIGNIFICANTLY_MODIFIED,'1','是','2','否',' ') IS_SIGNIFICANTLY_MODIFIED,
             decode(co.ENGINE_OVERHAUL,'1','是','2','否',' ') ENGINE_OVERHAUL,
@@ -34,7 +41,14 @@
             co.ORIGINAL_OWNER_CARD_TYPE,
             co.ORIGINAL_OWNER_NAME,
             co.ORIGINAL_OWNER_CARD_NUM,
-            co.ORIGINAL_OWNER_ADDRESS
+            co.ORIGINAL_OWNER_ADDRESS,
+            (SELECT fp.description || ' ' || fc.description || ' ' || fd.description
+             FROM fnd_province fp
+                      JOIN fnd_city fc ON fp.province_id = fc.province_id
+                      JOIN fnd_district fd ON fc.city_id = fd.city_id
+             WHERE fp.province = co.province_code
+               AND fc.city = co.city_code
+               AND fd.district = co.district_code) ORIGINAL_OWNER_ADDRESS_N
             from prj_lease_item_condition co
            where co.PROJECT_LEASE_ITEM_ID = #{projectLeaseItemId}
     </select>

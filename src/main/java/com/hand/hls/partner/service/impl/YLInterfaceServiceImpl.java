@@ -1276,9 +1276,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         leaseItemConditions.setOriginalOwnerCardType(preRiskAuditData.getYuanchezzjlx());//原车主证件类型
         leaseItemConditions.setOriginalOwnerName(preRiskAuditData.getYuanczxm());//原车主姓名
         leaseItemConditions.setOriginalOwnerCardNum(preRiskAuditData.getYuanchezzjhm());//原车主证件号
-        leaseItemConditions.setOriginalOwnerAddress(
-                preRiskAuditData.getYuanchezhuhujishengfen()
-                        +preRiskAuditData.getYuanchezhuhujishi()+preRiskAuditData.getCarownersdomicilelast());//原车主户籍所在省份 原车主户籍所在市 原车主户籍所在区县
+        //leaseItemConditions.setOriginalOwnerAddress(
+        //        preRiskAuditData.getYuanchezhuhujishengfen()
+        //                +preRiskAuditData.getYuanchezhuhujishi()+preRiskAuditData.getCarownersdomicilelast());//原车主户籍所在省份 原车主户籍所在市 原车主户籍所在区县
+        leaseItemConditions.setProvinceCode(preRiskAuditData.getYuanchezhuhujishengfen());//原车主户籍所在省份
+        leaseItemConditions.setCityCode(preRiskAuditData.getYuanchezhuhujishi());//原车主户籍所在市
+        leaseItemConditions.setDistrictCode(preRiskAuditData.getCarownersdomicilelast());//原车主户籍所在区县
         leaseItemConditions.setMaintenanceInfo(preRiskAuditData.getBywxqk());//维修保养情况
         leaseItemConditions.setPremiumAddOn(preRiskAuditData.getJpjz());//精品加装
         //月付租金
