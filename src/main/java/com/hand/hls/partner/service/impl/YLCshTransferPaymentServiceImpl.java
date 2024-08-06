@@ -129,19 +129,19 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         //已收加还款总金额
         Double amount = HlsCusMathUtil.add(receivedAmount, ylCshTransferPaymentDto.getRepayAmount());
         //应收  == 已收加还款
-        if (HlsCusMathUtil.compare(amount, dueAmount) == -1) {
+        if (HlsCusMathUtil.compare(dueAmount,amount) == -1) {
             commonLog(responseData, "10001", "E", "已收金额大于应收", hlsWsRequests);
             throw new RuntimeException("已收金额大于应收");
         }
         //设置核销字段
-        if (HlsCusMathUtil.compare(amount, dueAmount) == 0) {
-            //部分核销
-            hlsCusCshTransaction.setWriteOffFlag("PARTIAL");
-            hlsCusConContractCashflow.setWriteOffFlag("PARTIAL");
-        } else {
+        if (HlsCusMathUtil.compare(dueAmount, amount) == 0) {
             //完全核销
             hlsCusCshTransaction.setWriteOffFlag("FULL");
             hlsCusConContractCashflow.setWriteOffFlag("FULL");
+        } else {
+            //部分核销
+            hlsCusCshTransaction.setWriteOffFlag("PARTIAL");
+            hlsCusConContractCashflow.setWriteOffFlag("PARTIAL");
         }
         //设置核销金额
         hlsCusCshTransaction.setWriteOffAmount(HlsCusMathUtil.add(hlsCusCshTransaction.getUnWriteOffAmount(), ylCshTransferPaymentDto.getRepayAmount()));
