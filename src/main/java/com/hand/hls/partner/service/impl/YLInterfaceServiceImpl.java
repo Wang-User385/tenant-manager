@@ -1325,7 +1325,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //佣金
         //月还款额
         if(StringUtils.isNotEmpty(preRiskAuditData.getClbxje()) && preRiskAuditData.getClbxje() != null){
-            leaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje())/10);//车辆保险金额
+            leaseItemInsurance.setInsuranceAmount(Double.valueOf(preRiskAuditData.getClbxje()));//车辆保险金额
         }
     }
 
