@@ -9022,15 +9022,15 @@ and con.contract_status in
             ccc.due_amount,
             ccc.principal,
             ccc.interest,
-            (SELECT nvl(cf.DUE_AMOUNT,0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id) penalty,
+            (SELECT nvl(cf.DUE_AMOUNT,0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id and cf.cf_status not in ('BLOCK')) penalty,
             ccc.received_amount,
             ccc.received_principal,
             ccc.received_interest,
-            (SELECT nvl(cf.received_amount,0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id) received_penalty_amount,
+            (SELECT nvl(cf.received_amount,0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status not in ('BLOCK')) received_penalty_amount,
             ccc.due_amount-NVL(ccc.received_amount, 0) unreceived_amount,
             ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) unreceived_principal,
             ccc.INTEREST-NVL(ccc.RECEIVED_INTEREST, 0) unreceived_interest,
-            (SELECT cf.due_amount-NVL(cf.received_amount, 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id)unreceived_penalty_amount,
+            (SELECT cf.due_amount-NVL(cf.received_amount, 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status not in ('BLOCK'))unreceived_penalty_amount,
             ccc.write_off_flag,
             (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG' AND sc.CODE_VALUE=ccc.write_off_flag ) write_off_flag_n,
             ccc.outstanding_principal,
@@ -9058,6 +9058,7 @@ and con.contract_status in
         WHERE pp.PROJECT_NUMBER = #{orderNo}
           AND ccc.TIMES=#{termNo}
           AND ccc.cf_item = 1
+          AND ccc.cf_status not in ('BLOCK')
     </select>
 
 

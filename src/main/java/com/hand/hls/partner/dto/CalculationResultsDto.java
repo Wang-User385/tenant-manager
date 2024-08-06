@@ -31,5 +31,7 @@ public class CalculationResultsDto {
 
     private HlsCusConContractCashflow conContractCashflow; //现金流数据
 
+    private HlsCusConContractCashflow contractCashflowPenalty; //罚息现金流数据，提前结清使用
+
 
 }

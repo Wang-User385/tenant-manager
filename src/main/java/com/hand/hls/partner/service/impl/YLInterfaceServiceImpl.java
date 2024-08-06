@@ -577,7 +577,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
         //插入提前结清现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
-
+        //插入罚息
+        HlsCusConContractCashflow conContractCashflowPenalty = calculationResultsDto.getContractCashflowPenalty();
+        if (!ObjectUtils.isEmpty(conContractCashflowPenalty)) {
+            //插入提前结清现金流
+            this.conContractCashflowMapper.insertSelective(conContractCashflowPenalty);
+        }
 
         //            设置返回状态
         jsonObject1.put("code","200");
@@ -2040,8 +2045,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         List<Integer> termNos = new ArrayList<>();  //期次信息
         List<Integer> deductNos = new ArrayList<>(); //抵扣期次
         List<HlsCusConContractCashflow> writeOffList = new ArrayList<>(); //需要自动核销为租金的代偿数据
-        HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow();
+        HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow(); //回购或者提前结清现金流
+        Long times = Long.MAX_VALUE;
         for (HlsCusConContractCashflow c : queryUnReceivedByOrderNoList) {
+            if (c.getTimes() < times) {
+                times = c.getTimes();
+            }
             //回购不涉及到罚息金额
             if (c.getCfItem().equals(9L) && "REPO".equals(type)) {
                 continue;
@@ -2070,11 +2079,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 conContractCashflow.setCfType(11L);
                 conContractCashflow.setCfDirection(c.getCfDirection());
                 conContractCashflow.setCfStatus("RELEASE");
-                conContractCashflow.setTimes(c.getTimes());
             }
 
         }
         conContractCashflow.setDueDate(date);
+        conContractCashflow.setTimes(times);
         conContractCashflow.setCalcDate(date);
         conContractCashflow.setFinIncomeDate(date);
         conContractCashflow.setDueAmount(payableAmount);
@@ -2093,6 +2102,23 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         calculationResultsDto.setDeductNos(deductNos);
         calculationResultsDto.setWriteOffList(writeOffList);
         calculationResultsDto.setConContractCashflow(conContractCashflow);
+
+        //提前结清生成罚息现金流
+        if ("ET".equals(type) && penalty > 0){
+            HlsCusConContractCashflow conContractCashflowByPenalty = new HlsCusConContractCashflow();
+            conContractCashflowByPenalty.setContractId(queryUnReceivedByOrderNoList.get(0).getContractId());
+            conContractCashflowByPenalty.setCfItem(9L);
+            conContractCashflowByPenalty.setCfType(9L);
+            conContractCashflowByPenalty.setCfDirection("INFLOW");
+            conContractCashflowByPenalty.setCfStatus("RELEASE");
+            conContractCashflowByPenalty.setTimes(times);
+            conContractCashflowByPenalty.setDueAmount(penalty);
+            conContractCashflowByPenalty.setDueDate(date);
+            conContractCashflowByPenalty.setCalcDate(date);
+            conContractCashflowByPenalty.setFinIncomeDate(date);
+            calculationResultsDto.setContractCashflowPenalty(conContractCashflowByPenalty);
+        }
+
         return calculationResultsDto;
     }
 
