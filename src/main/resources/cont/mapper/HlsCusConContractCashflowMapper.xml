@@ -390,7 +390,11 @@
         <result column="due_comp_amount" property="dueCompAmount" jdbcType="DECIMAL"/>
         <result column="received_comp_amount" property="receivedCompAmount" jdbcType="DECIMAL"/>
         <result column="refund_comp_amount" property="refundCompAmount" jdbcType="DECIMAL"/>
+        <result column="TRANSFER_PAYMENT_FLAG" property="transferPaymentFlag" jdbcType="VARCHAR"/>
 
+        <result column="penalty" property="penalty" jdbcType="DECIMAL"/>
+        <result column="received_penalty_amount" property="receivedPenaltyAmount" jdbcType="DECIMAL"/>
+        <result column="unreceived_penalty_amount" property="unreceivedPenaltyAmount" jdbcType="DECIMAL"/>
 
     </resultMap>
 
@@ -1810,7 +1814,6 @@ from con_contract cc  where cc.contract_id=#{contractId})t
         con_contract cc
         WHERE
         cf.contract_id = cc.contract_id
-        and cc.data_class = 'NORMAL'
         and cf.write_off_flag not in ('FULL')
         AND cf.cf_direction='INFLOW'
         and cf.times not in (0)
@@ -9019,15 +9022,15 @@ and con.contract_status in
             ccc.due_amount,
             ccc.principal,
             ccc.interest,
-            (SELECT ccc.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW ccc WHERE ccc.cf_item=9 AND ccc.times=times and ccc.contract_id = ccc.contract_id) penalty,
+            (SELECT nvl(cf.DUE_AMOUNT,0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id) penalty,
             ccc.received_amount,
             ccc.received_principal,
             ccc.received_interest,
-            (SELECT ccc.received_amount FROM CON_CONTRACT_CASHFLOW ccc WHERE ccc.cf_item=9 AND ccc.times=times and ccc.contract_id = ccc.contract_id) received_penalty_amount,
+            (SELECT nvl(cf.received_amount,0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id) received_penalty_amount,
             ccc.due_amount-NVL(ccc.received_amount, 0) unreceived_amount,
             ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) unreceived_principal,
             ccc.INTEREST-NVL(ccc.RECEIVED_INTEREST, 0) unreceived_interest,
-            (SELECT ccc.due_amount-NVL(ccc.received_amount, 0) FROM CON_CONTRACT_CASHFLOW ccc WHERE ccc.cf_item=9 AND ccc.times=times and ccc.contract_id = ccc.contract_id)unreceived_penalty_amount,
+            (SELECT cf.due_amount-NVL(cf.received_amount, 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id)unreceived_penalty_amount,
             ccc.write_off_flag,
             (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG' AND sc.CODE_VALUE=ccc.write_off_flag ) write_off_flag_n,
             ccc.outstanding_principal,
@@ -9040,8 +9043,8 @@ and con.contract_status in
             NVL(ccc.RECEIVED_COMP_AMOUNT, 0) RECEIVED_COMP_AMOUNT,
             NVL(ccc.REFUND_COMP_AMOUNT, 0) REFUND_COMP_AMOUNT
         FROM CON_CONTRACT_CASHFLOW ccc
-        WHERE ccc.CONTRACT_ID=#{contractId} and  ccc.CF_STATUS not in ('BLOCK','CANCEL')
-        order by ccc.contract_id,ccc.cf_item,ccc.times
+        WHERE ccc.CONTRACT_ID=#{contractId} and  ccc.CF_STATUS not in ('BLOCK','CANCEL') and ccc.cf_type not in(9) and ccc.cf_item not in(9)
+        order by ccc.contract_id,ccc.times
     </select>
 
 

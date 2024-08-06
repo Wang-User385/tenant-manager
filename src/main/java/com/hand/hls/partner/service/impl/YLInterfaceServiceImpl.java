@@ -380,6 +380,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus)){
             returnJson.put("code","200");
             returnJson.put("message","查询成功");
+            returnJson.put("result",queryOrder);
             return returnJson.toJSONString();
         }else{
             returnJson.put("code","100101");

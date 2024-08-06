@@ -1138,5 +1138,13 @@ public class HlsCusConContractCashflow extends BaseDTO {
 
     @Transient
     private String planTypeN;
+    @Transient
+    private Double penalty;
+    @Transient
+    private Double receivedPenaltyAmount;
+    @Transient
+    private Double unreceivedPenaltyAmount;
+
+    private String transferPaymentFlag;
 
 }
