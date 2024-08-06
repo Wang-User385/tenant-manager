@@ -687,29 +687,32 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             message.append("期数 ");
         }
         double monthPayment = Double.parseDouble(financeInfo.getMonthPayment())/100;
-        double yfzj = 0D;
+        double yhke = 0D;
         //double yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
-        if(StringUtils.isNotEmpty(preRiskAuditData.getYfzj()) && preRiskAuditData.getYfzj() != null){
-            yfzj = Double.parseDouble(preRiskAuditData.getYfzj());
+        if(StringUtils.isNotEmpty(preRiskAuditData.getYhke()) && preRiskAuditData.getYhke() != null){
+            yhke = Double.parseDouble(preRiskAuditData.getYhke());
         }
-        if (monthPayment!=yfzj){
+        if (Double.compare(monthPayment,yhke) != 0){
             message.append("月租(分) ");
         }
-        if (!financeInfo.getRate().equals(preRiskAuditData.getRzll()) || !financeInfo.getRate().equals(preRiskAuditData.getNhll())){
-            message.append("利率 ");
-        }
+        //nhll不校验
+        /*if(StringUtils.isNotEmpty(preRiskAuditData.getNhll())){
+            if((Double.compare(Double.valueOf(preRiskAuditData.getNhll()),Double.valueOf(financeInfo.getRate())/100) != 0)){
+                message.append("利率 ");
+            }
+        }*/
         double firstPayment = Double.parseDouble(financeInfo.getFirstPayment())/100;
         //double sfje = Double.parseDouble(preRiskAuditData.getSfje());
         double sfje = 0D;
         if(StringUtils.isNotEmpty(preRiskAuditData.getSfje()) && preRiskAuditData.getSfje() != null){
             sfje = Double.parseDouble(preRiskAuditData.getSfje());
         }
-        if (firstPayment!=sfje){
+        if (Double.compare(firstPayment,sfje) != 0){
             message.append("首付款(分) ");
         }
         double carGuidePrice = Double.parseDouble(financeInfo.getCarGuidePrice())/100;
         double cfpp = Double.parseDouble(preRiskAuditData.getCfpp());
-        if (carGuidePrice!=cfpp){
+        if (Double.compare(carGuidePrice,cfpp) != 0){
             message.append("车辆指导价(分) ");
         }
         double carSalePrice = Double.parseDouble(financeInfo.getCarSalePrice())/100;
@@ -718,12 +721,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if(StringUtils.isNotEmpty(preRiskAuditData.getClxsjg()) && preRiskAuditData.getClxsjg() != null){
             clxsjg = Double.parseDouble(preRiskAuditData.getClxsjg());
         }
-        if (carSalePrice!=clxsjg){
+        if (Double.compare(carSalePrice,clxsjg) != 0){
             message.append("车辆售价(分) ");
         }
         double applyLoanAmount = Double.parseDouble(financeInfo.getApplyLoanAmount())/100;
         double financingamount = Double.parseDouble(preRiskAuditData.getFinancingamount());
-        if (applyLoanAmount!=financingamount){
+        if (Double.compare(applyLoanAmount,financingamount) != 0){
             message.append("申请融资额(分) ");
         }
 
@@ -773,43 +776,43 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         double monthPayment = Double.parseDouble(financeInfo.getMonthPayment())/100;
         double pmt = prjQuotation.getPmt();
-        if(monthPayment != pmt){
+        if(Double.compare(monthPayment,pmt) != 0){
             message.append("月租(分) ");
         }
 
         double rate = Double.parseDouble(financeInfo.getRate());
         double intRate = prjQuotation.getIntRate();
-        if(rate != intRate){
+        if(Double.compare(rate,intRate) != 0){
             message.append("利率 ");
         }
 
         double firstPayment = Double.parseDouble(financeInfo.getFirstPayment())/100;
         double downPayment = prjQuotation.getDownPayment();
-        if(firstPayment != downPayment){
+        if(Double.compare(firstPayment,downPayment) != 0){
             message.append("首付款(分) ");
         }
 
         double carGuidePrice = Double.parseDouble(financeInfo.getCarGuidePrice())/100;
         double listPrice = leaseItem.getListPrice();
-        if(carGuidePrice != listPrice){
+        if(Double.compare(carGuidePrice,listPrice) != 0){
             message.append("车辆指导价(分) ");
         }
 
         double carSalePrice = Double.parseDouble(financeInfo.getCarSalePrice())/100;
         double sellingPrice = leaseItem.getSellingPrice();
-        if(carSalePrice != sellingPrice){
+        if(Double.compare(carSalePrice,sellingPrice) != 0){
             message.append("车辆售价(分) ");
         }
 
         double applyLoanAmount = Double.parseDouble(financeInfo.getApplyLoanAmount())/100;
         double financeAmount = prjQuotation.getFinanceAmount();
-        if(applyLoanAmount != financeAmount){
+        if(Double.compare(applyLoanAmount,financeAmount) != 0){
             message.append("申请融资额(分) ");
         }
 
         double carRestPrice = Double.parseDouble(financeInfo.getCarRestPrice())/100;
         double surplusAmount = prjQuotation.getSurplusAmount();
-        if(carRestPrice != surplusAmount){
+        if(Double.compare(carRestPrice,surplusAmount) != 0){
             message.append("剩余车辆价款(分) ");
         }
 
@@ -1783,11 +1786,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     preRiskAuditData.getChexi().equals(hlsCusPrjProjectLeaseItem.getSeriesC())&&
                     preRiskAuditData.getCartype().equals(hlsCusPrjProjectLeaseItem.getModelC())&&
                     preRiskAuditData.getCarcolor().equals(hlsCusPrjProjectLeaseItem.getColorC())&&
-                    (Double.compare(Double.valueOf(preRiskAuditData.getFinancingamount()),hlsCusPrjProjectLeaseItem.getFinanceAmount()) == 0)&&
+                    (Double.compare(Double.valueOf(preRiskAuditData.getFinancingamount()),hlsCusPrjProjectLeaseItem.getLeaseItemAmount()) == 0)&&
                     (Double.compare(Double.valueOf(preRiskAuditData.getClxsjg()),hlsCusPrjProjectLeaseItem.getSellingPrice()) == 0)&&
                     (Double.compare(Double.valueOf(preRiskAuditData.getCfpp()),hlsCusPrjProjectLeaseItem.getListPrice()) == 0)&&
                     (Double.compare(Double.valueOf(preRiskAuditData.getYfzj()),hlsCusPrjQuotation.getPmt()) == 0)&&
-                    (Double.compare(Double.valueOf(preRiskAuditData.getNhll()),hlsCusPrjQuotation.getIntRate()) == 0)&&
+                    //(Double.compare(Double.valueOf(preRiskAuditData.getNhll()),hlsCusPrjQuotation.getIntRate()/100) == 0)&&
                     (Double.compare(Double.valueOf(preRiskAuditData.getSfje()),hlsCusPrjQuotation.getDownPayment()) == 0)){
                 //获取审批通过日的毫秒值
                 long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
@@ -2135,6 +2138,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         list.add(project);
 
         String bpName = prjProjectMapper.selectTenantNameByProject(project);
+        HlsCusBpMaster bpMasterName = hlsCusBpMasterMapper.selectByProjectId(project.getProjectId());
         map.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW);
         map.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME);
         map.put(IActivitiCommonService.BUSINESS_KEY, project.getProjectId());
@@ -2144,7 +2148,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //单据类型
         map.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        map.put("documentName", DOCUMENT_NAME);
+        map.put("documentName", bpMasterName+"-"+DOCUMENT_NAME);
         //单据编号
         map.put("documentNumber", project.getProjectNumber());
         //设置工作流参数
