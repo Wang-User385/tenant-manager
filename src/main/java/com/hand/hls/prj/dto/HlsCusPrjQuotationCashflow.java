@@ -174,6 +174,9 @@ public class HlsCusPrjQuotationCashflow extends BaseDTO {
 
     @Transient
     private String writeOffFlag;//核销情况
+
+    @Transient
+    private String transactionNum;//收款编号
     @Transient
     private String otherCashflowSeqNumber;
     @Transient
