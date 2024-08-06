@@ -7,10 +7,8 @@ import com.hand.hls.fnd.dto.HlsPosition;
 import com.hand.hls.fnd.mapper.HlsPositionMapper;
 import com.hand.hls.prj.dto.HlsBpMaster;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
-import com.hand.hls.prj.dto.PrjProject;
 import com.hand.hls.prj.mapper.HlsBpMasterMapper;
 import com.hand.hls.prj.service.IPrjProjectService;
-import com.hand.hls.taa.dto.JcTransferApplication;
 import com.hand.hls.wfl.components.WflGetProcessInstanceComponents;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import org.activiti.rest.service.api.runtime.process.ProcessInstanceCreateRequest;
@@ -25,12 +23,12 @@ import java.util.Map;
 
 @Service
 @Transactional
-public class PrjProjectActivitiStartServiceImpl implements IActivitiCommonService {
+public class PrjProjectFormalActivitiStartServiceImpl implements IActivitiCommonService {
     //获取实现类
-    private static final String WORK_FLOW_TYPE = "PRJ_PROJECT";
+    private static final String WORK_FLOW_TYPE = "PRJ";
 
     //对应工作流页面配置的唯一标志
-    private static final String WORK_FLOW_KEY = "PRJ_PROJECT";
+    private static final String WORK_FLOW_KEY = "FORMAL_APPROVAL_WORK_FLOW";
     //对应工作流页面配置的分类
     private static final String DEMO = "PRJ";
 
