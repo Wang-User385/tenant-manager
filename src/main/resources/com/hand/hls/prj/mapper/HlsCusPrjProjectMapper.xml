@@ -12793,7 +12793,7 @@ WHERE
 				to_char( ccc.LAST_RECEIVED_DATE, 'yyyy-mm-dd' ) lastPaidTime,
 				to_char( ccc.FULL_WRITE_OFF_DATE, 'yyyy-mm-dd' ) endTime,
 				to_char(
-					( SELECT c1.DUE_DATE FROM CON_CONTRACT_CASHFLOW c1 WHERE c1.CONTRACT_ID = ccc.CONTRACT_ID AND c1.TIMES = ccc.TIMES - 1 ),
+					( SELECT c1.DUE_DATE FROM CON_CONTRACT_CASHFLOW c1 WHERE c1.CONTRACT_ID = ccc.CONTRACT_ID AND c1.TIMES = ccc.TIMES - 1 AND c1.CF_STATUS NOT in ('BLOCK','CANCEL') AND CF_TYPE !=9),
 					'yyyy-mm-dd'
 				) termStartDate,
 				to_char( ccc.DUE_DATE, 'yyyy-mm-dd' ) termEndDate,
@@ -12817,7 +12817,7 @@ WHERE
 					RIGHT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
 					RIGHT JOIN PRJ_PROJECT pp ON pp.PROJECT_ID = cc.PROJECT_ID
 			WHERE
-            pp.PROJECT_NUMBER = #{orderNo}
+            pp.PROJECT_NUMBER = #{orderNo} AND ccc.CF_STATUS NOT in ('BLOCK','CANCEL')
     </select>
     <select id="selectCTCByOrderNo" resultType="com.hand.hls.partner.dto.CompensatoryTrialCalculationDTO">
         SELECT
