@@ -23,7 +23,8 @@ import java.util.List;
 @Table(name = "con_contract_cashflow")
 @Setter
 @Getter
-public class HlsCusConContractCashflow extends BaseDTO {
+public class
+HlsCusConContractCashflow extends BaseDTO {
 
 
     @Id
@@ -171,6 +172,25 @@ public class HlsCusConContractCashflow extends BaseDTO {
     private String paymentBpName;
     @Transient
     private String paymentBpType;
+    //表外字段代扣功能
+    @Transient
+    private   String  tenantIdN;//承租人
+
+    @Transient
+    private   Long  projectId;//项目Id
+    @Transient
+    private   Double totalDueAmount;//应收金额
+    @Transient
+    private   Double penaltyAmount;//应收滞纳金
+    @Transient
+    private   Double totalWriteOffAmount;//已核销金额
+    @Transient
+    private   String totalWriteOffFlagN;//核销状态
+
+    @Transient
+    private   String transferPaymentFlagN;//是否转付
+      @Transient
+    private   String stopWithholdFlagN;//是否转付
     /**
      * 商业模式
      */
@@ -286,8 +306,6 @@ public class HlsCusConContractCashflow extends BaseDTO {
     private Double uncollectedFineAmount;//未收罚息
 
     //收付管理字段
-    @Transient
-    private Long projectId;
 
     @Transient
     private String contractNumber;

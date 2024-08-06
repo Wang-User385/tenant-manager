@@ -52,7 +52,7 @@ import static com.hand.hls.sys.utils.OracleUtils.nvl;
 
 @Service
 @Transactional(rollbackFor = Exception.class)
-public class HlsCusConContractCashflowServiceImpl extends BaseServiceImpl<HlsCusConContractCashflow> implements HlsCusConContractCashflowService {
+public class  HlsCusConContractCashflowServiceImpl extends BaseServiceImpl<HlsCusConContractCashflow> implements HlsCusConContractCashflowService {
     /**
      * 还租频率
      * "MONTH" 月付
