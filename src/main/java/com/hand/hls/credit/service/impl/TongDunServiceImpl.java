@@ -90,12 +90,8 @@ public class TongDunServiceImpl implements TongDunService {
         HlsCusPrjProject hlsCusPrjProject = hlsCusPrjProjectMapper.selectPrjById(projectId);
         //不为空且不为新建则该订单已经结束
         if ("APPROVED".equals(hlsCusPrjProject.getPreStatus())){
-            returnJson.put("code","100001");
+            returnJson.put("code","100101");
             returnJson.put("message","该项目预审已通过，无需重复提交");
-            throw new HlsCusException(returnJson.toJSONString());
-        }else if("START".equals(hlsCusPrjProject.getOrderStatus())){
-            returnJson.put("code","100001");
-            returnJson.put("message","该项目订单状态为"+hlsCusPrjProject.getOrderStatus()+"，不允许申请预审");
             throw new HlsCusException(returnJson.toJSONString());
         }
 
@@ -112,7 +108,7 @@ public class TongDunServiceImpl implements TongDunService {
         //校验文件类型是《个人信息采集及使用授权协议》的附件是否已经上传
         Integer attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "JY_FQ_XXCJSYSQ","'PRJ_PROJECT_ATTACHMENT'", "PRE_EXAMINE");
         if(attachMulti == 0){
-            returnJson.put("success",false);
+            returnJson.put("code","100001");
             returnJson.put("message","该进件项目的《个人信息采集及使用授权协议》附件未上传！");
             throw new HlsCusException(returnJson.toJSONString());
         }
