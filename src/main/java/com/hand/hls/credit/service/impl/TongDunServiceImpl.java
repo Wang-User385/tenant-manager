@@ -192,6 +192,11 @@ public class TongDunServiceImpl implements TongDunService {
             throw new HlsCusException(returnJson.toJSONString());
         }
         HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
+        if(!prjProject.getPreStatus().equals("APPROVED")){
+            returnJson.put("code","100101");
+            returnJson.put("message","该进件项目未通过预审，请先申请");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
         //同盾接口不通，暂时注释掉
         //设置正审参数
         /*String info = setInterlocutoryParam(projectId, hlsWsRequests, responseData, param);

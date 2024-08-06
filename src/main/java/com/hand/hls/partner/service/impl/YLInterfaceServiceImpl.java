@@ -1421,6 +1421,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 bpMaster,bpMasterBankAccount,bpMasterSpouse);
 
         //step8: 更新数据
+        hlsCusPrjProject.setRiskInfo(dataAcquisitionDTO.getRiskInfo());
         prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
         hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(leaseItem);
