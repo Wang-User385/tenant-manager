@@ -73,14 +73,20 @@ public class HlsPenaltyCalServiceImpl implements HlsDayEndCommon {
             contract.setDayEndDate((Date)map.get("dayEndDate"));
             List<HlsCusConContract> overContractList = this.conContractMapper.selectOverContract(contract);
             Iterator var5;
-            HlsCusConContract con;
+            HlsCusConContract con = new HlsCusConContract();
             if (overContractList != null && overContractList.size() > 0) {
-                var5 = overContractList.iterator();
+                /*var5 = overContractList.iterator();
 
                 while(var5.hasNext()) {
                     con = (HlsCusConContract)var5.next();
                     con.setOverdueStatus("Y");
+                    con.setCompanyId(1L);
                     this.conContractMapper.updateByPrimaryKey(con);
+                }*/
+                for (HlsCusConContract conContract : overContractList) {
+                    HlsCusConContract conContract1 = this.conContractMapper.selectByPrimaryKey(conContract);
+                    conContract1.setOverdueStatus("Y");
+                    this.conContractMapper.updateByPrimaryKey(conContract1);
                 }
             }
 
@@ -109,10 +115,10 @@ public class HlsPenaltyCalServiceImpl implements HlsDayEndCommon {
                     HlsCusConContractCashflow ccc = (HlsCusConContractCashflow)var5.next();
                     ccc.setOverdueStatus("Y");
                     this.conContractCashflowMapper.updateByPrimaryKeySelective(ccc);
-                    HlsPenaltyProfileDtl hppd = new HlsPenaltyProfileDtl();
+                    /*HlsPenaltyProfileDtl hppd = new HlsPenaltyProfileDtl();
                     hppd.setCfItem(ccc.getCfItem());
                     hppd.setPenaltyProfile(contract.getPenaltyProfile());
-                    hppd = (HlsPenaltyProfileDtl)this.hlsPenaltyProfileDtlMapper.selectByPrimaryKey(hppd);
+                    hppd = (HlsPenaltyProfileDtl)this.hlsPenaltyProfileDtlMapper.selectByPrimaryKey(hppd);*/
                     HlsCusCshWriteOff cshWriteOff = new HlsCusCshWriteOff();
                     cshWriteOff.setCashflowId(ccc.getCashflowId());
                     cshWriteOff.setDueDate(ccc.getDueDate());
@@ -121,7 +127,7 @@ public class HlsPenaltyCalServiceImpl implements HlsDayEndCommon {
                     double writeOffDueAmount = 0.0D;
 
                     HlsCusCshWriteOff cwo;
-                    for(Iterator var14 = cshWriteOffList.iterator(); var14.hasNext(); received += cwo.getWriteOffDueAmount() * (double)((int)((cwo.getPenaltyCalcDate().getTime() - ccc.getDueDate().getTime()) / 86400000L - hppd.getGracePeriod())) * hppd.getPenaltyRate()) {
+                    for(Iterator var14 = cshWriteOffList.iterator(); var14.hasNext(); received += cwo.getWriteOffDueAmount() * (double)((int)((cwo.getPenaltyCalcDate().getTime() - ccc.getDueDate().getTime()) / 86400000L - 0)) * contract.getPenaltyRate()) {
                         cwo = (HlsCusCshWriteOff)var14.next();
                         writeOffDueAmount += cwo.getWriteOffDueAmount();
                     }
@@ -139,12 +145,13 @@ public class HlsPenaltyCalServiceImpl implements HlsDayEndCommon {
                         }
                     }
 
-                    double unreceived = (ccc.getDueAmount() - writeOffDueAmount) * (double)((int)((dayEndDate.getTime() - ccc.getDueDate().getTime()) / 86400000L - hppd.getGracePeriod())) * hppd.getPenaltyRate();
+                    double unreceived = (ccc.getDueAmount() - writeOffDueAmount) * (double)((int)((dayEndDate.getTime() - ccc.getDueDate().getTime()) / 86400000L - 0)) * contract.getPenaltyRate();
                     double profileTotalAmount = unreceived + received - derateAmount;
                     HlsCusConContractCashflow contractCashflow2 = new HlsCusConContractCashflow();
                     contractCashflow2.setGeneratedSourceDocId(ccc.getCashflowId());
                     contractCashflow2.setGeneratedSource("DAYEND");
                     contractCashflow2.setOverdueStatus("N");
+                    contractCashflow2.setContractId(contract.getContractId());
                     List<HlsCusConContractCashflow> contractCashflowsList2 = this.conContractCashflowMapper.selectCalcPenaltyCashFlowBySourceId(contractCashflow2);
                     HlsCusConContractCashflow c;
                     if (contractCashflowsList2.size() > 0) {
