@@ -106,7 +106,7 @@ public class TongDunServiceImpl implements TongDunService {
         }
 
         //校验文件类型是《个人信息采集及使用授权协议》的附件是否已经上传
-        Integer attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "JY_FQ_XXCJSYSQ","'PRJ_PROJECT_ATTACHMENT'", "PRE_EXAMINE");
+        Integer attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "JY_FQ_XXCJSYSQ","PRJ_PROJECT_ATTACHMENT", "PRE_EXAMINE");
         if(attachMulti == 0){
             returnJson.put("code","100001");
             returnJson.put("message","该进件项目的《个人信息采集及使用授权协议》附件未上传！");
@@ -179,13 +179,13 @@ public class TongDunServiceImpl implements TongDunService {
         JSONObject returnJson = new JSONObject();
 
         //申请风控审核时，校验（承租人身份证、驾驶证）的附件是否已经上传
-        Integer SfzAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CZR_SFZ","'PRJ_PROJECT_ATTACHMENT'", "EXAMINE");
+        Integer SfzAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CZR_SFZ","PRJ_PROJECT_ATTACHMENT", "EXAMINE");
         if(SfzAttachMulti == 0){
             returnJson.put("code","100001");
             returnJson.put("message","该进件项目的《承租人身份证》附件未上传！");
             throw new HlsCusException(returnJson.toJSONString());
         }
-        Integer JszAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CZR_JSZ","'PRJ_PROJECT_ATTACHMENT'", "EXAMINE");
+        Integer JszAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CZR_JSZ","PRJ_PROJECT_ATTACHMENT", "EXAMINE");
         if(JszAttachMulti == 0){
             returnJson.put("code","100001");
             returnJson.put("message","该进件项目的《承租人驾驶证》附件未上传！");

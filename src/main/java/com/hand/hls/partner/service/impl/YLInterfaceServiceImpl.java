@@ -1932,7 +1932,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             this.replaceAttach(prjAttachment,file.getFileId());
         }
         //查询附件有合同相关的，就修改签约状态
-        Integer ConAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, null,"'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        Integer ConAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, null,"PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(ConAttachMulti > 0){
             //修改签约状态
             hlsCusPrjProject.setSignStatus("SIGN");
@@ -2181,82 +2181,82 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         Integer attachMulti = 0;
         StringBuilder message = new StringBuilder();
         //汽车买卖合同附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "TRADE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "TRADE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《汽车买卖合同附件》、");
         }
         //车辆服务协议附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_SERVICE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_SERVICE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《车辆服务协议》、");
         }
         //汽车交付确认书附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_HANDOVER_AND_PAY_CONFIRM","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CAR_HANDOVER_AND_PAY_CONFIRM","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《汽车交付确认书》、");
         }
         //融资租赁合同附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LEASE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LEASE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《融资租赁合同》、");
         }
         //客户告知函附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "NOTICE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "NOTICE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《客户告知函》、");
         }
         //租赁物所有权转移接受确认函附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "OWNERSHIP_STATEMENT","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "OWNERSHIP_STATEMENT","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《租赁物所有权转移接受确认函》、");
         }
         //委托付款确认书附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CONFIRM_PAYMENT_DELEGATION","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CONFIRM_PAYMENT_DELEGATION","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《委托付款确认书》、");
         }
         //授权委托书（抵押物）附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "AUTHORIZATION","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "AUTHORIZATION","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《授权委托书（抵押物）》、");
         }
         //车辆抵押合同附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "MORTGAGE","'PRJ_PROJECT_ATTACHMENT'", "CONTRACT");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "MORTGAGE","PRJ_PROJECT_ATTACHMENT", "CONTRACT");
         if(attachMulti == 0){
             message.append("《车辆抵押合同》、");
         }
         //行驶证正面附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_FRONT_IMGS","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_FRONT_IMGS","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《行驶证正面》、");
         }
         //驾照主副页附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "DRIVEN_LICENSE_SUB","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "DRIVEN_LICENSE_SUB","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《驾照主副页》、");
         }
         //登记证附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "REGISTRATION_CERTIFICATE","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "REGISTRATION_CERTIFICATE","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《登记证》、");
         }
         //承租人、车辆、业务员合影附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "PERSON_AND_CAR","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "PERSON_AND_CAR","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《承租人、车辆、业务员合影》、");
         }
         //行驶证+车钥匙+身份证+前挡风玻璃vin码+提车确认单图片附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_AND_PICK_UP_IMG","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "LICENSE_AND_PICK_UP_IMG","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《行驶证+车钥匙+身份证+前挡风玻璃vin码+提车确认单图片》、");
         }
         //车辆合格证附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "VEHICLE_CERTIFICATE","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "VEHICLE_CERTIFICATE","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《车辆合格证》、");
         }
         //保险（车辆保险单）-支持多张,最多6张附件是否上传
-        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "INSURANCE_POLICY","'PRJ_PROJECT_ATTACHMENT'", "LOAN");
+        attachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "INSURANCE_POLICY","PRJ_PROJECT_ATTACHMENT", "LOAN");
         if(attachMulti == 0){
             message.append("《保险（车辆保险单）-支持多张,最多6张》、");
         }
