@@ -4694,9 +4694,9 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         List<HlsCusConContract> res = new ArrayList<>();
         res.add(dto);
         activitiStartService.start(requestCtx, res, params);
-        //设置状态为提交审批
-        dto.setMortgageStatus("APPROVING");
-        updateByPrimaryKeySelective(requestCtx, dto);
+//         设置状态为提交审批
+//        dto.setMortgageStatus("APPROVING");
+//        updateByPrimaryKeySelective(requestCtx, dto);
         return res;
     }
 
