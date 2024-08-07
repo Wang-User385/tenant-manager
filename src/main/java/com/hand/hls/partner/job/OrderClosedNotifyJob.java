@@ -8,10 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+public class OrderClosedNotifyJob extends AbstractJob {
 
-public class AssetNeedNoticeJob extends AbstractJob {
-
-    private static final Logger logger = LoggerFactory.getLogger(AssetNeedNoticeJob.class);
+    private static final Logger logger = LoggerFactory.getLogger(OrderClosedNotifyJob.class);
 
     @Autowired
     private IYLMessageNoticeService iylMessageNoticeService;
@@ -22,10 +21,6 @@ public class AssetNeedNoticeJob extends AbstractJob {
     public void safeExecute(JobExecutionContext context) throws Exception {
         try {
             IRequest request = (IRequest) context.getMergedJobDataMap().get("requestContext");
-            //逾期需代偿通知
-            iylMessageNoticeService.assetNeedSubstitute(null, request);
-            //逾期需回购通知
-            iylMessageNoticeService.assetNeedBuyback(null, request);
             //关单结果通知
             iylMessageNoticeService.orderClosedNotify(request);
         } catch (Exception e) {
@@ -50,6 +45,4 @@ public class AssetNeedNoticeJob extends AbstractJob {
         //true 继续执行
         return false;
     }
-
-
 }

@@ -114,16 +114,15 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
         leasingNotice.setResendFlag("N");
         try {
             //获取需要关单的数据
-            List<HlsCusPrjProject> orderClosedList = leasingNoticeMapper.queryOrderClosedList();
-            List<String> orderNos = orderClosedList.stream()
-                    .map(HlsCusPrjProject::getProjectNumber)
-                    .collect(Collectors.toList());
-            Map<String, Object> mapParam = new HashMap<>();
-            mapParam.put("orderNo", orderNos);
-            mapParam.put("uniqueId", getUniqueId());
-            leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
-            //消息推送
-            noticePush(leasingNotice, "n003", mapParam, iRequest);
+            List<String> orderClosedList = leasingNoticeMapper.queryOrderClosedList();
+            for (String orderNo : orderClosedList) {
+                Map<String, Object> mapParam = new HashMap<>();
+                mapParam.put("orderNo", orderNo);
+                mapParam.put("uniqueId", getUniqueId());
+                leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
+                //消息推送
+                noticePush(leasingNotice, "n003", mapParam, iRequest);
+            }
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
         }

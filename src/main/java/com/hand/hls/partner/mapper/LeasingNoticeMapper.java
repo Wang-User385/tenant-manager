@@ -48,7 +48,7 @@ public interface LeasingNoticeMapper extends Mapper<LeasingNotice> {
     /**
      * 关单结果通知
      */
-    List<HlsCusPrjProject> queryOrderClosedList();
+    List<String> queryOrderClosedList();
 
 
     /**

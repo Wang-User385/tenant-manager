@@ -77,9 +77,9 @@
     </select>
 
     <!--关单结果-->
-    <select id="queryOrderClosedList" resultType="com.hand.hls.prj.dto.HlsCusPrjProject">
+    <select id="queryOrderClosedList" resultType="java.lang.String">
         SELECT
-            t.*
+            t.PROJECT_NUMBER
         FROM (
             SELECT
                 pp.PROJECT_ID,
@@ -115,18 +115,16 @@
             TO_CHAR(ccc.FIN_INCOME_DATE,'yyyy-mm-dd') AS trialTime,
             NVL(ccc.PRINCIPAL, 0)*100 AS principal,
             NVL(ccc.INTEREST, 0)*100 AS interest,
-            (SELECT NVL(SUM(cf.DUE_AMOUNT), 0)*100 FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID AND CF_ITEM=9) AS penalty,
-            NVL(ccc.DUE_AMOUNT, 0)*100+(SELECT NVL(SUM(cf.DUE_AMOUNT), 0)*100 FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID AND CF_ITEM=9) AS payableAmount
+            0 AS penalty,
+            NVL(ccc.DUE_AMOUNT, 0)*100 AS payableAmount
         FROM CON_CONTRACT_CASHFLOW ccc
                  INNER JOIN CON_CONTRACT cc ON ccc.CONTRACT_ID = cc.CONTRACT_ID
-                 INNER JOIN hls_penalty_profile_dtl hppd ON hppd.penalty_profile = cc.penalty_profile
                  INNER JOIN PRJ_PROJECT pp ON cc.project_id = pp.project_id
-        WHERE hppd.enabled_flag = 'Y'
-          AND cc.contract_status = 'INCEPT'
-          AND cc.data_class = 'NORMAL'
+        WHERE cc.contract_status = 'INCEPT'
           AND ccc.write_off_flag not in ('FULL')
           AND ccc.cf_direction='INFLOW'
           AND ccc.times not in (0)
+          and nvl(ccc.plan_type,'NO') not in ('COMP','REPO')
           AND ccc.cf_item not in (9)
           AND ccc.due_amount-nvl(ccc.RECEIVED_AMOUNT,0)>0
           AND trunc(sysdate) - 30  > trunc(ccc.DUE_DATE) AND trunc(sysdate) - 85 &lt; trunc(ccc.DUE_DATE)
@@ -151,11 +149,11 @@
         INNER JOIN CON_CONTRACT cc ON ccc.CONTRACT_ID = cc.CONTRACT_ID
         INNER JOIN PRJ_PROJECT pp ON cc.project_id = pp.project_id
         WHERE
-        AND cc.contract_status = 'INCEPT'
-        AND cc.data_class = 'NORMAL'
-        ccc.write_off_flag not in ('FULL')
+        cc.contract_status = 'INCEPT'
+        AND ccc.write_off_flag not in ('FULL')
         AND ccc.cf_direction='INFLOW'
         AND ccc.times not in (0)
+        and nvl(ccc.plan_type,'NO') not in ('COMP','REPO')
         AND ccc.cf_item = 1
         AND ccc.due_amount-nvl(ccc.RECEIVED_AMOUNT,0)>0
         AND trunc(sysdate) - 85  > trunc(ccc.DUE_DATE)
