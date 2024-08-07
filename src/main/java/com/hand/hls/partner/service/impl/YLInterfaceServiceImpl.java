@@ -993,7 +993,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             secTenantBpMaster = hlsCusBpMasters.get(0);
         }
         secTenantBpMaster.setBpName(preRiskAuditData.getConame());//共同借款人姓名
-        secTenantBpMaster.setIdType(preRiskAuditData.getCocerttype());//共同承租人证件类型
+        secTenantBpMaster.setIdType("ID_CARD");//共同承租人证件类型
         secTenantBpMaster.setIdCardNo(preRiskAuditData.getCoid());//共同借款人身份证
         secTenantBpMaster.setPhone(preRiskAuditData.getComobile());//共同借款人手机
         secTenantBpMaster.setHouseAddress(preRiskAuditData.getCoaddr());//共同承租人居住地址

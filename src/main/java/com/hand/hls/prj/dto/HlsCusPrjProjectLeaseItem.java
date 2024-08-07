@@ -370,7 +370,7 @@ public class HlsCusPrjProjectLeaseItem extends BaseDTO {
 
     private String voitureType; //车辆类型
     private String colorC; //车辆颜色
-    private String ageC;	//车龄
+    //private String ageC;	//车龄
     private String vehicleCapacity;	//车辆准载(定员)
     private Double sellingPrice;	//车辆销售价格
     private Double listPrice;	//车辆厂商指导价格
