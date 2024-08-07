@@ -3201,4 +3201,6 @@ public class HlsCusPrjProject extends PrjProject {
     private Double nonCyclicalAmount;
     @Transient
     private Double cyclicalAmount;
+
+    private String penetrateId;
 }
