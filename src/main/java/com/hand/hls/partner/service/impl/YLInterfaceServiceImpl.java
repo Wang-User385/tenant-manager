@@ -353,6 +353,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 throw new HlsCusException(returnJson.toJSONString());
             }
         }
+        //关单后，如果蚂蚁链代扣是签约状态，则需调用取消签约
+        if("ACTIVATED".equals(hlsCusPrjProject.getAlipayStatus())){
+            iAlipayService.signCancel(hlsCusPrjProject.getProjectId());
+        }
         //修改订单状态
         hlsCusPrjProject.setOrderStatus("CLOSED");
         prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);

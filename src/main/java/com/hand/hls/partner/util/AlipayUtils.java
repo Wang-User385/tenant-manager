@@ -44,7 +44,10 @@ public class AlipayUtils {
         //result = orderApply("GTYL202408000001");//创建穿透单：用于获取 penetrateId 2024080700101101184902
 
         //orderQuery();//查询穿透单
-        //orderCancel();//取消穿透单
+
+        result = orderCancel("2024080700101101184902");//取消穿透单
+
+        System.out.println(result);
 
         //result = loanApply("张三","421023999999","2024080700101101184902","ALIPAYAPP");//代扣签约 拿到签约二维码字符串
 
@@ -105,7 +108,7 @@ public class AlipayUtils {
     }
 
     //穿透单取消ORDER.CANCEL
-    public static void orderCancel(){
+    public static String orderCancel(String penetrateId) throws AlipayApiException {
         AnttechBlockchainDefinAssetmanagePenetrateSubmitModel model =new AnttechBlockchainDefinAssetmanagePenetrateSubmitModel();
         model.setRequestId(System.currentTimeMillis() + UUID.randomUUID().toString().replace("-", ""));//这个请求id 必须要传，否则会报错“重复的请求编码”
         model.setFunction("ORDER.CANCEL");
@@ -113,19 +116,17 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("penetrateId","2024080700101101184902");
+        params.put("penetrateId",penetrateId);
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest request = new AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest();
         request.setBizModel(model);
 
-        try {
-            AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
-            AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
-            System.out.println("response:" + response.getBody());
-        } catch (AlipayApiException e) {
-            e.printStackTrace();
-        }
+        AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
+        AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
+        String responseBody = response.getBody();
+
+        return responseBody;
     }
 
 
