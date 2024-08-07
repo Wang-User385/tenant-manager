@@ -396,5 +396,4 @@ public class HlsCusPrjProjectLeaseItem extends BaseDTO {
     @Transient
     private String fuelTypeN;	//燃料类型(01汽油、02柴油、03纯电动、04混动)
     private String isImport;	//是否进口(Y/N)
-    private Double financeAmount; //融资金额
 }

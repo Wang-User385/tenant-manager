@@ -44,6 +44,7 @@ import com.hand.hls.gld.service.IGldFinanceIncomeDayInterfaceService;
 import com.hand.hls.hls.dto.HlsCusHlsCreditLineTrx;
 import com.hand.hls.hls.service.IHlsCreditLineTrxService;
 import com.hand.hls.interfacePlatform.utils.FinanceBaseUtils;
+import com.hand.hls.partner.service.IYLMessageNoticeService;
 import com.hand.hls.prj.dto.HlsBpMasterInceptRule;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
@@ -280,6 +281,8 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
     @Resource
     private  CshTransactionRefundService cshTransactionRefundService;
+    @Autowired
+    private IYLMessageNoticeService messageNoticeService;
 
     /**
      * 付款反冲 1、插入核销反冲记录 csh_write_off 可能为多条 2、更改csh_transaction原核销记录核销标志、日期
@@ -3305,6 +3308,10 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         cshPaymentReqLnBankAccount2.setPaymentStatus("PAID");
         cshPaymentReqLnBankAccountMapper.updateCshPaymentReqLnBankAccountByLn(cshPaymentReqLnBankAccount2);
 
+        //调用还款计划生成通知
+        messageNoticeService.repayPlanCreatedNotify(hlsCusConContract1.getProjectId(),iRequest);
+        //调用放款结果通知
+        messageNoticeService.orderLoanResult(hlsCusConContract1.getProjectId(),iRequest);
     }
 
     public void retailPayment(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd,HlsCusCshPaymentReqLn reqLn) throws Exception {

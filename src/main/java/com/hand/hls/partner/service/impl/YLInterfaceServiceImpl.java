@@ -968,6 +968,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         secTenantBpMaster.setWorkingCompany(preRiskAuditData.getCocompany());//共同借款人工作单位
         secTenantBpMaster.setWorkPhone(preRiskAuditData.getCocomtel());//共同承租人公司电话
         secTenantBpMaster.setCompanyAddress(preRiskAuditData.getCocomaddr());//共同借款人公司地址
+        secTenantBpMaster.setSource("1");
+        secTenantBpMaster.setBpClass("NP");
+        secTenantBpMaster.setBpCategory("TENANT-SEC");
 
         if(secTenantBpMaster.getBpId() == null){
             hlsCusBpMasterMapper.insertSelective(secTenantBpMaster);
@@ -1033,6 +1036,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         hlsCusPrjProject.setRiskInfo(preRiskAuditData.toString());//风控审核相关数据
         hlsCusPrjProject.setDivision(preRiskAuditData.getProline());//产品线
+        hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount()));
         bpMasterBankAccount.setBankAccountNum(preRiskAuditData.getCardno());//银行卡号
         bpMaster.setGender(preRiskAuditData.getSex());//性别
         bpMaster.setEthnicity(preRiskAuditData.getNation());//民族
@@ -1434,7 +1438,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 bpMaster,bpMasterBankAccount,bpMasterSpouse);
 
         //step8: 更新数据
-        hlsCusPrjProject.setRiskInfo(dataAcquisitionDTO.getRiskInfo());
+        hlsCusPrjProject.setRiskInfo(dataAcquisitionDTO.getRiskInfo());//重新赋值风控信息值，设置风控数据时插入的格式错误
         prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
         hlsCusPrjProjectLeaseItemMapper.updateByPrimaryKeySelective(leaseItem);
