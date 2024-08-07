@@ -1791,51 +1791,36 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }*/
             HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
             HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
-            if (preRiskAuditData.getCarbrand2().equals(hlsCusPrjProjectLeaseItem.getBrandC())&&
-                    preRiskAuditData.getChexi().equals(hlsCusPrjProjectLeaseItem.getSeriesC())&&
-                    preRiskAuditData.getCartype().equals(hlsCusPrjProjectLeaseItem.getModelC())&&
-                    preRiskAuditData.getCarcolor().equals(hlsCusPrjProjectLeaseItem.getColorC())&&
-                    (Double.compare(Double.valueOf(preRiskAuditData.getFinancingamount()),hlsCusPrjProjectLeaseItem.getLeaseItemAmount()) == 0)&&
-                    (Double.compare(Double.valueOf(preRiskAuditData.getClxsjg()),hlsCusPrjProjectLeaseItem.getSellingPrice()) == 0)&&
-                    (Double.compare(Double.valueOf(preRiskAuditData.getCfpp()),hlsCusPrjProjectLeaseItem.getListPrice()) == 0)&&
-                    (Double.compare(Double.valueOf(preRiskAuditData.getYfzj()),hlsCusPrjQuotation.getPmt()) == 0)&&
-                    //(Double.compare(Double.valueOf(preRiskAuditData.getNhll()),hlsCusPrjQuotation.getIntRate()/100) == 0)&&
-                    (Double.compare(Double.valueOf(preRiskAuditData.getSfje()),hlsCusPrjQuotation.getDownPayment()) == 0)){
-                //获取审批通过日的毫秒值
-                long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
-                //获取当前时间毫秒值
-                long nowTime = new Date().getTime();
-                //计算间隔的时间
-                long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
-                if ("APPLY_LOAN".equals(action)){
-                    if (days>=30){
-                        returnJson.put("code","400");
-                        returnJson.put("message","审批通过超过三十天");
-                        throw new HlsCusException(returnJson.toJSONString());
-                    }
-                    //发起投放审查流程前先校验
-                    dateCheck(hlsCusPrjProject);
-                    //发起投放审查流程
-                    signWorkFlowSubmit(iRequest, hlsCusPrjProject);
-                    hlsCusPrjProject.setInvestmentStatus("APPROVING");
-                    prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
-                }else if ("RE_APPLY_LOAN".equals(action)){
-                    if (days>=50){
-                        returnJson.put("code","400");
-                        returnJson.put("message","再次审批通过超过五十天");
-                        throw new HlsCusException(returnJson.toJSONString());
-                    }
-                    //再次发起投放审查流程前先校验有没有流程中的
-                    dateCheck(hlsCusPrjProject);
-                    //发起投放审查流程
-                    signWorkFlowSubmit(iRequest, hlsCusPrjProject);
-                    hlsCusPrjProject.setInvestmentStatus("APPROVING");
-                    prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+            //获取审批通过日的毫秒值
+            long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
+            //获取当前时间毫秒值
+            long nowTime = new Date().getTime();
+            //计算间隔的时间
+            long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
+            if ("APPLY_LOAN".equals(action)){
+                if (days>=30){
+                    returnJson.put("code","400");
+                    returnJson.put("message","审批通过超过三十天");
+                    throw new HlsCusException(returnJson.toJSONString());
                 }
-            }else{
-                returnJson.put("code","400");
-                returnJson.put("message","风控与业务数据不一致");
-                throw new HlsCusException(returnJson.toJSONString());
+            //发起投放审查流程前先校验
+            dateCheck(hlsCusPrjProject);
+            //发起投放审查流程
+            signWorkFlowSubmit(iRequest, hlsCusPrjProject);
+            hlsCusPrjProject.setInvestmentStatus("APPROVING");
+            prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+            }else if ("RE_APPLY_LOAN".equals(action)){
+                if (days>=50){
+                    returnJson.put("code","400");
+                    returnJson.put("message","再次审批通过超过五十天");
+                    throw new HlsCusException(returnJson.toJSONString());
+                }
+                //再次发起投放审查流程前先校验有没有流程中的
+                dateCheck(hlsCusPrjProject);
+                //发起投放审查流程
+                signWorkFlowSubmit(iRequest, hlsCusPrjProject);
+                hlsCusPrjProject.setInvestmentStatus("APPROVING");
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
             }
 
         }else{
