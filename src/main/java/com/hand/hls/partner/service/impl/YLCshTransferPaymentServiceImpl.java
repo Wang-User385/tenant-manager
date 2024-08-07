@@ -32,11 +32,13 @@ import com.hand.hls.utils.MathUtil;
 import com.hand.hls.utils.ResMessageException;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
+import hls.core.utils.exception.HlsCusException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -143,7 +145,9 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
             setHlsCusWriteOffList(ylCshTransferPaymentDto, hlsCusCshTransaction, hlsCusConContractCashflow, res);
             cshWriteOffService.writeOff(requestCtx, res, request.getSession());
         } catch (Exception e) {
+
             commonLog(responseData, "10001", "E", "核销报错", hlsWsRequests);
+            throw new RuntimeException("转付确认异常");
         }
     }
 
@@ -151,7 +155,7 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         if (res.size() == 0){
             HlsCusCshWriteOff hlsCusCshWriteOff = new HlsCusCshWriteOff();
             hlsCusCshWriteOff.setContractId(ylCshTransferPaymentDto.getContractId());
-            hlsCusCshWriteOff.setTransactionId(hlsCusCshTransaction.getTransactionId());
+            hlsCusCshWriteOff.setCshTransactionId(hlsCusCshTransaction.getTransactionId());
             //设置核销类型
             hlsCusCshWriteOff.setWriteOffType("RECEIPT_CREDIT");
             //设置核销时间
@@ -170,9 +174,9 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
             hlsCusCshWriteOff.setCfType(hlsCusConContractCashflow.getCfType());
             //设置核销金额
             hlsCusCshWriteOff.setWriteOffDueAmount(ylCshTransferPaymentDto.getRepayAmount());
-            //设置还款利息
-            hlsCusCshWriteOff.setWriteOffDueAmount(ylCshTransferPaymentDto.getRepayInterest());
-            //设置还款本金
+            //设置核销利息
+            hlsCusCshWriteOff.setWriteOffInterest(ylCshTransferPaymentDto.getRepayInterest());
+            //设置核销本金
             hlsCusCshWriteOff.setWriteOffPrincipal(ylCshTransferPaymentDto.getRepayPrincipal());
             //设置核销单据类别
             hlsCusCshWriteOff.setWriteOffDocCategory("CON_CONTRACT");
@@ -202,6 +206,7 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         hlsCusCshTransaction.setCompanyId(requestCtx.getCompanyId());
         hlsCusCshTransaction.setTransactionAmount(ylCshTransferPaymentDto.getRepayAmount());
         hlsCusCshTransaction.setContractId(ylCshTransferPaymentDto.getContractId());
+        hlsCusCshTransaction.setWriteOffAmount(new BigDecimal("0").doubleValue());
         hlsCusCshTransaction.setReversedFlag("N");
         hlsCusCshTransaction.setPostedFlag("N");
         hlsCusCshTransaction.setCurrencyCode("CNY");
