@@ -893,12 +893,23 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
     }
 
-    private void saveGuarantee(PreRiskAuditData preRiskAuditData,HlsCusPrjProject hlsCusPrjProject) {
+    private void saveGuarantee(IRequest iRequest,PreRiskAuditData preRiskAuditData,HlsCusPrjProject hlsCusPrjProject) {
         //step1：保存hls_bp_master
         List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getSureid());
         HlsCusBpMaster guaBpMaster = null;
+        //获取新项目的客户经理和部门
+        HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
+        hlsProductDefinition.setBpId(hlsCusPrjProject.getManufacturerId());
+        List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
         if (hlsCusBpMasters.isEmpty()){
+            String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest, "HLS_BP_MASTER", "NP", "NP", new HashMap<String, String>());
             guaBpMaster = new HlsCusBpMaster();
+            guaBpMaster.setBpCode(codeRuleValue);
+            guaBpMaster.setBpCategory("GUARANTOR");
+            guaBpMaster.setBpType("GUARANTOR");
+            guaBpMaster.setUnitId(hlsProductDefinitionList.get(0).getUnitId().toString());
+            guaBpMaster.setCreationDate(new Date());
+            guaBpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getUserId());
             guaBpMaster.setCreationDateStr(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
             guaBpMaster.setSource("1");
             guaBpMaster.setBpClass("NP");
@@ -907,7 +918,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             guaBpMaster = hlsCusBpMasters.get(0);
         }
         guaBpMaster.setBpName(preRiskAuditData.getSurename());//担保人姓名
-        guaBpMaster.setIdType(preRiskAuditData.getSurecertype());//担保人证件类型
+        guaBpMaster.setIdType("ID_CARD");//担保人证件类型
         guaBpMaster.setIdCardNo(preRiskAuditData.getSureid());//担保人身份证
         guaBpMaster.setPhone(preRiskAuditData.getSuremobi());//担保人手机
 
@@ -954,16 +965,26 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
     }
 
-    private void saveSecTenant(PreRiskAuditData preRiskAuditData, HlsCusPrjProject hlsCusPrjProject) {
+    private void saveSecTenant(IRequest iRequest,PreRiskAuditData preRiskAuditData, HlsCusPrjProject hlsCusPrjProject) {
         //step1：保存hls_bp_master
         List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectMasterByIdCardNo(preRiskAuditData.getCoid());
         HlsCusBpMaster secTenantBpMaster = null;
+        //获取新项目的客户经理和部门
+        HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
+        hlsProductDefinition.setBpId(hlsCusPrjProject.getManufacturerId());
+        List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
         if (hlsCusBpMasters.isEmpty()){
+            String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest, "HLS_BP_MASTER", "NP", "NP", new HashMap<String, String>());
             secTenantBpMaster = new HlsCusBpMaster();
+            secTenantBpMaster.setBpCode(codeRuleValue);
+            secTenantBpMaster.setBpCategory("TENANT-SEC");
+            secTenantBpMaster.setBpType("TENANT-SEC");
+            secTenantBpMaster.setUnitId(hlsProductDefinitionList.get(0).getUnitId().toString());
+            secTenantBpMaster.setCreationDate(new Date());
+            secTenantBpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getUserId());
             secTenantBpMaster.setCreationDateStr(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
             secTenantBpMaster.setSource("1");
             secTenantBpMaster.setBpClass("NP");
-            secTenantBpMaster.setBpCategory("TENANT-SEC");
         }else{
             secTenantBpMaster = hlsCusBpMasters.get(0);
         }
@@ -1022,7 +1043,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
     }
 
-    private void setRiskData(PreRiskAuditData preRiskAuditData,HlsCusPrjProject hlsCusPrjProject,HlsCusPrjQuotation prjQuotation,
+    private void setRiskData(IRequest iRequest,PreRiskAuditData preRiskAuditData,HlsCusPrjProject hlsCusPrjProject,HlsCusPrjQuotation prjQuotation, FinanceInfo financeInfo,
                             HlsCusPrjProjectLeaseItem leaseItem,PrjProjectLeaseItemSales leaseItemSales,PrjLeaseItemInsurance leaseItemInsurance,
                             PrjProjectLeaseItemMortgage leaseItemMortgages,PrjProjectLeaseItemCondition leaseItemConditions,
                             HlsCusBpMaster bpMaster,HlsCusBpMasterBankAccount bpMasterBankAccount,HlsBpSpouse bpMasterSpouse) throws HlsCusException {
@@ -1042,7 +1063,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         hlsCusPrjProject.setRiskInfo(preRiskAuditData.toString());//风控审核相关数据
         hlsCusPrjProject.setDivision(preRiskAuditData.getProline());//产品线
-        hlsCusPrjProject.setFinanceAmount(Double.valueOf(preRiskAuditData.getFinancingamount()));
+        hlsCusPrjProject.setFinanceAmount(Double.parseDouble(financeInfo.getApplyLoanAmount())/100);
         bpMasterBankAccount.setBankAccountNum(preRiskAuditData.getCardno());//银行卡号
         bpMaster.setGender(preRiskAuditData.getSex());//性别
         bpMaster.setEthnicity(preRiskAuditData.getNation());//民族
@@ -1111,11 +1132,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProject.setDriverAndApplicant(preRiskAuditData.getSjjsrysqrgx());//实际驾驶人与申请人关系
 
         if ("1".equals(preRiskAuditData.getIssureor())){
-            saveGuarantee(preRiskAuditData,hlsCusPrjProject);//有无担保人
+            saveGuarantee(iRequest,preRiskAuditData,hlsCusPrjProject);//有无担保人
         }
 
         if ("1".equals(preRiskAuditData.getIscop())){
-            saveSecTenant(preRiskAuditData,hlsCusPrjProject);//有无共同承租人
+            saveSecTenant(iRequest,preRiskAuditData,hlsCusPrjProject);//有无共同承租人
         }
 
         //直系亲属关系
@@ -1439,7 +1460,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         setBusinessData(saleInfo,carInfo,financeInfo,prjQuotation,leaseItem,leaseItemSales,leaseItemInsurance);
 
         //step7：设置风控数据
-        setRiskData(preRiskAuditData, hlsCusPrjProject,prjQuotation,
+        setRiskData(iRequest,preRiskAuditData, hlsCusPrjProject,prjQuotation,financeInfo,
                 leaseItem,leaseItemSales,leaseItemInsurance,leaseItemMortgages,leaseItemConditions,
                 bpMaster,bpMasterBankAccount,bpMasterSpouse);
 
@@ -1780,7 +1801,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if ("APPLY_LOAN".equals(action)){
                 if (days>=30){
                     returnJson.put("code","100101");
-                    returnJson.put("message","审批通过超过三十天");
+                    returnJson.put("message","风控审核通过已超过三十天，请重新发起风控审核");
                     throw new HlsCusException(returnJson.toJSONString());
                 }
                 //发起投放审查流程
@@ -1790,7 +1811,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }else if ("RE_APPLY_LOAN".equals(action)){
                 if (days>=50){
                     returnJson.put("code","100101");
-                    returnJson.put("message","再次审批通过超过五十天");
+                    returnJson.put("message","风控审核通过已超过五十天，请重新发起风控审核");
                     throw new HlsCusException(returnJson.toJSONString());
                 }
                 //发起投放审查流程
@@ -2183,7 +2204,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
         if (hlsCusPrjProjectLeaseItemList.size()==0){
             returnJson.put("code","100001");
-            returnJson.put("message","租赁物不能为空");
+            returnJson.put("message","租赁物信息不能为空");
             throw new HlsCusException(returnJson.toJSONString());
         }
         //HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
