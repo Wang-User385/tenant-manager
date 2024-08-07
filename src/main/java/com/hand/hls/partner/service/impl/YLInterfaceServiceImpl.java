@@ -934,11 +934,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //step3：保存prj_project_bp
         HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectGurProjectBp(hlsCusPrjProject.getProjectId());
         if(hlsCusPrjProjectBp == null){
-            hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-            hlsCusPrjProjectBp.setBpCategroy("GUARANTOR");
-            hlsCusPrjProjectBp.setBpId(guaBpMaster.getBpId());
-            hlsCusPrjProjectBp.setRefV02(preRiskAuditData.getDbryczrgx());//担保人与承租人关系
-            hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+            HlsCusPrjProjectBp hlsCusPrjProjectBp1 = new HlsCusPrjProjectBp();
+            hlsCusPrjProjectBp1.setProjectId(hlsCusPrjProject.getProjectId());
+            hlsCusPrjProjectBp1.setBpCategroy("GUARANTOR");
+            hlsCusPrjProjectBp1.setBpId(guaBpMaster.getBpId());
+            hlsCusPrjProjectBp1.setRefV02(preRiskAuditData.getDbryczrgx());//担保人与承租人关系
+            hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp1);
         }else{
             hlsCusPrjProjectBp.setBpId(guaBpMaster.getBpId());
             hlsCusPrjProjectBp.setRefV02(preRiskAuditData.getDbryczrgx());//担保人与承租人关系
@@ -998,11 +999,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //step3：保存prj_project_bp
         HlsCusPrjProjectBp hlsCusPrjProjectBp = hlsCusPrjProjectBpMapper.selectSecTenantProjectBp(hlsCusPrjProject.getProjectId());
         if(hlsCusPrjProjectBp == null){
-            hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
-            hlsCusPrjProjectBp.setBpCategroy("TENANT-SEC");
-            hlsCusPrjProjectBp.setBpId(secTenantBpMaster.getBpId());
-            hlsCusPrjProjectBp.setRefV02(preRiskAuditData.getCorelation());//共同借款人社会关系
-            hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp);
+            HlsCusPrjProjectBp hlsCusPrjProjectBp1 = new HlsCusPrjProjectBp();
+            hlsCusPrjProjectBp1.setProjectId(hlsCusPrjProject.getProjectId());
+            hlsCusPrjProjectBp1.setBpCategroy("TENANT-SEC");
+            hlsCusPrjProjectBp1.setBpId(secTenantBpMaster.getBpId());
+            hlsCusPrjProjectBp1.setRefV02(preRiskAuditData.getCorelation());//共同借款人社会关系
+            hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp1);
         }else{
             hlsCusPrjProjectBp.setBpId(secTenantBpMaster.getBpId());
             hlsCusPrjProjectBp.setRefV02(preRiskAuditData.getCorelation());//共同借款人社会关系
