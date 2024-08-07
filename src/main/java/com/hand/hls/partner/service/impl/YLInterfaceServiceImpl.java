@@ -14,6 +14,7 @@ import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
 import com.hand.hls.cont.service.IConContractCashflowService;
 import com.hand.hls.csh.dto.*;
 import com.hand.hls.csh.service.*;
+import com.hand.hls.partner.service.IAlipayService;
 import com.hand.hls.partner.service.IPrjQuotationCalcService;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.bp.dto.HlsBpSpouse;
@@ -128,6 +129,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private ICshAllocationCreditService cshAllocationCreditService;
     @Autowired
     private HlsCusPrjQuotationCashflowMapper hlsCusPrjQuotationCashflowMapper;
+    @Autowired
+    private IAlipayService iAlipayService;
     /**
      * 工作流相关的常量
      */
@@ -1753,6 +1756,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         }else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
             //申请代扣签约
+            String extInfo = iAlipayService.sign(hlsCusPrjProject.getProjectId());
+            if(StringUtils.isEmpty(extInfo)){
+                returnJson.put("code","400");
+                returnJson.put("message","申请代扣签约失败");
+                throw new HlsCusException(returnJson.toJSONString());
+            }else{
+                returnJson.put("code","200");
+                returnJson.put("message","申请代扣签约成功");
+                returnJson.put("extInfo",extInfo);
+                return returnJson.toJSONString();
+            }
         }else if ("APPLY_LOAN".equals(action)||"RE_APPLY_LOAN".equals(action)){
             //申请放款前，校验（合同、协议文件、抵质押材料）的相关附件是否已经上传
             String multiMessage = checkAttachMulti(hlsCusPrjProject.getProjectId());
