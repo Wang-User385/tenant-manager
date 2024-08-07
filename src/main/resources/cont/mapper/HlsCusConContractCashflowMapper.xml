@@ -3056,6 +3056,7 @@ AND sua.COMPANY_ID = #{companyId}
         t.due_date,
         t.due_date due_date_format,
         t.due_amount,
+        0 penalty,
         t.cf_item,
         t.cf_type,
         t.cf_status,
@@ -3159,7 +3160,8 @@ AND sua.COMPANY_ID = #{companyId}
         t.times,
         t.due_date,
         t.due_date due_date_format,
-        t.due_amount,
+        t.due_amount+nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND t.times=cf.times and cf.contract_id = t.contract_id and cf.cf_status not in ('BLOCK')),0) due_amount,
+        nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND t.times=cf.times and cf.contract_id = t.contract_id and cf.cf_status not in ('BLOCK')),0) penalty,
         t.cf_item,
         t.cf_type,
         t.cf_status,
@@ -3232,6 +3234,7 @@ AND sua.COMPANY_ID = #{companyId}
         WHERE
         c.contract_id = t.contract_id
         AND ( t.times != 0 or t.cf_item = 51)
+        AND t.cf_item != 9
         <if test="creditFlag='Y'">
         AND c.contract_status in ('INCEPT','ET','SIGN')
         </if>
@@ -9017,14 +9020,14 @@ and con.contract_status in
             ccc.cf_item,
             (select h.description from hls_cashflow_item h where h.cf_item = ccc.cf_item)cf_item_n,
             ccc.due_date,
-            ccc.due_amount,
+            ccc.due_amount+nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id and cf.cf_status not in ('BLOCK')),0) due_amount ,
             ccc.principal,
             ccc.interest,
-            (SELECT nvl(cf.DUE_AMOUNT,0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id and cf.cf_status not in ('BLOCK')) penalty,
+            nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id and cf.cf_status not in ('BLOCK')),0) penalty,
             ccc.received_amount,
             ccc.received_principal,
             ccc.received_interest,
-            (SELECT nvl(cf.received_amount,0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status not in ('BLOCK')) received_penalty_amount,
+            nvl((SELECT cf.received_amount FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status not in ('BLOCK')),0) received_penalty_amount,
             ccc.due_amount-NVL(ccc.received_amount, 0) unreceived_amount,
             ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) unreceived_principal,
             ccc.INTEREST-NVL(ccc.RECEIVED_INTEREST, 0) unreceived_interest,

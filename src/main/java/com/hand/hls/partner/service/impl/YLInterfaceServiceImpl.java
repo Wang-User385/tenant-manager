@@ -575,6 +575,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
         //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
         conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
+        //提前结清现金流去掉罚息
+        conContractCashflow.setDueAmount(conContractCashflow.getDueAmount()-nvl(calculationResultsDto.getPenalty(),0.0));
         //插入提前结清现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
         //插入罚息
