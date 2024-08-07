@@ -1883,13 +1883,13 @@ and pqc.quotation_id=#{quotationId}
         SELECT
         ccc.*,
         ROUND(ccc.principal + ccc.interest +
-        NVL((SELECT cf.due_amount
+        NVL((SELECT SUM(cf.due_amount)
         FROM con_contract_cashflow cf
         WHERE cf.contract_id = ccc.contract_id AND
         cf.times = ccc.times AND
         cf.cf_item = 9), 0), 2) AS total_due_amount,
         ROUND(ccc.received_amount +
-        NVL((SELECT cf.received_amount
+        NVL((SELECT SUM(cf.received_amount)
         FROM con_contract_cashflow cf
         WHERE cf.contract_id = ccc.contract_id AND
         cf.times = ccc.times AND
@@ -1902,23 +1902,23 @@ and pqc.quotation_id=#{quotationId}
         FROM sys_code_value_b_v v
         WHERE v.code = 'STOPWITHHOLDFLAG' AND
         v.code_value = ccc.stop_withhold_flag) AS stop_withhold_flag_n,
-        -- 使用 MIN() 或 MAX() 来确保返回单行数据
-        (SELECT COALESCE(MAX(transaction_num), '无')
+        -- 使用 MAX() 或 MIN() 确保返回单行数据
+        (SELECT COALESCE(MAX(ct.transaction_num), '无')
         FROM csh_transaction ct
         JOIN csh_write_off cw ON ct.transaction_id = cw.csh_transaction_id
         WHERE cw.cashflow_id = ccc.cashflow_id
-        ) AS transaction_num,
+        GROUP BY cw.cashflow_id) AS transaction_num,
         (SELECT contract_number
         FROM con_contract cc
         WHERE cc.contract_id = ccc.contract_id) AS contract_number,
-        (SELECT cc.project_id
+        (SELECT project_id
         FROM con_contract cc
         WHERE cc.contract_id = ccc.contract_id) AS project_id,
         (SELECT m.bp_name
         FROM con_contract cc
         JOIN hls_bp_master m ON cc.tenant_id = m.bp_id
         WHERE cc.contract_id = ccc.contract_id) AS tenant_id_n,
-        (SELECT cf.due_amount
+        (SELECT SUM(cf.due_amount)
         FROM con_contract_cashflow cf
         WHERE cf.contract_id = ccc.contract_id AND
         cf.times = ccc.times AND
@@ -1946,13 +1946,13 @@ and pqc.quotation_id=#{quotationId}
                 SELECT
                 ccc.*,
                 ROUND(ccc.principal + ccc.interest +
-                NVL((SELECT cf.due_amount
+                NVL((SELECT SUM(cf.due_amount)
                 FROM con_contract_cashflow cf
                 WHERE cf.contract_id = ccc.contract_id AND
                 cf.times = ccc.times AND
                 cf.cf_item = 9), 0), 2) AS total_due_amount,
                 ROUND(ccc.received_amount +
-                NVL((SELECT cf.received_amount
+                NVL((SELECT SUM(cf.received_amount)
                 FROM con_contract_cashflow cf
                 WHERE cf.contract_id = ccc.contract_id AND
                 cf.times = ccc.times AND
