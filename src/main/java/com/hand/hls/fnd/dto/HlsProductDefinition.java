@@ -88,6 +88,18 @@ public class HlsProductDefinition extends BaseDTO {
      * (租金)贴息支付期数
      */
     private String rentalDiscountTimes;
+    /**
+     * 风控审核提交有效期
+     */
+    private Long riskSubmitValueTime;
+    /**
+     * 放款申请提交有效期
+     */
+    private Long loanSubmitValueTime;
+    /**
+     * 再次放款申请提交有效期
+     */
+    private Long loanSubmitValueSecondTime;
 
     @Children
     @Transient
