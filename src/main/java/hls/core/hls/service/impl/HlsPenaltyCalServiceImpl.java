@@ -104,6 +104,13 @@ public class HlsPenaltyCalServiceImpl implements HlsDayEndCommon {
 
     public void calculatePenalty(HlsCusConContract contract, Date dayEndDate) {
         HlsCusConContractCashflow contractCashflow = new HlsCusConContractCashflow();
+        // 将Date转换为Calendar
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(dayEndDate);
+
+        // 将时分秒变为0
+        calendar.set(Calendar.HOUR_OF_DAY, 0);calendar.set(Calendar.MINUTE, 0);calendar.set(Calendar.SECOND, 0);calendar.set(Calendar.MILLISECOND, 0);
+        dayEndDate = calendar.getTime();
         contractCashflow.setDayEndDate(dayEndDate);
         contractCashflow.setContractId(contract.getContractId());
         List<HlsCusConContractCashflow> contractCashflowsList = this.conContractCashflowMapper.selectCalcPenaltyCashFlowByConId(contractCashflow);
@@ -114,6 +121,7 @@ public class HlsPenaltyCalServiceImpl implements HlsDayEndCommon {
                 while(var5.hasNext()) {
                     HlsCusConContractCashflow ccc = (HlsCusConContractCashflow)var5.next();
                     ccc.setOverdueStatus("Y");
+                    ccc.setOverdueMaxDays(DateUtil.betweenDay(dayEndDate, ccc.getDueDate(), true));
                     this.conContractCashflowMapper.updateByPrimaryKeySelective(ccc);
                     /*HlsPenaltyProfileDtl hppd = new HlsPenaltyProfileDtl();
                     hppd.setCfItem(ccc.getCfItem());

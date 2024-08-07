@@ -372,7 +372,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if(queryOrder==null){
             queryOrder = new QueryOrder();
         }
-        queryOrder.setRepayPlanTermInfoDTOList(repayPlanTermInfoDTOList);
+        queryOrder.setRepayPlanTerms(repayPlanTermInfoDTOList);
         queryOrder.setStatus("NORMAL");
         //订单存在，判断合同状态是否为起租后状态、结清状态
         //如果是，则返回数据，如果不是，返回错误
@@ -581,6 +581,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         HlsCusConContractCashflow conContractCashflowPenalty = calculationResultsDto.getContractCashflowPenalty();
         if (!ObjectUtils.isEmpty(conContractCashflowPenalty)) {
             //插入提前结清现金流
+            conContractCashflowPenalty.setGeneratedSourceDocId(conContractCashflow.getCashflowId());
+            conContractCashflowPenalty.setGeneratedSource("DAYEND");
+            conContractCashflowPenalty.setOverdueStatus("N");
             this.conContractCashflowMapper.insertSelective(conContractCashflowPenalty);
         }
 
@@ -2061,7 +2064,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if (c.getCfItem().equals(9L) && "ET".equals(type)) {
                 penalty = penalty + c.getDueAmount();
             }
-            termNos.add(c.getTimes().intValue());
+            if (!c.getCfItem().equals(9L)) {
+                termNos.add(c.getTimes().intValue());
+            }
             payableAmount = payableAmount + (c.getDueAmount()-c.getReceivedAmount());
             principal = principal+ (c.getPrincipal()-c.getReceivedPrincipal());
             interest = interest + (c.getInterest()-c.getReceivedInterest());
