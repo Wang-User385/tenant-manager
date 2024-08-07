@@ -14,6 +14,9 @@
         <result column="RESEND_FLAG" property="resendFlag" jdbcType="VARCHAR"/>
         <result column="source_type_n" property="sourceTypeN" jdbcType="VARCHAR"/>
         <result column="scene_n" property="sceneN" jdbcType="VARCHAR"/>
+        <result column="CREATION_DATE" property="creationDate" jdbcType="VARCHAR"/>
+        <result column="notice_status_n" property="noticeStatusN" jdbcType="VARCHAR"/>
+        <result column="resend_flags_n" property="resendFlagsN" jdbcType="VARCHAR"/>
 
     </resultMap>
 
@@ -215,9 +218,13 @@
         END scene_n,
         l.scene,
         l.notice_status,
+        (select scvb.MEANING from sys_code_value_b scvb, sys_code_b scb where scvb.CODE_ID = scb.CODE_ID and
+        scb.code= 'LN.NOTICE_STATUS' and scvb.value = l.notice_status) notice_status_n,
         l.error_message,
         l.description,
         l.resend_flag,
+        (select scvb.MEANING from sys_code_value_b scvb, sys_code_b scb where scvb.CODE_ID = scb.CODE_ID and
+        scb.code= 'LN.RESEND_FLAG' and scvb.value = l.resend_flag) resend_flags_n,
         dbms_lob.substr( notice_body ) AS notice_body,
         l.CREATION_DATE
         FROM
@@ -239,6 +246,7 @@
                 and l.resend_flag=#{resendFlag}
             </if>
         </where>
+order by l.CREATION_DATE desc
 
     </select>
 

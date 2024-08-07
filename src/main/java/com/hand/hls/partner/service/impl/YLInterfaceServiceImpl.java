@@ -14,6 +14,7 @@ import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
 import com.hand.hls.cont.service.IConContractCashflowService;
 import com.hand.hls.csh.dto.*;
 import com.hand.hls.csh.service.*;
+import com.hand.hls.partner.service.IAlipayService;
 import com.hand.hls.partner.service.IPrjQuotationCalcService;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.bp.dto.HlsBpSpouse;
@@ -128,6 +129,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private ICshAllocationCreditService cshAllocationCreditService;
     @Autowired
     private HlsCusPrjQuotationCashflowMapper hlsCusPrjQuotationCashflowMapper;
+    @Autowired
+    private IAlipayService iAlipayService;
     /**
      * 工作流相关的常量
      */
@@ -166,7 +169,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsProductDefinition.setBpId(hlsCusBpMasters.get(0).getBpId());
         List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
         if (hlsProductDefinitionList.size() == 0){
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message","该合作商对应的产品为空，需在产品定义功能中维护新的产品");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -179,7 +182,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             idIssueDate = simpleDateFormat.parse(placeOrderDTO.getIdissue());
         }catch (ParseException e) {
             e.printStackTrace();
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message","证件签发日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -191,7 +194,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         } catch (ParseException e) {
             e.printStackTrace();
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message","证件到期日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -241,7 +244,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //step3: 获取当前客户所有的项目，判断项目状态
         List<HlsCusPrjProject> list = prjProjectMapper.selectProjectByIdCardNo(placeOrderDTO.getIdCardNo());
         if(list.size() > 0){
-            returnJson.put("code","400");
+            returnJson.put("code","100101");
             returnJson.put("message","存在在途单");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -399,7 +402,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(repayMent.getOrderNo());
         if (hlsCusCshTransactionList.size()==0){
-            returnJson.put("code","400");
+            returnJson.put("code","100003");
             returnJson.put("message","查询数据为空");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -408,12 +411,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //判断还款方式是否为蚂蚁链代扣，如果是则判断结算单号、代扣交易单号是否为空
             if ("蚂蚁链代扣".equals(repayMent.getRepayType())){
                 if (termRepayDetailApplyDTO.getTransactionNo()==null){
-                    returnJson.put("code","400");
+                    returnJson.put("code","100001");
                     returnJson.put("message","结算单号为空");
                     return returnJson.toJSONString();
                 }
                 if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
-                    returnJson.put("code","400");
+                    returnJson.put("code","100001");
                     returnJson.put("message","代扣交易单号为空");
                     return returnJson.toJSONString();
                 }
@@ -444,14 +447,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            returnJson.put("code","400");
+            returnJson.put("code","100003");
             returnJson.put("message","订单不存在");
             throw new HlsCusException(returnJson.toJSONString());
         }
         //计算本金、利息、罚息、应付金额
         CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(compensatoryTrialCalculationDTO);
         if (compensatoryTrialCalculation1==null){
-            returnJson.put("code","400");
+            returnJson.put("code","100003");
             returnJson.put("message","数据不存在");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -578,6 +581,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
         //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
         conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
+        //提前结清现金流去掉罚息
+        conContractCashflow.setDueAmount(conContractCashflow.getDueAmount()-nvl(calculationResultsDto.getPenalty(),0.0));
         //插入提前结清现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
         //插入罚息
@@ -608,7 +613,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             for (ConstraintViolation<DataAcquisitionDTO> violation : dtoChecks) {
                 message.append(violation.getMessage()).append(" ");
             }
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message",message.toString());
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -619,7 +624,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             for (ConstraintViolation<SaleInfo> violation : saleInfoChecks) {
                 message.append(violation.getMessage()).append(" ");
             }
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message",message.toString());
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -630,7 +635,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             for (ConstraintViolation<CarInfo> violation : carInfoChecks) {
                 message.append(violation.getMessage()).append(" ");
             }
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message",message.toString());
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -641,7 +646,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             for (ConstraintViolation<FinanceInfo> violation : financeInfoChecks) {
                 message.append(violation.getMessage()).append(" ");
             }
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message",message.toString());
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -653,7 +658,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 for (ConstraintViolation<PreRiskAuditData> violation : preRiskAuditDataChecks) {
                     message.append(violation.getMessage()).append(" ");
                 }
-                returnJson.put("code","400");
+                returnJson.put("code","100001");
                 returnJson.put("message",message.toString());
                 throw new HlsCusException(returnJson.toJSONString());
             }
@@ -701,12 +706,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if (Double.compare(monthPayment,yhke) != 0){
             message.append("月租(分) ");
         }
-        //nhll不校验
-        /*if(StringUtils.isNotEmpty(preRiskAuditData.getNhll())){
-            if((Double.compare(Double.valueOf(preRiskAuditData.getNhll()),Double.valueOf(financeInfo.getRate())/100) != 0)){
+        if(StringUtils.isNotEmpty(preRiskAuditData.getRzll())){
+            if((Double.compare(Double.valueOf(preRiskAuditData.getRzll()),Double.valueOf(financeInfo.getRate())/100) != 0)){
                 message.append("利率 ");
             }
-        }*/
+        }
         double firstPayment = Double.parseDouble(financeInfo.getFirstPayment())/100;
         //double sfje = Double.parseDouble(preRiskAuditData.getSfje());
         double sfje = 0D;
@@ -739,7 +743,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if(StringUtils.isNotEmpty(message)){
             message.append("与风控审核数据不一致");
             JSONObject returnJson = new JSONObject();
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message",message.toString());
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -824,7 +828,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         if(StringUtils.isNotEmpty(message)){
             JSONObject returnJson = new JSONObject();
-            returnJson.put("code","400");
+            returnJson.put("code","100101");
             returnJson.put("message","正审已通过，不允许修改：" + message.toString());
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -858,7 +862,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         } catch (ParseException e) {
             JSONObject returnJson = new JSONObject();
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message","车辆出厂日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -883,7 +887,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             prjQuotation.setLeaseStartDate(startRentDate);//起息日
         }catch (ParseException e) {
             JSONObject returnJson = new JSONObject();
-            returnJson.put("code","400");
+            returnJson.put("code","100001");
             returnJson.put("message","起息日格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1029,7 +1033,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         SimpleDateFormat simpleDateFormat1 = new SimpleDateFormat("yyyy-MM-dd");
         JSONObject returnJson = new JSONObject();
-        returnJson.put("code","400");
 
         //正审通过后，不允许再传风控数据
         if("APPROVED".equals(hlsCusPrjProject.getProjectStatus())){
@@ -1366,7 +1369,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //step3: 订单是否存在
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(dataAcquisitionDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            returnJson.put("code","400");
+            returnJson.put("code","100101");
             returnJson.put("message","订单不存在");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1402,30 +1405,30 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //预审状态为审批中、订单状态是起租或者关闭、进件状态为审批中不能进行数据采集
         if ("APPROVING".equals(projectStatus)){
             //设置返回状态
-            returnJson.put("code","400");
+            returnJson.put("code","100101");
             returnJson.put("message","正审状态为审批中，不允许进行数据采集");
             throw new HlsCusException(returnJson.toJSONString());
         }
         if ("INCEPT".equals(orderStatus)){
             //设置返回状态
-            returnJson.put("code","400");
+            returnJson.put("code","100101");
             returnJson.put("message","订单状态为已起租，不允许进行数据采集");
             throw new HlsCusException(returnJson.toJSONString());
         }
         if ("CLOSED".equals(orderStatus)){
             //设置返回状态
-            returnJson.put("code","400");
+            returnJson.put("code","100101");
             returnJson.put("message","订单状态为已关闭，不允许进行数据采集");
             throw new HlsCusException(returnJson.toJSONString());
         }
         if("APPROVED".equals(projectStatus)){
             if("APPROVING".equals(investmentStatus)){
-                returnJson.put("code","400");
+                returnJson.put("code","100101");
                 returnJson.put("message","投放审查审批中，不允许进行数据采集");
                 throw new HlsCusException(returnJson.toJSONString());
             }
             if("APPROVED".equals(investmentStatus)){
-                returnJson.put("code","400");
+                returnJson.put("code","100101");
                 returnJson.put("message","投放审查已通过，不允许进行数据采集");
                 throw new HlsCusException(returnJson.toJSONString());
             }
@@ -1481,7 +1484,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             double dueAmount = quoCashflowList.get(0).getDueAmount();
             double pmt = prjQuotation.getPmt();
             if(dueAmount != pmt){
-                returnJson.put("code","400");
+                returnJson.put("code","100001");
                 returnJson.put("message","报价计算的月租金与传输的月租金不一致！");
                 throw new HlsCusException(returnJson.toJSONString());
             }
@@ -1733,11 +1736,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 returnJson.put("message","审核成功");
                 return returnJson.toJSONString();
             }else if ("Reject".equals(s)){
-                returnJson.put("code","400");
+                returnJson.put("code","200");
                 returnJson.put("message","同盾请求接口返回审批拒绝");
                 throw new HlsCusException(returnJson.toJSONString());
             }else if ("Review".equals(s)){
-                returnJson.put("code","400");
+                returnJson.put("code","200");
                 returnJson.put("message","同盾请求接口返回谨慎通过，已发起进件正审流程");
                 throw new HlsCusException(returnJson.toJSONString());
             }
@@ -1748,52 +1751,26 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 returnJson.put("message","审核成功");
                 return returnJson.toJSONString();
             }else if ("Reject".equals(s) || "Error".equals(s)){
-                returnJson.put("code","400");
+                returnJson.put("code","200");
                 returnJson.put("message","审核失败");
                 throw new HlsCusException(returnJson.toJSONString());
             }
         }else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
             //申请代扣签约
+            String extInfo = iAlipayService.sign(hlsCusPrjProject.getProjectId());
+            if(StringUtils.isEmpty(extInfo)){
+                returnJson.put("code","400");
+                returnJson.put("message","申请代扣签约失败");
+                throw new HlsCusException(returnJson.toJSONString());
+            }else{
+                returnJson.put("code","200");
+                returnJson.put("message","申请代扣签约成功");
+                returnJson.put("extInfo",extInfo);
+                return returnJson.toJSONString();
+            }
         }else if ("APPLY_LOAN".equals(action)||"RE_APPLY_LOAN".equals(action)){
-            //申请放款前，校验（合同、协议文件、抵质押材料）的相关附件是否已经上传
-            String multiMessage = checkAttachMulti(hlsCusPrjProject.getProjectId());
-            //如果校验不通过直接返回
-            if (!multiMessage.isEmpty()){
-                //设置返回状态
-                returnJson.put("code","400");
-                returnJson.put("message","该进件项目的:"+multiMessage.substring(0, multiMessage.length() - 1)+"附件未上传");
-                throw new HlsCusException(returnJson.toJSONString());
-            }
-            //获取riskinfo数据
-            PreRiskAuditData preRiskAuditData = JSONObject.parseObject(hlsCusPrjProject.getRiskInfo(), PreRiskAuditData.class);
-            if (preRiskAuditData==null){
-                returnJson.put("code","400");
-                returnJson.put("message","riskinfo信息不能为空");
-                throw new HlsCusException(returnJson.toJSONString());
-            }
-            //获取报价
-            List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
-            if (hlsCusPrjQuotations.size()==0){
-                returnJson.put("code","400");
-                returnJson.put("message","报价不能为空");
-                throw new HlsCusException(returnJson.toJSONString());
-            }
-            //获取租赁物信息
-            List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
-            if (hlsCusPrjProjectLeaseItemList.size()==0){
-                returnJson.put("code","400");
-                returnJson.put("message","租赁物不能为空");
-                throw new HlsCusException(returnJson.toJSONString());
-            }
-            //获取附件
-            /*List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachments = hlsCusPrjProjectAttachmentMapper.queryByProjectId(hlsCusPrjProject.getProjectId());
-            if (hlsCusPrjProjectAttachments.size()==0){
-                returnJson.put("code","400");
-                returnJson.put("message","附件不能为空");
-                throw new HlsCusException(returnJson.toJSONString());
-            }*/
-            HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
-            HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
+            //发起投放审查流程前先校验
+            dateCheck(hlsCusPrjProject);
             //获取审批通过日的毫秒值
             long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
             //获取当前时间毫秒值
@@ -1802,24 +1779,20 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
             if ("APPLY_LOAN".equals(action)){
                 if (days>=30){
-                    returnJson.put("code","400");
+                    returnJson.put("code","100101");
                     returnJson.put("message","审批通过超过三十天");
                     throw new HlsCusException(returnJson.toJSONString());
                 }
-            //发起投放审查流程前先校验
-            dateCheck(hlsCusPrjProject);
-            //发起投放审查流程
-            signWorkFlowSubmit(iRequest, hlsCusPrjProject);
-            hlsCusPrjProject.setInvestmentStatus("APPROVING");
-            prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+                //发起投放审查流程
+                signWorkFlowSubmit(iRequest, hlsCusPrjProject);
+                hlsCusPrjProject.setInvestmentStatus("APPROVING");
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
             }else if ("RE_APPLY_LOAN".equals(action)){
                 if (days>=50){
-                    returnJson.put("code","400");
+                    returnJson.put("code","100101");
                     returnJson.put("message","再次审批通过超过五十天");
                     throw new HlsCusException(returnJson.toJSONString());
                 }
-                //再次发起投放审查流程前先校验有没有流程中的
-                dateCheck(hlsCusPrjProject);
                 //发起投放审查流程
                 signWorkFlowSubmit(iRequest, hlsCusPrjProject);
                 hlsCusPrjProject.setInvestmentStatus("APPROVING");
@@ -2147,7 +2120,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //单据类型
         map.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        map.put("documentName", bpMasterName+"-"+DOCUMENT_NAME);
+        map.put("documentName", bpMasterName.getBpName()+"-"+DOCUMENT_NAME);
         //单据编号
         map.put("documentNumber", project.getProjectNumber());
         //设置工作流参数
@@ -2171,21 +2144,63 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         activitiStartService.start(iRequest, list, map);
     }
 
-    private List<PrjProjectApproval> dateCheck(HlsCusPrjProject dto) throws HlsCusException {
+    private void dateCheck(HlsCusPrjProject hlsCusPrjProject) throws HlsCusException {
         /**
          * 提交时校验
          */
         JSONObject returnJson = new JSONObject();
-        HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
-        hlsCusPrjProject.setProjectId(dto.getProjectId());
+        hlsCusPrjProject.setProjectId(hlsCusPrjProject.getProjectId());
         HlsCusPrjProject hlsCusPrjProjectList = prjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
         if ("APPROVING".equals(hlsCusPrjProjectList.getInvestmentStatus()) ) {
-            returnJson.put("success",false);
+            returnJson.put("code","100101");
             returnJson.put("message","已经提交了申请,无需重复提交!");
             throw new HlsCusException(returnJson.toJSONString());
         }
+        //申请放款前，校验（合同、协议文件、抵质押材料）的相关附件是否已经上传
+        String multiMessage = checkAttachMulti(hlsCusPrjProject.getProjectId());
+        //如果校验不通过直接返回
+        if (!multiMessage.isEmpty()){
+            //设置返回状态
+            returnJson.put("code","100001");
+            returnJson.put("message","该进件项目的:"+multiMessage.substring(0, multiMessage.length() - 1)+"附件未上传");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        //获取riskinfo数据
+        PreRiskAuditData preRiskAuditData = JSONObject.parseObject(hlsCusPrjProject.getRiskInfo(), PreRiskAuditData.class);
+        if (preRiskAuditData==null){
+            returnJson.put("code","100001");
+            returnJson.put("message","riskinfo信息不能为空");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        //获取报价
+        List<HlsCusPrjQuotation> hlsCusPrjQuotations = hlsCusPrjQuotationMapper.selectQuoByProjectId(hlsCusPrjProject.getProjectId());
+        if (hlsCusPrjQuotations.size()==0){
+            returnJson.put("code","100001");
+            returnJson.put("message","报价不能为空");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        //获取租赁物信息
+        List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
+        if (hlsCusPrjProjectLeaseItemList.size()==0){
+            returnJson.put("code","100001");
+            returnJson.put("message","租赁物不能为空");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        //HlsCusPrjQuotation hlsCusPrjQuotation = hlsCusPrjQuotations.get(0);
+        HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem = hlsCusPrjProjectLeaseItemList.get(0);
+        if (StringUtils.isEmpty(hlsCusPrjProjectLeaseItem.getFrameNumber())){
+            returnJson.put("code","100001");
+            returnJson.put("message","vin码/车架号不能为空");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        if (hlsCusPrjProjectLeaseItem.getProductDate() == null){
+            returnJson.put("code","100001");
+            returnJson.put("message","车辆出厂日期不能为空");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
 
-        return null;
+        //leaseItem.setFrameNumber(carInfo.getVin());//vin码/车架号
+        //leaseItem.setProductDate(productDate);//车辆出厂日期
     }
 
     /**

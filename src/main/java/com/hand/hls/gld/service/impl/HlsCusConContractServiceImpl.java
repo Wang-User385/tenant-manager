@@ -16,6 +16,7 @@ import com.hand.hls.app.dto.HlsCashflowAyncDto;
 import com.hand.hls.app.service.HlsCashflowAyncService;
 import com.hand.hls.ast.dto.VirtualConContractLov;
 import com.hand.hls.bp.dto.HlsCusSysFile;
+import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
 import com.hand.hls.cont.dto.*;
 import com.hand.hls.cont.mapper.*;
@@ -236,6 +237,9 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     private HlsCusConQuotationService hlsCusConQuotationService;
     @Autowired
     private HlsCusPrjQuotationCashflowService hlsCusPrjQuotationCashflowService;
+
+    @Autowired
+    private HlsCusBpMasterMapper hlsCusBpMasterMapper;
 
     @Autowired
     private HlsCusPrjQuotationCashflowMapper hlsCusPrjQuotationCashflowMapper;
@@ -4666,7 +4670,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     private final static String WORK_FLOW = "CAR_MORTGAGE";
     //流程分类
     private final static String DEMO_NAME = "CAR_MORTGAGE";
-    private final static String DOCUMENT_NAME = "车辆业务抵押工作流";
+    private final static String DOCUMENT_NAME = "车辆业务抵押申请";
 
     private final static String DOCUMENT_CATEGORY = "CON_CONTRACT";
 
@@ -4682,12 +4686,15 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         params.put(IActivitiCommonService.BUSINESS_KEY, dto.getContractId());
         params.put("contractId", dto.getContractId());
         dto = hlsCusConContractMapper.selectByPrimaryKey(dto);
+        HlsBpMaster hlsBpMaster = new HlsBpMaster();
+        hlsBpMaster.setBpId(dto.getTenantId());
+        hlsCusBpMasterMapper.selectByPrimaryKey(hlsBpMaster);
         //单据类别
         params.put("documentCategory",DOCUMENT_CATEGORY);
         //单据类型
         params.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        params.put("documentName", DOCUMENT_NAME);
+        params.put("documentName", dto.getContractNumber()+hlsBpMaster.getBpName()+DOCUMENT_NAME);
         //单据编号
         params.put("documentNumber", dto.getContractNumber());
         //查询

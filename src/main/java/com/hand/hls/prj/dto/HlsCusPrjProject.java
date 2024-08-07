@@ -3203,6 +3203,8 @@ public class HlsCusPrjProject extends PrjProject {
     private Double cyclicalAmount;
 
     private String penetrateId;
+    private String alipayStatus;
+
 
     private Long riskSubmitValueTime; //风控审核提交有效期
 

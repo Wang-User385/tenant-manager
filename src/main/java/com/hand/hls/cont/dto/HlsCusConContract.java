@@ -1772,6 +1772,8 @@ public class HlsCusConContract extends ConContract {
     private String paymentApprovedStatus;
     @Transient
     private String paymentApprovedStatusN;
+    @Transient
+    private String driverAndApplicant;
 
 
 

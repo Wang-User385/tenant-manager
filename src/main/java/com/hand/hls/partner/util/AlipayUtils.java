@@ -1,5 +1,6 @@
 package com.hand.hls.partner.util;
 
+import com.alibaba.fastjson.JSONObject;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
 import com.alipay.api.DefaultAlipayClient;
@@ -9,7 +10,7 @@ import com.alipay.api.request.AnttechBlockchainDefinAssetmanagePenetrateQueryReq
 import com.alipay.api.request.AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest;
 import com.alipay.api.response.AnttechBlockchainDefinAssetmanagePenetrateQueryResponse;
 import com.alipay.api.response.AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse;
-import net.minidev.json.JSONObject;
+
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -38,11 +39,15 @@ public class AlipayUtils {
     public static String SUBSCENECODE = "0000000000000442";
 
     public static void main(String [] args) throws AlipayApiException {
+        String result = "";
 
-        //orderApply();//创建穿透单：用于获取 penetrateId 2024080600101101184860
+        //result = orderApply("GTYL202408000001");//创建穿透单：用于获取 penetrateId 2024080700101101184902
+
         //orderQuery();//查询穿透单
         //orderCancel();//取消穿透单
-        //loanApply();//代扣签约 拿到签约二维码字符串
+
+        //result = loanApply("张三","421023999999","2024080700101101184902","ALIPAYAPP");//代扣签约 拿到签约二维码字符串
+
         //loanQuery();//查看签约结果
         //paymentApply();//发起代扣
         //paymentQuery();//代扣结果查询
@@ -50,7 +55,7 @@ public class AlipayUtils {
     }
 
     //穿透单创建ORDER.APPLY
-    public static void orderApply(){
+    public static String orderApply(String outOrderNo) throws AlipayApiException {
         AnttechBlockchainDefinAssetmanagePenetrateSubmitModel model =new AnttechBlockchainDefinAssetmanagePenetrateSubmitModel();
         model.setRequestId(System.currentTimeMillis() + UUID.randomUUID().toString().replace("-", ""));//这个请求id 必须要传，否则会报错“重复的请求编码”
         model.setFunction("ORDER.APPLY");
@@ -58,7 +63,7 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("outOrderNo","GTYL202408000104");//此参数传进件编号
+        params.put("outOrderNo",outOrderNo);//此参数传进件编号
         params.put("vidBizId","ANTCHAIN");//默认值ANTCHAIN
         params.put("verifyId","ANTCHAIN");//默认值ANTCHAIN
         model.setBizParams(JSONObject.toJSONString(params));
@@ -66,13 +71,11 @@ public class AlipayUtils {
         AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest request = new AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest();
         request.setBizModel(model);
 
-        try {
-            AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
-            AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
-            System.out.println("response:" + response.getBody());
-        } catch (AlipayApiException e) {
-            e.printStackTrace();
-        }
+        AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
+        AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
+        String responseBody = response.getBody();
+
+        return responseBody;
     }
 
     //穿透单查询ORDER.QUERY
@@ -84,7 +87,7 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("penetrateId","2024080600101101184860");
+        params.put("penetrateId","2024080700101101184902");
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateQueryRequest request = new AnttechBlockchainDefinAssetmanagePenetrateQueryRequest();
@@ -108,7 +111,7 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("penetrateId","2024080600101101184860");
+        params.put("penetrateId","2024080700101101184902");
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest request = new AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest();
@@ -125,7 +128,7 @@ public class AlipayUtils {
 
 
     //GT-MY-001代扣授权签约申请
-    public static void loanApply(){
+    public static String loanApply(String customerName,String userCertNo,String penetrateId,String channel) throws AlipayApiException {
         AnttechBlockchainDefinAssetmanagePenetrateSubmitModel model =new AnttechBlockchainDefinAssetmanagePenetrateSubmitModel();
         model.setRequestId(System.currentTimeMillis() + UUID.randomUUID().toString().replace("-", ""));//这个请求id 必须要传，否则会报错“重复的请求编码”
         model.setFunction("LOAN.APPLY");
@@ -133,24 +136,22 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("customerName","*****");//签约人姓名
-        params.put("userCertNo","*******");//签约人身份证号码
-        params.put("penetrateId","2024080600101101184860");
+        params.put("customerName",customerName);//签约人姓名
+        params.put("userCertNo",userCertNo);//签约人身份证号码
+        params.put("penetrateId",penetrateId);
         //QRCODE：直接将extInfo字符串转换成⼆维码
         //ALIPAYAPP：将extInfo字符串加上前缀：https://openapi.alipay.com/gateway.do?  后转⼆维码
-        params.put("channel","QRCODE");
+        params.put("channel",channel);
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest request = new AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest();
         request.setBizModel(model);
 
-        try {
-            AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
-            AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
-            System.out.println("response:" + response.getBody());
-        } catch (AlipayApiException e) {
-            e.printStackTrace();
-        }
+        AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
+        AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
+        String responseBody = response.getBody();
+
+        return responseBody;
     }
 
     //GT-MY-002代扣授权签约申请查询
@@ -162,7 +163,7 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("penetrateId","2024080600101101184860");//签约人姓名
+        params.put("penetrateId","2024080700101101184902");
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateQueryRequest request = new AnttechBlockchainDefinAssetmanagePenetrateQueryRequest();
@@ -186,7 +187,7 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("penetrateId","2024080600101101184860");
+        params.put("penetrateId","2024080700101101184902");
         params.put("outSeqNo","GTYL202408000104001");//代扣流水号
         params.put("amount","1");//代扣金额
         params.put("subject","订单GTYL202408000104第1期租金");//支付描述

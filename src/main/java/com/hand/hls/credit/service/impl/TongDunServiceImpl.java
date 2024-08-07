@@ -178,6 +178,12 @@ public class TongDunServiceImpl implements TongDunService {
         JSONObject param = JSONObject.parseObject(jsonString);
         JSONObject returnJson = new JSONObject();
 
+        //申请风控审核时，校验riskInfo是否为空，空则报错
+        if(StringUtil.isEmpty(jsonString)){
+            returnJson.put("code","100001");
+            returnJson.put("message","该进件项目的riskinfo信息为空！");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
         //申请风控审核时，校验（承租人身份证、驾驶证）的附件是否已经上传
         Integer SfzAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CZR_SFZ","PRJ_PROJECT_ATTACHMENT", "EXAMINE");
         if(SfzAttachMulti == 0){
