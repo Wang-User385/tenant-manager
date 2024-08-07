@@ -293,4 +293,6 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     List<Map>  prjProjectAttachCoQuery(HlsCusPrjProject hlsCusPrjProject);
     List<Map>  prjProjectAttachMoQuery(HlsCusPrjProject hlsCusPrjProject);
 
+    List<HlsCusPrjProject> selectProjectForAlipaySignQuery();
+
 }

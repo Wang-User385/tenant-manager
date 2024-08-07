@@ -3203,4 +3203,6 @@ public class HlsCusPrjProject extends PrjProject {
     private Double cyclicalAmount;
 
     private String penetrateId;
+    private String alipayStatus;
+
 }
