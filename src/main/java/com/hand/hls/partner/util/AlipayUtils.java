@@ -48,7 +48,9 @@ public class AlipayUtils {
 
         //result = loanApply("张三","421023999999","2024080700101101184902","ALIPAYAPP");//代扣签约 拿到签约二维码字符串
 
-        //loanQuery();//查看签约结果
+        //result = loanQuery("2024080700101101184902");//查看签约结果
+
+
         //paymentApply();//发起代扣
         //paymentQuery();//代扣结果查询
         //paymentCancel();//代扣取消
@@ -155,7 +157,7 @@ public class AlipayUtils {
     }
 
     //GT-MY-002代扣授权签约申请查询
-    public static void loanQuery(){
+    public static String loanQuery(String penetrateId) throws AlipayApiException {
         AnttechBlockchainDefinAssetmanagePenetrateQueryModel model =new AnttechBlockchainDefinAssetmanagePenetrateQueryModel();
         model.setRequestId(System.currentTimeMillis() + UUID.randomUUID().toString().replace("-", ""));//这个请求id 必须要传，否则会报错“重复的请求编码”
         model.setFunction("LOAN.QUERY");
@@ -163,19 +165,17 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("penetrateId","2024080700101101184902");
+        params.put("penetrateId",penetrateId);
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateQueryRequest request = new AnttechBlockchainDefinAssetmanagePenetrateQueryRequest();
         request.setBizModel(model);
 
-        try {
-            AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
-            AnttechBlockchainDefinAssetmanagePenetrateQueryResponse response = alipayClient.execute(request);
-            System.out.println("response:" + response.getBody());
-        } catch (AlipayApiException e) {
-            e.printStackTrace();
-        }
+        AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
+        AnttechBlockchainDefinAssetmanagePenetrateQueryResponse response = alipayClient.execute(request);
+        String responseBody = response.getBody();
+
+        return responseBody;
     }
 
     //GT-MY-003扣款请求PAYMENT.APPLY
