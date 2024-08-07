@@ -8,6 +8,7 @@ import org.hibernate.validator.constraints.Length;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
 @Data
 @ExtensionAttribute(disable = true)
@@ -43,6 +44,11 @@ public class LeasingNotice extends BaseDTO {
 
     //CLOB字段
     private String noticeBody;   //推送的内容
+
+    @Transient
+    private String sourceTypeN;
+    @Transient
+    private String sceneN;
 
 }
 

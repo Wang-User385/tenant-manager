@@ -58,7 +58,7 @@ public class HlsMortgageServiceTask implements JavaDelegate, IActivitiBean {
         conContract.setMortgageStatus(flag);
         hlsCusConContractService.updateByPrimaryKeySelective(requestCtx, conContract);
         //调用车辆审核通知接口
-        iylMessageNoticeService.orderAuditResult(contractId,"MORT",requestCtx);
+        iylMessageNoticeService.orderAuditResult(contractId,"MORTGAGE_MATERIAL_AUDIT",requestCtx);
 
 
     }

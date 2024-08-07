@@ -12,6 +12,8 @@
         <result column="NOTICE_BODY" property="noticeBody" jdbcType="VARCHAR"/>
         <result column="DESCRIPTION" property="description" jdbcType="VARCHAR"/>
         <result column="RESEND_FLAG" property="resendFlag" jdbcType="VARCHAR"/>
+        <result column="source_type_n" property="sourceTypeN" jdbcType="VARCHAR"/>
+        <result column="scene_n" property="sceneN" jdbcType="VARCHAR"/>
 
     </resultMap>
 
@@ -200,13 +202,32 @@
 
 <!--    信息发送通知记录功能页面展示-->
     <select id="qureyLeasingNotice" resultMap="BaseResultMap">
-        SELECT l.notice_id,l.source_id,l.source_type
-         ,l.scene,l.notice_status,l.error_message,l.description,
-          l.resend_flag,dbms_lob.substr(notice_body) AS notice_body
-        FROM LEASING_NOTICE l
+        SELECT
+        l.notice_id,
+        l.source_id,
+        l.source_type,
+        (select scvb.MEANING from sys_code_value_b scvb, sys_code_b scb where scvb.CODE_ID = scb.CODE_ID and
+        scb.code= 'YL.LEASING_NOTICE_TYPE' and scvb.value = l.source_type) source_type_n,
+        CASE SCENE
+        WHEN 'PRE_RISK THEN'  THEN '人工审核'
+        WHEN	'LOAN_AUDIT' THEN '放款审核'
+        WHEN 'MORTGAGE_MATERIAL_AUDIT' THEN '抵押材料审核'
+        END scene_n,
+        l.scene,
+        l.notice_status,
+        l.error_message,
+        l.description,
+        l.resend_flag,
+        dbms_lob.substr( notice_body ) AS notice_body,
+        l.CREATION_DATE
+        FROM
+        LEASING_NOTICE l
         <where>
             <if test="sourceId">
                and l.source_id=#{sourceId}
+            </if>
+            <if test="sourceType">
+                and l.source_type=#{sourceType}
             </if>
             <if test="scene">
                 and l.scene=#{scene}
