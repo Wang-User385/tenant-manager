@@ -49,6 +49,10 @@ public class LeasingNotice extends BaseDTO {
     private String sourceTypeN;
     @Transient
     private String sceneN;
+    @Transient
+    private String noticeStatusN;
+    @Transient
+    private String resendFlagsN;
 
 }
 
