@@ -270,14 +270,6 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             Map<String, Object> withholdContractResultMap = leasingNoticeMapper.queryWithholdContractResult(projectId);
             if (!ObjectUtils.isEmpty(withholdContractResultMap)) {
                 withholdContractResultMap.put("uniqueId", getUniqueId());
-                if ("CREATED".equals(withholdContractResultMap.get("status"))) {
-                    //查询签约地址，暂时没地方查，后续添加
-                    List<Map<String, Object>> extraParam = new ArrayList<>();
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("url", "http://10.10.10.110:8080/aa");
-                    extraParam.add(map);
-                    withholdContractResultMap.put("extraParam", extraParam);
-                }
                 leasingNotice.setNoticeBody(JSON.toJSONString(withholdContractResultMap));
                 //消息推送
                 noticePush(leasingNotice, "n008", withholdContractResultMap, iRequest);

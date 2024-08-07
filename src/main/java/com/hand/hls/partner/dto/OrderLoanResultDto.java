@@ -13,7 +13,7 @@ public class OrderLoanResultDto {
 
     private Date loanTime; //实际放款时间
 
-    private Double loanAmount; //实际放款金额（分）
+    private Long loanAmount; //实际放款金额（分）
 
     private String status; // 放款结果
 
