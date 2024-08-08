@@ -223,7 +223,8 @@ public class AlipayServiceImpl implements IAlipayService {
                 updateProject.setProjectId(projectId);
                 updateProject.setAlipayStatus("CANCELED");
                 prjProjectMapper.updateByPrimaryKeySelective(updateProject);
-                //代扣签约取消，暂不推送消息
+                //代扣解约成功，推送消息
+                messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
             }
         }
     }

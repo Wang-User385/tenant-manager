@@ -62,6 +62,7 @@ import com.hand.hls.hls.dto.HlsCusFundingPlan;
 import com.hand.hls.hls.mapper.HlsCusFundingPlanMapper;
 import com.hand.hls.interfacePlatform.utils.FinanceBaseUtils;
 import com.hand.hls.mort.dto.HlsMortgage;
+import com.hand.hls.partner.service.IAlipayService;
 import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
@@ -338,6 +339,8 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     ConChangeRepaymentInfoMapper conChangeRepaymentInfoMapper;
     @Autowired
     private SysUserMapper sysUserMapper;
+    @Autowired
+    private IAlipayService iAlipayService;
 
     @Override
     public List<Map<String, Object>> queryPaymentChangeInfoLov(IRequest request, HlsCusConContract hlsCusConContract, int page, int pageSize) {
@@ -4771,6 +4774,13 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         hlsCusConContract =  hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
         hlsCusConContract.setContractStatus("TERMINATE");
         hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
+
+        //如果订单是蚂蚁链已签约，则需调用取消签约
+        hlsCusConContract = hlsCusConContractMapper.selectByPrimaryKey(contractId);
+        HlsCusPrjProject hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(hlsCusConContract.getProjectId());
+        if("ACTIVATED".equals(hlsCusPrjProject.getAlipayStatus())){
+            iAlipayService.signCancel(hlsCusPrjProject.getProjectId());
+        }
     }
 
     @Override
