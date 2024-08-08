@@ -14,6 +14,7 @@ public interface HlsCusPrjProjectLeaseItemMapper extends Mapper<HlsCusPrjProject
     void deleteLeaseItemByProjectId1(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem);
 
     List<HlsCusPrjProjectLeaseItem> queryPrjProjectLeaseItem(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem);
+    Map queryPrjProjectLeaseItemInfo(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem);
     List<HlsCusPrjProjectLeaseItem> queryPrjProjectLeaseItem1(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem);
 
     List<HlsCusPrjProjectLeaseItem> queryPrjProjectLeaseItemChangeBefore(/*HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem*/);

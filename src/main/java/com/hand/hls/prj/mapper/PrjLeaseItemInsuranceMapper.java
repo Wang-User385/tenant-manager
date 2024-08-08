@@ -5,6 +5,7 @@ import com.hand.hls.prj.dto.PrjLeaseItemInsurance;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 public interface PrjLeaseItemInsuranceMapper extends Mapper<PrjLeaseItemInsurance>{
     /**
@@ -17,4 +18,5 @@ public interface PrjLeaseItemInsuranceMapper extends Mapper<PrjLeaseItemInsuranc
     PrjLeaseItemInsurance selectInsByLeaseItemId(@Param("projectLeaseItemId") Long projectLeaseItemId);
 
     List<PrjLeaseItemInsurance> selectNew(@Param("projectLeaseItemId") Long projectLeaseItemId);
+    Map selectNewInfo(@Param("projectLeaseItemId") Long projectLeaseItemId);
 }

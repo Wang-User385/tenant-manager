@@ -934,15 +934,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest, "HLS_BP_MASTER", "NP", "NP", new HashMap<String, String>());
             guaBpMaster = new HlsCusBpMaster();
             guaBpMaster.setBpCode(codeRuleValue);
-            guaBpMaster.setBpCategory("GUARANTOR");
-            guaBpMaster.setBpType("GUARANTOR");
+            guaBpMaster.setBpCategory("WARRANTOR");
+            guaBpMaster.setBpType("WARRANTOR");
             guaBpMaster.setUnitId(hlsProductDefinitionList.get(0).getUnitId().toString());
             guaBpMaster.setCreationDate(new Date());
             guaBpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getUserId());
             guaBpMaster.setCreationDateStr(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
             guaBpMaster.setSource("1");
             guaBpMaster.setBpClass("NP");
-            guaBpMaster.setBpCategory("GUARANTOR");
         }else{
             guaBpMaster = hlsCusBpMasters.get(0);
         }
@@ -962,15 +961,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         Boolean flag = false;
         List<String> stringList = hlsCusBpMasterRoleMapper.selectRoleById(guaBpMaster.getBpId());
         for (String s : stringList) {
-            if (s.equals("GUARANTOR")){
+            if (s.equals("WARRANTOR")){
                 flag = true;
             }
         }
         if (!flag){
             HlsBpMasterRole hlsBpMasterRole = new HlsBpMasterRole();
             hlsBpMasterRole.setBpId(guaBpMaster.getBpId());
-            hlsBpMasterRole.setBpType("GUARANTOR");
-            hlsBpMasterRole.setBpCategory("GUARANTOR");
+            hlsBpMasterRole.setBpType("WARRANTOR");
+            hlsBpMasterRole.setBpCategory("WARRANTOR");
             hlsBpMasterRole.setEnabledFlag("Y");
             if(stringList.isEmpty()){
                 hlsBpMasterRole.setPrimaryFlag("Y");
@@ -983,7 +982,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if(hlsCusPrjProjectBp == null){
             HlsCusPrjProjectBp hlsCusPrjProjectBp1 = new HlsCusPrjProjectBp();
             hlsCusPrjProjectBp1.setProjectId(hlsCusPrjProject.getProjectId());
-            hlsCusPrjProjectBp1.setBpCategroy("GUARANTOR");
+            hlsCusPrjProjectBp1.setBpCategroy("WARRANTOR");
             hlsCusPrjProjectBp1.setBpId(guaBpMaster.getBpId());
             hlsCusPrjProjectBp1.setRefV02(preRiskAuditData.getDbryczrgx());//担保人与承租人关系
             hlsCusPrjProjectBpMapper.insertSelective(hlsCusPrjProjectBp1);

@@ -6,9 +6,13 @@ import com.hand.hap.account.mapper.UserMapper;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
+import com.hand.hls.partner.dto.BusinessApplicationDTO;
 import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.partner.util.RsaAesUtils;
+import com.hand.hls.prj.dto.HlsCusPrjProject;
+import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.sys.dto.FndEmployee;
+import com.hand.hls.sys.dto.SysUser;
 import com.hand.hls.sys.dto.SysUserAllocation;
 import com.hand.hls.sys.mapper.FndEmployeeMapper;
 import com.hand.hls.sys.mapper.SysUserAllocationMapper;
@@ -44,6 +48,8 @@ public class YLInterfaceController extends BaseController {
     private SysUserAllocationMapper sysUserAllocationMapper;
     @Autowired
     private FndEmployeeMapper fndEmployeeMapper;
+    @Autowired
+    private HlsCusPrjProjectMapper prjProjectMapper;
 
     private HttpServletRequest fakeRequest = new MockHttpServletRequest();
     private static String LOCAL = "zh_CN";
@@ -580,7 +586,8 @@ public class YLInterfaceController extends BaseController {
     )
     @ResponseBody
     public JSONObject businessApplication(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
-        IRequest iRequest = this.createIRequest(request);
+
+
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -594,7 +601,10 @@ public class YLInterfaceController extends BaseController {
             resJson.put("message","请求报文预处理失败！");
             return updateLogs(hlsWsRequests,JSONObject.toJSONString(resJson),"E");
         }
-
+        BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(hlsWsRequests.getRequestJson(), BusinessApplicationDTO.class);
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(businessApplicationDTO.getOrderNo());
+        User sysUser = userMapper.queryByEmployeeId(hlsCusPrjProject.getEmployeeId());
+        IRequest iRequest = this.createIRequest(sysUser);
         String resStr = null;
         String returnStatus = "S";
         try{
@@ -682,11 +692,11 @@ public class YLInterfaceController extends BaseController {
         return encryptedResJson;
     }
 
-    private IRequest createIRequest(HttpServletRequest request) throws HlsCusException {
-        Long userId = createRequestContext(request).getUserId();
-        User sysUser = userMapper.selectByPrimaryKey(userId);
+    private IRequest createIRequest(User sysUser) throws HlsCusException {
+        //Long userId = createRequestContext(request).getUserId();
+        //User sysUser = userMapper.selectByPrimaryKey(userId);
         if (ObjectUtils.isEmpty(sysUser)) {
-            throw new HlsCusException("未找到用户（userId：" + userId + "）!");
+            throw new HlsCusException("未找到该项目的业务经理");
         }
 
         SysUserAllocation sysUserAllocation = new SysUserAllocation();

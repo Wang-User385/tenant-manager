@@ -90,6 +90,10 @@ public class HlsCusPrjProjectBp extends BaseDTO {
     private String refV02;
     private String refV03;
     @Transient
+    private String refV02N;
+    @Transient
+    private String tenantName;
+    @Transient
     private String allocatFlag;
 
     public String getRefV02() {

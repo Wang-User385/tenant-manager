@@ -129,6 +129,9 @@
         <result column="industry_n" property="industryN"/>
         <result column="credit_grade" property="creditGrade" jdbcType="DECIMAL"/>
         <result column="credit_grade_N" property="creditGradeN" jdbcType="VARCHAR"/>
+        <result column="tenant_name" property="tenantName" jdbcType="VARCHAR"/>
+        <result column="ref_v02" property="refV02" jdbcType="VARCHAR"/>
+        <result column="ref_v02_n" property="refV02N" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="BpInfoMap" type="map">
@@ -1430,5 +1433,64 @@ and m.BP_CLASS= #{bpClass}
         from prj_project_bp ppb
         where ppb.project_id = #{projectId}
         and ppb.bp_categroy = 'TENANT-SEC'
+    </select>
+    <resultMap id="BpRelationMap" type="map">
+        <result column="prj_bp_id" property="prj_bp_id"/>
+        <result column="bp_id" property="bp_id"/>
+        <result column="bp_code" property="bp_code"/>
+        <result column="bp_name" property="bp_name"/>
+        <result column="tenant_name" property="tenant_name"/>
+        <result column="bp_class" property="bp_class"/>
+        <result column="bp_class_n" property="bp_class_n"/>
+        <result column="enabled_flag" property="enabled_flag"/>
+        <result column="project_id" property="project_id"/>
+        <result column="bp_categroy" property="bp_categroy"/>
+        <result column="bp_categroy_n" property="bp_categroy_n"/>
+        <result column="description" property="description"/>
+        <result column="ref_v02" property="ref_v02"/>
+        <result column="ref_v02_n" property="ref_v02_n"/>
+    </resultMap>
+    <!--进件创建明细页关联人信息查询-->
+    <select id="prjProjectBpRelationQuery" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectBp" resultMap="BpRelationMap">
+        select v.*
+        from (SELECT hbm.bp_id,
+        hbm.bp_code,
+        hbm.bp_name,
+        hbm.bp_name tenant_name,
+        hbm.bp_class,
+        (select hbt.description from hls_business_type hbt where hbm.bp_class = hbt.business_type AND hbt.document_category = 'HLS_BP_MASTER') bp_class_n,
+        hbm.enabled_flag,
+        hbm.data_class,
+        ppb.prj_bp_id,
+        ppb.bp_type,
+        ppb.project_id,
+        ppb.ref_v02,
+        (SELECT
+        v.meaning AS value_name
+        FROM
+        sys_code_value_b_v v
+        WHERE
+        v.CODE = 'ZX_MEMBERTYPE'
+        and v.code_value=ppb.REF_V02) ref_v02_n,
+        ppb.bp_categroy,
+        (SELECT hbc.description FROM hls_bp_category hbc WHERE ppb.bp_categroy = hbc.bp_category) bp_categroy_n
+        from prj_project_bp ppb
+        left join hls_bp_master hbm
+        on ppb.bp_id = hbm.bp_id) v
+        <where>
+            1=1
+            <if test="projectId != null">
+                and v.project_id = #{projectId}
+            </if>
+            <if test="bpType != null">
+                and v.bp_type = #{bpType}
+            </if>
+            <if test="bpCategroy != null">
+                and v.bp_categroy = #{bpCategroy}
+            </if>
+            <if test="bpId !=null">
+                and v.bp_id = #{bpId}
+            </if>
+        </where>
     </select>
 </mapper>

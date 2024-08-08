@@ -12,6 +12,7 @@ import java.util.Map;
 public interface HlsCusPrjProjectBpMapper extends Mapper<HlsCusPrjProjectBp> {
     List<HlsCusPrjProjectBp> queryPledge(HlsCusPrjProjectBp hlsCusPrjProjectBp);
     List<HlsCusPrjProjectBp> prjProjectBpInfoQuery(HlsCusPrjProjectBp hlsCusPrjProjectBp);
+    List<Map> prjProjectBpRelationQuery(HlsCusPrjProjectBp hlsCusPrjProjectBp);
 
     List<HlsCusPrjProjectBp> prjProjectBpQuery(HlsCusPrjProjectBp var1);
 

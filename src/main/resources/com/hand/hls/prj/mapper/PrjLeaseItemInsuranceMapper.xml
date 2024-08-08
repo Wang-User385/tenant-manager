@@ -59,6 +59,51 @@
         where i.PROJECT_LEASE_ITEM_ID = #{projectLeaseItemId}
         order by i.INSURANCE_DATE_FROM asc
     </select>
+    <resultMap id="InsuranceInfoMap" type="map">
+        <result column="is_compulsory_insurance" property="is_compulsory_insurance"/>
+        <result column="compulsory_amount" property="compulsory_amount"/>
+        <result column="compulsory_end_date" property="compulsory_end_date"/>
+        <result column="commercial_insurance" property="commercial_insurance"/>
+        <result column="extended_warranty_amount" property="extended_warranty_amount"/>
+        <result column="insurance_amount" property="insurance_amount"/>
+        <result column="is_vehicle_damage" property="is_vehicle_damage"/>
+        <result column="vehicle_end_date" property="vehicle_end_date"/>
+        <result column="is_third_party" property="is_third_party"/>
+        <result column="third_end_date" property="third_end_date"/>
+    </resultMap>
+    <select id="selectNewInfo" resultMap="InsuranceInfoMap">
+        select
+            i.INSURANCE_ID,
+            i.INSURANCE_TYPE,
+            (select meaning
+             from sys_code_value_b_v
+             where code = 'NEW_INSURANCE_TYPE'
+               and code_value = i.INSURANCE_TYPE)                                   as insuranceTypeN,
+            i.INSURANCE_DATE_FROM,
+            i.INSURANCE_DATE_TO,
+            i.INSURANCE_COMPANY,
+            i.INSURANCE_NUMBER,
+            i.INSURANCE_AMOUNT,
+            i.FIRST_BENEFICIARY,
+            i.CREATION_DATE,
+            i.PROJECT_LEASE_ITEM_ID,
+            i.COMPULSORY_AMOUNT,
+            decode(i.IS_COMPULSORY_INSURANCE,'1','是','2','否',' ') IS_COMPULSORY_INSURANCE,
+            i.COMPULSORY_END_DATE,
+            (select scv.MEANING
+             from sys_code_b sc,sys_code_value_b scv
+             where sc.CODE_ID = scv.CODE_ID
+               and sc.CODE = 'PRJ501_COMMERCIAL_INSURANCE'
+               and scv.value = i.COMMERCIAL_INSURANCE) COMMERCIAL_INSURANCE,
+            i.EXTENDED_WARRANTY_AMOUNT,
+            decode(i.IS_VEHICLE_DAMAGE,'1','是','2','否',' ') IS_VEHICLE_DAMAGE,
+            i.VEHICLE_END_DATE,
+            decode(i.IS_THIRD_PARTY,'1','是','2','否',' ') IS_THIRD_PARTY,
+            i.THIRD_END_DATE
+        from PRJ_LEASE_ITEM_INSURANCE i
+        where i.PROJECT_LEASE_ITEM_ID = #{projectLeaseItemId}
+        order by i.INSURANCE_DATE_FROM asc
+    </select>
     <select id="queryAll1" resultMap="BaseResultMap">
         select *
         from (select t1.insurance_id,

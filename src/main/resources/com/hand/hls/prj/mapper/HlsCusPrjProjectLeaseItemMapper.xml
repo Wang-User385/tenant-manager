@@ -182,6 +182,115 @@
         </where>
     </select>
 
+    <resultMap id="LeaseItemMap" type="map">
+        <result column="manufacturer" property="manufacturer"/>
+        <result column="voiture_type" property="voiture_type"/>
+        <result column="brand_c" property="brand_c"/>
+        <result column="model_c" property="model_c"/>
+        <result column="series_c" property="series_c"/>
+        <result column="color_c" property="color_c"/>
+        <result column="vehicle_capacity" property="vehicle_capacity"/>
+        <result column="frame_number" property="frame_number"/>
+        <result column="engine_number" property="engine_number"/>
+        <result column="evaluation_value" property="evaluation_value"/>
+        <result column="price" property="price"/>
+        <result column="selling_price" property="selling_price"/>
+        <result column="list_price" property="list_price"/>
+        <result column="loan_purpose" property="loan_purpose"/>
+        <result column="lease_item_amount" property="lease_item_amount"/>
+        <result column="product_date" property="product_date"/>
+        <result column="first_registration_date" property="first_registration_date"/>
+        <result column="transfer_registration_date" property="transfer_registration_date"/>
+        <result column="plate_type" property="plate_type"/>
+        <result column="license_plate_number" property="license_plate_number"/>
+        <result column="nature_of_vehicle_n" property="nature_of_vehicle_n"/>
+        <result column="city_code_n" property="city_code_n"/>
+        <result column="first_plate_date" property="first_plate_date"/>
+        <result column="license_plate_ownership" property="license_plate_ownership"/>
+        <result column="odometer_reading" property="odometer_reading"/>
+        <result column="gps_is_installation_n" property="gps_is_installation_n"/>
+        <result column="gps_fee" property="gps_fee"/>
+        <result column="plate_invoice_amount" property="plate_invoice_amount"/>
+        <result column="accessory_amount" property="accessory_amount"/>
+        <result column="vehicle_age" property="vehicle_age"/>
+        <result column="prop_person" property="prop_person"/>
+        <result column="purchase_tax" property="purchase_tax"/>
+        <result column="vehicle_tax" property="vehicle_tax"/>
+        <result column="fuel_type_n" property="fuel_type_n"/>
+        <result column="is_import_n" property="is_import_n"/>
+    </resultMap>
+
+    <select id="queryPrjProjectLeaseItemInfo" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem"
+            resultMap="LeaseItemMap">
+        select
+        hcli.project_id,
+        hcli.project_lease_item_id,
+        hcli.LEASE_ITEM_ID ,
+        hcli.manufacturer,
+        hcli.lease_item_name,
+        hcli.voiture_type,
+        hcli.brand_c,
+        hcli.model_c,
+        hcli.series_c,
+        hcli.color_c,
+        hcli.vehicle_capacity,
+        hcli.frame_number,
+        hcli.engine_number,
+        hcli.evaluation_value,
+        hcli.price,
+        hcli.selling_price,
+        hcli.list_price,
+        hcli.loan_purpose,
+        hcli.lease_item_amount,
+        hcli.product_date,
+        hcli.first_registration_date,
+        hcli.transfer_registration_date,
+        hcli.plate_type,
+        hcli.license_plate_number,
+        hcli.nature_of_vehicle,
+        ( SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'CON_NATURE_VEHICLE'
+        AND v.code_value = hcli.nature_of_vehicle
+        AND v.ENABLED_FLAG = 'Y') nature_of_vehicle_n,
+        hcli.city_code,
+        (select f.description
+        from fnd_city f
+        where f.enabled_flag = 'Y'
+        and f.city = hcli.city_code) city_code_n,
+        hcli.first_plate_date,
+        hcli.license_plate_ownership,
+        hcli.odometer_reading,
+        hcli.gps_is_installation,
+        ( SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'SYS.YES_NO'
+        AND v.code_value = hcli.gps_is_installation
+        AND v.ENABLED_FLAG = 'Y') gps_is_installation_n,
+        hcli.gps_fee,
+        hcli.plate_invoice_amount,
+        hcli.accessory_amount,
+        hcli.vehicle_age,
+        hcli.prop_person,
+        hcli.purchase_tax,
+        hcli.vehicle_tax,
+        hcli.fuel_type,
+        ( SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'FUEL_TYPE'
+        AND v.code_value = hcli.fuel_type
+        AND v.ENABLED_FLAG = 'Y') fuel_type_n,
+        hcli.is_import,
+        ( SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'SYS.YES_NO'
+        AND v.code_value = hcli.is_import
+        AND v.ENABLED_FLAG = 'Y') is_import_n
+        from prj_project_lease_item hcli
+        <where>
+            hcli.project_lease_item_id = #{projectLeaseItemId}
+        </where>
+    </select>
     <select id="queryPrjProjectLeaseItem" parameterType="com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem"
             resultMap="BaseResultMap">
         select

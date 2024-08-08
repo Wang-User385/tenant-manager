@@ -3,10 +3,10 @@ package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.prj.dto.PrjProjectLeaseItemMortgage;
-import com.hand.hls.prj.dto.PrjProjectLeaseItemSales;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -15,6 +15,7 @@ import java.util.List;
 public interface ProjectLeaseItemMortgageMapper extends Mapper<PrjProjectLeaseItemMortgage> {
 
     List<PrjProjectLeaseItemMortgage> prjProjectLeaseItemMortgageQuery(@Param("projectLeaseItemId") Long projectLeaseItemId);
+    Map prjProjectLeaseItemMortgageInfo(@Param("projectLeaseItemId") Long projectLeaseItemId);
 
 
     List<PrjProjectLeaseItemMortgage> prjProjectLeaseItemMortgageByLeaseItemId(@Param("projectLeaseItemId") Long projectLeaseItemId);
