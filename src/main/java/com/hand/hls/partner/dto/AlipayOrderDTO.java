@@ -4,10 +4,12 @@ package com.hand.hls.partner.dto;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import com.hand.hap.mybatis.annotation.ExtensionAttribute;
+import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 import javax.persistence.Table;
 import com.hand.hap.system.dto.BaseDTO;
 @ExtensionAttribute(disable=true)
+@Data
 @Table(name = "GT_ALIPAY_ORDER")
 public class AlipayOrderDTO extends BaseDTO {
 
@@ -28,7 +30,7 @@ public class AlipayOrderDTO extends BaseDTO {
 
      private Long cashflowId;
 
-     private Double amount;
+     private Long amount;
 
      @Length(max = 128)
      private String subject;
@@ -37,52 +39,5 @@ public class AlipayOrderDTO extends BaseDTO {
      private String status;
 
 
-     public void setOrderId(Long orderId){
-         this.orderId = orderId;
-     }
-
-     public Long getOrderId(){
-         return orderId;
-     }
-
-     public void setOutSeqNo(String outSeqNo){
-         this.outSeqNo = outSeqNo;
-     }
-
-     public String getOutSeqNo(){
-         return outSeqNo;
-     }
-
-     public void setCashflowId(Long cashflowId){
-         this.cashflowId = cashflowId;
-     }
-
-     public Long getCashflowId(){
-         return cashflowId;
-     }
-
-     public void setAmount(Double amount){
-         this.amount = amount;
-     }
-
-     public Double getAmount(){
-         return amount;
-     }
-
-     public void setSubject(String subject){
-         this.subject = subject;
-     }
-
-     public String getSubject(){
-         return subject;
-     }
-
-     public void setStatus(String status){
-         this.status = status;
-     }
-
-     public String getStatus(){
-         return status;
-     }
 
      }
