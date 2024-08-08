@@ -152,7 +152,7 @@ public class HlsProductDefinition extends BaseDTO {
     private Double manufacturerPenaltyRate;
     @Transient
     private Long gracePeriod;
-    @Transient
+
     private Double penaltyRate;
     @Transient
     private Long manufacturerGraceDay;

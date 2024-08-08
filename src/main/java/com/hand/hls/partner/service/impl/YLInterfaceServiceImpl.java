@@ -283,6 +283,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         hlsCusPrjProject.setLoanSubmitValueSecondTime(hlsProductDefinitionList.get(0).getLoanSubmitValueSecondTime());
         hlsCusPrjProject.setCompenDay(hlsProductDefinitionList.get(0).getCompenDay());
         hlsCusPrjProject.setBuyBackDay(hlsProductDefinitionList.get(0).getBuyBackDay());
+        hlsCusPrjProject.setPenaltyRate(hlsProductDefinitionList.get(0).getPenaltyRate());
 
         HlsCusBpMasterBankAccount bankAccountInfo = hlsCusBpMasterBankAccountMapper.selectBankByBpId(hlsCusBpMasters.get(0).getBpId());
         hlsCusPrjProject.setBankAccountNum(bankAccountInfo.getBankAccountNum());

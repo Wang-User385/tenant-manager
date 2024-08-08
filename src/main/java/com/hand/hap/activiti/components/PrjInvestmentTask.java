@@ -17,6 +17,8 @@ import com.hand.hls.csh.dto.HlsCusCshPaymentReqHd;
 import com.hand.hls.csh.dto.HlsCusCshPaymentReqLn;
 import com.hand.hls.csh.mapper.HlsCusCshPaymentReqHdMapper;
 import com.hand.hls.csh.mapper.HlsCusCshPaymentReqLnMapper;
+import com.hand.hls.fnd.dto.HlsProductDefinition;
+import com.hand.hls.fnd.mapper.HlsProductDefinitionMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
@@ -65,6 +67,8 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
     private HlsCusBpMasterMapper hlsCusBpMasterMapper;
     @Autowired
     private HlsCusBpMasterBankAccountMapper bankAccountmapper;
+    @Autowired
+    private HlsProductDefinitionMapper hlsProductDefinitionMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -116,6 +120,16 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         newContract.setVatRate(prjQuotation.getIntRate());
         newContract.setIntRate(prjQuotation.getIntRate());
         newContract.setLeaseItemAmount(newContract.getFinanceAmount());
+        //获取产品线罚息率
+        //当前进件业务只有一家合作商，暂时只插入固定的这个合作商
+        HlsCusBpMaster hlsCusBpMasterProduct = new HlsCusBpMaster();
+        hlsCusBpMasterProduct.setBpCode("BP202407230057");
+        hlsCusBpMasterProduct.setBpType("MANUFACTURER");
+        List<HlsCusBpMaster> hlsCusBpMasterProducts = hlsCusBpMasterMapper.selectHlsBpMaster(hlsCusBpMasterProduct);
+        HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
+        hlsProductDefinition.setBpId(hlsCusBpMasterProducts.get(0).getBpId());
+        List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
+        newContract.setPenaltyRate(hlsProductDefinitionList.get(0).getPenaltyRate());
         hlsCusConContractMapper.insertSelective(newContract);
         //step2 创建合同现金流
         HlsCusPrjQuotationCashflow prjQuoCashflow = new HlsCusPrjQuotationCashflow();
