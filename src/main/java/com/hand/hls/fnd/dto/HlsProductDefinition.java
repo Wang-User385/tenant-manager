@@ -100,7 +100,14 @@ public class HlsProductDefinition extends BaseDTO {
      * 再次放款申请提交有效期
      */
     private Long loanSubmitValueSecondTime;
-
+    /**
+     * 代偿天数
+     */
+    private Long compenDay;
+    /**
+     * 回购天数
+     */
+    private Long buyBackDay;
     @Children
     @Transient
     private List<HlsProductDefinitionPara> hlsProductDefinitionParaList;

@@ -3211,4 +3211,8 @@ public class HlsCusPrjProject extends PrjProject {
     private Long loanSubmitValueTime; //放款申请提交有效期
 
     private Long loanSubmitValueSecondTime; //再次放款申请提交有效期
+
+    private Long compenDay; //代偿天数
+
+    private Long buyBackDay; //回购天数
 }
