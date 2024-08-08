@@ -11514,47 +11514,116 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         order by cc.contract_number
     </select>
 
-    <select id="findAttachReview" resultMap="BaseResultMap">
-        SELECT
-            cca.CONTRACT_ATTACHMENT_ID,
-            document_name,
-            ( SELECT max( m.creation_date ) FROM fnd_atm_attachment_multi m WHERE m.table_name = 'CON_CONTRACT_ATTACHMENT' AND m.table_pk_value = contract_attachment_id ) upload_date
-        FROM
-            con_contract_attachment cca
-        WHERE
-            cca.contract_attachment_category ='EXAMINE' and cca.contract_id = #{contractId}
+    <resultMap id="PrjProjectAttachQueryMap" type="map">
+        <result column="project_id" property="project_id"/>
+        <result column="project_attachment_id" property="contract_attachment_id"/>
+        <result column="document_name" property="document_name"/>
+        <result column="info" property="info"/>
+        <result column="upload_person_id" property="upload_person_id"/>
+        <result column="file_num" property="file_num"/>
+        <result column="contract_id" property="contract_id"/>
+        <result column="upload_date" property="upload_date"/>
+    </resultMap>
+    <select id="findAttachReview" resultMap="PrjProjectAttachQueryMap">
+        Select ppa.project_id,
+               ppa.project_attachment_id,
+               ppa.document_name,
+               cc.contract_id,
+               ppa.project_attachment_category,
+               (Select to_char(wm_concat(faa.file_name)) modelName
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) info,
+               (
+                   SELECT
+                       count(1)
+                   FROM
+                       fnd_atm_attachment faa,
+                       fnd_atm_attachment_multi faam
+                   WHERE
+                       faam.attachment_id = faa.attachment_id
+                     AND faam.table_pk_value = ppa.project_attachment_id
+                     AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+               )  file_num,
+               (select faam.creation_date
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id
+                  and rownum = 1) upload_date
+        From prj_project_attachment ppa,con_contract cc
+        Where cc.contract_id = #{contractId}
+            and ppa.project_id = cc.project_id
+            and ppa.project_attachment_category = 'LOAN'
     </select>
 
-    <select id="findAttachContact" resultMap="BaseResultMap">
-        SELECT
-            cca.CONTRACT_ATTACHMENT_ID,
-            document_name,
-            ( SELECT max( m.creation_date ) FROM fnd_atm_attachment_multi m WHERE m.table_name = 'CON_CONTRACT_ATTACHMENT' AND m.table_pk_value = contract_attachment_id ) upload_date
-        FROM
-            con_contract_attachment cca
-        WHERE
-            cca.contract_attachment_category ='CONTRACT' and cca.contract_id = #{contractId}
+    <select id="findAttachContact" resultMap="PrjProjectAttachQueryMap">
+        Select ppa.project_id,
+               ppa.project_attachment_id,
+               cc.contract_id,
+               ppa.document_name,
+               ppa.project_attachment_category,
+               (Select to_char(wm_concat(faa.file_name)) modelName
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) info,
+               (
+                   SELECT
+                       count(1)
+                   FROM
+                       fnd_atm_attachment faa,
+                       fnd_atm_attachment_multi faam
+                   WHERE
+                       faam.attachment_id = faa.attachment_id
+                     AND faam.table_pk_value = ppa.project_attachment_id
+                     AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+               )  file_num,
+               (select faam.creation_date
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id
+                  and rownum = 1) upload_date
+        From prj_project_attachment ppa,con_contract cc
+        Where cc.contract_id = #{contractId}
+          and ppa.project_id = cc.project_id
+          and ppa.project_attachment_category = 'CONTRACT'
     </select>
 
-    <select id="findAttachMortgage" resultMap="BaseResultMap">
-        SELECT
-            cca.CONTRACT_ATTACHMENT_ID,
-            (
-                SELECT
-                    LISTAGG(file_name,',') WITHIN GROUP (ORDER BY file_name) as document_name
-        FROM
-            fnd_atm_attachment_multi faam,
-            fnd_atm_attachment fat
-        WHERE
-            cca.CONTRACT_ATTACHMENT_ID = faam.table_pk_value
-          AND faam.attachment_id = fat.attachment_id
-          AND faam.table_name = 'CON_CONTRACT_ATTACHMENT' and cca.contract_attachment_category = 'MORTGAGE'  and cca.contract_id = #{contractId}
-            ) document_name,
-            ( SELECT max( m.creation_date ) FROM fnd_atm_attachment_multi m WHERE m.table_name = 'CON_CONTRACT_ATTACHMENT' AND m.table_pk_value = contract_attachment_id ) upload_date
-        FROM
-            con_contract_attachment cca
-        WHERE
-            cca.contract_attachment_category ='MORTGAGE' and cca.contract_id = #{contractId}
+    <select id="findAttachMortgage" resultMap="PrjProjectAttachQueryMap">
+        Select ppa.project_id,
+               ppa.project_attachment_id,
+               ppa.document_name,
+               cc.contract_id,
+               ppa.project_attachment_category,
+               (Select to_char(wm_concat(faa.file_name)) modelName
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and rownum &lt;= 10) info,
+               (
+                   SELECT
+                       count(1)
+                   FROM
+                       fnd_atm_attachment faa,
+                       fnd_atm_attachment_multi faam
+                   WHERE
+                       faam.attachment_id = faa.attachment_id
+                     AND faam.table_pk_value = ppa.project_attachment_id
+                     AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+               )  file_num,
+               (select faam.creation_date
+                from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+                  and faam.table_pk_value = ppa.project_attachment_id
+                  and faa.source_pk_value = faam.record_id
+                  and rownum = 1) upload_date
+        From prj_project_attachment ppa,con_contract cc
+        Where cc.contract_id = #{contractId}
+          and ppa.project_id = cc.project_id
+          and ppa.project_attachment_category = 'MORTGAGE'
     </select>
 
     <select id="findContractByPayPlan"  resultMap="BaseResultMap" parameterType="com.hand.hls.prj.dto.HlsCusPrjProject">

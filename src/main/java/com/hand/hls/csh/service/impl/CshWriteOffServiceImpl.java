@@ -1810,8 +1810,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             item.setAdvanceReceiptAmount(nvl(item.getAdvanceReceiptAmount(), 0.0));
         });
 
-        //二期功能：核销为保证金
-        /*List<CshAllocationDeposit> allocationDepositList = cshTransactionList.get(0).getCshAllocationDepositList();*/
         //保证金待核销金额汇总
         Double allocationDepositWriteOffAmountTotal = 0D;
 
@@ -1821,24 +1819,15 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         //预核销金额汇总
         Double advanceReceiptAmountTotal = round(cshTransactionList.stream().collect(Collectors.summingDouble(HlsCusCshTransaction::getAdvanceReceiptAmount)), 2);
         //本次核销金额汇总
-        //二期功能：核销为保证金与债权二选一，这里处理赋值。因为在业务上这两者的逻辑是一样的
-        //List<HlsCusCshWriteOff> cshWriteOffList = cshTransactionList.get(0).getCshWriteOffList();
-        //二期功能：核销为债权（CREDIT）或 核销为保证金（DEPOSIT）
+
+        //二期功能：核销为债权（CREDIT）
         String writeOffTypeFlag = null;
 
         List<HlsCusCshWriteOff> cshWriteOffList = new ArrayList<>();
         if (CollectionUtils.isNotEmpty(cshTransactionList.get(0).getCshWriteOffList())){
             writeOffTypeFlag = CREDIT;
             cshWriteOffList = cshTransactionList.get(0).getCshWriteOffList();
-        }/*else if (CollectionUtils.isNotEmpty(allocationDepositList)){
-            for (CshAllocationDeposit deposit : allocationDepositList){
-                HlsCusCshWriteOff writeOffCopy = new HlsCusCshWriteOff();
-                BeanRefUtils.beanToBean(deposit, writeOffCopy, hlsBeanRefUtilService);
-                cshWriteOffList.add(writeOffCopy);
-            }
-            allocationDepositWriteOffAmountTotal = round(allocationDepositList.stream().collect(Collectors.summingDouble(CshAllocationDeposit::getWriteOffDueAmount)), 2);
-            writeOffTypeFlag = DEPOSIT;
-        }*/
+        }
 
         Double canWriteOffAmountTotal = round(cshWriteOffList.stream().collect(Collectors.summingDouble(HlsCusCshWriteOff::getWriteOffDueAmount)), 2);
 
@@ -1954,12 +1943,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         }
 
         self().writeOff(iRequest, hlsCusCshWriteOffs, session);
-
-        //二期功能：核销为保证金后，对原有对合同现金流进行保证金补足
-       /* if(DEPOSIT.equals(writeOffTypeFlag)){
-            makeUpTheContractDeposit(iRequest, allocationDepositList);
-        }*/
-
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 
         //如果AllocationId 没有值 插入 ，否则更新
