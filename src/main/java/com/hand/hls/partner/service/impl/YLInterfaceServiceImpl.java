@@ -39,6 +39,7 @@ import com.hand.hls.prj.dto.*;
 import com.hand.hls.prj.mapper.*;
 import com.hand.hls.sys.dto.SysDocumentList;
 import com.hand.hls.sys.mapper.SysDocumentListMapper;
+import com.hand.hls.sys.utils.OracleUtils;
 import com.hand.hls.utils.ResMessageException;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
@@ -431,53 +432,87 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOLists();
         for (TermRepayDetailApplyDTO termRepayDetailApplyDTO : termRepayDetailApplyDTOList) {
-            if (!"TRANSFER".equals(repayMent.getRepayType())){
-                returnJson.put("code","100003");
-                returnJson.put("message","不是转付确认所需要的还款方式");
-                throw new HlsCusException(returnJson.toJSONString());
-            }
-            //将数据保存入库
-            YLCshTransferPaymentDto dto = new YLCshTransferPaymentDto();
-            HlsCusConContractCashflow hlsCusConContractCashflow = hlsCusConContractCashflowMapper.getHlsCusConContractCashflowByContractId(hlsCusConContract.getContractId(),termRepayDetailApplyDTO.getTermNo());
-            if (ObjectUtils.isEmpty(hlsCusConContractCashflow)){
-                returnJson.put("code","100003");
-                returnJson.put("message","该合同对应的现金流已经结清或者不存在");
-                throw new HlsCusException(returnJson.toJSONString());
-            }
-            Example example = new Example(YLCshTransferPaymentDto.class);
-            example.createCriteria().andEqualTo("contractId",hlsCusConContract.getContractId());
-            example.createCriteria().andEqualTo("cashflowId",hlsCusConContractCashflow.getCashflowId());
-            List<YLCshTransferPaymentDto> ylCshTransferPaymentDtos = ylCshTransferPaymentDtoMapper.selectByExample(example);
-            if (ylCshTransferPaymentDtos != null && ylCshTransferPaymentDtos.size() !=0 ){
-                returnJson.put("code","100003");
-                returnJson.put("message","多次传入相同数据");
-                throw new HlsCusException(returnJson.toJSONString());
-            }
-            Double sumAmount = HlsCusMathUtil.add(HlsCusMathUtil.add(hlsCusConContractCashflow.getPenalty(),hlsCusConContractCashflow.getPrincipal()),hlsCusConContractCashflow.getInterest());
-            if (HlsCusMathUtil.compare(sumAmount, BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayAmount() / 100).doubleValue()) != 0){
-                returnJson.put("code","100003");
-                returnJson.put("message","传入总金额和合同总金额不相等");
-                throw new HlsCusException(returnJson.toJSONString());
-            }
-            dto.setContractId(hlsCusConContract.getContractId());
-            dto.setCashflowId(hlsCusConContractCashflow.getCashflowId());
-            //设置期次数
-            dto.setTimes(termRepayDetailApplyDTO.getTermNo());
-            //设置金额
-            dto.setRepayAmount(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayAmount() / 100).doubleValue());
-            dto.setRepayPrincipal(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayPrincipal() / 100).doubleValue());
-            dto.setRepayInterest(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayInterest() / 100).doubleValue());
-            dto.setRepayPenalty(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayPenalty() / 100).doubleValue());
-            //设置转付日期
-            dto.setRepayDate(new Date());
-            //设置是否转让
-            dto.setTransferPaymentStatus("UNCONFIRMED");
-            ylCshTransferPaymentDtoMapper.insertSelective(dto);
+            //校验数据
+            checkTermRepayDetailApplyDto(returnJson, termRepayDetailApplyDTO);
+            //转付表新增操作
+            insertYlCshTrasactionPayment(repayMent, returnJson, hlsCusConContract, termRepayDetailApplyDTO);
         }
 
         returnJson.put("code","200");
         returnJson.put("message","转付成功");
         return returnJson.toJSONString();
+    }
+
+    private void insertYlCshTrasactionPayment(RepayMent repayMent, JSONObject returnJson, HlsCusConContract hlsCusConContract, TermRepayDetailApplyDTO termRepayDetailApplyDTO) throws HlsCusException {
+        Long repayPrincipal = termRepayDetailApplyDTO.getRepayPrincipal();
+        Long repayInterest = termRepayDetailApplyDTO.getRepayInterest();
+        Long repayPenalty = termRepayDetailApplyDTO.getRepayPenalty();
+        long amount = repayInterest + repayPenalty + repayPrincipal;
+        if (amount != termRepayDetailApplyDTO.getRepayAmount()){
+            returnJson.put("code","100003");
+            returnJson.put("message","传入的本金+利息+罚息不等于实际总金额");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+
+
+        if (!"TRANSFER".equals(repayMent.getRepayType())){
+            returnJson.put("code","100003");
+            returnJson.put("message","不是转付确认所需要的还款方式");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+
+        //将数据保存入库
+        YLCshTransferPaymentDto dto = new YLCshTransferPaymentDto();
+        HlsCusConContractCashflow hlsCusConContractCashflow = hlsCusConContractCashflowMapper.getHlsCusConContractCashflowByContractId(hlsCusConContract.getContractId(), termRepayDetailApplyDTO.getTermNo());
+        if (ObjectUtils.isEmpty(hlsCusConContractCashflow)){
+            returnJson.put("code","100003");
+            returnJson.put("message","该合同对应的现金流已经结清或者不存在");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        Example example = new Example(YLCshTransferPaymentDto.class);
+        example.createCriteria().andEqualTo("contractId", hlsCusConContract.getContractId()).andEqualTo("cashflowId",hlsCusConContractCashflow.getCashflowId());
+        List<YLCshTransferPaymentDto> ylCshTransferPaymentDtos = ylCshTransferPaymentDtoMapper.selectByExample(example);
+        if (ylCshTransferPaymentDtos != null && ylCshTransferPaymentDtos.size() !=0 ){
+            returnJson.put("code","100003");
+            returnJson.put("message","多次传入相同数据");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        Double sumAmount = HlsCusMathUtil.add(HlsCusMathUtil.add(OracleUtils.nvl(hlsCusConContractCashflow.getPenalty(),(double)0),OracleUtils.nvl(hlsCusConContractCashflow.getPrincipal(),(double)0)),OracleUtils.nvl(hlsCusConContractCashflow.getInterest(),(double)0));
+        if (HlsCusMathUtil.compare(sumAmount, BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayAmount() / 100).doubleValue()) != 0){
+            returnJson.put("code","100003");
+            returnJson.put("message","传入总金额和合同总金额不相等");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        dto.setContractId(hlsCusConContract.getContractId());
+        dto.setCashflowId(hlsCusConContractCashflow.getCashflowId());
+        //设置期次数
+        dto.setTimes(termRepayDetailApplyDTO.getTermNo());
+        //设置金额
+        dto.setRepayAmount(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayAmount() / 100).doubleValue());
+        dto.setRepayPrincipal(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayPrincipal() / 100).doubleValue());
+        dto.setRepayInterest(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayInterest() / 100).doubleValue());
+        dto.setRepayPenalty(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayPenalty() / 100).doubleValue());
+        //设置转付日期
+        dto.setRepayDate(new Date());
+        //设置是否转让
+        dto.setTransferPaymentStatus("UNCONFIRMED");
+        ylCshTransferPaymentDtoMapper.insertSelective(dto);
+    }
+
+    private void checkTermRepayDetailApplyDto(JSONObject returnJson, TermRepayDetailApplyDTO termRepayDetailApplyDTO) throws HlsCusException {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        Validator validator = factory.getValidator();
+
+        Set<ConstraintViolation<TermRepayDetailApplyDTO>> dtoChecks = validator.validate(termRepayDetailApplyDTO);
+        if (!dtoChecks.isEmpty()) {
+            StringBuilder message=new StringBuilder();
+            for (ConstraintViolation<TermRepayDetailApplyDTO> violation : dtoChecks) {
+                message.append(violation.getMessage()).append(" ");
+            }
+            returnJson.put("code","100001");
+            returnJson.put("message",message.toString());
+            throw new HlsCusException(returnJson.toJSONString());
+        }
     }
 
     @Override
