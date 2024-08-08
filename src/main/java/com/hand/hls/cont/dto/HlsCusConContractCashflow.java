@@ -175,7 +175,10 @@ HlsCusConContractCashflow extends BaseDTO {
     //表外字段代扣功能
     @Transient
     private   String  tenantIdN;//承租人
-
+//    @Transient
+//    private   Date  dueDateFrom;//承租人
+//    @Transient
+//    private   Date  dueDateTo;//承租人
     @Transient
     private   Long  projectId;//项目Id
     @Transient
