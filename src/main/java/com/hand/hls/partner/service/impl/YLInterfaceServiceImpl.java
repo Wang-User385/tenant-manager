@@ -55,6 +55,7 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
+import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -436,10 +437,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //设置期次数
             dto.setTimes(termRepayDetailApplyDTO.getTermNo());
             //设置金额
-            dto.setRepayAmount(termRepayDetailApplyDTO.getRepayAmount());
-            dto.setRepayPrincipal(termRepayDetailApplyDTO.getRepayPrincipal());
-            dto.setRepayInterest(termRepayDetailApplyDTO.getRepayInterest());
-            dto.setRepayPenalty(termRepayDetailApplyDTO.getRepayPenalty());
+            dto.setRepayAmount(new BigDecimal(termRepayDetailApplyDTO.getRepayAmount()/100).doubleValue());
+            dto.setRepayPrincipal(new BigDecimal(termRepayDetailApplyDTO.getRepayPrincipal()/100).doubleValue());
+            dto.setRepayInterest(new BigDecimal(termRepayDetailApplyDTO.getRepayInterest()/100).doubleValue());
+            dto.setRepayPenalty(new BigDecimal(termRepayDetailApplyDTO.getRepayPenalty()/100).doubleValue());
             //设置转付日期
             dto.setRepayDate(new Date());
             //设置是否转让
@@ -448,7 +449,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
 
         returnJson.put("code","200");
-        returnJson.put("message","还款成功");
+        returnJson.put("message","转付成功");
         return returnJson.toJSONString();
     }
 

@@ -47,19 +47,18 @@ public class HlsMortgageServiceTask implements JavaDelegate, IActivitiBean {
         HlsCusConContract conContract = new HlsCusConContract();
         conContract.setContractId(contractId);
         conContract = hlsCusConContractService.selectByPrimaryKey(requestCtx, conContract);
-        conContract.setMortgageInstanceId(processInstanceId);
-//        databaseLockProvider.lock(conContract);
-        if (APPROVED.equalsIgnoreCase(result)) {
-            conContract.setMortgageApprovedDate(new Date());
-            flag = "APPROVED";
-        } else if (REJECTED.equalsIgnoreCase(result)) {
-            flag = "REJECTED";
+        if (!APPROVED.equalsIgnoreCase(conContract.getMortgageStatus()) && !REJECTED.equalsIgnoreCase(conContract.getMortgageStatus())){
+            conContract.setMortgageInstanceId(processInstanceId);
+            if (APPROVED.equalsIgnoreCase(result)) {
+                conContract.setMortgageApprovedDate(new Date());
+                flag = "APPROVED";
+            } else if (REJECTED.equalsIgnoreCase(result)) {
+                flag = "REJECTED";
+            }
+            conContract.setMortgageStatus(flag);
+            hlsCusConContractService.updateByPrimaryKeySelective(requestCtx, conContract);
+            //调用车辆审核通知接口
+            iylMessageNoticeService.orderAuditResult(contractId,"MORTGAGE_MATERIAL_AUDIT",requestCtx);
         }
-        conContract.setMortgageStatus(flag);
-        hlsCusConContractService.updateByPrimaryKeySelective(requestCtx, conContract);
-        //调用车辆审核通知接口
-        iylMessageNoticeService.orderAuditResult(contractId,"MORTGAGE_MATERIAL_AUDIT",requestCtx);
-
-
     }
 }
