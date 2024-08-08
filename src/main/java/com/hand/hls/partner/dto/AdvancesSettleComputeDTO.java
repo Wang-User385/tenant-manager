@@ -12,7 +12,7 @@ import java.util.List;
 //提前结清
 
 @Data
-public class AdvancesSettleComputeDTO extends BaseDTO {
+public class AdvancesSettleComputeDTO{
 
     @NotBlank(message = "订单编号不能为空")
     private String orderNo;//订单编号

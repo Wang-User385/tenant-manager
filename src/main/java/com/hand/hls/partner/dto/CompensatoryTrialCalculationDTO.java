@@ -9,7 +9,7 @@ import javax.validation.constraints.NotNull;
 //代偿试算
 
 @Data
-public class CompensatoryTrialCalculationDTO extends BaseDTO {
+public class CompensatoryTrialCalculationDTO{
 
 
     @NotBlank(message = "订单编号不能为空")

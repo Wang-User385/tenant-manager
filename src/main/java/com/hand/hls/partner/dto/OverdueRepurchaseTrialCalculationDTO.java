@@ -9,7 +9,7 @@ import java.util.List;
 //逾期回购试算
 
 @Data
-public class OverdueRepurchaseTrialCalculationDTO extends BaseDTO {
+public class OverdueRepurchaseTrialCalculationDTO{
 
 
     @NotNull(message = "订单编号不能为空")

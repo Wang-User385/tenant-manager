@@ -8,7 +8,7 @@ import java.util.List;
 //账单查询
 
 @Data
-public class QueryOrder extends BaseDTO {
+public class QueryOrder{
 
     private String contractStatus;//合同状态
     private String orderNo;//订单编号

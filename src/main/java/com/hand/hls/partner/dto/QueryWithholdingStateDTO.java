@@ -8,7 +8,7 @@ import javax.validation.constraints.NotNull;
 //代扣状态查询
 
 @Data
-public class QueryWithholdingStateDTO extends BaseDTO {
+public class QueryWithholdingStateDTO{
 
     @NotNull(message = "订单编号不能为空")
     private String orderNo;//订单编号

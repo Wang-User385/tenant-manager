@@ -6,7 +6,7 @@ import lombok.Data;
 //还款计划期次详情信息
 
 @Data
-public class RepayPlanTermInfoDTO extends BaseDTO {
+public class RepayPlanTermInfoDTO{
 
     private Integer termNo;//期次号
     private String status;//期次详情状态；NOT_START_TERM - 未到期CURRENT_TERM - 当前期GRACE_TERM - 宽限期OVERDUE_TERM - 逾期ENDED - 结束

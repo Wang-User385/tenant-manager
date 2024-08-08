@@ -26,8 +26,6 @@ public class AssetNeedNoticeJob extends AbstractJob {
             iylMessageNoticeService.assetNeedSubstitute(null, request);
             //逾期需回购通知
             iylMessageNoticeService.assetNeedBuyback(null, request);
-            //关单结果通知
-            iylMessageNoticeService.orderClosedNotify(request);
         } catch (Exception e) {
             if (logger.isErrorEnabled()) {
                 logger.error(e.getMessage(), e);
