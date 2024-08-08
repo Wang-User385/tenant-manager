@@ -1865,8 +1865,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 return returnJson.toJSONString();
             }
         }else if ("APPLY_LOAN".equals(action)||"RE_APPLY_LOAN".equals(action)){
-            //发起投放审查流程前先校验
-            dateCheck(hlsCusPrjProject);
+
             //获取审批通过日的毫秒值
             long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
             //获取当前时间毫秒值
@@ -1879,6 +1878,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     returnJson.put("message","风控审核通过已超过三十天，请重新发起风控审核");
                     throw new HlsCusException(returnJson.toJSONString());
                 }
+                //发起投放审查流程前先校验
+                dateCheck(hlsCusPrjProject,1);
                 //发起投放审查流程
                 signWorkFlowSubmit(iRequest, hlsCusPrjProject);
                 hlsCusPrjProject.setInvestmentStatus("APPROVING");
@@ -1889,6 +1890,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                     returnJson.put("message","风控审核通过已超过五十天，请重新发起风控审核");
                     throw new HlsCusException(returnJson.toJSONString());
                 }
+                //发起投放审查流程前先校验
+                dateCheck(hlsCusPrjProject,2);
                 //发起投放审查流程
                 signWorkFlowSubmit(iRequest, hlsCusPrjProject);
                 hlsCusPrjProject.setInvestmentStatus("APPROVING");
@@ -2240,7 +2243,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         activitiStartService.start(iRequest, list, map);
     }
 
-    private void dateCheck(HlsCusPrjProject hlsCusPrjProject) throws HlsCusException {
+    private void dateCheck(HlsCusPrjProject hlsCusPrjProject,Integer num) throws HlsCusException {
         /**
          * 提交时校验
          */
@@ -2249,9 +2252,34 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         HlsCusPrjProject hlsCusPrjProjectList = prjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
         if ("APPROVING".equals(hlsCusPrjProjectList.getInvestmentStatus()) ) {
             returnJson.put("code","100101");
-            returnJson.put("message","已经提交了申请,无需重复提交!");
+            returnJson.put("message","当前单据已在付款审批中，请勿重复发起!");
             throw new HlsCusException(returnJson.toJSONString());
         }
+        if(num == 1){
+            if("APPROVED".equals(hlsCusPrjProjectList.getInvestmentStatus())){
+                returnJson.put("code","100101");
+                returnJson.put("message","当前单据已完成付款申请流程，请勿重复发起!");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+            if("REJECTED".equals(hlsCusPrjProjectList.getInvestmentStatus())){
+                returnJson.put("code","100101");
+                returnJson.put("message","当前单据放款审批流程为拒绝状态，如需重新发起，请通过RE_APPLY_LOAN进行发起!");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+        }
+        if(num == 2){
+            if("APPROVED".equals(hlsCusPrjProjectList.getInvestmentStatus())){
+                returnJson.put("code","100101");
+                returnJson.put("message","当前单据已完成付款申请流程，请勿重复发起!");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+            if("NEW".equals(hlsCusPrjProjectList.getInvestmentStatus())){
+                returnJson.put("code","100101");
+                returnJson.put("message","当前单据放款审批流程为新建状态，首次发起放款审批，请通过APPLY_LOAN进行发起!");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+        }
+
         //申请放款前，校验（合同、协议文件、抵质押材料）的相关附件是否已经上传
         String multiMessage = checkAttachMulti(hlsCusPrjProject.getProjectId());
         //如果校验不通过直接返回
