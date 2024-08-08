@@ -124,6 +124,32 @@ public class AlipayServiceImpl implements IAlipayService {
         return status;
     }
 
+    public String orderCancel(String penetrateId){
+        String code = "";
+
+        JSONObject reqJson = new JSONObject();
+        reqJson.put("penetrateId",penetrateId);
+        //step1: 代扣授权签约申请查询
+        HlsWsRequests hlsWsRequests = insertLogs("GT-MY-006-订单取消ORDER.CANCEL",reqJson);
+        String resStr = null;
+        String returnStatus = "S";
+        try{
+            resStr = AlipayUtils.orderCancel(penetrateId);
+        }catch(Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+        }
+        updateLogs(hlsWsRequests,resStr,returnStatus);
+
+        //step2：解析code
+        if(StringUtils.isNotEmpty(resStr)){
+            JSONObject resJson = JSONObject.parseObject(resStr);
+            JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_submit_response");
+            code = response.getString("code");
+        }
+        return code;
+    }
+
     @Override
     public String getPenetrateId(Long projectId){
         HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
@@ -177,6 +203,27 @@ public class AlipayServiceImpl implements IAlipayService {
                 if("ACTIVATED".equals(status)){
                     messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
                 }
+            }
+        }
+    }
+
+    @Override
+    public void signCancel(Long projectId){
+        //TO_BE_APPLIED：待客户端完成申请
+        //ACTIVATED：⽣效
+        //NOT_SUPPORTED：不⽀持
+        //CANCELED 取消
+        //FAILED 其他失败情况
+        HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
+        String alipayStatus = prjProject.getAlipayStatus();
+        if("ACTIVATED".equals(alipayStatus)){
+            String code = orderCancel(prjProject.getPenetrateId());
+            if("10000".equals(code)){
+                HlsCusPrjProject updateProject = new HlsCusPrjProject();
+                updateProject.setProjectId(projectId);
+                updateProject.setAlipayStatus("CANCELED");
+                prjProjectMapper.updateByPrimaryKeySelective(updateProject);
+                //代扣签约取消，暂不推送消息
             }
         }
     }
