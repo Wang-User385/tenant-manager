@@ -23,5 +23,5 @@ public class RepayMent extends BaseDTO {
 
     @NotNull(message = "详细信息不能为空")
     @Valid
-    private List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList;
+    private List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOLists;
 }

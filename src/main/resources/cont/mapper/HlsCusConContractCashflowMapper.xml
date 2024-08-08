@@ -9230,4 +9230,28 @@ and con.contract_status in
         where ccc.contract_id = #{contractId}
           and ccc.cf_item = 0
     </update>
+
+    <select id="getHlsCusConContractCashflowByContractId" resultMap="BaseResultMap">
+        SELECT
+            ccc.*,
+            (
+                SELECT
+                    DUE_AMOUNT
+                FROM
+                    CON_CONTRACT_CASHFLOW cf
+                WHERE
+                    cf.CONTRACT_ID = ccc.CONTRACT_ID
+                  AND cf.CF_ITEM = 9
+                  AND cf.TIMES = ccc.TIMES
+                  AND cf.CF_STATUS = 'RELEASE'
+            ) penalty
+        FROM
+            CON_CONTRACT_CASHFLOW ccc
+        WHERE
+            CONTRACT_ID = #{contractId}
+          AND CF_ITEM IN ( 1, 11 )
+          AND TIMES = #{termNo}
+          AND CF_STATUS = 'RELEASE'
+    </select>
+
 </mapper>

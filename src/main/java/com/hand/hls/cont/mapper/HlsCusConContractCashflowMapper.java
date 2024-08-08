@@ -337,4 +337,8 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
     List<HlsCusConContractCashflow> queryContractCashflowForCompLov(HlsCusConContractCashflow conContractCashflow);
 
     void updateCashflowByinfo(HlsCusConContractCashflow hlsCusConContractCashflow);
+
+    HlsCusConContractCashflow getHlsCusConContractCashflowByContractId(@Param("contractId") Long contractId,@Param("termNo") Long termNo);
+
+
 }

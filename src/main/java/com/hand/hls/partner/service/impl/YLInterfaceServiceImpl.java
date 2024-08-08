@@ -411,6 +411,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
 
+    @Autowired
+    private HlsCusConContractCashflowMapper hlsCusConContractCashflowMapper;
 
     @Override
     public String repayment(String decryptedStr) throws HlsCusException {
@@ -423,7 +425,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("message","不存在合同数据");
             throw new HlsCusException(returnJson.toJSONString());
         }
-        List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
+        List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOLists();
         for (TermRepayDetailApplyDTO termRepayDetailApplyDTO : termRepayDetailApplyDTOList) {
             if (!"TRANSFER".equals(repayMent.getRepayType())){
                 returnJson.put("code","100003");
@@ -432,15 +434,27 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
             //将数据保存入库
             YLCshTransferPaymentDto dto = new YLCshTransferPaymentDto();
+            HlsCusConContractCashflow hlsCusConContractCashflow = hlsCusConContractCashflowMapper.getHlsCusConContractCashflowByContractId(hlsCusConContract.getContractId(),termRepayDetailApplyDTO.getTermNo());
+            if (ObjectUtils.isEmpty(hlsCusConContractCashflow)){
+                returnJson.put("code","100003");
+                returnJson.put("message","该合同对应的现金流已经结清或者不存在");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+            Double sumAmount = HlsCusMathUtil.add(HlsCusMathUtil.add(hlsCusConContractCashflow.getPenalty(),hlsCusConContractCashflow.getPrincipal()),hlsCusConContractCashflow.getInterest());
+            if (HlsCusMathUtil.compare(sumAmount, BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayAmount() / 100).doubleValue()) != 0){
+                returnJson.put("code","100003");
+                returnJson.put("message","传入总金额和合同总金额不相等");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
             dto.setContractId(hlsCusConContract.getContractId());
-            dto.setContractId(hlsCusConContract.getCashflowId());
+            dto.setCashflowId(hlsCusConContractCashflow.getCashflowId());
             //设置期次数
             dto.setTimes(termRepayDetailApplyDTO.getTermNo());
             //设置金额
-            dto.setRepayAmount(new BigDecimal(termRepayDetailApplyDTO.getRepayAmount()/100).doubleValue());
-            dto.setRepayPrincipal(new BigDecimal(termRepayDetailApplyDTO.getRepayPrincipal()/100).doubleValue());
-            dto.setRepayInterest(new BigDecimal(termRepayDetailApplyDTO.getRepayInterest()/100).doubleValue());
-            dto.setRepayPenalty(new BigDecimal(termRepayDetailApplyDTO.getRepayPenalty()/100).doubleValue());
+            dto.setRepayAmount(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayAmount() / 100).doubleValue());
+            dto.setRepayPrincipal(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayPrincipal() / 100).doubleValue());
+            dto.setRepayInterest(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayInterest() / 100).doubleValue());
+            dto.setRepayPenalty(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayPenalty() / 100).doubleValue());
             //设置转付日期
             dto.setRepayDate(new Date());
             //设置是否转让

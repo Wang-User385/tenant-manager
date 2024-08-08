@@ -268,6 +268,7 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
         if (hlsCusCshTransaction.getWriteOffAmount() == null) {
             hlsCusCshTransaction.setWriteOffAmount(0D);
         }
+        hlsCusCshTransaction.setCompanyId(requestCtx.getCompanyId());
         //创建&&更新
         if (hlsCusCshTransaction.getTransactionId() == null) {
             self().insertSelective(requestCtx, hlsCusCshTransaction);
