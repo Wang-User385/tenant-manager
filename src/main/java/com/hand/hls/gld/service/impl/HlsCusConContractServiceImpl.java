@@ -4768,7 +4768,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     }
 
     @Override
-    public void updateContractStatus(Long contractId, HttpServletRequest request) {
+    public void updateContractStatus(Long contractId, HttpServletRequest request) throws hls.core.utils.exception.HlsCusException {
         HlsCusConContract hlsCusConContract = new HlsCusConContract();
         hlsCusConContract.setContractId(contractId);
         hlsCusConContract =  hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);

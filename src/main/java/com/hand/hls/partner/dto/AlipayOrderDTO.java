@@ -7,6 +7,8 @@ import com.hand.hap.mybatis.annotation.ExtensionAttribute;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 import javax.persistence.Table;
+import javax.persistence.Transient;
+
 import com.hand.hap.system.dto.BaseDTO;
 @ExtensionAttribute(disable=true)
 @Data
@@ -38,6 +40,7 @@ public class AlipayOrderDTO extends BaseDTO {
      @Length(max = 32)
      private String status;
 
+     @Transient
+     private String penetrateId;
 
-
-     }
+}

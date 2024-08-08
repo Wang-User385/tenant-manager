@@ -1025,7 +1025,7 @@ public class HlsCusConContractController extends BaseController {
 
     @RequestMapping("/hls/update/contract/status")
     @ResponseBody
-    public ResponseData updateContractStatus(@RequestParam("contractId") Long contractId, HttpServletRequest request) throws ResMessageException {
+    public ResponseData updateContractStatus(@RequestParam("contractId") Long contractId, HttpServletRequest request) throws Exception {
         hlsCusConContractService.updateContractStatus(contractId, request);
         return new ResponseData();
     }

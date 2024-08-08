@@ -257,7 +257,7 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
 
     void updateZdwRegisterStatus(Long contractId, HttpServletRequest request);
 
-    void updateContractStatus(Long contractId, HttpServletRequest request);
+    void updateContractStatus(Long contractId, HttpServletRequest request) throws hls.core.utils.exception.HlsCusException;
 
     void confirm(Long contractId, HttpServletRequest request);
 }

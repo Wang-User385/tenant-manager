@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
+import com.hand.hls.partner.dto.AlipayOrderDTO;
+import com.hand.hls.partner.mapper.AlipayOrderMapper;
 import com.hand.hls.partner.service.IAlipayService;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
 import com.hand.hls.partner.util.AlipayUtils;
@@ -11,6 +13,7 @@ import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
+import hls.core.utils.exception.HlsCusException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,8 @@ public class AlipayServiceImpl implements IAlipayService {
     private HlsCusBpMasterMapper hlsCusBpMasterMapper;
     @Autowired
     private IYLMessageNoticeService messageNoticeService;
+    @Autowired
+    private AlipayOrderMapper alipayOrderMapper;
 
     public String orderApply(String outOrderNo){
         String penetrateId = "";
@@ -124,30 +129,145 @@ public class AlipayServiceImpl implements IAlipayService {
         return status;
     }
 
-    public String orderCancel(String penetrateId){
-        String code = "";
-
+    public void orderCancel(String penetrateId) throws HlsCusException {
         JSONObject reqJson = new JSONObject();
         reqJson.put("penetrateId",penetrateId);
         //step1: 代扣授权签约申请查询
         HlsWsRequests hlsWsRequests = insertLogs("GT-MY-006-订单取消ORDER.CANCEL",reqJson);
         String resStr = null;
         String returnStatus = "S";
+        String error = "";
         try{
             resStr = AlipayUtils.orderCancel(penetrateId);
         }catch(Exception e){
             e.printStackTrace();
             returnStatus = "E";
+            error = "error:" + e.getMessage();
         }
         updateLogs(hlsWsRequests,resStr,returnStatus);
 
         //step2：解析code
-        if(StringUtils.isNotEmpty(resStr)){
+        if(StringUtils.isEmpty(error)){
             JSONObject resJson = JSONObject.parseObject(resStr);
             JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_submit_response");
-            code = response.getString("code");
+            String code = response.getString("code");
+            if(!"10000".equals(code)){
+                JSONObject returnJson = new JSONObject();
+                returnJson.put("code",code);
+                returnJson.put("sub_msg",response.getString("sub_msg"));
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+        }else{
+            throw new HlsCusException(error);
         }
-        return code;
+    }
+
+    public void paymentApply(String penetrateId,String outSeqNo,String amount,String subject) throws HlsCusException {
+        JSONObject reqJson = new JSONObject();
+        reqJson.put("penetrateId",penetrateId);
+        reqJson.put("outSeqNo",outSeqNo);
+        reqJson.put("amount",amount);
+        reqJson.put("subject",subject);
+        //step1: 扣款请求
+        HlsWsRequests hlsWsRequests = insertLogs("GT-MY-003-扣款请求PAYMENT.APPLY",reqJson);
+        String resStr = null;
+        String returnStatus = "S";
+        String error = "";
+        try{
+            resStr = AlipayUtils.paymentApply(penetrateId,outSeqNo,amount,subject);
+        }catch(Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            error = "error:" + e.getMessage();
+        }
+        updateLogs(hlsWsRequests,resStr,returnStatus);
+
+        //step2：解析
+        if(StringUtils.isEmpty(error)){
+            JSONObject resJson = JSONObject.parseObject(resStr);
+            JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_submit_response");
+            String code = response.getString("code");
+            if(!"10000".equals(code)){
+                JSONObject returnJson = new JSONObject();
+                returnJson.put("code",code);
+                returnJson.put("sub_msg",response.getString("sub_msg"));
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+        }else{
+            throw new HlsCusException(error);
+        }
+    }
+
+    public String paymentQuery(String outSeqNo) throws HlsCusException {
+        String status = "";
+
+        JSONObject reqJson = new JSONObject();
+        reqJson.put("outSeqNo",outSeqNo);
+        //step1: 扣款查询
+        HlsWsRequests hlsWsRequests = insertLogs("GT-MY-004-扣款查询PAYMENT.QUERY",reqJson);
+        String resStr = null;
+        String returnStatus = "S";
+        String error = "";
+        try{
+            resStr = AlipayUtils.paymentQuery(outSeqNo);
+        }catch(Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            error = "error:" + e.getMessage();
+        }
+        updateLogs(hlsWsRequests,resStr,returnStatus);
+
+        //step2：解析
+        if(StringUtils.isEmpty(error)){
+            JSONObject resJson = JSONObject.parseObject(resStr);
+            JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_query_response");
+            String code = response.getString("code");
+            if("10000".equals(code)){
+                JSONObject resultObj = response.getJSONObject("result_obj");
+                status = resultObj.getString("status");
+            }else{
+                JSONObject returnJson = new JSONObject();
+                returnJson.put("code",code);
+                returnJson.put("sub_msg",response.getString("sub_msg"));
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+        }else{
+            throw new HlsCusException(error);
+        }
+        return status;
+    }
+
+    public void paymentCancel(String outSeqNo) throws HlsCusException {
+        JSONObject reqJson = new JSONObject();
+        reqJson.put("outSeqNo",outSeqNo);
+        //step1: 支付申请撤销
+        HlsWsRequests hlsWsRequests = insertLogs("GT-MY-005-支付申请撤销PAYMENT.CANCEL",reqJson);
+        String resStr = null;
+        String returnStatus = "S";
+        String error = "";
+        try{
+            resStr = AlipayUtils.paymentCancel(outSeqNo);
+        }catch(Exception e){
+            e.printStackTrace();
+            returnStatus = "E";
+            error = "error:" + e.getMessage();
+        }
+        updateLogs(hlsWsRequests,resStr,returnStatus);
+
+        //step2：解析
+        if(StringUtils.isEmpty(error)){
+            JSONObject resJson = JSONObject.parseObject(resStr);
+            JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_submit_response");
+            String code = response.getString("code");
+            if(!"10000".equals(code)){
+                JSONObject returnJson = new JSONObject();
+                returnJson.put("code",code);
+                returnJson.put("sub_msg",response.getString("sub_msg"));
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+        }else{
+            throw new HlsCusException(error);
+        }
     }
 
     @Override
@@ -208,7 +328,7 @@ public class AlipayServiceImpl implements IAlipayService {
     }
 
     @Override
-    public void signCancel(Long projectId){
+    public void signCancel(Long projectId) throws HlsCusException {
         //TO_BE_APPLIED：待客户端完成申请
         //ACTIVATED：⽣效
         //NOT_SUPPORTED：不⽀持
@@ -217,16 +337,45 @@ public class AlipayServiceImpl implements IAlipayService {
         HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
         String alipayStatus = prjProject.getAlipayStatus();
         if("ACTIVATED".equals(alipayStatus)){
-            String code = orderCancel(prjProject.getPenetrateId());
-            if("10000".equals(code)){
-                HlsCusPrjProject updateProject = new HlsCusPrjProject();
-                updateProject.setProjectId(projectId);
-                updateProject.setAlipayStatus("CANCELED");
-                prjProjectMapper.updateByPrimaryKeySelective(updateProject);
-                //代扣解约成功，推送消息
-                messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
-            }
+            orderCancel(prjProject.getPenetrateId());
+            HlsCusPrjProject updateProject = new HlsCusPrjProject();
+            updateProject.setProjectId(projectId);
+            updateProject.setAlipayStatus("CANCELED");
+            prjProjectMapper.updateByPrimaryKeySelective(updateProject);
+            //代扣解约成功，推送消息
+            messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
         }
+    }
+
+    @Override
+    public void withhold(Long orderId) throws HlsCusException {
+        AlipayOrderDTO order = alipayOrderMapper.selectOrderForWithhold(orderId);
+        String penetrateId = order.getPenetrateId();
+        String outSeqNo = order.getOutSeqNo();
+        String amount = order.getAmount().toString();
+        String subject = order.getSubject();
+        paymentApply(penetrateId,outSeqNo,amount,subject);
+
+        order.setStatus("SENDING");
+        alipayOrderMapper.updateByPrimaryKeySelective(order);
+    }
+
+    @Override
+    public void withholdQuery(Long orderId) throws HlsCusException {
+        //APPLIED 【中间态】待⽀付。交易创建，等待买家付款
+        //CLOSED  【终态，失败】交易关闭。未付款交易超时关闭，或⽀付完成后全额退款
+        //SUCCESS 【中间态】交易成功。交易⽀付成功，可退款
+        //FINISHED 【终态，成功】交易已结算。交易结束，不可退款
+        //FAILED  【终态，失败】交易失败。
+        AlipayOrderDTO order = alipayOrderMapper.selectByPrimaryKey(orderId);
+        order.setStatus(paymentQuery(order.getOutSeqNo()));
+        alipayOrderMapper.updateByPrimaryKeySelective(order);
+    }
+
+    @Override
+    public void withholdCancel(Long orderId) throws HlsCusException {
+        AlipayOrderDTO order = alipayOrderMapper.selectByPrimaryKey(orderId);
+        paymentCancel(order.getOutSeqNo());
     }
 
     private HlsWsRequests insertLogs(String functionName, JSONObject reqJson) {

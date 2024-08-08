@@ -45,18 +45,19 @@ public class AlipayUtils {
 
         //orderQuery();//查询穿透单
 
-        result = orderCancel("2024080700101101184902");//取消穿透单
-
-        System.out.println(result);
+        //result = orderCancel("2024080700101101184902");//取消穿透单
 
         //result = loanApply("张三","421023999999","2024080700101101184902","ALIPAYAPP");//代扣签约 拿到签约二维码字符串
 
         //result = loanQuery("2024080700101101184902");//查看签约结果
 
+        //result = paymentApply("2024080700101101184902","GTYL202408000001_001","1","订单GTYL202408000001第1期租金");//发起代扣
 
-        //paymentApply();//发起代扣
-        //paymentQuery();//代扣结果查询
-        //paymentCancel();//代扣取消
+        //result = paymentQuery("GTYL202408000104001");//代扣结果查询
+
+        //result = paymentCancel("GTYL202408000104001");//代扣取消
+
+        System.out.println(result);
     }
 
     //穿透单创建ORDER.APPLY
@@ -180,7 +181,7 @@ public class AlipayUtils {
     }
 
     //GT-MY-003扣款请求PAYMENT.APPLY
-    public static void paymentApply(){
+    public static String paymentApply(String penetrateId,String outSeqNo,String amount,String subject) throws AlipayApiException {
         AnttechBlockchainDefinAssetmanagePenetrateSubmitModel model =new AnttechBlockchainDefinAssetmanagePenetrateSubmitModel();
         model.setRequestId(System.currentTimeMillis() + UUID.randomUUID().toString().replace("-", ""));//这个请求id 必须要传，否则会报错“重复的请求编码”
         model.setFunction("PAYMENT.APPLY");
@@ -188,26 +189,25 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("penetrateId","2024080700101101184902");
-        params.put("outSeqNo","GTYL202408000104001");//代扣流水号
-        params.put("amount","1");//代扣金额
-        params.put("subject","订单GTYL202408000104第1期租金");//支付描述
+        params.put("penetrateId",penetrateId);
+        params.put("outSeqNo",outSeqNo);//代扣流水号
+        params.put("amount",amount);//代扣金额
+        //params.put("timeout","1c");//代扣支付超时时间，1c表示当天，若超时未代扣则关闭该订单
+        params.put("subject",subject);//支付描述
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest request = new AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest();
         request.setBizModel(model);
 
-        try {
-            AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
-            AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
-            System.out.println("response:" + response.getBody());
-        } catch (AlipayApiException e) {
-            e.printStackTrace();
-        }
+        AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
+        AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
+        String responseBody = response.getBody();
+
+        return responseBody;
     }
 
     //GT-MY-004扣款查询
-    public static void paymentQuery(){
+    public static String paymentQuery(String outSeqNo) throws AlipayApiException {
         AnttechBlockchainDefinAssetmanagePenetrateQueryModel model =new AnttechBlockchainDefinAssetmanagePenetrateQueryModel();
         model.setRequestId(System.currentTimeMillis() + UUID.randomUUID().toString().replace("-", ""));//这个请求id 必须要传，否则会报错“重复的请求编码”
         model.setFunction("PAYMENT.QUERY");
@@ -215,23 +215,21 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("outSeqNo","GTYL202408000104001");//代扣流水号
+        params.put("outSeqNo",outSeqNo);//代扣流水号
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateQueryRequest request = new AnttechBlockchainDefinAssetmanagePenetrateQueryRequest();
         request.setBizModel(model);
 
-        try {
-            AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
-            AnttechBlockchainDefinAssetmanagePenetrateQueryResponse response = alipayClient.execute(request);
-            System.out.println("response:" + response.getBody());
-        } catch (AlipayApiException e) {
-            e.printStackTrace();
-        }
+        AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
+        AnttechBlockchainDefinAssetmanagePenetrateQueryResponse response = alipayClient.execute(request);
+        String responseBody = response.getBody();
+
+        return responseBody;
     }
 
     //GT-MY-005支付申请撤销
-    public static void paymentCancel(){
+    public static String paymentCancel(String outSeqNo) throws AlipayApiException {
         AnttechBlockchainDefinAssetmanagePenetrateSubmitModel model =new AnttechBlockchainDefinAssetmanagePenetrateSubmitModel();
         model.setRequestId(System.currentTimeMillis() + UUID.randomUUID().toString().replace("-", ""));//这个请求id 必须要传，否则会报错“重复的请求编码”
         model.setFunction("PAYMENT.CANCEL");
@@ -239,19 +237,17 @@ public class AlipayUtils {
         HashMap<String,Object> params = new HashMap<String,Object>();
         params.put("sceneCode",SCENECODE);
         params.put("subSceneCode",SUBSCENECODE);
-        params.put("outSeqNo","GTYL202408000104001");//代扣流水号
+        params.put("outSeqNo",outSeqNo);//代扣流水号
         model.setBizParams(JSONObject.toJSONString(params));
 
         AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest request = new AnttechBlockchainDefinAssetmanagePenetrateSubmitRequest();
         request.setBizModel(model);
 
-        try {
-            AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
-            AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
-            System.out.println("response:" + response.getBody());
-        } catch (AlipayApiException e) {
-            e.printStackTrace();
-        }
+        AlipayClient alipayClient = new DefaultAlipayClient(SERVERURL,APPID,PRIVATEKEY,"json","GBK",ALIPAYPUBLICKEY,"RSA2");
+        AnttechBlockchainDefinAssetmanagePenetrateSubmitResponse response = alipayClient.execute(request);
+        String responseBody = response.getBody();
+
+        return responseBody;
     }
 
 }
