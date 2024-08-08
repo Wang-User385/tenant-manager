@@ -3056,7 +3056,6 @@ AND sua.COMPANY_ID = #{companyId}
         t.due_date,
         t.due_date due_date_format,
         t.due_amount,
-        0 penalty,
         t.cf_item,
         t.cf_type,
         t.cf_status,
@@ -3160,8 +3159,7 @@ AND sua.COMPANY_ID = #{companyId}
         t.times,
         t.due_date,
         t.due_date due_date_format,
-        t.due_amount+nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND t.times=cf.times and cf.contract_id = t.contract_id and cf.cf_status not in ('BLOCK')),0) due_amount,
-        nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND t.times=cf.times and cf.contract_id = t.contract_id and cf.cf_status not in ('BLOCK')),0) penalty,
+        t.due_amount,
         t.cf_item,
         t.cf_type,
         t.cf_status,
@@ -3234,7 +3232,6 @@ AND sua.COMPANY_ID = #{companyId}
         WHERE
         c.contract_id = t.contract_id
         AND ( t.times != 0 or t.cf_item = 51)
-        AND t.cf_item != 9
         <if test="creditFlag='Y'">
         AND c.contract_status in ('INCEPT','ET','SIGN')
         </if>
@@ -9122,7 +9119,7 @@ and con.contract_status in
 	      AND trunc( ccc.due_date ) &lt;= trunc( #{dueDate} )
           AND ccc.cf_item in (1,9)
           AND NOT EXISTS (
-            select 1 from CON_CONTRACT_CASHFLOW cf WHERE cf.contract_id = cc.contract_id AND ccc.cf_item in (11,13)
+            select 1 from CON_CONTRACT_CASHFLOW cf WHERE cf.contract_id = cc.contract_id AND cf.cf_item in (11,13)
             )
         ORDER BY
         ccc.times
