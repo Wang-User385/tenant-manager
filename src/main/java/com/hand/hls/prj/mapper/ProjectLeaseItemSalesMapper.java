@@ -2,10 +2,12 @@ package com.hand.hls.prj.mapper;
 
 
 import com.hand.hap.mybatis.common.Mapper;
+import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
 import com.hand.hls.prj.dto.PrjProjectLeaseItemSales;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -14,6 +16,7 @@ import java.util.List;
 public interface ProjectLeaseItemSalesMapper extends Mapper<PrjProjectLeaseItemSales> {
 
     List<PrjProjectLeaseItemSales> prjProjectLeaseItemSalesQuery(@Param("projectLeaseItemId") Long projectLeaseItemId);
+    Map prjProjectLeaseItemSalesInfo(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem);
 
 
 }

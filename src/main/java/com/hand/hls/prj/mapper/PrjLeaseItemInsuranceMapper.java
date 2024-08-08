@@ -1,6 +1,7 @@
 package com.hand.hls.prj.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
+import com.hand.hls.prj.dto.HlsCusPrjProjectLeaseItem;
 import com.hand.hls.prj.dto.PrjLeaseItemInsurance;
 import org.apache.ibatis.annotations.Param;
 
@@ -18,5 +19,5 @@ public interface PrjLeaseItemInsuranceMapper extends Mapper<PrjLeaseItemInsuranc
     PrjLeaseItemInsurance selectInsByLeaseItemId(@Param("projectLeaseItemId") Long projectLeaseItemId);
 
     List<PrjLeaseItemInsurance> selectNew(@Param("projectLeaseItemId") Long projectLeaseItemId);
-    Map selectNewInfo(PrjLeaseItemInsurance prjLeaseItemInsurance);
+    Map selectNewInfo(HlsCusPrjProjectLeaseItem hlsCusPrjProjectLeaseItem);
 }

@@ -52,6 +52,51 @@
             from prj_lease_item_condition co
            where co.PROJECT_LEASE_ITEM_ID = #{projectLeaseItemId}
     </select>
+    <resultMap id="ConditionInfoMap" type="map">
+        <result column="is_water_damaged" property="is_water_damaged"/>
+        <result column="is_conversion" property="is_conversion"/>
+        <result column="accident_status_n" property="accident_status_n"/>
+        <result column="is_annual_inspection" property="is_annual_inspection"/>
+        <result column="is_significantly_modified" property="is_significantly_modified"/>
+        <result column="engine_overhaul" property="engine_overhaul"/>
+        <result column="premium_add_on" property="premium_add_on"/>
+        <result column="maintenance_info" property="maintenance_info"/>
+        <result column="original_owner_card_type" property="original_owner_card_type"/>
+        <result column="original_owner_name" property="original_owner_name"/>
+        <result column="original_owner_card_num" property="original_owner_card_num"/>
+        <result column="original_owner_address_n" property="original_owner_address_n"/>
+    </resultMap>
+    <select id="prjProjectLeaseItemConditionInfo" resultMap="ConditionInfoMap">
+        select
+            co.CONDITION_ID,
+            co.PROJECT_LEASE_ITEM_ID,
+            decode(co.IS_WATER_DAMAGED,'1','是','2','否',' ') IS_WATER_DAMAGED,
+            decode(co.IS_CONVERSION,'1','是','2','否',' ') IS_CONVERSION,
+            co.ACCIDENT_STATUS,
+            ( SELECT v.meaning
+              FROM sys_code_value_b_v v
+              WHERE v.CODE = 'ACCIDENT_STATUS'
+                AND v.code_value = co.ACCIDENT_STATUS
+                AND v.ENABLED_FLAG = 'Y') ACCIDENT_STATUS_N,
+            decode(co.IS_ANNUAL_INSPECTION,'1','是','2','否',' ') IS_ANNUAL_INSPECTION,
+            decode(co.IS_SIGNIFICANTLY_MODIFIED,'1','是','2','否',' ') IS_SIGNIFICANTLY_MODIFIED,
+            decode(co.ENGINE_OVERHAUL,'1','是','2','否',' ') ENGINE_OVERHAUL,
+            co.PREMIUM_ADD_ON,
+            co.MAINTENANCE_INFO,
+            co.ORIGINAL_OWNER_CARD_TYPE,
+            co.ORIGINAL_OWNER_NAME,
+            co.ORIGINAL_OWNER_CARD_NUM,
+            co.ORIGINAL_OWNER_ADDRESS,
+            (SELECT fp.description || '' || fc.description || '' || fd.description
+             FROM fnd_province fp
+                      JOIN fnd_city fc ON fp.province = fc.province
+                      JOIN fnd_district fd ON fc.city = fd.city
+             WHERE fp.province = co.province_code
+               AND fc.city = co.city_code
+               AND fd.district = co.district_code) ORIGINAL_OWNER_ADDRESS_N
+            from prj_lease_item_condition co
+           where co.PROJECT_LEASE_ITEM_ID = #{projectLeaseItemId}
+    </select>
     <select id="prjProjectLeaseItemConditionByLeaseItemId"
             resultMap="BaseResultMap" parameterType="java.lang.Long">
         select
