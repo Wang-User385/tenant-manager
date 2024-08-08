@@ -35,7 +35,7 @@ public class AlipayServiceImpl implements IAlipayService {
     @Autowired
     private AlipayOrderMapper alipayOrderMapper;
 
-    public String orderApply(String outOrderNo){
+    public String orderApply(String outOrderNo) throws HlsCusException {
         String penetrateId = "";
 
         JSONObject reqJson = new JSONObject();
@@ -44,29 +44,38 @@ public class AlipayServiceImpl implements IAlipayService {
         HlsWsRequests hlsWsRequests = insertLogs("GT-MY-000-穿透单创建ORDER.APPLY",reqJson);
         String resStr = null;
         String returnStatus = "S";
+        String error = "";
         try{
             resStr = AlipayUtils.orderApply(outOrderNo);
         }catch(Exception e){
             e.printStackTrace();
             returnStatus = "E";
+            error = "error:" + e.getMessage();
         }
         updateLogs(hlsWsRequests,resStr,returnStatus);
 
-        //step2：解析penetrateId
-        if(StringUtils.isNotEmpty(resStr)){
+        //step2：解析
+        if(StringUtils.isEmpty(error)){
             JSONObject resJson = JSONObject.parseObject(resStr);
             JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_submit_response");
             String code = response.getString("code");
             if("10000".equals(code)){
                 JSONObject resultObj = response.getJSONObject("result_obj");
                 penetrateId = resultObj.getString("penetrateId");
+            }else{
+                JSONObject returnJson = new JSONObject();
+                returnJson.put("code",code);
+                returnJson.put("sub_msg",response.getString("sub_msg"));
+                throw new HlsCusException(returnJson.toJSONString());
             }
+        }else{
+            throw new HlsCusException(error);
         }
 
         return penetrateId;
     }
 
-    public String loanApply(String customerName,String userCertNo,String penetrateId,String channel){
+    public String loanApply(String customerName,String userCertNo,String penetrateId,String channel) throws HlsCusException {
         String extInfo = "";
 
         JSONObject reqJson = new JSONObject();
@@ -78,28 +87,37 @@ public class AlipayServiceImpl implements IAlipayService {
         HlsWsRequests hlsWsRequests = insertLogs("GT-MY-001-代扣授权签约申请LOAN.APPLY",reqJson);
         String resStr = null;
         String returnStatus = "S";
+        String error = "";
         try{
             resStr = AlipayUtils.loanApply(customerName,userCertNo,penetrateId,channel);
         }catch(Exception e){
             e.printStackTrace();
             returnStatus = "E";
+            error = "error:" + e.getMessage();
         }
         updateLogs(hlsWsRequests,resStr,returnStatus);
 
-        //step2：解析extInfo
-        if(StringUtils.isNotEmpty(resStr)){
+        //step2：解析
+        if(StringUtils.isEmpty(error)){
             JSONObject resJson = JSONObject.parseObject(resStr);
             JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_submit_response");
             String code = response.getString("code");
             if("10000".equals(code)){
                 JSONObject resultObj = response.getJSONObject("result_obj");
                 extInfo = resultObj.getString("extInfo");
+            }else{
+                JSONObject returnJson = new JSONObject();
+                returnJson.put("code",code);
+                returnJson.put("sub_msg",response.getString("sub_msg"));
+                throw new HlsCusException(returnJson.toJSONString());
             }
+        }else{
+            throw new HlsCusException(error);
         }
         return extInfo;
     }
 
-    public String loanQuery(String penetrateId){
+    public String loanQuery(String penetrateId) throws HlsCusException {
         String status = "";
 
         JSONObject reqJson = new JSONObject();
@@ -108,23 +126,32 @@ public class AlipayServiceImpl implements IAlipayService {
         HlsWsRequests hlsWsRequests = insertLogs("GT-MY-002-代扣授权签约申请查询LOAN.QUERY",reqJson);
         String resStr = null;
         String returnStatus = "S";
+        String error = "";
         try{
             resStr = AlipayUtils.loanQuery(penetrateId);
         }catch(Exception e){
             e.printStackTrace();
             returnStatus = "E";
+            error = "error:" + e.getMessage();
         }
         updateLogs(hlsWsRequests,resStr,returnStatus);
 
-        //step2：解析status
-        if(StringUtils.isNotEmpty(resStr)){
+        //step2：解析
+        if(StringUtils.isEmpty(error)){
             JSONObject resJson = JSONObject.parseObject(resStr);
             JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_query_response");
             String code = response.getString("code");
             if("10000".equals(code)){
                 JSONObject resultObj = response.getJSONObject("result_obj");
                 status = resultObj.getString("status");
+            }else{
+                JSONObject returnJson = new JSONObject();
+                returnJson.put("code",code);
+                returnJson.put("sub_msg",response.getString("sub_msg"));
+                throw new HlsCusException(returnJson.toJSONString());
             }
+        }else{
+            throw new HlsCusException(error);
         }
         return status;
     }
@@ -146,7 +173,7 @@ public class AlipayServiceImpl implements IAlipayService {
         }
         updateLogs(hlsWsRequests,resStr,returnStatus);
 
-        //step2：解析code
+        //step2：解析
         if(StringUtils.isEmpty(error)){
             JSONObject resJson = JSONObject.parseObject(resStr);
             JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_submit_response");
@@ -271,24 +298,22 @@ public class AlipayServiceImpl implements IAlipayService {
     }
 
     @Override
-    public String getPenetrateId(Long projectId){
+    public String getPenetrateId(Long projectId) throws HlsCusException {
         HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
         String penetrateId = prjProject.getPenetrateId();
         if(StringUtils.isEmpty(penetrateId)){
             penetrateId = orderApply(prjProject.getProjectNumber());
-            if(StringUtils.isNotEmpty(penetrateId)){
-                HlsCusPrjProject updateProject = new HlsCusPrjProject();
-                updateProject.setProjectId(projectId);
-                updateProject.setPenetrateId(penetrateId);
-                prjProjectMapper.updateByPrimaryKeySelective(updateProject);
-            }
+            HlsCusPrjProject updateProject = new HlsCusPrjProject();
+            updateProject.setProjectId(projectId);
+            updateProject.setPenetrateId(penetrateId);
+            prjProjectMapper.updateByPrimaryKeySelective(updateProject);
         }
         return penetrateId;
     }
 
 
     @Override
-    public String sign(Long projectId){
+    public String sign(Long projectId) throws HlsCusException {
         String extInfo = "";
 
         HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
@@ -299,11 +324,16 @@ public class AlipayServiceImpl implements IAlipayService {
 
         extInfo = loanApply(customerName,userCertNo,penetrateId,"ALIPAYAPP");
 
+        HlsCusPrjProject updateProject = new HlsCusPrjProject();
+        updateProject.setProjectId(projectId);
+        updateProject.setAlipayStatus("TO_BE_APPLIED");
+        prjProjectMapper.updateByPrimaryKeySelective(updateProject);
+
         return extInfo;
     }
 
     @Override
-    public void signQuery(Long projectId){
+    public void signQuery(Long projectId) throws HlsCusException {
         //TO_BE_APPLIED：待客户端完成申请
         //ACTIVATED：⽣效
         //NOT_SUPPORTED：不⽀持
@@ -313,16 +343,14 @@ public class AlipayServiceImpl implements IAlipayService {
         String alipayStatus = prjProject.getAlipayStatus();
         if(StringUtils.isEmpty(alipayStatus) || "TO_BE_APPLIED".equals(alipayStatus)){
             String status = loanQuery(prjProject.getPenetrateId());
-            if(StringUtils.isNotEmpty(status)){
-                HlsCusPrjProject updateProject = new HlsCusPrjProject();
-                updateProject.setProjectId(projectId);
-                updateProject.setAlipayStatus(status);
-                prjProjectMapper.updateByPrimaryKeySelective(updateProject);
+            HlsCusPrjProject updateProject = new HlsCusPrjProject();
+            updateProject.setProjectId(projectId);
+            updateProject.setAlipayStatus(status);
+            prjProjectMapper.updateByPrimaryKeySelective(updateProject);
 
-                //如果已经代扣签约，则推送消息
-                if("ACTIVATED".equals(status)){
-                    messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
-                }
+            //如果已经代扣签约，则推送消息
+            if("ACTIVATED".equals(status)){
+                messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
             }
         }
     }
