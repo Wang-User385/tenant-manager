@@ -5,6 +5,7 @@ import com.hand.hls.ast.dto.ConContractLov;
 import com.hand.hls.ast.dto.VirtualConContractLov;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.dto.HlsCusConContractAttachment;
+import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.mort.dto.HlsMortgage;
 import org.apache.ibatis.annotations.Param;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
@@ -190,4 +191,5 @@ public interface HlsCusConContractMapper extends Mapper<HlsCusConContract> {
 
     List<HlsCusConContract> findCarEndDetail(HlsCusConContract hlsCusConContract);
 
+    HlsCusConContract selectConContractOrderNo(@Param("orderNo") String orderNo);
 }

@@ -15,6 +15,7 @@ import com.hand.hls.activiti.service.HlsCusActMeetingRiskListService;
 import com.hand.hls.app.dto.HlsCashflowAyncDto;
 import com.hand.hls.app.service.HlsCashflowAyncService;
 import com.hand.hls.ast.dto.VirtualConContractLov;
+import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.dto.HlsCusSysFile;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
@@ -4686,15 +4687,15 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         params.put(IActivitiCommonService.BUSINESS_KEY, dto.getContractId());
         params.put("contractId", dto.getContractId());
         dto = hlsCusConContractMapper.selectByPrimaryKey(dto);
-        HlsBpMaster hlsBpMaster = new HlsBpMaster();
-        hlsBpMaster.setBpId(dto.getTenantId());
-        hlsCusBpMasterMapper.selectByPrimaryKey(hlsBpMaster);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(dto.getTenantId());
+        hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
         //单据类别
         params.put("documentCategory",DOCUMENT_CATEGORY);
         //单据类型
         params.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        params.put("documentName", dto.getContractNumber()+hlsBpMaster.getBpName()+DOCUMENT_NAME);
+        params.put("documentName", dto.getContractNumber()+hlsCusBpMaster.getBpName()+DOCUMENT_NAME);
         //单据编号
         params.put("documentNumber", dto.getContractNumber());
         //查询

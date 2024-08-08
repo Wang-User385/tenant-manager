@@ -9,11 +9,13 @@ import com.hand.hls.atm.dto.FndAttachmentMulti;
 import com.hand.hls.atm.mapper.FndAttachmentMapper;
 import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterRoleMapper;
+import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
 import com.hand.hls.cont.service.IConContractCashflowService;
 import com.hand.hls.csh.dto.*;
 import com.hand.hls.csh.service.*;
+import com.hand.hls.partner.mapper.YLCshTransferPaymentDtoMapper;
 import com.hand.hls.partner.service.IAlipayService;
 import com.hand.hls.partner.service.IPrjQuotationCalcService;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
@@ -44,6 +46,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -129,6 +132,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private ICshAllocationCreditService cshAllocationCreditService;
     @Autowired
     private HlsCusPrjQuotationCashflowMapper hlsCusPrjQuotationCashflowMapper;
+
+    @Autowired
+    private HlsCusConContractMapper hlsCusConContractMapper;
+
+    @Autowired
+    private YLCshTransferPaymentDtoMapper ylCshTransferPaymentDtoMapper;
+
     @Autowired
     private IAlipayService iAlipayService;
     /**
@@ -399,44 +409,42 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
     }
 
+
+
     @Override
     public String repayment(String decryptedStr) throws HlsCusException {
         RepayMent repayMent = JSONObject.parseObject(decryptedStr, RepayMent.class);
         JSONObject returnJson = new JSONObject();
 
-        List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(repayMent.getOrderNo());
-        if (hlsCusCshTransactionList.size()==0){
+        HlsCusConContract hlsCusConContract = hlsCusConContractMapper.selectConContractOrderNo(repayMent.getOrderNo());
+        if (ObjectUtils.isEmpty(hlsCusConContract)){
             returnJson.put("code","100003");
-            returnJson.put("message","查询数据为空");
+            returnJson.put("message","不存在合同数据");
             throw new HlsCusException(returnJson.toJSONString());
         }
         List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOList();
         for (TermRepayDetailApplyDTO termRepayDetailApplyDTO : termRepayDetailApplyDTOList) {
-            //判断还款方式是否为蚂蚁链代扣，如果是则判断结算单号、代扣交易单号是否为空
-            if ("蚂蚁链代扣".equals(repayMent.getRepayType())){
-                if (termRepayDetailApplyDTO.getTransactionNo()==null){
-                    returnJson.put("code","100001");
-                    returnJson.put("message","结算单号为空");
-                    return returnJson.toJSONString();
-                }
-                if ("蚂蚁链代扣".equals(termRepayDetailApplyDTO.getExternalDeductNo())){
-                    returnJson.put("code","100001");
-                    returnJson.put("message","代扣交易单号为空");
-                    return returnJson.toJSONString();
-                }
+            if (!"TRANSFER".equals(repayMent.getRepayType())){
+                returnJson.put("code","100003");
+                returnJson.put("message","不是转付确认所需要的还款方式");
+                throw new HlsCusException(returnJson.toJSONString());
             }
             //将数据保存入库
-//            for (HlsCusCshTransaction hlsCusCshTransaction : hlsCusCshTransactionList) {
-//                if (hlsCusCshTransaction.getTermNo().equals(termRepayDetailApplyDTO.getTermNo())){
-//                    hlsCusCshTransaction.setRepayPrincipal(termRepayDetailApplyDTO.getRepayPrincipal());
-//                    hlsCusCshTransaction.setRepayInterest(termRepayDetailApplyDTO.getRepayInterest());
-//                    hlsCusCshTransaction.setRepayAmount(termRepayDetailApplyDTO.getRepayAmount());
-//                    hlsCusCshTransaction.setPaymentMethod(repayMent.getRepayType());
-//                    hlsCusCshTransaction.setTransactionNo(termRepayDetailApplyDTO.getTransactionNo());
-//                    hlsCusCshTransaction.setExternalDeductNo(termRepayDetailApplyDTO.getExternalDeductNo());
-//                    hlsCusCshTransactionMapper.insertSelective(hlsCusCshTransaction);
-//                }
-//            }
+            YLCshTransferPaymentDto dto = new YLCshTransferPaymentDto();
+            dto.setContractId(hlsCusConContract.getContractId());
+            dto.setContractId(hlsCusConContract.getCashflowId());
+            //设置期次数
+            dto.setTimes(termRepayDetailApplyDTO.getTermNo());
+            //设置金额
+            dto.setRepayAmount(termRepayDetailApplyDTO.getRepayAmount());
+            dto.setRepayPrincipal(termRepayDetailApplyDTO.getRepayPrincipal());
+            dto.setRepayInterest(termRepayDetailApplyDTO.getRepayInterest());
+            dto.setRepayPenalty(termRepayDetailApplyDTO.getRepayPenalty());
+            //设置转付日期
+            dto.setRepayDate(new Date());
+            //设置是否转让
+            dto.setTransferPaymentStatus("UNCONFIRMED");
+            ylCshTransferPaymentDtoMapper.insertSelective(dto);
         }
 
         returnJson.put("code","200");
