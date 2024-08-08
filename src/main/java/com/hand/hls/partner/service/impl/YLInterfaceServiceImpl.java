@@ -1806,6 +1806,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         }else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
             //申请代扣签约
+            iAlipayService.getPenetrateId(hlsCusPrjProject.getProjectId());
             String extInfo = iAlipayService.sign(hlsCusPrjProject.getProjectId());
             if(StringUtils.isEmpty(extInfo)){
                 returnJson.put("code","400");

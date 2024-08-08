@@ -4,6 +4,7 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hls.partner.service.IAlipayService;
+import hls.core.utils.exception.HlsCusException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -22,7 +23,7 @@ public class AlipayController extends BaseController {
 
     @RequestMapping(value = "/sign")
     @ResponseBody
-    public String sign(HttpServletRequest request, @RequestBody Long projectId){
+    public String sign(HttpServletRequest request, @RequestBody Long projectId) throws HlsCusException {
         IRequest iRequest = createRequestContext(request);
         RequestHelper.setCurrentRequest(iRequest);
 
