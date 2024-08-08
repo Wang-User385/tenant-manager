@@ -320,44 +320,7 @@
         }
 
 
-        function credit_contract_number_lov_before_event(lov) {
-            var ds = $('csh_transaction_allocation_credit_ds');
-            var records = ds.getAll();
-            var record = ds.getCurrentRecord();
-            var not_cashflow_ids_str = '';
-            var can_write_off_amount = 0;
 
-            if (records.length >= 1) {
-                for (var i = 0; i < records.length; i++) {
-                    if (i == 0) {
-                        not_cashflow_ids_str = records[i].get("cashflow_id")
-                    } else {
-                        not_cashflow_ids_str = not_cashflow_ids_str + ',' + records[i].get("cashflow_id");
-                    }
-                    can_write_off_amount = plus(can_write_off_amount, records[i].get("surplus_amount") || 0);
-                }
-            }
-            var contract_number = record.getMeta().getField('contract_number');
-            //排除掉之前选择的现金流
-            contract_number.setLovPara('notCashflowIdsStr', not_cashflow_ids_str);
-            contract_number.setLovPara('cfStatus', 'RELEASE');
-            contract_number.setLovPara('cfDirection', 'INFLOW');
-            contract_number.setLovPara('SurplusAmountFlag', 'Y');
-
-            var head_ds = $('csh_transaction_allocation_ds');
-            var hd_record = head_ds.getCurrentRecord();
-            hd_record.set("can_write_off_amount", can_write_off_amount);
-
-            //给收款grid advance_receipt_amount 待处理款项 赋值
-            //收款
-            if('${/parameter/@transaction_type}' == 'RECEIPT') {
-                var receipt_ds = $('csh_transaction_allocation_receipt_ds');
-                var records = receipt_ds.getAll();
-                for (var i = 0; i < records.length; i++) {
-                    records[i].set("advance_receipt_amount", 0);
-                }
-            }
-        }
 
 
         function receipt_transaction_num_lov_commit_event(lov, r1, r2) {
@@ -369,30 +332,7 @@
             hd_record.set("un_write_off_amount", plus(un_write_off_amount, amount));
         }
 
-        function credit_contract_number_lov_commit_event(lov, r1, r2) {
-            //金额判断
-            var head_ds = $('csh_transaction_allocation_ds');
-            var hd_record = head_ds.getCurrentRecord();
-            var surplus_amount = r1.get('surplus_amount') || 0;
-            var can_write_off_amount = hd_record.get("can_write_off_amount") || 0;
-            hd_record.set("can_write_off_amount", plus(can_write_off_amount, surplus_amount));
 
-            if (surplus_amount > get_can_write_off_amount()) {
-                r1.set('write_off_due_amount', get_can_write_off_amount());
-            } else {
-                r1.set('write_off_due_amount', surplus_amount);
-            }
-            //给收款grid contract_number 租金支付表编号 赋值
-            //收款
-            if('${/parameter/@transaction_type}' == 'RECEIPT') {
-                var receipt_ds = $('csh_transaction_allocation_receipt_ds');
-                var records = receipt_ds.getAll();
-                for (var i = 0; i < records.length; i++) {
-                    records[i].set("contract_id", r1.get('contract_id'));
-                    records[i].set("contract_number", r1.get('contract_number'));
-                }
-            }
-        }
 
         function allocation_credit_ds_add_event(ds,record,index) {
             debugger
@@ -864,7 +804,7 @@
                                   renderer="Leaf.formatDate"/>
                         <!--<a:column name="import_date" align="center" prompt="导入日期" width="150"
                                   renderer="Leaf.formatDate"/>-->
-                        <a:column name="bp_name" prompt="收款对象" width="200"/>
+                        <!--<a:column name="bp_name" prompt="收款对象" width="200"/>-->
                         <a:column name="transaction_amount" prompt="收款金额" renderer="Leaf.formatMoney"
                                   align="right"
                                   width="120"/>
