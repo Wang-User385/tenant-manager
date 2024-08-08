@@ -15,7 +15,7 @@ import java.util.Map;
 public interface ProjectLeaseItemMortgageMapper extends Mapper<PrjProjectLeaseItemMortgage> {
 
     List<PrjProjectLeaseItemMortgage> prjProjectLeaseItemMortgageQuery(@Param("projectLeaseItemId") Long projectLeaseItemId);
-    Map prjProjectLeaseItemMortgageInfo(@Param("projectLeaseItemId") Long projectLeaseItemId);
+    Map prjProjectLeaseItemMortgageInfo(PrjProjectLeaseItemMortgage prjProjectLeaseItemMortgage);
 
 
     List<PrjProjectLeaseItemMortgage> prjProjectLeaseItemMortgageByLeaseItemId(@Param("projectLeaseItemId") Long projectLeaseItemId);
