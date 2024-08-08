@@ -1814,7 +1814,7 @@ from con_contract cc  where cc.contract_id=#{contractId})t
         con_contract cc
         WHERE
         cf.contract_id = cc.contract_id
-        and cf.write_off_flag not in ('FULL')
+        and nvl(cf.write_off_flag,'NOT') != ('FULL')
         AND cf.cf_direction='INFLOW'
         and cf.times not in (0)
         and cf.cf_item not in (9,11,13)
@@ -9021,15 +9021,15 @@ and con.contract_status in
             ccc.due_amount+nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id and cf.cf_status not in ('BLOCK')),0) due_amount ,
             ccc.principal,
             ccc.interest,
-            nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id and cf.cf_status not in ('BLOCK')),0) penalty,
+            nvl((SELECT cf.DUE_AMOUNT FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and cf.contract_id = ccc.contract_id and cf.cf_status = 'RELEASE'),0) penalty,
             ccc.received_amount,
             ccc.received_principal,
             ccc.received_interest,
-            nvl((SELECT cf.received_amount FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status not in ('BLOCK')),0) received_penalty_amount,
+            nvl((SELECT cf.received_amount FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status = 'RELEASE'),0) received_penalty_amount,
             ccc.due_amount-NVL(ccc.received_amount, 0) unreceived_amount,
             ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) unreceived_principal,
             ccc.INTEREST-NVL(ccc.RECEIVED_INTEREST, 0) unreceived_interest,
-            (SELECT cf.due_amount-NVL(cf.received_amount, 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status not in ('BLOCK'))unreceived_penalty_amount,
+            nvl((SELECT cf.due_amount-NVL(cf.received_amount, 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status = 'RELEASE'),0) unreceived_penalty_amount,
             ccc.write_off_flag,
             (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG' AND sc.CODE_VALUE=ccc.write_off_flag ) write_off_flag_n,
             ccc.outstanding_principal,
@@ -9070,7 +9070,7 @@ and con.contract_status in
                  LEFT JOIN PRJ_PROJECT pp ON pp.project_id = cc.project_id
         WHERE pp.PROJECT_NUMBER = #{orderNo}
           AND ccc.cf_item = 1
-          AND TO_CHAR(ccc.DUE_DATE,'yyyy-mm-dd') >= #{trialTime}
+          AND trunc( ccc.due_date ) >= to_date(#{trialTime},'yyyy-mm-dd')
     </select>
 
 

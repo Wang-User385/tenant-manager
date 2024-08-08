@@ -520,6 +520,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(decryptedStr, CompensatoryTrialCalculationDTO.class);
         JSONObject returnJson = new JSONObject();
 
+        //判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
+        if (compensatoryTrialCalculationDTO.getTrialTime()==null){
+            compensatoryTrialCalculationDTO.setTrialTime(String.valueOf(new Date()));
+        }
+
+        //校验日期格式是否正确
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try{
+            simpleDateFormat.parse(compensatoryTrialCalculationDTO.getTrialTime());
+        }catch (ParseException e) {
+            e.printStackTrace();
+            returnJson.put("code","100001");
+            returnJson.put("message","试算时间格式错误");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
         if (hlsCusPrjProject==null){
             returnJson.put("code","100003");
@@ -595,10 +611,22 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         JSONObject jsonObject1 = new JSONObject();
 
-        //            判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
+        //判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
         if (advancesSettleComputeDTO.getTrialTime()==null){
             advancesSettleComputeDTO.setTrialTime(String.valueOf(new Date()));
         }
+
+        //校验日期格式是否正确
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try{
+            simpleDateFormat.parse(advancesSettleComputeDTO.getTrialTime());
+        }catch (ParseException e) {
+            e.printStackTrace();
+            jsonObject1.put("code","100001");
+            jsonObject1.put("message","试算时间格式错误");
+            throw new HlsCusException(jsonObject1.toJSONString());
+        }
+
         CalculationResultsDto calculationResultsDto = calculationResult(advancesSettleComputeDTO.getOrderNo(),advancesSettleComputeDTO.getTrialTime(),
                 "ET",11L,null);
 
@@ -1597,6 +1625,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject jsonObject1 = new JSONObject();
         if (overdueRepurchaseTrialCalculationDTO.getTrialTime() == null){
             overdueRepurchaseTrialCalculationDTO.setTrialTime(String.valueOf(new Date()));
+        }
+
+        //校验日期格式是否正确
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try{
+            simpleDateFormat.parse(overdueRepurchaseTrialCalculationDTO.getTrialTime());
+        }catch (ParseException e) {
+            e.printStackTrace();
+            jsonObject1.put("code","100001");
+            jsonObject1.put("message","试算时间格式错误");
+            throw new HlsCusException(jsonObject1.toJSONString());
         }
 
         CalculationResultsDto calculationResultsDto = calculationResult(overdueRepurchaseTrialCalculationDTO.getOrderNo(),overdueRepurchaseTrialCalculationDTO.getTrialTime(),

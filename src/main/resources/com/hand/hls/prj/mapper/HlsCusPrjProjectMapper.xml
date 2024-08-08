@@ -12816,7 +12816,7 @@ WHERE
 					RIGHT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
 					RIGHT JOIN PRJ_PROJECT pp ON pp.PROJECT_ID = cc.PROJECT_ID
 			WHERE
-            pp.PROJECT_NUMBER = #{orderNo} AND ccc.CF_STATUS NOT in ('BLOCK','CANCEL')
+            pp.PROJECT_NUMBER = #{orderNo} AND ccc.CF_STATUS = 'RELEASE'
     </select>
     <select id="selectCTCByOrderNo" resultType="com.hand.hls.partner.dto.CompensatoryTrialCalculationDTO">
         SELECT
@@ -12829,6 +12829,9 @@ WHERE
                 RIGHT JOIN PRJ_PROJECT pp ON pp.PROJECT_ID = cc.PROJECT_ID
         WHERE
             pp.PROJECT_NUMBER = #{orderNo} and ccc.CF_ITEM = 1 and ccc.TIMES = #{termNo}
+            and ccc.plan_type is null and nvl(due_comp_amount,0) = 0
+            and nvl(ccc.write_off_flag,'NOT') != ('FULL')
+            and trunc( sysdate) - to_date(#{trialTime},'yyyy-mm-dd') >= pp.compen_day
     </select>
     <select id="selectTranSactionByOrderNo" resultType="com.hand.hls.csh.dto.HlsCusCshTransaction">
         SELECT
