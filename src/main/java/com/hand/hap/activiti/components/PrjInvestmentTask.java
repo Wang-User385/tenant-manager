@@ -121,15 +121,7 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         newContract.setIntRate(prjQuotation.getIntRate());
         newContract.setLeaseItemAmount(newContract.getFinanceAmount());
         //获取产品线罚息率
-        //当前进件业务只有一家合作商，暂时只插入固定的这个合作商
-        HlsCusBpMaster hlsCusBpMasterProduct = new HlsCusBpMaster();
-        hlsCusBpMasterProduct.setBpCode("BP202407230057");
-        hlsCusBpMasterProduct.setBpType("MANUFACTURER");
-        List<HlsCusBpMaster> hlsCusBpMasterProducts = hlsCusBpMasterMapper.selectHlsBpMaster(hlsCusBpMasterProduct);
-        HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
-        hlsProductDefinition.setBpId(hlsCusBpMasterProducts.get(0).getBpId());
-        List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
-        newContract.setPenaltyRate(hlsProductDefinitionList.get(0).getPenaltyRate());
+        newContract.setPenaltyRate(prjProject.getPenaltyRate());
         hlsCusConContractMapper.insertSelective(newContract);
         //step2 创建合同现金流
         HlsCusPrjQuotationCashflow prjQuoCashflow = new HlsCusPrjQuotationCashflow();

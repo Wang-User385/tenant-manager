@@ -1149,6 +1149,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                             HlsCusPrjProjectLeaseItem leaseItem,PrjProjectLeaseItemSales leaseItemSales,PrjLeaseItemInsurance leaseItemInsurance,
                             PrjProjectLeaseItemMortgage leaseItemMortgages,PrjProjectLeaseItemCondition leaseItemConditions,
                             HlsCusBpMaster bpMaster,HlsCusBpMasterBankAccount bpMasterBankAccount,HlsBpSpouse bpMasterSpouse) throws HlsCusException {
+        hlsCusPrjProject.setFinanceAmount(Double.parseDouble(financeInfo.getApplyLoanAmount())/100);
         if(preRiskAuditData == null){
             return;
         }
@@ -1165,7 +1166,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         hlsCusPrjProject.setRiskInfo(preRiskAuditData.toString());//风控审核相关数据
         hlsCusPrjProject.setDivision(preRiskAuditData.getProline());//产品线
-        hlsCusPrjProject.setFinanceAmount(Double.parseDouble(financeInfo.getApplyLoanAmount())/100);
+
         bpMasterBankAccount.setBankAccountNum(preRiskAuditData.getCardno());//银行卡号
         bpMaster.setGender(preRiskAuditData.getSex());//性别
         bpMaster.setEthnicity(preRiskAuditData.getNation());//民族
@@ -2268,17 +2269,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         map.put(DOCUMENT_TYPE, "CON");
         map.put(DOCUMENT_ID, project.getProjectId());
         map.put("workFlowType", WORK_FLOW);
-        //map.put(WORKFLOW_TYPE, workFlowType);
-        //map.put(DOCUMENT_NAME, bpName);
-        //map.put(DOCUMENT_NUMBER, project.getProjectNumber());
-        //map.put(LEASE_CHANNEL, project.getLeaseChannel());
-        //map.put("manufacturerId", project.getManufacturerId());
-        /*iRequest.setUserId(Long.valueOf(10001));
-        iRequest.setCompanyId(Long.valueOf(1));
-        iRequest.setEmployeeCode("ADMIN");
-        iRequest.setRoleId(Long.valueOf(10146));
-        iRequest.setUserName("admin");
-        iRequest.setEmployeeName("管理员");*/
         activitiStartService.start(iRequest, list, map);
     }
 
