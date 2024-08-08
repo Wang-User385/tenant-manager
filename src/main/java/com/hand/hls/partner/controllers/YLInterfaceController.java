@@ -586,8 +586,9 @@ public class YLInterfaceController extends BaseController {
     )
     @ResponseBody
     public JSONObject businessApplication(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
-
-
+        Long userId = createRequestContext(request).getUserId();
+        User sysUser = userMapper.selectByPrimaryKey(userId);
+        IRequest iRequest = this.createIRequest(sysUser);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -603,8 +604,8 @@ public class YLInterfaceController extends BaseController {
         }
         BusinessApplicationDTO businessApplicationDTO = JSONObject.parseObject(hlsWsRequests.getRequestJson(), BusinessApplicationDTO.class);
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(businessApplicationDTO.getOrderNo());
-        User sysUser = userMapper.queryByEmployeeId(hlsCusPrjProject.getEmployeeId());
-        IRequest iRequest = this.createIRequest(sysUser);
+        sysUser = userMapper.queryByEmployeeId(hlsCusPrjProject.getEmployeeId());
+        iRequest = this.createIRequest(sysUser);
         String resStr = null;
         String returnStatus = "S";
         try{
