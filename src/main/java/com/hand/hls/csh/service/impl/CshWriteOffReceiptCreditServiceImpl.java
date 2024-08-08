@@ -199,14 +199,14 @@ public class CshWriteOffReceiptCreditServiceImpl implements CshTransactionCommon
 
         //调用YH007 同步核销流水 new_dev不启用
 
-        if(1L == cshWriteOff.getCfItem() || 11L == cshWriteOff.getCfItem() || 13L == cshWriteOff.getCfItem()){
-            if("FULL".equals(conCashflow.getWriteOffFlag())) {
-                financeBaseUtils.mergeFlowItfc(iRequest, conCashflow);
-                financeBaseUtils.writeOffFlowItfc(iRequest, conCashflow);
-            }
-
-            financeBaseUtils.postCashflowItfc(iRequest,cshWriteOff);
-        }
+//        if(1L == cshWriteOff.getCfItem() || 11L == cshWriteOff.getCfItem() || 13L == cshWriteOff.getCfItem()){
+//            if("FULL".equals(conCashflow.getWriteOffFlag())) {
+//                financeBaseUtils.mergeFlowItfc(iRequest, conCashflow);
+//                financeBaseUtils.writeOffFlowItfc(iRequest, conCashflow);
+//            }
+//
+//            financeBaseUtils.postCashflowItfc(iRequest,cshWriteOff);
+//        }
     }
 
     private HlsCusCshWriteOff getReceiptCredit(HlsCusCshWriteOff cshWriteOff) {

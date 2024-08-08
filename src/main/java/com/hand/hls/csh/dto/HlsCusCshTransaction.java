@@ -337,6 +337,9 @@ public class HlsCusCshTransaction extends CshTransaction {
     @Transient
     private String transactionTypeDesc;
 
+    @Transient
+    private String writeOffFlagN;
+
 
 
 

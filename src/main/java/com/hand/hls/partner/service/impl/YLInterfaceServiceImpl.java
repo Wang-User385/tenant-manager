@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
+import com.hand.hap.mybatis.entity.Example;
 import com.hand.hls.atm.dto.FndAttachment;
 import com.hand.hls.atm.dto.FndAttachmentMulti;
 import com.hand.hls.atm.mapper.FndAttachmentMapper;
@@ -440,6 +441,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             if (ObjectUtils.isEmpty(hlsCusConContractCashflow)){
                 returnJson.put("code","100003");
                 returnJson.put("message","该合同对应的现金流已经结清或者不存在");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+            Example example = new Example(YLCshTransferPaymentDto.class);
+            example.createCriteria().andEqualTo("contractId",hlsCusConContract.getContractId());
+            example.createCriteria().andEqualTo("cashflowId",hlsCusConContractCashflow.getCashflowId());
+            List<YLCshTransferPaymentDto> ylCshTransferPaymentDtos = ylCshTransferPaymentDtoMapper.selectByExample(example);
+            if (ylCshTransferPaymentDtos != null && ylCshTransferPaymentDtos.size() !=0 ){
+                returnJson.put("code","100003");
+                returnJson.put("message","多次传入相同数据");
                 throw new HlsCusException(returnJson.toJSONString());
             }
             Double sumAmount = HlsCusMathUtil.add(HlsCusMathUtil.add(hlsCusConContractCashflow.getPenalty(),hlsCusConContractCashflow.getPrincipal()),hlsCusConContractCashflow.getInterest());

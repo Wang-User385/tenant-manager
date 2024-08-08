@@ -231,6 +231,7 @@
         <result column="allocation_flag_n" property="allocationFlagN" jdbcType="VARCHAR"/>
         <result column="allocation_flag" property="allocationFlag" jdbcType="VARCHAR"/>
         <result column="transaction_type_desc" property="transactionTypeDesc" jdbcType="VARCHAR"/>
+        <result column="write_off_flag_n" property="writeOffFlagN" jdbcType="VARCHAR"/>
 
 
     </resultMap>
@@ -1949,14 +1950,14 @@
         FROM sys_code_value_b_v v
         WHERE v.CODE = 'CSH301_TRANSACTION_TYPE'
         AND v.code_value = tran.transaction_type) transaction_type_n,
-        ( SELECT
+        nvl(( SELECT
         sum(ctr.REFUND_AMOUNT)
         FROM
         csh_transaction_refund ctr
         WHERE
         ctr.refund_status = 'APPROVED'
         AND ctr.TRANSACTION_ID = tran.TRANSACTION_ID
-        )  refund_amount,
+        ),0)  refund_amount,
         (tran.transaction_amount - tran.write_off_due_amount) un_write_off_due_amount
         from (SELECT t.*,
         (SELECT
@@ -2060,14 +2061,14 @@
         AND scb.CODE_ID = scvb.CODE_ID
         AND scvb.VALUE = t.WRITE_OFF_FLAG
         ) write_off_flag_n,
-        ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ) refunding_amount,
+        nvl(( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ),0) refunding_amount,
         nvl( t.transaction_amount, 0 ) - nvl( t.write_off_amount, 0 ) - nvl(
-        ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ),
+        nvl(( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ),
         0
         ) - nvl(
         ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ),
         0
-        ) remaining_amount ,
+        ),0) remaining_amount ,
 
         (
         CASE
