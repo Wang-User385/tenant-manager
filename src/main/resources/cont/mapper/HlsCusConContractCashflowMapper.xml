@@ -9042,7 +9042,7 @@ and con.contract_status in
             NVL(ccc.RECEIVED_COMP_AMOUNT, 0) RECEIVED_COMP_AMOUNT,
             NVL(ccc.REFUND_COMP_AMOUNT, 0) REFUND_COMP_AMOUNT
         FROM CON_CONTRACT_CASHFLOW ccc
-        WHERE ccc.CONTRACT_ID=#{contractId} and  ccc.CF_STATUS not in ('BLOCK','CANCEL') and ccc.cf_type not in(9) and ccc.cf_item not in(9)
+        WHERE ccc.CONTRACT_ID=#{contractId} and  ccc.CF_STATUS = 'RELEASE' and ccc.cf_type not in(9) and ccc.cf_item not in(9)
         order by ccc.contract_id,ccc.times
     </select>
 
@@ -9057,7 +9057,9 @@ and con.contract_status in
         WHERE pp.PROJECT_NUMBER = #{orderNo}
           AND ccc.TIMES=#{termNo}
           AND ccc.cf_item = 1
-          AND ccc.cf_status not in ('BLOCK')
+          AND ccc.cf_status = 'RELEASE'
+          and ccc.plan_type is null and nvl(due_comp_amount,0) = 0
+          and nvl(ccc.write_off_flag,'NOT') != ('FULL')
     </select>
 
 

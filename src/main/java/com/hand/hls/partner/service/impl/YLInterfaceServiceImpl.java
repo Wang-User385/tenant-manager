@@ -519,15 +519,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     public String compensatoryTrialCalculation(String decryptedStr) throws HlsCusException {
         CompensatoryTrialCalculationDTO compensatoryTrialCalculationDTO = JSONObject.parseObject(decryptedStr, CompensatoryTrialCalculationDTO.class);
         JSONObject returnJson = new JSONObject();
-
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         //判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
         if (compensatoryTrialCalculationDTO.getTrialTime()==null){
-            compensatoryTrialCalculationDTO.setTrialTime(String.valueOf(new Date()));
+            compensatoryTrialCalculationDTO.setTrialTime(simpleDateFormat.format(new Date()));
         }
-
         //校验日期格式是否正确
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try{
+            simpleDateFormat.setLenient(false);
             simpleDateFormat.parse(compensatoryTrialCalculationDTO.getTrialTime());
         }catch (ParseException e) {
             e.printStackTrace();
@@ -549,12 +548,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("message","数据不存在");
             throw new HlsCusException(returnJson.toJSONString());
         }
-        //判断传入时间是否为空，如果为空则用现在时间，如果不为空，则用传入时间
-        if (compensatoryTrialCalculationDTO.getTrialTime()==null){
-            compensatoryTrialCalculation1.setTrialTime(String.valueOf(new Date()));
-        }else{
-            compensatoryTrialCalculation1.setTrialTime(compensatoryTrialCalculationDTO.getTrialTime());
-        }
+
+
+        compensatoryTrialCalculation1.setTrialTime(compensatoryTrialCalculationDTO.getTrialTime());
         //设置返回订单号
         compensatoryTrialCalculation1.setOrderNo(compensatoryTrialCalculationDTO.getOrderNo());
         //设置返回期次号
@@ -610,15 +606,14 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         AdvancesSettleComputeDTO advancesSettleComputeDTO = JSONObject.parseObject(decryptedStr, AdvancesSettleComputeDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
-
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         //判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
         if (advancesSettleComputeDTO.getTrialTime()==null){
-            advancesSettleComputeDTO.setTrialTime(String.valueOf(new Date()));
+            advancesSettleComputeDTO.setTrialTime(simpleDateFormat.format(new Date()));
         }
-
         //校验日期格式是否正确
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try{
+            simpleDateFormat.setLenient(false);
             simpleDateFormat.parse(advancesSettleComputeDTO.getTrialTime());
         }catch (ParseException e) {
             e.printStackTrace();
@@ -626,7 +621,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             jsonObject1.put("message","试算时间格式错误");
             throw new HlsCusException(jsonObject1.toJSONString());
         }
-
+        //计算逻辑
         CalculationResultsDto calculationResultsDto = calculationResult(advancesSettleComputeDTO.getOrderNo(),advancesSettleComputeDTO.getTrialTime(),
                 "ET",11L,null);
 
@@ -657,15 +652,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Override
     public String advancesSettleRequest(String decryptedStr) throws HlsCusException{
-
         AdvancesSettleRequestDTO advancesSettleRequestDTO = JSONObject.parseObject(decryptedStr, AdvancesSettleRequestDTO.class);
-
-
         JSONObject jsonObject1 = new JSONObject();
         Date date = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String dateString = sdf.format(date);
 
+        //计算逻辑
         CalculationResultsDto calculationResultsDto = calculationResult(advancesSettleRequestDTO.getOrderNo(),dateString,
                 "ET",11L,date);
 
@@ -1630,12 +1623,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         OverdueRepurchaseTrialCalculationDTO overdueRepurchaseTrialCalculationDTO = JSONObject.parseObject(decryptedStr, OverdueRepurchaseTrialCalculationDTO.class);
 
         JSONObject jsonObject1 = new JSONObject();
-        if (overdueRepurchaseTrialCalculationDTO.getTrialTime() == null){
-            overdueRepurchaseTrialCalculationDTO.setTrialTime(String.valueOf(new Date()));
-        }
-
-        //校验日期格式是否正确
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        if (overdueRepurchaseTrialCalculationDTO.getTrialTime() == null){
+            simpleDateFormat.setLenient(false);
+            overdueRepurchaseTrialCalculationDTO.setTrialTime(simpleDateFormat.format(new Date()));
+        }
+        //校验日期格式是否正确
         try{
             simpleDateFormat.parse(overdueRepurchaseTrialCalculationDTO.getTrialTime());
         }catch (ParseException e) {
