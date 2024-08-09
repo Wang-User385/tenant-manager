@@ -11037,12 +11037,13 @@ WHERE
         <result column="bp_class_n" property="bp_class_n"/>
         <result column="bp_id_n" property="bp_id_n"/>
         <result column="bp_type_n" property="bp_type_n"/>
-        <result column="bp_category_n" property="bp_category_n"/>
+        <result column="bp_categroy_n" property="bp_categroy_n"/>
         <result column="tenant_name" property="tenant_name"/>
         <result column="bp_info_link" property="bp_info_link"/>
         <result column="bp_code" property="bp_code"/>
-        <result column="bp_category" property="bp_category"/>
+        <result column="bp_categroy" property="bp_categroy"/>
         <result column="ref_v02" property="ref_v02"/>
+        <result column="ref_v02_n" property="ref_v02_n"/>
     </resultMap>
     <!--项目报告 承租人-->
     <select id="prjProjectBpTenantQuery" resultMap="PrjProjectBpTenantQueryMap">
@@ -13156,9 +13157,16 @@ WHERE
             pp.description,
             '客户明细信息' bp_info_link,
             hbm.bp_code,
-            ppb.bp_categroy bp_category,
-            (select bc.description from hls_bp_category bc where bc.bp_category = ppb.bp_categroy) bp_category_n,
-            decode(ppb.ref_v02,'GUARANTOR','担保人','TENANT-SEC','共同承租人') ref_v02
+            ppb.bp_categroy,
+            (select bc.description from hls_bp_category bc where bc.bp_category = ppb.bp_categroy) bp_categroy_n,
+            decode(ppb.ref_v02,'GUARANTOR','担保人','TENANT-SEC','共同承租人') ref_v02,
+            (SELECT
+                 v.meaning AS value_name
+             FROM
+                 sys_code_value_b_v v
+             WHERE
+                 v.CODE = 'ZX_MEMBERTYPE'
+               and v.code_value=ppb.REF_V02) ref_v02_n
         FROM
             prj_project pp LEFT JOIN prj_project_bp ppb ON ppb.PROJECT_ID = pp.PROJECT_ID LEFT JOIN hls_bp_master hbm ON hbm.bp_id = ppb.bp_id
         WHERE

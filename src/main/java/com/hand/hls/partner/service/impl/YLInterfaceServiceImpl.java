@@ -1021,6 +1021,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         guaBpMaster.setBpName(preRiskAuditData.getSurename());//担保人姓名
         guaBpMaster.setIdType("ID_CARD");//担保人证件类型
+        guaBpMaster.setBpCategory("WARRANTOR");
+        guaBpMaster.setBpType("WARRANTOR");
+        guaBpMaster.setCreatedBy(hlsProductDefinitionList.get(0).getUserId());
+        guaBpMaster.setUnitId(hlsProductDefinitionList.get(0).getUnitId().toString());
         guaBpMaster.setIdCardNo(preRiskAuditData.getSureid());//担保人身份证
         guaBpMaster.setPhone(preRiskAuditData.getSuremobi());//担保人手机
 
@@ -1220,7 +1224,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         bpMaster.setHighestDegree(preRiskAuditData.getDiploma());//学历
         bpMaster.setWorkingCompany(preRiskAuditData.getCompany());//单位名称
-        bpMaster.setEconomicInduClassify(hlsCusBpMasterMapper.selectHlsStatClassByCode(preRiskAuditData.getIndustry()).toString());//所属行业
+        if(StringUtils.isNotEmpty(preRiskAuditData.getIndustry())){
+            bpMaster.setEconomicInduClassify(hlsCusBpMasterMapper.selectHlsStatClassByCode(preRiskAuditData.getIndustry()).toString());//所属行业
+        }
         bpMaster.setJobNature(preRiskAuditData.getCorpnprop());//单位性质
         bpMaster.setProfession(preRiskAuditData.getOccu());//职业
         bpMaster.setPosition(preRiskAuditData.getPosition());//当前职位
