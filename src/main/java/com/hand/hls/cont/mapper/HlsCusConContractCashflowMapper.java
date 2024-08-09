@@ -341,4 +341,5 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
     HlsCusConContractCashflow getHlsCusConContractCashflowByContractId(@Param("contractId") Long contractId,@Param("termNo") Long termNo);
 
 
+    List<HlsCusConContractCashflow> queryConContractCashflowList(@Param("contractId") Long contractId, @Param("times") Long times);
 }

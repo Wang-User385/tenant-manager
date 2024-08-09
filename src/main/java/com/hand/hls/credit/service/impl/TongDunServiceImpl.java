@@ -23,6 +23,7 @@ import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import hls.core.utils.exception.HlsCusException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,9 +66,12 @@ public class TongDunServiceImpl implements TongDunService {
             准生产IP:http://172.17.241.69:8088/
             生产IP:http://172.17.241.12:8088/
      */
-    private static final String YS_URL = "http://172.17.241.66:8088/riskService/atreus/riskDecision/qclszqys";
 
-    private static final String ZS_URL = "http://172.17.241.66:8088/riskService/atreus/riskDecision/qclszqzs";
+    @Value("${tongdun.ys}")
+    private  String YS_URL;
+
+    @Value("${tongdun.zs}")
+    private  String ZS_URL;
 
 
     //预审
@@ -75,7 +79,7 @@ public class TongDunServiceImpl implements TongDunService {
     public String preliminaryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        //commonLogHead(hlsWsRequests, "预审", projectId, request);
+        commonLogHead(hlsWsRequests, "GT-TD-T001-预审", projectId, request);
         ResponseData responseData = new ResponseData();
         JSONObject returnJson = new JSONObject();
         //项目id为空则预审失败
@@ -172,10 +176,16 @@ public class TongDunServiceImpl implements TongDunService {
     public String interlocutoryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        //commonLogHead(hlsWsRequests, "正审", projectId, request);
+        commonLogHead(hlsWsRequests, "GT-TD-T002-正审", projectId, request);
         ResponseData responseData = new ResponseData();
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
         JSONObject param = JSONObject.parseObject(jsonString);
+        if (param.containsKey("dealerid")){
+            param.remove("dealerid");
+        }
+        if (param.containsKey("dealername")){
+            param.remove("dealername");
+        }
         JSONObject returnJson = new JSONObject();
 
         //申请风控审核时，校验riskInfo是否为空，空则报错
@@ -422,7 +432,7 @@ public class TongDunServiceImpl implements TongDunService {
     private void commonLogHead(HlsWsRequests hlsWsRequests, String functionName, Object param, HttpServletRequest request) {
         //获取请求路径
         String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
+        hlsWsRequests.setRequestWsdlUrl("");
         //请求日期
         hlsWsRequests.setRequestDate(new Date());
         //功能名称
