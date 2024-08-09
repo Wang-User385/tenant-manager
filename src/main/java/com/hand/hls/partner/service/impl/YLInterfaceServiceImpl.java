@@ -1953,7 +1953,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         }else if("APPLY_MORTGAGE_MATERIAL_AUDIT".equals(action)){
             //抵押材料审核
-
+            HlsCusConContract conContractQuery = new HlsCusConContract();
+            conContractQuery.setProjectId(hlsCusPrjProject.getProjectId());
+            List<HlsCusConContract> contract = hlsCusConContractMapper.queryContractByProjectId(conContractQuery);
+            if ("APPROVING".equals(contract.get(0).getMortgageStatus())){
+                returnJson.put("code","100101");
+                returnJson.put("message","当前单据已在付款审批中，请勿重复发起");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+            if ("APPROVED".equals(contract.get(0).getMortgageStatus())){
+                returnJson.put("code","100101");
+                returnJson.put("message","当前单据已完成付款申请流程，请勿重复发起");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
         }
 
         returnJson.put("code","200");

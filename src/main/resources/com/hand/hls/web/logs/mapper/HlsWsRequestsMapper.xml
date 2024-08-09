@@ -22,6 +22,8 @@
         <result column="RESPONSE_JSON_ENCRYPT" property="responseJsonEncrypt" jdbcType="VARCHAR" />
 
         <result column="return_status_n" property="returnStatusN" jdbcType="VARCHAR"/>
+        <result column="CREATED_BY" property="createdBy" jdbcType="DECIMAL" />
+        <result column="CREATED_BY_N" property="createdByN" jdbcType="VARCHAR"/>
     </resultMap>
 
 
@@ -98,7 +100,9 @@
                hwr.RESPONSE_JSON_ENCRYPT,
         (select sc.meaning
         from sys_code_value_b_v sc
-        where sc.code = 'HLS.WS.REQUESTS.STATUS' and sc.code_value = hwr.return_status) return_status_n
+        where sc.code = 'HLS.WS.REQUESTS.STATUS' and sc.code_value = hwr.return_status) return_status_n,
+               hwr.created_by,
+               (select s.description from sys_user s where s.user_id = hwr.created_by) created_by_n
         from hls_ws_requests hwr
         <where>
             <if test="functionName != null and functionName != ''">
@@ -112,6 +116,9 @@
             </if>
             <if test="requestDateTo != null">
                 and  request_date <![CDATA[ <= ]]> to_date(#{requestDateTo},'yyyy-mm-dd')  + interval '1' day
+            </if>
+            <if test="createdBy != null and createdBy != ''">
+                and  created_by = #{createdBy}
             </if>
         </where>
         order by request_date desc
