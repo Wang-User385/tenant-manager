@@ -50,6 +50,8 @@ public class YLCshTransferPaymentDto extends BaseDTO {
 
     private Date confirmDate;
 
+    private String repayType;
+
     @Length(max = 24)
     private String transferPaymentStatus;
 
@@ -91,5 +93,23 @@ public class YLCshTransferPaymentDto extends BaseDTO {
 
     @Transient
     private String extraBankStatement;
+
+    @Transient
+    private Long bankAccountId;
+
+    @Transient
+    private String bankAccountName;
+    @Transient
+    private String bankAccountNum;
+    @Transient
+    private String comments;
+    @Transient
+    private String bpBankAccountName;
+    @Transient
+    private String bpBankAccountNum;
+    @Transient
+    private String bpBankName;
+    @Transient
+    private String bankBranchNameEx;
 
 }

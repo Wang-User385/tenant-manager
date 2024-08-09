@@ -102,19 +102,18 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
     public List<YLCshTransferPaymentDto> updateTransferStatus(IRequest requestCtx, List<YLCshTransferPaymentDto> list) {
         List<YLCshTransferPaymentDto> res = new ArrayList<>();
         for (YLCshTransferPaymentDto ylCshTransferPaymentDto : list) {
-            YLCshTransferPaymentDto ylCshTransferPaymentDto1 = new YLCshTransferPaymentDto();
-            ylCshTransferPaymentDto1.setPaymentId(ylCshTransferPaymentDto.getPaymentId());
-            ylCshTransferPaymentDto1 =
-                    ylCshTransferPaymentDtoMapper.selectByPrimaryKey(ylCshTransferPaymentDto1);
-            ylCshTransferPaymentDto1.setTransferPaymentStatus("CANCEL");
-            ylCshTransferPaymentDtoMapper.updateByPrimaryKey(ylCshTransferPaymentDto1);
+
+            ylCshTransferPaymentDto =
+                    ylCshTransferPaymentDtoMapper.selectByPrimaryKey(ylCshTransferPaymentDto);
+            ylCshTransferPaymentDto.setTransferPaymentStatus("CANCEL");
+            ylCshTransferPaymentDtoMapper.updateByPrimaryKey(ylCshTransferPaymentDto);
             HlsCusConContractCashflow hlsCusConContractCashflow = new HlsCusConContractCashflow();
             //更新现金事务流转付状态
             hlsCusConContractCashflow.setCashflowId(ylCshTransferPaymentDto.getCashflowId());
             hlsCusConContractCashflow = hlsCusConContractCashflowMapper.selectByPrimaryKey(hlsCusConContractCashflow);
             hlsCusConContractCashflow.setTransferPaymentFlag("N");
             hlsCusConContractCashflowMapper.updateByPrimaryKey(hlsCusConContractCashflow);
-            res.add(ylCshTransferPaymentDto1);
+            res.add(ylCshTransferPaymentDto);
         }
         return res;
     }
@@ -142,7 +141,12 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
     private void writeOffYL(IRequest requestCtx, HttpServletRequest request, HlsWsRequests hlsWsRequests, ResponseData responseData, YLCshTransferPaymentDto ylCshTransferPaymentDto, HlsCusCshTransaction hlsCusCshTransaction) {
         //核销
         //查出合同现金流数据
-        List<HlsCusConContractCashflow> hlsCusConContractCashflowList = hlsCusConContractCashflowMapper.queryConContractCashflowList(ylCshTransferPaymentDto.getContractId(), ylCshTransferPaymentDto.getTimes());
+        HlsCusConContractCashflow hlsCusConContractCashflow1 = new HlsCusConContractCashflow();
+        Example example = new Example(HlsCusConContractCashflow.class);
+        example.createCriteria().andEqualTo("cashflowId", ylCshTransferPaymentDto.getCashflowId());
+        hlsCusConContractCashflow1 = hlsCusConContractCashflowMapper.selectByExample(example).get(0);
+
+        List<HlsCusConContractCashflow> hlsCusConContractCashflowList = hlsCusConContractCashflowMapper.queryConContractCashflowList(ylCshTransferPaymentDto.getContractId(), hlsCusConContractCashflow1.getTimes());
         List<HlsCusCshWriteOff> ans = new ArrayList<>();
         try {
             //如果没有就加一个
@@ -158,9 +162,12 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
     }
 
     private void setHlsCusWriteOffList(YLCshTransferPaymentDto ylCshTransferPaymentDto, HlsCusCshTransaction hlsCusCshTransaction, HlsCusConContractCashflow hlsCusConContractCashflow, List<HlsCusCshWriteOff> res) {
+
         HlsCusCshWriteOff hlsCusCshWriteOff = new HlsCusCshWriteOff();
         hlsCusCshWriteOff.setContractId(ylCshTransferPaymentDto.getContractId());
         hlsCusCshWriteOff.setCshTransactionId(hlsCusCshTransaction.getTransactionId());
+        //设置现金流id
+        hlsCusCshWriteOff.setCashflowId(hlsCusConContractCashflow.getCashflowId());
         //设置核销类型
         hlsCusCshWriteOff.setWriteOffType("RECEIPT_CREDIT");
         //设置核销时间
@@ -169,20 +176,36 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         hlsCusCshWriteOff.setCshWriteOffAmount(hlsCusCshTransaction.getWriteOffAmount());
         //设置反冲标志
         hlsCusCshWriteOff.setReversedFlag("N");
-        //设置现金流id
-        hlsCusCshWriteOff.setCashflowId(hlsCusConContractCashflow.getCashflowId());
-        //设置期次
-        hlsCusCshWriteOff.setTimes(ylCshTransferPaymentDto.getTimes());
         //设置现金流项目
         hlsCusCshWriteOff.setCfItem(hlsCusConContractCashflow.getCfItem());
         //设置现金流类型
         hlsCusCshWriteOff.setCfType(hlsCusConContractCashflow.getCfType());
-        //设置核销金额
-        hlsCusCshWriteOff.setWriteOffDueAmount(ylCshTransferPaymentDto.getRepayAmount());
-        //设置核销利息
-        hlsCusCshWriteOff.setWriteOffInterest(ylCshTransferPaymentDto.getRepayInterest());
-        //设置核销本金
-        hlsCusCshWriteOff.setWriteOffPrincipal(ylCshTransferPaymentDto.getRepayPrincipal());
+        if (ylCshTransferPaymentDto.getRepayPenalty() == null || HlsCusMathUtil.compare(ylCshTransferPaymentDto.getRepayPenalty(), (double) 0) == 0) {
+            //设置核销金额
+            hlsCusCshWriteOff.setWriteOffDueAmount(ylCshTransferPaymentDto.getRepayAmount());
+            //设置核销利息
+            hlsCusCshWriteOff.setWriteOffInterest(ylCshTransferPaymentDto.getRepayInterest());
+            //设置核销本金
+            hlsCusCshWriteOff.setWriteOffPrincipal(ylCshTransferPaymentDto.getRepayPrincipal());
+        }else {
+            //核销罚息
+            if (9 == hlsCusCshWriteOff.getCfItem() || 9 == hlsCusCshWriteOff.getCfType()){
+                hlsCusCshWriteOff.setWriteOffDueAmount(ylCshTransferPaymentDto.getRepayPenalty());
+                //设置核销利息
+                hlsCusCshWriteOff.setWriteOffInterest((double) 0);
+                //设置核销本金
+                hlsCusCshWriteOff.setWriteOffPrincipal((double)0);
+            }else {//核销本金加利息
+                //设置核销金额
+                hlsCusCshWriteOff.setWriteOffDueAmount(HlsCusMathUtil.add(ylCshTransferPaymentDto.getRepayInterest(),ylCshTransferPaymentDto.getRepayPrincipal()));
+                //设置核销利息
+                hlsCusCshWriteOff.setWriteOffInterest(ylCshTransferPaymentDto.getRepayInterest());
+                //设置核销本金
+                hlsCusCshWriteOff.setWriteOffPrincipal(ylCshTransferPaymentDto.getRepayPrincipal());
+            }
+        }
+        //设置期次
+        hlsCusCshWriteOff.setTimes(hlsCusConContractCashflow.getTimes());
         //设置核销单据类别
         hlsCusCshWriteOff.setWriteOffDocCategory("CON_CONTRACT");
         //导入标识
@@ -214,6 +237,13 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         hlsCusCshTransaction.setReversedFlag("N");
         hlsCusCshTransaction.setPostedFlag("N");
         hlsCusCshTransaction.setCurrencyCode("CNY");
+        hlsCusCshTransaction.setBpBankName(ylCshTransferPaymentDto.getBpBankName());
+        hlsCusCshTransaction.setBpBankBranchName(ylCshTransferPaymentDto.getBankBranchNameEx());
+        hlsCusCshTransaction.setBpBankAccountNum(ylCshTransferPaymentDto.getBpBankAccountNum());
+        hlsCusCshTransaction.setBpBankAccountName(ylCshTransferPaymentDto.getBpBankAccountName());
+        hlsCusCshTransaction.setComments(ylCshTransferPaymentDto.getComments());
+        hlsCusCshTransaction.setBankSlipNum(ylCshTransferPaymentDto.getExtraBankStatement());
+        hlsCusCshTransaction.setBankAccountId(ylCshTransferPaymentDto.getBankAccountId());
         //系统字段
         hlsCusCshTransaction.setCreationDate(new Date());
         hlsCusCshTransaction.setCreatedBy(requestCtx.getUserId());
@@ -255,92 +285,6 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         hlsWsRequests.setRequestJson(s);
     }
 
-
-    //    public List<HlsCusCshWriteOff> checkCshWriteOffs(List<HlsCusCshWriteOff> cshWriteOffs) throws BeyondAmountLimitException {
-//
-//        if (cshWriteOffs != null) {
-//            Double sumAmount = 0D;
-//
-//            for (HlsCusCshWriteOff cshWriteOff : cshWriteOffs) {
-//                if (cshWriteOff.getSurplusAmount() != null && cshWriteOff.getWriteOffDueAmount() != null) {
-//                    /**
-//                     * 当核销金额大于预收款金额，抛出异常
-//                     */
-//                    if (cshWriteOff.getWriteOffDueAmount() > cshWriteOff.getSurplusAmount()) {
-//                        throw new BeyondAmountLimitException();
-//                    }
-//
-//                    sumAmount = MathUtil.add(sumAmount, cshWriteOff.getWriteOffDueAmount());
-//                }
-//
-//            }
-//            List<HlsCusCshTransaction> cshTransactions = hlsCusCshTransactionMapper.queryDetailByIdList(cshWriteOffs.get(0).getCshTransactionId());
-//            HlsCusCshTransaction transaction = cshTransactions.get(0);
-//            /**
-//             * 当核销金额总和大于收款金额时，抛出异常
-//             */
-//            if (transaction.getWriteOffAmount() == null) {
-//                transaction.setWriteOffAmount(0d);
-//            }
-//
-//            Double sum = MathUtil.add(sumAmount, transaction.getWriteOffAmount());
-//
-//            if (sum.compareTo(transaction.getTransactionAmount()) == 1) {
-//                throw new BeyondAmountLimitException();
-//            }
-//        }
-//
-//
-//        return cshWriteOffs;
-//    }
-//
-//    public void updateComContractCashflowAndInsertCshTransaction(IRequest requestCtx, HlsWsRequests hlsWsRequests, ResponseData responseData, YLCshTransferPaymentDto ylCshTransferPaymentDto, HlsCusCshTransaction hlsCusCshTransaction) {
-//        //查出合同现金流数据
-//        HlsCusConContractCashflow hlsCusConContractCashflow = new HlsCusConContractCashflow();
-//        hlsCusConContractCashflow.setCashflowId(ylCshTransferPaymentDto.getCashflowId());
-//        hlsCusConContractCashflow = hlsCusConContractCashflowMapper.selectByPrimaryKey(hlsCusConContractCashflow);
-//        //设置为是转付
-//        hlsCusConContractCashflow.setTransferPaymentFlag("Y");
-//        //应收金额
-//        Double dueAmount = hlsCusConContractCashflow.getDueAmount();
-//        //已收金额
-//        Double receivedAmount = hlsCusConContractCashflow.getReceivedAmount();
-//        //不存在应收小于已收 逾期和罚息是新的现金流
-//        //已收加还款总金额
-//        Double amount = HlsCusMathUtil.add(receivedAmount, ylCshTransferPaymentDto.getRepayAmount());
-//        //应收  == 已收加还款
-//        if (HlsCusMathUtil.compare(dueAmount, amount) == -1) {
-//            commonLog(responseData, "10001", "E", "已收金额大于应收", hlsWsRequests);
-//            throw new RuntimeException("已收金额大于应收");
-//        }
-//        //设置核销字段
-//        if (HlsCusMathUtil.compare(dueAmount, amount) == 0) {
-//            //完全核销
-//            hlsCusCshTransaction.setWriteOffFlag("FULL");
-//            hlsCusConContractCashflow.setWriteOffFlag("FULL");
-//        } else {
-//            //部分核销
-//            hlsCusCshTransaction.setWriteOffFlag("PARTIAL");
-//            hlsCusConContractCashflow.setWriteOffFlag("PARTIAL");
-//        }
-//        //设置核销金额
-//        hlsCusCshTransaction.setWriteOffAmount(HlsCusMathUtil.add(hlsCusCshTransaction.getUnWriteOffAmount(), ylCshTransferPaymentDto.getRepayAmount()));
-//        //设置还款后的已收金额
-//        hlsCusConContractCashflow.setReceivedAmount(HlsCusMathUtil.add(hlsCusConContractCashflow.getReceivedAmount(), ylCshTransferPaymentDto.getRepayPrincipal()));
-//        //设置还款后的已收金额
-//        hlsCusConContractCashflow.setReceivedAmount(amount);
-//        //设置还款后已收利息
-//        hlsCusConContractCashflow.setReceivedInterest(HlsCusMathUtil.add(hlsCusConContractCashflow.getReceivedInterest(), ylCshTransferPaymentDto.getRepayInterest()));
-//        //更新核销表信息
-//        HlsCusCshWriteOff hlsCusCshWriteOff = updateHlsCusWriteOff(ylCshTransferPaymentDto, hlsCusCshTransaction, hlsCusConContractCashflow);
-//        //更新核销匹配表信息
-//        updateWriteOffMatch(requestCtx, hlsCusCshTransaction, hlsCusConContractCashflow, hlsCusCshWriteOff);
-//        //插入现金事务数据
-//        hlsCusCshTransactionMapper.insertSelective(hlsCusCshTransaction);
-//        //更新现金事务流数据
-//        hlsCusConContractCashflowMapper.updateByPrimaryKey(hlsCusConContractCashflow);
-//    }
-//
     private void updateWriteOffMatch(IRequest requestCtx, HlsCusCshTransaction hlsCusCshTransaction, HlsCusConContractCashflow hlsCusConContractCashflow, HlsCusCshWriteOff hlsCusCshWriteOff) {
         CshAllocation cshAllocation = new CshAllocation();
         Map<String, String> params = new HashMap<>();
@@ -359,12 +303,14 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         cshAllocation.setCreatedBy(requestCtx.getUserId());
         cshAllocation.setLastUpdateDate(new Date());
         cshAllocation.setLastUpdatedBy(requestCtx.getUserId());
+        cshAllocationMapper.insertSelective(cshAllocation);
         //将现金事务表与核销匹配表关联
         Long allocationId = cshAllocation.getAllocationId();
         CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
         cshAllocationReceipt.setAllocationId(allocationId);
         cshAllocationReceipt.setTransactionId(hlsCusCshTransaction.getTransactionId());
         cshAllocationReceipt.setAdvanceReceiptAmount(OracleUtils.nvl(hlsCusCshTransaction.getAdvanceReceiptAmount(), 0.0));
+        cshAllocationReceiptMapper.insertSelective(cshAllocationReceipt);
         //将匹配表与现金事务流表关联
         CshAllocationCredit cshAllocationCredit = new CshAllocationCredit();
         cshAllocationCredit.setAllocationId(allocationId);
@@ -373,74 +319,11 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         cshAllocationCredit.setPrincipal(hlsCusConContractCashflow.getPrincipal());
         cshAllocationCredit.setInterest(hlsCusConContractCashflow.getInterest());
         //插入核销匹配表
-        cshAllocationMapper.insertSelective(cshAllocation);
-        cshAllocationReceiptMapper.insertSelective(cshAllocationReceipt);
+
+
         cshAllocationCreditMapper.insertSelective(cshAllocationCredit);
     }
-//
-//    private HlsCusCshWriteOff updateHlsCusWriteOff(YLCshTransferPaymentDto ylCshTransferPaymentDto, HlsCusCshTransaction hlsCusCshTransaction, HlsCusConContractCashflow hlsCusConContractCashflow) {
-//        HlsCusCshWriteOff hlsCusCshWriteOff = hlsCusCshWriteOffMapper.
-//                getHlsCusCshWriteOffByContractIdAndTransactionId
-//                        (ylCshTransferPaymentDto.getContractId(), hlsCusCshTransaction.getTransactionId());
-//        if (hlsCusCshWriteOff == null) {
-//            hlsCusCshWriteOff = new HlsCusCshWriteOff();
-//            hlsCusCshWriteOff.setContractId(ylCshTransferPaymentDto.getContractId());
-//            hlsCusCshWriteOff.setTransactionId(hlsCusCshTransaction.getTransactionId());
-//            //设置核销类型
-//            hlsCusCshWriteOff.setWriteOffType("RECEIPT_CREDIT");
-//            //设置核销时间
-//            hlsCusCshWriteOff.setWriteOffDate(new Date());
-//            //设置现金事务核销金额
-//            hlsCusCshWriteOff.setCshWriteOffAmount(hlsCusCshTransaction.getWriteOffAmount());
-//            //设置反冲标志
-//            hlsCusCshWriteOff.setReversedFlag("N");
-//            //设置现金流id
-//            hlsCusCshWriteOff.setCashflowId(hlsCusConContractCashflow.getCashflowId());
-//            //设置期次
-//            hlsCusCshWriteOff.setTimes(ylCshTransferPaymentDto.getTimes());
-//            //设置现金流项目
-//            hlsCusCshWriteOff.setCfItem(hlsCusConContractCashflow.getCfItem());
-//            //设置现金流类型
-//            hlsCusCshWriteOff.setCfType(hlsCusConContractCashflow.getCfType());
-//            //设置核销金额
-//            hlsCusCshWriteOff.setWriteOffDueAmount(ylCshTransferPaymentDto.getRepayAmount());
-//            //设置还款利息
-//            hlsCusCshWriteOff.setWriteOffDueAmount(ylCshTransferPaymentDto.getRepayInterest());
-//            //设置还款本金
-//            hlsCusCshWriteOff.setWriteOffPrincipal(ylCshTransferPaymentDto.getRepayPrincipal());
-//            //设置核销单据类别
-//            hlsCusCshWriteOff.setWriteOffDocCategory("CON_CONTRACT");
-//            //导入标识
-//            hlsCusCshWriteOff.setImportFlag("N");
-//            //首次支付设备款标识
-//            hlsCusCshWriteOff.setFirstLeasePayFlag("Y");
-//            //系统字段
-//            hlsCusCshWriteOff.setCreationDate(new Date());
-//            hlsCusCshWriteOff.setCreatedBy(hlsCusCshTransaction.getCreatedBy());
-//            hlsCusCshWriteOff.setLastUpdateDate(new Date());
-//            hlsCusCshWriteOff.setLastUpdatedBy(hlsCusCshTransaction.getLastUpdatedBy());
-//            hlsCusCshWriteOffMapper.insertSelective(hlsCusCshWriteOff);
-//        } else {
-//            //设置核销时间
-//            hlsCusCshWriteOff.setWriteOffDate(new Date());
-//            //设置现金事务核销金额
-//            hlsCusCshWriteOff.setCshWriteOffAmount(hlsCusCshTransaction.getWriteOffAmount());
-//            //设置核销金额
-//            hlsCusCshWriteOff.setWriteOffDueAmount(HlsCusMathUtil.add(ylCshTransferPaymentDto.getRepayAmount(), hlsCusCshWriteOff.getCshWriteOffAmount()));
-//            //设置还款利息
-//            hlsCusCshWriteOff.setWriteOffInterest(HlsCusMathUtil.add(ylCshTransferPaymentDto.getRepayInterest(), hlsCusCshWriteOff.getWriteOffInterest()));
-//            //设置还款本金
-//            hlsCusCshWriteOff.setWriteOffPrincipal(HlsCusMathUtil.add(ylCshTransferPaymentDto.getRepayPrincipal(), hlsCusCshWriteOff.getWriteOffPrincipal()));
-//            //首次支付设备款标识
-//            hlsCusCshWriteOff.setFirstLeasePayFlag("N");
-//            //系统字段
-//            hlsCusCshWriteOff.setLastUpdateDate(new Date());
-//            hlsCusCshWriteOff.setLastUpdatedBy(hlsCusCshTransaction.getLastUpdatedBy());
-//            hlsCusCshWriteOffMapper.updateByPrimaryKey(hlsCusCshWriteOff);
-//        }
-//
-//        return hlsCusCshWriteOff;
-//    }
+
 
 
 }

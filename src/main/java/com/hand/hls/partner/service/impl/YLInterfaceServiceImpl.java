@@ -489,8 +489,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         dto.setContractId(hlsCusConContract.getContractId());
         dto.setCashflowId(hlsCusConContractCashflow.getCashflowId());
-        //设置期次数
-        dto.setTimes(termRepayDetailApplyDTO.getTermNo());
+        dto.setRepayType(repayMent.getRepayType());
+//        //设置期次数
+//        dto.setTimes(termRepayDetailApplyDTO.getTermNo());
         //设置金额
         dto.setRepayAmount(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayAmount() / 100).doubleValue());
         dto.setRepayPrincipal(BigDecimal.valueOf((double) termRepayDetailApplyDTO.getRepayPrincipal() / 100).doubleValue());
