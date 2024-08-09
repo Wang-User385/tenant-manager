@@ -47,8 +47,8 @@ public class FinanceInfo extends BaseDTO {
      @NotBlank(message = "加融项金额不能为空")
     private  String plusFinanceAmount;//加融项金额 (分)
 
-    @NotNull(message = "起息日不能为空")
-    @NotBlank(message = "起息日不能为空")
+    //@NotNull(message = "起息日不能为空")
+    //@NotBlank(message = "起息日不能为空")
     private  String startRentDate;//起息日
 
 }

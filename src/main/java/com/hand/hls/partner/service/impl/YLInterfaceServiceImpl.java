@@ -48,7 +48,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -144,21 +143,13 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Autowired
     private IAlipayService iAlipayService;
-    /**
-     * 工作流相关的常量
-     */
-    //换行符
-    private static final String BR = "<br>";
+
     /**
      * 用于代码获取工作流提交的实现类
      */
-    private static final String PROJECT_SIGN_WORK_FLOW = "ADVERTISING_REVIEW_WORK_FLOW";
     private static final String PROJECT = "project";
     private static final String PROJECT_NAME = "projectName";
     private static final String DOCUMENT_ID = "documentId";
-    private static final String WORKFLOW_TYPE = "workFlowType";
-    private static final String DOCUMENT_NUMBER = "documentNumber";
-    private static final String LEASE_CHANNEL = "leaseChannel";
 
     //流程编码
     private final static String WORK_FLOW = "ADVERTISING_REVIEW_WORK_FLOW";
@@ -952,7 +943,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         leaseItem.setFrameNumber(carInfo.getVin());//vin码/车架号
         leaseItem.setColorC(carInfo.getColor());//车辆颜色
         try {
-            if(!carInfo.getCarProductionDate().isEmpty()) {
+            if(carInfo.getCarProductionDate() != null && !carInfo.getCarProductionDate().isEmpty()) {
                 Date productDate = simpleDateFormat.parse(carInfo.getCarProductionDate());
                 leaseItem.setProductDate(productDate);//车辆出厂日期
             }
@@ -979,8 +970,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         prjQuotation.setFinanceAmount(Double.valueOf(financeInfo.getApplyLoanAmount())/100);//申请融资额(分)
         prjQuotation.setSurplusAmount(Double.valueOf(financeInfo.getCarRestPrice())/100);//剩余车辆价款(分)
         try {
-            Date startRentDate = simpleDateFormat.parse(financeInfo.getStartRentDate());
-            prjQuotation.setLeaseStartDate(startRentDate);//起息日
+            if(StringUtils.isNotEmpty(financeInfo.getStartRentDate())){
+                Date startRentDate = simpleDateFormat.parse(financeInfo.getStartRentDate());
+                prjQuotation.setLeaseStartDate(startRentDate);//起息日
+            }
         }catch (ParseException e) {
             JSONObject returnJson = new JSONObject();
             returnJson.put("code","100001");
@@ -1168,7 +1161,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         bpMaster.setGender(preRiskAuditData.getSex());//性别
         bpMaster.setEthnicity(preRiskAuditData.getNation());//民族
         try {
-            if(!preRiskAuditData.getBirthdate().isEmpty()) {
+            if(preRiskAuditData.getBirthdate() != null && !preRiskAuditData.getBirthdate().isEmpty()) {
                 Date dateOfBirth = simpleDateFormat1.parse(preRiskAuditData.getBirthdate());
                 bpMaster.setDateOfBirth(dateOfBirth);//出生日期
             }
@@ -1199,7 +1192,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         bpMaster.setDriverLicenseType(preRiskAuditData.getDriverlicencetype());//驾照类型
         bpMaster.setDriverLicenseStatus(preRiskAuditData.getDriverstatus());//驾照状态
         try {
-            if(!preRiskAuditData.getJzjzrq().isEmpty()) {
+            if(preRiskAuditData.getJzjzrq() != null && !preRiskAuditData.getJzjzrq().isEmpty()) {
                 Date driverLicenseDeadline = simpleDateFormat1.parse(preRiskAuditData.getJzjzrq());
                 bpMaster.setDriverLicenseDeadline(driverLicenseDeadline);//驾照截止日期
             }
@@ -1250,7 +1243,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         bpMaster.setGenderSp(preRiskAuditData.getSpousesex());//配偶性别
         try {
-            if(!preRiskAuditData.getSpousebir().isEmpty()){
+            if(preRiskAuditData.getSpousebir() != null && !preRiskAuditData.getSpousebir().isEmpty()){
                 Date  dateOfBirthSp = simpleDateFormat1.parse(preRiskAuditData.getSpousebir());
                 bpMaster.setDateOfBirthSp(dateOfBirthSp);//配偶出生日期
             }
@@ -1296,7 +1289,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             leaseItem.setEvaluationValue(Double.valueOf(preRiskAuditData.getClpgjg()));//车辆评估价格
         }
         try {
-            if(!preRiskAuditData.getScdjrq().isEmpty()) {
+            if(preRiskAuditData.getScdjrq() != null && !preRiskAuditData.getScdjrq().isEmpty()) {
                 Date firstRegistrationDate = simpleDateFormat1.parse(preRiskAuditData.getScdjrq());
                 leaseItem.setFirstRegistrationDate(firstRegistrationDate);//首次登记日期
             }
@@ -1305,7 +1298,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             throw new HlsCusException(returnJson.toJSONString());
         }
         try {
-            if(!preRiskAuditData.getTransferencedate().isEmpty()) {
+            if(preRiskAuditData.getTransferencedate() != null && !preRiskAuditData.getTransferencedate().isEmpty()) {
                 Date transferRegistrationDate = simpleDateFormat1.parse(preRiskAuditData.getTransferencedate());
                 leaseItem.setTransferRegistrationDate(transferRegistrationDate);//转让登记日期
             }
@@ -1317,7 +1310,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         leaseItem.setNatureOfVehicle(preRiskAuditData.getCarnatureofuse());//车辆使用性质
         leaseItem.setCityCode(preRiskAuditData.getRegisteredcity());//上牌城市
         try {
-            if(!preRiskAuditData.getScspr().isEmpty()) {
+            if(preRiskAuditData.getScspr() != null && !preRiskAuditData.getScspr().isEmpty()) {
                 Date firstPlateDate = simpleDateFormat1.parse(preRiskAuditData.getScspr());
                 leaseItem.setFirstPlateDate(firstPlateDate);//首次上牌日
             }
@@ -1350,7 +1343,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         leaseItemMortgages.setIsRenewalRecord(preRiskAuditData.getIsregister());//是否有车辆登记证补领记录
         leaseItemMortgages.setIsHalfRenewalRecord(preRiskAuditData.getIsregisterhy());//近半年是否有车辆登记证补领记录
         try {
-            if(!preRiskAuditData.getLastmortgagedate().isEmpty()) {
+            if(preRiskAuditData.getLastmortgagedate() != null && !preRiskAuditData.getLastmortgagedate().isEmpty()) {
                 Date lastTransfersDate = simpleDateFormat1.parse(preRiskAuditData.getLastmortgagedate());
                 leaseItemMortgages.setLastTransfersDate(lastTransfersDate);//上一次抵押登记日期
             }
@@ -1359,7 +1352,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             throw new HlsCusException(returnJson.toJSONString());
         }
         try {
-            if(!preRiskAuditData.getLastdtecompressiondate().isEmpty()) {
+            if(preRiskAuditData.getLastdtecompressiondate() != null && !preRiskAuditData.getLastdtecompressiondate().isEmpty()) {
                 Date recentlyTransfersDate = simpleDateFormat1.parse(preRiskAuditData.getLastdtecompressiondate());
                 leaseItemMortgages.setRecentlyTransfersDate(recentlyTransfersDate);//最近一次解押日期
             }
@@ -1373,7 +1366,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         leaseItemInsurance.setIsCompulsoryInsurance(preRiskAuditData.getSfyjqx());//是否有交强险
         try {
-            if(!preRiskAuditData.getJqxdqrq().isEmpty()) {
+            if(preRiskAuditData.getJqxdqrq() != null && !preRiskAuditData.getJqxdqrq().isEmpty()) {
                 Date compulsoryEndDate = simpleDateFormat1.parse(preRiskAuditData.getJqxdqrq());
                 leaseItemInsurance.setCompulsoryEndDate(compulsoryEndDate);//交强险到期日期
             }
@@ -1383,7 +1376,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         leaseItemInsurance.setIsVehicleDamage(preRiskAuditData.getSfycsx());//是否有车损险
         try {
-            if(!preRiskAuditData.getCsxdqrq().isEmpty()) {
+            if(preRiskAuditData.getCsxdqrq() != null && !preRiskAuditData.getCsxdqrq().isEmpty()) {
                 Date vehicleEndDate = simpleDateFormat1.parse(preRiskAuditData.getCsxdqrq());
                 leaseItemInsurance.setVehicleEndDate(vehicleEndDate);//车损险到期日期
             }
@@ -1393,7 +1386,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         leaseItemInsurance.setIsThirdParty(preRiskAuditData.getSfyszx());//是否有第三者责任险
         try {
-            if(!preRiskAuditData.getSzxdqrq().isEmpty()) {
+            if(preRiskAuditData.getSzxdqrq() != null && !preRiskAuditData.getSzxdqrq().isEmpty()) {
                 Date thirdEndDate = simpleDateFormat1.parse(preRiskAuditData.getSzxdqrq());
                 leaseItemInsurance.setThirdEndDate(thirdEndDate);//第三者责任险到期日期
             }
@@ -1586,7 +1579,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }else{
             hlsBpSpouseMapper.updateByPrimaryKeySelective(bpMasterSpouse);
         }
-
+        //如果起息日为空，跳过第9和第10步
+        if(StringUtils.isEmpty(financeInfo.getStartRentDate())){
+            returnJson.put("code","200");
+            returnJson.put("message","数据采集成功");
+            return returnJson.toJSONString();
+        }
         //step9: 报价计算
         try{
             prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
@@ -1937,8 +1935,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
             }
 
-        }else{
+        }else if("APPLY_MORTGAGE_MATERIAL_AUDIT".equals(action)){
             //抵押材料审核
+
         }
 
         returnJson.put("code","200");
@@ -2239,7 +2238,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
      * 进件投放审查工作流提交
      * @param iRequest 请求
      * @param project 进件投放审查申请数据
-     * @param workFlowType 用于代码获取工作流提交的实现类
+     * 用于代码获取工作流提交的实现类
      */
     private void signWorkFlowSubmit(IRequest iRequest, HlsCusPrjProject project){
         List<HlsCusPrjProject> list = new ArrayList<>();
@@ -2330,6 +2329,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("code","100001");
             returnJson.put("message","报价不能为空");
             throw new HlsCusException(returnJson.toJSONString());
+        }else{
+            if(hlsCusPrjQuotations.get(0).getLeaseStartDate() == null){
+                returnJson.put("code","100001");
+                returnJson.put("message","报价方案中的起息日不能为空");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
         }
         //获取租赁物信息
         List<HlsCusPrjProjectLeaseItem> hlsCusPrjProjectLeaseItemList = hlsCusPrjProjectLeaseItemMapper.selectLeaseItemByProjectId(hlsCusPrjProject.getProjectId());
@@ -2350,6 +2355,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("message","车辆出厂日期不能为空");
             throw new HlsCusException(returnJson.toJSONString());
         }
+
 
         //leaseItem.setFrameNumber(carInfo.getVin());//vin码/车架号
         //leaseItem.setProductDate(productDate);//车辆出厂日期
