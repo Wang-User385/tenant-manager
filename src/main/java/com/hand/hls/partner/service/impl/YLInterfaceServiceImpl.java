@@ -684,19 +684,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
         //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
         conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
-        //提前结清现金流去掉罚息
-        conContractCashflow.setDueAmount(conContractCashflow.getDueAmount()-nvl(calculationResultsDto.getPenalty(),0.0));
+        //提前结清现金流 利息加上罚息
+        conContractCashflow.setInterest(conContractCashflow.getInterest()+nvl(calculationResultsDto.getPenalty(),0.0));
         //插入提前结清现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
-        //插入罚息
-        HlsCusConContractCashflow conContractCashflowPenalty = calculationResultsDto.getContractCashflowPenalty();
+        //插入罚息 (提前结清罚息直接算到利息金额上)
+       /* HlsCusConContractCashflow conContractCashflowPenalty = calculationResultsDto.getContractCashflowPenalty();
         if (!ObjectUtils.isEmpty(conContractCashflowPenalty)) {
             //插入提前结清现金流
             conContractCashflowPenalty.setGeneratedSourceDocId(conContractCashflow.getCashflowId());
             conContractCashflowPenalty.setGeneratedSource("DAYEND");
             conContractCashflowPenalty.setOverdueStatus("N");
             this.conContractCashflowMapper.insertSelective(conContractCashflowPenalty);
-        }
+        }*/
 
         //            设置返回状态
         jsonObject1.put("code","200");
@@ -2224,7 +2224,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         calculationResultsDto.setConContractCashflow(conContractCashflow);
 
         //提前结清生成罚息现金流
-        if ("ET".equals(type) && penalty > 0){
+        /*if ("ET".equals(type) && penalty > 0){
             HlsCusConContractCashflow conContractCashflowByPenalty = new HlsCusConContractCashflow();
             conContractCashflowByPenalty.setContractId(queryUnReceivedByOrderNoList.get(0).getContractId());
             conContractCashflowByPenalty.setCfItem(9L);
@@ -2237,7 +2237,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             conContractCashflowByPenalty.setCalcDate(date);
             conContractCashflowByPenalty.setFinIncomeDate(date);
             calculationResultsDto.setContractCashflowPenalty(conContractCashflowByPenalty);
-        }
+        }*/
 
         return calculationResultsDto;
     }
