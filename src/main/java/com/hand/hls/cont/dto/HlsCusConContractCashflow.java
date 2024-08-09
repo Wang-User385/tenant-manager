@@ -175,6 +175,10 @@ HlsCusConContractCashflow extends BaseDTO {
     //表外字段代扣功能
     @Transient
     private   String  tenantIdN;//承租人
+    @Transient
+    private   String  status;//交易状态
+    @Transient
+    private   String  statusN;//交易状态
 //    @Transient
 //    private   Date  dueDateFrom;//承租人
 //    @Transient
@@ -192,7 +196,7 @@ HlsCusConContractCashflow extends BaseDTO {
 
     @Transient
     private   String transferPaymentFlagN;//是否转付
-      @Transient
+    @Transient
     private   String stopWithholdFlagN;//是否转付
     /**
      * 商业模式

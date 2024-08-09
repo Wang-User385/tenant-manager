@@ -24,9 +24,15 @@ public class AlipayOrderServiceImpl extends BaseServiceImpl<AlipayOrderDTO> impl
     @Autowired
     private IAlipayService  alipayService ;
 
+    /**
+     * 添加
+     * @param requestCtx
+     * @param cashflow
+     * @return
+     */
+
     @Override
-    public AlipayOrderDTO batchAdd(IRequest requestCtx, HlsCusConContractCashflow cashflow) {
-        ArrayList<AlipayOrderDTO> orderDTOS = new ArrayList<>();
+    public AlipayOrderDTO batchAdd(IRequest requestCtx, HlsCusConContractCashflow cashflow)  {
 
             AlipayOrderDTO alipayOrderDTO = new AlipayOrderDTO();
             alipayOrderDTO.setCashflowId(cashflow.getCashflowId());
@@ -58,21 +64,20 @@ public class AlipayOrderServiceImpl extends BaseServiceImpl<AlipayOrderDTO> impl
             alipayOrderDTO.setOutSeqNo(System.currentTimeMillis() + formattedCashflowId);
 
             AlipayOrderDTO orderDTO = self().insertSelective(requestCtx, alipayOrderDTO);
-//            try {
-//                //代扣签约
-//                alipayService.withhold(alipayOrderDTO.getOrderId());
-//            } catch (HlsCusException e) {
-//                throw new RuntimeException("订单号为"+alipayOrderDTO.getOrderId()+":"+e);
-//            }
-//            orderDTOS.add(orderDTO);
 
-
-        return orderDTO;
+            return orderDTO;
     }
+
+    /**
+     * 查询
+     * @param requestContext
+     * @param cashflow
+     * @return
+     * @throws ResMessageException
+     */
 
     @Override
     public List<AlipayOrderDTO> selectState(IRequest requestContext, HlsCusConContractCashflow cashflow) throws ResMessageException {
-        ArrayList<AlipayOrderDTO> alipayOrderDTOS = new ArrayList<>();
 
             AlipayOrderDTO alipayOrderDTO = new AlipayOrderDTO();
 
@@ -84,14 +89,6 @@ public class AlipayOrderServiceImpl extends BaseServiceImpl<AlipayOrderDTO> impl
             if(orderDTOS.isEmpty()){
             throw new ResMessageException("查询结果为空");
            }
-        // 确保 orderDTOS 至少有一个元素
-        if (!orderDTOS.isEmpty()) {
-            alipayOrderDTOS.add(orderDTOS.get(orderDTOS.size()-1));
-        }
-
-
-
-
 
 
         return orderDTOS;

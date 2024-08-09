@@ -315,6 +315,8 @@
         <result column="tenant_id" property="tenantId"/>
         <!--新增外来字段-->
          <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR"/>
+         <result column="status" property="status" jdbcType="VARCHAR"/>
+         <result column="status_n" property="statusN" jdbcType="VARCHAR"/>
          <result column="due_date_from" property="dueDateFrom" jdbcType="DATE"/>
          <result column="due_date_to" property="dueDateTo" jdbcType="DATE"/>
          <result column="total_write_off_flag_n" property="totalWriteOffFlagN" jdbcType="VARCHAR"/>
@@ -1874,6 +1876,9 @@ and pqc.quotation_id=#{quotationId}
     <select id="queryWithholding" resultMap="BaseResultMapConContractCashflow">
         SELECT
         t.*,
+        (select v.MEANING  from sys_code_value_b_v v
+        where v.code_value= status_n
+        and v.CODE='ALIPAY_ORDER.STATUS') as status,
         (
         CASE
         WHEN t.total_write_off_amount = 0 THEN '未核销'
@@ -1924,8 +1929,19 @@ and pqc.quotation_id=#{quotationId}
         FROM con_contract_cashflow cf
         WHERE cf.contract_id = ccc.contract_id AND
         cf.times = ccc.times AND
-        cf.cf_item = 9) AS penalty_amount
+        cf.cf_item = 9) AS penalty_amount,
+        (
+        SELECT status
+        FROM (
+        SELECT status, order_id
+        FROM GT_ALIPAY_ORDER gao
+        where gao.cashflow_id=ccc.cashflow_id
+        ORDER BY order_id DESC
+        )
+        WHERE ROWNUM = 1) AS status_n
+
         FROM CON_CONTRACT_CASHFLOW ccc
+        where due_date &lt;= CURRENT_DATE
         ) t
 
         <where>
@@ -1963,8 +1979,8 @@ and pqc.quotation_id=#{quotationId}
                 ) c
                 WHERE c.cashflow_id = t.cashflow_id) LIKE CONCAT(concat('%',#{totalWriteOffFlagN}),'%')
             </if>
-            <if test="dueDateTO != null and dueDateFrom != null">
-                AND TO_CHAR(t.due_date, 'yyyy-MM-dd') BETWEEN #{dueDateFrom} AND #{dueDateTO}
+            <if test="dueDateTo!=null and dueDateFrom!=null">
+                AND TO_CHAR(t.due_date, 'yyyy-MM-dd') BETWEEN  #{dueDateFrom}  AND  #{dueDateTo}
             </if>
 
             <if test="transactionNum!=null">
@@ -1972,6 +1988,9 @@ and pqc.quotation_id=#{quotationId}
             </if>
             <if test="stopWithholdFlag!=null">
                 AND stop_withhold_flag = #{stopWithholdFlag}
+            </if>
+            <if test="status!=null">
+                AND status_n = #{status}
             </if>
         </where>
         order by t.times,t.cf_item
