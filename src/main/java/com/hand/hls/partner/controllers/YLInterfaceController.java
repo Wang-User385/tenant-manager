@@ -6,13 +6,10 @@ import com.hand.hap.account.mapper.UserMapper;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
-import com.hand.hls.partner.dto.BusinessApplicationDTO;
 import com.hand.hls.partner.service.YLInterfaceService;
 import com.hand.hls.partner.util.RsaAesUtils;
-import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.sys.dto.FndEmployee;
-import com.hand.hls.sys.dto.SysUser;
 import com.hand.hls.sys.dto.SysUserAllocation;
 import com.hand.hls.sys.mapper.FndEmployeeMapper;
 import com.hand.hls.sys.mapper.SysUserAllocationMapper;
@@ -66,9 +63,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject placeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject placeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -103,9 +99,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject closeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject closeOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -140,9 +135,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject queryOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject queryOrder(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -177,9 +171,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject repayment(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject repayment(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -214,9 +207,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject compensatoryTrialCalculation(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject compensatoryTrialCalculation(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -251,9 +243,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject claimsSubrogation(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject claimsSubrogation(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -288,9 +279,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject advancesSettleTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject advancesSettleTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -325,9 +315,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject advancesSettleRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject advancesSettleRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -362,9 +351,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject dataAcquisition(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject dataAcquisition(@RequestBody JSONObject jsonObject,HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -400,9 +388,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject overdueRepurchaseTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject overdueRepurchaseTrialCalculation(@RequestBody JSONObject jsonObject,HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -437,9 +424,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject overdueRepurchaseRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request, HttpSession session) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject overdueRepurchaseRequest(@RequestBody JSONObject jsonObject,HttpServletRequest request, HttpSession session) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -474,9 +460,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject queryWithholdingState(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject queryWithholdingState(@RequestBody JSONObject jsonObject,HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -511,9 +496,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject stopWithholding(@RequestBody JSONObject jsonObject,HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject stopWithholding(@RequestBody JSONObject jsonObject,HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -548,9 +532,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject recoverWithholding(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject recoverWithholding(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -623,9 +606,8 @@ public class YLInterfaceController extends BaseController {
             method = {RequestMethod.GET, RequestMethod.POST}
     )
     @ResponseBody
-    public JSONObject imageSync(@RequestBody JSONObject jsonObject, HttpServletRequest request) {
-        IRequest iRequest = createRequestContext(request);
-        RequestHelper.setCurrentRequest(iRequest);
+    public JSONObject imageSync(@RequestBody JSONObject jsonObject, HttpServletRequest request) throws HlsCusException {
+        IRequest iRequest = this.createIRequest(request);
 
         HlsWsRequests hlsWsRequests = null;
         try {
@@ -692,7 +674,7 @@ public class YLInterfaceController extends BaseController {
         Long userId = createRequestContext(request).getUserId();
         User sysUser = userMapper.selectByPrimaryKey(userId);
         if (ObjectUtils.isEmpty(sysUser)) {
-            throw new HlsCusException("未找到该项目的业务经理");
+            throw new HlsCusException("未找到该用户");
         }
 
         SysUserAllocation sysUserAllocation = new SysUserAllocation();
