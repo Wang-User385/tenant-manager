@@ -134,4 +134,7 @@ public class CshPaymentReqLnBankAccount extends BaseDTO {
     @Transient
     private String paymentStatusN;
     private String paymentMethod;
+
+    @Transient
+    private Long fileNum;
 }
