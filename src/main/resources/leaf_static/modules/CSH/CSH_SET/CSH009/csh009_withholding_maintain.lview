@@ -14,6 +14,9 @@
 
         <script><![CDATA[
 
+
+
+
         window['${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record) {
 
             if (name == 'contract_number' && value) {
@@ -37,8 +40,14 @@
 
         //发起代扣
         window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
             var records = $(ds_id).getSelected();
+           if (records.length === 0) {
+            Leaf.showErrorMessage('提示信息', "请勾选至少一条数据！");
+                    return;
+           }
+
+
             for (let i = 0; i < records.length(); i++) {
                 var record = records[i];
                 var payment_status = record.get('payment_status');
@@ -48,7 +57,7 @@
                 }
             }
             Leaf.request({
-                url: '',
+                url: '/gt/alipay/order/submit',
                 success: function (res) {
                     Leaf.showSuccessMessage('提示', '发起代扣成功');
                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
@@ -65,8 +74,12 @@
 
         //查询交易状态
         window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_hd');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow');
             var records = $(ds_id).getSelected();
+                if (records.length === 0) {
+            Leaf.showErrorMessage('提示信息', "请勾选至少一条数据！");
+                    return;
+           }
             for (let i = 0; i < records.length(); i++) {
                 var record = records[i];
                 var payment_status = record.get('payment_status');
@@ -76,7 +89,7 @@
                 }
             }
             Leaf.request({
-                url: '',
+                url: '/gt/alipay/order/query',
                 success: function (res) {
                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                 },

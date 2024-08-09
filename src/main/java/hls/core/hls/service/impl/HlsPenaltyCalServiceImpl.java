@@ -135,7 +135,7 @@ public class HlsPenaltyCalServiceImpl implements HlsDayEndCommon {
                     double writeOffDueAmount = 0.0D;
 
                     HlsCusCshWriteOff cwo;
-                    for(Iterator var14 = cshWriteOffList.iterator(); var14.hasNext(); received += cwo.getWriteOffDueAmount() * (double)((int)((cwo.getPenaltyCalcDate().getTime() - ccc.getDueDate().getTime()) / 86400000L - 0)) * contract.getPenaltyRate()) {
+                    for(Iterator var14 = cshWriteOffList.iterator(); var14.hasNext(); received += cwo.getWriteOffDueAmount() * (double)((int)((cwo.getPenaltyCalcDate().getTime() - ccc.getDueDate().getTime()) / 86400000L - 0)+1) * contract.getPenaltyRate()) {
                         cwo = (HlsCusCshWriteOff)var14.next();
                         writeOffDueAmount += cwo.getWriteOffDueAmount();
                     }
@@ -153,7 +153,7 @@ public class HlsPenaltyCalServiceImpl implements HlsDayEndCommon {
                         }
                     }
 
-                    double unreceived = (ccc.getDueAmount() - writeOffDueAmount) * (double)((int)((dayEndDate.getTime() - ccc.getDueDate().getTime()) / 86400000L - 0)) * contract.getPenaltyRate();
+                    double unreceived = (ccc.getDueAmount() - writeOffDueAmount) * (double)((int)((dayEndDate.getTime() - ccc.getDueDate().getTime()) / 86400000L - 0)+1) * contract.getPenaltyRate();
                     double profileTotalAmount = unreceived + received - derateAmount;
                     HlsCusConContractCashflow contractCashflow2 = new HlsCusConContractCashflow();
                     contractCashflow2.setGeneratedSourceDocId(ccc.getCashflowId());

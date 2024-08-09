@@ -2,6 +2,7 @@ package com.hand.hls.partner.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.hand.hap.core.IRequest;
+import com.hand.hap.core.mq.HDRabbitMqConfiguration;
 import com.hand.hap.core.mq.YLRabbitMqConfiguration;
 import com.hand.hls.partner.dto.*;
 import com.hand.hls.partner.mapper.LeasingNoticeMapper;
@@ -36,6 +37,9 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
     @Autowired
     private HlsCusPrjProjectMapper hlsCusPrjProjectMapper;
 
+    @Autowired
+    private HlsCusPrjProjectMapper prjProjectMapper;
+
     /**
      * 易靓审核结果通知
      *
@@ -67,8 +71,12 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
                 orderAuditResultDto.setScene(scene);
                 orderAuditResultDto.setUniqueId(getUniqueId());
                 leasingNotice.setNoticeBody(JSON.toJSONString(orderAuditResultDto));
-                //消息推送
-                noticePush(leasingNotice, "n001", orderAuditResultDto, iRequest);
+
+                //获取交换机名称 汉得OR易靓
+                String exchangeName = getExchangeName(projectId);
+                noticePush(exchangeName,leasingNotice, "n001", orderAuditResultDto, iRequest);
+
+
             }
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
@@ -93,8 +101,10 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             if (!ObjectUtils.isEmpty(orderLoanResultDto)) {
                 orderLoanResultDto.setUniqueId(getUniqueId());
                 leasingNotice.setNoticeBody(JSON.toJSONString(orderLoanResultDto));
-                //消息推送
-                noticePush(leasingNotice, "n002", orderLoanResultDto, iRequest);
+                //获取交换机名称 汉得OR易靓
+                String exchangeName = getExchangeName(projectId);
+                noticePush(exchangeName,leasingNotice, "n002", orderLoanResultDto, iRequest);
+
             }
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
@@ -120,8 +130,13 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
                 mapParam.put("orderNo", orderNo);
                 mapParam.put("uniqueId", getUniqueId());
                 leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
+                //根据订单编号查询出订单projectId
+                HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(orderNo);
+
+                //获取交换机名称 汉得OR易靓
+                String exchangeName = getExchangeName(hlsCusPrjProject.getProjectId());
                 //消息推送
-                noticePush(leasingNotice, "n003", mapParam, iRequest);
+                noticePush(exchangeName,leasingNotice, "n003", mapParam, iRequest);
             }
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
@@ -147,8 +162,10 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             mapParam.put("orderNo", orderNo);
             mapParam.put("uniqueId", getUniqueId());
             leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
+            //获取交换机名称 汉得OR易靓
+            String exchangeName = getExchangeName(projectId);
             //消息推送
-            noticePush(leasingNotice, "n004", mapParam, iRequest);
+            noticePush(exchangeName,leasingNotice, "n004", mapParam, iRequest);
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
         }
@@ -173,8 +190,9 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             mapParam.put("finishedTime", finishedTime);
             mapParam.put("uniqueId", getUniqueId());
             leasingNotice.setNoticeBody(JSON.toJSONString(mapParam));
-            //消息推送
-            noticePush(leasingNotice, "n005", mapParam, iRequest);
+            //消息推送 （汉得测试和易靓都推送一遍）
+            noticePush(HDRabbitMqConfiguration.EXCHANGE_GT_HD,leasingNotice, "n005", mapParam, iRequest);
+            noticePush(YLRabbitMqConfiguration.EXCHANGE_GT_YL,leasingNotice, "n005", mapParam, iRequest);
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
         }
@@ -207,8 +225,15 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
                     needSubstituteDto.setUniqueId(getUniqueId());
                     needSubstituteDto.setCashflowId(null);
                     leasingNotice.setNoticeBody(JSON.toJSONString(needSubstituteDto));
+
+                    //根据订单编号查询出订单projectId
+                    HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(needSubstituteDto.getOrderNo());
+
+                    //获取交换机名称 汉得OR易靓
+                    String exchangeName = getExchangeName(hlsCusPrjProject.getProjectId());
+
                     //消息推送
-                    noticePush(leasingNotice, "n006", needSubstituteDto, iRequest);
+                    noticePush(exchangeName,leasingNotice, "n006", needSubstituteDto, iRequest);
                 } catch (Exception e) {
                     noticeFail(leasingNotice, iRequest, e);
                 }
@@ -242,8 +267,13 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
                     assetNeedBuybackDto.setUniqueId(getUniqueId());
                     assetNeedBuybackDto.setContractId(null);
                     leasingNotice.setNoticeBody(JSON.toJSONString(assetNeedBuybackDto));
+                    //根据订单编号查询出订单projectId
+                    HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(assetNeedBuybackDto.getOrderNo());
+
+                    //获取交换机名称 汉得OR易靓
+                    String exchangeName = getExchangeName(hlsCusPrjProject.getProjectId());
                     //消息推送
-                    noticePush(leasingNotice, "n007", assetNeedBuybackDto, iRequest);
+                    noticePush(exchangeName,leasingNotice, "n007", assetNeedBuybackDto, iRequest);
 
                 } catch (Exception e) {
                     noticeFail(leasingNotice, iRequest, e);
@@ -271,8 +301,10 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             if (!ObjectUtils.isEmpty(withholdContractResultMap)) {
                 withholdContractResultMap.put("uniqueId", getUniqueId());
                 leasingNotice.setNoticeBody(JSON.toJSONString(withholdContractResultMap));
+                //获取交换机名称 汉得OR易靓
+                String exchangeName = getExchangeName(projectId);
                 //消息推送
-                noticePush(leasingNotice, "n008", withholdContractResultMap, iRequest);
+                noticePush(exchangeName,leasingNotice, "n008", withholdContractResultMap, iRequest);
             }
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
@@ -300,9 +332,10 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
             if (!ObjectUtils.isEmpty(repayPlanRepaidNotifyMap)) {
                 repayPlanRepaidNotifyMap.put("uniqueId", getUniqueId());
                 leasingNotice.setNoticeBody(JSON.toJSONString(repayPlanRepaidNotifyMap));
-
+                //获取交换机名称 汉得OR易靓
+                String exchangeName = getExchangeName(projectId);
                 //消息推送
-                noticePush(leasingNotice, "n009", repayPlanRepaidNotifyMap, iRequest);
+                noticePush(exchangeName,leasingNotice, "n009", repayPlanRepaidNotifyMap, iRequest);
             }
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
@@ -326,8 +359,8 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
      * @param msg
      * @param iRequest
      */
-    private void noticePush(LeasingNotice leasingNotice, String routingKey, Object msg, IRequest iRequest) {
-        rabbitTemplate.convertAndSend(YLRabbitMqConfiguration.EXCHANGE_GT_YL, routingKey, JSON.toJSONString(msg));
+    private void noticePush(String exchangeName,LeasingNotice leasingNotice, String routingKey, Object msg, IRequest iRequest) {
+        rabbitTemplate.convertAndSend(exchangeName, routingKey, JSON.toJSONString(msg));
         leasingNotice.setDescription("消息推送成功！");
         leasingNotice.setNoticeStatus("SUCCESS");
         leasingNoticeService.insertNoticeMsg(iRequest, leasingNotice);
@@ -345,5 +378,20 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
         leasingNotice.setNoticeStatus("FAIL");
         leasingNotice.setErrorMessage(e.getMessage() == null ? e.getStackTrace()[0].toString() : e.getMessage());
         leasingNoticeService.insertNoticeMsg(iRequest, leasingNotice);
+    }
+
+
+    private String getExchangeName(Long projectId){
+        //根据projectId查询供应商是否是汉得测试，（方便测试）
+        String bpCode = leasingNoticeMapper.queryBpCodeByProjectId(projectId);
+        String exchangeName;
+        if ("BP202408090380".equals(bpCode)) {
+            //汉得测试通知
+            exchangeName = HDRabbitMqConfiguration.EXCHANGE_GT_HD;
+        } else {
+            //易靓通知
+            exchangeName = YLRabbitMqConfiguration.EXCHANGE_GT_YL;
+        }
+        return exchangeName;
     }
 }

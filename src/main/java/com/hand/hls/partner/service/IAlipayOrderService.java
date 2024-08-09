@@ -5,7 +5,9 @@ import com.hand.hap.core.ProxySelf;
 import com.hand.hap.system.service.IBaseService;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.partner.dto.AlipayOrderDTO;
+import com.hand.hls.utils.ResMessageException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -14,5 +16,7 @@ import java.util.List;
 public interface IAlipayOrderService extends IBaseService<AlipayOrderDTO>, ProxySelf<IAlipayOrderService>{
 
 
-    boolean batchAdd(IRequest requestCtx, List<HlsCusConContractCashflow> list);
+    AlipayOrderDTO batchAdd(IRequest requestCtx, HlsCusConContractCashflow cashflow);
+
+    List<AlipayOrderDTO> selectState(IRequest requestContext, HlsCusConContractCashflow cashflowList) throws ResMessageException;
 }

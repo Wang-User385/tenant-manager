@@ -75,7 +75,7 @@ public class TongDunServiceImpl implements TongDunService {
     public String preliminaryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        commonLogHead(hlsWsRequests, "预审", projectId, request);
+        //commonLogHead(hlsWsRequests, "预审", projectId, request);
         ResponseData responseData = new ResponseData();
         JSONObject returnJson = new JSONObject();
         //项目id为空则预审失败
@@ -172,7 +172,7 @@ public class TongDunServiceImpl implements TongDunService {
     public String interlocutoryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
         //保存日志
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        commonLogHead(hlsWsRequests, "正审", projectId, request);
+        //commonLogHead(hlsWsRequests, "正审", projectId, request);
         ResponseData responseData = new ResponseData();
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
         JSONObject param = JSONObject.parseObject(jsonString);

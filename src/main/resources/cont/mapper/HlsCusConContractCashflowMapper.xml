@@ -1817,7 +1817,7 @@ from con_contract cc  where cc.contract_id=#{contractId})t
         and nvl(cf.write_off_flag,'NOT') != ('FULL')
         AND cf.cf_direction='INFLOW'
         and cf.times not in (0)
-        and cf.cf_item not in (9,11,13)
+        and cf.cf_item not in (9,13)
         AND cf.due_date &lt;= #{dayEndDate}
         AND cc.contract_id =  #{contractId}
         AND cf.due_amount-nvl(cf.RECEIVED_AMOUNT,0)>0
@@ -9026,7 +9026,7 @@ and con.contract_status in
             ccc.received_principal,
             ccc.received_interest,
             nvl((SELECT cf.received_amount FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status = 'RELEASE'),0) received_penalty_amount,
-            ccc.due_amount-NVL(ccc.received_amount, 0) unreceived_amount,
+            ccc.due_amount-NVL(ccc.received_amount, 0)+nvl((SELECT cf.due_amount-NVL(cf.received_amount, 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status = 'RELEASE'),0) unreceived_amount,
             ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) unreceived_principal,
             ccc.INTEREST-NVL(ccc.RECEIVED_INTEREST, 0) unreceived_interest,
             nvl((SELECT cf.due_amount-NVL(cf.received_amount, 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.cf_item=9 AND ccc.times=cf.times and ccc.contract_id = cf.contract_id and cf.cf_status = 'RELEASE'),0) unreceived_penalty_amount,
@@ -9042,7 +9042,7 @@ and con.contract_status in
             NVL(ccc.RECEIVED_COMP_AMOUNT, 0) RECEIVED_COMP_AMOUNT,
             NVL(ccc.REFUND_COMP_AMOUNT, 0) REFUND_COMP_AMOUNT
         FROM CON_CONTRACT_CASHFLOW ccc
-        WHERE ccc.CONTRACT_ID=#{contractId} and  ccc.CF_STATUS not in ('BLOCK','CANCEL') and ccc.cf_type not in(9) and ccc.cf_item not in(9)
+        WHERE ccc.CONTRACT_ID=#{contractId} and  ccc.CF_STATUS = 'RELEASE' and ccc.cf_type not in(9) and ccc.cf_item not in(9)
         order by ccc.contract_id,ccc.times
     </select>
 
@@ -9057,7 +9057,9 @@ and con.contract_status in
         WHERE pp.PROJECT_NUMBER = #{orderNo}
           AND ccc.TIMES=#{termNo}
           AND ccc.cf_item = 1
-          AND ccc.cf_status not in ('BLOCK')
+          AND ccc.cf_status = 'RELEASE'
+          and ccc.plan_type is null and nvl(due_comp_amount,0) = 0
+          and nvl(ccc.write_off_flag,'NOT') != ('FULL')
     </select>
 
 

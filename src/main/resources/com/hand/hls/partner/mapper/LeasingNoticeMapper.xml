@@ -98,6 +98,8 @@
                 )  approved_time
             FROM
                 PRJ_PROJECT pp
+                left join hls_bp_master hbm on pp.MANUFACTURER_ID = hbm.bp_id
+                where hbm.bp_code in ('BP202408090380','BP202407230057')
              ) t
         WHERE
             (NVL(t.PROJECT_STATUS, 'NEW') NOT IN ('APPROVED','APPROVING') AND trunc( SYSDATE ) - 30 > trunc(t.CREATION_DATE))
@@ -120,6 +122,7 @@
         FROM CON_CONTRACT_CASHFLOW ccc
                  INNER JOIN CON_CONTRACT cc ON ccc.CONTRACT_ID = cc.CONTRACT_ID
                  INNER JOIN PRJ_PROJECT pp ON cc.project_id = pp.project_id
+                 INNER JOIN hls_bp_master hbm on pp.MANUFACTURER_ID = hbm.bp_id
         WHERE cc.contract_status = 'INCEPT'
           AND ccc.write_off_flag not in ('FULL')
           AND ccc.cf_direction='INFLOW'
@@ -128,6 +131,7 @@
           AND ccc.cf_item not in (9)
           AND ccc.due_amount-nvl(ccc.RECEIVED_AMOUNT,0)>0
           AND trunc(sysdate) - nvl(pp.compen_day,30)  > trunc(ccc.DUE_DATE) AND trunc(sysdate) - nvl(pp.buy_back_day,85) &lt; trunc(ccc.DUE_DATE)
+          AND hbm.bp_code in ('BP202408090380','BP202407230057')
         <if test="cashflowId != null">
             AND ccc.CASHFLOW_ID = #{cashflowId}
         </if>
@@ -148,6 +152,7 @@
         FROM CON_CONTRACT_CASHFLOW ccc
         INNER JOIN CON_CONTRACT cc ON ccc.CONTRACT_ID = cc.CONTRACT_ID
         INNER JOIN PRJ_PROJECT pp ON cc.project_id = pp.project_id
+        INNER JOIN hls_bp_master hbm on pp.MANUFACTURER_ID = hbm.bp_id
         WHERE
         cc.contract_status = 'INCEPT'
         AND ccc.write_off_flag not in ('FULL')
@@ -157,6 +162,7 @@
         AND ccc.cf_item = 1
         AND ccc.due_amount-nvl(ccc.RECEIVED_AMOUNT,0)>0
         AND trunc(sysdate) - nvl(pp.buy_back_day,85)  > trunc(ccc.DUE_DATE)
+        AND hbm.bp_code in ('BP202408090380','BP202407230057')
         <if test="contractId != null">
             AND ccc.CONTRACT_ID = #{contractId}
         </if>
@@ -247,6 +253,12 @@
         </where>
 order by l.CREATION_DATE desc
 
+    </select>
+
+    <!--通过projectId查询出订单供应商是汉得测试还是其他供应商-->
+    <select id="queryBpCodeByProjectId" resultType="java.lang.String" parameterType="java.lang.Long">
+        select hbm.BP_CODE from prj_project pp,hls_bp_master hbm
+        where pp.MANUFACTURER_ID = hbm.bp_id
     </select>
 
 

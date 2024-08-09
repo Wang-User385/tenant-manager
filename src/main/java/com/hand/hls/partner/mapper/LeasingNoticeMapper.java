@@ -97,4 +97,10 @@ public interface LeasingNoticeMapper extends Mapper<LeasingNotice> {
      */
   List<LeasingNotice> qureyLeasingNotice();
 
+    /**
+     * 通过projectId查询出订单供应商是汉得测试还是其他供应商
+     * @return
+     */
+  String queryBpCodeByProjectId(@Param("projectId") Long projectId);
+
 }

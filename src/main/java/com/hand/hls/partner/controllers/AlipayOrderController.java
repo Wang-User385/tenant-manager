@@ -1,5 +1,9 @@
 package com.hand.hls.partner.controllers;
 
+import com.hand.hls.cont.dto.HlsCusConContractCashflow;
+import com.hand.hls.partner.service.IAlipayService;
+import com.hand.hls.utils.ResMessageException;
+import hls.core.utils.exception.HlsCusException;
 import org.springframework.stereotype.Controller;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.core.IRequest;
@@ -15,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.validation.BindingResult;
+
+import java.util.ArrayList;
 import java.util.List;
 import com.hand.hap.core.impl.RequestHelper;
 import leaf.bean.LeafRequestData;
@@ -22,21 +28,68 @@ import org.springframework.web.bind.annotation.*;
 
     @Controller
     public class AlipayOrderController extends BaseController{
+    @Autowired
+    private IAlipayService alipayService;
 
     @Autowired
     private IAlipayOrderService service;
 
+        /**
+         *代扣查寻
+         * @param requestData
+         * @param pagenum
+         * @param pagesize
+         * @param request
+         * @return
+         */
 
     @RequestMapping(value = "/gt/alipay/order/query")
     @ResponseBody
     public ResponseData query(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, @RequestParam(defaultValue = DEFAULT_PAGE) int pagenum,
-        @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pagesize, HttpServletRequest request) {
+        @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pagesize,BindingResult result, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        JSONObject param = (JSONObject) requestData.get("parameter");
-        AlipayOrderDTO dto = param.toJavaObject(AlipayOrderDTO.class);
-        return new ResponseData(service.select(requestContext,dto,pagenum,pagesize));
+        JSONArray param = (JSONArray)  requestData.get("parameter");
+        List<HlsCusConContractCashflow> list = param.toJavaList(HlsCusConContractCashflow.class);
+        getValidator().validate(list, result);
+        if (result.hasErrors()) {
+            ResponseData responseData = new ResponseData(false);
+            responseData.setMessage(getErrorMessage(result, request));
+            return responseData;
+        }
+        ArrayList<AlipayOrderDTO> orderDTOS = new ArrayList<>();
+
+        for (HlsCusConContractCashflow cashflow : list) {
+            List<AlipayOrderDTO> alipayOrderDTOS=null;
+            //将数据插入中间表
+            try {
+               alipayOrderDTOS  = service.selectState(requestContext, cashflow);
+               //将查询结果打包
+                orderDTOS.add(alipayOrderDTOS.get(alipayOrderDTOS.size()-1));
+            } catch (ResMessageException e) {
+                ResponseData responseData = new ResponseData();
+                responseData.setMessage(e.getMessage());
+                return responseData;
+            }
+            try {
+                //代扣查询
+                alipayService.withholdQuery(alipayOrderDTOS.get(alipayOrderDTOS.size()-1).getOrderId());
+            } catch (HlsCusException e) {
+                ResponseData responseData = new ResponseData();
+                responseData.setMessage(e.getMessage());
+                return responseData;
+            }
+        }
+        return new ResponseData(orderDTOS);
     }
+
+        /**
+         * 发起代扣
+         * @param requestData
+         * @param result
+         * @param request
+         * @return
+         */
 
     @RequestMapping(value = "/gt/alipay/order/submit")
     @ResponseBody
@@ -44,15 +97,27 @@ import org.springframework.web.bind.annotation.*;
         IRequest requestCtx = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestCtx);
         JSONArray param = (JSONArray) requestData.get("parameter");
-        List<AlipayOrderDTO> list = param.toJavaList(AlipayOrderDTO.class);
+        List<HlsCusConContractCashflow> list = param.toJavaList(HlsCusConContractCashflow.class);
         getValidator().validate(list, result);
         if (result.hasErrors()) {
             ResponseData responseData = new ResponseData(false);
             responseData.setMessage(getErrorMessage(result, request));
             return responseData;
         }
-        //return new ResponseData(service.batchAdd(requestCtx, list));
-        return null;
+
+        for (HlsCusConContractCashflow cashflow : list) {
+            //将数据插入中间表，防止重复操作
+            AlipayOrderDTO orderDTO = service.batchAdd(requestCtx, cashflow);
+            try {
+                //发起代扣
+                alipayService.withhold(orderDTO.getOrderId());
+            } catch (HlsCusException e) {
+                ResponseData responseData = new ResponseData();
+                responseData.setMessage(e.getMessage());
+                return responseData;
+            }
+        }
+      return new ResponseData();
     }
 
     @RequestMapping(value = "/gt/alipay/order/remove")
