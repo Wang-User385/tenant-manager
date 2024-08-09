@@ -469,8 +469,17 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("message","该合同对应的现金流已经结清或者不存在");
             throw new HlsCusException(returnJson.toJSONString());
         }
+        if ("Y".equals(hlsCusConContractCashflow.getTransferPaymentFlag())){
+            returnJson.put("code","100003");
+            returnJson.put("message","该条记录已经转付");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        hlsCusConContractCashflow.setTransferPaymentFlag("Y");
         Example example = new Example(YLCshTransferPaymentDto.class);
-        example.createCriteria().andEqualTo("contractId", hlsCusConContract.getContractId()).andEqualTo("cashflowId",hlsCusConContractCashflow.getCashflowId());
+        ArrayList<String> res = new ArrayList<>();
+        res.add("UNCONFIRMED");
+        res.add("CONFIRMED");
+        example.createCriteria().andEqualTo("contractId", hlsCusConContract.getContractId()).andEqualTo("cashflowId",hlsCusConContractCashflow.getCashflowId()).andIn("transferPaymentStatus",res);
         List<YLCshTransferPaymentDto> ylCshTransferPaymentDtos = ylCshTransferPaymentDtoMapper.selectByExample(example);
         if (ylCshTransferPaymentDtos != null && ylCshTransferPaymentDtos.size() !=0 ){
             returnJson.put("code","100003");
@@ -496,6 +505,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         dto.setRepayDate(new Date());
         //设置是否转让
         dto.setTransferPaymentStatus("UNCONFIRMED");
+        //更新或新增数据
+        hlsCusConContractCashflowMapper.updateByPrimaryKey(hlsCusConContractCashflow);
         ylCshTransferPaymentDtoMapper.insertSelective(dto);
     }
 

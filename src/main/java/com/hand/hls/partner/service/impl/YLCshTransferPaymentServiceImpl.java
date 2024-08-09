@@ -75,10 +75,12 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
     private CshAllocationMapper cshAllocationMapper;
 
     @Autowired
-    private CshAllocationReceiptMapper cshAllocationReceiptMapper;
+    private CshAllocationCreditMapper cshAllocationCreditMapper;
 
     @Autowired
-    private CshAllocationCreditMapper cshAllocationCreditMapper;
+    private CshAllocationReceiptMapper cshAllocationReceiptMapper;
+
+
 
     @Autowired
     private CshWriteOffService cshWriteOffService;
@@ -106,6 +108,12 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
                     ylCshTransferPaymentDtoMapper.selectByPrimaryKey(ylCshTransferPaymentDto1);
             ylCshTransferPaymentDto1.setTransferPaymentStatus("CANCEL");
             ylCshTransferPaymentDtoMapper.updateByPrimaryKey(ylCshTransferPaymentDto1);
+            HlsCusConContractCashflow hlsCusConContractCashflow = new HlsCusConContractCashflow();
+            //更新现金事务流转付状态
+            hlsCusConContractCashflow.setCashflowId(ylCshTransferPaymentDto.getCashflowId());
+            hlsCusConContractCashflow = hlsCusConContractCashflowMapper.selectByPrimaryKey(hlsCusConContractCashflow);
+            hlsCusConContractCashflow.setTransferPaymentFlag("N");
+            hlsCusConContractCashflowMapper.updateByPrimaryKey(hlsCusConContractCashflow);
             res.add(ylCshTransferPaymentDto1);
         }
         return res;
@@ -134,15 +142,17 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
     private void writeOffYL(IRequest requestCtx, HttpServletRequest request, HlsWsRequests hlsWsRequests, ResponseData responseData, YLCshTransferPaymentDto ylCshTransferPaymentDto, HlsCusCshTransaction hlsCusCshTransaction) {
         //核销
         //查出合同现金流数据
+        Example example = new Example(HlsCusCshWriteOff.class);
         HlsCusConContractCashflow hlsCusConContractCashflow = new HlsCusConContractCashflow();
         hlsCusConContractCashflow.setCashflowId(ylCshTransferPaymentDto.getCashflowId());
         hlsCusConContractCashflow = hlsCusConContractCashflowMapper.selectByPrimaryKey(hlsCusConContractCashflow);
-        Example example = new Example(HlsCusCshWriteOff.class);
+
         example.createCriteria().andEqualTo("cshTransactionId", hlsCusCshTransaction.getTransactionId());
         List<HlsCusCshWriteOff> res = hlsCusCshWriteOffMapper.selectByExample(example);
         try {
             //如果没有就加一个
             setHlsCusWriteOffList(ylCshTransferPaymentDto, hlsCusCshTransaction, hlsCusConContractCashflow, res);
+            updateWriteOffMatch(requestCtx,hlsCusCshTransaction,hlsCusConContractCashflow,res.get(0));
             cshWriteOffService.writeOff(requestCtx, res, request.getSession());
         } catch (Exception e) {
 
@@ -340,42 +350,42 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
 //        hlsCusConContractCashflowMapper.updateByPrimaryKey(hlsCusConContractCashflow);
 //    }
 //
-//    private void updateWriteOffMatch(IRequest requestCtx, HlsCusCshTransaction hlsCusCshTransaction, HlsCusConContractCashflow hlsCusConContractCashflow, HlsCusCshWriteOff hlsCusCshWriteOff) {
-//        CshAllocation cshAllocation = new CshAllocation();
-//        Map<String, String> params = new HashMap<>();
-//        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-//        String allocationNumber = fndCodingRuleValuesService.getCodeRuleValue(requestCtx, ALLOCATION_DOCUMENT_CATEGORY, ALLOCATION_DOCUMENT_TYPE, ALLOCATION_BUSINESS_TYPE, params);
-//        cshAllocation.setAllocationNumber(allocationNumber);
-//        try {
-//            cshAllocation.setAllocationDate(df.parse(df.format(new Date())));
-//        } catch (ParseException e) {
-//            throw new RuntimeException("时间格式异常");
-//        }
-//        cshAllocation.setAllocationSource("AUTO");
-//        cshAllocation.setAllocationStatus("N");
-//        //系统字段
-//        cshAllocation.setCreationDate(new Date());
-//        cshAllocation.setCreatedBy(requestCtx.getUserId());
-//        cshAllocation.setLastUpdateDate(new Date());
-//        cshAllocation.setLastUpdatedBy(requestCtx.getUserId());
-//        //将现金事务表与核销匹配表关联
-//        Long allocationId = cshAllocation.getAllocationId();
-//        CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
-//        cshAllocationReceipt.setAllocationId(allocationId);
-//        cshAllocationReceipt.setTransactionId(hlsCusCshTransaction.getTransactionId());
-//        cshAllocationReceipt.setAdvanceReceiptAmount(OracleUtils.nvl(hlsCusCshTransaction.getAdvanceReceiptAmount(), 0.0));
-//        //将匹配表与现金事务流表关联
-//        CshAllocationCredit cshAllocationCredit = new CshAllocationCredit();
-//        cshAllocationCredit.setAllocationId(allocationId);
-//        cshAllocationCredit.setCashflowId(hlsCusConContractCashflow.getCashflowId());
-//        cshAllocationCredit.setDueAmount(hlsCusCshWriteOff.getWriteOffDueAmount());
-//        cshAllocationCredit.setPrincipal(hlsCusConContractCashflow.getPrincipal());
-//        cshAllocationCredit.setInterest(hlsCusConContractCashflow.getInterest());
-//        //插入核销匹配表
-//        cshAllocationMapper.insertSelective(cshAllocation);
-//        cshAllocationReceiptMapper.insertSelective(cshAllocationReceipt);
-//        cshAllocationCreditMapper.insertSelective(cshAllocationCredit);
-//    }
+    private void updateWriteOffMatch(IRequest requestCtx, HlsCusCshTransaction hlsCusCshTransaction, HlsCusConContractCashflow hlsCusConContractCashflow, HlsCusCshWriteOff hlsCusCshWriteOff) {
+        CshAllocation cshAllocation = new CshAllocation();
+        Map<String, String> params = new HashMap<>();
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        String allocationNumber = fndCodingRuleValuesService.getCodeRuleValue(requestCtx, ALLOCATION_DOCUMENT_CATEGORY, ALLOCATION_DOCUMENT_TYPE, ALLOCATION_BUSINESS_TYPE, params);
+        cshAllocation.setAllocationNumber(allocationNumber);
+        try {
+            cshAllocation.setAllocationDate(df.parse(df.format(new Date())));
+        } catch (ParseException e) {
+            throw new RuntimeException("时间格式异常");
+        }
+        cshAllocation.setAllocationSource("AUTO");
+        cshAllocation.setAllocationStatus("N");
+        //系统字段
+        cshAllocation.setCreationDate(new Date());
+        cshAllocation.setCreatedBy(requestCtx.getUserId());
+        cshAllocation.setLastUpdateDate(new Date());
+        cshAllocation.setLastUpdatedBy(requestCtx.getUserId());
+        //将现金事务表与核销匹配表关联
+        Long allocationId = cshAllocation.getAllocationId();
+        CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
+        cshAllocationReceipt.setAllocationId(allocationId);
+        cshAllocationReceipt.setTransactionId(hlsCusCshTransaction.getTransactionId());
+        cshAllocationReceipt.setAdvanceReceiptAmount(OracleUtils.nvl(hlsCusCshTransaction.getAdvanceReceiptAmount(), 0.0));
+        //将匹配表与现金事务流表关联
+        CshAllocationCredit cshAllocationCredit = new CshAllocationCredit();
+        cshAllocationCredit.setAllocationId(allocationId);
+        cshAllocationCredit.setCashflowId(hlsCusConContractCashflow.getCashflowId());
+        cshAllocationCredit.setDueAmount(hlsCusCshWriteOff.getWriteOffDueAmount());
+        cshAllocationCredit.setPrincipal(hlsCusConContractCashflow.getPrincipal());
+        cshAllocationCredit.setInterest(hlsCusConContractCashflow.getInterest());
+        //插入核销匹配表
+        cshAllocationMapper.insertSelective(cshAllocation);
+        cshAllocationReceiptMapper.insertSelective(cshAllocationReceipt);
+        cshAllocationCreditMapper.insertSelective(cshAllocationCredit);
+    }
 //
 //    private HlsCusCshWriteOff updateHlsCusWriteOff(YLCshTransferPaymentDto ylCshTransferPaymentDto, HlsCusCshTransaction hlsCusCshTransaction, HlsCusConContractCashflow hlsCusConContractCashflow) {
 //        HlsCusCshWriteOff hlsCusCshWriteOff = hlsCusCshWriteOffMapper.

@@ -98,4 +98,8 @@ public interface HlsCusPrjProjectAttachmentMapper extends Mapper<HlsCusPrjProjec
                                       @Param("tableName") String tableName,
                                       @Param("attachmentCategory") String attachmentCategory);
 
+    List<HlsCusPrjProjectAttachment> findListByHlsCusPrjProjectAttachment(HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment);
+
+
+
 }

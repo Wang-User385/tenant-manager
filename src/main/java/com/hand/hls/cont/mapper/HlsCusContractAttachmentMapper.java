@@ -3,6 +3,7 @@ package com.hand.hls.cont.mapper;
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.cont.dto.HlsCusConContractAttachment;
 import com.hand.hls.cont.dto.HlsCusContractAttachment;
+import com.hand.hls.prj.dto.HlsCusPrjProjectAttachment;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -30,5 +31,4 @@ public interface HlsCusContractAttachmentMapper extends Mapper<HlsCusContractAtt
     List<Map<String, Object>> queryAttachmentForContractChange(@Param("tableName") String tableName, @Param("tablePkValue")String tablePkValue);
     Map<String, Object> queryAttachmentFile(@Param("attachment_id")Long attachment_id);
 
-    List<HlsCusContractAttachment> findListByHlsCusConContractAttachment(HlsCusContractAttachment hlsCusConContractAttachment);
 }

@@ -4711,52 +4711,6 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         return res;
     }
 
-    @Override
-    public void download(Long contractId, String contractAttachmentCategory, HttpServletResponse response, HttpServletRequest request) {
-        //封装
-        HlsCusContractAttachment hlsCusContractAttachment = new HlsCusContractAttachment();
-        hlsCusContractAttachment.setContractId(contractId);
-        hlsCusContractAttachment.setContractAttachmentCategory(contractAttachmentCategory);
-        //日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        this.commonLogHead(hlsWsRequests, "一键下载", hlsCusContractAttachment, request);
-        ResponseData responseData = new ResponseData();
-        //获取所有的数据
-        List<HlsCusContractAttachment> hlsCusConContractAttachmentList = hlsCusContractAttachmentMapper.findListByHlsCusConContractAttachment(hlsCusContractAttachment);
-        if (!CollectionUtils.isEmpty(hlsCusConContractAttachmentList)) {
-            String zipFilePath = "";
-            String fileName = "";
-            List<HlsCusSysFile> hlsCusSysFiles = new ArrayList<>();
-            for (HlsCusContractAttachment cusConContractAttachment : hlsCusConContractAttachmentList) {
-                HlsCusSysFile hlsCusSysFile = new HlsCusSysFile();
-                String filePath = cusConContractAttachment.getFilePath();
-                String fileName1 = cusConContractAttachment.getFileName();
-                hlsCusSysFile.setFilePath(filePath);
-                hlsCusSysFile.setFileName(fileName1);
-                hlsCusSysFiles.add(hlsCusSysFile);
-            }
-            if (!CollectionUtils.isEmpty(hlsCusSysFiles)) {
-                File zipFilePath1 = new File(zipFilePath);
-                //拼接文件名,用户名+系统时间,避免出现重复
-                fileName = "downloadZip_" + System.currentTimeMillis();
-                //String zipFile = "attachment;filename=" + new String(fileName.getBytes("utf-8"), "iso-8859-1") + ".zip";
-                String zipFile = zipFilePath1 + fileName + ".zip";
-                try {
-                    FileOutputStream outStream = new FileOutputStream(zipFile);
-                    ZipOutputStream toClient = new ZipOutputStream(outStream);
-                    //打包转换为zip文件
-                    HlsCusZipUtil.zipFile(hlsCusSysFiles, toClient);
-                    toClient.close();
-                    outStream.close();
-                    //下载zip文件
-                    HlsCusZipUtil.downloadZip(new File(zipFile), response);
-                } catch (Exception e) {
-                    commonLog(responseData, "10001", "E", "一键下载异常", hlsWsRequests);
-                }
-            }
-
-        }
-    }
 
     @Override
     public void updateZdwRegisterStatus(Long contractId, HttpServletRequest request) {

@@ -1,5 +1,6 @@
 package com.hand.hls.prj.controllers;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.activiti.dto.HistoricProcessInstanceResponseExt;
@@ -20,6 +21,8 @@ import com.hand.hls.prj.service.HlsCusPrjProjectAttachmentService;
 import com.hand.hls.prj.service.HlsCusPrjProjectService;
 import com.hand.hls.prj.utils.HlsCusZipUtil;
 import com.hand.hls.sys.service.SysUserService;
+import com.hand.hls.web.logs.dto.HlsWsRequests;
+import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import leaf.bean.LeafRequestData;
 import com.hand.hap.attachment.dto.SysFile;
 import com.hand.hap.security.TokenUtils;
@@ -27,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,6 +38,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.zip.ZipOutputStream;
 
@@ -247,6 +252,89 @@ public class HlsCusPrjProjectAttachmentController extends BaseController {
             }
         }
 
+    }
+
+    @Autowired
+    private HlsWsRequestsMapper hlsWsRequestsMapper;
+    @RequestMapping("/hls/con/contract/download")
+    @ResponseBody
+    public void selectContractAttachmentList(@RequestParam("project_id") Long projectId,
+                                             @RequestParam("project_attachment_category") String projectAttachmentCategory,
+                                             HttpServletResponse response, HttpServletRequest request) {
+        HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment = new HlsCusPrjProjectAttachment();
+        hlsCusPrjProjectAttachment.setProjectId(projectId);
+        hlsCusPrjProjectAttachment.setProjectAttachmentCategory(projectAttachmentCategory);
+        //日志
+        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        this.commonLogHead(hlsWsRequests, "一键下载", hlsCusPrjProjectAttachment, request);
+        ResponseData responseData = new ResponseData();
+        //获取所有的数据
+        List<HlsCusPrjProjectAttachment> hlsCusPrjProjectAttachmentList = hlsCusPrjProjectAttachmentMapper.findListByHlsCusPrjProjectAttachment(hlsCusPrjProjectAttachment);
+        if (!CollectionUtils.isEmpty(hlsCusPrjProjectAttachmentList)) {
+            String zipFilePath = "";
+            String fileName = "";
+            List<HlsCusSysFile> hlsCusSysFiles = new ArrayList<>();
+            for (HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment01 : hlsCusPrjProjectAttachmentList) {
+                HlsCusSysFile hlsCusSysFile = new HlsCusSysFile();
+                String filePath = hlsCusPrjProjectAttachment01.getFilePath();
+                String fileName1 = hlsCusPrjProjectAttachment01.getFileName();
+                hlsCusSysFile.setFilePath(filePath);
+                hlsCusSysFile.setFileName(fileName1);
+                hlsCusSysFiles.add(hlsCusSysFile);
+            }
+            if (!CollectionUtils.isEmpty(hlsCusSysFiles)) {
+                File zipFilePath1 = new File(zipFilePath);
+                //拼接文件名,用户名+系统时间,避免出现重复
+                fileName = "downloadZip_" + System.currentTimeMillis();
+                //String zipFile = "attachment;filename=" + new String(fileName.getBytes("utf-8"), "iso-8859-1") + ".zip";
+                String zipFile = zipFilePath1 + fileName + ".zip";
+                try {
+                    FileOutputStream outStream = new FileOutputStream(zipFile);
+                    ZipOutputStream toClient = new ZipOutputStream(outStream);
+                    //打包转换为zip文件
+                    HlsCusZipUtil.zipFile(hlsCusSysFiles, toClient);
+                    toClient.close();
+                    outStream.close();
+                    //下载zip文件
+                    HlsCusZipUtil.downloadZip(new File(zipFile), response);
+                } catch (Exception e) {
+                    commonLog(responseData, "10001", "E", "一键下载异常", hlsWsRequests);
+                }
+            }
+
+        }
+    }
+
+    private void commonLog(ResponseData responseData, String code, String returnStatus, String parameter, HlsWsRequests hlsWsRequests) {
+        responseData.setCode(code);
+        responseData.setMessage(parameter);
+        hlsWsRequests.setReturnStatus(returnStatus);
+        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
+        hlsWsRequestsMapper.insert(hlsWsRequests);
+    }
+
+    private void commonLogHead(HlsWsRequests hlsWsRequests, String functionName, Object param, HttpServletRequest request) {
+        //获取请求路径
+        String requestURI = request.getRequestURI();
+        hlsWsRequests.setRequestWsdlUrl(requestURI);
+        //请求日期
+        hlsWsRequests.setRequestDate(new Date());
+        //功能名称
+        hlsWsRequests.setFunctionName(functionName);
+        //状态变更日期
+        hlsWsRequests.setStatusDate(new Date());
+        // user_id
+        String userId = request.getParameter("user_id");
+        if (userId != null) {
+            hlsWsRequests.setUserId(Long.valueOf(userId));
+        }
+        //请求状态
+        hlsWsRequests.setStatusCode("200");
+        //参数类型
+        hlsWsRequests.setParameterType("JSON");
+        // 请求体
+        String s = JSONObject.toJSONString(param);
+        hlsWsRequests.setRequestJson(s);
     }
 
 }
