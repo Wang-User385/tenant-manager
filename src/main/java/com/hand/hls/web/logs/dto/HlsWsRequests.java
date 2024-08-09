@@ -120,6 +120,9 @@ public class HlsWsRequests extends BaseDTO {
     @Transient
     private String returnStatusN;
 
+    @Transient
+    private String createdByN;
+
     public String getReturnStatusN() {
         return returnStatusN;
     }
@@ -281,5 +284,13 @@ public class HlsWsRequests extends BaseDTO {
 
     public void setResponseJsonEncrypt(String responseJsonEncrypt) {
         this.responseJsonEncrypt = responseJsonEncrypt;
+    }
+
+    public String getCreatedByN() {
+        return createdByN;
+    }
+
+    public void setCreatedByN(String createdByN) {
+        this.createdByN = createdByN;
     }
 }
