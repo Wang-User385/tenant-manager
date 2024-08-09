@@ -164,8 +164,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject returnJson = new JSONObject();
 
         //当前进件业务只有一家合作商，暂时只插入固定的这个合作商
+        String bpCode = "BP202407230057";
+        if("HAND".equals(iRequest.getEmployeeCode())){
+            bpCode = "BP202408090380";
+        }
         HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
-        hlsCusBpMaster.setBpCode("BP202407230057");
+        hlsCusBpMaster.setBpCode(bpCode);
         hlsCusBpMaster.setBpType("MANUFACTURER");
         List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectHlsBpMaster(hlsCusBpMaster);
         //根据合作商id，查询产品定义表中的业务经理插入到商业伙伴创建人字段中
