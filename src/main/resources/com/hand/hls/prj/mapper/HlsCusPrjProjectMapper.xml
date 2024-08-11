@@ -12744,80 +12744,58 @@ WHERE
     </select>
     <select id="selectRepayPlanByOrderNo" resultType="com.hand.hls.partner.dto.RepayPlanTermInfoDTO">
         SELECT
-            CASE
-
-                WHEN
-                    ccc.CF_ITEM = 1 THEN
-                    ccc.DUE_AMOUNT * 100 ELSE 0
-                END AS termTotal,
-            CASE
-
-                WHEN ccc.CF_ITEM = 1 THEN
-                    ccc.RECEIVED_AMOUNT * 100 ELSE 0
-                END AS paidTotal,
-            CASE
-
-                WHEN ccc.CF_ITEM = 1 THEN
-                    ( ccc.DUE_AMOUNT - RECEIVED_AMOUNT ) * 100 ELSE 0
-                END AS restTotal,
-            CASE
-
-                WHEN ccc.CF_ITEM = 9 THEN
-                    ccc.DUE_AMOUNT * 100 ELSE 0
-                END AS termOvd,
-            CASE
-
-                WHEN ccc.CF_ITEM = 9 THEN
-                    ccc.RECEIVED_AMOUNT * 100 ELSE 0
-                END AS paidOvd,
-            CASE
-
-                WHEN ccc.CF_ITEM = 9 THEN
-                    ( ccc.DUE_AMOUNT - RECEIVED_AMOUNT ) * 100 ELSE 0
-                END AS restOvd,
-            CASE
-
-                WHEN ccc.DUE_AMOUNT - ccc.PRINCIPAL - ccc.INTEREST - ccc.RECEIVED_AMOUNT + ccc.RECEIVED_PRINCIPAL + ccc.RECEIVED_INTEREST = 0 THEN
-                    'ENDED结束'
-                WHEN SYSDATE &lt;
-        ccc.DUE_DATE + cc.GRACE_PERIOD THEN
-			'GRACE_TERM宽限期'
-			WHEN SYSDATE &lt;
-			ccc.DUE_DATE THEN
-				'NOT_START_TERM未到期'
-				WHEN SYSDATE &gt;
-				ccc.DUE_DATE THEN
-					'OVERDUE_TERM逾期' ELSE 'GRACE_TERM宽限期'
-        END AS status,
-				ccc.TIMES termNo,
-				to_char( ccc.LAST_RECEIVED_DATE, 'yyyy-mm-dd' ) lastPaidTime,
-				to_char( ccc.FULL_WRITE_OFF_DATE, 'yyyy-mm-dd' ) endTime,
-				to_char(
-					( SELECT c1.DUE_DATE FROM CON_CONTRACT_CASHFLOW c1 WHERE c1.CONTRACT_ID = ccc.CONTRACT_ID AND c1.TIMES = ccc.TIMES - 1 AND c1.CF_STATUS NOT in ('BLOCK','CANCEL') AND CF_TYPE !=9),
-					'yyyy-mm-dd'
-				) termStartDate,
-				to_char( ccc.DUE_DATE, 'yyyy-mm-dd' ) termEndDate,
-				to_char( ccc.DUE_DATE, 'yyyy-mm-dd' ) termRepayDate,
-				to_char( ccc.DUE_DATE + cc.GRACE_PERIOD, 'yyyy-mm-dd' ) termPenaltyGraceDate,
-				to_char( ccc.DUE_DATE + cc.OVERDUE_MAX_DAYS, 'yyyy-mm-dd' ) termOvdGraceDate,
-				cc.CONTRACT_STATUS,
-				ccc.PAYMENT_METHOD repayType,
-				ccc.OVERDUE_MAX_DAYS ovdDays,
-				ccc.PRINCIPAL * 100 termNomPrin,
-				ccc.INTEREST * 100 termNomInt,
-				( ccc.DUE_AMOUNT - ccc.PRINCIPAL - ccc.INTEREST ) * 100 AS termFee,
-				ccc.RECEIVED_PRINCIPAL * 100 paidNomPrin,
-				ccc.RECEIVED_INTEREST * 100 paidNomInt,
-				( ccc.RECEIVED_AMOUNT - ccc.RECEIVED_PRINCIPAL - ccc.RECEIVED_INTEREST ) * 100 AS paidFee,
-				( ccc.PRINCIPAL - RECEIVED_PRINCIPAL ) * 100 AS restNomPrin,
-				( ccc.INTEREST - RECEIVED_INTEREST ) * 100 AS restNomInt,
-				( ccc.DUE_AMOUNT - ccc.PRINCIPAL - ccc.INTEREST - ccc.RECEIVED_AMOUNT + ccc.RECEIVED_PRINCIPAL + ccc.RECEIVED_INTEREST ) * 100 AS restFee
-				FROM
-					CON_CONTRACT_CASHFLOW ccc
-					RIGHT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
-					RIGHT JOIN PRJ_PROJECT pp ON pp.PROJECT_ID = cc.PROJECT_ID
-			WHERE
-            pp.PROJECT_NUMBER = #{orderNo} AND ccc.CF_STATUS = 'RELEASE'
+        ccc.TIMES termNo,
+        CASE
+        WHEN SYSDATE &lt; ccc.DUE_DATE THEN 'NOT_START_TERM未到期'
+        WHEN SYSDATE > ccc.DUE_DATE THEN 'OVERDUE_TERM逾期'
+        WHEN trunc(SYSDATE) = trunc(ccc.DUE_DATE) THEN 'CURRENT_TERM当前期'
+        WHEN ccc.DUE_AMOUNT-ccc.RECEIVED_AMOUNT = 0 THEN 'ENDED结束'
+        ELSE
+        'GRACE_TERM宽限期'
+        END status,
+        TO_CHAR((SELECT MAX(WRITE_OFF_DATE) FROM CSH_WRITE_OFF cwo WHERE cwo.CASHFLOW_ID = ccc.CASHFLOW_ID),'yyyy-mm-dd') lastPaidTime,
+        TO_CHAR((SELECT MAX(WRITE_OFF_DATE) FROM CSH_WRITE_OFF cwo WHERE cwo.CASHFLOW_ID = ccc.CASHFLOW_ID AND ccc.WRITE_OFF_FLAG='FULL'),'yyyy-mm-dd' ) endTime,
+        TO_CHAR(DECODE(TIMES, 1, (SELECT LEASE_START_DATE FROM PRJ_QUOTATION pq WHERE pp.PROJECT_ID=pq.SOURCE_DOCUMENT_ID AND pq.SOURCE_DOCUMENT_CATEGORY='PRJ_PROJECT'),
+        (SELECT cf.DUE_DATE FROM CON_CONTRACT_CASHFLOW cf WHERE cf.CONTRACT_ID=ccc.CONTRACT_ID AND cf.TIMES=ccc.times-1 AND cf.CF_STATUS='RELEASE' AND cf.CF_ITEM in (1,11,13))),'yyyy-mm-dd') termStartDate,
+        to_char( ccc.DUE_DATE, 'yyyy-mm-dd' ) termEndDate,
+        to_char( ccc.DUE_DATE, 'yyyy-mm-dd' ) termRepayDate,
+        to_char( ccc.DUE_DATE + NVL(cc.GRACE_PERIOD, 0), 'yyyy-mm-dd' ) termPenaltyGraceDate,
+        to_char( ccc.DUE_DATE + NVL(cc.OVERDUE_MAX_DAYS, 0), 'yyyy-mm-dd' ) termOvdGraceDate,
+        DECODE(NVL(ccc.WRITE_OFF_FLAG, 'NOT'), 'NOT','',
+        CASE WHEN ccc.CF_ITEM = 11 THEN 'PRE_SETTLE'
+        WHEN ccc.CF_ITEM = 13 THEN 'BUY_BACK'
+        WHEN ccc.PLAN_TYPE = 'COMP' AND ccc.REFUND_COMP_AMOUNT>0 THEN 'SUBSTITUTE'
+        WHEN ccc.CF_ITEM=1 AND EXISTS (SELECT 1 FROM YL_CSH_TRANSFER_PAYMENT tr WHERE tr.CASHFLOW_ID=ccc.CASHFLOW_ID)
+        THEN (SELECT REPAY_TYPE FROM YL_CSH_TRANSFER_PAYMENT tr WHERE tr.CASHFLOW_ID=ccc.CASHFLOW_ID)
+        ELSE 'OTHER'
+        END
+        ) repayType,
+        CASE WHEN trunc(SYSDATE) - trunc(ccc.DUE_DATE) &lt; 0 THEN 0 ELSE trunc(SYSDATE) - trunc(ccc.DUE_DATE) END ovdDays,
+        ccc.PRINCIPAL*100 termNomPrin,
+        ccc.INTEREST*100 termNomInt,
+        (SELECT NVL(SUM(cf.due_amount), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID)*100 termOvd,
+        (SELECT NVL(SUM(cf.due_amount), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.CONTRACT_ID = ccc.CONTRACT_ID AND ccc.TIMES=cf.TIMES AND cf.CF_ITEM=8)*100 termFee,
+        (ccc.DUE_AMOUNT+(SELECT NVL(SUM(cf.due_amount), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID)+
+        (SELECT NVL(SUM(cf.due_amount), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.CONTRACT_ID = ccc.CONTRACT_ID AND ccc.TIMES=cf.TIMES AND cf.CF_ITEM=8))*100 termTotal,
+        ccc.RECEIVED_PRINCIPAL*100 paidNomPrin,
+        ccc.RECEIVED_INTEREST*100 paidNomInt,
+        (SELECT NVL(SUM(cf.RECEIVED_AMOUNT), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID)*100 paidOvd,
+        (SELECT NVL(SUM(cf.RECEIVED_AMOUNT), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.CONTRACT_ID = ccc.CONTRACT_ID AND ccc.TIMES=cf.TIMES AND cf.CF_ITEM=8)*100 paidFee,
+        (ccc.RECEIVED_AMOUNT+(SELECT NVL(SUM(cf.RECEIVED_AMOUNT), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID)+
+        (SELECT NVL(SUM(cf.RECEIVED_AMOUNT), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.CONTRACT_ID = ccc.CONTRACT_ID AND ccc.TIMES=cf.TIMES AND cf.CF_ITEM=8))*100 paidTotal,
+        (nvl(ccc.PRINCIPAL,0)-nvl(ccc.RECEIVED_PRINCIPAL,0))*100 restNomPrin,
+        (nvl(ccc.INTEREST,0)-NVL(ccc.RECEIVED_INTEREST,0))*100 restNomInt,
+        (SELECT NVL(SUM(nvl(cf.DUE_AMOUNT,0)-nvl(cf.RECEIVED_AMOUNT,0)), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID)*100 restOvd,
+        (SELECT NVL(SUM(NVL(cf.DUE_AMOUNT, 0)-NVL(cf.RECEIVED_AMOUNT, 0)), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.CONTRACT_ID = ccc.CONTRACT_ID AND ccc.TIMES=cf.TIMES AND cf.CF_ITEM=8)*100 restFee,
+        ccc.DUE_AMOUNT-nvl(ccc.RECEIVED_AMOUNT,0)-(SELECT NVL(SUM(nvl(cf.DUE_AMOUNT,0)-nvl(cf.RECEIVED_AMOUNT,0)), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID) restTotal
+        FROM
+        CON_CONTRACT_CASHFLOW ccc
+        RIGHT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
+        RIGHT JOIN PRJ_PROJECT pp ON pp.PROJECT_ID = cc.PROJECT_ID
+        WHERE
+        pp.PROJECT_NUMBER = #{orderNo}
+        AND ccc.CF_STATUS = 'RELEASE' AND CF_ITEM in (1,11,13)
+        ORDER BY ccc.TIMES
     </select>
     <select id="selectCTCByOrderNo" resultType="com.hand.hls.partner.dto.CompensatoryTrialCalculationDTO">
         SELECT
