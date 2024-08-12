@@ -1234,7 +1234,15 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
         if(riskHost == null){
             IRequest request = RequestHelper.getCurrentRequest();
             Long companyId = request.getCompanyId();
-            return fndEmployeeMapper.getPositionEmp("A0170", companyId);
+            List<String> list = fndEmployeeMapper.getPositionEmp("A0170", companyId);
+            ArrayList<String> returnList = new ArrayList<>();
+            String riskAssistantFirst = hlsCusPrjProject.getRiskAssistantFirst().toString();
+            for(String assignee : list){
+                if(!assignee.equals(riskAssistantFirst)){
+                    returnList.add(assignee);
+                }
+            }
+            return returnList;
         }else{
             ArrayList<String> returnList = new ArrayList<>();
             returnList.add(riskHost.toString());
