@@ -316,6 +316,8 @@
         <!--新增外来字段-->
          <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR"/>
          <result column="status" property="status" jdbcType="VARCHAR"/>
+         <result column="message" property="message" jdbcType="VARCHAR"/>
+         <result column="withholding_party" property="withholdingParty" jdbcType="VARCHAR"/>
          <result column="status_n" property="statusN" jdbcType="VARCHAR"/>
          <result column="due_date_from" property="dueDateFrom" jdbcType="DATE"/>
          <result column="due_date_to" property="dueDateTo" jdbcType="DATE"/>
@@ -1876,6 +1878,7 @@ and pqc.quotation_id=#{quotationId}
     <select id="queryWithholding" resultMap="BaseResultMapConContractCashflow">
         SELECT
         t.*,
+        '支付宝' AS withholding_party,
         (select v.MEANING  from sys_code_value_b_v v
         where v.code_value= status_n
         and v.CODE='ALIPAY_ORDER.STATUS') as status,
@@ -1901,14 +1904,17 @@ and pqc.quotation_id=#{quotationId}
         WHERE cf.contract_id = ccc.contract_id AND
         cf.times = ccc.times AND
         cf.cf_item = 9), 0), 2) AS total_write_off_amount,
+        (COALESCE(
         (SELECT v.MEANING
         FROM sys_code_value_b_v v
-        WHERE v.code = 'TRANSFERPAYMENTFLAG' AND
-        v.code_value = ccc.transfer_payment_flag) AS transfer_payment_flag_n,
-        (SELECT v.MEANING
+        WHERE v.code = 'TRANSFERPAYMENTFLAG'
+        AND v.code_value = ccc.transfer_payment_flag),
+        '否'
+        )) AS transfer_payment_flag_n,
+        (coalesce((SELECT v.MEANING
         FROM sys_code_value_b_v v
         WHERE v.code = 'STOPWITHHOLDFLAG' AND
-        v.code_value = ccc.stop_withhold_flag) AS stop_withhold_flag_n,
+        v.code_value = ccc.stop_withhold_flag),'否')) AS stop_withhold_flag_n,
         -- 使用 MAX() 或 MIN() 确保返回单行数据
         (SELECT COALESCE(MAX(ct.transaction_num), '无')
         FROM csh_transaction ct
@@ -1938,10 +1944,17 @@ and pqc.quotation_id=#{quotationId}
         where gao.cashflow_id=ccc.cashflow_id
         ORDER BY order_id DESC
         )
-        WHERE ROWNUM = 1) AS status_n
-
+        WHERE ROWNUM = 1) AS status_n,
+        (SELECT message
+        FROM (
+        SELECT message, order_id
+        FROM GT_ALIPAY_ORDER gao
+        where gao.cashflow_id=ccc.cashflow_id
+        ORDER BY order_id DESC
+        )
+        WHERE ROWNUM = 1) AS message_n
         FROM CON_CONTRACT_CASHFLOW ccc
-        where due_date &lt;= CURRENT_DATE
+        where due_date &lt;= CURRENT_DATE and ccc.cf_direction='INFLOW' and (ccc.transfer_payment_flag is null or ccc.transfer_payment_flag='N')
         ) t
 
         <where>

@@ -174,9 +174,13 @@ HlsCusConContractCashflow extends BaseDTO {
     private String paymentBpType;
     //表外字段代扣功能
     @Transient
-    private   String  tenantIdN;//承租人
+    private   String  tenantIdN;//承租人message
+    @Transient
+    private   String  message;//返回信息
     @Transient
     private   String  status;//交易状态
+    @Transient
+    private   String  withholdingParty;//代扣方
     @Transient
     private   String  statusN;//交易状态
 //    @Transient

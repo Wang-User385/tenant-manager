@@ -104,7 +104,7 @@ import org.springframework.web.bind.annotation.*;
 
                 //发起代扣
                 alipayService.withhold(orderDTO.getOrderId());
-            alipayOrderDTOS.add(orderDTO);
+                alipayOrderDTOS.add(orderDTO);
 
         }
       return new ResponseData(alipayOrderDTOS);
