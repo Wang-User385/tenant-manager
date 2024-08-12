@@ -322,8 +322,9 @@ public class AlipayServiceImpl implements IAlipayService {
         String userCertNo = bpMaster.getIdCardNo();
         String penetrateId = prjProject.getPenetrateId();
 
-        extInfo = loanApply(customerName,userCertNo,penetrateId,"ALIPAYAPP");
-        extInfo = "https://openapi.alipay.com/gateway.do?" + extInfo;//拼接上前缀
+        //extInfo = loanApply(customerName,userCertNo,penetrateId,"ALIPAYAPP");
+        //extInfo = "https://openapi.alipay.com/gateway.do?" + extInfo;//拼接上前缀
+        extInfo = loanApply(customerName,userCertNo,penetrateId,"QRCODE");
 
         HlsCusPrjProject updateProject = new HlsCusPrjProject();
         updateProject.setProjectId(projectId);
