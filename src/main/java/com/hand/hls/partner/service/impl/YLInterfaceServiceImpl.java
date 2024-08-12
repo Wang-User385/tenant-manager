@@ -1117,6 +1117,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         secTenantBpMaster.setSource("1");
         secTenantBpMaster.setBpClass("NP");
         secTenantBpMaster.setBpCategory("TENANT-SEC");
+        secTenantBpMaster.setBpType("TENANT-SEC");
 
         if(secTenantBpMaster.getBpId() == null){
             hlsCusBpMasterMapper.insertSelective(secTenantBpMaster);
