@@ -1994,80 +1994,48 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
     }
 
 
-    @Autowired
-    private HlsCusBpMasterBankAccountMapper hlsCusBpMasterBankAccountMapper;
     @Override
     public void transactionImport(IRequest iRequest, Long headerId) {
         List<FndInterfaceLines> fndInterfaceLinesList = getInterfaceData(headerId, 0L);
         for (FndInterfaceLines fndInterfaceLine : fndInterfaceLinesList) {
             HlsCusCshTransaction cshTransaction = new HlsCusCshTransaction();
-
             String transactionDate = fndInterfaceLine.getAttributes_1();
             String transactionAmount = fndInterfaceLine.getAttributes_2();
             String bankAccountNum = fndInterfaceLine.getAttributes_3();
             String bankSlipNum = fndInterfaceLine.getAttributes_4();
             String comments = fndInterfaceLine.getAttributes_5();
-            String bpNo = fndInterfaceLine.getAttributes_6();
-//            String paymentMethod = fndInterfaceLine.getAttributes_7();
             String paymentMethod = "OTHER";
+            //对方账户
+            String bpBankAccountName = fndInterfaceLine.getAttributes_7();
+            //对方账号
             String bpBankAccountNum = fndInterfaceLine.getAttributes_8();
+            //银行名称
+            String bpBankName = fndInterfaceLine.getAttributes_9();
+            //支行名称
+            String bpBankBranchName = fndInterfaceLine.getAttributes_10();
+            //支行名称
             validate("excel第" + fndInterfaceLine.getLineNumber() + "行:收款时间不能为空", transactionDate);
             validate("excel第" + fndInterfaceLine.getLineNumber() + "行:收款金额不能为空", transactionAmount);
             validate("excel第" + fndInterfaceLine.getLineNumber() + "行:收款账户不能为空", bankAccountNum);
-            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:商业伙伴编号不能为空", bpNo);
-            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:对方账户不能为空", bpBankAccountNum);
-
+            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:对方账户不能为空", bpBankAccountName);
+            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:对方账号不能为空", bpBankAccountNum);
+            validate("excel第" + fndInterfaceLine.getLineNumber() + "行:银行名称·不能为空", bpBankName);
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            Example example = new Example(HlsCusBpMaster.class);
-            example.createCriteria().andEqualTo("bpCode",bpNo);
-            List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectByExample(example);
-            if (hlsCusBpMasters.size() != 1){
-                throw new RuntimeException("数据中存在非法数据");
-            }
-            Long bpId = hlsCusBpMasters.get(0).getBpId();
-            Long companyId = hlsCusBpMasters.get(0).getCompanyId();
-            example = new Example(HlsCusBpMasterBankAccount.class);
-            example.createCriteria().andEqualTo("bpId",bpId);
-            List<HlsCusBpMasterBankAccount> hlsCusBpMasterBankAccounts = hlsCusBpMasterBankAccountMapper.selectByExample(example);
-            boolean flag = false;
-            Long bankAccountId = null;
-            for (HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount : hlsCusBpMasterBankAccounts) {
-                if (bankAccountNum.equals(hlsCusBpMasterBankAccount.getBankAccountNum())){
-                    flag = true;
-                    bankAccountId = hlsCusBpMasterBankAccount.getBankAccountId();
-                    break;
-                }
-            }
-            if (!flag){
-                throw new RuntimeException("商业伙伴收款账户未录入");
-            }
-
-            example = new Example(HlsCusBpMasterBankAccount.class);
-            example.createCriteria().andEqualTo("bankAccountNum",bpBankAccountNum);
-            hlsCusBpMasterBankAccounts = hlsCusBpMasterBankAccountMapper.selectByExample(example);
-            if (hlsCusBpMasterBankAccounts == null || hlsCusBpMasterBankAccounts.size() == 0){
-                throw new RuntimeException("对方账户未录入");
-            }
-            if (hlsCusBpMasterBankAccounts.size() > 1){
-                throw new RuntimeException("对方账户被多人录入");
-            }
-
             try {
+                transactionDate = transactionDate.replaceAll("/","-");
                 cshTransaction.setTransactionDate(simpleDateFormat.parse(transactionDate));
             } catch (ParseException e) {
                 throw new RuntimeException("时间格式报错");
             }
-//            cshTransaction.setBpId(1L);
-            cshTransaction.setBpId(bpId);
-            cshTransaction.setPaymentMethod(paymentMethod);
             cshTransaction.setTransactionAmount(Double.parseDouble(transactionAmount));
+            cshTransaction.setBankAccountNum(bankAccountNum);
             cshTransaction.setBankSlipNum(bankSlipNum);
             cshTransaction.setComments(comments);
-            cshTransaction.setBankAccountId(bankAccountId);
-//            cshTransaction.setBankAccountId(1L);
+            cshTransaction.setPaymentMethod(paymentMethod);
+            cshTransaction.setBpBankAccountName(bpBankAccountName);
             cshTransaction.setBpBankAccountNum(bpBankAccountNum);
-            cshTransaction.setCompanyId(companyId);
-//            cshTransaction.setCompanyId(1L);
+            cshTransaction.setBpBankName(bpBankName);
+            cshTransaction.setBpBankBranchName(bpBankBranchName);
             setExtraInfo(cshTransaction,iRequest);
             self().insertSelective(iRequest,cshTransaction);
         }
@@ -2086,6 +2054,7 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
         cshTransaction.setTransactionType(DOCUMENT_TYPE);
         cshTransaction.setBusinessType(BUSINESS_TYPE);
         cshTransaction.setPenaltyCalcDate(cshTransaction.getTransactionDate());
+        cshTransaction.setCompanyId(requestCtx.getCompanyId());
         cshTransaction.setReversedFlag("N");
         cshTransaction.setPostedFlag("N");
         cshTransaction.setCurrencyCode("CNY");

@@ -13514,6 +13514,43 @@ WHERE
         and (pp.alipay_status is null or pp.alipay_status = 'TO_BE_APPLIED')
     </select>
 
+    <select id="findDetailConContract" resultMap="BaseResultMap">
+        SELECT
+        cc.contract_id,
+        cc.CONTRACT_NUMBER,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
+        ( SELECT m.id_card_no FROM hls_bp_master m WHERE m.bp_id = pp.tenant_id ) id_card_no,
+        ( SELECT m.phone FROM hls_bp_master m WHERE m.bp_id = pp.tenant_id ) phone,
+        ( SELECT bt.description FROM hls_business_type bt WHERE bt.DOCUMENT_CATEGORY = 'CON_CONTRACT' AND bt.business_type = cc.business_type ) business_type_n,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.manufacturer_id ) manufacturer_id_n,
+        (SELECT sv.MEANING
+        FROM sys_code_value_b sv,
+        sys_code_b b
+        WHERE b.CODE = 'DRIVER_AND_APPLICANT'
+        AND sv.code_id = b.code_id
+        AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant,
+        ( SELECT i.frame_number FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) frame_number,
+        ( SELECT i.model_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) model_c,
+        ( SELECT i.brand_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) brand_c,
+        ( SELECT i.color_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) color_c,
+        ( SELECT i.list_price FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) list_price,
+        ( SELECT finance_amount FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) finance_amount,
+        ( SELECT lease_times FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) lease_times,
+        ( SELECT down_payment FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) down_payment ,
+        ( SELECT pmt  FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id) pmt
+        FROM
+        CON_CONTRACT cc
+        left join prj_project pp on cc.project_id=pp.project_id
+        where
+        1=1
+        <if test="contractId != null">
+            and cc.contract_id = #{contractId}
+        </if>
+        <if test="projectId != null">
+            and pp.project_id = #{projectId}
+        </if>
+    </select>
+
 
 
 </mapper>

@@ -435,7 +435,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("message","不存在合同数据");
             throw new HlsCusException(returnJson.toJSONString());
         }
-        List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyDTOLists();
+        List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOList = repayMent.getTermRepayDetailApplyLists();
         for (TermRepayDetailApplyDTO termRepayDetailApplyDTO : termRepayDetailApplyDTOList) {
             //校验数据
             checkTermRepayDetailApplyDto(returnJson, termRepayDetailApplyDTO);

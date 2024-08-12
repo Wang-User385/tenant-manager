@@ -18,10 +18,9 @@
             //     return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('hls_prj_plan_id') + '\');">上传</a>';
             // }
             var link_function1 = 'upload';
-
-            if (record.get('file_num') > 0) {
+            if (record.get('file_num') > 0 && name == 'info') {
                 return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('contract_id') + '\');">附件' + '(' +record.get("file_num") + ')' + '</a>';
-            } else {
+            } else if (record.get('file_num') == 0 || name == 'info') {
                 return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('contract_id') + '\');">附件</a>';
             }
             return value;
@@ -34,11 +33,11 @@
             var base_ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_PRJ_CON_INFO_ATTA');
             var base_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_PRJ_MORTGAGE_INFO');
             var base_record;
-            var con_contract_attachment_id;
+            var project_attachment_id;
             if (ds_id == base_ds_id){
                 base_record = $(base_ds_id).findById(record_id);
-                con_contract_attachment_id = base_record.get('contract_attachment_id');
-                if (!con_contract_attachment_id){
+                project_attachment_id = base_record.get('project_attachment_id');
+                if (!project_attachment_id){
                     $L.showInfoMessage("提示", "请先保存再上传附件!");
                     return;
                 }
@@ -47,7 +46,7 @@
                     id: 'MORT001F3_open_attachment_prj_winid1',
                     url: url,
                     params: {
-                        'header_id': con_contract_attachment_id,
+                        'header_id': project_attachment_id,
                         'table_name': tableName,
                         winid: 'MORT001F3_open_attachment_prj_winid1',
                         function_usage: 'QUERY',
@@ -61,8 +60,8 @@
                 });
             }else if (ds_id == base_ds_id1){
                 base_record = $(base_ds_id1).findById(record_id);
-                con_contract_attachment_id = base_record.get('contract_attachment_id');
-                if (!con_contract_attachment_id){
+                project_attachment_id = base_record.get('project_attachment_id');
+                if (!project_attachment_id){
                     $L.showInfoMessage("提示", "请先保存再上传附件!");
                     return;
                 }
@@ -71,7 +70,7 @@
                     id: 'MORT001F3_open_attachment_prj_winid2',
                     url: url,
                     params: {
-                        'header_id': con_contract_attachment_id,
+                        'header_id': project_attachment_id,
                         'table_name': tableName,
                         function_usage: 'QUERY',
                         winid: 'MORT001F3_open_attachment_prj_winid2'
@@ -85,19 +84,26 @@
                 });
             }else {
                 base_record = $(base_ds_id2).findById(record_id);
-                con_contract_attachment_id = base_record.get('contract_attachment_id');
-                if (!con_contract_attachment_id){
+                var status = base_record.get('mortgage_status');
+                var url = '${/request/@context_path}/downloadFile.lview';
+                var function_usage = 'QUERY';
+                if (!status){
+                    url = '${/request/@context_path}/uploadFile.lview';
+                    function_usage = 'MODIFY';
+                }
+                project_attachment_id = base_record.get('project_attachment_id');
+                if (!project_attachment_id){
                     $L.showInfoMessage("提示", "请先保存再上传附件!");
                     return;
                 }
-                var url = '${/request/@context_path}/uploadFile.lview';
                 var win = new Leaf.Window({
                     id: 'MORT001F3_open_attachment_prj_winid3',
                     url: url,
                     params: {
-                        'header_id': con_contract_attachment_id,
+                        'header_id': project_attachment_id,
                         'table_name': tableName,
-                        winid: 'MORT001F3_open_attachment_prj_winid3'
+                        winid: 'MORT001F3_open_attachment_prj_winid3',
+                        function_usage: function_usage
                     },
                     title: '文件上传下载',
                     width: 800,
@@ -150,7 +156,11 @@
             debugger;
             // var base_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment');
             $(ds.id).getCurrentRecord().set('project_id','${/parameter/@project_id}');
-
+            var base_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_PRJ_MORTGAGE_INFO');
+            if (ds.is == base_ds_id2){
+                var record1 = $(base_ds_id2).getCurrentRecord();
+                record1.set('project_attachment_id',record1.get('contract_attachment_id'));
+            }
             var check_flag = true;
             return check_flag;
         };

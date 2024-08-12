@@ -3,7 +3,6 @@ package com.hand.hls.partner.dto;
 import com.hand.hap.system.dto.BaseDTO;
 import lombok.Data;
 import org.hibernate.validator.constraints.NotBlank;
-import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -23,5 +22,5 @@ public class RepayMent extends BaseDTO {
 
     @NotNull(message = "详细信息不能为空")
     @Valid
-    private List<TermRepayDetailApplyDTO> termRepayDetailApplyDTOLists;
+    private List<TermRepayDetailApplyDTO> termRepayDetailApplyLists;
 }

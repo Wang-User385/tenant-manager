@@ -1851,8 +1851,7 @@
         csh_bank cb
         WHERE
         cba.bank_account_id = t.bank_account_id
-        AND cba.bank_id = cb.bank_id
-        AND t.reversed_flag IN ('N', 'W')) tran)t1)  ttt1
+        AND cba.bank_id = cb.bank_id) tran)t1)  ttt1
 
 
         <where>
@@ -1881,9 +1880,7 @@
             <if test="reversedFlagN!=null">
                 and ttt1.reversed_flag_n = #{reversedFlagN}
             </if>
-            <if test="reversedFlag!=null">
-                and   (case when ttt1.reversed_flag = 'N' then 'N' else 'Y' end ) =#{reversedFlag}
-            </if>
+
 
             <if test="refundFlag!=null">
                 and ttt1.refund_flag = #{refundFlag}
@@ -2112,7 +2109,7 @@
         LEFT JOIN csh_bank_account cba ON cba.bank_account_id = t.bank_account_id
         LEFT JOIN csh_bank cb ON cba.bank_account_id = t.bank_account_id where  t.TRANSACTION_TYPE in ('RECEIPT','ADVANCE_RECEIPT')) tran)t1)  ttt1
         <where>
-            1 = 1
+            1 = 1 and nvl(ttt1.transaction_amount,0) >= 0
 --             ttt1.transaction_type in ('RECEIPT','DEDUCTION','ADVANCE_RECEIPT')
 --             AND (ttt1.is_allocation_flag = '是' OR ttt1.write_off_flag='FULL')
             <if test="transactionType!=null">
@@ -2137,9 +2134,6 @@
             </if>
             <if test="reversedFlagN!=null">
                 and ttt1.reversed_flag_n = #{reversedFlagN}
-            </if>
-            <if test="reversedFlag!=null">
-                and   (case when ttt1.reversed_flag = 'N' then 'N' else 'Y' end ) =#{reversedFlag}
             </if>
 
             <if test="refundFlag!=null">
