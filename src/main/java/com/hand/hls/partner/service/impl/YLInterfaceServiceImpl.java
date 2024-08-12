@@ -158,6 +158,16 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private final static String DOCUMENT_NAME = "投放审查工作流";
     private final static String DOCUMENT_CATEGORY = "CON_CONTRACT";
     private final static String DOCUMENT_TYPE = " CONLB";
+
+    private static final String CONTRACT = "contract";
+    private static final String CONTRACT_NAME = "contractName";
+
+    //流程编码
+    private final static String CAR_MORTGAGE_WORK_FLOW = "CAR_MORTGAGE";
+    //流程分类
+    private final static String CAR_MORTGAGE_DEMO_NAME = "CAR_MORTGAGE";
+    private final static String CAR_MORTGAGE_DOCUMENT_NAME = "车辆业务抵押工作流";
+
     @Override
     public String placeOrder(String decryptedStr,IRequest iRequest) throws HlsCusException {
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(decryptedStr, PlaceOrderDTO.class);
@@ -1966,6 +1976,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 returnJson.put("message","当前单据已完成付款申请流程，请勿重复发起");
                 throw new HlsCusException(returnJson.toJSONString());
             }
+            //发起投放审查流程
+            carMortgageWorkFlowSubmit(iRequest, contract.get(0));
+            contract.get(0).setMortgageStatus("APPROVING");
+            hlsCusConContractMapper.updateByPrimaryKeySelective(contract.get(0));
         }
 
         returnJson.put("code","200");
@@ -2295,6 +2309,41 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         map.put(DOCUMENT_TYPE, "CON");
         map.put(DOCUMENT_ID, project.getProjectId());
         map.put("workFlowType", WORK_FLOW);
+        activitiStartService.start(iRequest, list, map);
+    }
+
+    /**
+     * 车辆业务抵押工作流提交
+     * @param iRequest 请求
+     * @param contract 车辆业务抵押请数据
+     * 用于代码获取工作流提交的实现类
+     */
+    private void carMortgageWorkFlowSubmit(IRequest iRequest, HlsCusConContract contract){
+        List<HlsCusConContract> list = new ArrayList<>();
+        Map<String, Object> map = new HashMap<>();
+
+        list.add(contract);
+
+        map.put(IActivitiCommonService.WORK_FLOW_NAME, CAR_MORTGAGE_WORK_FLOW);
+        map.put(IActivitiCommonService.DEMO_NAME, CAR_MORTGAGE_DEMO_NAME);
+        map.put(IActivitiCommonService.BUSINESS_KEY, contract.getContractId());
+        map.put("contractId", contract.getContractId());
+        map.put("projectId", contract.getProjectId());
+        //单据类别
+        map.put("documentCategory",DOCUMENT_CATEGORY);
+        //单据类型
+        map.put("documentType", DOCUMENT_TYPE);
+        //单据名称
+        map.put("documentName", contract.getContractNumber() + "-" + CAR_MORTGAGE_DOCUMENT_NAME);
+        //单据编号
+        map.put("documentNumber", contract.getContractNumber());
+        //设置工作流参数
+        JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(contract));
+        map.put(PROJECT, jsonObject.toString());
+        map.put(CONTRACT_NAME, contract.getContractNumber());
+        map.put(DOCUMENT_TYPE, "CON");
+        map.put(DOCUMENT_ID, contract.getContractId());
+        map.put("workFlowType", CAR_MORTGAGE_WORK_FLOW);
         activitiStartService.start(iRequest, list, map);
     }
 
