@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
+import com.hand.hls.cont.mapper.HlsCusConContractMapper;
 import com.hand.hls.credit.dto.QueryLateInfo;
 import com.hand.hls.credit.dto.QueryPrjQuotationDTO;
 import com.hand.hls.credit.service.TongDunService;
@@ -61,6 +62,11 @@ public class TongDunServiceImpl implements TongDunService {
 
     @Autowired
     private HlsCusPrjProjectAttachmentMapper hlsCusPrjProjectAttachmentMapper;
+
+
+    @Autowired
+    private HlsCusConContractMapper hlsCusConContractMapper;
+
     /*
             测试IP:http://172.17.241.66:8088/
             准生产IP:http://172.17.241.69:8088/
@@ -292,18 +298,14 @@ public class TongDunServiceImpl implements TongDunService {
         }
         //证件到期日期
         param.put("idexp", parse.format(queryHlsBpMasterDTO.getIdExpirationDate()));
-
-        //报价信息
-        QueryPrjQuotationDTO quotationInfo = hlsCusPrjQuotationMapper.
-                getQueryPrjQuotationDTOByProjectId(projectId);
         //逾期信息
-        QueryLateInfo queryLateInfo = hlsCusPrjQuotationMapper.getQueryLateInfoByQuotationId(quotationInfo.getQuotationId());
+        Map<String,String> queryLateInfo = hlsCusConContractMapper.getQueryLateInfoByProjectId(projectId);
         //从调用接口开始到一年前逾期4-30天次数
-        param.put("last1yearM1count", String.valueOf(queryLateInfo.getFourToThirtyDaysOverdueCount()));
+        param.put("last1yearM1count", queryLateInfo.get("last1yearM1count"));
         //从调用接口开始到一年前逾期31-60天次数
-        param.put("last1yearM2count", String.valueOf(queryLateInfo.getThirtyOneToSixtyDaysOverdueCount()));
+        param.put("last1yearM2count", queryLateInfo.get("last1yearM2count"));
         //从调用接口开始到一年前有多少起租日
-        param.put("last1YearCount", String.valueOf(queryLateInfo.getLeaseStartDateCount()));
+        param.put("last1YearCount", queryLateInfo.get("last1YearCount"));
         return null;
     }
 

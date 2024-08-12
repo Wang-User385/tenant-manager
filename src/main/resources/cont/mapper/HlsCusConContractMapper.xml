@@ -11805,7 +11805,56 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         from con_contract cc
         where cc.contract_number = #{orderNo}
     </select>
+    <resultMap id="lateMap" type="java.util.Map">
+        <result column="last1yearM1count" property="last1yearM1count"/>
+        <result column="last1yearM2count" property="last1yearM2count"/>
+        <result column="last1YearCount" property="last1YearCount"/>
+    </resultMap>
+    <select id="getQueryLateInfoByProjectId" resultMap="lateMap">
+        SELECT
+        COUNT( cc.contract_id ) last1YearCount,
+        nvl(
+        SUM( CASE WHEN ( ccc.overdue_max_days IS NOT NULL AND ccc.overdue_max_days >= 4 AND ccc.overdue_max_days <![CDATA[ <= ]]> 30 ) THEN 1 ELSE 0 END ),
+        0
+        ) last1yearM1count,
+        nvl(
+        SUM( CASE WHEN ( ccc.overdue_max_days IS NOT NULL AND ccc.overdue_max_days >= 31 AND ccc.overdue_max_days <![CDATA[ <= ]]> 60 ) THEN 1 ELSE 0 END ),
+        0
+        ) last1yearM2count
+        FROM
+        con_contract cc
+        INNER JOIN con_contract_cashflow ccc ON cc.contract_id = ccc.contract_id
+        WHERE
+        cc.PROJECT_ID IN ( SELECT pp.project_id FROM PRJ_PROJECT pp WHERE pp.tenant_id = #{ bpId } ) and ccc.cf_status != 'BLOCK'
+        AND (
+        SELECT
+        h.actual_pay_date
+        FROM
+        csh_payment_req_hd h,
+        csh_payment_req_ln l,
+        con_contract_cashflow cf
+        WHERE
+        h.payment_req_id = l.payment_req_id
+        AND l.source_doc_category = 'CON_CONTRACT'
+        AND l.source_doc_id = cf.contract_id
+        AND l.source_doc_line_id = cf.cashflow_id
+        AND cf.contract_id = cc.contract_id
+        )  >= (SYSDATE - interval '1' year) AND (
+        SELECT
+        h.actual_pay_date
+        FROM
+        csh_payment_req_hd h,
+        csh_payment_req_ln l,
+        con_contract_cashflow cf
+        WHERE
+        h.payment_req_id = l.payment_req_id
+        AND l.source_doc_category = 'CON_CONTRACT'
+        AND l.source_doc_id = cf.contract_id
+        AND l.source_doc_line_id = cf.cashflow_id
+        AND cf.contract_id = cc.contract_id
+        ) <![CDATA[ <= ]]> SYSDATE
 
+    </select>
 
 
 </mapper>

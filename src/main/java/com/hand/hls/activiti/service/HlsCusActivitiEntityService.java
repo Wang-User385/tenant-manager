@@ -330,4 +330,9 @@ public interface HlsCusActivitiEntityService {
     List<String> getFirstRisk(DelegateExecution delegateExecution);
 
     List<String> getReviewRisk(DelegateExecution delegateExecution);
+
+    List<String> getFirstRiskContract(DelegateExecution delegateExecution);
+
+    List<String> getReviewRiskContract(DelegateExecution delegateExecution);
+
 }
