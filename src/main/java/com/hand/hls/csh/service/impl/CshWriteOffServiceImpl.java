@@ -2439,6 +2439,17 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         hlsCusCshPaymentReqHd.setActualHdPayAmount(actualPayment);
         cshPaymentReqHdService.updateByPrimaryKeySelective(iRequest, hlsCusCshPaymentReqHd);
 
+        //如果完全支付，则调用消息通知
+        if("PAID".equals(hlsCusCshPaymentReqHd.getPaymentStatus())){
+            HlsCusConContract hlsCusConContract = new HlsCusConContract();
+            hlsCusConContract.setContractId(hlsCusCshPaymentReqHd.getSourceContractId());
+            HlsCusConContract hlsCusConContract1 = hlsCusConContractService.selectByPrimaryKey(iRequest, hlsCusConContract);
+            //调用还款计划生成通知
+            messageNoticeService.repayPlanCreatedNotify(hlsCusConContract1.getProjectId(),iRequest);
+            //调用放款结果通知
+            messageNoticeService.orderLoanResult(hlsCusConContract1.getProjectId(),iRequest);
+        }
+
     }
 
     /**
@@ -3291,10 +3302,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         cshPaymentReqLnBankAccount2.setPaymentStatus("PAID");
         cshPaymentReqLnBankAccountMapper.updateCshPaymentReqLnBankAccountByLn(cshPaymentReqLnBankAccount2);
 
-        //调用还款计划生成通知
-        messageNoticeService.repayPlanCreatedNotify(hlsCusConContract1.getProjectId(),iRequest);
-        //调用放款结果通知
-        messageNoticeService.orderLoanResult(hlsCusConContract1.getProjectId(),iRequest);
     }
 
     public void retailPayment(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd,HlsCusCshPaymentReqLn reqLn) throws Exception {

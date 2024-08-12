@@ -11,9 +11,9 @@ public class OrderLoanResultDto {
 
     private String uniqueId; //唯一ID防止重复消费
 
-    private Date loanTime; //实际放款时间
+    private String loanTime; //实际放款时间
 
-    private Long loanAmount; //实际放款金额（分）
+    private String loanAmount; //实际放款金额（分）
 
     private String status; // 放款结果
 
