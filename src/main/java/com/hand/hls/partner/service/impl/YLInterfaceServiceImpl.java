@@ -685,7 +685,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             throw new HlsCusException(jsonObject1.toJSONString());
         }
 
-        if (!Objects.equals((long) (calculationResultsDto.getPayableAmount()*100), advancesSettleRequestDTO.getPayableAmount())) {
+        if (!Objects.equals((long) (calculationResultsDto.getPayableAmount()*100), advancesSettleRequestDTO.getPreSettleAmount())) {
             jsonObject1.put("code","400");
             jsonObject1.put("message","提前结清金额与计算金额不匹配！");
             throw new HlsCusException(jsonObject1.toJSONString());
@@ -1117,6 +1117,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         secTenantBpMaster.setSource("1");
         secTenantBpMaster.setBpClass("NP");
         secTenantBpMaster.setBpCategory("TENANT-SEC");
+        secTenantBpMaster.setBpType("TENANT-SEC");
 
         if(secTenantBpMaster.getBpId() == null){
             hlsCusBpMasterMapper.insertSelective(secTenantBpMaster);
@@ -1712,7 +1713,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             throw new HlsCusException(jsonObject1.toJSONString());
         }
 
-        if (!Objects.equals((long) (calculationResultsDto.getPayableAmount()*100), overdueRepurchaseRequestDTO.getPayableAmount())) {
+        if (!Objects.equals((long) (calculationResultsDto.getPayableAmount()*100), overdueRepurchaseRequestDTO.getBuybackAmount())) {
             jsonObject1.put("code","400");
             jsonObject1.put("message","回购金额与计算金额不匹配！");
             throw new HlsCusException(jsonObject1.toJSONString());
