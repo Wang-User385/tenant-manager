@@ -13,8 +13,8 @@ public class QueryWithholdingStateDTO{
     @NotNull(message = "订单编号不能为空")
     private String orderNo;//订单编号
 
-    private Integer termNox0;//期次号
+    private Integer termNo;//期次号
 
-    private Boolean deductStatusx0;//是否代扣中
+    private Boolean deductStatus;//是否代扣中
 
 }

@@ -2014,4 +2014,36 @@ and pqc.quotation_id=#{quotationId}
         where cf.quotation_id = #{quotationId} order by cf.due_date asc
     </select>
 
+    <resultMap id="withholdingStateInfo" type="map">
+        <result column="statusCount" property="statusCount"/>
+        <result column="termNo" property="termNo"/>
+    </resultMap>
+
+    <select id="selectWithholdingStateByOrderNo" resultMap="withholdingStateInfo">
+        select (select count(1) from GT_ALIPAY_ORDER gao
+         where gao.STATUS in ('NEW', 'SENDING', 'APPLIED')
+				AND gao.CASHFLOW_ID = ccc.CASHFLOW_ID	)  statusCount,
+				ccc.TIMES termNo
+        from CON_CONTRACT cc, PRJ_PROJECT pp ,CON_CONTRACT_CASHFLOW ccc
+        WHERE pp.PROJECT_ID = cc.PROJECT_ID
+        and ccc.CONTRACT_ID = cc.CONTRACT_ID
+        and pp.PROJECT_NUMBER = #{orderNo}
+        and ccc.CF_DIRECTION = 'INFLOW'
+        AND ccc.DUE_DATE = (select max(ccc2.DUE_DATE) from CON_CONTRACT_CASHFLOW ccc2
+                                       where ccc2.CONTRACT_ID = cc.CONTRACT_ID
+                                         and ccc2.cf_item in (1)
+                                         and ccc2.CF_DIRECTION = 'INFLOW'
+                                         and trunc(ccc2.DUE_DATE) &lt;= trunc(SYSDATE)	)
+    </select>
+
+    <update id="updateStopWithholdFlagByOrderNoAndTermNo">
+        update CON_CONTRACT_CASHFLOW  ccc
+        set ccc.STOP_WITHHOLD_FLAG = #{stopWithholdFlag}
+        where ccc.contract_id = (select cc.contract_id from CON_CONTRACT cc, PRJ_PROJECT pp
+                                 where cc.PROJECT_ID = pp.PROJECT_ID
+                                   and pp.project_number = #{orderNo} )
+        and ccc.TIMES = #{termNo}
+        and ccc.cf_item in (1)
+    </update>
+
 </mapper>

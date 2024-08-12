@@ -1817,7 +1817,16 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号查询数据
-
+        Map map = hlsCusPrjQuotationCashflowMapper.selectWithholdingStateByOrderNo(queryWithholdingStateDTO.getOrderNo());
+        BigDecimal termNo = (BigDecimal) map.get("termNo");
+        BigDecimal statusCount = (BigDecimal) map.get("statusCount");
+        queryWithholdingStateDTO.setTermNo(termNo.intValue());
+        if (statusCount.intValue() == 0){
+            queryWithholdingStateDTO.setDeductStatus(false);
+        }else{
+            queryWithholdingStateDTO.setDeductStatus(true);
+        }
+        jsonObject1.put("result", queryWithholdingStateDTO);
 
         //            设置返回状态
         jsonObject1.put("code","200");
@@ -1833,7 +1842,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号和期次号，修改状态
-
+        hlsCusPrjQuotationCashflowMapper.updateStopWithholdFlagByOrderNoAndTermNo(stopWithholdingDTO.getOrderNo(), "Y", stopWithholdingDTO.getTermNo());
 
         //            设置返回状态
         jsonObject1.put("code","200");
@@ -1849,7 +1858,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject jsonObject1 = new JSONObject();
 
         //根据订单编号和期次号，修改状态
-
+        hlsCusPrjQuotationCashflowMapper.updateStopWithholdFlagByOrderNoAndTermNo(recoverWithholdingDTO.getOrderNo(), "N", recoverWithholdingDTO.getTermNo());
 
         //            设置返回状态
         jsonObject1.put("code","200");

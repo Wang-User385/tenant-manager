@@ -118,6 +118,13 @@ public interface HlsCusPrjQuotationCashflowMapper extends Mapper<HlsCusPrjQuotat
 
     List<HlsCusPrjQuotationCashflow> selectCashflowForXirr(@Param("quotationId") Long quotationId);
 
+    /**
+     * 代扣状态查询
+     */
+    Map selectWithholdingStateByOrderNo(@Param("orderNo") String orderNo);
 
-
+    /**
+     * 是否暂停代扣状态更新
+     */
+    void updateStopWithholdFlagByOrderNoAndTermNo(@Param("orderNo") String orderNo, @Param("stopWithholdFlag") String stopWithholdFlag, @Param("termNo") Integer termNo);
 }
