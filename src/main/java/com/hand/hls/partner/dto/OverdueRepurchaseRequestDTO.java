@@ -13,5 +13,5 @@ public class OverdueRepurchaseRequestDTO extends BaseDTO {
     @NotNull(message = "请求号不能为空")
     private String requestNo;//请求号
     @NotNull(message = "回购金额不能为空")
-    private Long payableAmount;//回购金额单位 分
+    private Long buybackAmount;//回购金额单位 分
 }
