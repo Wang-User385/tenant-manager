@@ -78,8 +78,8 @@ public class TongDunServiceImpl implements TongDunService {
     @Override
     public String preliminaryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        commonLogHead(hlsWsRequests, "GT-TD-T001-预审", projectId, request);
+//        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+//        commonLogHead(hlsWsRequests, "GT-TD-T001-预审", projectId, request);
         ResponseData responseData = new ResponseData();
         JSONObject returnJson = new JSONObject();
         //项目id为空则预审失败
@@ -128,14 +128,13 @@ public class TongDunServiceImpl implements TongDunService {
         String businessNo = UUID.randomUUID().toString().replace("-", "");
         HashMap<String, String> param = new HashMap<>();
         //设置预审参数
-        if (setPreliminaryParam(hlsWsRequests, responseData,
-                queryHlsBpMasterDTO, parse, businessApplyNo, businessNo, param)) {
+        if (setPreliminaryParam(queryHlsBpMasterDTO, parse, businessApplyNo, businessNo, param)) {
             return "Error";
         }
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
 
-        //HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
+        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
         try {
             HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(YS_URL, param, header);
             if (200 != httpExecuteResponse.getResponseCode()) {
@@ -155,7 +154,7 @@ public class TongDunServiceImpl implements TongDunService {
                 throw new HlsCusException(returnJson.toJSONString());
             }
             if ("Reject".equals(data.getString("finalDecisionCode"))) {
-                commonLog(responseData, "100001", "E", "同盾预审失败", hlsWsRequests);
+//                commonLog(responseData, "100001", "E", "同盾预审失败", hlsWsRequests);
                 prjProject.setPreStatus("Reject");
                 return "Reject";
             }
@@ -164,10 +163,11 @@ public class TongDunServiceImpl implements TongDunService {
             returnJson.put("code","100001");
             returnJson.put("message","请求同盾接口异常");
             throw new HlsCusException(returnJson.toJSONString());
-        }*/
-        commonLog(responseData, "200", "S", "预审成功", hlsWsRequests);
+        }
+//        commonLog(responseData, "200", "S", "预审成功", hlsWsRequests);
         hlsCusPrjProject.setPreStatus("APPROVED");
         hlsCusPrjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
+        */
         return "Accept";
     }
 
@@ -175,9 +175,9 @@ public class TongDunServiceImpl implements TongDunService {
     @Override
     public String interlocutoryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
         //保存日志
-        HlsWsRequests hlsWsRequests = new HlsWsRequests();
-        commonLogHead(hlsWsRequests, "GT-TD-T002-正审", projectId, request);
-        ResponseData responseData = new ResponseData();
+//        HlsWsRequests hlsWsRequests = new HlsWsRequests();
+//        commonLogHead(hlsWsRequests, "GT-TD-T002-正审", projectId, request);
+//        ResponseData responseData = new ResponseData();
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
         JSONObject param = JSONObject.parseObject(jsonString);
         if (param.containsKey("dealerid")){
@@ -215,7 +215,8 @@ public class TongDunServiceImpl implements TongDunService {
         }
         //同盾接口不通，暂时注释掉
         //设置正审参数
-        /*String info = setInterlocutoryParam(projectId, hlsWsRequests, responseData, param);
+        /*
+        String info = setInterlocutoryParam(projectId,param);
         if (info != null) return info;
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
@@ -240,7 +241,7 @@ public class TongDunServiceImpl implements TongDunService {
                 throw new HlsCusException(returnJson.toJSONString());
             }
             if ("Reject".equals(data.getString("finalDecisionCode"))) {
-                commonLog(responseData, "100001", "E", "同盾正审返回审核失败", hlsWsRequests);
+//                commonLog(responseData, "100001", "E", "同盾正审返回审核失败", hlsWsRequests);
                 prjProject.setProjectStatus("REJECTED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
@@ -249,7 +250,7 @@ public class TongDunServiceImpl implements TongDunService {
             if ("Review".equals(data.getString("finalDecisionCode"))) {
                 //同盾接口如果返回谨慎通过，就发起进件正审流程
                 //这里暂未写发起正审流程代码
-                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
+//                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
                 prjProject.setProjectStatus("APPROVING");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
@@ -260,19 +261,23 @@ public class TongDunServiceImpl implements TongDunService {
             returnJson.put("code","100001");
             returnJson.put("message","请求同盾接口异常！");
             throw new HlsCusException(returnJson.toJSONString());
-        }*/
-        commonLog(responseData, "200", "S", "正审成功", hlsWsRequests);
+        }
+//        commonLog(responseData, "200", "S", "正审成功", hlsWsRequests);
         prjProject.setProjectStatus("APPROVED");
         prjProject.setApprovedDate(new Date());
         hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+         */
         return "Accept";
     }
 
-    private String setInterlocutoryParam(Long projectId, HlsWsRequests hlsWsRequests, ResponseData responseData, JSONObject param) {
+    private String setInterlocutoryParam(Long projectId, JSONObject param) throws HlsCusException {
+        JSONObject returnJson = new JSONObject();
         //项目id为空则正审失败
         if (projectId == null) {
-            commonLog(responseData, "100001", "E", "项目id为空", hlsWsRequests);
-            return "Error";
+//            commonLog(responseData, "100001", "E", "项目id为空", hlsWsRequests);
+            returnJson.put("code","100001");
+            returnJson.put("message","请求同盾接口异常！");
+            throw new HlsCusException(returnJson.toJSONString());
         }
 
         String projectStatus = hlsCusPrjProjectMapper.getProjectStatusByProjectId(projectId);
@@ -283,8 +288,10 @@ public class TongDunServiceImpl implements TongDunService {
         Long bpId = hlsCusPrjProjectBpMapper.getBpIdByProjectId(projectId);
         //bpId为空则正审失败
         if (bpId == null) {
-            commonLog(responseData, "100001", "E", "商业伙伴id为空", hlsWsRequests);
-            return "Error";
+//            commonLog(responseData, "100001", "E", "商业伙伴id为空", hlsWsRequests);
+            returnJson.put("code","100001");
+            returnJson.put("message","商业伙伴id为空！");
+            throw new HlsCusException(returnJson.toJSONString());
         }
 
         //通过bpId获取商业伙伴信息
@@ -325,8 +332,10 @@ public class TongDunServiceImpl implements TongDunService {
         param.put("custname", queryHlsBpMasterDTO.getBpName());
         //客户证件类型 目前只支持ID_CARD身份证
         if (!"ID_CARD".equals(queryHlsBpMasterDTO.getIdType())) {
-            commonLog(responseData, "100001", "E", "证件类型暂时不支持", hlsWsRequests);
-            return "Error";
+//            commonLog(responseData, "100001", "E", "证件类型暂时不支持", hlsWsRequests);
+            returnJson.put("code","100001");
+            returnJson.put("message","证件类型暂时不支持！");
+            throw new HlsCusException(returnJson.toJSONString());
         }
         param.put("certtype", queryHlsBpMasterDTO.getIdType());
         //客户证件号码
@@ -336,14 +345,18 @@ public class TongDunServiceImpl implements TongDunService {
 
         //证件签发日期
         if (queryHlsBpMasterDTO.getIdIssueDate() == null) {
-            commonLog(responseData, "100001", "E", "证件签发日期为空", hlsWsRequests);
-            return "Error";
+//            commonLog(responseData, "100001", "E", "证件签发日期为空", hlsWsRequests);
+            returnJson.put("code","100001");
+            returnJson.put("message","证件签发日期为空！");
+            throw new HlsCusException(returnJson.toJSONString());
         }
         param.put("idissue", parse.format(queryHlsBpMasterDTO.getIdIssueDate()));
 
         if (queryHlsBpMasterDTO.getIdExpirationDate() == null) {
-            commonLog(responseData, "100001", "E", "证件到期日期为空", hlsWsRequests);
-            return "Error";
+//            commonLog(responseData, "100001", "E", "证件到期日期为空", hlsWsRequests);
+            returnJson.put("code","100001");
+            returnJson.put("message","证件到期日期为空！");
+            throw new HlsCusException(returnJson.toJSONString());
         }
         //证件到期日期
         param.put("idexp", parse.format(queryHlsBpMasterDTO.getIdExpirationDate()));
@@ -363,7 +376,9 @@ public class TongDunServiceImpl implements TongDunService {
     }
 
 
-    private boolean setPreliminaryParam(HlsWsRequests hlsWsRequests, ResponseData responseData, QueryHlsBpMasterDTO queryHlsBpMasterDTO, SimpleDateFormat parse, String businessApplyNo, String businessNo, HashMap<String, String> param) {
+    private boolean setPreliminaryParam( QueryHlsBpMasterDTO queryHlsBpMasterDTO, SimpleDateFormat parse, String businessApplyNo, String businessNo, HashMap<String, String> param) throws HlsCusException {
+        JSONObject returnJson = new JSONObject();
+
         param.put("bizid", businessNo);
         //客户编号
         param.put("custno", queryHlsBpMasterDTO.getBpCode());
@@ -394,8 +409,11 @@ public class TongDunServiceImpl implements TongDunService {
 
         //客户证件类型 目前只支持ID_CARD身份证
         if (!"ID_CARD".equals(queryHlsBpMasterDTO.getIdType())) {
-            commonLog(responseData, "100001", "E", "证件类型暂时不支持", hlsWsRequests);
-            return true;
+//            commonLog(responseData, "100001", "E", "证件类型暂时不支持", hlsWsRequests);
+            returnJson.put("code","100001");
+            returnJson.put("message","证件类型暂时不支持！");
+            throw new HlsCusException(returnJson.toJSONString());
+//            return true;
         }
         param.put("certtype", queryHlsBpMasterDTO.getIdType());
 
@@ -407,14 +425,20 @@ public class TongDunServiceImpl implements TongDunService {
 
         //证件签发日期
         if (queryHlsBpMasterDTO.getIdIssueDate() == null) {
-            commonLog(responseData, "100001", "E", "证件签发日期为空", hlsWsRequests);
-            return true;
+//            commonLog(responseData, "100001", "E", "证件签发日期为空", hlsWsRequests);
+            returnJson.put("code","100001");
+            returnJson.put("message","证件签发日期为空！");
+            throw new HlsCusException(returnJson.toJSONString());
+//            return true;
         }
         param.put("idissue", parse.format(queryHlsBpMasterDTO.getIdIssueDate()));
 
         if (queryHlsBpMasterDTO.getIdExpirationDate() == null) {
-            commonLog(responseData, "100001", "E", "证件到期日期为空", hlsWsRequests);
-            return true;
+//            commonLog(responseData, "100001", "E", "证件到期日期为空", hlsWsRequests);
+            returnJson.put("code","100001");
+            returnJson.put("message","证件到期日期为空！");
+            throw new HlsCusException(returnJson.toJSONString());
+//            return true;
         }
         //证件到期日期
         param.put("idexp", parse.format(queryHlsBpMasterDTO.getIdExpirationDate()));

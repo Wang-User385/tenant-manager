@@ -1750,22 +1750,22 @@
         FROM sys_code_value_b_v v
         WHERE v.CODE = 'CSH301_TRANSACTION_TYPE'
         AND v.code_value = tran.transaction_type) transaction_type_n,
-        ( SELECT
+        nvl(( SELECT
         sum(ctr.REFUND_AMOUNT)
         FROM
         csh_transaction_refund ctr
         WHERE
         ctr.refund_status = 'APPROVED'
         AND ctr.TRANSACTION_ID = tran.TRANSACTION_ID
-        )  refund_amount,
-        ( SELECT
+        ),0)  refund_amount,
+        nvl(( SELECT
         sum(ctr.REFUND_AMOUNT)
         FROM
         csh_transaction_refund ctr
         WHERE
         ctr.refund_status = 'APPROVING'
         AND ctr.TRANSACTION_ID = tran.TRANSACTION_ID
-        )  refunding_amount,
+        ),0)  refunding_amount,
         (tran.transaction_amount - tran.write_off_due_amount) un_write_off_due_amount
         from (SELECT t.*,
         (select ctr.REFUND_STATUS
