@@ -316,8 +316,8 @@
         <!--新增外来字段-->
          <result column="tenant_id_n" property="tenantIdN" jdbcType="VARCHAR"/>
          <result column="status" property="status" jdbcType="VARCHAR"/>
-         <result column="message" property="message" jdbcType="VARCHAR"/>
          <result column="withholding_party" property="withholdingParty" jdbcType="VARCHAR"/>
+         <result column="message" property="message" jdbcType="VARCHAR"/>
          <result column="status_n" property="statusN" jdbcType="VARCHAR"/>
          <result column="due_date_from" property="dueDateFrom" jdbcType="DATE"/>
          <result column="due_date_to" property="dueDateTo" jdbcType="DATE"/>
@@ -1878,7 +1878,6 @@ and pqc.quotation_id=#{quotationId}
     <select id="queryWithholding" resultMap="BaseResultMapConContractCashflow">
         SELECT
         t.*,
-        '支付宝' AS withholding_party,
         (select v.MEANING  from sys_code_value_b_v v
         where v.code_value= status_n
         and v.CODE='ALIPAY_ORDER.STATUS') as status,
@@ -1952,7 +1951,8 @@ and pqc.quotation_id=#{quotationId}
         where gao.cashflow_id=ccc.cashflow_id
         ORDER BY order_id DESC
         )
-        WHERE ROWNUM = 1) AS message
+        WHERE ROWNUM = 1) AS message,
+        '支付宝' AS withholding_party
         FROM CON_CONTRACT_CASHFLOW ccc
         where due_date &lt;= CURRENT_DATE and ccc.cf_direction='INFLOW' and (ccc.transfer_payment_flag is null or ccc.transfer_payment_flag='N')
         ) t
@@ -2004,6 +2004,9 @@ and pqc.quotation_id=#{quotationId}
             </if>
             <if test="status!=null">
                 AND status_n = #{status}
+            </if>
+            <if test="withholdingParty!=null">
+                AND withholding_party = #{withholdingParty}
             </if>
         </where>
         order by due_date desc
