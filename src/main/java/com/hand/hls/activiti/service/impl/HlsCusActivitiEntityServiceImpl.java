@@ -14,6 +14,8 @@ import com.hand.hls.activiti.service.HlsCusActAssigneeNodeService;
 import com.hand.hls.activiti.service.HlsCusActOnlineMeetingMemberService;
 import com.hand.hls.activiti.service.HlsCusActivitiEntityService;
 import com.hand.hls.bill.dto.hlsBillRequest;
+import com.hand.hls.cont.dto.HlsCusConContract;
+import com.hand.hls.cont.mapper.HlsCusConContractMapper;
 import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceMapper;
@@ -50,6 +52,8 @@ import java.util.List;
 @Service
 public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityService, IActivitiBean {
 
+    @Autowired
+    private HlsCusConContractMapper hlsCusConContractMapper;
     @Autowired
     private HlsCusEmployeeMapper hlsCusEmployeeMapper;
     @Autowired
@@ -1249,4 +1253,48 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
             return returnList;
         }
     }
+
+
+
+    @Override
+    public List<String> getFirstRiskContract(DelegateExecution delegateExecution) {
+        Long contractId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusConContract hlsCusConContract = hlsCusConContractMapper.selectByPrimaryKey(contractId);
+        Long riskAssistantFirst = hlsCusConContract.getRiskAssistantFirst();
+        if(riskAssistantFirst == null){
+            IRequest request = RequestHelper.getCurrentRequest();
+            Long companyId = request.getCompanyId();
+            return fndEmployeeMapper.getPositionEmp("A0170", companyId);
+        }else{
+            ArrayList<String> returnList = new ArrayList<>();
+            returnList.add(riskAssistantFirst.toString());
+            return returnList;
+        }
+
+    }
+
+    @Override
+    public List<String> getReviewRiskContract(DelegateExecution delegateExecution) {
+        Long contractId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusConContract hlsCusConContract = hlsCusConContractMapper.selectByPrimaryKey(contractId);
+        Long riskHost = hlsCusConContract.getRiskHost();
+        if(riskHost == null){
+            IRequest request = RequestHelper.getCurrentRequest();
+            Long companyId = request.getCompanyId();
+            List<String> list = fndEmployeeMapper.getPositionEmp("A0170", companyId);
+            ArrayList<String> returnList = new ArrayList<>();
+            String riskAssistantFirst = hlsCusConContract.getRiskAssistantFirst().toString();
+            for(String assignee : list){
+                if(!assignee.equals(riskAssistantFirst)){
+                    returnList.add(assignee);
+                }
+            }
+            return returnList;
+        }else{
+            ArrayList<String> returnList = new ArrayList<>();
+            returnList.add(riskHost.toString());
+            return returnList;
+        }
+    }
+
 }
