@@ -326,4 +326,8 @@ public interface HlsCusActivitiEntityService {
     String getReviewAppointApproverRisk(DelegateExecution delegateExecution);
 
     String getReviewAppointApproverLegal(DelegateExecution delegateExecution);
+
+    List<String> getFirstRisk(DelegateExecution delegateExecution);
+
+    List<String> getReviewRisk(DelegateExecution delegateExecution);
 }

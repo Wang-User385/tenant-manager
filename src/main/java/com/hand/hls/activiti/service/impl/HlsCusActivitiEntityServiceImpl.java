@@ -1208,4 +1208,37 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
         }
         return null;
     }
+
+    @Override
+    public List<String> getFirstRisk(DelegateExecution delegateExecution) {
+        Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectByPrimaryKey(projectId);
+        Long riskAssistantFirst = hlsCusPrjProject.getRiskAssistantFirst();
+        if(riskAssistantFirst == null){
+            IRequest request = RequestHelper.getCurrentRequest();
+            Long companyId = request.getCompanyId();
+            return fndEmployeeMapper.getPositionEmp("A0170", companyId);
+        }else{
+            ArrayList<String> returnList = new ArrayList<>();
+            returnList.add(riskAssistantFirst.toString());
+            return returnList;
+        }
+
+    }
+
+    @Override
+    public List<String> getReviewRisk(DelegateExecution delegateExecution) {
+        Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectByPrimaryKey(projectId);
+        Long riskHost = hlsCusPrjProject.getRiskHost();
+        if(riskHost == null){
+            IRequest request = RequestHelper.getCurrentRequest();
+            Long companyId = request.getCompanyId();
+            return fndEmployeeMapper.getPositionEmp("A0170", companyId);
+        }else{
+            ArrayList<String> returnList = new ArrayList<>();
+            returnList.add(riskHost.toString());
+            return returnList;
+        }
+    }
 }
