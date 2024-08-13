@@ -160,8 +160,6 @@ public class TongDunServiceImpl implements TongDunService {
         if (param.containsKey("dealername")){
             param.remove("dealername");
         }
-        JSONObject returnJson = new JSONObject();
-
         //申请风控审核时，校验riskInfo是否为空，空则报错
         if(StringUtil.isEmpty(jsonString)){
             throw new HlsCusException(getReturnJson("100001","该进件项目的riskinfo信息为空"));
