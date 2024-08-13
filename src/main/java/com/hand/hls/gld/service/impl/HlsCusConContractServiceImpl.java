@@ -4735,6 +4735,9 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         if("ACTIVATED".equals(hlsCusPrjProject.getAlipayStatus())){
             iAlipayService.signCancel(hlsCusPrjProject.getProjectId());
         }
+        //更新进件订单状态
+        hlsCusPrjProject.setProjectStatus("CLOSED");
+        hlsCusPrjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
     }
 
     @Override

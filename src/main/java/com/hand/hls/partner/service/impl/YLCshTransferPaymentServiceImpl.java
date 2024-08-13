@@ -131,6 +131,7 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
 
             writeOffYL(requestCtx, request, hlsWsRequests, responseData, ylCshTransferPaymentDto, hlsCusCshTransaction);
             //更新转付确认表
+            ylCshTransferPaymentDto.setTransactionId(hlsCusCshTransaction.getTransactionId());
             ylCshTransferPaymentDto.setConfirmDate(new Date());
             ylCshTransferPaymentDto.setTransferPaymentStatus("CONFIRMED");
             ylCshTransferPaymentDtoMapper.updateByPrimaryKey(ylCshTransferPaymentDto);
@@ -237,6 +238,7 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         hlsCusCshTransaction.setReversedFlag("N");
         hlsCusCshTransaction.setPostedFlag("N");
         hlsCusCshTransaction.setCurrencyCode("CNY");
+        hlsCusCshTransaction.setWriteOffFlag("FULL");
         hlsCusCshTransaction.setBpBankName(ylCshTransferPaymentDto.getBpBankName());
         hlsCusCshTransaction.setBpBankBranchName(ylCshTransferPaymentDto.getBankBranchNameEx());
         hlsCusCshTransaction.setBpBankAccountNum(ylCshTransferPaymentDto.getBpBankAccountNum());
