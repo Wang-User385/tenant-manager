@@ -20,7 +20,7 @@ import java.util.List;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class AlipayOrderServiceImpl extends BaseServiceImpl<AlipayOrderDTO> implements IAlipayOrderService{
-    private static  Long  rate=100L;
+    private static  Double  rate=100.00;
     @Autowired
     private IAlipayService  alipayService ;
 
@@ -32,33 +32,35 @@ public class AlipayOrderServiceImpl extends BaseServiceImpl<AlipayOrderDTO> impl
      */
 
     @Override
-    public AlipayOrderDTO batchAdd(IRequest requestCtx, HlsCusConContractCashflow cashflow)  {
+    public AlipayOrderDTO batchAdd(IRequest requestCtx, HlsCusConContractCashflow cashflow) throws HlsCusException {
 
             AlipayOrderDTO alipayOrderDTO = new AlipayOrderDTO();
             alipayOrderDTO.setCashflowId(cashflow.getCashflowId());
 
             //给属性赋值
             //应收金额
-            Long totalDueAmount = cashflow.getTotalDueAmount().longValue();
+        long totalDueAmount = (long)(cashflow.getTotalDueAmount() * rate);
+
             //已核销金额
-            Long totalWriteOffAmount = cashflow.getTotalWriteOffAmount().longValue();
+        long totalWriteOffAmount = (long)(cashflow.getTotalWriteOffAmount() * rate);
+
 
             //确保 totalDueAmount 大于totalWriteOffAmount
-            Long amount;
+            Long amount = null;
             if (totalDueAmount > totalWriteOffAmount) {
-                amount = totalDueAmount - totalWriteOffAmount;
+                amount = (totalDueAmount - totalWriteOffAmount);
             } else {
-               throw  new RuntimeException("现金流为："+alipayOrderDTO.getCashflowId()+"的核销金额为0分");
+               throw  new HlsCusException("现金流为："+cashflow.getCashflowId()+"的核销金额为0分");
             }
             //代扣金额
-            alipayOrderDTO.setAmount(amount*rate);
+            alipayOrderDTO.setAmount(amount);
             //状态
             alipayOrderDTO.setStatus("NEW");
             //描述
             alipayOrderDTO.setSubject("承租人"+cashflow.getTenantIdN()
                     +"("+cashflow.getContractId()+")第"
                     +cashflow.getTimes()+"期"+"核销金额为"
-                    +((amount*rate))+"分");
+                    +amount.toString()+"分");
             //业务号
             String formattedCashflowId = String.format("%010d", cashflow.getCashflowId());
             alipayOrderDTO.setOutSeqNo(System.currentTimeMillis() + formattedCashflowId);
