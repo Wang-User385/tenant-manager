@@ -44,6 +44,7 @@ import com.hand.hls.utils.ResMessageException;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
 import hls.core.utils.exception.HlsCusException;
+import jodd.util.StringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -543,7 +544,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject returnJson = new JSONObject();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         //判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
-        if (compensatoryTrialCalculationDTO.getTrialTime()==null){
+        if (compensatoryTrialCalculationDTO.getTrialTime()==null || StringUtil.isEmpty(compensatoryTrialCalculationDTO.getTrialTime())){
             compensatoryTrialCalculationDTO.setTrialTime(simpleDateFormat.format(new Date()));
         }
         //校验日期格式是否正确
@@ -630,7 +631,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject jsonObject1 = new JSONObject();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         //判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
-        if (advancesSettleComputeDTO.getTrialTime()==null){
+        if (advancesSettleComputeDTO.getTrialTime()==null || StringUtil.isEmpty(advancesSettleComputeDTO.getTrialTime())){
             advancesSettleComputeDTO.setTrialTime(simpleDateFormat.format(new Date()));
         }
         //校验日期格式是否正确

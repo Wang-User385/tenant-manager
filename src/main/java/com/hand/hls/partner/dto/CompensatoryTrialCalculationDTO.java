@@ -16,7 +16,7 @@ public class CompensatoryTrialCalculationDTO{
     private String orderNo;//订单编号
     @NotNull(message = "期次不能为空")
     private Integer termNo;//期次
-    @NotBlank(message = "试算时间不能为空")
+    //@NotBlank(message = "试算时间不能为空")
     private String trialTime;//试算时间
     @NotNull(message = "本金不能为空")
     private Long principal;//本金 单位 分
