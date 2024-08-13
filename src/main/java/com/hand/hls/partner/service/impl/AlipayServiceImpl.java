@@ -384,7 +384,6 @@ public class AlipayServiceImpl implements IAlipayService {
         String amount = order.getAmount().toString();
         String subject = order.getSubject();
         paymentApply(penetrateId,outSeqNo,amount,subject);
-
         order.setStatus("SENDING");
         alipayOrderMapper.updateByPrimaryKeySelective(order);
     }
