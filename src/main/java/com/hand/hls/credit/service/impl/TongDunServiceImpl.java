@@ -243,8 +243,8 @@ public class TongDunServiceImpl implements TongDunService {
         prjProject.setApprovedDate(new Date());
         hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
          */
-        prjProject.setProjectStatus("APPROVED");
-        prjProject.setApprovedDate(new Date());
+        //prjProject.setProjectStatus("APPROVED");
+        //prjProject.setApprovedDate(new Date());
         prjProject.setConfirmStatus("APPROVED");
         prjProject.setLastUpdateDate(new Date());
         hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);

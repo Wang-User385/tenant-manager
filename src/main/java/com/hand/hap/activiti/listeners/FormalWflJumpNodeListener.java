@@ -42,6 +42,8 @@ public class FormalWflJumpNodeListener implements  TaskListener, IActivitiBean  
     private ActHiTaskinstMapper actHiTaskinstMapper;
     @Autowired
     HlsCusPrjProjectMapper hlsCusPrjProjectMapper;
+    @Autowired
+    IPrjProjectService prjProjectService;
 
     @SneakyThrows
     @Override
@@ -51,10 +53,16 @@ public class FormalWflJumpNodeListener implements  TaskListener, IActivitiBean  
         HlsCusPrjProject prjProject1 = JSON.parseObject(prj, HlsCusPrjProject.class);
         HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
         hlsCusPrjProject.setProjectId(prjProject1.getProjectId());
-        //IRequest requestCtx = (IRequest) task.getVariable("iRequest");
+        IRequest iRequest = (IRequest) task.getVariable("iRequest");
 
         //获取项目信息
         HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(prjProject1.getProjectId());
+        // 回写工作流实例ID到项目prj_project表
+        HlsCusPrjProject prjProject2 = new HlsCusPrjProject();
+        prjProject2.setProjectStatus("APPROVING");
+        prjProject2.setProcessInstanceId(Long.valueOf(task.getProcessInstanceId()));
+        prjProject2.setProjectId(prjProject1.getProjectId());
+        prjProjectService.updateByPrimaryKeySelective(iRequest,prjProject2);
         String returnStatus = prjProject.getConfirmStatus();
         String approveResult = "";
         String approveResultResult = "";
