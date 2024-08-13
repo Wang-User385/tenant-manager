@@ -45,12 +45,7 @@ public class PrjProjectFormalActivitiStartServiceImpl implements IActivitiCommon
         ProcessInstanceCreateRequest processInstanceCreateRequest = wflGetProcessInstanceComponents.getProcessInstance(iRequest, params);
 
         ProcessInstanceResponse processInstanceResponse = activitiService.startProcess(iRequest, processInstanceCreateRequest);
-        // 回写工作流实例ID到项目prj_project表
-        HlsCusPrjProject prjProject = new HlsCusPrjProject();
-        prjProject.setProjectStatus("APPROVING");
-        prjProject.setProcessInstanceId(Long.valueOf(processInstanceResponse.getId()));
-        prjProject.setProjectId(((HlsCusPrjProject) list.get(0)).getProjectId());
-        prjProjectService.updateByPrimaryKeySelective(iRequest,prjProject);
+
     }
 
     @Override
