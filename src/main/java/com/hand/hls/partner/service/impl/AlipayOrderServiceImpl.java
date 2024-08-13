@@ -34,40 +34,35 @@ public class AlipayOrderServiceImpl extends BaseServiceImpl<AlipayOrderDTO> impl
     @Override
     public AlipayOrderDTO batchAdd(IRequest requestCtx, HlsCusConContractCashflow cashflow) throws HlsCusException {
 
-            AlipayOrderDTO alipayOrderDTO = new AlipayOrderDTO();
-            alipayOrderDTO.setCashflowId(cashflow.getCashflowId());
+        AlipayOrderDTO alipayOrderDTO = new AlipayOrderDTO();
+        alipayOrderDTO.setCashflowId(cashflow.getCashflowId());
 
-            //给属性赋值
-            //应收金额
-        long totalDueAmount = (long)(cashflow.getTotalDueAmount() * rate);
+       // 计算应收金额和已核销金额
+        long totalDueAmount = (long) (cashflow.getTotalDueAmount() * rate);
+        long totalWriteOffAmount = (long) (cashflow.getTotalWriteOffAmount() * rate);
 
-            //已核销金额
-        long totalWriteOffAmount = (long)(cashflow.getTotalWriteOffAmount() * rate);
+        // 确保 totalDueAmount 大于 totalWriteOffAmount
+        if (totalDueAmount <= totalWriteOffAmount) {
+            throw new HlsCusException("现金流为：" + cashflow.getCashflowId() + "的核销金额为0分");
+        }
 
+        // 代扣金额
+        long amount = totalDueAmount - totalWriteOffAmount;
+        alipayOrderDTO.setAmount(amount);
 
-            //确保 totalDueAmount 大于totalWriteOffAmount
-            Long amount = null;
-            if (totalDueAmount > totalWriteOffAmount) {
-                amount = (totalDueAmount - totalWriteOffAmount);
-            } else {
-               throw  new HlsCusException("现金流为："+cashflow.getCashflowId()+"的核销金额为0分");
-            }
-            //代扣金额
-            alipayOrderDTO.setAmount(amount);
-            //状态
-            alipayOrderDTO.setStatus("NEW");
-            //描述
-            alipayOrderDTO.setSubject("承租人"+cashflow.getTenantIdN()
-                    +"("+cashflow.getContractId()+")第"
-                    +cashflow.getTimes()+"期"+"核销金额为"
-                    +amount.toString()+"分");
-            //业务号
-            String formattedCashflowId = String.format("%010d", cashflow.getCashflowId());
-            alipayOrderDTO.setOutSeqNo(System.currentTimeMillis() + formattedCashflowId);
+        // 设置其他属性
+        alipayOrderDTO.setStatus("NEW");
+        alipayOrderDTO.setSubject("承租人" + cashflow.getTenantIdN()
+                + "(" + cashflow.getContractId() + ")第"
+                + cashflow.getTimes() + "期" + "核销金额为"
+                + amount + "分");
+        // 业务号
+        String formattedCashflowId = String.format("%010d", cashflow.getCashflowId());
+        alipayOrderDTO.setOutSeqNo(System.currentTimeMillis() + formattedCashflowId);
 
-            AlipayOrderDTO orderDTO = self().insertSelective(requestCtx, alipayOrderDTO);
+        AlipayOrderDTO orderDTO = self().insertSelective(requestCtx, alipayOrderDTO);
 
-            return orderDTO;
+        return orderDTO;
     }
 
     /**
@@ -81,18 +76,18 @@ public class AlipayOrderServiceImpl extends BaseServiceImpl<AlipayOrderDTO> impl
     @Override
     public List<AlipayOrderDTO> selectState(IRequest requestContext, HlsCusConContractCashflow cashflow) throws ResMessageException {
 
-            AlipayOrderDTO alipayOrderDTO = new AlipayOrderDTO();
+        AlipayOrderDTO alipayOrderDTO = new AlipayOrderDTO();
+        alipayOrderDTO.setCashflowId(cashflow.getCashflowId());
 
-            alipayOrderDTO.setCashflowId(cashflow.getCashflowId());
+       // 根据现金流ID查找代扣中间表 AlipayOrderDTO
+        List<AlipayOrderDTO> orderDTOS = self().selectSelective(requestContext, alipayOrderDTO);
 
-            //根据现金流Id查找代扣中间表AlipayOrderDTO
-            List<AlipayOrderDTO> orderDTOS = self().selectSelective(requestContext, alipayOrderDTO);
-
-            if(orderDTOS.isEmpty()){
+        // 检查查询结果是否为空
+        if (orderDTOS.isEmpty()) {
             throw new ResMessageException("查询结果为空");
-           }
+        }
 
-
+        // 返回查询结果
         return orderDTOS;
     }
 
