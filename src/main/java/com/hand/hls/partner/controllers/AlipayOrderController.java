@@ -60,18 +60,23 @@ import org.springframework.web.bind.annotation.*;
         ArrayList<AlipayOrderDTO> orderDTOS = new ArrayList<>();
 
         for (HlsCusConContractCashflow cashflow : list) {
-            List<AlipayOrderDTO> alipayOrderDTOS=null;
-            //将数据插入中间表
+            // 将数据插入中间表
+            List<AlipayOrderDTO> alipayOrderDTOS = service.selectState(requestContext, cashflow);
 
-               alipayOrderDTOS  = service.selectState(requestContext, cashflow);
-               //将查询结果打包
-                orderDTOS.add(alipayOrderDTOS.get(alipayOrderDTOS.size()-1));
+            // 确保查询结果非空
+            if (alipayOrderDTOS == null || alipayOrderDTOS.isEmpty()) {
+                continue; // 如果查询结果为空，跳过当前循环
+            }
 
+            // 将查询结果的最后一个元素添加到 orderDTOS
+            AlipayOrderDTO lastAlipayOrderDTO = alipayOrderDTOS.get(alipayOrderDTOS.size() - 1);
+            orderDTOS.add(lastAlipayOrderDTO);
 
-                //代扣查询
-                alipayService.withholdQuery(alipayOrderDTOS.get(alipayOrderDTOS.size()-1).getOrderId());
-
+            // 代扣查询
+            alipayService.withholdQuery(lastAlipayOrderDTO.getOrderId());
         }
+
+          // 返回最终收集的 AlipayOrderDTO 列表
         return new ResponseData(orderDTOS);
     }
 
