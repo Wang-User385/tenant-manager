@@ -151,9 +151,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private static final String PROJECT_NAME = "projectName";
     private static final String DOCUMENT_ID = "documentId";
 
-    //流程编码
+    //投放审查流程编码
     private final static String WORK_FLOW = "ADVERTISING_REVIEW_WORK_FLOW";
-    //流程分类
+    //投放审查流程分类
     private final static String DEMO_NAME = "ADVERTISING_REVIEW_WORK_FLOW";
     private final static String DOCUMENT_NAME = "投放审查工作流";
     private final static String DOCUMENT_CATEGORY = "CON_CONTRACT";
@@ -168,6 +168,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     private final static String CAR_MORTGAGE_DEMO_NAME = "CAR_MORTGAGE";
     private final static String CAR_MORTGAGE_DOCUMENT_NAME = "车辆业务抵押工作流";
 
+    //正审流程编码
+    private final static String FORMAL_WORK_FLOW = "FORMAL_APPROVAL_WORK_FLOW";
+    //正审流程分类
+    private final static String FORMAL_DEMO_NAME = "FORMAL_APPROVAL_WORK_FLOW";
+    private final static String FORMAL_DOCUMENT_NAME = "进件正审工作流";
     @Override
     public String placeOrder(String decryptedStr,IRequest iRequest) throws HlsCusException {
         PlaceOrderDTO placeOrderDTO = JSONObject.parseObject(decryptedStr, PlaceOrderDTO.class);
@@ -1873,6 +1878,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         JSONObject returnJson = new JSONObject();
 
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(businessApplicationDTO.getOrderNo());
+        //获取项目进件状态（进件正审状态）
+        String projectStatus = hlsCusPrjProject.getProjectStatus();
+        //获取项目对应的产品定义信息
+        HlsProductDefinition hlsProductDefinition = new HlsProductDefinition();
+        hlsProductDefinition.setBpId(hlsCusPrjProject.getManufacturerId());
+        List<HlsProductDefinition> hlsProductDefinitionList = hlsProductDefinitionMapper.selectHlsProductDefinitionList(hlsProductDefinition);
+        //风控审核提交有效期
+        Long riskDays = Long.valueOf(hlsProductDefinitionList.get(0).getRiskSubmitValueTime());
+        //获取下单通过日的毫秒值
+        long creationTime = hlsCusPrjProject.getCreationDate().getTime();
+        //获取当前时间毫秒值
+        long nowTime = new Date().getTime();
+
         if (hlsCusPrjProject==null){
             returnJson.put("code","100003");
             returnJson.put("message","订单不存在");
@@ -1884,8 +1902,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             String s = tongDunService.preliminaryValid(hlsCusPrjProject.getProjectId(), request);
 //            校验客户信息查询授权书是否已经上传
             if ("Accept".equals(s)){
-                /*hlsCusPrjProject.setPreStatus("APPROVED");
-                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);*/
+                hlsCusPrjProject.setPreStatus("APPROVED");
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
                 returnJson.put("code","200");
                 returnJson.put("message","预审成功");
                 return returnJson.toJSONString();
@@ -1895,25 +1913,31 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 throw new HlsCusException(returnJson.toJSONString());
             }
         }else if ("APPLY_PRE_RISK".equals(action)){
-            String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
+            String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request, nowTime, creationTime, riskDays, projectStatus);
             if ("Accept".equals(s)){
-                hlsCusPrjProject.setProjectStatus("APPROVED");
+                /*hlsCusPrjProject.setProjectStatus("APPROVED");
                 hlsCusPrjProject.setApprovedDate(new Date());
-                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);*/
+                formalWorkFlowSubmit(iRequest, hlsCusPrjProject);
                 returnJson.put("code","200");
-                returnJson.put("message","审核成功");
+                returnJson.put("message","同盾请求接口返回审批通过");
                 return returnJson.toJSONString();
             }else if ("Reject".equals(s)){
+                formalWorkFlowSubmit(iRequest, hlsCusPrjProject);
                 returnJson.put("code","200");
                 returnJson.put("message","同盾请求接口返回审批拒绝");
-                throw new HlsCusException(returnJson.toJSONString());
+                return returnJson.toJSONString();
             }else if ("Review".equals(s)){
+                //同盾请求接口返回谨慎通过，发起进件正审流程
+                formalWorkFlowSubmit(iRequest, hlsCusPrjProject);
+                /*hlsCusPrjProject.setProjectStatus("APPROVING");
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);*/
                 returnJson.put("code","200");
                 returnJson.put("message","同盾请求接口返回谨慎通过，已发起进件正审流程");
-                throw new HlsCusException(returnJson.toJSONString());
+                return returnJson.toJSONString();
             }
         }else if ("RE_APPLY_PRE_RISK".equals(action)){
-            String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request);
+            String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request, nowTime, creationTime, riskDays, projectStatus);
             if ("Accept".equals(s)){
                 returnJson.put("code","200");
                 returnJson.put("message","审核成功");
@@ -1938,17 +1962,16 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 return returnJson.toJSONString();
             }
         }else if ("APPLY_LOAN".equals(action)||"RE_APPLY_LOAN".equals(action)){
-
-            //获取审批通过日的毫秒值
+            //获取进件正审审批通过日的毫秒值
             long approvedtTime = hlsCusPrjProject.getApprovedDate().getTime();
-            //获取当前时间毫秒值
-            long nowTime = new Date().getTime();
-            //计算间隔的时间
+            //计算正审通过到当前日期间隔的时间
             long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
+            //放款申请提交有效期
+            int LoanDays = Long.valueOf(hlsProductDefinitionList.get(0).getLoanSubmitValueTime()).intValue();
             if ("APPLY_LOAN".equals(action)){
-                if (days>=30){
+                if (days > LoanDays){
                     returnJson.put("code","100101");
-                    returnJson.put("message","风控审核通过已超过三十天，请重新发起风控审核");
+                    returnJson.put("message","风控审核通过已超时，请重新发起风控审核");
                     throw new HlsCusException(returnJson.toJSONString());
                 }
                 //发起投放审查流程前先校验
@@ -1958,9 +1981,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 hlsCusPrjProject.setInvestmentStatus("APPROVING");
                 prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
             }else if ("RE_APPLY_LOAN".equals(action)){
-                if (days>=50){
+                //放款申请提交有效期
+                int LoanSecondDays = Long.valueOf(hlsProductDefinitionList.get(0).getLoanSubmitValueSecondTime()).intValue();
+                if (days > LoanSecondDays){
                     returnJson.put("code","100101");
-                    returnJson.put("message","风控审核通过已超过五十天，请重新发起风控审核");
+                    returnJson.put("message","风控审核通过已超时，请重新发起风控审核");
                     throw new HlsCusException(returnJson.toJSONString());
                 }
                 //发起投放审查流程前先校验
@@ -2354,6 +2379,42 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         map.put(DOCUMENT_TYPE, "CON");
         map.put(DOCUMENT_ID, contract.getContractId());
         map.put("workFlowType", CAR_MORTGAGE_WORK_FLOW);
+        activitiStartService.start(iRequest, list, map);
+    }
+
+    /**
+     * 进件正审工作流提交
+     * @param iRequest 请求
+     * @param project 进件投放审查申请数据
+     * 用于代码获取工作流提交的实现类
+     */
+    private void formalWorkFlowSubmit(IRequest iRequest, HlsCusPrjProject project){
+        List<HlsCusPrjProject> list = new ArrayList<>();
+        Map<String, Object> map = new HashMap<>();
+
+        list.add(project);
+
+        String bpName = prjProjectMapper.selectTenantNameByProject(project);
+        HlsCusBpMaster bpMasterName = hlsCusBpMasterMapper.selectByProjectId(project.getProjectId());
+        map.put(IActivitiCommonService.WORK_FLOW_NAME, FORMAL_WORK_FLOW);
+        map.put(IActivitiCommonService.DEMO_NAME, FORMAL_DEMO_NAME);
+        map.put(IActivitiCommonService.BUSINESS_KEY, project.getProjectId());
+        map.put("projectId", project.getProjectId());
+        //单据类别
+        map.put("documentCategory",DOCUMENT_CATEGORY);
+        //单据类型
+        map.put("documentType", DOCUMENT_TYPE);
+        //单据名称
+        map.put("documentName", bpMasterName.getBpName()+"-"+FORMAL_DOCUMENT_NAME);
+        //单据编号
+        map.put("documentNumber", project.getProjectNumber());
+        //设置工作流参数
+        JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(project));
+        map.put(PROJECT, jsonObject.toString());
+        map.put(PROJECT_NAME, bpName);
+        map.put(DOCUMENT_TYPE, "CON");
+        map.put(DOCUMENT_ID, project.getProjectId());
+        map.put("workFlowType", FORMAL_WORK_FLOW);
         activitiStartService.start(iRequest, list, map);
     }
 

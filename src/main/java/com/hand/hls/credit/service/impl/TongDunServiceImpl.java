@@ -151,7 +151,7 @@ public class TongDunServiceImpl implements TongDunService {
 
     //正审
     @Override
-    public String interlocutoryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
+    public String interlocutoryValid(Long projectId, HttpServletRequest request, long nowTime, long creationTime, long riskDays, String projectStatus) throws HlsCusException {
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
         JSONObject param = JSONObject.parseObject(jsonString);
         if (param.containsKey("dealerid")){
@@ -159,6 +159,22 @@ public class TongDunServiceImpl implements TongDunService {
         }
         if (param.containsKey("dealername")){
             param.remove("dealername");
+        }
+        JSONObject returnJson = new JSONObject();
+        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
+        if(!prjProject.getPreStatus().equals("APPROVED")){
+            throw new HlsCusException(getReturnJson("100101","该进件项目未通过预审，请先申请风控预审"));
+        }
+        if(projectStatus.equals("APPROVED")){
+            throw new HlsCusException(getReturnJson("100101","该进件项目已通过正审，无需重复提交"));
+        }
+        if(projectStatus.equals("APPROVING")){
+            throw new HlsCusException(getReturnJson("100101","该进件项目已发起正审流程，无需重复提交"));
+        }
+        //计算下单成功到当前日期间隔的时间
+        long days = (nowTime - creationTime) / (24 * 60 * 60 * 1000);
+        if (days > riskDays){
+            throw new HlsCusException(getReturnJson("100101","该进件项目已超时，无法发起风控审核"));
         }
         //申请风控审核时，校验riskInfo是否为空，空则报错
         if(StringUtil.isEmpty(jsonString)){
@@ -172,10 +188,6 @@ public class TongDunServiceImpl implements TongDunService {
         Integer JszAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CZR_JSZ","PRJ_PROJECT_ATTACHMENT", "EXAMINE");
         if(JszAttachMulti == 0){
             throw new HlsCusException(getReturnJson("100001","该进件项目的《承租人驾驶证》附件未上传！"));
-        }
-        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
-        if(!prjProject.getPreStatus().equals("APPROVED")){
-            throw new HlsCusException(getReturnJson("100101","该进件项目未通过预审，请先申请风控预审"));
         }
         /*
         //同盾接口不通，暂时注释掉
@@ -199,6 +211,8 @@ public class TongDunServiceImpl implements TongDunService {
             }
             if ("Reject".equals(data.getString("finalDecisionCode"))) {
                 prjProject.setProjectStatus("REJECTED");
+//                commonLog(responseData, "100001", "E", "同盾正审返回审核失败", hlsWsRequests);
+                prjProject.setConfirmStatus("REJECTED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
                 return "Reject";
@@ -207,9 +221,20 @@ public class TongDunServiceImpl implements TongDunService {
                 //同盾接口如果返回谨慎通过，就发起进件正审流程
                 //这里暂未写发起正审流程代码
                 prjProject.setProjectStatus("APPROVING");
+//                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
+                prjProject.setConfirmStatus("CAREFUL_APPROVED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
                 return "Review";
+            }
+            if ("Accept".equals(data.getString("finalDecisionCode"))) {
+                //同盾接口如果返回通过，就发起进件正审流程
+                //这里暂未写发起正审流程代码
+//                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
+                prjProject.setConfirmStatus("APPROVED");
+                prjProject.setLastUpdateDate(new Date());
+                hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+                return "Accept";
             }
         } catch (Exception e) {
             throw new HlsCusException(getReturnJson("100001","请求同盾接口异常！"));
@@ -218,6 +243,11 @@ public class TongDunServiceImpl implements TongDunService {
         prjProject.setApprovedDate(new Date());
         hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
          */
+        prjProject.setProjectStatus("APPROVED");
+        prjProject.setApprovedDate(new Date());
+        prjProject.setConfirmStatus("APPROVED");
+        prjProject.setLastUpdateDate(new Date());
+        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
         return "Accept";
     }
 

@@ -67,11 +67,11 @@ public class TongDunTestController extends BaseController {
     public ResponseData test02(@RequestParam(value = "projectId") Long projectId, HttpServletRequest request) {
         IRequest requestContext = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestContext);
-        try {
+        /*try {
             tongDunService.interlocutoryValid(projectId,request);
         } catch (HlsCusException e) {
             e.printStackTrace();
-        }
+        }*/
 //        tongDunService.preliminaryValid(projectId,request);
         return new ResponseData();
     }

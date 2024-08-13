@@ -25,6 +25,7 @@ public interface TongDunService {
     //Reject：拒绝
     //Review：人工审核
     //Repeat: 重复审批订单
-    String interlocutoryValid(Long projectId, HttpServletRequest request) throws HlsCusException;
+    //Error：参数异常
+    String interlocutoryValid(Long projectId, HttpServletRequest request, long nowTime, long creationTime, long riskDays, String projectStatus) throws HlsCusException;
 
 }

@@ -191,6 +191,7 @@ public class HlsCusPrjProject extends PrjProject {
     private String bankFullName;//开户银行（进件收款信息）
     private String bankBranchName;//开户支行（进件收款信息）
     private Long investmentInstanceId;//投放审查流程id
+    private String confirmStatus;//发起进件正审前，记录接口返回的审批状态
 
     @Transient
     private String fiveCategoriesN;
@@ -3086,6 +3087,7 @@ public class HlsCusPrjProject extends PrjProject {
     private String postItfcCode;
     private String postItfcMsg;
     private Date postApprovedDate;
+    private Date creationDate;
 
     @Transient
     private String creditLineNumber;
