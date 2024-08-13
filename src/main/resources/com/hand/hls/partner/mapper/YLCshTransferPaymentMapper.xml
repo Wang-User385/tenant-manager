@@ -14,6 +14,7 @@
         <result column="TRANSFER_PAYMENT_STATUS" property="transferPaymentStatus" jdbcType="VARCHAR" />
         <result column="BANK_STATEMENT" property="bankStatement" jdbcType="VARCHAR" />
         <result column="repay_type" property="repayType" jdbcType="VARCHAR" />
+        <result column="transaction_id" property="transactionId" jdbcType="DECIMAL" />
 
 
 
@@ -32,33 +33,33 @@
 
     <select id="findAll" resultMap="BaseResultMap">
         SELECT
-            yctp.PAYMENT_ID,
-            (SELECT pp.project_id from prj_project pp where pp.project_number = cc.contract_number) project_id,
-            cc.contract_number,
-            ( SELECT bm.bp_name FROM hls_bp_master bm WHERE bm.bp_id = cc.tenant_id AND cc.contract_id = yctp.contract_id ) tenant_id_n,
-            yctp.repay_date,
-            ( SELECT cf.times FROM con_contract_cashflow cf WHERE cf.cashflow_id = yctp.cashflow_id ) times,
-            ROUND( nvl( yctp.repay_amount, 0 ), 2 ) repay_amount,
-            ROUND( nvl( yctp.repay_principal, 0 ), 2 ) repay_principal,
-            ROUND( nvl( yctp.repay_interest, 0 ), 2 ) repay_interest,
-            ROUND( nvl( yctp.repay_penalty, 0 ), 2 ) repay_penalty,
-            yctp.confirm_date,
-            yctp.transfer_payment_status,
-            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CSH.TRANSFER_PAYMENT_STATUS' AND sc.code_value = yctp.transfer_payment_status ) transfer_payment_status_n,
-            yctp.bank_statement,
-            ( SELECT ct.transaction_num FROM csh_transaction ct, csh_write_off cw WHERE ct.transaction_id = cw.csh_transaction_id AND cw.cashflow_id = yctp.cashflow_id ) transaction_num,
-            (
-                SELECT
-                    sc.meaning
-                FROM
-                    sys_code_value_b_v sc
-                WHERE
-                    sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG'
-                  AND sc.code_value = ( SELECT ct.write_off_flag FROM csh_transaction ct, csh_write_off cw WHERE ct.transaction_id = cw.csh_transaction_id AND cw.cashflow_id = yctp.cashflow_id )
-            ) write_off_flag_n
+        yctp.PAYMENT_ID,
+        ( SELECT pp.project_id FROM prj_project pp WHERE pp.project_number = cc.contract_number ) project_id,
+        cc.contract_number,
+        ( SELECT bm.bp_name FROM hls_bp_master bm WHERE bm.bp_id = cc.tenant_id AND cc.contract_id = yctp.contract_id ) tenant_id_n,
+        yctp.repay_date,
+        ( SELECT cf.times FROM con_contract_cashflow cf WHERE cf.cashflow_id = yctp.cashflow_id ) times,
+        ROUND( nvl( yctp.repay_amount, 0 ), 2 ) repay_amount,
+        ROUND( nvl( yctp.repay_principal, 0 ), 2 ) repay_principal,
+        ROUND( nvl( yctp.repay_interest, 0 ), 2 ) repay_interest,
+        ROUND( nvl( yctp.repay_penalty, 0 ), 2 ) repay_penalty,
+        yctp.confirm_date,
+        yctp.transfer_payment_status,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CSH.TRANSFER_PAYMENT_STATUS' AND sc.code_value = yctp.transfer_payment_status ) transfer_payment_status_n,
+        yctp.bank_statement,
+        ( SELECT ct.transaction_num FROM csh_transaction ct WHERE ct.transaction_id = yctp.transaction_id ) transaction_num,
+        (
+        SELECT
+        sc.meaning
         FROM
-            yl_csh_transfer_payment yctp
-                INNER JOIN con_contract cc ON yctp.contract_id = cc.contract_id
+        sys_code_value_b_v sc
+        WHERE
+        sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG'
+        AND sc.code_value = ( SELECT ct.write_off_flag FROM csh_transaction ct WHERE ct.transaction_id = yctp.transaction_id )
+        ) write_off_flag_n
+        FROM
+        yl_csh_transfer_payment yctp
+        INNER JOIN con_contract cc ON yctp.contract_id = cc.contract_id
         <where>
             <if test="contractNumber != null and contractNum != ''">
                and cc.contract_number like concat(concat('%',#{contractNumber}),'%')

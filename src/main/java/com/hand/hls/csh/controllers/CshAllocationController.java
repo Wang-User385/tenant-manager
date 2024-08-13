@@ -10,6 +10,7 @@ import com.hand.hls.csh.dto.CshAllocation;
 import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.csh.service.ICshAllocationService;
 import com.hand.hls.utils.ResMessageException;
+import hls.core.utils.exception.HlsCusException;
 import leaf.bean.LeafRequestData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -104,7 +105,14 @@ public class CshAllocationController extends BaseController {
         HlsCusCshTransaction dto = param.toJavaObject(HlsCusCshTransaction.class);
 
         String transactionIdStr = dto.getTransactionIdStr();
-        List<CshAllocation> cshAllocations = service.autoAllocation(requestCtx, transactionIdStr);
+        List<CshAllocation> cshAllocations = null;
+        try {
+            cshAllocations = service.autoAllocation(requestCtx, transactionIdStr);
+        } catch (HlsCusException e) {
+            ResponseData responseData = new ResponseData(false);
+            responseData.setMessage("没有收款对象无法自动匹配债权");
+            return responseData;
+        }
         if(cshAllocations.size() == 0){
             ResponseData responseData = new ResponseData(false);
             responseData.setMessage("沒有匹配到符合条件的债权");

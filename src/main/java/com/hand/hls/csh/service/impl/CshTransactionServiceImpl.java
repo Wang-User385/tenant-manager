@@ -1993,6 +1993,8 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
         releaseAmount(iRequest,transactionId,amount);
     }
 
+    @Autowired
+    private HlsCusCshBankAccountMapper hlsCusCshBankAccountMapper;
 
     @Override
     public void transactionImport(IRequest iRequest, Long headerId) {
@@ -2020,6 +2022,15 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
             validate("excel第" + fndInterfaceLine.getLineNumber() + "行:对方账户不能为空", bpBankAccountName);
             validate("excel第" + fndInterfaceLine.getLineNumber() + "行:对方账号不能为空", bpBankAccountNum);
             validate("excel第" + fndInterfaceLine.getLineNumber() + "行:银行名称·不能为空", bpBankName);
+            Example example = new Example(HlsCusCshBankAccount.class);
+            example.createCriteria().andEqualTo("bankAccountNum",bankAccountNum);
+            List<HlsCusCshBankAccount> list = hlsCusCshBankAccountMapper.selectByExample(example);
+            if (CollectionUtils.isEmpty(list)){
+                throw new RuntimeException("账户不是合法账号");
+            }
+            if (list.size() > 1){
+                throw new RuntimeException("一个账户对应对应多条数据");
+            }
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
             try {
                 transactionDate = transactionDate.replaceAll("/","-");
@@ -2028,7 +2039,7 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
                 throw new RuntimeException("时间格式报错");
             }
             cshTransaction.setTransactionAmount(Double.parseDouble(transactionAmount));
-            cshTransaction.setBankAccountNum(bankAccountNum);
+            cshTransaction.setBankAccountId(list.get(0).getBankAccountId());
             cshTransaction.setBankSlipNum(bankSlipNum);
             cshTransaction.setComments(comments);
             cshTransaction.setPaymentMethod(paymentMethod);
@@ -2055,6 +2066,7 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
         cshTransaction.setBusinessType(BUSINESS_TYPE);
         cshTransaction.setPenaltyCalcDate(cshTransaction.getTransactionDate());
         cshTransaction.setCompanyId(requestCtx.getCompanyId());
+        cshTransaction.setWriteOffFlag("NOT");
         cshTransaction.setReversedFlag("N");
         cshTransaction.setPostedFlag("N");
         cshTransaction.setCurrencyCode("CNY");

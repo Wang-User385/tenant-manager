@@ -1,5 +1,6 @@
 package com.hand.hap.activiti.components;
 
+import com.alibaba.druid.util.StringUtils;
 import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.mapper.HlsCusConContractMapper;
@@ -29,7 +30,9 @@ public class ContractReviewRiskSubmitServiceTask implements JavaDelegate, IActiv
         String assignee = (String) delegateExecution.getVariables().get("assignee");
         HlsCusConContract hlsCusConContract = new HlsCusConContract();
         hlsCusConContract.setContractId(contractId);
-        hlsCusConContract.setRiskAssistantFirst(Long.parseLong(assignee));
+        if (!StringUtils.isEmpty(assignee)){
+            hlsCusConContract.setRiskAssistantFirst(Long.parseLong(assignee));
+        }
         hlsCusConContractMapper.updateByPrimaryKeySelective(hlsCusConContract);
     }
 

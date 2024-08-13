@@ -11662,6 +11662,31 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                 AND ppa.project_attachment_category = 'MORTGAGE'
     </select>
 
+    <select id="findPledge" resultMap="PrjProjectAttachQueryMap">
+        SELECT
+            ppa.project_id,
+            ppa.project_attachment_id,
+            (
+                SELECT
+                    LISTAGG(file_name,',') WITHIN GROUP (ORDER BY file_name) as document_name
+        FROM
+            fnd_atm_attachment_multi faam,
+            fnd_atm_attachment fat
+        WHERE
+            ppa.project_attachment_id = faam.table_pk_value
+          AND faam.attachment_id = fat.attachment_id
+          AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and ppa.project_attachment_category = 'PLEDGE'  and ppa.project_id = cc.project_id
+            ) document_name,
+            ( SELECT max( m.creation_date ) FROM fnd_atm_attachment_multi m WHERE m.table_name = 'PRJ_PROJECT_ATTACHMENT' AND m.table_pk_value = ppa.project_attachment_id ) upload_date
+        FROM
+            prj_project_attachment ppa,
+            con_contract cc
+        WHERE
+            cc.contract_id = #{ contractId }
+          AND ppa.project_id = cc.project_id
+          AND ppa.project_attachment_category = 'PLEDGE'
+    </select>
+
     <select id="findContractByPayPlan"  resultMap="BaseResultMap" parameterType="com.hand.hls.prj.dto.HlsCusPrjProject">
         SELECT t.* from(
         SELECT
@@ -11765,18 +11790,20 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         = cc.lease_item_type ) lease_item_type_n,
         cc.division,
         (SELECT d.description FROM hls_division d WHERE d.division = cc.division ) division_n,
-        (select finance_amount from prj_quotation q where source_document_category = 'CON_CONTRACT' and
-        q.source_document_id = cc.contract_id) finance_amount,
-        (select lease_times from prj_quotation q where q.source_document_category = 'CON_CONTRACT' and
-        q.source_document_id=cc.contract_id) lease_times,
-        cc.inception_of_lease,
-        cc.lease_end_date,
+        (select finance_amount from prj_quotation q where source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id = pp.PROJECT_ID) finance_amount,
+        (select lease_times from prj_quotation q where q.source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id=pp.PROJECT_ID) lease_times,
+        (select LEASE_START_DATE from prj_quotation q where q.source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id=pp.PROJECT_ID) inception_of_lease,
+        (select lease_end_date from prj_quotation q where source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id = pp.PROJECT_ID) lease_end_date,
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.PLEDGE_FLAG' AND sc.CODE_VALUE
         = cc.pledge_flag ) pledge_flag_n,
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.ZDW_REGISTER_STATUS' AND sc.CODE_VALUE
         = cc.zdw_register_status ) zdw_register_status_n,
         (SELECT fe.NAME FROM FND_EMPLOYEE fe WHERE fe.EMPLOYEE_ID = cc.EMPLOYEE_ID ) employee_id_n
-        from con_contract cc
+        from con_contract cc INNER JOIN prj_project pp ON cc.project_id = pp.project_id
         <where>
             <if test="contractNumber != null and contractNumber != ''">
                 and   cc.contract_number like concat(concat('%',#{contractNumber}),'%')

@@ -24,9 +24,9 @@
 
         //新增时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
-            var base_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_PRJ_MORTGAGE_INFO');
+            var base_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CAR_F1');
             if (ds.id==base_ds_id2){
-                $(base_ds_id2).getCurrentRecord().set('project_attachment_category','MORTGAGE');
+                $(base_ds_id2).getCurrentRecord().set('project_attachment_category','PLEDGE');
                 $(base_ds_id2).getCurrentRecord().set('project_id','${/parameter/@project_id}');
             }
         };
@@ -47,9 +47,9 @@
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
             var link_function1 = 'upload';
 
-            if (record.get('file_num') > 0) {
+            if (record.get('file_num') > 0 && name == 'info' ) {
                 return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('contract_id') + '\');">附件' + '(' +record.get("file_num") + ')' + '</a>';
-            } else {
+            } else if (record.get('file_num') == 0 || name == 'info'){
                 return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('contract_id') + '\');">附件</a>';
             }
         };
@@ -68,12 +68,12 @@
             }
             var url = '${/request/@context_path}/uploadFile.lview';
             var win = new Leaf.Window({
-                id: 'MORT001F3_open_attachment_prj_winid3',
+                id: 'CAR001F1_open_attachment_prj_winid3',
                 url: url,
                 params: {
                     'header_id': project_attachment_id,
                     'table_name': tableName,
-                    winid: 'MORT001F3_open_attachment_prj_winid3'
+                    winid: 'CAR001F1_open_attachment_prj_winid3'
                 },
                 title: '文件上传下载',
                 width: 800,
@@ -90,7 +90,7 @@
         window['${/parameter/@layout_code}_G_CAR_F1_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
             debugger;
             var project_id = parseInt('${/parameter/@project_id}');
-            var down_url = "${/request/@context_path}/hls/con/contract/download?project_id=" + project_id + "&project_attachment_category=MORTGAGE" ;
+            var down_url = "${/request/@context_path}/hls/con/contract/download?project_id=" + project_id + "&project_attachment_category=PLEDGE" ;
             location.href = down_url;
         }
 
@@ -118,6 +118,7 @@
                         $(ds_id1).submit();
                         $(ds_id).query();
                         $(ds_id1).query();
+                        Leaf.showSuccessMessage("提示","解押成功");
                         window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                     },
                     error: function (){
@@ -129,6 +130,7 @@
                     sync: true
                 });
             }
+            $('con_pledge_winid').close();
 
 
 
