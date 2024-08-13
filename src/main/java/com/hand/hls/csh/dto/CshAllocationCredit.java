@@ -69,6 +69,8 @@ public class CshAllocationCredit extends BaseDTO {
     @Transient
     private Double write_off_interest;
     @Transient
+    private String manufacturerName;
+    @Transient
     private Long contractId;
     @Transient
     private String contractName;

@@ -299,7 +299,7 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
             throw new RuntimeException("时间格式异常");
         }
         cshAllocation.setAllocationSource("AUTO");
-        cshAllocation.setAllocationStatus("N");
+        cshAllocation.setAllocationStatus("Y");
         //系统字段
         cshAllocation.setCreationDate(new Date());
         cshAllocation.setCreatedBy(requestCtx.getUserId());

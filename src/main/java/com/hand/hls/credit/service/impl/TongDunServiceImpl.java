@@ -105,7 +105,7 @@ public class TongDunServiceImpl implements TongDunService {
         if(attachMulti == 0){
             throw new HlsCusException(getReturnJson("100001","该进件项目的《个人信息采集及使用授权协议》附件未上传！"));
         }
-        /*
+
         //同盾接口请求暂时注释
         //通过bpId获取商业伙伴信息
         QueryHlsBpMasterDTO queryHlsBpMasterDTO = hlsCusBpMasterMapper.getQueryHlsBpMasterDTOByBpId(bpId);
@@ -145,7 +145,7 @@ public class TongDunServiceImpl implements TongDunService {
         }
         hlsCusPrjProject.setPreStatus("APPROVED");
         hlsCusPrjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
-         */
+
         return "Accept";
     }
 
@@ -190,7 +190,7 @@ public class TongDunServiceImpl implements TongDunService {
         if(JszAttachMulti == 0){
             throw new HlsCusException(getReturnJson("100001","该进件项目的《承租人驾驶证》附件未上传！"));
         }
-        /*
+
         //同盾接口不通，暂时注释掉
         //设置正审参数
         String info = setInterlocutoryParam(projectId,param);
@@ -243,7 +243,7 @@ public class TongDunServiceImpl implements TongDunService {
         prjProject.setProjectStatus("APPROVED");
         prjProject.setApprovedDate(new Date());
         hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
-         */
+         
         //prjProject.setProjectStatus("APPROVED");
         //prjProject.setApprovedDate(new Date());
         prjProject.setConfirmStatus("APPROVED");
