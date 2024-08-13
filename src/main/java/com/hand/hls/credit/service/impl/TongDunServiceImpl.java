@@ -153,6 +153,10 @@ public class TongDunServiceImpl implements TongDunService {
     @Override
     public String interlocutoryValid(Long projectId, HttpServletRequest request, long nowTime, long creationTime, long riskDays, String projectStatus) throws HlsCusException {
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
+        //申请风控审核时，校验riskInfo是否为空，空则报错
+        if(StringUtil.isEmpty(jsonString)){
+            throw new HlsCusException(getReturnJson("100001","该进件项目的riskinfo信息为空"));
+        }
         JSONObject param = JSONObject.parseObject(jsonString);
         if (param.containsKey("dealerid")){
             param.remove("dealerid");
@@ -176,10 +180,7 @@ public class TongDunServiceImpl implements TongDunService {
         if (days > riskDays){
             throw new HlsCusException(getReturnJson("100101","该进件项目已超时，无法发起风控审核"));
         }
-        //申请风控审核时，校验riskInfo是否为空，空则报错
-        if(StringUtil.isEmpty(jsonString)){
-            throw new HlsCusException(getReturnJson("100001","该进件项目的riskinfo信息为空"));
-        }
+
         //申请风控审核时，校验（承租人身份证、驾驶证）的附件是否已经上传
         Integer SfzAttachMulti = hlsCusPrjProjectAttachmentMapper.selectAttachMultiYlByCode(projectId, "CZR_SFZ","PRJ_PROJECT_ATTACHMENT", "EXAMINE");
         if(SfzAttachMulti == 0){
