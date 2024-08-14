@@ -188,7 +188,8 @@ public class PreRiskAuditData extends BaseDTO {
     private  String partymobile;//联系人移动电话
 
     private  String dealerid;//经销商编号
-
+    @NotNull(message = "经销商名称不能为空")
+    @NotBlank(message = "经销商名称不能为空")
     private  String dealername;//经销商名称
 
     private  String dealerriskl;//经销商风险等级
@@ -212,13 +213,15 @@ public class PreRiskAuditData extends BaseDTO {
     @NotNull(message = "车辆品牌不能为空")
     @NotBlank(message = "车辆品牌不能为空")
     private  String carbrand2;//车辆品牌
-
+    @NotNull(message = "车辆型号不能为空")
+    @NotBlank(message = "车辆型号不能为空")
     private  String cartype;//车辆型号
 
     @NotNull(message = "车系不能为空")
     @NotBlank(message = "车系不能为空")
     private  String chexi;//车系
-
+    @NotNull(message = "车辆颜色不能为空")
+    @NotBlank(message = "车辆颜色不能为空")
     private  String carcolor;//车辆颜色
 
     private  String dangwei;//档位形式
@@ -348,15 +351,19 @@ public class PreRiskAuditData extends BaseDTO {
     private  String yfzj;//月付租金
 
     private  String nhll;//年化利率
-
+    @NotNull(message = "首付金额不能为空")
+    @NotBlank(message = "首付金额不能为空")
     private  String sfje;//首付金额
-
+    @NotNull(message = "车辆销售价格不能为空")
+    @NotBlank(message = "车辆销售价格不能为空")
     private  String clxsjg;//车辆销售价格
 
     @NotNull(message = "车辆厂商指导价格不能为空")
     @NotBlank(message = "车辆厂商指导价格不能为空")
     private  String cfpp;//车辆厂商指导价格
 
+    @NotNull(message = "融资利率不能为空")
+    @NotBlank(message = "融资利率不能为空")
     private  String rzll;//融资利率
 
     @NotNull(message = "首付比例不能为空")
