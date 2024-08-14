@@ -447,7 +447,9 @@ public class TongDunServiceImpl implements TongDunService {
         String userId = request.getParameter("user_id");
         if (userId != null) {
             hlsWsRequests.setUserId(Long.valueOf(userId));
+            hlsWsRequests.setCreatedBy(Long.valueOf(userId));
         }
+
         //请求状态
         hlsWsRequests.setStatusCode("200");
         //参数类型
