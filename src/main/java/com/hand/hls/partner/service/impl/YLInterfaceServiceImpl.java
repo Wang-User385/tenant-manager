@@ -1004,7 +1004,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //融资方案相关信息
         prjQuotation.setLeaseTimes(Long.valueOf(financeInfo.getTermCount()));//期次
         prjQuotation.setPmt(Double.valueOf(financeInfo.getMonthPayment())/100);//月租(分)
-        prjQuotation.setIntRate(Double.valueOf(financeInfo.getRate()));//利率
+        prjQuotation.setIntRate(Double.valueOf(financeInfo.getRate())/100);//利率(分)
         prjQuotation.setDownPayment(Double.valueOf(financeInfo.getFirstPayment())/100);//首付款(分)
         leaseItem.setListPrice(Double.valueOf(financeInfo.getCarGuidePrice())/100);//车辆指导价(分)
         leaseItem.setSellingPrice(Double.valueOf(financeInfo.getCarSalePrice())/100);//车辆售价(分)
