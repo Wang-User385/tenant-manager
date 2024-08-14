@@ -480,6 +480,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("message","该合同对应的现金流已经结清或者不存在");
             throw new HlsCusException(returnJson.toJSONString());
         }
+
+        if (HlsCusMathUtil.compare(BigDecimal.valueOf((double) repayPenalty / 100).doubleValue(), OracleUtils.nvl(hlsCusConContractCashflow.getPenalty(), (double) 0)) != 0
+                || HlsCusMathUtil.compare(BigDecimal.valueOf((double) repayInterest / 100).doubleValue(), OracleUtils.nvl(hlsCusConContractCashflow.getInterest(), (double) 0)) != 0
+                || HlsCusMathUtil.compare(BigDecimal.valueOf((double) repayPrincipal / 100).doubleValue(), OracleUtils.nvl(hlsCusConContractCashflow.getPrincipal(), (double) 0)) != 0) {
+            returnJson.put("code", "100001");
+            returnJson.put("message", "本金或者罚息或者利息不等于本期现金流对应的数据");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+
         if ("Y".equals(hlsCusConContractCashflow.getTransferPaymentFlag())){
             returnJson.put("code","100003");
             returnJson.put("message","该条记录已经转付");

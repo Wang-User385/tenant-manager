@@ -36,6 +36,8 @@ import com.hand.hls.fnd.mapper.HlsEmployeeMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.gld.components.AbstractJeTrxService;
 import com.hand.hls.gld.components.JeTrxCommonService;
+import com.hand.hls.partner.dto.YLCshTransferPaymentDto;
+import com.hand.hls.partner.mapper.YLCshTransferPaymentDtoMapper;
 import com.hand.hls.sys.utils.OracleUtils;
 import com.hand.hls.user.service.LoginUserInfoService;
 import com.hand.hls.utils.HlsCusConstant;
@@ -325,6 +327,9 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
         return hlsCusCshTransactionList;
     }
 
+    @Autowired
+    private YLCshTransferPaymentDtoMapper ylCshTransferPaymentDtoMapper;
+
     @Override
     /**
      * @Discription:收款反冲
@@ -391,8 +396,10 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
             }
 
             cshTr = self().insertSelective(requestCtx, cshTr);
-
-            if ("Y".equals(hlsCusCshTransaction.getRefV15())) {
+            Example example = new Example(YLCshTransferPaymentDto.class);
+            example.createCriteria().andEqualTo("transactionId",hlsCusCshTransaction.getTransactionId());
+            List<YLCshTransferPaymentDto> ylCshTransferPaymentDtos = ylCshTransferPaymentDtoMapper.selectByExample(example);
+            if ("Y".equals(hlsCusCshTransaction.getRefV15()) && CollectionUtils.isEmpty(ylCshTransferPaymentDtos)) {
                 hlsCusCshTransaction.setReversedDate(cshTransaction.getReversedDate());
                 hlsCusCshTransaction.setReversedTrxId(cshTr.getTransactionId());
                 hlsCusCshTransactionMapper.updateByPrimaryKey(hlsCusCshTransaction);
@@ -403,8 +410,13 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
                 hlsCusCshTransaction.setReversedDescription(cshTr.getReversedDescription());
                 hlsCusCshTransaction.setBankSlipNum(cshTr.getBankSlipNum());
                 hlsCusCshTransactionMapper.updateByPrimaryKey(hlsCusCshTransaction);
+                if (!CollectionUtils.isEmpty(ylCshTransferPaymentDtos)){
+                    YLCshTransferPaymentDto dto = ylCshTransferPaymentDtos.get(0);
+                    dto.setTransferPaymentStatus("UNCONFIRMED");
+                    dto.setTransactionId(null);
+                    ylCshTransferPaymentDtoMapper.updateByPrimaryKey(dto);
+                }
             }
-
 
             //生成凭证
             AbstractJeTrxService transactionJeTrxService = jeTrxCommonService.map.get("CSH_TRANSACTION");

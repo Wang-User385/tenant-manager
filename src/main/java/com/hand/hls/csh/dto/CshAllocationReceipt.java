@@ -96,6 +96,9 @@ public class CshAllocationReceipt extends BaseDTO {
     @Transient
     private String refundingAmount; //退款中金额
 
+    @Transient
+    private String comments;
+
 
 
 

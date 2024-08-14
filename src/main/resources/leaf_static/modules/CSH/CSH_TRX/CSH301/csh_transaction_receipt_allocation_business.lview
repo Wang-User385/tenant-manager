@@ -201,6 +201,7 @@
 
         //核销匹配确认
         function csh301_transaction_receipt_allocation_save() {
+            debugger;
             //收款
             var receipt_ds = $('csh_transaction_allocation_receipt_ds');
             //债权
@@ -209,8 +210,7 @@
             var records = receipt_ds.getAll();
             var credit_data = credit_ds.getJsonData();
             for (let i = 1; i < credit_records.length; i++) {
-                var credit_record_l = credit_records[i];
-                if (credit_record_l[i].get('manufacturer_name') != credit_record_l[i-1].get('manufacturer_name') ){
+                if (credit_records[i].get('manufacturer_name') != credit_records[i-1].get('manufacturer_name') ){
                     Leaf.showInfoMessage('提示','请检查选择的合作商');
                     return;
                 }
@@ -290,7 +290,7 @@
                         duration: 2000
                     });
                     Leaf.Masker.unmask($(winId).wrap);
-                    csh301_transaction_receipt_allocation_back();
+                    // csh301_transaction_receipt_allocation_back();
                 },
                 failure: function () {
                     Leaf.Masker.unmask($(winId).wrap);
@@ -626,6 +626,61 @@
             }
         }
 
+        //确认核销按钮
+        function csh301_transaction_receipt_allocation_confirm() {
+
+            debugger;
+            //收款
+            var receipt_ds = $('csh_transaction_allocation_receipt_ds');
+            var records = receipt_ds.getAll();
+
+            //债权
+            var credit_ds = $('csh_transaction_allocation_credit_ds');
+            var credit_records = credit_ds.getAll();
+
+            credit_records.forEach(function (record) {
+                record.dirty = true;
+            });
+            var credit_data = credit_ds.getJsonData();
+
+            //预收款
+            var advance_ds = $('csh_transaction_allocation_advance_ds');
+            var advance_data = advance_ds.getJsonData();
+
+            var saveData = [];
+            for (var i = 0; i < records.length; i++) {
+                records[i].set('allocation_source', 'MANUAL');
+                //预收款
+                records[i].data.csh_allocation_advance_list = advance_data;
+                //债权
+                records[i].data.csh_write_off_list = credit_data;
+                saveData.push(records[i].data);
+            }
+            var winId = '${/parameter/@winId}';
+            Leaf.Masker.mask($(winId).wrap, '提交中。。');
+            Leaf.request({
+                url: $('csh301_transaction_receipt_allocation_confirm_link').getUrl(),
+                para: saveData,
+                success: function (res) {
+                    Leaf.SideBar.show({
+                        msg: '${l:HLS.SUBMIT_SUCCESS}',
+                        duration: 2000
+                    });
+                    Leaf.Masker.unmask($(winId).wrap);
+                    csh301_transaction_receipt_allocation_back();
+                },
+                failure: function () {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                error: function () {
+                    Leaf.Masker.unmask($(winId).wrap);
+                },
+                scope: this
+            });
+
+
+        }
+
 
         ]]></script>
         <a:dataSets>
@@ -781,7 +836,7 @@
             <a:screenTopToolbar>
                 <a:gridButton click="csh301_transaction_receipt_allocation_back" text="返回"/>
                 <a:gridButton click="csh301_transaction_receipt_allocation_save" text="保存"/>
-                <!--<a:gridButton click="csh301_transaction_receipt_allocation_confirm" text="确认核销"/>-->
+                <a:gridButton click="csh301_transaction_receipt_allocation_confirm" text="确认核销"/>
 
             </a:screenTopToolbar>
             <a:form>
@@ -911,7 +966,7 @@
                                     <a:column name="write_off_due_amount" prompt="本次核销金额" renderer="Leaf.formatMoney"
                                               align="right" editor="advance_credit_editor_nf" width="120"/>
                                     <a:column name="contract_number" prompt="合同编号" width="200" editor="deposit_contract_number_editor"/>
-<!--                                    <a:column name="bp_name" prompt="商业伙伴" width="200"/>-->
+                                    <a:column name="bp_name" prompt="商业伙伴" width="200"/>
                                     <a:column name="write_off_type_desc" prompt="核销类型" width="150"/>
                                     <a:column name="times" prompt="还款期次" width="100"/>
                                 </a:columns>

@@ -29,12 +29,14 @@ public class ContractFirstRiskSubmitServiceTask implements JavaDelegate, IActivi
     public void execute(DelegateExecution delegateExecution) {
         Long contractId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
         String assignee = (String) delegateExecution.getVariables().get("assignee");
-        HlsCusConContract hlsCusConContract = new HlsCusConContract();
-        hlsCusConContract.setContractId(contractId);
+
         if (!StringUtils.isEmpty(assignee)){
+            HlsCusConContract hlsCusConContract = new HlsCusConContract();
+            hlsCusConContract.setContractId(contractId);
             hlsCusConContract.setRiskAssistantFirst(Long.parseLong(assignee));
+            hlsCusConContractMapper.updateByPrimaryKeySelective(hlsCusConContract);
+
         }
-        hlsCusConContractMapper.updateByPrimaryKeySelective(hlsCusConContract);
 
 
     }

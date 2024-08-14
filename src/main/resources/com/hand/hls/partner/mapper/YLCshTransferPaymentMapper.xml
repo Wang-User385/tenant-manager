@@ -68,7 +68,7 @@
                and ( SELECT bm.bp_name FROM hls_bp_master bm WHERE bm.bp_id = cc.tenant_id AND cc.contract_id = yctp.contract_id ) like concat(concat('%',#{tenantIdN}),'%')
             </if>
             <if test="transactionNum != null and transactionNum != ''">
-               and  ( SELECT ct.transaction_num FROM csh_transaction ct, csh_write_off cw WHERE ct.transaction_id = cw.csh_transaction_id AND cw.cashflow_id = yctp.cashflow_id ) like concat(concat('%',#{transactionNum}),'%')
+               and  ( SELECT ct.transaction_num FROM csh_transaction ct WHERE ct.transaction_id = yctp.transaction_id ) like concat(concat('%',#{transactionNum}),'%')
             </if>
             <if test="transferPaymentStatus != null and transferPaymentStatus != ''">
                 and yctp.transfer_payment_status = #{transferPaymentStatus}
@@ -80,7 +80,15 @@
                 and yctp.repay_date <![CDATA[ <= ]]> TO_DATE(#{repayDateTo} , 'yyyy-mm-dd HH24:MI:SS' )+ 1 - 1 / 24 / 60 / 60
             </if>
             <if test="writeOffFlagN != null and writeOffFlagN != ''">
-                and  ( SELECT ct.write_off_flag FROM csh_transaction ct, csh_write_off cw WHERE ct.transaction_id = cw.csh_transaction_id AND cw.cashflow_id = yctp.cashflow_id ) = #{writeOffFlagN}
+                and  (
+                SELECT
+                sc.meaning
+                FROM
+                sys_code_value_b_v sc
+                WHERE
+                sc.code = 'CON.CASHFLOW_WRITE_OFF_FLAG'
+                AND sc.code_value = ( SELECT ct.write_off_flag FROM csh_transaction ct WHERE ct.transaction_id = yctp.transaction_id )
+                ) = #{writeOffFlagN}
             </if>
 
         </where>
