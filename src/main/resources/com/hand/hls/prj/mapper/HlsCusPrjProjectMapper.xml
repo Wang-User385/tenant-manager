@@ -428,7 +428,7 @@
         <result column="manufacturer_id" property="manufacturerId" jdbcType="VARCHAR"/>
         <result column="penetrate_id" property="penetrateId" jdbcType="VARCHAR"/>
         <result column="alipay_status" property="alipayStatus" jdbcType="VARCHAR"/>
-        <result column="creation_date" property="creationDate" jdbcType="VARCHAR"/>
+        <result column="alipay_status_n" property="alipayStatusN" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="prjHomePageGetAllStatusProjectCountMap" type="java.util.Map">
@@ -9501,7 +9501,8 @@ WHERE
         <result column="lease_item_type_n" property="lease_item_type_n"/>
         <result column="investment_instance_id" property="investment_instance_id"/>
         <result column="approved_date" property="approved_date"/>
-        <result column="process_instance_id" property="process_instance_id"/>
+        <result column="alipay_status_n" property="alipayStatusN"/>
+        <result column="alipay_status" property="alipayStatus"/>
     </resultMap>
 
     <!--项目报告维护-->
@@ -9878,7 +9879,9 @@ WHERE
         FROM sys_code_value_b v, sys_code_b b
         WHERE b.CODE = 'PRODUCT.LEASE_ITEM_TYPE'
         AND v.code_id = b.code_id
-        AND v. VALUE = pp.lease_item_type) lease_item_type_n
+        AND v. VALUE = pp.lease_item_type) lease_item_type_n,
+        (coalesce((select v.meaning from sys_code_value_b_v v where
+        v.code='PRJ.ALIPAY_STATUS' and v.code_value=alipay_status),'未签约')) AS alipay_status_n
         FROM
         prj_project pp
         LEFT JOIN hls_bp_master hbm ON pp.TENANT_ID = hbm.bp_id
@@ -12756,8 +12759,8 @@ WHERE
         ELSE
         'GRACE_TERM宽限期'
         END status,
-        TO_CHAR((SELECT MAX(WRITE_OFF_DATE) FROM CSH_WRITE_OFF cwo WHERE cwo.CASHFLOW_ID = ccc.CASHFLOW_ID),'YYYY-MM-DD HH24:MI:SS') lastPaidTime,
-        TO_CHAR((SELECT MAX(WRITE_OFF_DATE) FROM CSH_WRITE_OFF cwo WHERE cwo.CASHFLOW_ID = ccc.CASHFLOW_ID AND ccc.WRITE_OFF_FLAG='FULL'),'YYYY-MM-DD HH24:MI:SS' ) endTime,
+        TO_CHAR((SELECT MAX(WRITE_OFF_DATE) FROM CSH_WRITE_OFF cwo WHERE cwo.CASHFLOW_ID = ccc.CASHFLOW_ID),'yyyy-mm-dd') lastPaidTime,
+        TO_CHAR((SELECT MAX(WRITE_OFF_DATE) FROM CSH_WRITE_OFF cwo WHERE cwo.CASHFLOW_ID = ccc.CASHFLOW_ID AND ccc.WRITE_OFF_FLAG='FULL'),'yyyy-mm-dd' ) endTime,
         TO_CHAR(DECODE(TIMES, 1, (SELECT LEASE_START_DATE FROM PRJ_QUOTATION pq WHERE pp.PROJECT_ID=pq.SOURCE_DOCUMENT_ID AND pq.SOURCE_DOCUMENT_CATEGORY='PRJ_PROJECT'),
         (SELECT cf.DUE_DATE FROM CON_CONTRACT_CASHFLOW cf WHERE cf.CONTRACT_ID=ccc.CONTRACT_ID AND cf.TIMES=ccc.times-1 AND cf.CF_STATUS='RELEASE' AND cf.CF_ITEM in (1,11,13))),'yyyy-mm-dd') termStartDate,
         to_char( ccc.DUE_DATE, 'yyyy-mm-dd' ) termEndDate,
@@ -12790,7 +12793,7 @@ WHERE
         (nvl(ccc.INTEREST,0)-NVL(ccc.RECEIVED_INTEREST,0))*100 restNomInt,
         (SELECT NVL(SUM(nvl(cf.DUE_AMOUNT,0)-nvl(cf.RECEIVED_AMOUNT,0)), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID)*100 restOvd,
         (SELECT NVL(SUM(NVL(cf.DUE_AMOUNT, 0)-NVL(cf.RECEIVED_AMOUNT, 0)), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.CONTRACT_ID = ccc.CONTRACT_ID AND ccc.TIMES=cf.TIMES AND cf.CF_ITEM=8)*100 restFee,
-        (ccc.DUE_AMOUNT-nvl(ccc.RECEIVED_AMOUNT,0)-(SELECT NVL(SUM(nvl(cf.DUE_AMOUNT,0)-nvl(cf.RECEIVED_AMOUNT,0)), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID))*100 restTotal
+        ccc.DUE_AMOUNT-nvl(ccc.RECEIVED_AMOUNT,0)-(SELECT NVL(SUM(nvl(cf.DUE_AMOUNT,0)-nvl(cf.RECEIVED_AMOUNT,0)), 0) FROM CON_CONTRACT_CASHFLOW cf WHERE cf.GENERATED_SOURCE_DOC_ID = ccc.CASHFLOW_ID) restTotal
         FROM
         CON_CONTRACT_CASHFLOW ccc
         RIGHT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
@@ -13514,43 +13517,6 @@ WHERE
         select * from prj_project pp
         where pp.penetrate_id is not null
         and (pp.alipay_status is null or pp.alipay_status = 'TO_BE_APPLIED')
-    </select>
-
-    <select id="findDetailConContract" resultMap="BaseResultMap">
-        SELECT
-        cc.contract_id,
-        cc.CONTRACT_NUMBER,
-        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
-        ( SELECT m.id_card_no FROM hls_bp_master m WHERE m.bp_id = pp.tenant_id ) id_card_no,
-        ( SELECT m.phone FROM hls_bp_master m WHERE m.bp_id = pp.tenant_id ) phone,
-        ( SELECT bt.description FROM hls_business_type bt WHERE bt.DOCUMENT_CATEGORY = 'CON_CONTRACT' AND bt.business_type = cc.business_type ) business_type_n,
-        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.manufacturer_id ) manufacturer_id_n,
-        (SELECT sv.MEANING
-        FROM sys_code_value_b sv,
-        sys_code_b b
-        WHERE b.CODE = 'DRIVER_AND_APPLICANT'
-        AND sv.code_id = b.code_id
-        AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant,
-        ( SELECT i.frame_number FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) frame_number,
-        ( SELECT i.model_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) model_c,
-        ( SELECT i.brand_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) brand_c,
-        ( SELECT i.color_c FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) color_c,
-        ( SELECT i.list_price FROM prj_project_lease_item i WHERE i.project_id = pp.project_id ) list_price,
-        ( SELECT finance_amount FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) finance_amount,
-        ( SELECT lease_times FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) lease_times,
-        ( SELECT down_payment FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id ) down_payment ,
-        ( SELECT pmt  FROM prj_quotation q WHERE q.source_document_category = 'PRJ_PROJECT' AND q.source_document_id = pp.project_id) pmt
-        FROM
-        CON_CONTRACT cc
-        left join prj_project pp on cc.project_id=pp.project_id
-        where
-        1=1
-        <if test="contractId != null">
-            and cc.contract_id = #{contractId}
-        </if>
-        <if test="projectId != null">
-            and pp.project_id = #{projectId}
-        </if>
     </select>
 
 
