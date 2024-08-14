@@ -37,6 +37,8 @@
                 url="${/request/@context_path}/modules/CSH/CSH_SET/CSH002/csh002_csh_payment_req_hd_detail.lview"/>
         <a:link id="PRJ419_project_modify_new_id"
                 url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_modify_new.lview"/>
+        <a:link id="csh_transaction_refund_detail_link_id"
+                url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH307/csh_transaction_refund_detail.lview"/>
         <script><![CDATA[
 
         function csh_unpaid_list_query() {
@@ -691,6 +693,7 @@
 
 
         function csh_refund_to_pay() {
+            debugger;
             var ds = 'csh_transaction_refund_grid_ds';
             var records = $('csh_transaction_refund_grid_ds').getSelected();
             var function_usage = 'MODIFY';
@@ -698,11 +701,9 @@
                 Leaf.showErrorMessage("错误", "请先勾选一行再进行退款申请支付");
                 return;
             }
-            for (var i = 0; i < records.length; i++) {
-                var payment_refund_status = records[i].get('payment_refund_status');
-                if (payment_refund_status === 'PAID'){
-                    function_usage = 'QUERY';
-                }
+            var payment_refund_status = records[0].get('payment_refund_status');
+            if (payment_refund_status == 'PAID' || payment_refund_status == 'CANCEL_PAY'){
+               function_usage = 'QUERY';
             }
 
             var param = records[0].data;
@@ -717,6 +718,69 @@
 
             hls_doc_get_layout_code(param, 'csh_transaction_refund_link_id', ds);
 
+        }
+        //取消支付
+        function csh_cancel_to_pay() {
+            debugger;
+            var ds = 'csh_transaction_refund_grid_ds';
+            var records = $('csh_transaction_refund_grid_ds').getSelected();
+            if (records.length !== 1) {
+                Leaf.showErrorMessage("错误", "请先勾选一行再进行取消支付");
+                return;
+            }
+            var refundId = records[0].get('refund_id');
+            var payment_refund_status = records[0].get('payment_refund_status');
+            if(payment_refund_status != 'NEW'){
+                Leaf.showErrorMessage("错误", "只有新建状态的支付单可操作取消支付");
+                return;
+            }
+            //取消支付
+            var paymentRefundStatus = "CANCEL_PAY";
+            var url = "${/request/@context_path}/cah/refund/cancel?refundId=" + refundId + "&paymentRefundStatus=" + paymentRefundStatus;
+            Leaf.Masker.mask(Ext.getBody());
+            Leaf.request({
+                url: url,
+                success: function (res) {
+                    Leaf.Masker.unmask(Ext.getBody());
+                    Leaf.SideBar.show({
+                        msg: '取消成功',
+                        duration: 2000
+                    });
+                    $('csh_transaction_refund_grid_ds').query();
+                },
+                error: function () {
+                    Leaf.Masker.unmask(Ext.getBody());
+                },
+                scope: this
+            });
+
+        }
+
+        function refund_num_renderer(value, record, name){
+            if (name = 'refund_num') {
+                return '<a href="javascript:window[\'open_refund_modify_win\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        }
+
+        function open_refund_modify_win(id, dsid){
+            var record = $(dsid).findById(id);
+            var read_only = 'Y';
+            var win = new Leaf.Window({
+                id: 'csh_transaction_refund_modify_win_id',
+                url: $('csh_transaction_refund_detail_link_id').getUrl(),
+                params: {
+                    win_id: 'csh_transaction_refund_modify_win_id',
+                    refund_id : record.get('refund_id'),
+                    read_only : read_only,
+                    source_type : 'QUARY'
+                },
+                title: '退款明细',
+                fullScreen: true,
+                draggable: true
+            });
+            win.on('close', function () {
+                csh_transaction_refund_modify_query();
+            });
         }
 
     <!--二期功能：付款支付-退款申请 end-->
@@ -928,21 +992,21 @@
                     </a:tab>
                     <!--二期功能：零售业务的付款申请 end-->
 
-                    <a:tab prompt="待支付清单-付款申请" width="160" selected="true">
+                    <!--<a:tab prompt="待支付清单-付款申请" width="160" selected="true">
                         <a:screenTopToolbar>
                             <a:screenTitle/>
                             <a:gridButton click="csh_unpaid_list_query" text="HAP.QUERY"/>
                             <a:gridButton click="csh_unpaid_list_reset" text="HAP.RESET"/>
                             <a:gridButton click="csh_to_pay" text="去付款"/>
-                            <!--
+                            &lt;!&ndash;
                                                         <a:gridButton click="csh_fund_transfer_order" text="资金调拨单"/>
-                            -->
-                            <!--
+                            &ndash;&gt;
+                            &lt;!&ndash;
                                                         <a:gridButton click="csh_loan_approval_form" text="生成放款资料"/>
-                            -->
-                            <!-- 粤海无该功能 <a:gridButton click="csh_loan_approval_form_zip" text="生成放款资料"/>-->
+                            &ndash;&gt;
+                            &lt;!&ndash; 粤海无该功能 <a:gridButton click="csh_loan_approval_form_zip" text="生成放款资料"/>&ndash;&gt;
 
-                            <!--                            <a:gridButton click="csh_to_pay_cash" text="去付款(原来静态页面)"/>-->
+                            &lt;!&ndash;                            <a:gridButton click="csh_to_pay_cash" text="去付款(原来静态页面)"/>&ndash;&gt;
                         </a:screenTopToolbar>
                         <a:form column="4" labelWidth="110">
                             <a:textField name="paymentReqNumber" bindTarget="csh_unpaid_list_query_ds"
@@ -956,8 +1020,8 @@
                             <a:comboBox name="payment_approved_status_n"
                                         bindTarget="csh_unpaid_list_query_ds"
                                         prompt="支付单状态" width="160"/>
-                            <!--<a:textField name="contract_number" bindTarget="csh_unpaid_list_query_ds"
-                                         prompt="合同编号" width="160"/>-->
+                            &lt;!&ndash;<a:textField name="contract_number" bindTarget="csh_unpaid_list_query_ds"
+                                         prompt="合同编号" width="160"/>&ndash;&gt;
                             <a:textField name="legal_contract_number" bindTarget="csh_unpaid_list_query_ds"
                                          prompt="法务合同编号" width="160"/>
                             <a:textField name="bp_name" bindTarget="csh_unpaid_list_query_ds"
@@ -973,11 +1037,11 @@
                                           align="center"/>
 
                                 <a:column name="payment_type_n" prompt="款项类型" width="140" align="center"/>
-                                <!--
+                                &lt;!&ndash;
                                                                 <a:column name="status_n" prompt="资金调拨审批状态" width="140" align="center"/>
-                                -->
+                                &ndash;&gt;
                                 <a:column name="contract_name" prompt="合同名称" width="160" align="center"/>
-                                <!--<a:column name="contract_number" prompt="合同编号" width="160" align="center"/>-->
+                                &lt;!&ndash;<a:column name="contract_number" prompt="合同编号" width="160" align="center"/>&ndash;&gt;
                                 <a:column name="legal_contract_number" prompt="法务合同编号" width="160" align="center"/>
                                 <a:column name="bp_name" prompt="客户名称" width="220" align="left"/>
 
@@ -988,21 +1052,21 @@
                                           renderer="Leaf.formatMoney"/>
                                 <a:column name="unpaid" prompt="未支付金额(元)" width="140" align="right"
                                           renderer="Leaf.formatMoney"/>
-                                <!--column name="defray_number" prompt="支付表编号" width="140" align="center"/>
+                                &lt;!&ndash;column name="defray_number" prompt="支付表编号" width="140" align="center"/>
                                 <a:column name="price_list" prompt="报价" width="60" renderer="quotation_renderer"
-                                          align="center"/>-->
+                                          align="center"/>&ndash;&gt;
 
-                                <!--  <a:column name="loan_net_amount" prompt="拟投放金额" width="140" align="center"
-                                            renderer="Leaf.formatMoney"/>-->
+                                &lt;!&ndash;  <a:column name="loan_net_amount" prompt="拟投放金额" width="140" align="center"
+                                            renderer="Leaf.formatMoney"/>&ndash;&gt;
 
                                 <a:column name="project_manager_id_n" prompt="项目经理" width="140" align="center"/>
-                                <!--  <a:column name="application_date" prompt="申请时间" width="140" align="center"
-                                            renderer="Leaf.formatDate"/>-->
+                                &lt;!&ndash;  <a:column name="application_date" prompt="申请时间" width="140" align="center"
+                                            renderer="Leaf.formatDate"/>&ndash;&gt;
                                 <a:column name="payment_approved_status_n" prompt="支付单状态" width="140" align="center"/>
 
                             </a:columns>
                         </a:grid>
-                    </a:tab>
+                    </a:tab>-->
                     <!--<a:tab prompt="待支付清单-收款退款" width="150">
                         <a:screenTopToolbar>
                             <a:screenTitle/>
@@ -1112,8 +1176,9 @@
                             <a:gridButton click="csh_refund_unpaid_list_query" text="HAP.QUERY"/>
                             <a:gridButton click="csh_refund_unpaid_list_reset" text="HAP.RESET"/>
                             <a:gridButton click="csh_refund_to_pay" text="去付款"/>
+                            <a:gridButton click="csh_cancel_to_pay" text="取消支付"/>
                         </a:screenTopToolbar>
-                        <a:form column="4" labelWidth="120">
+                        <a:form column="4" labelWidth="110">
                             <a:textField name="refund_number" bindTarget="csh_transaction_refund_form_ds"
                                          prompt="退款申请编号" width="160"/>
                             <a:textField name="bp_name" bindTarget="csh_transaction_refund_form_ds"
@@ -1135,20 +1200,20 @@
                                         prompt="支付单状态" width="160"/>
 
                         </a:form>
-                        <a:grid bindTarget="csh_transaction_refund_grid_ds" marginHeight="193" marginWidth="55"
+                        <a:grid bindTarget="csh_transaction_refund_grid_ds" marginHeight="193" marginWidth="80"
                                 navBar="true">
                             <a:columns>
-                                <a:column name="refund_number" prompt="退款申请编号" align="left" width="150"/>
-                                <a:column name="bp_name" prompt="收款对象" width="250"/>
-                                <a:column name="bp_bank_name" prompt="收款银行" width="250"/>
+                                <a:column name="refund_number" prompt="退款申请编号" align="left" width="150" renderer="refund_num_renderer"/>
+                                <a:column name="bp_name" prompt="收款对象" width="200"/>
+                                <a:column name="bp_bank_name" prompt="收款银行" width="200"/>
                                 <a:column name="bp_bank_account_name" prompt="收款对象账户" width="250"/>
-                                <a:column name="bp_bank_account_num" prompt="收款对象账号" width="200"/>
+                                <a:column name="bp_bank_account_num" prompt="收款对象账号" width="240"/>
                                 <a:column name="refund_date" prompt="申请退款日期" align="center"
                                           renderer="Leaf.formatDate"/>
                                 <a:column name="refund_amount" prompt="退款金额" align="right" width="100"
                                           renderer="Leaf.formatMoney"/>
                                 <!--<a:column name="currency_name" prompt="币种" width="80"/>-->
-                                <a:column name="payment_refund_status_n" prompt="支付单状态" width="80"/>
+                                <a:column name="payment_refund_status_n" prompt="支付单状态" width="100"/>
                             </a:columns>
                         </a:grid>
                     </a:tab>

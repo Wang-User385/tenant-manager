@@ -52,6 +52,8 @@ public class YLCshTransferPaymentDto extends BaseDTO {
 
     private String repayType;
 
+    private Long transactionId;
+
     @Length(max = 24)
     private String transferPaymentStatus;
 

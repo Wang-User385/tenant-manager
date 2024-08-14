@@ -281,6 +281,10 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
     @Resource
     private  CshTransactionRefundService cshTransactionRefundService;
+    @Resource
+    private  CshTransactionRefundLnMapper cshTransactionRefundLnMapper;
+    @Resource
+    private  CshPaymentReqLnBankAccountMapper cshPaymentReqLnBankAccountMapper;
     @Autowired
     private IYLMessageNoticeService messageNoticeService;
 
@@ -2339,9 +2343,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
     private HlsCusCshPaymentReqHdMapper hlsCusCshPaymentReqHdMapper;
 
     @Autowired
-    private CshPaymentReqLnBankAccountMapper cshPaymentReqLnBankAccountMapper;
-
-    @Autowired
     private HlsCusPrjQuotationCashflowMapper prjQuotationCashflowMapper;
 
     @Autowired
@@ -2466,6 +2467,16 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         Long refundId = hlsCusCshPaymentTran.getRefundId();
         transactionRefund.setRefundId(refundId);
         transactionRefund = cshTransactionRefundService.selectByPrimaryKey(iRequest, transactionRefund);
+        transactionRefund.setActualPaymentDate(hlsCusCshPaymentTran.getTransactionDate());
+        CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount1 = new CshPaymentReqLnBankAccount();
+        cshPaymentReqLnBankAccount1.setRefundId(refundId);
+        List<CshPaymentReqLnBankAccount> reqLnBankAccounts = cshPaymentReqLnBankAccountMapper.selectCshPaymentReqLnBankAccount(cshPaymentReqLnBankAccount1);
+        for (int i = 0; i <reqLnBankAccounts.size() ; i++) {
+            cshPaymentReqLnBankAccount1.setCshBankId(reqLnBankAccounts.get(i).getCshBankId());
+            cshPaymentReqLnBankAccount1.setPaymentAmount(reqLnBankAccounts.get(i).getActualPaymentAmount());
+            cshPaymentReqLnBankAccount1.setActualPaymentDate(hlsCusCshPaymentTran.getTransactionDate());
+            cshPaymentReqLnBankAccountMapper.updateByPrimaryKeySelective(cshPaymentReqLnBankAccount1);
+        }
 
         Double paymentAmount  = cshPaymentReqLnBankAccountMapper.queryRefundPaymentAmount(refundId);
         if (paymentAmount < transactionRefund.getRefundAmount()){
@@ -2495,14 +2506,14 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 //对源现金事务处理
                 HlsCusCshTransaction sourceCshTransaction = new HlsCusCshTransaction();
                 sourceCshTransaction.setTransactionId(cshPaymentReqLnBankAccounts.get(i).getSourceTransactionId());
-                sourceCshTransaction.setWriteOffAmount(cshPaymentReqLnBankAccounts.get(i).getPaymentAmount());
+                sourceCshTransaction.setWriteOffAmount(cshPaymentReqLnBankAccounts.get(i).getActualPaymentAmount());
 
                 getTransactionNumRefund(iRequest, cshTransaction);
 
                 cshTransaction.setTransactionDate(transactionRefund.getActualPaymentDate());
                 cshTransaction.setPenaltyCalcDate(transactionRefund.getActualPaymentDate());
                 cshTransaction.setCompanyId(iRequest.getCompanyId());
-                cshTransaction.setTransactionAmount(cshPaymentReqLnBankAccounts.get(i).getPaymentAmount());
+                cshTransaction.setTransactionAmount(cshPaymentReqLnBankAccounts.get(i).getActualPaymentAmount());
                 cshTransaction.setCurrencyCode(cshPaymentReqLnBankAccounts.get(i).getCurrency());
                 cshTransaction.setReversedFlag("N");
                 cshTransaction.setPostedFlag("N");
@@ -2540,11 +2551,11 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
 
                 cshWriteOff.setWriteOffDate(sdf.parse(sdf.format(cshPaymentReqLnBankAccounts.get(i).getActualPaymentDate())));
-                cshWriteOff.setCshWriteOffAmount(cshPaymentReqLnBankAccounts.get(i).getPaymentAmount());
+                cshWriteOff.setCshWriteOffAmount(cshPaymentReqLnBankAccounts.get(i).getActualPaymentAmount());
                 cshWriteOff.setReversedFlag("N");
                 cshWriteOff.setCurrencyCode(cshPaymentReqLnBankAccounts.get(i).getCurrency());
 
-                cshWriteOff.setWriteOffDueAmount(cshPaymentReqLnBankAccounts.get(i).getPaymentAmount());
+                cshWriteOff.setWriteOffDueAmount(cshPaymentReqLnBankAccounts.get(i).getActualPaymentAmount());
 
                 cshWriteOffList.add(cshWriteOff);
             }
@@ -2603,7 +2614,17 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
         //更新申请单
         cshTransactionRefundService.updateByPrimaryKeySelective(iRequest, transactionRefund);
-
+        //更新退款行表
+        /*CshTransactionRefundLn cshTransactionRefundLn = new CshTransactionRefundLn();
+        cshTransactionRefundLn.setRefundId(refundId);
+        cshTransactionRefundLn.setBlockAmount();
+        cshTransactionRefundLn.setCanReturnAmount();
+        cshTransactionRefundLnMapper.updatePaymentAmount();*/
+        //更新银行流水行表
+        CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount = new CshPaymentReqLnBankAccount();
+        cshPaymentReqLnBankAccount.setRefundId(refundId);
+        cshPaymentReqLnBankAccount.setPaymentStatus("PAID");
+        cshPaymentReqLnBankAccountMapper.updateCshPaymentReqLnBankAccountByLn(cshPaymentReqLnBankAccount);
 
     }
 

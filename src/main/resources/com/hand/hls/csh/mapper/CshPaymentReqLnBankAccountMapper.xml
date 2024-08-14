@@ -166,6 +166,9 @@
             <if test="paymentName != null">
                 and tt1.PAYMENT_NAME = #{paymentName}
             </if>
+            <if test="refundId != null">
+                and tt1.REFUND_ID = #{refundId}
+            </if>
         </where>
 
     </select>
@@ -627,7 +630,8 @@
         (select bv.MEANING
         from SYS_CODE_VALUE_B_V bv
         where bv.CODE='CSH.PAYMENT_METHOD1'
-        and bv.code_value=cprba.payment_method) payment_method_n
+        and bv.code_value=cprba.payment_method) payment_method_n,
+        cprba.refund_id
         from CSH_PAY_REQ_LN_BANK_ACCOUNT cprba
         <where>
             <if test="paymentReqId != null">
@@ -635,6 +639,9 @@
             </if>
             <if test="paymentReqLnId != null">
                 and cprba.PAYMENT_REQ_LN_ID = #{paymentReqLnId}
+            </if>
+            <if test="refundId != null">
+                and cprba.REFUND_ID = #{refundId}
             </if>
 
         </where>
@@ -785,7 +792,7 @@
 
     <select id="queryRefundPaymentAmount" resultType="java.lang.Double">
         SELECT
-        sum(prlba.PAYMENT_AMOUNT)  refund_payment_amount
+        sum(prlba.ACTUAL_PAYMENT_AMOUNT)  refund_payment_amount
         FROM
         csh_pay_req_ln_bank_account    prlba
         <where>
@@ -863,6 +870,14 @@
     <update id="updateCshPaymentReqLnBankAccountByLn" parameterType="com.hand.hls.csh.dto.CshPaymentReqLnBankAccount">
         update csh_pay_req_ln_bank_account ba
           set ba.payment_status= #{paymentStatus}
-        where ba.payment_req_ln_id=#{paymentReqLnId}
+        <where>
+            1=1
+            <if test="paymentReqLnId!=null">
+                and ba.payment_req_ln_id=#{paymentReqLnId}
+            </if>
+            <if test="refundId != null">
+                and ba.refund_id = #{refundId}
+            </if>
+        </where>
     </update>
 </mapper>

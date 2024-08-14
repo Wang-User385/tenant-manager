@@ -122,6 +122,8 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         newContract.setLeaseItemAmount(newContract.getFinanceAmount());
         //获取产品线罚息率
         newContract.setPenaltyRate(prjProject.getPenaltyRate());
+        newContract.setRiskAssistantFirst(null);//合同阶段风控初审需要重置
+        newContract.setRiskHost(null);//合同阶段风控复核需要重置
         hlsCusConContractMapper.insertSelective(newContract);
         //step2 创建合同现金流
         HlsCusPrjQuotationCashflow prjQuoCashflow = new HlsCusPrjQuotationCashflow();

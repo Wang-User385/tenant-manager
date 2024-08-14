@@ -24,6 +24,7 @@
         <result column="write_off_due_amount" property="write_off_due_amount"/>
         <result column="write_off_principal" property="write_off_principal"/>
         <result column="write_off_interest" property="write_off_interest"/>
+        <result column="manufacturer_name" property="manufacturerName" jdbcType="VARCHAR"/>
 
         <result column="contract_id" property="contractId"/>
         <result column="contract_name" property="contractName"/>
@@ -47,7 +48,17 @@
 
     <select id="creditQuery" parameterType="com.hand.hls.csh.dto.CshAllocationCredit" resultMap="BaseResultMap">
 
-        SELECT t1.*
+        SELECT t1.*,
+        (
+        SELECT
+        hbv.bp_name
+        FROM
+        hls_bp_master hbv,
+        PRJ_PROJECT pp
+        WHERE
+        pp.PROJECT_NUMBER = t1.CONTRACT_NUMBER AND
+        hbv.bp_id =  pp.manufacturer_id
+        ) manufacturer_name
         FROM (SELECT
         cac.credit_id,
         cac.allocation_id,

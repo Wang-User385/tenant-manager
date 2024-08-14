@@ -14,4 +14,6 @@ public interface CshTransactionRefundLnMapper extends Mapper<CshTransactionRefun
   * @return
   */
  List<CshTransactionRefundLn> refundPayLineDetail(CshTransactionRefundLn cshTransactionRefundLn);
+
+ void updatePaymentAmount(CshTransactionRefundLn cshTransactionRefundLn);
 }

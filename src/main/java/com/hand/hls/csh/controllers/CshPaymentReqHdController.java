@@ -16,7 +16,9 @@ import com.hand.hls.atm.dto.FndAttachmentMulti;
 import com.hand.hls.common.components.HlsWordToPdfComponent;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.csh.dto.HlsCusCshPaymentReqHd;
+import com.hand.hls.csh.dto.HlsCusCshTransactionRefund;
 import com.hand.hls.csh.service.CshPaymentReqHdService;
+import com.hand.hls.csh.service.CshTransactionRefundService;
 import com.hand.hls.fin.exception.HlsCusAmountOverException;
 import com.hand.hls.utils.ResMessageException;
 import hls.core.utils.exception.HlsCusException;
@@ -46,6 +48,9 @@ public class CshPaymentReqHdController extends BaseController {
 	private HlsWordToPdfComponent hlsWordToPdfComponent;
 
 	private Logger logger = LoggerFactory.getLogger(getClass());
+
+	@Autowired
+	private CshTransactionRefundService cshTransactionRefundService;
 
 	public CshPaymentReqHdController() {
 	}
@@ -317,6 +322,19 @@ public class CshPaymentReqHdController extends BaseController {
 		List<HlsCusCshPaymentReqHd> result = new ArrayList<>();
 		result.add(this.service.selectByPrimaryKey(requestContext, metadataRelation));
 		return new ResponseData(result);
+	}
+
+	@RequestMapping(value = "/cah/refund/cancel")
+	@ResponseBody
+	public ResponseData updateRefundPayment(String refundId, String paymentRefundStatus, HttpServletRequest request,HttpServletResponse response) throws com.hand.hls.exception.HlsCusException {
+		IRequest requestContext = createRequestContext(request);
+		Map<String, Object> response1 = new HashMap<String, Object>();
+		RequestHelper.setCurrentRequest(requestContext);
+		HlsCusCshTransactionRefund hlsCusCshTransactionRefund = new HlsCusCshTransactionRefund();
+		hlsCusCshTransactionRefund.setRefundId(Long.parseLong(refundId));
+		hlsCusCshTransactionRefund.setPaymentRefundStatus(paymentRefundStatus);
+		cshTransactionRefundService.updateByPrimaryKeySelective(requestContext,hlsCusCshTransactionRefund);
+		return new ResponseData(true, "取消成功!");
 	}
 
 

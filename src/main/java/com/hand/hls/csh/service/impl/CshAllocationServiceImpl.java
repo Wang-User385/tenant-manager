@@ -19,6 +19,7 @@ import com.hand.hls.csh.service.ICshAllocationService;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.utils.HlsCusMathUtil;
 import com.hand.hls.utils.ResMessageException;
+import hls.core.utils.exception.HlsCusException;
 import net.logstash.logback.encoder.org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -176,7 +177,7 @@ public class CshAllocationServiceImpl extends BaseServiceImpl<CshAllocation> imp
     }
 
     @Override
-    public List<CshAllocation> autoAllocation(IRequest iRequest, String transactionIdStr) throws ResMessageException, ParseException {
+    public List<CshAllocation> autoAllocation(IRequest iRequest, String transactionIdStr) throws ResMessageException, ParseException,HlsCusException {
 
         List<Long> transactionIdS = new ArrayList<>();
 
@@ -193,7 +194,9 @@ public class CshAllocationServiceImpl extends BaseServiceImpl<CshAllocation> imp
 
         //校验 收款流水未反冲、未核销、未退款才能参与自动分配
         transactionCheck(cshTransactionList);
-
+        if (cshTransaction.getBpId() == null){
+            throw  new HlsCusException("没有收款对象无法自动匹配债权");
+        }
         //按照收款对象分组
         Set<Long> bpIdSet = cshTransactionList.stream().collect(Collectors.groupingBy(HlsCusCshTransaction::getBpId)).keySet();
 
