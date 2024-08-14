@@ -71,6 +71,10 @@ public class HlsCusConContract extends ConContract {
     @Transient
     private String factoryBpName;
     @Transient
+    private String alipayStatus;//代扣签约状态
+    @Transient
+    private String alipayStatusN;//代扣签约状态
+    @Transient
     private String venderBpName;
     @Transient
     private String sellerBpName;

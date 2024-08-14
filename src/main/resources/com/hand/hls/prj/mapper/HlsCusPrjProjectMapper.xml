@@ -428,6 +428,7 @@
         <result column="manufacturer_id" property="manufacturerId" jdbcType="VARCHAR"/>
         <result column="penetrate_id" property="penetrateId" jdbcType="VARCHAR"/>
         <result column="alipay_status" property="alipayStatus" jdbcType="VARCHAR"/>
+        <result column="alipay_status_n" property="alipayStatusN" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="prjHomePageGetAllStatusProjectCountMap" type="java.util.Map">
@@ -9500,6 +9501,8 @@ WHERE
         <result column="lease_item_type_n" property="lease_item_type_n"/>
         <result column="investment_instance_id" property="investment_instance_id"/>
         <result column="approved_date" property="approved_date"/>
+        <result column="alipay_status_n" property="alipayStatusN"/>
+        <result column="alipay_status" property="alipayStatus"/>
     </resultMap>
 
     <!--项目报告维护-->
@@ -9876,7 +9879,9 @@ WHERE
         FROM sys_code_value_b v, sys_code_b b
         WHERE b.CODE = 'PRODUCT.LEASE_ITEM_TYPE'
         AND v.code_id = b.code_id
-        AND v. VALUE = pp.lease_item_type) lease_item_type_n
+        AND v. VALUE = pp.lease_item_type) lease_item_type_n,
+        (coalesce((select v.meaning from sys_code_value_b_v v where
+        v.code='PRJ.ALIPAY_STATUS' and v.code_value=alipay_status),'未签约')) AS alipay_status_n
         FROM
         prj_project pp
         LEFT JOIN hls_bp_master hbm ON pp.TENANT_ID = hbm.bp_id

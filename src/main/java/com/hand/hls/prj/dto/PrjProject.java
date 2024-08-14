@@ -59,8 +59,11 @@ public class PrjProject extends BaseDTO {
     private String comprehensiveOpinion;
     private String authorityRuleString;
     private String leaseItemType;
+    private String alipayStatus;
     @Transient
     private List divisionParam;
+    @Transient
+    private String alipayStatusN;//代扣签约状态
     @Transient
     private List prjTypeParam;
     @Transient
