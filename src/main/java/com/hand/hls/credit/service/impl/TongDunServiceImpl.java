@@ -223,7 +223,7 @@ public class TongDunServiceImpl implements TongDunService {
                 throw new HlsCusException(getReturnJson("100001","同盾接口返回参数异常！"));
             }
             if ("Reject".equals(data.getString("finalDecisionCode"))) {
-                prjProject.setProjectStatus("REJECTED");
+//                prjProject.setProjectStatus("REJECTED");
 //                commonLog(responseData, "100001", "E", "同盾正审返回审核失败", hlsWsRequests);
                 prjProject.setConfirmStatus("REJECTED");
                 prjProject.setLastUpdateDate(new Date());
@@ -233,26 +233,26 @@ public class TongDunServiceImpl implements TongDunService {
             if ("Review".equals(data.getString("finalDecisionCode"))) {
                 //同盾接口如果返回谨慎通过，就发起进件正审流程
                 //这里暂未写发起正审流程代码
-                prjProject.setProjectStatus("APPROVING");
+//                prjProject.setProjectStatus("APPROVING");
 //                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
                 prjProject.setConfirmStatus("CAREFUL_APPROVED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
                 return "Review";
             }
+            if ("Accept".equals(data.getString("finalDecisionCode"))) {
+                //同盾接口如果返回通过，就发起进件正审流程
+                //这里暂未写发起正审流程代码
+//                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
+                prjProject.setConfirmStatus("APPROVED");
+                prjProject.setLastUpdateDate(new Date());
+                hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+                return "Accept";
+            }
             responseData.setCode("200");
             responseData.setSuccess(true);
             responseData.setMessage(responseAsString);
             commonLog(responseData, "S", hlsWsRequests);
-//            if ("Accept".equals(data.getString("finalDecisionCode"))) {
-//                //同盾接口如果返回通过，就发起进件正审流程
-//                //这里暂未写发起正审流程代码
-//                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
-//                prjProject.setConfirmStatus("APPROVED");
-//                prjProject.setLastUpdateDate(new Date());
-//                hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
-//                return "Accept";
-//            }
         } catch (Exception e) {
             responseData.setCode("400");
             responseData.setSuccess(false);
@@ -263,9 +263,9 @@ public class TongDunServiceImpl implements TongDunService {
 //        prjProject.setProjectStatus("APPROVED");
 //        prjProject.setApprovedDate(new Date());
 //        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
-        prjProject.setConfirmStatus("APPROVED");
-        prjProject.setLastUpdateDate(new Date());
-        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+//        prjProject.setConfirmStatus("APPROVED");
+//        prjProject.setLastUpdateDate(new Date());
+//        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
         return "Accept";
     }
 

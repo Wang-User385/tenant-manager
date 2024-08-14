@@ -19,6 +19,7 @@ import java.util.Map;
 public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMapper<HlsCusCshTransactionRefund> {
     /**
      * 二期功能：退款申请创建tab页查询
+     *
      * @param transactionRefund
      * @return
      */
@@ -26,12 +27,15 @@ public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMa
 
     /**
      * 二期功能：退款申请维护tab页查询
+     *
      * @param transactionRefund
      * @return
      */
     List<HlsCusCshTransactionRefund> modifyHomeQuery(HlsCusCshTransactionRefund transactionRefund);
+
     /**
      * 二期功能：退款明细页面行信息查询
+     *
      * @param transactionRefund
      * @return
      */
@@ -39,6 +43,7 @@ public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMa
 
     /**
      * 二期功能：待支付清单-退款申请 首页查询
+     *
      * @param transactionRefund
      * @return
      */
@@ -47,6 +52,7 @@ public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMa
 
     /**
      * 二期功能：待支付清单-退款申请 支付页面头信息查询
+     *
      * @param transactionRefund
      * @return
      */
@@ -54,6 +60,7 @@ public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMa
 
     /**
      * 二期功能：当前退款申请付款明细现金事务ID
+     *
      * @param refundId
      * @return
      */
@@ -69,4 +76,5 @@ public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMa
 
     List<HlsCusCshTransactionRefund> cshPaymentTransactionRefundQuery(HlsCusCshTransactionRefund cshTransactionRefund);
 
+    Map refundPayHeadInfo(HlsCusCshTransactionRefund cshTransactionRefund);
 }

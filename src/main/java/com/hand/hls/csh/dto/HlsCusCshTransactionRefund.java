@@ -186,4 +186,6 @@ public class HlsCusCshTransactionRefund extends CshTransactionRefund{
     private String bpType;  //对象类别
     @Transient
     private String bpTypeN; //对象类别
+    @Transient
+    private Long paymentBpId;
 }

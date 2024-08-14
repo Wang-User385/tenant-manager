@@ -97,6 +97,7 @@
         <result column="COMPANY_SPV_n" property="companySpvN" jdbcType="VARCHAR"/>
         <result column="bp_type" property="bpType" jdbcType="VARCHAR"/>
         <result column="bp_type_n" property="bpTypeN" jdbcType="VARCHAR"/>
+        <result column="payment_bp_id" property="paymentBpId" jdbcType="BIGINT"/>
 
 
     </resultMap>
@@ -212,6 +213,7 @@
         left join hls_bp_type hbt
         on hbm.bp_type = hbt.bp_type
         where hbm.bp_id = ct.bp_id) as bp_name_category,
+        ct.bp_id payment_bp_id,
         ct.bp_bank_name,
         ct.bp_bank_account_name,
         ct.bp_bank_account_num,
@@ -724,10 +726,11 @@
                      t.creation_date                                                       creation_date_format,
                      (SELECT v.meaning
                       FROM sys_code_value_b_v v
-                      WHERE v.code = 'PAYMENT_REFUND_STATUS'
+                      WHERE v.code = 'PAYMENT_REFUND_STATUS_NEW'
                         AND v.code_value = nvl(t.PAYMENT_REFUND_STATUS, 'NEW'))            payment_refund_status_n
               FROM csh_transaction_refund t
-              WHERE t.REFUND_STATUS = 'APPROVED') t1
+              <!--WHERE t.REFUND_STATUS = 'APPROVED'-->
+                ) t1
         <where>
             <if test="refundStatus != null">
                 and t1.refund_status = #{refundStatus}
@@ -766,6 +769,75 @@
     </select>
 
     <!--二期功能：待支付清单-退款申请 支付页面头信息查询-->
+    <resultMap id="BaseInfoMap" type="map">
+        <result column="refund_id" property="refund_id"/>
+        <result column="transaction_id" property="transaction_id"/>
+        <result column="refund_number" property="refund_number"/>
+        <result column="refund_date" property="refund_date"/>
+        <result column="refund_amount" property="refund_amount"/>
+        <result column="bank_account_id" property="bank_account_id"/>
+        <result column="bank_slip_num" property="bank_slip_num"/>
+        <result column="bp_bank_account_id" property="bp_bank_account_id"/>
+        <result column="payment_method" property="payment_method"/>
+        <result column="payment_method_n" property="payment_method_n"/>
+        <result column="bp_id" property="bp_id"/>
+        <result column="bp_name" property="bp_name"/>
+        <result column="bank_account_num" property="bank_account_num"/>
+        <result column="bank_account_name" property="bank_account_name"/>
+        <result column="bp_bank_account_num" property="bp_bank_account_num"/>
+        <result column="bp_bank_account_name" property="bp_bank_account_name"/>
+        <result column="bp_bank_name" property="bp_bank_name"/>
+        <result column="bp_bank_branch_name" property="bp_bank_branch_name"/>
+    </resultMap>
+    <select id="refundPayHeadInfo" resultMap="BaseInfoMap">
+        select ctr.refund_id,
+               ctr.transaction_id,
+               ctr.refund_number,
+               ctr.refund_date,
+               ctr.refund_amount,
+               ctr.bank_account_id,
+               ctr.bank_slip_num,
+               ctr.bp_bank_account_id,
+               ctr.payment_method,
+                (
+                SELECT scv.meaning
+                FROM sys_code_b scb,
+                sys_code_value_b scv
+                WHERE scb.CODE = 'CSH.PAYMENT_METHOD'
+                AND scb.CODE_ID = scv.CODE_ID
+                and scv.value = ctr.payment_method
+                ) payment_method_n,
+               ctr.bp_id,
+               (select hbm.bp_name
+                from hls_bp_master hbm
+                where hbm.bp_id = ctr.bp_id
+                ) as bp_name,
+               (select cba.bank_account_num
+                from csh_bank_account cba
+                where cba.bank_account_id = ctr.bank_account_id) bank_account_num,
+                (select cba.bank_account_name
+                from csh_bank_account cba
+                where cba.bank_account_id = ctr.bank_account_id) bank_account_name,
+                (select hba.bank_account_num
+                from hls_bp_master_bank_account hba
+                where hba.bank_account_id = ctr.bp_bank_account_id) bp_bank_account_num,
+                (select hba.bank_account_name
+                from hls_bp_master_bank_account hba
+                where hba.bank_account_id = ctr.bp_bank_account_id) bp_bank_account_name,
+                (select hba.bank_full_name
+                from hls_bp_master_bank_account hba
+                where hba.bank_account_id = ctr.bp_bank_account_id) bp_bank_name,
+                (select hba.bank_branch_name
+                from hls_bp_master_bank_account hba
+                where hba.bank_account_id = ctr.bp_bank_account_id) bp_bank_branch_name
+        from csh_transaction_refund ctr
+        <where>
+            <if test="refundId!=null and refundId!=''">
+                and ctr.REFUND_ID=#{refundId}
+            </if>
+        </where>
+
+    </select>
     <select id="refundPayHeadDetail" parameterType="com.hand.hls.csh.dto.HlsCusCshTransactionRefund"
             resultMap="BaseResultMap">
         select ctr.refund_id,
