@@ -342,4 +342,12 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
 
 
     List<HlsCusConContractCashflow> queryConContractCashflowList(@Param("contractId") Long contractId, @Param("times") Long times);
+
+    /**
+     * 查询回购未完全核销期次
+     * @param orderNo
+     * @param dueDate
+     * @return
+     */
+    List<Integer> queryUnReceivedTimesByOrderNo(@Param("orderNo")String orderNo,@Param("dueDate")Date dueDate);
 }

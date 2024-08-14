@@ -1183,6 +1183,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         //正审通过后，不允许再传风控数据
         if("APPROVED".equals(hlsCusPrjProject.getProjectStatus())){
+            returnJson.put("code", "100101");
             returnJson.put("message","正审已通过，不允许采集风控审核相关数据");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1199,6 +1200,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 bpMaster.setDateOfBirth(dateOfBirth);//出生日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","出生日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1230,6 +1232,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 bpMaster.setDriverLicenseDeadline(driverLicenseDeadline);//驾照截止日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","驾照截止日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1281,6 +1284,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 bpMaster.setDateOfBirthSp(dateOfBirthSp);//配偶出生日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","配偶出生日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1327,6 +1331,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 leaseItem.setFirstRegistrationDate(firstRegistrationDate);//首次登记日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","首次登记日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1336,6 +1341,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 leaseItem.setTransferRegistrationDate(transferRegistrationDate);//转让登记日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","转让登记日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1348,6 +1354,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 leaseItem.setFirstPlateDate(firstPlateDate);//首次上牌日
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","首次上牌日格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1381,6 +1388,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 leaseItemMortgages.setLastTransfersDate(lastTransfersDate);//上一次抵押登记日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","上一次抵押登记日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1390,6 +1398,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 leaseItemMortgages.setRecentlyTransfersDate(recentlyTransfersDate);//最近一次解押日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","最近一次解押日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1404,6 +1413,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 leaseItemInsurance.setCompulsoryEndDate(compulsoryEndDate);//交强险到期日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","交强险到期日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1414,6 +1424,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 leaseItemInsurance.setVehicleEndDate(vehicleEndDate);//车损险到期日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","车损险到期日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1424,6 +1435,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 leaseItemInsurance.setThirdEndDate(thirdEndDate);//第三者责任险到期日期
             }
         } catch (ParseException e) {
+            returnJson.put("code", "100001");
             returnJson.put("message","第三者责任险到期日期格式错误");
             throw new HlsCusException(returnJson.toJSONString());
         }
@@ -1518,8 +1530,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //step3: 订单是否存在
         HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(dataAcquisitionDTO.getOrderNo());
         if (hlsCusPrjProject==null){
-            returnJson.put("code","100101");
-            returnJson.put("message","订单不存在");
+            returnJson.put("code","100003");
+            returnJson.put("message","订单不存在 或者订单不属于当前操作者");
             throw new HlsCusException(returnJson.toJSONString());
         }
 
@@ -2221,6 +2233,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         //查询出需要回购的现金流数据
         List<HlsCusConContractCashflow> queryUnReceivedByOrderNoList = conContractCashflowMapper.queryUnReceivedByOrderNo(orderNo,dueDate);
+        //查询出未到期的期次
+        List<Integer> queryUnReceivedTimesByOrderNoList = conContractCashflowMapper.queryUnReceivedTimesByOrderNo(orderNo,dueDate);
         if (ObjectUtils.isEmpty(queryUnReceivedByOrderNoList)){
             return null;
         }
@@ -2272,6 +2286,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
 
         }
+        //放入未到期的期次
+        for (Integer UnReceivedTime : queryUnReceivedTimesByOrderNoList){
+            termNos.add(UnReceivedTime);
+        }
+
         conContractCashflow.setDueDate(date);
         conContractCashflow.setTimes(times);
         conContractCashflow.setCalcDate(date);

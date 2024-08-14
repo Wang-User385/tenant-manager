@@ -9128,6 +9128,25 @@ and con.contract_status in
         ccc.times
     </select>
 
+    <select id="queryUnReceivedTimesByOrderNo" resultType="java.lang.Integer">
+        select ccc.TIMES
+        FROM
+            CON_CONTRACT_CASHFLOW ccc
+                LEFT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
+                LEFT JOIN PRJ_PROJECT pp ON pp.project_id = cc.project_id
+        WHERE
+            pp.PROJECT_NUMBER = #{orderNo}
+          AND nvl( ccc.WRITE_OFF_FLAG, 'NOT' ) != 'FULL'
+          AND ccc.due_amount - nvl( RECEIVED_AMOUNT, 0 ) > 0
+          AND trunc( ccc.due_date ) > trunc( #{dueDate} )
+          AND ccc.cf_item in (1,9)
+          AND NOT EXISTS (
+                select 1 from CON_CONTRACT_CASHFLOW cf WHERE cf.contract_id = cc.contract_id AND cf.cf_item in (11,13)
+            )
+        ORDER BY
+            ccc.times
+    </select>
+
     <update id="updateCashflowBlock" parameterType="java.lang.Long">
         UPDATE CON_CONTRACT_CASHFLOW ccc
         SET CF_STATUS = 'BLOCK'
