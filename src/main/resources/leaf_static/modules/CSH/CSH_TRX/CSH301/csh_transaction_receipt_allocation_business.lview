@@ -19,12 +19,17 @@
         <a:link id="csh_transaction_receipt_allocation_business_multilov_link_id"
                 url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_business_multilov.lview"/>
 
+        <a:link id="csh301_transaction_receipt_allocation_confirm_link"
+                url="${/request/@context_path}/csh/write/off/allocation/confirm"/>
 
         <script type="text/javascript"><![CDATA[
 
         var WRITE_OFF_TYPE = 'RECEIPT_CREDIT';
 
         var multilovDatas;
+
+        var flag_W = false;
+
 
         function before_select_event(tabPanel, index, tab) {
             if (index === 0) {
@@ -64,6 +69,7 @@
         }
 
         function csh301_transaction_receipt_allocation_receipt_add() {
+            flag_W = false;
             $('csh_transaction_allocation_receipt_grid_id').showEditorByRecord($('csh_transaction_allocation_receipt_ds').create());
         }
 
@@ -99,6 +105,7 @@
         }
 
         function csh301_transaction_receipt_allocation_receipt_delete() {
+            flag_W = false;
             //释放 剩余可核销金额汇总
             var ds = $('csh_transaction_allocation_receipt_ds');
             var head_ds = $('csh_transaction_allocation_ds');
@@ -122,7 +129,8 @@
             //$('csh_transaction_allocation_credit_grid_id').showEditorByRecord($('csh_transaction_allocation_credit_ds').create());
             //二期功能：核销债权改为弹窗支持多选
             // 新增时排除之前选择的现金流
-            debugger
+            flag_W = false;
+            debugger;
             var ds = $('csh_transaction_allocation_credit_ds');
             var records = ds.getAll();
             var mutlilov_not_cashflow_ids_str = '';
@@ -181,6 +189,7 @@
         }
 
         function csh301_transaction_receipt_allocation_credit_delete() {
+            flag_W = false;
             //释放 债权剩余待核销金额汇总
             var ds = $('csh_transaction_allocation_credit_ds');
             var head_ds = $('csh_transaction_allocation_ds');
@@ -202,6 +211,7 @@
         //核销匹配确认
         function csh301_transaction_receipt_allocation_save() {
             debugger;
+            flag_W = true;
             //收款
             var receipt_ds = $('csh_transaction_allocation_receipt_ds');
             //债权
@@ -561,6 +571,7 @@
         }*/
 
         function csh301_transaction_receipt_allocation_advance_add() {
+            flag_W = false;
             var ds = $('csh_transaction_allocation_advance_ds');
             var records = ds.getAll();
             if (records.length > 0) {
@@ -575,7 +586,7 @@
         }
 
         function csh301_transaction_receipt_allocation_advance_delete() {
-
+            flag_W = false;
             //释放 债权剩余待核销金额汇总
             var ds = $('csh_transaction_allocation_advance_ds');
             var head_ds = $('csh_transaction_allocation_ds');
@@ -628,16 +639,21 @@
 
         //确认核销按钮
         function csh301_transaction_receipt_allocation_confirm() {
-
             debugger;
+            if (!flag_W){
+                Leaf.showInfoMessage('提示','请保存数据后再核销');
+                return;
+            }
             //收款
             var receipt_ds = $('csh_transaction_allocation_receipt_ds');
             var records = receipt_ds.getAll();
-
             //债权
             var credit_ds = $('csh_transaction_allocation_credit_ds');
             var credit_records = credit_ds.getAll();
-
+            if (credit_records.length == 0){
+                Leaf.showInfoMessage('提示','请添加债权数据后再核销');
+                return;
+            }
             credit_records.forEach(function (record) {
                 record.dirty = true;
             });

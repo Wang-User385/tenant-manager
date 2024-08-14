@@ -1798,6 +1798,31 @@
         ELSE
         'CHECK'
         END match_status,
+        nvl( t.transaction_amount, 0 ) - nvl( t.write_off_amount, 0 ) - nvl(
+        nvl(( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ),
+        0
+        ) - nvl(
+        ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = t.transaction_id ),
+        0
+        ),0) remaining_amount ,
+
+        (
+        CASE
+
+        WHEN (
+        SELECT
+        COUNT( 1 )
+        FROM
+        csh_allocation ca,
+        csh_allocation_receipt car
+        WHERE
+        car.transaction_id = t.transaction_id
+        AND ca.allocation_id = car.allocation_id
+        AND ca.allocation_status = 'N'
+        ) = 0 THEN
+        '否' ELSE '是'
+        END
+        ) allocation_flag_n,
         nvl(t.transaction_amount, 0) - nvl(t.write_off_amount, 0) AS un_write_off_amount_pre,
         cba.bank_account_name,
         cba.bank_account_num,
@@ -1918,8 +1943,50 @@
                 and (ttt1.reversed_flag = 'N' AND 'Y' = #{canRefund} and ttt1.is_allocation_flag = '否' and ttt1.write_off_flag
                 != 'FULL')
             </if>
-            <if test="isAllocationFlag!=null">
-                and   ttt1.is_allocation_flag = #{isAllocationFlag}
+<!--            <if test="isAllocationFlag!=null">-->
+<!--                and   ttt1.is_allocation_flag = #{isAllocationFlag}-->
+<!--            </if>-->
+            <if test="isAllocationFlagN != null">
+                and  ( case when (select COUNT(1) from csh_allocation ca,csh_allocation_receipt car where car.transaction_id =
+                ttt1.transaction_id and ca.allocation_id = car.allocation_id and ca.allocation_status =
+                'N') = 0 then '否' else '是' end )  = #{isAllocationFlagN}
+            </if>
+            <if test="remainingAmountFrom != null">
+                and   (nvl( ttt1.transaction_amount, 0 ) - nvl( ttt1.write_off_amount, 0 ) - nvl(
+                ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
+                0
+                ) - nvl(
+                ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
+                0
+                )) >= #{remainingAmountFrom}
+            </if>
+            <if test="remainingAmountTo != null">
+                and   (nvl( ttt1.transaction_amount, 0 ) - nvl( ttt1.write_off_amount, 0 ) - nvl(
+                ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
+                0
+                ) - nvl(
+                ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
+                0
+                )) &lt;= #{remainingAmountTo}
+            </if>
+            <if test="allocationFlagN != null">
+                and  (
+                CASE
+
+                WHEN (
+                SELECT
+                COUNT( 1 )
+                FROM
+                csh_allocation ca,
+                csh_allocation_receipt car
+                WHERE
+                car.transaction_id = ttt1.transaction_id
+                AND ca.allocation_id = car.allocation_id
+                AND ca.allocation_status = 'N'
+                ) = 0 THEN
+                '否' ELSE '是'
+                END
+                )  = #{allocationFlagN}
             </if>
 
         </where>
@@ -2179,7 +2246,7 @@
                 ) - nvl(
                 ( SELECT sum( ctr.refund_amount ) FROM csh_transaction_refund ctr WHERE ctr.refund_status = 'APPROVED' AND ctr.transaction_id = ttt1.transaction_id ),
                 0
-                )) &gt;= #{remainingAmountFrom}
+                )) >= #{remainingAmountFrom}
             </if>
             <if test="remainingAmountTo != null">
                 and   (nvl( ttt1.transaction_amount, 0 ) - nvl( ttt1.write_off_amount, 0 ) - nvl(
@@ -2190,10 +2257,13 @@
                 0
                 )) &lt;= #{remainingAmountTo}
             </if>
-            <if test="allocationFlag != null">
-                and (
+            <if test="allocationFlagN != null">
+                and  (
+                CASE
+
+                WHEN (
                 SELECT
-                ca.allocation_status
+                COUNT( 1 )
                 FROM
                 csh_allocation ca,
                 csh_allocation_receipt car
@@ -2201,7 +2271,10 @@
                 car.transaction_id = ttt1.transaction_id
                 AND ca.allocation_id = car.allocation_id
                 AND ca.allocation_status = 'N'
-                ) = #{allocationFlag}
+                ) = 0 THEN
+                '否' ELSE '是'
+                END
+                )  = #{allocationFlagN}
             </if>
 
         </where>

@@ -225,9 +225,14 @@ public class TongDunServiceImpl implements TongDunService {
             if ("Reject".equals(data.getString("finalDecisionCode"))) {
 //                prjProject.setProjectStatus("REJECTED");
 //                commonLog(responseData, "100001", "E", "同盾正审返回审核失败", hlsWsRequests);
+
                 prjProject.setConfirmStatus("REJECTED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+                responseData.setCode("200");
+                responseData.setSuccess(true);
+                responseData.setMessage(responseAsString);
+                commonLog(responseData, "S", hlsWsRequests);
                 return "Reject";
             }
             if ("Review".equals(data.getString("finalDecisionCode"))) {
@@ -238,21 +243,24 @@ public class TongDunServiceImpl implements TongDunService {
                 prjProject.setConfirmStatus("CAREFUL_APPROVED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+                responseData.setCode("200");
+                responseData.setSuccess(true);
+                responseData.setMessage(responseAsString);
+                commonLog(responseData, "S", hlsWsRequests);
                 return "Review";
             }
             if ("Accept".equals(data.getString("finalDecisionCode"))) {
                 //同盾接口如果返回通过，就发起进件正审流程
-                //这里暂未写发起正审流程代码
 //                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
                 prjProject.setConfirmStatus("APPROVED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+                responseData.setCode("200");
+                responseData.setSuccess(true);
+                responseData.setMessage(responseAsString);
+                commonLog(responseData, "S", hlsWsRequests);
                 return "Accept";
             }
-            responseData.setCode("200");
-            responseData.setSuccess(true);
-            responseData.setMessage(responseAsString);
-            commonLog(responseData, "S", hlsWsRequests);
         } catch (Exception e) {
             responseData.setCode("400");
             responseData.setSuccess(false);
