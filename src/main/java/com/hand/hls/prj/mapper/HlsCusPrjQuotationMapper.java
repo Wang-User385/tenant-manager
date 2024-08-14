@@ -127,4 +127,5 @@ public interface HlsCusPrjQuotationMapper extends Mapper<HlsCusPrjQuotation> {
 
     List<HlsCusPrjQuotation> selectQuoByProjectId(@Param("projectId") Long projectId);
 
+    void updateLeaseStartDateNUll(@Param("quotationId") Long quotationId);
 }

@@ -1614,6 +1614,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 bpMaster,bpMasterBankAccount,bpMasterSpouse);
 
         //step8: 更新数据
+        //如果起息日为空，传入当前日期去计算报价
+        if(StringUtils.isEmpty(financeInfo.getStartRentDate())){
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+            String formattedDate = formatter.format(new Date());
+            try {
+                prjQuotation.setLeaseStartDate(formatter.parse(formattedDate));
+            } catch (ParseException e) {
+                e.printStackTrace();
+                returnJson.put("code","500");
+                returnJson.put("message","日期格式转化异常，请联系管理员");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
+        }
         hlsCusPrjProject.setRiskInfo(dataAcquisitionDTO.getRiskInfo());//重新赋值风控信息值，设置风控数据时插入的格式错误
         prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         hlsCusPrjQuotationMapper.updateByPrimaryKeySelective(prjQuotation);
@@ -1633,12 +1646,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }else{
             hlsBpSpouseMapper.updateByPrimaryKeySelective(bpMasterSpouse);
         }
-        //如果起息日为空，跳过第9和第10步
-        if(StringUtils.isEmpty(financeInfo.getStartRentDate())){
-            returnJson.put("code","200");
-            returnJson.put("message","数据采集成功");
-            return returnJson.toJSONString();
-        }
+
         //step9: 报价计算
         try{
             prjQuotationCalcService.prjQuotationCalc(prjQuotation.getQuotationId(),iRequest);
@@ -1647,6 +1655,10 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("code","400");
             returnJson.put("message","报价计算异常，请联系管理员");
             throw new HlsCusException(returnJson.toJSONString());
+        }
+        //如果起息日为空，报价计算后将报价表中该字段赋值为空
+        if(StringUtils.isEmpty(financeInfo.getStartRentDate())){
+            hlsCusPrjQuotationMapper.updateLeaseStartDateNUll(prjQuotation.getQuotationId());
         }
 
         //step10：计算后再次比对月还款额
@@ -1961,12 +1973,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }else if ("RE_APPLY_PRE_RISK".equals(action)){
             String s = tongDunService.interlocutoryValid(hlsCusPrjProject.getProjectId(), request, nowTime, creationTime, riskDays, projectStatus);
             if ("Accept".equals(s)){
+                formalWorkFlowSubmit(iRequest, hlsCusPrjProject);
                 returnJson.put("code","200");
-                returnJson.put("message","审核成功");
+                returnJson.put("message","同盾请求接口返回审批通过");
                 return returnJson.toJSONString();
-            }else if ("Reject".equals(s) || "Error".equals(s)){
+            }else if ("Reject".equals(s)){
+                formalWorkFlowSubmit(iRequest, hlsCusPrjProject);
                 returnJson.put("code","200");
-                returnJson.put("message","审核失败");
+                returnJson.put("message","同盾请求接口返回审批拒绝");
+                throw new HlsCusException(returnJson.toJSONString());
+            }else if ("Review".equals(s)){
+                formalWorkFlowSubmit(iRequest, hlsCusPrjProject);
+                returnJson.put("code","200");
+                returnJson.put("message","同盾请求接口返回谨慎通过，已发起进件正审流程");
                 throw new HlsCusException(returnJson.toJSONString());
             }
         }else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
