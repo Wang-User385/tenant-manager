@@ -2470,7 +2470,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         transactionRefund.setActualPaymentDate(hlsCusCshPaymentTran.getTransactionDate());
         CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount1 = new CshPaymentReqLnBankAccount();
         cshPaymentReqLnBankAccount1.setRefundId(refundId);
-        List<CshPaymentReqLnBankAccount> reqLnBankAccounts = cshPaymentReqLnBankAccountMapper.selectCshPaymentReqLnBankAccount(cshPaymentReqLnBankAccount1);
+        List<CshPaymentReqLnBankAccount> reqLnBankAccounts = cshPaymentReqLnBankAccountMapper.selectPaymentReqLnBankAccount(cshPaymentReqLnBankAccount1);
         for (int i = 0; i <reqLnBankAccounts.size() ; i++) {
             cshPaymentReqLnBankAccount1.setCshBankId(reqLnBankAccounts.get(i).getCshBankId());
             cshPaymentReqLnBankAccount1.setPaymentAmount(reqLnBankAccounts.get(i).getActualPaymentAmount());

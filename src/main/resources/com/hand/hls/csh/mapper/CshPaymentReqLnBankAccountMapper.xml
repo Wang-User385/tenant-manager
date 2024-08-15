@@ -834,7 +834,7 @@
                 and scvb.value = t.payment_method)                                                             payment_name_n,
                 t.LN_ID,
                 t.SOURCE_TRANSACTION_ID,
-                tt2.ACTUAL_PAYMENT_DATE,
+                tt1.ACTUAL_PAYMENT_DATE,
                 tt2.CURRENCY_CODE                                                                                 currency,
                 nvl(tt1.CSH_BANK_BRANCH_NAME, tt1.CSH_BANK_ACCOUNT_NAME)                                          CSH_BANK_ACCOUNT_ID_N,
 
@@ -880,4 +880,39 @@
             </if>
         </where>
     </update>
+
+    <select id="selectPaymentReqLnBankAccount" resultMap="BaseResultMap"
+            parameterType="com.hand.hls.csh.dto.CshPaymentReqLnBankAccount">
+        SELECT
+        <include refid="basic_column"/>
+        tt1.actual_payment_date actual_pay_date,
+        nvl(tt1.CSH_BANK_BRANCH_NAME,tt1.CSH_BANK_ACCOUNT_NAME) CSH_BANK_ACCOUNT_ID_N,
+        (select f.rival_account_no
+        from hls_itfc_bank_flow f
+        where f.flow_id=tt1.flow_no
+        and rownum = 1) rival_account_no,
+        (select f.rival_account_no
+        from hls_itfc_bank_flow f
+        where f.flow_id=tt1.flow_no
+        and rownum=1) flow_no_n,
+        (select f.rival_account_name
+        from hls_itfc_bank_flow f
+        where f.flow_id=tt1.flow_no
+        and rownum = 1) rival_account_name,
+        tt1.actual_payment_amount,
+        tt1.payment_amount,
+        tt1.csh_bank_id
+        FROM
+        csh_pay_req_ln_bank_account tt1
+
+        <where>
+            1 = 1
+            <if test="paymentName != null">
+                and tt1.PAYMENT_NAME = #{paymentName}
+            </if>
+            <if test="refundId != null">
+                and tt1.REFUND_ID = #{refundId}
+            </if>
+        </where>
+    </select>
 </mapper>

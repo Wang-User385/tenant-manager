@@ -380,6 +380,21 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 throw new HlsCusException(returnJson.toJSONString());
             }
         }
+        if(hlsCusPrjProject.getOrderStatus().equals("CLOSED")){
+            returnJson.put("code","100101");
+            returnJson.put("message","该项目已关单，请勿重复操作");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        if(hlsCusPrjProject.getOrderStatus().equals("INCEPT")){
+            returnJson.put("code","100101");
+            returnJson.put("message","合同已起租");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
+        if(hlsCusPrjProject.getInvestmentStatus().equals("APPROVING")){
+            returnJson.put("code","100101");
+            returnJson.put("message","该项目在投放审查审批流程中，不允许此操作");
+            throw new HlsCusException(returnJson.toJSONString());
+        }
         //关单后，如果蚂蚁链代扣是签约状态，则需调用取消签约
         if("ACTIVATED".equals(hlsCusPrjProject.getAlipayStatus())){
             iAlipayService.signCancel(hlsCusPrjProject.getProjectId());
