@@ -473,4 +473,10 @@ public class CshWriteOffController extends BaseController {
         return new ResponseData();
     }
 
+    @RequestMapping(value = "/csh/getAllocationId")
+    @ResponseBody
+    public ResponseData getAllocationId(@RequestParam("transactionId")Long transactionId)  {
+        return new ResponseData(cshWriteOffService.getAllocationId(transactionId));
+    }
+
 }

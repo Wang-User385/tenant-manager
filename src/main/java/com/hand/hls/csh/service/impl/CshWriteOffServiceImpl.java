@@ -3672,4 +3672,9 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             //hlsCreditLineService.releaseCredit(iRequest, hlsCusConContract.getCreditLineId(), amount);
         }
     }
+
+    @Override
+    public List<Long> getAllocationId(Long transactionId) {
+        return cshAllocationReceiptMapper.getAllcationId(transactionId);
+    }
 }

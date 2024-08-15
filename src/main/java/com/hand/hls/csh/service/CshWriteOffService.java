@@ -104,4 +104,6 @@ public interface CshWriteOffService extends IBaseService<HlsCusCshWriteOff>, Pro
      * 释放额度
      */
     void releaseCredit(IRequest iRequest, Long cfItem, Long contractId, Double writeOffPrincipal);
+
+    List<Long> getAllocationId(Long transactionId);
 }

@@ -662,10 +662,21 @@
             //预收款
             var advance_ds = $('csh_transaction_allocation_advance_ds');
             var advance_data = advance_ds.getJsonData();
-
             var saveData = [];
+            var ds = $('csh_transaction_allocation_receipt_ds');
+            var records1 = ds.getAll();
+            var transaction_id = records1[0].get('transaction_id');
+            var allocation_id;
+            Leaf.request({
+                url: '${/request/@context_path}/csh/getAllocationId?transactionId='+transaction_id,
+                success: function (res) {
+                    allocation_id = res.result.record[0];
+                },
+                sync: true
+            })
             for (var i = 0; i < records.length; i++) {
                 records[i].set('allocation_source', 'MANUAL');
+                records[i].set('allocation_id', allocation_id);
                 //预收款
                 records[i].data.csh_allocation_advance_list = advance_data;
                 //债权
