@@ -207,7 +207,7 @@
             hd_record.set("can_write_off_amount", can_write_off_amount);
             $('csh_transaction_allocation_credit_grid_id').clear();
         }
-
+        var allocation_id;
         //核销匹配确认
         function csh301_transaction_receipt_allocation_save() {
             debugger;
@@ -295,6 +295,9 @@
                 url: $('csh301_transaction_receipt_allocation_save_link').getUrl(),
                 para: saveData,
                 success: function (res) {
+                    if (res.result.record.length != 0){
+                        allocation_id = res.result.record[0];
+                    }
                     Leaf.SideBar.show({
                         msg: '${l:HLS.SUBMIT_SUCCESS}',
                         duration: 2000
@@ -663,17 +666,17 @@
             var advance_ds = $('csh_transaction_allocation_advance_ds');
             var advance_data = advance_ds.getJsonData();
             var saveData = [];
-            var ds = $('csh_transaction_allocation_receipt_ds');
-            var records1 = ds.getAll();
-            var transaction_id = records1[0].get('transaction_id');
-            var allocation_id;
-            Leaf.request({
-                url: '${/request/@context_path}/csh/getAllocationId?transactionId='+transaction_id,
-                success: function (res) {
-                    allocation_id = res.result.record[0];
-                },
-                sync: true
-            })
+            // var ds = $('csh_transaction_allocation_receipt_ds');
+            // var records1 = ds.getAll();
+            // var transaction_id = records1[0].get('transaction_id');
+            // var allocation_id;
+            // Leaf.request({
+            //     url: '${/request/@context_path}/csh/getAllocationId?transactionId='+transaction_id,
+            //     success: function (res) {
+            //         allocation_id = res.result.record[0];
+            //     },
+            //     sync: true
+            // })
             for (var i = 0; i < records.length; i++) {
                 records[i].set('allocation_source', 'MANUAL');
                 records[i].set('allocation_id', allocation_id);

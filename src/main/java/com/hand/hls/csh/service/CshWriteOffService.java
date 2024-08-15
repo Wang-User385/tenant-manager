@@ -65,7 +65,7 @@ public interface CshWriteOffService extends IBaseService<HlsCusCshWriteOff>, Pro
     void writeOffReversed(IRequest iRequest, List<HlsCusCshWriteOff> cshWriteOffs,HttpSession session) throws Exception;
 
     void allocationConfirm(IRequest iRequest ,List<HlsCusCshTransaction> cshTransactionList,HttpSession session) throws Exception;
-    void allocationSave(IRequest iRequest ,List<HlsCusCshTransaction> cshTransactionList,HttpSession session) throws Exception;
+    List<Long> allocationSave(IRequest iRequest ,List<HlsCusCshTransaction> cshTransactionList,HttpSession session) throws Exception;
 
     void payment(IRequest iRequest, HlsCusCshPaymentTran hlsCusCshPaymentTran, HttpSession session) throws Exception;
 
@@ -105,5 +105,4 @@ public interface CshWriteOffService extends IBaseService<HlsCusCshWriteOff>, Pro
      */
     void releaseCredit(IRequest iRequest, Long cfItem, Long contractId, Double writeOffPrincipal);
 
-    List<Long> getAllocationId(Long transactionId);
 }

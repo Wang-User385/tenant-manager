@@ -454,8 +454,7 @@ public class CshWriteOffController extends BaseController {
             IRequest iRequest = createRequestContext(request);
             JSONArray param = (JSONArray) requestData.get("parameter");
             List<HlsCusCshTransaction> cshTransactionList = param.toJavaList(HlsCusCshTransaction.class);
-            cshWriteOffService.allocationSave(iRequest, cshTransactionList, session);
-            return new ResponseData();
+            return new ResponseData(cshWriteOffService.allocationSave(iRequest, cshTransactionList, session));
         }
     }
 
@@ -473,10 +472,5 @@ public class CshWriteOffController extends BaseController {
         return new ResponseData();
     }
 
-    @RequestMapping(value = "/csh/getAllocationId")
-    @ResponseBody
-    public ResponseData getAllocationId(@RequestParam("transactionId")Long transactionId)  {
-        return new ResponseData(cshWriteOffService.getAllocationId(transactionId));
-    }
 
 }

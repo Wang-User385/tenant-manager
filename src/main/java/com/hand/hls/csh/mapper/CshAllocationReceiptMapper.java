@@ -10,5 +10,4 @@ public interface CshAllocationReceiptMapper extends Mapper<CshAllocationReceipt>
     List<CshAllocationReceipt> receiptQuery(CshAllocationReceipt cshAllocationReceipt);
     List<CshAllocationReceipt> receiptQueryAll(CshAllocationReceipt cshAllocationReceipt);
 
-    List<Long> getAllcationId(@Param("transactionId") Long transactionId);
 }
