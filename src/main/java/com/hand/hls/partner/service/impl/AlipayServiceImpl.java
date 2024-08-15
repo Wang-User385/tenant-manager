@@ -302,7 +302,11 @@ public class AlipayServiceImpl implements IAlipayService {
         HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
         String penetrateId = prjProject.getPenetrateId();
         if(StringUtils.isEmpty(penetrateId)){
-            penetrateId = orderApply(prjProject.getProjectNumber());
+            //系统开关控制是否启用蚂蚁链接口
+            String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","ALIPAY_FLAG");
+            if("Y".equals(flag)){
+                penetrateId = orderApply(prjProject.getProjectNumber());
+            }
             HlsCusPrjProject updateProject = new HlsCusPrjProject();
             updateProject.setProjectId(projectId);
             updateProject.setPenetrateId(penetrateId);
@@ -324,11 +328,21 @@ public class AlipayServiceImpl implements IAlipayService {
 
         //extInfo = loanApply(customerName,userCertNo,penetrateId,"ALIPAYAPP");
         //extInfo = "https://openapi.alipay.com/gateway.do?" + extInfo;//拼接上前缀
-        extInfo = loanApply(customerName,userCertNo,penetrateId,"QRCODE");
+
+        //系统开关控制是否启用蚂蚁链接口
+        String alipayStatus = "";
+        String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","ALIPAY_FLAG");
+        if("Y".equals(flag)){
+            extInfo = loanApply(customerName,userCertNo,penetrateId,"QRCODE");
+            alipayStatus = "TO_BE_APPLIED";
+        }else{
+            extInfo = "*****未启用蚂蚁链接口************";
+            alipayStatus = "ACTIVATED";
+        }
 
         HlsCusPrjProject updateProject = new HlsCusPrjProject();
         updateProject.setProjectId(projectId);
-        updateProject.setAlipayStatus("TO_BE_APPLIED");
+        updateProject.setAlipayStatus(alipayStatus);
         prjProjectMapper.updateByPrimaryKeySelective(updateProject);
 
         return extInfo;
@@ -344,15 +358,19 @@ public class AlipayServiceImpl implements IAlipayService {
         HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
         String alipayStatus = prjProject.getAlipayStatus();
         if(StringUtils.isEmpty(alipayStatus) || "TO_BE_APPLIED".equals(alipayStatus)){
-            String status = loanQuery(prjProject.getPenetrateId());
-            HlsCusPrjProject updateProject = new HlsCusPrjProject();
-            updateProject.setProjectId(projectId);
-            updateProject.setAlipayStatus(status);
-            prjProjectMapper.updateByPrimaryKeySelective(updateProject);
+            //系统开关控制是否启用蚂蚁链接口
+            String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","ALIPAY_FLAG");
+            if("Y".equals(flag)){
+                String status = loanQuery(prjProject.getPenetrateId());
+                HlsCusPrjProject updateProject = new HlsCusPrjProject();
+                updateProject.setProjectId(projectId);
+                updateProject.setAlipayStatus(status);
+                prjProjectMapper.updateByPrimaryKeySelective(updateProject);
 
-            //如果已经代扣签约，则推送消息
-            if("ACTIVATED".equals(status)){
-                messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
+                //如果已经代扣签约，则推送消息
+                if("ACTIVATED".equals(status)){
+                    messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
+                }
             }
         }
     }
@@ -367,13 +385,17 @@ public class AlipayServiceImpl implements IAlipayService {
         HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
         String alipayStatus = prjProject.getAlipayStatus();
         if("ACTIVATED".equals(alipayStatus)){
-            orderCancel(prjProject.getPenetrateId());
-            HlsCusPrjProject updateProject = new HlsCusPrjProject();
-            updateProject.setProjectId(projectId);
-            updateProject.setAlipayStatus("CANCELED");
-            prjProjectMapper.updateByPrimaryKeySelective(updateProject);
-            //代扣解约成功，推送消息
-            messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
+            //系统开关控制是否启用蚂蚁链接口
+            String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","ALIPAY_FLAG");
+            if("Y".equals(flag)){
+                orderCancel(prjProject.getPenetrateId());
+                HlsCusPrjProject updateProject = new HlsCusPrjProject();
+                updateProject.setProjectId(projectId);
+                updateProject.setAlipayStatus("CANCELED");
+                prjProjectMapper.updateByPrimaryKeySelective(updateProject);
+                //代扣解约成功，推送消息
+                messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
+            }
         }
     }
 
@@ -384,7 +406,11 @@ public class AlipayServiceImpl implements IAlipayService {
         String outSeqNo = order.getOutSeqNo();
         String amount = order.getAmount().toString();
         String subject = order.getSubject();
-        paymentApply(penetrateId,outSeqNo,amount,subject);
+        //系统开关控制是否启用蚂蚁链接口
+        String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","ALIPAY_FLAG");
+        if("Y".equals(flag)){
+            paymentApply(penetrateId,outSeqNo,amount,subject);
+        }
         order.setStatus("SENDING");
         alipayOrderMapper.updateByPrimaryKeySelective(order);
     }
@@ -397,7 +423,15 @@ public class AlipayServiceImpl implements IAlipayService {
         //FINISHED 【终态，成功】交易已结算。交易结束，不可退款
         //FAILED  【终态，失败】交易失败。
         AlipayOrderDTO order = alipayOrderMapper.selectByPrimaryKey(orderId);
-        order.setStatus(paymentQuery(order.getOutSeqNo()));
+        String status = "";
+        //系统开关控制是否启用蚂蚁链接口
+        String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","ALIPAY_FLAG");
+        if("Y".equals(flag)){
+            status = paymentQuery(order.getOutSeqNo());
+        }else{
+            status = "SUCCESS";
+        }
+        order.setStatus(status);
         alipayOrderMapper.updateByPrimaryKeySelective(order);
     }
 
