@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.servlet.http.HttpServletRequest;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -83,6 +84,10 @@ public class TongDunServiceImpl implements TongDunService {
     //预审
     @Override
     public String preliminaryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
+        //同盾控制开关
+        if ("Y".equals(hlsCusConContractMapper.getTongDunFlag())){
+            return "Accept";
+        }
         ResponseData responseData = new ResponseData();
         //项目id为空则预审失败
         if (projectId == null) {
@@ -122,18 +127,24 @@ public class TongDunServiceImpl implements TongDunService {
         }
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
-
+        String errorInfo = "请求同盾接口异常";
         HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
         try {
             commonLogHead(hlsWsRequests, "GT_YS_参数详情", param, request);
             HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(YS_URL, param, header);
-            if (200 != httpExecuteResponse.getResponseCode()) {
-                throw new HlsCusException(getReturnJson("100001", "同盾接口请求失败"));
-            }
             String responseAsString = httpExecuteResponse.getResponseAsString();
             JSONObject resp = JSONObject.parseObject(responseAsString);
             JSONObject data = (JSONObject) resp.get("data");
+            errorInfo = data.toString();
+            if (200 != httpExecuteResponse.getResponseCode()) {
+                responseData.setCode("400");
+                responseData.setSuccess(false);
+                responseData.setMessage(data.toString());
+                commonLog(responseData, "E", hlsWsRequests);
+                throw new HlsCusException(getReturnJson("100001", data.toString()));
+            }
+
             //如果是正常返回的data则不会有success字段
             if (data.getBoolean("success") != null) {
                 throw new HlsCusException(getReturnJson("100001", "同盾接口返回参数异常"));
@@ -149,9 +160,9 @@ public class TongDunServiceImpl implements TongDunService {
         } catch (Exception e) {
             responseData.setCode("400");
             responseData.setSuccess(false);
-            responseData.setMessage("请求同盾接口异常");
+            responseData.setMessage(errorInfo);
             commonLog(responseData, "E", hlsWsRequests);
-            throw new HlsCusException(getReturnJson("100001", "请求同盾接口异常"));
+            throw new HlsCusException(getReturnJson("100001", errorInfo));
         }
         hlsCusPrjProject.setPreStatus("APPROVED");
         hlsCusPrjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
@@ -162,6 +173,10 @@ public class TongDunServiceImpl implements TongDunService {
     //正审
     @Override
     public String interlocutoryValid(Long projectId, HttpServletRequest request, long nowTime, long creationTime, long riskDays, String projectStatus) throws HlsCusException {
+        //同盾控制开关
+        if ("Y".equals(hlsCusConContractMapper.getTongDunFlag())){
+            return "Accept";
+        }
         ResponseData responseData = new ResponseData();
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
         //申请风控审核时，校验riskInfo是否为空，空则报错
@@ -208,9 +223,17 @@ public class TongDunServiceImpl implements TongDunService {
         HashMap<String, String> header = new HashMap<>();
         header.put("Content-Type", "application/x-www-form-urlencoded");
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
+        String errorInfo = "同盾接口请求异常";
         try {
             commonLogHead(hlsWsRequests, "GT_ZS_参数详情", param, request);
-            Map<String, String> map = JSONObject.toJavaObject(param, Map.class);
+            Map<String,String> map = new HashMap<>();
+            param.forEach((k,v)->{
+                if (v instanceof BigDecimal){
+                    map.put(k,v.toString());
+                }else {
+                    map.put(k, (String) v);
+                }
+            });
             HttpExecuteResponse httpExecuteResponse = HttpClientUtils.doPost(ZS_URL, map, header);
             if (200 != httpExecuteResponse.getResponseCode()) {
                 throw new HlsCusException(getReturnJson("100001","同盾接口请求失败"));
@@ -218,14 +241,16 @@ public class TongDunServiceImpl implements TongDunService {
             String responseAsString = httpExecuteResponse.getResponseAsString();
             JSONObject resp = JSONObject.parseObject(responseAsString);
             JSONObject data = (JSONObject) resp.get("data");
+            errorInfo = data.toString();
             //如果是正常返回的data则不会有success字段
             if (data.getBoolean("success") != null) {
-                throw new HlsCusException(getReturnJson("100001","同盾接口返回参数异常！"));
+                responseData.setCode("400");
+                responseData.setSuccess(false);
+                responseData.setMessage(data.toString());
+                commonLog(responseData, "E", hlsWsRequests);
+                throw new HlsCusException(getReturnJson("100001",data.toString()));
             }
             if ("Reject".equals(data.getString("finalDecisionCode"))) {
-//                prjProject.setProjectStatus("REJECTED");
-//                commonLog(responseData, "100001", "E", "同盾正审返回审核失败", hlsWsRequests);
-
                 prjProject.setConfirmStatus("REJECTED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
@@ -237,9 +262,6 @@ public class TongDunServiceImpl implements TongDunService {
             }
             if ("Review".equals(data.getString("finalDecisionCode"))) {
                 //同盾接口如果返回谨慎通过，就发起进件正审流程
-                //这里暂未写发起正审流程代码
-//                prjProject.setProjectStatus("APPROVING");
-//                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
                 prjProject.setConfirmStatus("CAREFUL_APPROVED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
@@ -251,7 +273,6 @@ public class TongDunServiceImpl implements TongDunService {
             }
             if ("Accept".equals(data.getString("finalDecisionCode"))) {
                 //同盾接口如果返回通过，就发起进件正审流程
-//                commonLog(responseData, "100001", "S", "同盾正审成功但是有风险（谨慎通过）", hlsWsRequests);
                 prjProject.setConfirmStatus("APPROVED");
                 prjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
@@ -264,16 +285,10 @@ public class TongDunServiceImpl implements TongDunService {
         } catch (Exception e) {
             responseData.setCode("400");
             responseData.setSuccess(false);
-            responseData.setMessage("请求同盾接口异常");
+            responseData.setMessage(errorInfo);
             commonLog(responseData, "E", hlsWsRequests);
-            throw new HlsCusException(getReturnJson("100001","请求同盾接口异常！"));
+            throw new HlsCusException(getReturnJson("100001",errorInfo));
         }
-//        prjProject.setProjectStatus("APPROVED");
-//        prjProject.setApprovedDate(new Date());
-//        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
-//        prjProject.setConfirmStatus("APPROVED");
-//        prjProject.setLastUpdateDate(new Date());
-//        hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
         return "Accept";
     }
 
@@ -353,7 +368,7 @@ public class TongDunServiceImpl implements TongDunService {
         //证件到期日期
         param.put("idexp", parse.format(queryHlsBpMasterDTO.getIdExpirationDate()));
         //逾期信息
-        Map<String,String> queryLateInfo = hlsCusConContractMapper.getQueryLateInfoByProjectId(projectId);
+        Map<String,String> queryLateInfo = hlsCusConContractMapper.getQueryLateInfoByProjectId(bpId);
         //从调用接口开始到一年前逾期4-30天次数
         param.put("last1yearM1count", queryLateInfo.get("last1yearM1count"));
         //从调用接口开始到一年前逾期31-60天次数

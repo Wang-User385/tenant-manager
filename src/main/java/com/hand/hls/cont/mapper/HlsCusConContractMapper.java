@@ -196,5 +196,8 @@ public interface HlsCusConContractMapper extends Mapper<HlsCusConContract> {
 
     HlsCusConContract selectConContractOrderNo(@Param("orderNo") String orderNo);
 
-    Map getQueryLateInfoByProjectId(@Param("projectId") Long projectId);
+    Map getQueryLateInfoByProjectId(@Param("bpId") Long bpId);
+
+    String getTongDunFlag();
+
 }
