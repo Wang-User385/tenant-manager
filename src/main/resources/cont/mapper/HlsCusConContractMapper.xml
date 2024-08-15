@@ -11518,17 +11518,20 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
 
     <resultMap id="PrjProjectAttachQueryMap" type="map">
         <result column="project_id" property="project_id"/>
-        <result column="project_attachment_id" property="contract_attachment_id"/>
+        <result column="project_attachment_id" property="project_attachment_id"/>
+        <result column="contract_attachment_id" property="contract_attachment_id"/>
         <result column="document_name" property="document_name"/>
         <result column="info" property="info"/>
         <result column="upload_person_id" property="upload_person_id"/>
         <result column="file_num" property="file_num"/>
         <result column="contract_id" property="contract_id"/>
         <result column="upload_date" property="upload_date"/>
+        <result column="mortgage_status" property="mortgage_status"/>
     </resultMap>
     <select id="findAttachReview" resultMap="PrjProjectAttachQueryMap">
         Select ppa.project_id,
                ppa.project_attachment_id,
+               ppa.project_attachment_id contract_attachment_id,
                ppa.document_name,
                cc.contract_id,
                ppa.project_attachment_category,
@@ -11650,7 +11653,8 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                 AND faam.table_pk_value = ppa.project_attachment_id
                 AND faa.source_pk_value = faam.record_id
                 AND ROWNUM = 1
-            ) upload_date
+            ) upload_date,
+            cc.mortgage_status
         FROM
             prj_project_attachment ppa,
             con_contract cc
@@ -11658,6 +11662,31 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             cc.contract_id = #{ contractId }
                 AND ppa.project_id = cc.project_id
                 AND ppa.project_attachment_category = 'MORTGAGE'
+    </select>
+
+    <select id="findPledge" resultMap="PrjProjectAttachQueryMap">
+        SELECT
+            ppa.project_id,
+            ppa.project_attachment_id,
+            (
+                SELECT
+                    LISTAGG(file_name,',') WITHIN GROUP (ORDER BY file_name) as document_name
+        FROM
+            fnd_atm_attachment_multi faam,
+            fnd_atm_attachment fat
+        WHERE
+            ppa.project_attachment_id = faam.table_pk_value
+          AND faam.attachment_id = fat.attachment_id
+          AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and ppa.project_attachment_category = 'PLEDGE'  and ppa.project_id = cc.project_id
+            ) document_name,
+            ( SELECT max( m.creation_date ) FROM fnd_atm_attachment_multi m WHERE m.table_name = 'PRJ_PROJECT_ATTACHMENT' AND m.table_pk_value = ppa.project_attachment_id ) upload_date
+        FROM
+            prj_project_attachment ppa,
+            con_contract cc
+        WHERE
+            cc.contract_id = #{ contractId }
+          AND ppa.project_id = cc.project_id
+          AND ppa.project_attachment_category = 'PLEDGE'
     </select>
 
     <select id="findContractByPayPlan"  resultMap="BaseResultMap" parameterType="com.hand.hls.prj.dto.HlsCusPrjProject">
@@ -11726,13 +11755,7 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         WHEN 1 THEN 'NORMAL' WHEN 11 THEN 'ET' WHEN 13 THEN 'REPO' else ''	END ) terminate_type,
         (CASE (SELECT CF_ITEM FROM CON_CONTRACT_CASHFLOW WHERE CONTRACT_ID = cc.CONTRACT_ID AND CF_STATUS  not in ('BLOCK','CANCEL') AND (CF_ITEM in (11,13) OR (CF_ITEM=1 AND WRITE_OFF_FLAG='FUll'))  ORDER BY TIMES DESC FETCH FIRST 1 ROWS ONLY)
         WHEN 1 THEN '正常结清' WHEN 11 THEN '提前结清' WHEN 13 THEN '回购' else ''	END ) terminate_type_n,
-        (coalesce((select v.MEANING
-        from sys_code_value_b_v  v where v.code='PRJ.ALIPAY_STATUS' and v.code_value=(SELECT  alipay_status from(
-        SELECT pp.alipay_status ,pp.project_id
-        FROM prj_project pp
-        WHERE pp.project_id = cc.project_id -- 注意这里使用的是 cc.project_id
-        ORDER BY pp.project_id -- 或者任何其他合适的排序字段
-        ) where ROWNUM &lt;= 1 )),'未签约'))AS alipay_status_n
+        nvl((select v.meaning from sys_code_value_b_v v where v.code='PRJ.ALIPAY_STATUS' and v.code_value= pp.alipay_status),'未签约') as alipay_status_n
         FROM con_contract cc
         LEFT JOIN prj_project pp ON cc.project_id = pp.project_id
         ) t
@@ -11770,26 +11793,21 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         = cc.lease_item_type ) lease_item_type_n,
         cc.division,
         (SELECT d.description FROM hls_division d WHERE d.division = cc.division ) division_n,
-        (select finance_amount from prj_quotation q where source_document_category = 'CON_CONTRACT' and
-        q.source_document_id = cc.contract_id) finance_amount,
-        (select lease_times from prj_quotation q where q.source_document_category = 'CON_CONTRACT' and
-        q.source_document_id=cc.contract_id) lease_times,
-        cc.inception_of_lease,
-        cc.lease_end_date,
+        (select finance_amount from prj_quotation q where source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id = pp.PROJECT_ID) finance_amount,
+        (select lease_times from prj_quotation q where q.source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id=pp.PROJECT_ID) lease_times,
+        (select LEASE_START_DATE from prj_quotation q where q.source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id=pp.PROJECT_ID) inception_of_lease,
+        (select lease_end_date from prj_quotation q where source_document_category = 'PRJ_PROJECT' and
+        q.source_document_id = pp.PROJECT_ID) lease_end_date,
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.PLEDGE_FLAG' AND sc.CODE_VALUE
         = cc.pledge_flag ) pledge_flag_n,
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CON.ZDW_REGISTER_STATUS' AND sc.CODE_VALUE
         = cc.zdw_register_status ) zdw_register_status_n,
         (SELECT fe.NAME FROM FND_EMPLOYEE fe WHERE fe.EMPLOYEE_ID = cc.EMPLOYEE_ID ) employee_id_n,
-        (coalesce((select v.MEANING
-        from sys_code_value_b_v  v where v.code='PRJ.ALIPAY_STATUS' and v.code_value=(SELECT  alipay_status from(
-        SELECT pp.alipay_status ,pp.project_id
-        FROM prj_project pp
-        WHERE pp.project_id = cc.project_id -- 注意这里使用的是 cc.project_id
-        ORDER BY pp.project_id -- 或者任何其他合适的排序字段
-        ) where ROWNUM &lt;= 1 )),'未签约'))AS alipay_status_n
-
-        from con_contract cc
+        nvl((select v.meaning from sys_code_value_b_v v where v.code='PRJ.ALIPAY_STATUS' and v.code_value= pp.alipay_status),'未签约') as alipay_status_n
+        from con_contract cc INNER JOIN prj_project pp ON cc.project_id = pp.project_id
         <where>
             <if test="contractNumber != null and contractNumber != ''">
                 and   cc.contract_number like concat(concat('%',#{contractNumber}),'%')
@@ -11819,6 +11837,56 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         where cc.contract_number = #{orderNo}
     </select>
 
+    <resultMap id="lateMap" type="java.util.Map">
+        <result column="last1yearM1count" property="last1yearM1count"/>
+        <result column="last1yearM2count" property="last1yearM2count"/>
+        <result column="last1YearCount" property="last1YearCount"/>
+    </resultMap>
+    <select id="getQueryLateInfoByProjectId" resultMap="lateMap">
+        SELECT
+        COUNT( cc.contract_id ) last1YearCount,
+        nvl(
+        SUM( CASE WHEN ( ccc.overdue_max_days IS NOT NULL AND ccc.overdue_max_days >= 4 AND ccc.overdue_max_days <![CDATA[ <= ]]> 30 ) THEN 1 ELSE 0 END ),
+        0
+        ) last1yearM1count,
+        nvl(
+        SUM( CASE WHEN ( ccc.overdue_max_days IS NOT NULL AND ccc.overdue_max_days >= 31 AND ccc.overdue_max_days <![CDATA[ <= ]]> 60 ) THEN 1 ELSE 0 END ),
+        0
+        ) last1yearM2count
+        FROM
+        con_contract cc
+        INNER JOIN con_contract_cashflow ccc ON cc.contract_id = ccc.contract_id
+        WHERE
+        ccc.cf_item = 9 and
+        cc.PROJECT_ID IN ( SELECT pp.project_id FROM PRJ_PROJECT pp WHERE pp.tenant_id = #{ bpId } ) and ccc.cf_status != 'BLOCK'
+        AND (
+        SELECT
+        h.actual_pay_date
+        FROM
+        csh_payment_req_hd h,
+        csh_payment_req_ln l,
+        con_contract_cashflow cf
+        WHERE
+        h.payment_req_id = l.payment_req_id
+        AND l.source_doc_category = 'CON_CONTRACT'
+        AND l.source_doc_id = cf.contract_id
+        AND l.source_doc_line_id = cf.cashflow_id
+        AND cf.contract_id = cc.contract_id
+        )  >= (SYSDATE - interval '1' year) AND (
+        SELECT
+        h.actual_pay_date
+        FROM
+        csh_payment_req_hd h,
+        csh_payment_req_ln l,
+        con_contract_cashflow cf
+        WHERE
+        h.payment_req_id = l.payment_req_id
+        AND l.source_doc_category = 'CON_CONTRACT'
+        AND l.source_doc_id = cf.contract_id
+        AND l.source_doc_line_id = cf.cashflow_id
+        AND cf.contract_id = cc.contract_id
+        ) <![CDATA[ <= ]]> SYSDATE
 
+    </select>
 
 </mapper>
