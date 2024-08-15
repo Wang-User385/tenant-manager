@@ -162,7 +162,11 @@ public class TongDunServiceImpl implements TongDunService {
     @Override
     public String interlocutoryValid(Long projectId, HttpServletRequest request, long nowTime, long creationTime, long riskDays, String projectStatus) throws HlsCusException {
         //同盾控制开关
+        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
         if (!"Y".equals(hlsCusConContractMapper.getTongDunFlag())) {
+            prjProject.setConfirmStatus("APPROVED");
+            prjProject.setLastUpdateDate(new Date());
+            hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
             return "Accept";
         }
         ResponseData responseData = new ResponseData();
@@ -174,7 +178,7 @@ public class TongDunServiceImpl implements TongDunService {
         JSONObject param = JSONObject.parseObject(jsonString);
         param.remove("dealerid");
         param.remove("dealername");
-        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
+
         if (!prjProject.getPreStatus().equals("APPROVED")) {
             throw new HlsCusException(getReturnJson("100101", "该进件项目未通过预审，请先申请风控预审"));
         }
