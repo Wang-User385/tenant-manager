@@ -26,6 +26,9 @@ public class PrjProjectFormalServiceTask implements JavaDelegate, IActivitiBean 
     @Autowired
     IYLMessageNoticeService messageNoticeService;
 
+    @Autowired
+    IYLMessageNoticeService iylMessageNoticeService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void execute(DelegateExecution execution) {
@@ -43,6 +46,7 @@ public class PrjProjectFormalServiceTask implements JavaDelegate, IActivitiBean 
             hlsCusPrjProject.setProjectStatus("REJECTED");
             hlsCusPrjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
         }
+        iylMessageNoticeService.orderAuditResult(projectId,"PRE_RISK",requestCtx);
 
 
 
