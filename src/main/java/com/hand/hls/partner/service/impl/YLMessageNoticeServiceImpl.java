@@ -5,6 +5,7 @@ import com.hand.hap.core.IRequest;
 import com.hand.hap.core.mq.HDRabbitMqConfiguration;
 import com.hand.hap.core.mq.YLRabbitMqConfiguration;
 import com.hand.hls.partner.dto.*;
+import com.hand.hls.partner.mapper.AlipayOrderMapper;
 import com.hand.hls.partner.mapper.LeasingNoticeMapper;
 import com.hand.hls.partner.service.ILeasingNoticeService;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
@@ -39,6 +40,9 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
 
     @Autowired
     private HlsCusPrjProjectMapper prjProjectMapper;
+    @Autowired
+    private AlipayOrderMapper alipayOrderMapper;
+
 
     /**
      * 易靓审核结果通知
@@ -360,7 +364,11 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
      * @param iRequest
      */
     private void noticePush(String exchangeName,LeasingNotice leasingNotice, String routingKey, Object msg, IRequest iRequest) {
-        rabbitTemplate.convertAndSend(exchangeName, routingKey, JSON.toJSONString(msg));
+        //系统开关控制是否启用消息通知
+        String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","NOTICE_FLAG");
+        if("Y".equals(flag)){
+            rabbitTemplate.convertAndSend(exchangeName, routingKey, JSON.toJSONString(msg));
+        }
         leasingNotice.setDescription("消息推送成功！");
         leasingNotice.setNoticeStatus("SUCCESS");
         leasingNoticeService.insertNoticeMsg(iRequest, leasingNotice);
