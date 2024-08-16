@@ -309,6 +309,8 @@ public class HlsCusConContract extends ConContract {
 
     private Double pmt;
 
+    private Double plusFinanceAmount;
+
     private Double pmtFirst;
 
     private Double annualMeanRate;
