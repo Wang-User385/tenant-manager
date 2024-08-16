@@ -696,6 +696,8 @@ public class HlsCusPrjQuotation extends PrjQuotation {
     private Double vatRateRepay;
     private Double surplusAmount;
 
+    private Double plusFinanceAmount; //加融项金额 (分)
+
     private String rentalDiscountTimes;
     @Transient
     private String rentalDiscountTimesN;

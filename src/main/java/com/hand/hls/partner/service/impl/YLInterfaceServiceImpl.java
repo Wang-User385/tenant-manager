@@ -969,6 +969,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             message.append("剩余车辆价款(分) ");
         }
 
+        double plusFinanceAmount = Double.parseDouble(financeInfo.getPlusFinanceAmount())/100;
+        double prjPlusFinanceAmount = prjQuotation.getPlusFinanceAmount();
+        if(Double.compare(plusFinanceAmount,prjPlusFinanceAmount) != 0){
+            message.append("加融项金额(分) ");
+        }
+
         if(StringUtils.isNotEmpty(message)){
             JSONObject returnJson = new JSONObject();
             returnJson.put("code","100101");
@@ -1025,6 +1031,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         leaseItem.setSellingPrice(Double.valueOf(financeInfo.getCarSalePrice())/100);//车辆售价(分)
         prjQuotation.setFinanceAmount(Double.valueOf(financeInfo.getApplyLoanAmount())/100);//申请融资额(分)
         prjQuotation.setSurplusAmount(Double.valueOf(financeInfo.getCarRestPrice())/100);//剩余车辆价款(分)
+        prjQuotation.setPlusFinanceAmount(Double.valueOf(financeInfo.getPlusFinanceAmount())/100);//加融项金额 (分)
         try {
             if(StringUtils.isNotEmpty(financeInfo.getStartRentDate())){
                 Date startRentDate = simpleDateFormat.parse(financeInfo.getStartRentDate());
