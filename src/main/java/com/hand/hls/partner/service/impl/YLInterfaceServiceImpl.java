@@ -390,7 +390,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             returnJson.put("message","合同已起租");
             throw new HlsCusException(returnJson.toJSONString());
         }
-        if(hlsCusPrjProject.getInvestmentStatus().equals("APPROVING")){
+        if(hlsCusPrjProject.getInvestmentStatus() != null && hlsCusPrjProject.getInvestmentStatus().equals("APPROVING")){
             returnJson.put("code","100101");
             returnJson.put("message","该项目在投放审查审批流程中，不允许此操作");
             throw new HlsCusException(returnJson.toJSONString());
