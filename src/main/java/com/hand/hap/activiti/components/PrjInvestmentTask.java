@@ -108,8 +108,10 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         prjQuotation.setSourceDocumentCategory("PRJ_PROJECT");
         prjQuotation.setSourceDocumentId(prjProject.getProjectId());
         prjQuotation = hlsCusPrjQuotationMapper.select(prjQuotation).get(0);
-        HlsCusConContract newContract = new HlsCusConContract();
-        hlsBeanRefUtilService.setFieldValue(newContract, map);
+        HlsCusConContract hlsCusConContract = hlsCusConContractMapper.selectContractByProjectId(projectId);
+        //周亚辉提出 将合同创建逻辑放在正审通过后
+        //HlsCusConContract newContract = new HlsCusConContract();
+        /*hlsBeanRefUtilService.setFieldValue(newContract, map);
         newContract.setContractNumber(prjProject.getProjectNumber());
         newContract.setContractStatus("NEW");
         newContract.setDocumentType("CONLB");
@@ -124,7 +126,7 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         newContract.setPenaltyRate(prjProject.getPenaltyRate());
         newContract.setRiskAssistantFirst(null);//合同阶段风控初审需要重置
         newContract.setRiskHost(null);//合同阶段风控复核需要重置
-        hlsCusConContractMapper.insertSelective(newContract);
+        hlsCusConContractMapper.insertSelective(newContract);*/
         //step2 创建合同现金流
         HlsCusPrjQuotationCashflow prjQuoCashflow = new HlsCusPrjQuotationCashflow();
         prjQuoCashflow.setQuotationId(prjQuotation.getQuotationId());
@@ -133,19 +135,19 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
             HlsCusConContractCashflow newCashflow = new HlsCusConContractCashflow();
             map = hlsBeanRefUtilService.getFieldValueMap(cashflow);
             hlsBeanRefUtilService.setFieldValue(newCashflow, map);
-            newCashflow.setContractId(newContract.getContractId());
+            newCashflow.setContractId(hlsCusConContract.getContractId());
             newCashflow.setCreationDate(new Date());
             hlsconContractCashflowMapper.insertSelective(newCashflow);
         }
         //step3 创建付款申请数据
         HlsCusConContractCashflow equiCashflow = new HlsCusConContractCashflow();
-        equiCashflow.setContractId(newContract.getContractId());
+        equiCashflow.setContractId(hlsCusConContract.getContractId());
         equiCashflow.setCfItem(0L);
         equiCashflow.setCfType(0L);
         equiCashflow = hlsconContractCashflowMapper.select(equiCashflow).get(0);
 
         HlsCusCshPaymentReqHd reqHd = new HlsCusCshPaymentReqHd();
-        reqHd.setCompanyId(newContract.getCompanyId());
+        reqHd.setCompanyId(hlsCusConContract.getCompanyId());
         reqHd.setDocumentType("PAYMENT_REQ");
         reqHd.setDocumentCategory("CSH_PAYMENT_REQ");
         reqHd.setBusinessType("PAYMENT_REQ");
@@ -155,7 +157,7 @@ public class PrjInvestmentTask implements JavaDelegate, IActivitiBean {
         reqHd.setPaymentReqStatus("APPROVED");
         reqHd.setAmount(equiCashflow.getDueAmount());
         reqHd.setCurrency("CNY");
-        reqHd.setSourceContractId(newContract.getContractId());
+        reqHd.setSourceContractId(hlsCusConContract.getContractId());
         reqHd.setSourceDocType("CON_CONTRACT_CASHFLOW");
         reqHd.setSourceDocId(equiCashflow.getCashflowId());
         reqHd.setCreationDate(new Date());

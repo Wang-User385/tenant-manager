@@ -200,4 +200,5 @@ public interface HlsCusConContractMapper extends Mapper<HlsCusConContract> {
 
     String getTongDunFlag();
 
+    HlsCusConContract selectContractByProjectId(@Param("projectId") Long projectId);
 }
