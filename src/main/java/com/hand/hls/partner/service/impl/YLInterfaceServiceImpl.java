@@ -2005,6 +2005,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             }
         }else if ("APPLY_WITHHOLD_CONTRACT".equals(action)){
             //申请代扣签约
+            //风控审核通过，才能发起代扣签约申请
+            if(!projectStatus.equals("APPROVED")){
+                returnJson.put("code","100101");
+                returnJson.put("message","风控审核通过，才能发起代扣签约申请");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
             iAlipayService.getPenetrateId(hlsCusPrjProject.getProjectId());
             String extInfo = iAlipayService.sign(hlsCusPrjProject.getProjectId());
             if(StringUtils.isEmpty(extInfo)){
@@ -2024,6 +2030,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             long days = (nowTime - approvedtTime) / (24 * 60 * 60 * 1000);
             //放款申请提交有效期
             int LoanDays = Long.valueOf(hlsProductDefinitionList.get(0).getLoanSubmitValueTime()).intValue();
+            //获取代扣签约状态
+            if(hlsCusPrjProject.getAlipayStatus() == null || !hlsCusPrjProject.getAlipayStatus().equals("ACTIVATED")){
+                returnJson.put("code","100101");
+                returnJson.put("message","代扣签约完成，才能发起放款审核");
+                throw new HlsCusException(returnJson.toJSONString());
+            }
             if ("APPLY_LOAN".equals(action)){
                 if (days > LoanDays){
                     returnJson.put("code","100101");
