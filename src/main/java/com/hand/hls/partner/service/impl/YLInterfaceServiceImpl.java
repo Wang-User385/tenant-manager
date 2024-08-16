@@ -725,7 +725,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
         conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
         //提前结清现金流 利息加上罚息
-        conContractCashflow.setInterest(conContractCashflow.getInterest()+nvl(calculationResultsDto.getPenalty(),0.0));
+        //陈军军提出提前结清利息取值不加罚息，这里不再加罚息
+        //conContractCashflow.setInterest(conContractCashflow.getInterest()+nvl(calculationResultsDto.getPenalty(),0.0));
+        conContractCashflow.setInterest(conContractCashflow.getInterest());
         //插入提前结清现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
         //插入罚息 (提前结清罚息直接算到利息金额上)
@@ -1963,7 +1965,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                 returnJson.put("code","200");
                 returnJson.put("message","预审成功");
                 return returnJson.toJSONString();
-            }else{
+            }else if("Reject".equals(s)){
+                hlsCusPrjProject.setPreStatus("REJECTED");
+                prjProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
                 returnJson.put("code","400");
                 returnJson.put("message","预审失败");
                 throw new HlsCusException(returnJson.toJSONString());
@@ -2310,11 +2314,12 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         List<Integer> deductNos = new ArrayList<>(); //抵扣期次
         List<HlsCusConContractCashflow> writeOffList = new ArrayList<>(); //需要自动核销为租金的代偿数据
         HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow(); //回购或者提前结清现金流
-        Long times = Long.MAX_VALUE;
+        //由于查询出来的现金流是按期数正序排序的，取最后一条的现金流期数+1即为提前结清现金流的期数
+        Long times = queryUnReceivedByOrderNoList.get(queryUnReceivedByOrderNoList.size()-1).getTimes() + 1;
         for (HlsCusConContractCashflow c : queryUnReceivedByOrderNoList) {
-            if (c.getTimes() < times) {
+            /*if (c.getTimes() >= times) {
                 times = c.getTimes();
-            }
+            }*/
             //回购不涉及到罚息金额
             if (c.getCfItem().equals(9L) && "REPO".equals(type)) {
                 continue;

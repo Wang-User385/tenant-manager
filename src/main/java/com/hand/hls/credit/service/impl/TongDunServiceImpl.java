@@ -81,10 +81,6 @@ public class TongDunServiceImpl implements TongDunService {
     //预审
     @Override
     public String preliminaryValid(Long projectId, HttpServletRequest request) throws HlsCusException {
-        //同盾控制开关
-        if (!"Y".equals(hlsCusConContractMapper.getTongDunFlag())) {
-            return "Accept";
-        }
         ResponseData responseData = new ResponseData();
         //项目id为空则预审失败
         if (projectId == null) {
@@ -107,7 +103,10 @@ public class TongDunServiceImpl implements TongDunService {
         if (attachMulti == 0) {
             throw new HlsCusException(getReturnJson("100001", "该进件项目的《个人信息采集及使用授权协议》附件未上传！"));
         }
-
+        //同盾控制开关
+        if (!"Y".equals(hlsCusConContractMapper.getTongDunFlag())) {
+            return "Accept";
+        }
         //同盾接口请求暂时注释
         //通过bpId获取商业伙伴信息
         QueryHlsBpMasterDTO queryHlsBpMasterDTO = hlsCusBpMasterMapper.getQueryHlsBpMasterDTOByBpId(bpId);
@@ -152,8 +151,8 @@ public class TongDunServiceImpl implements TongDunService {
             responseDataPrivate(responseData, false, "400", info, "E", hlsWsRequests);
             throw new HlsCusException(getReturnJson("100001", info));
         }
-        hlsCusPrjProject.setPreStatus("APPROVED");
-        hlsCusPrjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
+        /*hlsCusPrjProject.setPreStatus("APPROVED");
+        hlsCusPrjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);*/
         responseDataPrivate(responseData, true, "200", info, "S", hlsWsRequests);
         return "Accept";
     }
@@ -163,12 +162,6 @@ public class TongDunServiceImpl implements TongDunService {
     public String interlocutoryValid(Long projectId, HttpServletRequest request, long nowTime, long creationTime, long riskDays, String projectStatus) throws HlsCusException {
         //同盾控制开关
         HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.getSinglePrjProjectByProjectId(projectId);
-        if (!"Y".equals(hlsCusConContractMapper.getTongDunFlag())) {
-            prjProject.setConfirmStatus("APPROVED");
-            prjProject.setLastUpdateDate(new Date());
-            hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
-            return "Accept";
-        }
         ResponseData responseData = new ResponseData();
         String jsonString = hlsCusPrjProjectMapper.getRiskInfoByProjectId(projectId);
         //申请风控审核时，校验riskInfo是否为空，空则报错
@@ -203,8 +196,13 @@ public class TongDunServiceImpl implements TongDunService {
         if (JszAttachMulti == 0) {
             throw new HlsCusException(getReturnJson("100001", "该进件项目的《承租人驾驶证》附件未上传！"));
         }
-
-        //同盾接口不通，暂时注释掉
+        //同盾接口关闭时，直接返回审批通过，不再请求同盾接口
+        if (!"Y".equals(hlsCusConContractMapper.getTongDunFlag())) {
+            prjProject.setConfirmStatus("APPROVED");
+            prjProject.setLastUpdateDate(new Date());
+            hlsCusPrjProjectMapper.updateByPrimaryKey(prjProject);
+            return "Accept";
+        }
         //设置正审参数
         String info = setInterlocutoryParam(projectId, param);
         if (info != null) return info;
