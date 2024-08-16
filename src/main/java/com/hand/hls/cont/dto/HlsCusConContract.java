@@ -308,7 +308,7 @@ public class HlsCusConContract extends ConContract {
     private Double irrAfterTax;
 
     private Double pmt;
-
+    @Transient
     private Double plusFinanceAmount;
 
     private Double pmtFirst;
