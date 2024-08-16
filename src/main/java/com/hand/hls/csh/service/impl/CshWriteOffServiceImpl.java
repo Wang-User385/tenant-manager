@@ -70,6 +70,7 @@ import com.hand.hls.fct.dto.HlsCusFctQuotationCashflow;
 import com.hand.hls.fct.service.HlsCusFctQuotationCashflowService;
 import com.hand.hls.utils.service.HlsConstantUtil;
 import com.hand.hls.wsdl.utils.SapConstants;
+import com.mysql.jdbc.log.Log;
 import hls.core.sys.event.service.SysEventService;
 import com.hand.hls.exception.HlsCusException;
 import jodd.util.ArraysUtil;
@@ -2054,9 +2055,9 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
     }
 
     @Override
-    public void allocationSave(IRequest iRequest, List<HlsCusCshTransaction> cshTransactionList, HttpSession session) throws Exception {
+    public List<Long> allocationSave(IRequest iRequest, List<HlsCusCshTransaction> cshTransactionList, HttpSession session) throws Exception {
         //原收款拆分为财务与业务, 业务确认仅做保存分配
-
+        List<Long> res = new ArrayList<>();
         cshTransactionList.stream().forEach(item -> {
             item.setUnWriteOffAmount(nvl(item.getUnWriteOffAmount(), 0.0));
             item.setAdvanceReceiptAmount(nvl(item.getAdvanceReceiptAmount(), 0.0));
@@ -2136,7 +2137,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 cshAllocation.setAllocationStatus("N");
             }
             cshAllocationService.insertSelective(iRequest, cshAllocation);
-
+            res.add(cshAllocation.getAllocationId());
             for (HlsCusCshTransaction transaction : cshTransactionList) {
                 CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
                 cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
@@ -2209,7 +2210,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             }
 
         }
-
+        return res;
     }
 
 
@@ -3672,4 +3673,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             //hlsCreditLineService.releaseCredit(iRequest, hlsCusConContract.getCreditLineId(), amount);
         }
     }
+
+
 }

@@ -2,6 +2,7 @@ package com.hand.hls.csh.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.csh.dto.CshAllocationReceipt;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
