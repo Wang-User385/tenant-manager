@@ -10796,6 +10796,7 @@ WHERE
         <result column="lease_item_type" property="lease_item_type"/>
         <result column="phone" property="phone"/>
         <result column="color_c" property="color_c"/>
+        <result column="plus_finance_amount" property="plus_finance_amount"/>
     </resultMap>
     <select id="prjRpLModifyQuery" resultMap="PrjRpLModifyQueryMap">
         SELECT pp.project_id,
@@ -13110,7 +13111,11 @@ WHERE
                   AND sv.VALUE= pp.driver_and_applicant) driver_and_applicant_n,
                hbm.id_card_no,
                pp.finance_amount,
-               pp.plus_finance_amount,
+               (select pq.plus_finance_amount
+                from prj_quotation pq
+                where pq.source_document_id = pp.project_id
+                  and pq.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT'
+                  and rownum = 1) plus_finance_amount,
                (select pq.lease_times
                 from prj_quotation pq
                 where pq.source_document_id = pp.project_id
