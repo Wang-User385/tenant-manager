@@ -157,6 +157,7 @@
         <result column="received_principal" property="receivedPrincipal" jdbcType="DECIMAL"/>
         <result column="received_interest" property="receivedInterest" jdbcType="DECIMAL"/>
         <result column="last_received_date" property="lastReceivedDate" jdbcType="DATE"/>
+        <result column="last_received_date_n" property="lastReceivedDateN" jdbcType="DATE"/>
         <result column="full_write_off_date" property="fullWriteOffDate" jdbcType="DATE"/>
         <result column="penalty_process_status" property="penaltyProcessStatus" jdbcType="VARCHAR"/>
         <result column="billing_status" property="billingStatus" jdbcType="VARCHAR"/>
@@ -1952,6 +1953,14 @@ and pqc.quotation_id=#{quotationId}
         ORDER BY order_id DESC
         )
         WHERE ROWNUM = 1) AS message,
+        (SELECT last_received_date
+        FROM (
+        SELECT last_received_date, order_id
+        FROM GT_ALIPAY_ORDER gao
+        where gao.cashflow_id=ccc.cashflow_id
+        ORDER BY order_id DESC
+        )
+        WHERE ROWNUM = 1) AS last_received_date_n,
         '支付宝' AS withholding_party
         FROM CON_CONTRACT_CASHFLOW ccc
         where due_date &lt;= CURRENT_DATE and ccc.cf_direction='INFLOW'

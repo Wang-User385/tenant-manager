@@ -183,6 +183,8 @@ HlsCusConContractCashflow extends BaseDTO {
     private   String  withholdingParty;//代扣方
     @Transient
     private   String  statusN;//交易状态
+    @Transient
+    private   String  lastReceivedDateN;//交易日期
 //    @Transient
 //    private   Date  dueDateFrom;//承租人
 //    @Transient
