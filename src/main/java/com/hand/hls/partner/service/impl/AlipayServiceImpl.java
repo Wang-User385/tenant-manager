@@ -1,9 +1,12 @@
 package com.hand.hls.partner.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
+import com.hand.hls.cont.dto.HlsCusConContractCashflow;
+import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
 import com.hand.hls.partner.dto.AlipayOrderDTO;
 import com.hand.hls.partner.mapper.AlipayOrderMapper;
 import com.hand.hls.partner.service.IAlipayService;
@@ -18,6 +21,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 
 @Service
@@ -34,6 +40,9 @@ public class AlipayServiceImpl implements IAlipayService {
     private IYLMessageNoticeService messageNoticeService;
     @Autowired
     private AlipayOrderMapper alipayOrderMapper;
+
+    @Autowired
+    private HlsCusConContractCashflowMapper hlsCusConContractCashflowMapper;
 
     public String orderApply(String outOrderNo) throws HlsCusException {
         String penetrateId = "";
@@ -225,7 +234,7 @@ public class AlipayServiceImpl implements IAlipayService {
         }
     }
 
-    public String paymentQuery(String outSeqNo) throws HlsCusException {
+    public JSONObject paymentQuery(String outSeqNo, AlipayOrderDTO order) throws HlsCusException {
         String status = "";
 
         JSONObject reqJson = new JSONObject();
@@ -243,25 +252,28 @@ public class AlipayServiceImpl implements IAlipayService {
             error = "error:" + e.getMessage();
         }
         updateLogs(hlsWsRequests,resStr,returnStatus);
-
+        JSONObject resultObj = new JSONObject();
         //step2：解析
         if(StringUtils.isEmpty(error)){
             JSONObject resJson = JSONObject.parseObject(resStr);
             JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_query_response");
             String code = response.getString("code");
             if("10000".equals(code)){
-                JSONObject resultObj = response.getJSONObject("result_obj");
-                status = resultObj.getString("status");
+                resultObj = response.getJSONObject("result_obj");
+                //status = resultObj.getString("status");
             }else{
                 JSONObject returnJson = new JSONObject();
                 returnJson.put("code",code);
                 returnJson.put("sub_msg",response.getString("sub_msg"));
+                //将错误提示更新到中间表中
+                order.setMessage(response.getString("sub_msg"));
+                alipayOrderMapper.updateByPrimaryKeySelective(order);
                 throw new HlsCusException(returnJson.toJSONString());
             }
         }else{
             throw new HlsCusException(error);
         }
-        return status;
+        return resultObj;
     }
 
     public void paymentCancel(String outSeqNo) throws HlsCusException {
@@ -424,14 +436,19 @@ public class AlipayServiceImpl implements IAlipayService {
         //FAILED  【终态，失败】交易失败。
         AlipayOrderDTO order = alipayOrderMapper.selectByPrimaryKey(orderId);
         String status = "";
+        Date finishTime = null;
         //系统开关控制是否启用蚂蚁链接口
         String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","ALIPAY_FLAG");
         if("Y".equals(flag)){
-            status = paymentQuery(order.getOutSeqNo());
+            JSONObject resultObj = paymentQuery(order.getOutSeqNo(), order);
+            status = resultObj.getString("status");
+            finishTime = resultObj.getDate("finishTime");
         }else{
             status = "SUCCESS";
+            finishTime = new Date();
         }
         order.setStatus(status);
+        order.setLastReceivedDate(finishTime);
         alipayOrderMapper.updateByPrimaryKeySelective(order);
     }
 

@@ -10,6 +10,9 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import com.hand.hap.system.dto.BaseDTO;
+
+import java.util.Date;
+
 @ExtensionAttribute(disable=true)
 @Data
 @Table(name = "GT_ALIPAY_ORDER")
@@ -33,6 +36,10 @@ public class AlipayOrderDTO extends BaseDTO {
      private Long cashflowId;
 
      private Long amount;
+
+     private Date LastReceivedDate; //交易日期
+
+     private String message; //返回信息
 
      @Length(max = 128)
      private String subject;
