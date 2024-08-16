@@ -2082,15 +2082,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             List<HlsCusConContract> contract = hlsCusConContractMapper.queryContractByProjectId(conContractQuery);
             if ("APPROVING".equals(contract.get(0).getMortgageStatus())){
                 returnJson.put("code","100101");
-                returnJson.put("message","当前单据已在付款审批中，请勿重复发起");
+                returnJson.put("message","当前单据已在车辆抵押审批中，请勿重复发起");
                 throw new HlsCusException(returnJson.toJSONString());
             }
             if ("APPROVED".equals(contract.get(0).getMortgageStatus())){
                 returnJson.put("code","100101");
-                returnJson.put("message","当前单据已完成付款申请流程，请勿重复发起");
+                returnJson.put("message","当前单据已完成车辆抵押审批流程，请勿重复发起");
                 throw new HlsCusException(returnJson.toJSONString());
             }
-            //发起投放审查流程
+            //发起车辆抵押流程
             carMortgageWorkFlowSubmit(iRequest, contract.get(0));
             contract.get(0).setMortgageStatus("APPROVING");
             hlsCusConContractMapper.updateByPrimaryKeySelective(contract.get(0));
