@@ -257,19 +257,18 @@ public class AlipayServiceImpl implements IAlipayService {
         if(StringUtils.isEmpty(error)){
             JSONObject resJson = JSONObject.parseObject(resStr);
             JSONObject response = resJson.getJSONObject("anttech_blockchain_defin_assetmanage_penetrate_query_response");
-            String code = response.getString("code");
-            if("10000".equals(code)){
-                resultObj = response.getJSONObject("result_obj");
-                //status = resultObj.getString("status");
-            }else{
-                JSONObject returnJson = new JSONObject();
-                returnJson.put("code",code);
-                returnJson.put("sub_msg",response.getString("sub_msg"));
-                //将错误提示更新到中间表中
-                order.setMessage(response.getString("sub_msg"));
-                alipayOrderMapper.updateByPrimaryKeySelective(order);
-                throw new HlsCusException(returnJson.toJSONString());
-            }
+            resultObj = response;
+//            String code = response.getString("code");
+//            if("10000".equals(code)){
+//                resultObj = response.getJSONObject("result_obj");
+//                //status = resultObj.getString("status");
+//            }else{
+//                JSONObject returnJson = new JSONObject();
+//                returnJson.put("code",code);
+//                returnJson.put("sub_msg",response.getString("sub_msg"));
+//                return returnJson;
+//                //throw new HlsCusException(returnJson.toJSONString());
+//            }
         }else{
             throw new HlsCusException(error);
         }
@@ -441,15 +440,28 @@ public class AlipayServiceImpl implements IAlipayService {
         String flag = alipayOrderMapper.getMeaningSysCode("SYS_INTERFACE_FLAG","ALIPAY_FLAG");
         if("Y".equals(flag)){
             JSONObject resultObj = paymentQuery(order.getOutSeqNo(), order);
-            status = resultObj.getString("status");
-            finishTime = resultObj.getDate("finishTime");
+            //判断是否成功
+            if ("10000".equals(resultObj.get("code"))){
+                JSONObject bodyInfo = resultObj.getJSONObject("result_obj");
+                status = bodyInfo.getString("status");
+                finishTime = bodyInfo.getDate("finishTime");
+
+                order.setStatus(status);
+                order.setLastReceivedDate(finishTime);
+                alipayOrderMapper.updateByPrimaryKeySelective(order);
+            }else {
+                order.setMessage(resultObj.getString("sub_msg"));
+                alipayOrderMapper.updateByPrimaryKeySelective(order);
+            }
         }else{
             status = "SUCCESS";
             finishTime = new Date();
+
+            order.setStatus(status);
+            order.setLastReceivedDate(finishTime);
+            alipayOrderMapper.updateByPrimaryKeySelective(order);
         }
-        order.setStatus(status);
-        order.setLastReceivedDate(finishTime);
-        alipayOrderMapper.updateByPrimaryKeySelective(order);
+
     }
 
     @Override
