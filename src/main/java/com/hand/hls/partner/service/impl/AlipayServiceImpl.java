@@ -2,20 +2,11 @@ package com.hand.hls.partner.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
-import com.hand.hls.calc.exception.ChangeLimitException;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
-import com.hand.hls.csh.dto.HlsCusCshTransaction;
-import com.hand.hls.csh.dto.HlsCusCshWriteOff;
-import com.hand.hls.csh.exception.BeyondAmountLimitException;
-import com.hand.hls.csh.exception.WriteOffTypeNullException;
-import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
-import com.hand.hls.csh.service.CshWriteOffService;
-import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.partner.dto.AlipayOrderDTO;
 import com.hand.hls.partner.mapper.AlipayOrderMapper;
 import com.hand.hls.partner.service.IAlipayService;
@@ -23,8 +14,6 @@ import com.hand.hls.partner.service.IYLMessageNoticeService;
 import com.hand.hls.partner.util.AlipayUtils;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
-import com.hand.hls.utils.HlsCusMathUtil;
-import com.hand.hls.utils.ResMessageException;
 import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.service.IHlsWsRequestsService;
 import hls.core.utils.exception.HlsCusException;
@@ -32,13 +21,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpSession;
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
 
 
 @Service
@@ -55,14 +40,9 @@ public class AlipayServiceImpl implements IAlipayService {
     private IYLMessageNoticeService messageNoticeService;
     @Autowired
     private AlipayOrderMapper alipayOrderMapper;
-    @Autowired
-    private FndCodingRuleValuesService fndCodingRuleValuesService;
+
     @Autowired
     private HlsCusConContractCashflowMapper hlsCusConContractCashflowMapper;
-    @Autowired
-    private HlsCusCshTransactionMapper hlsCusCshTransactionMapper;
-    @Autowired
-    private CshWriteOffService cshWriteOffService;
 
     public String orderApply(String outOrderNo) throws HlsCusException {
         String penetrateId = "";
@@ -329,86 +309,6 @@ public class AlipayServiceImpl implements IAlipayService {
         }
     }
 
-    public void autoWriteOff(AlipayOrderDTO order) throws HlsCusException {
-        IRequest iRequest = RequestHelper.getCurrentRequest();
-        //step1：插入现金事务表
-        HlsCusCshTransaction transaction = new HlsCusCshTransaction();
-        String transactionNum = fndCodingRuleValuesService.getCodeRuleValue(iRequest, "CSH_TRANSACTION", "RECEIPT", "RECEIPT", new HashMap<>());
-        transaction.setTransactionNum(transactionNum);
-        transaction.setTransactionCategory("CSH_TRANSACTION");
-        transaction.setTransactionType("RECEIPT");
-        transaction.setBusinessType("RECEIPT");
-        transaction.setTransactionDate(order.getLastReceivedDate());
-        transaction.setPenaltyCalcDate(order.getLastReceivedDate());
-        transaction.setCompanyId(iRequest.getCompanyId());
-        transaction.setTransactionAmount(order.getAmount()/100.0);
-        transaction.setCurrencyCode("CNY");
-        transaction.setPaymentMethod("Alipay");
-        transaction.setReversedFlag("N");
-        transaction.setPostedFlag("Y");
-        HlsCusConContractCashflow cashflow = hlsCusConContractCashflowMapper.selectByPrimaryKey(order.getCashflowId());
-        transaction.setContractId(cashflow.getContractId());
-        transaction.setDescription(order.getSubject());
-        transaction.setSourceDocCategory("GT_ALIPAY_ORDER");
-        transaction.setSourceDocId(order.getOrderId());
-        transaction.setWriteOffFlag("NOT");
-        transaction.setWriteOffAmount(0D);
-        hlsCusCshTransactionMapper.insertSelective(transaction);
-        //step2：构造核销记录（租金、罚息）
-        List<HlsCusConContractCashflow> cashflowList = hlsCusConContractCashflowMapper.queryConContractCashflowList(cashflow.getContractId(), cashflow.getTimes());
-        List<HlsCusCshWriteOff> writeOffList = new ArrayList<>();
-        for (HlsCusConContractCashflow todoCashflow : cashflowList) {
-            HlsCusCshWriteOff writeOff = new HlsCusCshWriteOff();
-            writeOff.setContractId(todoCashflow.getContractId());
-            writeOff.setCshTransactionId(transaction.getTransactionId());
-            writeOff.setCashflowId(todoCashflow.getCashflowId());
-            writeOff.setWriteOffType("RECEIPT_CREDIT");
-            writeOff.setWriteOffDate(new Date());
-            writeOff.setReversedFlag("N");
-            writeOff.setCfItem(todoCashflow.getCfItem());
-            writeOff.setCfType(todoCashflow.getCfType());
-
-            double writeOffAmount = 0D;
-            if(todoCashflow.getReceivedAmount() == null){
-                writeOffAmount = todoCashflow.getDueAmount();
-            }else{
-                writeOffAmount = todoCashflow.getDueAmount() - todoCashflow.getReceivedAmount();
-            }
-            double writeOffInterest = 0D;
-            if(todoCashflow.getInterest() != null){
-                if(todoCashflow.getReceivedInterest() == null){
-                    writeOffInterest = todoCashflow.getInterest();
-                }else{
-                    writeOffInterest = todoCashflow.getInterest() - todoCashflow.getReceivedInterest();
-                }
-            }
-            double writeOffPrincipal = 0D;
-            if(todoCashflow.getPrincipal() != null){
-                if(todoCashflow.getReceivedPrincipal() == null){
-                    writeOffPrincipal = todoCashflow.getPrincipal();
-                }else{
-                    writeOffPrincipal = todoCashflow.getPrincipal() - todoCashflow.getReceivedPrincipal();
-                }
-            }
-            writeOff.setCshWriteOffAmount(writeOffAmount);
-            writeOff.setWriteOffDueAmount(writeOffAmount);
-            writeOff.setWriteOffInterest(writeOffInterest);
-            writeOff.setWriteOffPrincipal(writeOffPrincipal);
-            writeOff.setTimes(todoCashflow.getTimes());
-            writeOff.setWriteOffDocCategory("CON_CONTRACT");
-
-            writeOffList.add(writeOff);
-        }
-        //step3：核销
-        try{
-            HttpSession session = ((ServletRequestAttributes) (RequestContextHolder.getRequestAttributes())).getRequest().getSession();
-            cshWriteOffService.writeOff(iRequest, writeOffList, session);
-        }catch(Exception e){
-            e.printStackTrace();
-            throw new HlsCusException(e.getMessage());
-        }
-    }
-
     @Override
     public String getPenetrateId(Long projectId) throws HlsCusException {
         HlsCusPrjProject prjProject = prjProjectMapper.selectByPrimaryKey(projectId);
@@ -549,9 +449,6 @@ public class AlipayServiceImpl implements IAlipayService {
         }
         order.setStatus(status);
         order.setLastReceivedDate(finishTime);
-        if("SUCCESS".equals(status)){
-            autoWriteOff(order);
-        }
         alipayOrderMapper.updateByPrimaryKeySelective(order);
     }
 
