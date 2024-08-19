@@ -21,7 +21,7 @@ import java.util.List;
 @DisallowConcurrentExecution
 @Transactional(rollbackFor = Exception.class)
 public class AlipayJob extends AbstractJobWithIRequest{
-    private static final Logger logger = LoggerFactory.getLogger(AssetNeedNoticeJob.class);
+    private static final Logger logger = LoggerFactory.getLogger(AlipayJob.class);
     @Autowired
     private HlsCusPrjProjectMapper prjProjectMapper;
     @Autowired
