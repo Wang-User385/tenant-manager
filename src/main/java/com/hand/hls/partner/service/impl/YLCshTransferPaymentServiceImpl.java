@@ -123,7 +123,7 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         HlsWsRequests hlsWsRequests = new HlsWsRequests();
         ResponseData responseData = new ResponseData();
         ylCshTransferPaymentDtoList.forEach(ylCshTransferPaymentDto -> {
-            commonLogHead(hlsWsRequests, "转付确认", ylCshTransferPaymentDto, request);
+//            commonLogHead(hlsWsRequests, "转付确认", ylCshTransferPaymentDto, request);
             //生产现金事务数据
             HlsCusCshTransaction hlsCusCshTransaction = getHlsCusCshTransaction(requestCtx, ylCshTransferPaymentDto);
             //插入现金事务数据
@@ -157,7 +157,7 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
             }
             cshWriteOffService.writeOff(requestCtx, ans, request.getSession());
         } catch (Exception e) {
-            commonLog(responseData, "10001", "E", "核销报错", hlsWsRequests);
+//            commonLog(responseData, "10001", "E", "核销报错", hlsWsRequests);
             throw new RuntimeException("转付确认异常");
         }
     }
@@ -321,8 +321,6 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         cshAllocationCredit.setPrincipal(hlsCusConContractCashflow.getPrincipal());
         cshAllocationCredit.setInterest(hlsCusConContractCashflow.getInterest());
         //插入核销匹配表
-
-
         cshAllocationCreditMapper.insertSelective(cshAllocationCredit);
     }
 

@@ -2428,7 +2428,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //单据类型
         map.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        map.put("documentName", bpMasterName.getBpName()+"-"+DOCUMENT_NAME);
+        map.put("documentName", project.getProjectNumber()+"-"+bpMasterName.getBpName()+"-"+DOCUMENT_NAME);
         //单据编号
         map.put("documentNumber", project.getProjectNumber());
         //设置工作流参数
@@ -2458,12 +2458,18 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         map.put(IActivitiCommonService.BUSINESS_KEY, contract.getContractId());
         map.put("contractId", contract.getContractId());
         map.put("projectId", contract.getProjectId());
+        HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
+        hlsCusPrjProject.setProjectId(contract.getProjectId());
+        hlsCusPrjProject = prjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(hlsCusPrjProject.getTenantId());
+        hlsCusBpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
         //单据类别
-        map.put("documentCategory",DOCUMENT_CATEGORY);
+        map.put("documentCategory", DOCUMENT_CATEGORY);
         //单据类型
         map.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        map.put("documentName", contract.getContractNumber() + "-" + CAR_MORTGAGE_DOCUMENT_NAME);
+        map.put("documentName", contract.getContractNumber() + "-" + hlsCusBpMaster.getBpName() + "-" + CAR_MORTGAGE_DOCUMENT_NAME);
         //单据编号
         map.put("documentNumber", contract.getContractNumber());
         //设置工作流参数
@@ -2499,7 +2505,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //单据类型
         map.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        map.put("documentName", bpMasterName.getBpName()+"-"+FORMAL_DOCUMENT_NAME);
+        map.put("documentName", project.getProjectNumber()+"-"+bpMasterName.getBpName()+"-"+FORMAL_DOCUMENT_NAME);
         //单据编号
         map.put("documentNumber", project.getProjectNumber());
         //设置工作流参数

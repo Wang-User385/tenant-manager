@@ -4674,7 +4674,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     private final static String WORK_FLOW = "CAR_MORTGAGE";
     //流程分类
     private final static String DEMO_NAME = "CAR_MORTGAGE";
-    private final static String DOCUMENT_NAME = "车辆业务抵押申请";
+    private final static String DOCUMENT_NAME = "车辆业务抵押工作流";
 
     private final static String DOCUMENT_CATEGORY = "CON_CONTRACT";
 
@@ -4698,7 +4698,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         //单据类型
         params.put("documentType", DOCUMENT_TYPE);
         //单据名称
-        params.put("documentName", dto.getContractNumber()+hlsCusBpMaster.getBpName()+DOCUMENT_NAME);
+        params.put("documentName", dto.getContractNumber()+"-"+hlsCusBpMaster.getBpName()+"-"+DOCUMENT_NAME);
         //单据编号
         params.put("documentNumber", dto.getContractNumber());
         //查询
