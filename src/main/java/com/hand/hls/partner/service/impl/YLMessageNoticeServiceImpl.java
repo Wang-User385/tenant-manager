@@ -11,6 +11,7 @@ import com.hand.hls.partner.service.ILeasingNoticeService;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
+import com.hand.hls.prj.mapper.PrjProjectMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,8 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
     private HlsCusPrjProjectMapper prjProjectMapper;
     @Autowired
     private AlipayOrderMapper alipayOrderMapper;
+    @Autowired
+    private PrjProjectMapper ProjectMapper;
 
 
     /**
@@ -139,12 +142,26 @@ public class YLMessageNoticeServiceImpl implements IYLMessageNoticeService {
 
                 //获取交换机名称 汉得OR易靓
                 String exchangeName = getExchangeName(hlsCusPrjProject.getProjectId());
+                updateAlipayStatus(hlsCusPrjProject);
+
+
+
                 //消息推送
                 noticePush(exchangeName,leasingNotice, "n003", mapParam, iRequest);
             }
         } catch (Exception e) {
             noticeFail(leasingNotice, iRequest, e);
         }
+    }
+
+    public boolean  updateAlipayStatus(HlsCusPrjProject hlsCusPrjProject){
+        if(hlsCusPrjProject!=null){
+            hlsCusPrjProject.setAlipayStatus("CANCELED");
+            int i = ProjectMapper.updateByPrimaryKeySelective(hlsCusPrjProject);
+            return i>0;
+        }
+
+        return false;
     }
 
     /**
