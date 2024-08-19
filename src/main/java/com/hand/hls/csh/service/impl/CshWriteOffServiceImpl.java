@@ -1934,11 +1934,11 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             }
 
             //核销为  预收款
-            if (nvl(transaction.getAdvanceReceiptAmount(), 0.0).compareTo(0.0) == 1) {
+//            if (nvl(transaction.getAdvanceReceiptAmount(), 0.0).compareTo(0.0) == 1) {
+            if (nvl(transaction.getWriteOffDueAmount(), 0.0).compareTo(0.0) == 1) {
                 HlsCusCshWriteOff advanceWriteOff = new HlsCusCshWriteOff();
                 advanceWriteOff = getCshWriteOff(iRequest, advanceWriteOff, transaction, transaction.getAdvanceReceiptAmount(), WRITE_OFF_TYPE_RECEIPT_ADVANCE_RECEIPT);
-                //粤海没有预收款类型,不放入预收款
-                //hlsCusCshWriteOffs.add(advanceWriteOff);
+                hlsCusCshWriteOffs.add(advanceWriteOff);
             }
 
             HlsCusCshTransaction cshTransaction = new HlsCusCshTransaction();
@@ -2252,6 +2252,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
             //修改现金流已收代偿金额
             HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow();
+            conContractCashflow.setWriteOffFlag("FULL");
             conContractCashflow.setCashflowId(advance.getCashflowId());
             conContractCashflow.setReceivedCompAmount(advance.getWriteOffDueAmount());
             hlsCusConContractCashflowService.updateByPrimaryKeySelective(iRequest,conContractCashflow);

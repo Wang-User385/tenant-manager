@@ -1,6 +1,5 @@
 package com.hand.hls.webexcel.service.impl;
 
-import cfca.paperless.base.util.StringUtil;
 import com.hand.hap.core.IRequest;
 import com.hand.hls.bp.dto.HlsBpFinancialHeader;
 import com.hand.hls.bp.mapper.HlsBpFinancialHeaderMapper;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.concurrent.atomic.DoubleAccumulator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -98,37 +96,37 @@ public class FinancialReportWebExcelCalc implements IWebExcelCalcService {
         Map lnListMap0 = lnList.get(0);
         List<HlsFinStatementLn> financiaSheet = (List<HlsFinStatementLn>) lnListMap0.get("资产负债表");
         //校验 资产总计= 负债合计 + 所有者权益(或股东权益) 合计
-        calcaulate("1-1",financiaSheet);
-        calcaulate("1-2",financiaSheet);
-        calcaulate("1-3",financiaSheet);
-        calcaulate("1-4",financiaSheet);
+        calculate("1-1",financiaSheet);
+        calculate("1-2",financiaSheet);
+        calculate("1-3",financiaSheet);
+        calculate("1-4",financiaSheet);
         //校验	期未现金及现金等价物余额=现金及现金等价物净增加额 + 期初现金及现金等价物余额
         Map lnListMap1 = lnList.get(2);
         financiaSheet = (List<HlsFinStatementLn>) lnListMap1.get("现金流量表");
-        calcaulate("2-1",financiaSheet);
-        calcaulate("2-2",financiaSheet);
-        calcaulate("2-3",financiaSheet);
-        calcaulate("2-4",financiaSheet);
+        calculate("2-1",financiaSheet);
+        calculate("2-2",financiaSheet);
+        calculate("2-3",financiaSheet);
+        calculate("2-4",financiaSheet);
         //校验 投资活动产生的现金流量净额=投资活动现金流入小计 - 投资活动现金流出小计
-        calcaulate("3-1",financiaSheet);
-        calcaulate("3-2",financiaSheet);
-        calcaulate("3-3",financiaSheet);
-        calcaulate("3-4",financiaSheet);
+        calculate("3-1",financiaSheet);
+        calculate("3-2",financiaSheet);
+        calculate("3-3",financiaSheet);
+        calculate("3-4",financiaSheet);
         //校验 筹资活动产生的现金流量净额=筹资活动现金流入小计 - 筹资活动现金流出小计
-        calcaulate("4-1",financiaSheet);
-        calcaulate("4-2",financiaSheet);
-        calcaulate("4-3",financiaSheet);
-        calcaulate("4-4",financiaSheet);
+        calculate("4-1",financiaSheet);
+        calculate("4-2",financiaSheet);
+        calculate("4-3",financiaSheet);
+        calculate("4-4",financiaSheet);
         //校验 经营活动产生的现金流量净额=经营活动现金流入小计 - 经营活动现金流出小计
-        calcaulate("5-1",financiaSheet);
-        calcaulate("5-2",financiaSheet);
-        calcaulate("5-3",financiaSheet);
-        calcaulate("5-4",financiaSheet);
+        calculate("5-1",financiaSheet);
+        calculate("5-2",financiaSheet);
+        calculate("5-3",financiaSheet);
+        calculate("5-4",financiaSheet);
         //校验 现金及现金等价物净增加额=经营活动产生的现金流量净额 + 投资活动产生的现金流量净额 + 筹资活动产生的现金流量净额 + 汇率变动对现金及现金等价物的影响
-        calcaulate("6-1",financiaSheet);
-        calcaulate("6-2",financiaSheet);
-        calcaulate("6-3",financiaSheet);
-        calcaulate("6-4",financiaSheet);
+        calculate("6-1",financiaSheet);
+        calculate("6-2",financiaSheet);
+        calculate("6-3",financiaSheet);
+        calculate("6-4",financiaSheet);
         //清除多余数据
         Map lnListMap2 = lnList.get(3);
         financiaSheet = (List<HlsFinStatementLn>) lnListMap2.get("财务指标");
@@ -229,165 +227,70 @@ public class FinancialReportWebExcelCalc implements IWebExcelCalcService {
 
 
 
-    private void calcaulate(String index, List<HlsFinStatementLn> financiaSheet) throws HlsCusException{
+    private void calculate(String index, List<HlsFinStatementLn> financiaSheet) throws HlsCusException {
+        int attributeIndex;
         Double amount = 0D;
         Double other = 0D;
-        String year = "";
         switch (index) {
-            case "1-1":
-                year = financiaSheet.get(0).getAttribute_2();
-                amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_2())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(60).getAttribute_2())).doubleValue(), new BigDecimal(check(financiaSheet.get(67).getAttribute_2())).doubleValue());
+            case "1-1": case "1-2": case "1-3": case "1-4":
+                attributeIndex = Integer.parseInt(index.split("-")[1]) - 1;
+                String year = (String) financiaSheet.get(0).getAttribute(String.valueOf(attributeIndex + 1));
+                amount = new BigDecimal(check((String) financiaSheet.get(36).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                other = HlsCusMathUtil.add(new BigDecimal(check((String) financiaSheet.get(60).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue(), new BigDecimal(check((String) financiaSheet.get(67).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue());
+                if (HlsCusMathUtil.compare(amount, other)!= 0) {
+                    throw new HlsCusException(year + "资产总计 不等于 负债合计 + 所有者权益(或股东权益) 合计");
+                }
                 break;
-            case "1-2":
-                year = financiaSheet.get(0).getAttribute_3();
-                amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_3())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(60).getAttribute_3())).doubleValue(), new BigDecimal(check(financiaSheet.get(67).getAttribute_3())).doubleValue());
+            case "2-1": case "2-2": case "2-3": case "2-4":
+                attributeIndex = Integer.parseInt(index.split("-")[1]) - 1;
+                year = (String) financiaSheet.get(0).getAttribute(String.valueOf(attributeIndex + 1));
+                amount = new BigDecimal(check((String) financiaSheet.get(38).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                other = HlsCusMathUtil.add(new BigDecimal(check((String) financiaSheet.get(36).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue(), new BigDecimal(check((String) financiaSheet.get(37).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue());
+                if (HlsCusMathUtil.compare(amount, other)!= 0) {
+                    throw new HlsCusException(year + "期未现金及现金等价物余额 不等于 现金及现金等价物净增加额 + 期初现金及现金等价物余额");
+                }
                 break;
-            case "1-3":
-                year = financiaSheet.get(0).getAttribute_4();
-                amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_4())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(60).getAttribute_4())).doubleValue(), new BigDecimal(check(financiaSheet.get(67).getAttribute_4())).doubleValue());
+            case "3-1": case "3-2": case "3-3": case "3-4":
+                attributeIndex = Integer.parseInt(index.split("-")[1]) - 1;
+                year = (String) financiaSheet.get(0).getAttribute(String.valueOf(attributeIndex + 1));
+                amount = new BigDecimal(check((String) financiaSheet.get(24).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                other = HlsCusMathUtil.sub(new BigDecimal(check((String) financiaSheet.get(18).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue(), new BigDecimal(check((String) financiaSheet.get(23).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue());
+                if (HlsCusMathUtil.compare(amount, other)!= 0) {
+                    throw new HlsCusException(year + "投资活动产生的现金流量净额 不等于 投资活动现金流入小计 - 投资活动现金流出小计");
+                }
                 break;
-            case "1-4":
-                year = financiaSheet.get(0).getAttribute_5();
-                amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_5())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(60).getAttribute_5())).doubleValue(), new BigDecimal(check(financiaSheet.get(67).getAttribute_5())).doubleValue());
+            case "4-1": case "4-2": case "4-3": case "4-4":
+                attributeIndex = Integer.parseInt(index.split("-")[1]) - 1;
+                year = (String) financiaSheet.get(0).getAttribute(String.valueOf(attributeIndex + 1));
+                amount = new BigDecimal(check((String) financiaSheet.get(34).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                other = HlsCusMathUtil.sub(new BigDecimal(check((String) financiaSheet.get(29).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue(), new BigDecimal(check((String) financiaSheet.get(33).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue());
+                if (HlsCusMathUtil.compare(amount, other)!= 0) {
+                    throw new HlsCusException(year + "筹资活动产生的现金流量净额 不等于 筹资活动现金流入小计 - 筹资活动现金流出小计");
+                }
                 break;
-        }
-        if (HlsCusMathUtil.compare(amount,other) != 0){
-            throw new HlsCusException(year + "资产总计 不等于 负债合计 + 所有者权益(或股东权益) 合计");
-        }
-        switch (index) {
-            case "2-1":
-                year = financiaSheet.get(0).getAttribute_2();
-                amount = new BigDecimal(check(financiaSheet.get(38).getAttribute_2())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(36).getAttribute_2())).doubleValue(), new BigDecimal(check(financiaSheet.get(37).getAttribute_2())).doubleValue());
+            case "5-1": case "5-2": case "5-3": case "5-4":
+                attributeIndex = Integer.parseInt(index.split("-")[1]) - 1;
+                year = (String) financiaSheet.get(0).getAttribute(String.valueOf(attributeIndex + 1));
+                amount = new BigDecimal(check((String) financiaSheet.get(11).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                other = HlsCusMathUtil.sub(new BigDecimal(check((String) financiaSheet.get(5).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue(), new BigDecimal(check((String) financiaSheet.get(10).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue());
+                if (HlsCusMathUtil.compare(amount, other)!= 0) {
+                    throw new HlsCusException(year + "经营活动产生的现金流量净额 不等于 经营活动现金流入小计 - 经营活动现金流出小计");
+                }
                 break;
-            case "2-2":
-                year = financiaSheet.get(0).getAttribute_3();
-                amount = new BigDecimal(check(financiaSheet.get(38).getAttribute_3())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(36).getAttribute_3())).doubleValue(), new BigDecimal(check(financiaSheet.get(37).getAttribute_3())).doubleValue());
-                break;
-            case "2-3":
-                year = financiaSheet.get(0).getAttribute_4();
-                amount = new BigDecimal(check(financiaSheet.get(38).getAttribute_4())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(36).getAttribute_4())).doubleValue(), new BigDecimal(check(financiaSheet.get(37).getAttribute_4())).doubleValue());
-                break;
-            case "2-4":
-                year = financiaSheet.get(0).getAttribute_5();
-                amount = new BigDecimal(check(financiaSheet.get(38).getAttribute_5())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(36).getAttribute_5())).doubleValue(), new BigDecimal(check(financiaSheet.get(37).getAttribute_5())).doubleValue());
-                break;
-        }
-        if (HlsCusMathUtil.compare(amount,other) != 0){
-            throw new HlsCusException(year + "期未现金及现金等价物余额 不等于 现金及现金等价物净增加额 + 期初现金及现金等价物余额");
-        }
-        switch (index) {
-            case "3-1":
-                year = financiaSheet.get(0).getAttribute_2();
-                amount = new BigDecimal(check(financiaSheet.get(24).getAttribute_2())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(18).getAttribute_2())).doubleValue(), new BigDecimal(check(financiaSheet.get(23).getAttribute_2())).doubleValue());
-                break;
-            case "3-2":
-                year = financiaSheet.get(0).getAttribute_3();
-                amount = new BigDecimal(check(financiaSheet.get(24).getAttribute_3())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(18).getAttribute_3())).doubleValue(), new BigDecimal(check(financiaSheet.get(23).getAttribute_3())).doubleValue());
-                break;
-            case "3-3":
-                year = financiaSheet.get(0).getAttribute_4();
-                amount = new BigDecimal(check(financiaSheet.get(24).getAttribute_4())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(18).getAttribute_4())).doubleValue(), new BigDecimal(check(financiaSheet.get(23).getAttribute_4())).doubleValue());
-                break;
-            case "3-4":
-                year = financiaSheet.get(0).getAttribute_5();
-                amount = new BigDecimal(check(financiaSheet.get(24).getAttribute_5())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(18).getAttribute_5())).doubleValue(), new BigDecimal(check(financiaSheet.get(23).getAttribute_5())).doubleValue());
+            case "6-1": case "6-2": case "6-3": case "6-4":
+                attributeIndex = Integer.parseInt(index.split("-")[1]) - 1;
+                year = (String) financiaSheet.get(0).getAttribute(String.valueOf(attributeIndex + 1));
+                amount = new BigDecimal(check((String) financiaSheet.get(36).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                Double part1 = new BigDecimal(check((String) financiaSheet.get(11).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                Double part2 = new BigDecimal(check((String) financiaSheet.get(24).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                Double part3 = new BigDecimal(check((String) financiaSheet.get(34).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                Double part4 = new BigDecimal(check((String) financiaSheet.get(35).getAttribute(String.valueOf(attributeIndex + 1)))).doubleValue();
+                other = HlsCusMathUtil.add(HlsCusMathUtil.add(part1, part2), HlsCusMathUtil.add(part3, part4));
+                if (HlsCusMathUtil.compare(amount, other)!= 0) {
+                    throw new HlsCusException(year + "现金及现金等价物净增加额 不等于 经营活动产生的现金流量净额 + 投资活动产生的现金流量净额 + 筹资活动产生的现金流量净额 + 汇率变动对现金及现金等价物的影响");
+                }
                 break;
         }
-        if (HlsCusMathUtil.compare(amount,other) != 0){
-            throw new HlsCusException(year + "投资活动产生的现金流量净额 不等于 投资活动现金流入小计 - 投资活动现金流出小计");
-        }
-        switch (index) {
-            case "4-1":
-                year = financiaSheet.get(0).getAttribute_2();
-                amount = new BigDecimal(check(financiaSheet.get(34).getAttribute_2())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(29).getAttribute_2())).doubleValue(), new BigDecimal(check(financiaSheet.get(33).getAttribute_2())).doubleValue());
-                break;
-            case "4-2":
-                year = financiaSheet.get(0).getAttribute_3();
-                amount = new BigDecimal(check(financiaSheet.get(34).getAttribute_3())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(29).getAttribute_3())).doubleValue(), new BigDecimal(check(financiaSheet.get(33).getAttribute_3())).doubleValue());
-                break;
-            case "4-3":
-                year = financiaSheet.get(0).getAttribute_4();
-                amount = new BigDecimal(check(financiaSheet.get(34).getAttribute_4())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(29).getAttribute_4())).doubleValue(), new BigDecimal(check(financiaSheet.get(33).getAttribute_4())).doubleValue());
-                break;
-            case "4-4":
-                year = financiaSheet.get(0).getAttribute_5();
-                amount = new BigDecimal(check(financiaSheet.get(34).getAttribute_5())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(29).getAttribute_5())).doubleValue(), new BigDecimal(check(financiaSheet.get(33).getAttribute_5())).doubleValue());
-                break;
-        }
-        if (HlsCusMathUtil.compare(amount,other) != 0){
-            throw new HlsCusException(year + "筹资活动产生的现金流量净额 不等于 筹资活动现金流入小计 - 筹资活动现金流出小计");
-        }
-
-        switch (index) {
-            case "5-1":
-                year = financiaSheet.get(0).getAttribute_2();
-                amount = new BigDecimal(check(financiaSheet.get(11).getAttribute_2())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(5).getAttribute_2())).doubleValue(), new BigDecimal(check(financiaSheet.get(10).getAttribute_2())).doubleValue());
-                break;
-            case "5-2":
-                year = financiaSheet.get(0).getAttribute_3();
-                amount = new BigDecimal(check(financiaSheet.get(11).getAttribute_3())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(5).getAttribute_3())).doubleValue(), new BigDecimal(check(financiaSheet.get(10).getAttribute_3())).doubleValue());
-                break;
-            case "5-3":
-                year = financiaSheet.get(0).getAttribute_4();
-                amount = new BigDecimal(check(financiaSheet.get(11).getAttribute_4())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(5).getAttribute_4())).doubleValue(), new BigDecimal(check(financiaSheet.get(10).getAttribute_4())).doubleValue());
-                break;
-            case "5-4":
-                year = financiaSheet.get(0).getAttribute_5();
-                amount = new BigDecimal(check(financiaSheet.get(11).getAttribute_5())).doubleValue();
-                other = HlsCusMathUtil.sub(new BigDecimal(check(financiaSheet.get(5).getAttribute_5())).doubleValue(), new BigDecimal(check(financiaSheet.get(10).getAttribute_5())).doubleValue());
-                break;
-        }
-        if (HlsCusMathUtil.compare(amount,other) != 0){
-            throw new HlsCusException(year + "经营活动产生的现金流量净额 不等于 经营活动现金流入小计 - 经营活动现金流出小计");
-        }
-
-        switch (index) {
-            case "6-1":
-                year = financiaSheet.get(0).getAttribute_2();
-                amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_2())).doubleValue();
-                other = HlsCusMathUtil.add(HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(11).getAttribute_2())).doubleValue(), new BigDecimal(check(financiaSheet.get(24).getAttribute_2())).doubleValue()),HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(34).getAttribute_2())).doubleValue(),new BigDecimal(check(financiaSheet.get(35).getAttribute_2())).doubleValue()));
-                break;
-            case "6-2":
-                year = financiaSheet.get(0).getAttribute_3();
-                amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_3())).doubleValue();
-                other = HlsCusMathUtil.add(HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(11).getAttribute_3())).doubleValue(), new BigDecimal(check(financiaSheet.get(24).getAttribute_3())).doubleValue()),HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(34).getAttribute_3())).doubleValue(),new BigDecimal(check(financiaSheet.get(35).getAttribute_3())).doubleValue()));
-                break;
-            case "6-3":
-                year = financiaSheet.get(0).getAttribute_4();
-                amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_4())).doubleValue();
-                other = HlsCusMathUtil.add(HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(11).getAttribute_4())).doubleValue(), new BigDecimal(check(financiaSheet.get(24).getAttribute_4())).doubleValue()),HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(34).getAttribute_4())).doubleValue(),new BigDecimal(check(financiaSheet.get(35).getAttribute_4())).doubleValue()));
-                break;
-            case "6-4":
-                year = financiaSheet.get(0).getAttribute_5();
-                amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_5())).doubleValue();
-                other = HlsCusMathUtil.add(HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(11).getAttribute_5())).doubleValue(), new BigDecimal(check(financiaSheet.get(24).getAttribute_5())).doubleValue()),HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(34).getAttribute_5())).doubleValue(),new BigDecimal(check(financiaSheet.get(35).getAttribute_5())).doubleValue()));
-                break;
-        }
-        if (HlsCusMathUtil.compare(amount,other) != 0){
-            throw new HlsCusException(year + "现金及现金等价物净增加额 不等于 经营活动产生的现金流量净额 + 投资活动产生的现金流量净额 + 筹资活动产生的现金流量净额 + 汇率变动对现金及现金等价物的影响");
-        }
-
-
-
     }
 
     private String check(String val) {

@@ -8,6 +8,7 @@ import com.hand.hls.gld.service.HlsCusConContractService;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
+import org.apache.regexp.RE;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -38,25 +39,24 @@ public class HlsMortgageServiceTask implements JavaDelegate, IActivitiBean {
 
     @Override
     public void execute(DelegateExecution delegateExecution) {
-        String flag = "";
         IRequest requestCtx = (IRequest) delegateExecution.getVariable("iRequest");
         String result = (String) delegateExecution.getVariable("approveResult");
-        Long contractId = (Long) delegateExecution.getVariable("contractId");
-
-        Long processInstanceId = Long.parseLong(delegateExecution.getProcessInstanceId());
+        //Long contractId = (Long) delegateExecution.getVariable("contractId");
+        Long contractId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        //Long processInstanceId = Long.parseLong(delegateExecution.getProcessInstanceId());
         HlsCusConContract conContract = new HlsCusConContract();
         conContract.setContractId(contractId);
         conContract = hlsCusConContractService.selectByPrimaryKey(requestCtx, conContract);
         if (!APPROVED.equalsIgnoreCase(conContract.getMortgageStatus()) && !REJECTED.equalsIgnoreCase(conContract.getMortgageStatus())){
-            conContract.setMortgageInstanceId(processInstanceId);
+            //conContract.setMortgageInstanceId(processInstanceId);
             if (APPROVED.equalsIgnoreCase(result)) {
                 conContract.setMortgageApprovedDate(new Date());
-                flag = "APPROVED";
+                conContract.setMortgageStatus(APPROVED);
+                hlsCusConContractService.updateByPrimaryKeySelective(requestCtx, conContract);
             } else if (REJECTED.equalsIgnoreCase(result)) {
-                flag = "REJECTED";
+                conContract.setMortgageStatus(REJECTED);
+                hlsCusConContractService.updateByPrimaryKeySelective(requestCtx, conContract);
             }
-            conContract.setMortgageStatus(flag);
-            hlsCusConContractService.updateByPrimaryKeySelective(requestCtx, conContract);
             //调用车辆审核通知接口
             iylMessageNoticeService.orderAuditResult(contractId,"MORTGAGE_MATERIAL_AUDIT",requestCtx);
         }
