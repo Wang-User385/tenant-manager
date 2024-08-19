@@ -110,7 +110,7 @@ public class WebExcelCalcUtilServiceImpl implements IWebExcelCalcUtilService {
             int multiLineFrom = Integer.valueOf(configHd.getMultiLineFrom());
             int multiLineTo = Integer.valueOf(configHd.getMultiLineTo());
             int distance = multiLineTo - multiLineFrom;
-            for(int i = 0; i <= distance; i++){
+            for(int i = 0; i <= distance+1; i++){
 
                 Map map = getSheetColInfo(hlsWebExcelConfigLns,excelArray,sheetIndex,0,i);
                 list.add(map);
