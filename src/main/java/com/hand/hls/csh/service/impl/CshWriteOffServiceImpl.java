@@ -1934,8 +1934,8 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             }
 
             //核销为  预收款
-//            if (nvl(transaction.getAdvanceReceiptAmount(), 0.0).compareTo(0.0) == 1) {
-            if (nvl(transaction.getWriteOffDueAmount(), 0.0).compareTo(0.0) == 1) {
+            if (nvl(transaction.getAdvanceReceiptAmount(), 0.0).compareTo(0.0) == 1) {
+//            if (nvl(transaction.getWriteOffDueAmount(), 0.0).compareTo(0.0) == 1) {
                 HlsCusCshWriteOff advanceWriteOff = new HlsCusCshWriteOff();
                 advanceWriteOff = getCshWriteOff(iRequest, advanceWriteOff, transaction, transaction.getAdvanceReceiptAmount(), WRITE_OFF_TYPE_RECEIPT_ADVANCE_RECEIPT);
                 hlsCusCshWriteOffs.add(advanceWriteOff);
