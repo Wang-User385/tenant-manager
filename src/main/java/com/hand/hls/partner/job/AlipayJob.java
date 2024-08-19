@@ -11,6 +11,8 @@ import com.hand.hls.web.logs.service.IHlsWsRequestsService;
 import hls.core.utils.exception.HlsCusException;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +21,7 @@ import java.util.List;
 @DisallowConcurrentExecution
 @Transactional(rollbackFor = Exception.class)
 public class AlipayJob extends AbstractJobWithIRequest{
-
+    private static final Logger logger = LoggerFactory.getLogger(AssetNeedNoticeJob.class);
     @Autowired
     private HlsCusPrjProjectMapper prjProjectMapper;
     @Autowired
@@ -38,16 +40,8 @@ public class AlipayJob extends AbstractJobWithIRequest{
 
             } catch (HlsCusException e) {
                 if ("20000".equals(e.getCode()) || "系统繁忙".equals(e.getMessage())) {
-                    // 特殊处理 "系统繁忙" 的情况
-                    String message = "Alipay sign query failed due to system busy. Project ID: " + project.getProjectId();
-                    HlsWsRequests hlsWsRequests = new HlsWsRequests();
-                    hlsWsRequests.setResponseJson(message);
-                    logService.interfaceSave(hlsWsRequests, iRequest);
+                    logger.error(e.getMessage(), e);
                 } else {
-                    // 其他所有 HlsCusException 异常，记录错误信息
-                    HlsWsRequests hlsWsRequests = new HlsWsRequests();
-                    hlsWsRequests.setResponseJson("Alipay sign query failed due to system busy. Project ID: {}" + project.getProjectId());
-                    logService.interfaceSave(hlsWsRequests, iRequest);
                     throw e;
                 }
             }
