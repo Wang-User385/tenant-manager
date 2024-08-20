@@ -18,6 +18,7 @@ import com.alibaba.fastjson.JSON;
 import com.hand.hls.sys.service.IFndCompanyService;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
+import hls.core.utils.exception.HlsCusException;
 import org.apache.commons.lang3.StringUtils;
 import com.hand.hls.ty.dto.JcTianyanchaInterfaceInfo;
 import com.hand.hls.ty.mapper.JcTianyanchaInterfaceInfoMapper;
@@ -1788,23 +1789,16 @@ public class HlsCusBpMasterServiceImpl extends BaseServiceImpl<HlsCusBpMaster> i
     }
 
     @Override
-    public List<Long> getCityIdAndProvinceIdByDistrictId(Long districtId) {
+    public List<Long> getCityIdAndProvinceIdByDistrictId(Long districtId) throws HlsCusException {
         List<Long> res = new ArrayList<>();
         String provinceIdAndCityId = mapper.getCityIdAndProvinceIdByDistrictId(districtId);
+        if(StringUtils.isEmpty(provinceIdAndCityId)){
+            throw new HlsCusException("查询区所在的省市有误");
+        }
         String[] ans = provinceIdAndCityId.split("_");
         res.add(Long.parseLong(ans[0]));
         res.add(Long.parseLong(ans[1]));
         return res;
-    }
-
-    @Override
-    public void saveOrder(Long conditionId, Long orderId) {
-        mapper.saveOrder(conditionId,orderId);
-    }
-
-    @Override
-    public void saveBusinessCondition(Long conditionId, Long bpId) {
-        mapper.saveBusinessCondition(conditionId,bpId);
     }
 
     @Override

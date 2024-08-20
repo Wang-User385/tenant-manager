@@ -199,20 +199,14 @@ public class HlsCusBpMasterController extends BaseController {
     @RequestMapping({"/hls/bp/master/getCityIdAndProvinceId"})
     @ResponseBody
     public ResponseData getCityIdAndProvinceIdByDistrictId(@RequestParam("districtId")Long districtId) {
-        return new ResponseData(service.getCityIdAndProvinceIdByDistrictId(districtId));
-    }
-
-    @RequestMapping({"/hls/update"})
-    @ResponseBody
-    public ResponseData updateOrder(@RequestParam("conditionId")Long conditionId,@RequestParam("orderId")Long orderId) {
-        service.saveOrder(conditionId,orderId);
-        return new ResponseData();
-    }
-    @RequestMapping({"/hls/update/condition"})
-    @ResponseBody
-    public ResponseData saveBusinessCondition(@RequestParam("conditionId")Long conditionId,@RequestParam("bpId")Long bpId) {
-        service.saveBusinessCondition(conditionId,bpId);
-        return new ResponseData();
+        try {
+            return new ResponseData(service.getCityIdAndProvinceIdByDistrictId(districtId));
+        } catch (HlsCusException e) {
+            ResponseData responseData = new ResponseData();
+            responseData.setSuccess(false);
+            responseData.setMessage(e.getMessage());
+            return responseData;
+        }
     }
 
     @RequestMapping({ "/hls/get/conditionId"})

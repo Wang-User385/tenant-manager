@@ -31,7 +31,7 @@ public class ContractReviewRiskSubmitServiceTask implements JavaDelegate, IActiv
         if (!StringUtils.isEmpty(assignee)){
             HlsCusConContract hlsCusConContract = new HlsCusConContract();
             hlsCusConContract.setContractId(contractId);
-            hlsCusConContract.setRiskAssistantFirst(Long.parseLong(assignee));
+            hlsCusConContract.setRiskHost(Long.parseLong(assignee));
             hlsCusConContractMapper.updateByPrimaryKeySelective(hlsCusConContract);
         }
     }
