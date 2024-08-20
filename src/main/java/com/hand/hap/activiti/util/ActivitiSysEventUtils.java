@@ -48,6 +48,7 @@ import com.hand.hls.risk.dto.RiskAttachment;
 import com.hand.hls.risk.mapper.RiskAttachmentMapper;
 import com.hand.hls.sys.dto.SysDocumentHistory;
 import com.hand.hls.sys.dto.SysUser;
+import com.hand.hls.sys.mapper.HlsSystemNoticeMapper;
 import com.hand.hls.sys.mapper.SysDocumentHistoryMapper;
 import com.hand.hls.sys.mapper.SysUserMapper;
 import com.hand.hls.sys.service.ISysDocumentHistoryService;
@@ -281,16 +282,18 @@ public class ActivitiSysEventUtils {
             assigneeName=assigneeEmp.getDescription();
         }
         if(approveResult==null){
-            if(desc!=null){
+            if(desc==null){
                 desc = startEmpName + "提交了名为" + taskExecution.getVariable("documentName") + "的" + taskExecution.getVariable("pName");
             }
-        }else if("APPROVED".equals(approveResult) ||"APPOINT".equals(approveResult)){
+        }else if(("APPROVED".equals(approveResult) ||"APPOINT".equals(approveResult)) &&  !eventCode.equals("WFL.TO_DO") ){
             desc = assigneeName + "通过了名为" + taskExecution.getVariable("documentName") + "的" + taskExecution.getVariable("pName");
+        }else if(("APPROVED".equals(approveResult) ||"APPOINT".equals(approveResult)) && eventCode.equals("WFL.TO_DO") ){
+            desc = assigneeName + "你有一个名为" + taskExecution.getVariable("documentName") + "的" + taskExecution.getVariable("pName") + "待办事项需要处理。你是当前环节的审批人，请及时进行审批。";
         }else{
             desc = assigneeName + "退回了名为" + taskExecution.getVariable("documentName") + "的" + taskExecution.getVariable("pName");
         }
 
-        if (approveResultDesc != null) {
+        if (approveResultDesc != null && !eventCode.equals("WFL.TO_DO")) {
             params.put("message", "流程：" + desc + "－ 节点：" + task.getName() + " - 审批意见：" + approveResultDesc);
         } else {
             params.put("message", "流程：" + desc + "－ 节点：" + task.getName());
