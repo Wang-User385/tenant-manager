@@ -188,17 +188,17 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
             hlsCusCshWriteOff.setWriteOffInterest(ylCshTransferPaymentDto.getRepayInterest());
             //设置核销本金
             hlsCusCshWriteOff.setWriteOffPrincipal(ylCshTransferPaymentDto.getRepayPrincipal());
-        }else {
+        } else {
             //核销罚息
-            if (9 == hlsCusCshWriteOff.getCfItem() || 9 == hlsCusCshWriteOff.getCfType()){
+            if ((hlsCusCshWriteOff.getCfItem() != null && 9 == hlsCusCshWriteOff.getCfItem()) || (hlsCusCshWriteOff.getCfType() != null && 9 == hlsCusCshWriteOff.getCfType())) {
                 hlsCusCshWriteOff.setWriteOffDueAmount(ylCshTransferPaymentDto.getRepayPenalty());
                 //设置核销利息
                 hlsCusCshWriteOff.setWriteOffInterest((double) 0);
                 //设置核销本金
-                hlsCusCshWriteOff.setWriteOffPrincipal((double)0);
-            }else {//核销本金加利息
+                hlsCusCshWriteOff.setWriteOffPrincipal((double) 0);
+            } else {//核销本金加利息
                 //设置核销金额
-                hlsCusCshWriteOff.setWriteOffDueAmount(HlsCusMathUtil.add(ylCshTransferPaymentDto.getRepayInterest(),ylCshTransferPaymentDto.getRepayPrincipal()));
+                hlsCusCshWriteOff.setWriteOffDueAmount(HlsCusMathUtil.add(ylCshTransferPaymentDto.getRepayInterest(), ylCshTransferPaymentDto.getRepayPrincipal()));
                 //设置核销利息
                 hlsCusCshWriteOff.setWriteOffInterest(ylCshTransferPaymentDto.getRepayInterest());
                 //设置核销本金
@@ -323,7 +323,6 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         //插入核销匹配表
         cshAllocationCreditMapper.insertSelective(cshAllocationCredit);
     }
-
 
 
 }

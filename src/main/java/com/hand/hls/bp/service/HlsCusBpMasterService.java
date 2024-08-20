@@ -5,6 +5,7 @@ import com.hand.hap.core.ProxySelf;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hap.system.service.IBaseService;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
+import hls.core.utils.exception.HlsCusException;
 import uncertain.composite.CompositeMap;
 
 import java.util.List;
@@ -32,11 +33,8 @@ public interface HlsCusBpMasterService extends IBaseService<HlsCusBpMaster>, Pro
     void bpWflSubmit(IRequest iRequest, HlsCusBpMaster bpMaster);
     String getAuthorityString(IRequest iRequest);
 
-    List<Long> getCityIdAndProvinceIdByDistrictId(Long districtId);
+    List<Long> getCityIdAndProvinceIdByDistrictId(Long districtId) throws HlsCusException;
 
-    void saveOrder(Long conditionId, Long orderId);
-
-    void saveBusinessCondition(Long conditionId, Long bpId);
 
     List<Long> getConditionId(Long bpId);
 }

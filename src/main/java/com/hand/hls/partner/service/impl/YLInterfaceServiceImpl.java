@@ -2473,11 +2473,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         //单据编号
         map.put("documentNumber", contract.getContractNumber());
         //设置工作流参数
-        JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(contract));
-        map.put(PROJECT, jsonObject.toString());
-        map.put(CONTRACT_NAME, contract.getContractNumber());
-        map.put(DOCUMENT_TYPE, "CON");
-        map.put(DOCUMENT_ID, contract.getContractId());
+//        JSONObject jsonObject = JSON.parseObject(JSON.toJSONString(contract));
+//        map.put(PROJECT, jsonObject.toString());
+//        map.put(CONTRACT_NAME, contract.getContractNumber());
+//        map.put(DOCUMENT_TYPE, "CON");
+//        map.put(DOCUMENT_ID, contract.getContractId());
         map.put("workFlowType", CAR_MORTGAGE_WORK_FLOW);
         activitiStartService.start(iRequest, list, map);
     }
