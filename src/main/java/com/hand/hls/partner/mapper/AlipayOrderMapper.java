@@ -9,4 +9,7 @@ public interface AlipayOrderMapper extends Mapper<AlipayOrderDTO>{
     AlipayOrderDTO selectOrderForWithhold(@Param("orderId") Long orderId);
 
     String getMeaningSysCode(@Param("code") String code,@Param("codeValue") String codeValue);
+
+    //更新订单状态和交易时间
+    void updateOrderStatusAndTimeByOrder(AlipayOrderDTO alipayOrderDTO);
 }
