@@ -142,7 +142,7 @@ public class FndEmployeeController extends BaseController {
             Map map = (Map)requestData.get("parameter");
             if (map != null) {
                 emp.setName((String)map.getOrDefault("name", (Object)null));
-                emp.setUnitName((String)map.getOrDefault("unit_name", (Object)null));
+                emp.setUnitName((String)map.getOrDefault("unitName", (Object)null));
                 page = Integer.parseInt(request.getParameter("pagenum"));
             }
         }
