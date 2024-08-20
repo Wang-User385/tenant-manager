@@ -3,6 +3,7 @@ package com.hand.hls.fct.mapper;
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
 import com.hand.hls.prj.dto.HlsCusPrjProjectAttachment;
+import com.hand.hls.sys.dto.SysUser;
 import org.apache.ibatis.annotations.Param;
 import uncertain.composite.CompositeMap;
 
@@ -59,4 +60,5 @@ public interface HlsCusHlsCreditLineChanceMapper extends Mapper<HlsCusHlsCreditL
     List<Map> selectChangeCompareBusinessAdmittance();
 
     List<HlsCusHlsCreditLineChance> queryChanceIdByCooperativeOrganization(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
+    public List<SysUser> selectByUserId(@Param("userId")Long userId);
 }

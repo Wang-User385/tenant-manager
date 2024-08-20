@@ -136,6 +136,9 @@
         <result column="PROJECT_MANAGER_N" property="projectManagerN" jdbcType="VARCHAR"/>
         <result column="PROPOSER_EMPLOYEE_ID_N" property="proposerEmployeeIdN" jdbcType="VARCHAR"/>
         <result column="PROJECT_ASSISTANT_N" property="projectAssistantN" jdbcType="VARCHAR"/>
+        <!--        新增-->
+        <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+
         <!--authorityRuleString-->
         <result column="AUTHORITY_RULE_STRING" property="authorityRuleString" jdbcType="VARCHAR"/>
 
@@ -469,6 +472,8 @@
     <select id="selectCreditLineChanceByStatus" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance" resultMap="BaseResultMap">
         select tt.* from (select
         clc.CHANCE_ID,
+        clc.creation_date,
+        nvl(clc.process_instance_id,0) as process_instance_id,
         clc.CREDIT_LINE_NUMBER,
         clc.CREDIT_LINE_NAME,
         clc.BP_ID,
@@ -506,16 +511,19 @@
         nvl(CLC.credit_line_amt/10000,(select q.finance_amount/10000 from prj_quotation q where q.source_document_id = clc.chance_id and q.source_document_category = 'HLS_CREDIT_LINE_CHANCE'))credit_line_amt_w,
         CLC.CREDIT_EXPOSURE_AMT,
         CLC.VALID_TO,
-        clc.CREDIT_FLAG,
+        CASE CLC.CREDIT_FLAG
+        WHEN 'Y'  THEN '是'
+        WHEN 'N'  THEN '否'
+        END  CREDIT_FLAG,
+                 (
+                 select scv.MEANING
+                 from sys_code_b sc, sys_code_value_b scv
+                 where sc.CODE_ID = scv.CODE_ID
+                 and scv.value = clc.CREDIT_FLAG
+                 and sc.CODE = 'SYS.YES_NO'
+                and rownum=1
+                 ) CREDIT_FLAG_N,
         clc.APPROVED_DATE,
-        (
-        select scv.MEANING
-        from sys_code_b sc, sys_code_value_b scv
-        where sc.CODE_ID = scv.CODE_ID
-        and scv.value = clc.CREDIT_FLAG
-        and sc.CODE = 'SYS.YES_NO'
-        and rownum=1
-        )CREDIT_FLAG_N,
         clc.BUSINESS_TYPE,
         (select  v.description  from hls_business_type v where v.enabled_flag = 'Y' and v.DOCUMENT_CATEGORY = 'CHANCE' and clc.BUSINESS_TYPE = V.business_type) BUSINESS_TYPE_N,
         clc.PROPOSER_EMPLOYEE_ID ,
@@ -1279,5 +1287,20 @@
                 )
             </if>
         </where>
+    </select>
+    <select id="selectByUserId" parameterType="java.lang.Long" resultType="com.hand.hls.sys.dto.SysUser">
+        SELECT
+            em.name as proposer_employee_id_n,
+            fou.unit_name as unit_id_n
+        FROM
+            sys_user su
+                JOIN
+            fnd_employee  em on su.employee_id = em.employee_id
+                JOIN
+            FND_EMPLOYEE_ASSIGNS fea on em.employee_id=fea.employee_id
+                JOIN
+            fnd_org_unit fou ON fea.unit_id = fou.unit_id
+        WHERE
+            su.user_id = #{userId}
     </select>
 </mapper>

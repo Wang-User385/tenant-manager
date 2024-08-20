@@ -126,6 +126,8 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private Long projectAssistantAssignsId;//协办分配ID
 
     private Long unitId;//部门ID
+    //新增
+    private Date creationDate;//部门ID
 
     @Transient
     private String companyName;

@@ -17,6 +17,7 @@ import com.hand.hls.fct.service.HlsCusHlsCreditLineChanceService;
 import com.hand.hls.hls.dto.HlsCusHlsMarketingReport;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectInsure;
+import com.hand.hls.sys.mapper.SysUserMapper;
 import hls.core.utils.exception.HlsCusException;
 import leaf.bean.LeafRequestData;
 import org.slf4j.Logger;
@@ -38,6 +39,8 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
 
     @Autowired
     private HlsCusHlsCreditLineChanceService service;
+    @Autowired
+    private HlsCusHlsCreditLineChanceMapper sysUserMapper;
     private static final String Y = "Y";
     @Autowired
     private HlsCusHlsCreditLineChanceMapper mapper;
@@ -405,6 +408,18 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         List<HlsCusHlsCreditLineChanceBp> bpList = JSONArray.parseArray(listObjectThir.toJSONString(), HlsCusHlsCreditLineChanceBp.class);
         service.deleteRelaProject(requestCtx, bpList);
         return new ResponseData(bpList);
+    }
+
+
+    /*授信新建获取当前登陆人*/
+    @RequestMapping(value = "/chance/selectByUserId")
+    @ResponseBody
+    public ResponseData selectByUserId(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        Long userId = requestCtx.getUserId();
+        JSONArray listObjectThir = JSONArray.parseArray(requestData.get("parameter").toString());
+        List<HlsCusHlsCreditLineChanceBp> bpList = JSONArray.parseArray(listObjectThir.toJSONString(), HlsCusHlsCreditLineChanceBp.class);
+        return new ResponseData(sysUserMapper.selectByUserId(userId));
     }
 
 }
