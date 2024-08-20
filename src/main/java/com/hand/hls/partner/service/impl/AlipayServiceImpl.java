@@ -545,11 +545,11 @@ public class AlipayServiceImpl implements IAlipayService {
             status = "SUCCESS";
             finishTime = new Date();
         }
+        order.setStatus(status);
+        order.setLastReceivedDate(finishTime);
         if("SUCCESS".equals(status)){
             autoWriteOff(order);
         }
-        order.setStatus(status);
-        order.setLastReceivedDate(finishTime);
         alipayOrderMapper.updateByPrimaryKeySelective(order);
     }
 
