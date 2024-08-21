@@ -235,22 +235,22 @@ public class FinancialReportWebExcelCalc implements IWebExcelCalcService {
             case "1-1":
                 year = financiaSheet.get(0).getAttribute_2();
                 amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_2())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(60).getAttribute_2())).doubleValue(), new BigDecimal(check(financiaSheet.get(67).getAttribute_2())).doubleValue());
+                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(64).getAttribute_2())).doubleValue(), new BigDecimal(check(financiaSheet.get(76).getAttribute_2())).doubleValue());
                 break;
             case "1-2":
                 year = financiaSheet.get(0).getAttribute_3();
                 amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_3())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(60).getAttribute_3())).doubleValue(), new BigDecimal(check(financiaSheet.get(67).getAttribute_3())).doubleValue());
+                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(64).getAttribute_3())).doubleValue(), new BigDecimal(check(financiaSheet.get(76).getAttribute_3())).doubleValue());
                 break;
             case "1-3":
                 year = financiaSheet.get(0).getAttribute_4();
                 amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_4())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(60).getAttribute_4())).doubleValue(), new BigDecimal(check(financiaSheet.get(67).getAttribute_4())).doubleValue());
+                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(64).getAttribute_4())).doubleValue(), new BigDecimal(check(financiaSheet.get(76).getAttribute_4())).doubleValue());
                 break;
             case "1-4":
                 year = financiaSheet.get(0).getAttribute_5();
                 amount = new BigDecimal(check(financiaSheet.get(36).getAttribute_5())).doubleValue();
-                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(60).getAttribute_5())).doubleValue(), new BigDecimal(check(financiaSheet.get(67).getAttribute_5())).doubleValue());
+                other = HlsCusMathUtil.add(new BigDecimal(check(financiaSheet.get(64).getAttribute_5())).doubleValue(), new BigDecimal(check(financiaSheet.get(76).getAttribute_5())).doubleValue());
                 break;
         }
         if (HlsCusMathUtil.compare(amount,other) != 0){

@@ -58,9 +58,14 @@
 
         //财报导入
         window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
-
+            var cur_user_id = '${/session/@user_id}';
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
             var record = $(ds_id).getCurrentRecord();
+            var record_user_id = record.get('created_by');
+            if (cur_user_id != record_user_id){
+                Leaf.showInfoMessage('提示','当前登录用户不是该条数据的创建人无法进行财报导入');
+                return;
+            }
             var bp_id = record.get('bp_id');
             var bp_code = record.get('bp_code');
             var bp_name = record.get('bp_name');
@@ -100,7 +105,7 @@
 
         // 财务报表模板查看
         window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
-
+            var cur_user_id = '${/session/@user_id}';
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
             var record = $(ds_id).getCurrentRecord();
             var bp_id = record.get('bp_id');
@@ -109,6 +114,11 @@
             if (!bp_id) {
                 return;
             }
+            var record_user_id = record.get('created_by');
+            var function_usage = 'MODIFY';
+            if (cur_user_id != record_user_id){
+                function_usage = 'QUERY';
+            }
             new Leaf.Window({
                 id: 'hls_bp_master_financial_info_winid',
                 url: '${/request/@context_path}/modules/BP/BP100/hls_bp_master_financial_info.lview',
@@ -116,6 +126,7 @@
                     bp_id: bp_id,
                     bp_master_code: bp_code,
                     bp_master_name: bp_name,
+                    function_usage: function_usage,
                     winid: 'hls_bp_master_financial_info_winid'
                 },
                 title: '财务报表查看',
