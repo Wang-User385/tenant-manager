@@ -287,6 +287,9 @@
                 task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S6' ){
                 jQuery('#chance_appoint_form').show();
             }
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S14'){
+                jQuery('#chance_meeting_select_form').show();
+            }
 
         }
 
@@ -332,6 +335,18 @@
                 var allocation_id = appoint_record.get('allocation_id');
                 if(Ext.isEmpty(allocation_id)){
                     Leaf.showMessage('提示','请先分配审查人员，再操作！');
+                    return false;
+                }
+            }
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S14'){
+                var chance_meeting = $('chance_meeting_select_ds').getCurrentRecord();
+                if(Ext.isEmpty(chance_meeting)){
+                    Leaf.showMessage('提示','请选择会议形式');
+                    return false;
+                }
+                var meeting_type = chance_meeting.get('meeting_type');
+                if(Ext.isEmpty(meeting_type)){
+                    Leaf.showMessage('提示','请选择会议形式');
                     return false;
                 }
             }
@@ -632,6 +647,13 @@
                     <a:field name="position_name"/>
                 </a:fields>
             </a:dataSet>
+            <a:dataSet id="meeting_type_ds" lookupCode="CHANCE.MEETING_TYPE"/>
+            <a:dataSet id="chance_meeting_select_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="meeting_type_n" displayField="code_value_name" options="meeting_type_ds"
+                             returnField="meeting_type" valueField="code_value"/>
+                </a:fields>
+            </a:dataSet>
         </a:dataSets>
         <a:screenBody>
             <!--审批事项信息-->
@@ -693,6 +715,9 @@
                         <a:event name="beforetriggerclick" handler="chance_appoint_handler"/>
                     </a:events>
                 </a:lov>
+            </a:form>
+            <a:form title="会议形式" id="chance_meeting_select_form" labelWidth="120" style="display: none;">
+                <a:comboBox name="meeting_type_n" bindTarget="chance_meeting_select_ds" prompt="会议形式" required="true"/>
             </a:form>
             <!--操作按钮-->
             <div style="height:40px;">

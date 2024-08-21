@@ -391,5 +391,8 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
 
     private Long examineHost;
     private Long legalHost;
+    private String meetingType;
+    @Transient
+    private String meetingTypeN;
 }
 
