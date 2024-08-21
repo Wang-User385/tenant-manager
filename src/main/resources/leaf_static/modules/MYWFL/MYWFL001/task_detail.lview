@@ -78,6 +78,10 @@
         ];
         // 当前待办信息
         var currentTaskInfo = {};
+
+        var process_definition_id = '';//工作流代码
+        var task_definition_key = '';//工作流节点key
+
         function getTaskWin(){
             if('${/parameter/@winid}' != '' && '${/parameter/@winid}' != null){
                 return $("${/parameter/@winid}");
@@ -276,6 +280,14 @@
                 }
             });
 
+            process_definition_id = currentTaskInfo.process_definition_id;
+            task_definition_key = currentTaskInfo.task_definition_key;
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S4' ||
+                task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S5' ||
+                task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S6' ){
+                jQuery('#chance_appoint_form').show();
+            }
+
         }
 
         function onChange_approval_comment_ta(ta,value,pre_value){
@@ -309,6 +321,21 @@
                 Leaf.showMessage('提示','审批意见最多只能输入1000个字！');
                 return false;
             }
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S4' ||
+                task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S5' ||
+                task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S6'){
+                var appoint_record = $('chance_appoint_user_ds').getCurrentRecord();
+                if(Ext.isEmpty(appoint_record)){
+                    Leaf.showMessage('提示','请先分配审查人员，再操作！');
+                    return false;
+                }
+                var allocation_id = appoint_record.get('allocation_id');
+                if(Ext.isEmpty(allocation_id)){
+                    Leaf.showMessage('提示','请先分配审查人员，再操作！');
+                    return false;
+                }
+            }
+
             Leaf.showOkCancelWindow("确认","确认提交？",function () {
                 taskAction({approveResult: 'APPROVED', approveResultDesc: jQuery('#text-approved').text()});
             },function () {return true;},200,200)
@@ -513,6 +540,22 @@
         function approval_comments_ds_beforeload(){
 
         }
+
+        function chance_appoint_handler(lov) {
+            var ds = $('chance_appoint_user_ds');
+            ds.create();
+            var record = ds.getCurrentRecord();
+            var name = record.getMeta().getField('name');
+
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S4'){
+                name.setLovPara('unit_code','EXAMINATION_APPROVAL_DEPARTMENT');
+            }else if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S5'){
+                name.setLovPara('unit_code','RISK_AUDIT_DEPARTMENT');
+            }else if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S6'){
+                name.setLovPara('unit_code','MINISTRY_LAW_DEPT');
+            }
+        }
+
         ]]></script>
         <a:dataSets>
             <!--审批事项信息-->
@@ -569,6 +612,26 @@
 
                 </a:fields>
             </a:dataSet>
+            <a:dataSet id="chance_appoint_user_ds" pageSize="1">
+                <a:fields>
+                    <a:field name="allocation_id"/>
+                    <a:field name="name" autoComplete="true" lovGridHeight="350" lovHeight="550"
+                             lovLabelWidth="90"
+                             lovService="/fnd/employee/queryEmployeesForLovForAppoint~com.hand.hap.activiti.dto.AllocationEmployeeLov" lovWidth="550"
+                             title="经办人员" prompt="经办人员">
+                        <a:mapping>
+                            <a:map from="allocation_id" to="allocation_id"/>
+                            <a:map from="name" to="name"/>
+                            <a:map from="company_short_name" to="company_short_name"/>
+                            <a:map from="unit_name" to="unit_name"/>
+                            <a:map from="position_name" to="position_name"/>
+                        </a:mapping>
+                    </a:field>
+                    <a:field name="company_short_name"/>
+                    <a:field name="unit_name"/>
+                    <a:field name="position_name"/>
+                </a:fields>
+            </a:dataSet>
         </a:dataSets>
         <a:screenBody>
             <!--审批事项信息-->
@@ -622,6 +685,14 @@
                     </a:events>
                 </a:textArea>
                 <div id="comment_wordLeft"></div>
+            </a:form>
+            <a:form title="分配经办员" id="chance_appoint_form" labelWidth="120" style="display: none;">
+                <a:lov name="name" width="365" prompt="经办人员" required="true"
+                       bindTarget="chance_appoint_user_ds">
+                    <a:events>
+                        <a:event name="beforetriggerclick" handler="chance_appoint_handler"/>
+                    </a:events>
+                </a:lov>
             </a:form>
             <!--操作按钮-->
             <div style="height:40px;">
