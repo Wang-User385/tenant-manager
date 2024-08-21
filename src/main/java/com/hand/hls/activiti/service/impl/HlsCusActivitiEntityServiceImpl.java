@@ -1297,4 +1297,46 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
         }
     }
 
+    @Override
+    public String getCreditChanceAssistant(DelegateExecution delegateExecution){
+        Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
+        return chance.getProjectAssistant().toString();
+    }
+
+    @Override
+    public String getCreditChanceExamine(DelegateExecution delegateExecution){
+        Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
+        return chance.getExamineHost().toString();
+    }
+
+    @Override
+    public String getCreditChanceRisk(DelegateExecution delegateExecution){
+        Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
+        return chance.getRiskHost().toString();
+    }
+
+    @Override
+    public String getCreditChanceLegal(DelegateExecution delegateExecution){
+        Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
+        return chance.getLegalHost().toString();
+    }
+
+    @Override
+    public List<String> getCreditChanceJudges(DelegateExecution delegateExecution){
+        ArrayList<String> returnList = new ArrayList<>();
+
+        PrjMeetingJudge prjMeetingJudge = new PrjMeetingJudge();
+        prjMeetingJudge.setEnabledFlag("Y");
+        List<PrjMeetingJudge> judgeList =  prjMeetingJudgeMapper.select(prjMeetingJudge);
+        for(PrjMeetingJudge judge : judgeList){
+            returnList.add(judge.getJudgeUserAllocationId().toString());
+        }
+
+        return returnList;
+    }
+
 }

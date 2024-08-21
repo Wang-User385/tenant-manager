@@ -388,5 +388,11 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private Long changeReqId;
     private String chanceType;
     private Long jdProjectId;
+
+    private Long examineHost;
+    private Long legalHost;
+    private String meetingType;
+    @Transient
+    private String meetingTypeN;
 }
 
