@@ -335,4 +335,14 @@ public interface HlsCusActivitiEntityService {
 
     List<String> getReviewRiskContract(DelegateExecution delegateExecution);
 
+    String getCreditChanceAssistant(DelegateExecution delegateExecution);
+
+    String getCreditChanceExamine(DelegateExecution delegateExecution);
+
+    String getCreditChanceRisk(DelegateExecution delegateExecution);
+
+    String getCreditChanceLegal(DelegateExecution delegateExecution);
+
+    List<String> getCreditChanceJudges(DelegateExecution delegateExecution);
+
 }
