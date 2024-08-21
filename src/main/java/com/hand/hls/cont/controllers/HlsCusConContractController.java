@@ -969,8 +969,12 @@ public class HlsCusConContractController extends BaseController {
 
     @RequestMapping("/hls/cus/update/status")
     @ResponseBody
-    public ResponseData updateStatus(@RequestParam("contractId") Long contractId, HttpServletRequest request) throws ResMessageException {
-        hlsCusConContractService.updateZdwRegisterStatus(contractId, request);
+    public ResponseData updateStatus(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) throws ResMessageException {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONArray param = (JSONArray) requestData.get("parameter");
+        List<HlsCusConContract> hlsCusConContractList = param.toJavaList(HlsCusConContract.class);
+        hlsCusConContractService.updateZdwRegisterStatus(hlsCusConContractList, request);
         return new ResponseData();
     }
 

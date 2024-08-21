@@ -4713,12 +4713,14 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
 
 
     @Override
-    public void updateZdwRegisterStatus(Long contractId, HttpServletRequest request) {
-        HlsCusConContract hlsCusConContract = new HlsCusConContract();
-        hlsCusConContract.setContractId(contractId);
-        hlsCusConContract =  hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
-        hlsCusConContract.setZdwRegisterStatus("REVOKED");
-        hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
+    public void updateZdwRegisterStatus(List<HlsCusConContract> hlsCusConContractList, HttpServletRequest request) {
+        hlsCusConContractList.forEach(hlsCusConContract -> {
+            hlsCusConContract.setContractId(hlsCusConContract.getContractId());
+            hlsCusConContract =  hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
+            hlsCusConContract.setZdwRegisterStatus("REVOKED");
+            hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
+        });
+
     }
 
     @Override
@@ -4749,36 +4751,5 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
     }
 
-    private void commonLog(ResponseData responseData, String code, String returnStatus, String parameter, HlsWsRequests hlsWsRequests) {
-        responseData.setCode(code);
-        responseData.setMessage(parameter);
-        hlsWsRequests.setReturnStatus(returnStatus);
-        hlsWsRequests.setResponseJson(JSON.toJSONString(responseData));
-        hlsWsRequestsMapper.insert(hlsWsRequests);
-    }
-
-    private void commonLogHead(HlsWsRequests hlsWsRequests, String functionName, Object param, HttpServletRequest request) {
-        //获取请求路径
-        String requestURI = request.getRequestURI();
-        hlsWsRequests.setRequestWsdlUrl(requestURI);
-        //请求日期
-        hlsWsRequests.setRequestDate(new Date());
-        //功能名称
-        hlsWsRequests.setFunctionName(functionName);
-        //状态变更日期
-        hlsWsRequests.setStatusDate(new Date());
-        // user_id
-        String userId = request.getParameter("user_id");
-        if (userId != null) {
-            hlsWsRequests.setUserId(Long.valueOf(userId));
-        }
-        //请求状态
-        hlsWsRequests.setStatusCode("200");
-        //参数类型
-        hlsWsRequests.setParameterType("JSON");
-        // 请求体
-        String s = JSONObject.toJSONString(param);
-        hlsWsRequests.setRequestJson(s);
-    }
 
 }

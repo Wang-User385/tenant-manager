@@ -396,6 +396,19 @@ public class ActivitiController extends BaseController {
     @RequestMapping(value = "/leaf/query/process-instances/monitor")
     public DataResponse queryAllProcessInstances(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest httpRequest) {
         JSONObject param = (JSONObject) requestData.get("parameter");
+        StringBuilder sb = new StringBuilder();
+        String documentName =(String) param.get("documentName");
+        if (!StringUtils.isEmpty(documentName)){
+            for (int i = 0; i <  documentName.length(); i++) {
+                char c = documentName.charAt(i);
+                if (c >= 'A' && c <= 'Z' ){
+                    sb.append(String.valueOf(c).toLowerCase());
+                }else {
+                    sb.append(c);
+                }
+            }
+            param.put("documentName",sb.toString());
+        }
         CustomHistoricProcessInstanceQueryRequest historicProcessInstanceQueryRequest = param.toJavaObject(CustomHistoricProcessInstanceQueryRequest.class);
         //状态查询
         String status = (String) param.get("process_instance_status");
