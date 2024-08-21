@@ -330,17 +330,17 @@
         left join hls_bp_type hbt
         on hbm.bp_type = hbt.bp_type
         where hbm.bp_id = ctr.bp_id) as bp_name_category,
-        cba.BANK_BRANCH_NAME BP_BANK_BRANCH_NAME,
-        cba.BANK_ACCOUNT_NAME BP_BANK_ACCOUNT_NAME,
+        ctr.BP_BANK_BRANCH_NAME BP_BANK_BRANCH_NAME,
+        ctr.BP_BANK_ACCOUNT_NAME BP_BANK_ACCOUNT_NAME,
         ctr.BP_BANK_ACCOUNT_ID,
-        cba.BANK_ACCOUNT_NUM BP_BANK_ACCOUNT_NUM,
-        cba.bank_full_name bp_bank_name,
+        ctr.BP_BANK_ACCOUNT_NUM BP_BANK_ACCOUNT_NUM,
+        ctr.bp_bank_name bp_bank_name,
+        ctr.payment_refund_status,
         (SELECT v.meaning
         FROM sys_code_value_b_v v
         WHERE v.code = 'PAYMENT_REFUND_STATUS_NEW'
         AND v.code_value = ctr.PAYMENT_REFUND_STATUS) payment_refund_status_n
-        from csh_transaction_refund ctr, hls_bp_master_bank_account cba
-        where cba.BANK_ACCOUNT_ID = ctr.BP_BANK_ACCOUNT_ID
+        from csh_transaction_refund ctr
         order by ctr.refund_id desc) t1
         <where>
             1 = 1
@@ -379,6 +379,9 @@
                 <bind name="bpBankAccountNum" value="'%'+bpBankAccountNum+'%'"/>
                 AND t1.bp_bank_account_num like #{bpBankAccountNum}
             </if>
+            <if test="paymentRefundStatus != null">
+                AND t1.payment_refund_status = #{paymentRefundStatus}
+            </if>
         </where>
 
     </select>
@@ -405,18 +408,6 @@
         (select cba.bank_account_name
         from csh_bank_account cba
         where cba.bank_account_id = t.bank_account_id)                       bank_account_name,
-        (select hba.bank_account_num
-        from hls_bp_master_bank_account hba
-        where hba.bank_account_id = t.bp_bank_account_id)                    bp_bank_account_num,
-        (select hba.bank_account_name
-        from hls_bp_master_bank_account hba
-        where hba.bank_account_id = t.bp_bank_account_id)                    bp_bank_account_name,
-        (select hba.bank_full_name
-        from hls_bp_master_bank_account hba
-        where hba.bank_account_id = t.bp_bank_account_id)                    bp_bank_name,
-        (select hba.bank_branch_name
-        from hls_bp_master_bank_account hba
-        where hba.bank_account_id = t.bp_bank_account_id)                    bp_bank_branch_name,
         (select u.description from sys_user u where u.user_id = t.created_by) created_by_name,
         t.creation_date                                                       creation_date_format,
 
@@ -710,18 +701,6 @@
                      (select cba.bank_account_name
                       from csh_bank_account cba
                       where cba.bank_account_id = t.bank_account_id)                       bank_account_name,
-                     (select hba.bank_account_num
-                      from hls_bp_master_bank_account hba
-                      where hba.bank_account_id = t.bp_bank_account_id)                    bp_bank_account_num,
-                     (select hba.bank_account_name
-                      from hls_bp_master_bank_account hba
-                      where hba.bank_account_id = t.bp_bank_account_id)                    bp_bank_account_name,
-                     (select hba.bank_full_name
-                      from hls_bp_master_bank_account hba
-                      where hba.bank_account_id = t.bp_bank_account_id)                    bp_bank_name,
-                     (select hba.bank_branch_name
-                      from hls_bp_master_bank_account hba
-                      where hba.bank_account_id = t.bp_bank_account_id)                    bp_bank_branch_name,
                      (select u.description from sys_user u where u.user_id = t.created_by) created_by_name,
                      t.creation_date                                                       creation_date_format,
                      (SELECT v.meaning
@@ -730,6 +709,7 @@
                         AND v.code_value = nvl(t.PAYMENT_REFUND_STATUS, 'NEW'))            payment_refund_status_n
               FROM csh_transaction_refund t
               <!--WHERE t.REFUND_STATUS = 'APPROVED'-->
+              where t.PAYMENT_REFUND_STATUS not in ('NEW')
                 ) t1
         <where>
             <if test="refundStatus != null">

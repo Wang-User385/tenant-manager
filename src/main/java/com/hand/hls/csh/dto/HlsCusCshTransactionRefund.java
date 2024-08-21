@@ -25,10 +25,10 @@ public class HlsCusCshTransactionRefund extends CshTransactionRefund{
     private String currencyName;
     @Transient
     private String refundStatusDesc;
-    @Transient
-    private String bpBankAccountNum;
-    @Transient
-    private String bpBankAccountName;
+
+    private String bpBankAccountNum; //收款银行账号
+
+    private String bpBankAccountName; //收款账户名
     @Transient
     private String bankAccountNum;
     @Transient
@@ -52,10 +52,10 @@ public class HlsCusCshTransactionRefund extends CshTransactionRefund{
     private String paymentMethod;
     @Transient
     private String paymentMethodN;
-    @Transient
-    private String bpBankName;
-    @Transient
-    private String bpBankBranchName;
+
+    private String bpBankName; //收款银行
+
+    private String bpBankBranchName; //收款银行支行名称
 
     @Transient
     private String transactionTypeN;
@@ -188,4 +188,5 @@ public class HlsCusCshTransactionRefund extends CshTransactionRefund{
     private String bpTypeN; //对象类别
     @Transient
     private Long paymentBpId;
+
 }
