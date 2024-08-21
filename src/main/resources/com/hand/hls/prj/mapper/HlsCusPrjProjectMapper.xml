@@ -12761,17 +12761,20 @@ WHERE
             on pp.PROJECT_ID = pq.SOURCE_DOCUMENT_ID
         where
             pp.PROJECT_NUMBER = #{orderNo}
+          and ccc.CF_DIRECTION = 'INFLOW'
+          and ccc.CF_STATUS = 'RELEASE'
+          and ccc.CF_ITEM in (1,11,13)
     </select>
     <select id="selectRepayPlanByOrderNo" resultType="com.hand.hls.partner.dto.RepayPlanTermInfoDTO">
         SELECT
         ccc.TIMES termNo,
         CASE
-        WHEN SYSDATE &lt; ccc.DUE_DATE THEN 'NOT_START_TERM未到期'
-        WHEN SYSDATE > ccc.DUE_DATE THEN 'OVERDUE_TERM逾期'
-        WHEN trunc(SYSDATE) = trunc(ccc.DUE_DATE) THEN 'CURRENT_TERM当前期'
-        WHEN ccc.DUE_AMOUNT-ccc.RECEIVED_AMOUNT = 0 THEN 'ENDED结束'
+        WHEN SYSDATE &lt; ccc.DUE_DATE THEN 'NOT_START_TERM'
+        WHEN SYSDATE > ccc.DUE_DATE THEN 'OVERDUE_TERM'
+        WHEN trunc(SYSDATE) = trunc(ccc.DUE_DATE) THEN 'CURRENT_TERM'
+        WHEN ccc.DUE_AMOUNT-ccc.RECEIVED_AMOUNT = 0 THEN 'ENDED'
         ELSE
-        'GRACE_TERM宽限期'
+        'GRACE_TERM'
         END status,
         TO_CHAR((SELECT MAX(WRITE_OFF_DATE) FROM CSH_WRITE_OFF cwo WHERE cwo.CASHFLOW_ID = ccc.CASHFLOW_ID),'YYYY-MM-DD HH24:MI:SS') lastPaidTime,
         TO_CHAR((SELECT MAX(WRITE_OFF_DATE) FROM CSH_WRITE_OFF cwo WHERE cwo.CASHFLOW_ID = ccc.CASHFLOW_ID AND ccc.WRITE_OFF_FLAG='FULL'),'YYYY-MM-DD HH24:MI:SS' ) endTime,

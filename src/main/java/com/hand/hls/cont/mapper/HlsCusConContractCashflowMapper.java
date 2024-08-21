@@ -327,7 +327,7 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
     /**
      * 冻结现金流
      */
-    void updateCashflowBlock(@Param("contractId")Long contractId);
+    void updateCashflowBlock(@Param("contractId")Long contractId, @Param("dueDate")Date dueDate);
 
     /**
      * 核销为预收款选择代扣现金流数据
@@ -350,4 +350,10 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
      * @return
      */
     List<Integer> queryUnReceivedTimesByOrderNo(@Param("orderNo")String orderNo,@Param("dueDate")Date dueDate);
+
+    //查询剩应收金额、剩余本金
+    HlsCusConContractCashflow queryMinDueDateInfo(@Param("orderNo")String orderNo,@Param("dueDate")Date dueDate);
+
+    //更新报价表上租赁期数
+    void updatePrjQuotationLeaseTimesByOrderNo(@Param("times")Long times, @Param("orderNo")String orderNo);
 }

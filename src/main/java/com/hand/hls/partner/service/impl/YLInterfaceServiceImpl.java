@@ -431,6 +431,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         if(queryOrder==null){
             queryOrder = new QueryOrder();
         }
+        queryOrder.setOrderNo(queryOrderDTO.getOrderNo());
         queryOrder.setRepayPlanTerms(repayPlanTermInfoDTOList);
         queryOrder.setStatus("NORMAL");
         //订单存在，判断合同状态是否为起租后状态、结清状态
@@ -727,16 +728,23 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             jsonObject1.put("message","提前结清金额与计算金额不匹配！");
             throw new HlsCusException(jsonObject1.toJSONString());
         }
+        //计算插入到表中的现金流
+        CalculationResultsDto calculationCashflowResults = calculationRequestResult(advancesSettleRequestDTO.getOrderNo(),dateString,
+                "ET",11L,date);
+        //HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
+        HlsCusConContractCashflow conContractCashflow = calculationCashflowResults.getConContractCashflow();
 
-        HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
         //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
-        conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
+        conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId(), conContractCashflow.getDueDate());
         //提前结清现金流 利息加上罚息
         //陈军军提出提前结清利息取值不加罚息，这里不再加罚息
         //conContractCashflow.setInterest(conContractCashflow.getInterest()+nvl(calculationResultsDto.getPenalty(),0.0));
         conContractCashflow.setInterest(conContractCashflow.getInterest());
         //插入提前结清现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
+        //更新报价表上租赁期数
+        conContractCashflowMapper.updatePrjQuotationLeaseTimesByOrderNo(conContractCashflow.getTimes(), advancesSettleRequestDTO.getOrderNo());
+
         //插入罚息 (提前结清罚息直接算到利息金额上)
        /* HlsCusConContractCashflow conContractCashflowPenalty = calculationResultsDto.getContractCashflowPenalty();
         if (!ObjectUtils.isEmpty(conContractCashflowPenalty)) {
@@ -1789,13 +1797,19 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             throw new HlsCusException(jsonObject1.toJSONString());
         }
 
-        HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
+        //计算插入的现金流
+        CalculationResultsDto calculationCashflowResults = calculationRequestResult(overdueRepurchaseRequestDTO.getOrderNo(), dateString,
+                "REPO", 13L, date);
+        //HlsCusConContractCashflow conContractCashflow = calculationResultsDto.getConContractCashflow();
+        HlsCusConContractCashflow conContractCashflow = calculationCashflowResults.getConContractCashflow();
 
         //冻结所有已到期应收未收且未代偿租金（不足整期按整期算）、未到期租金现金流，冻结所有滞纳金
-        conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId());
+        conContractCashflowMapper.updateCashflowBlock(conContractCashflow.getContractId(), conContractCashflow.getDueDate());
 
         //插入回购现金流
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
+        //更新报价表上租赁期数
+        conContractCashflowMapper.updatePrjQuotationLeaseTimesByOrderNo(conContractCashflow.getTimes(), overdueRepurchaseRequestDTO.getOrderNo());
 
         List<HlsCusCshWriteOff> hlsCusCshWriteOffs = new ArrayList<>();
         List<HlsCusCshTransaction> transactionList = new ArrayList<>();
@@ -2401,6 +2415,79 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             conContractCashflowByPenalty.setFinIncomeDate(date);
             calculationResultsDto.setContractCashflowPenalty(conContractCashflowByPenalty);
         }*/
+
+        return calculationResultsDto;
+    }
+
+    //结清、回购请求计算结果（排除当前时间之前的现金流数据）
+    private CalculationResultsDto  calculationRequestResult(String orderNo,String trialTime,String type,Long cfItem,Date date) {
+        CalculationResultsDto calculationResultsDto = new CalculationResultsDto();
+        //根据订单编号和日期查询出到期日期
+        Date dueDate = conContractCashflowMapper.queryDueDate(orderNo,trialTime);
+
+        //查询出需要回购的现金流数据
+        HlsCusConContractCashflow queryUnReceivedByOrderNoList = conContractCashflowMapper.queryMinDueDateInfo(orderNo,dueDate);
+        if (ObjectUtils.isEmpty(queryUnReceivedByOrderNoList)){
+            return null;
+        }
+        Double deductAmount = 0.00;  //抵扣金额
+        Double payableAmount = 0.00;  //应付金额
+        Double principal = 0.00; //总本金
+        Double interest = 0.00; //总利息
+        Double penalty = 0.00; //总罚息
+        List<Integer> termNos = new ArrayList<>();  //期次信息
+        List<Integer> deductNos = new ArrayList<>(); //抵扣期次
+        List<HlsCusConContractCashflow> writeOffList = new ArrayList<>(); //需要自动核销为租金的代偿数据
+        HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow(); //回购或者提前结清现金流
+        Long times = queryUnReceivedByOrderNoList.getTimes();
+
+        if (queryUnReceivedByOrderNoList.getCfItem().equals(9L) && "ET".equals(type)) {
+            penalty = penalty + queryUnReceivedByOrderNoList.getDueAmount();
+        }
+        if (!queryUnReceivedByOrderNoList.getCfItem().equals(9L)) {
+            termNos.add(queryUnReceivedByOrderNoList.getTimes().intValue());
+        }
+        if ("ET".equals(type)){
+            //提前结清应收金额 = 当前时间下一期租金应收金额 + 当前时间下一期租金剩余本金 - 当前时间下一期已收租金
+            payableAmount = queryUnReceivedByOrderNoList.getDueAmount() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedAmount();
+            //提前结清应收本金 = 当前时间下一期租金应收本金 + 当前时间下一期租金剩余本金 - 当前时间下一期已收本金
+            principal = queryUnReceivedByOrderNoList.getPrincipal() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedPrincipal();
+            ////提前结清应收利息 = 当前时间下一期租金应收利息
+            interest = queryUnReceivedByOrderNoList.getInterest() - queryUnReceivedByOrderNoList.getReceivedInterest();
+        }
+        if ("REPO".equals(type)){
+            //回购结清应收金额 = 当前时间下一期租金应收本金 + 当前时间下一期租金剩余本金 - 当前时间下一期已收本金
+            payableAmount = queryUnReceivedByOrderNoList.getPrincipal() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedPrincipal();
+            principal = queryUnReceivedByOrderNoList.getPrincipal() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedPrincipal();
+            //利息插入时设置为0
+        }
+
+        conContractCashflow.setContractId(queryUnReceivedByOrderNoList.getContractId());
+        conContractCashflow.setQuotationId(queryUnReceivedByOrderNoList.getQuotationId());
+        conContractCashflow.setCfItem(cfItem);
+        conContractCashflow.setCfType(11L);
+        conContractCashflow.setCfDirection(queryUnReceivedByOrderNoList.getCfDirection());
+        conContractCashflow.setCfStatus("RELEASE");
+        conContractCashflow.setDueDate(date);
+        conContractCashflow.setTimes(times);
+        conContractCashflow.setCalcDate(date);
+        conContractCashflow.setFinIncomeDate(date);
+        conContractCashflow.setDueAmount(payableAmount);
+        conContractCashflow.setPrincipal(principal);
+        conContractCashflow.setInterest(interest);
+        conContractCashflow.setOutstandingPrincipal(0.0);
+        if ("REPO".equals(type)) {
+            conContractCashflow.setPlanType("REPO");
+        }
+        calculationResultsDto.setPayableAmount(payableAmount);
+        calculationResultsDto.setPrincipal(principal);
+        calculationResultsDto.setInterest(interest);
+        calculationResultsDto.setPenalty(penalty);
+        calculationResultsDto.setDeductAmount(deductAmount);
+        calculationResultsDto.setTermNos(termNos);
+        calculationResultsDto.setDeductNos(deductNos);
+        calculationResultsDto.setWriteOffList(writeOffList);
+        calculationResultsDto.setConContractCashflow(conContractCashflow);
 
         return calculationResultsDto;
     }

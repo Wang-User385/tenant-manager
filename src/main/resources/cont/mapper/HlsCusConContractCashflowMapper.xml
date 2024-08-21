@@ -9160,7 +9160,61 @@ and con.contract_status in
             ccc.times
     </select>
 
-    <update id="updateCashflowBlock" parameterType="java.lang.Long">
+    <select id="queryMinDueDateInfo"  resultMap="BaseResultMap">
+        SELECT
+            ccc.CASHFLOW_ID,
+            ccc.CONTRACT_ID,
+            cc.contract_name,
+            cc.contract_number,
+            ccc.QUOTATION_ID,
+            ccc.CF_ITEM,
+            ccc.CF_TYPE,
+            ccc.CF_DIRECTION,
+            ccc.CF_STATUS,
+            ccc.TIMES,
+            ccc.DUE_DATE,
+            ccc.CALC_DATE,
+            ccc.FIN_INCOME_DATE,
+            NVL(DUE_AMOUNT, 0) DUE_AMOUNT,
+            NVL(NET_DUE_AMOUNT,0) NET_DUE_AMOUNT,
+            NVL(VAT_DUE_AMOUNT, 0) VAT_DUE_AMOUNT,
+            NVL(PRINCIPAL, 0) PRINCIPAL,
+            nvl(NET_PRINCIPAL,0) NET_PRINCIPAL,
+            NVL(VAT_PRINCIPAL, 0) VAT_PRINCIPAL,
+            NVL(INTEREST, 0) INTEREST,
+            NVL(NET_INTEREST, 0) NET_INTEREST,
+            NVL(VAT_INTEREST, 0) VAT_INTEREST,
+            ccc.WRITE_OFF_FLAG,
+            NVL(ccc.RECEIVED_AMOUNT, 0) RECEIVED_AMOUNT,
+            NVL(ccc.RECEIVED_PRINCIPAL, 0) RECEIVED_PRINCIPAL,
+            NVL(ccc.RECEIVED_INTEREST, 0) RECEIVED_INTEREST,
+            NVL(ccc.OUTSTANDING_PRINCIPAL, 0) OUTSTANDING_PRINCIPAL,
+            ccc.PLAN_TYPE,
+            NVL(ccc.DUE_COMP_AMOUNT, 0) DUE_COMP_AMOUNT,
+            NVL(ccc.RECEIVED_COMP_AMOUNT, 0) RECEIVED_COMP_AMOUNT,
+            NVL(ccc.REFUND_COMP_AMOUNT, 0) REFUND_COMP_AMOUNT
+        FROM
+            CON_CONTRACT_CASHFLOW ccc
+                LEFT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
+                LEFT JOIN PRJ_PROJECT pp ON pp.project_id = cc.project_id
+        WHERE
+            pp.PROJECT_NUMBER = #{orderNo}
+          AND nvl( ccc.WRITE_OFF_FLAG, 'NOT' ) != 'FULL'
+          AND ccc.due_amount - nvl( RECEIVED_AMOUNT, 0 ) > 0
+          AND trunc( ccc.due_date ) = trunc( #{dueDate} )
+          AND ccc.cf_item in (1,9)
+          AND ccc.cf_status = 'RELEASE'
+          AND NOT EXISTS (
+                select 1 from CON_CONTRACT_CASHFLOW cf
+                WHERE cf.contract_id = cc.contract_id
+                  AND cf.cf_item in (11,13)
+                  AND cf.cf_status = 'RELEASE'
+            )
+        ORDER BY
+            ccc.times
+    </select>
+
+    <update id="updateCashflowBlock" >
         UPDATE CON_CONTRACT_CASHFLOW ccc
         SET CF_STATUS = 'BLOCK'
         WHERE ccc.CONTRACT_ID = #{contractId}
@@ -9168,9 +9222,19 @@ and con.contract_status in
         AND ccc.due_amount - nvl( RECEIVED_AMOUNT, 0 ) > 0
         AND NVL(ccc.RECEIVED_COMP_AMOUNT, 0) = 0
         AND cf_type not in (0)
+        AND trunc(ccc.due_date) >= trunc( #{dueDate} )
     </update>
 
-
+    <update id="updatePrjQuotationLeaseTimesByOrderNo">
+        UPDATE prj_quotation q
+        set q.lease_times = #{times},
+            q.OBJECT_VERSION_NUMBER = OBJECT_VERSION_NUMBER+1,
+            q.LAST_UPDATED_BY = #{request.userId},
+            q.LAST_UPDATE_DATE = current_timestamp
+        where q.source_document_category = 'PRJ_PROJECT'
+        AND q.source_document_id = (select pp.project_id from prj_project pp
+        where pp.project_number = #{orderNo} )
+    </update>
 
     <!--核销为预收款选择代扣现金流数据-->
     <select id="queryContractCashflowForCompLov" resultMap="BaseResultMap"
