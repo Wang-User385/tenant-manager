@@ -399,5 +399,7 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private Date approvedTimeFrom;
     @Transient
     private Date approvedTimeTo;
+    @Transient
+    private String creditLineStatusN;
 }
 

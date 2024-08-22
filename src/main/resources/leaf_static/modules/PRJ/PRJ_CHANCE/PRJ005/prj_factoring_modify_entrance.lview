@@ -3,7 +3,47 @@
 <a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
+        <a:link id="prj_factoring_detail"
+        url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ005/prj_factoring_modify_detail.lview"/>
         <script><![CDATA[
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'credit_line_number' && value) {
+                return '<a href="javascript:open_project_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
+        };
+
+        function open_project_detail_win(record_id, ds_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['maintain_type'] = 'UPDATE';
+            param['function_usage'] = 'MODIFY';
+            param['url_title'] = '立项维护';
+            param['function_code'] = 'PRJ005F1';
+            param['winid'] = 'factoring_detail_winid';
+            hls_doc_get_layout_code(param, 'prj_factoring_detail', ds_id, 'PRJ005');
+        }
+
+
+
+        //创建
+        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'yl_csh_transfer_payment','G_CSH011_TC');
+            var records = $(ds_id).getSelected();
+
+            hls_doc_get_layout_code(param, 'transfer_confirm_detail_link_id', ds_id, 'PRJ005F2');
+        };
+
+        //删除
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'yl_csh_transfer_payment','G_CSH011_TC');
+            var records = $(ds_id).getSelected();
+
+        };
 
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
