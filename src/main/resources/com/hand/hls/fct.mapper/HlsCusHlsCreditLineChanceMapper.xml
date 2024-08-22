@@ -93,6 +93,7 @@
         <result column="project_reviewer_desc" property="projectReviewerDesc" jdbcType="VARCHAR" />
         <result column="marketing_channel" property="marketingChannel" jdbcType="VARCHAR" />
         <result column="xy_branch_bank" property="xyBranchBank" jdbcType="VARCHAR" />
+        <result column="credit_line_status_n" property="creditLineStatusN" jdbcType="VARCHAR" />
 
         <result column="GUARANTEE_YN" property="guaranteeYn" jdbcType="VARCHAR" />
         <result column="MORTGAGE_YN" property="mortgageYn" jdbcType="VARCHAR" />
@@ -1309,8 +1310,9 @@
     </select>
 
 
-    <select id="queryFactoringAll" resultMap="BaseResultMap">
+    <select id="queryFactoringAll" resultMap="BaseResultMap" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance">
         SELECT
+
             hclc.chance_id,
             hclc.credit_line_number,
             hclc.credit_line_name,
@@ -1333,9 +1335,9 @@
                   AND hclc.INDUSTRY = scvb.value
             ) INDUSTRY_N,
             hclc.proposer_employee_id,
-            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROPOSER_EMPLOYEE_ID ) AS PROPOSER_EMPLOYEE_ID_N,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROPOSER_EMPLOYEE_ID )  PROPOSER_EMPLOYEE_ID_N,
             hclc.project_assistant,
-            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROJECT_ASSISTANT ) AS project_assistant_n,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROJECT_ASSISTANT )  project_assistant_n,
             hclc.credit_line_status,
             (
                 SELECT
@@ -1349,11 +1351,11 @@
                   AND scv.value = hclc.credit_line_status
             ) credit_line_status_n,
             hclc.creation_date,
-            ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) approved_time
+            hclc.approved_date
         FROM
             hls_credit_line_chance hclc
         <where>
-            1 = 1 and
+            1 = 1
             <if test="creditLineNumber != null and creditLineNumber != '' ">
                 and hclc.credit_line_number like concat('%', concat(#{creditLineNumber},'%'))
             </if>
@@ -1381,7 +1383,7 @@
                 and ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) >= #{approvedDateFrom}
             </if>
             <if test="approvedDateTo != null ">
-                and ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) &lt;= #{approvedDateTo}
+                and ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) &lt;= to_date(#{approvedDateTo},'yyyy-mm-dd hh24:mi:ss')+1-1/24/60/60
             </if>
             <if test="creditLineStatus != null and creditLineStatus != '' ">
                 and hclc.credit_line_status = #{creditLineStatus}
@@ -1391,7 +1393,7 @@
             </if>
 
         </where>
-
+        order by  hclc.approved_date desc
     </select>
 
 
