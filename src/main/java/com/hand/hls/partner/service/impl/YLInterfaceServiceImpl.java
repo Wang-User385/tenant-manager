@@ -2459,7 +2459,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             //回购结清应收金额 = 当前时间下一期租金应收本金 + 当前时间下一期租金剩余本金 - 当前时间下一期已收本金
             payableAmount = queryUnReceivedByOrderNoList.getPrincipal() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedPrincipal();
             principal = queryUnReceivedByOrderNoList.getPrincipal() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedPrincipal();
-            //利息插入时设置为0
+            interest = queryUnReceivedByOrderNoList.getInterest() - queryUnReceivedByOrderNoList.getReceivedInterest();
         }
 
         conContractCashflow.setContractId(queryUnReceivedByOrderNoList.getContractId());

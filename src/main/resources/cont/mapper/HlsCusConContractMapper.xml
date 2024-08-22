@@ -11756,7 +11756,7 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         AND cf.cf_item = 1 AND nvl(cf.overdue_status,'N') = 'Y' and cf.CF_STATUS = 'RELEASE') > 0 THEN '是' ELSE '否' END)history_overdue_status,
         (SELECT nvl(MAX(cf.overdue_max_days), 0) FROM con_contract_cashflow cf WHERE cf.contract_id = cc.contract_id AND
         cf.cf_item = 1 and cf.WRITE_OFF_FLAG != 'FULL' and cf.CF_DIRECTION = 'INFLOW' and cf.CF_STATUS = 'RELEASE') overdue_max_days,
-        (SELECT sum(nvl(DUE_AMOUNT, 0) - nvl(RECEIVED_AMOUNT, 0) ) FROM CON_CONTRACT_CASHFLOW WHERE cf_item=9 AND CONTRACT_ID=cc.contract_id and CF_STATUS = 'RELEASE')penalty,
+        (SELECT nvl(sum(nvl(DUE_AMOUNT, 0) - nvl(RECEIVED_AMOUNT, 0) ), 0) FROM CON_CONTRACT_CASHFLOW WHERE cf_item=9 AND CONTRACT_ID=cc.contract_id and CF_STATUS = 'RELEASE')penalty,
         (CASE (SELECT CF_ITEM FROM CON_CONTRACT_CASHFLOW WHERE CONTRACT_ID = cc.CONTRACT_ID AND CF_STATUS  not in ('BLOCK','CANCEL') AND (CF_ITEM in (11,13) OR (CF_ITEM=1 AND WRITE_OFF_FLAG='FUll'))  ORDER BY TIMES DESC FETCH FIRST 1 ROWS ONLY)
         WHEN 1 THEN 'NORMAL' WHEN 11 THEN 'ET' WHEN 13 THEN 'REPO' else ''	END ) terminate_type,
         (CASE (SELECT CF_ITEM FROM CON_CONTRACT_CASHFLOW WHERE CONTRACT_ID = cc.CONTRACT_ID AND CF_STATUS  not in ('BLOCK','CANCEL') AND (CF_ITEM in (11,13) OR (CF_ITEM=1 AND WRITE_OFF_FLAG='FUll'))  ORDER BY TIMES DESC FETCH FIRST 1 ROWS ONLY)
