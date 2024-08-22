@@ -1307,4 +1307,92 @@
         WHERE
             su.user_id = #{userId}
     </select>
+
+
+    <select id="queryFactoringAll" resultMap="BaseResultMap">
+        SELECT
+            hclc.chance_id,
+            hclc.credit_line_number,
+            hclc.credit_line_name,
+            hclc.bp_id,
+            ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id ) bp_id_n,
+            hclc.credit_flag,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'GT.HCLC.CREDIT_FLAG' AND sc.code_value = hclc.credit_flag ) credit_flag_n,
+            hclc.credit_line_amt,
+            hclc.industry,
+            (
+                SELECT
+                    scvb.meaning
+                FROM
+                    sys_code_value_b scvb,
+                    sys_code_b scb
+                WHERE
+                    scb.code = 'CHANCE.INDUSTRY'
+                  AND scb.code_id = scvb.code_id
+                  AND scvb.enabled_flag = 'Y'
+                  AND hclc.INDUSTRY = scvb.value
+            ) INDUSTRY_N,
+            hclc.proposer_employee_id,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROPOSER_EMPLOYEE_ID ) AS PROPOSER_EMPLOYEE_ID_N,
+            hclc.project_assistant,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROJECT_ASSISTANT ) AS project_assistant_n,
+            hclc.credit_line_status,
+            (
+                SELECT
+                    scv.MEANING
+                FROM
+                    sys_code_b sc,
+                    sys_code_value_b scv
+                WHERE
+                    sc.CODE_ID = scv.CODE_ID
+                  AND sc.CODE = 'CREDIT.APPROVE_STATUS'
+                  AND scv.value = hclc.credit_line_status
+            ) credit_line_status_n,
+            hclc.creation_date,
+            ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) approved_time
+        FROM
+            hls_credit_line_chance hclc
+        <where>
+            1 = 1 and
+            <if test="creditLineNumber != null and creditLineNumber != '' ">
+                and hclc.credit_line_number like concat('%', concat(#{creditLineNumber},'%'))
+            </if>
+            <if test="creditLineName != null and creditLineName != ''">
+                and hclc.credit_line_name like  concat('%', concat(#{creditLineName},'%'))
+            </if>
+             <if test="bpName != null and bpName != '' ">
+                and ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id ) like concat('%', concat(#{bpName},'%'))
+            </if>
+            <if test="industryN != null and industryN != ''">
+                and    (
+                SELECT
+                scvb.meaning
+                FROM
+                sys_code_value_b scvb,
+                sys_code_b scb
+                WHERE
+                scb.code = 'CHANCE.INDUSTRY'
+                AND scb.code_id = scvb.code_id
+                AND scvb.enabled_flag = 'Y'
+                AND hclc.INDUSTRY = scvb.value
+                ) like concat('%', concat(#{industryN},'%'))
+            </if>
+            <if test="approvedDateFrom != null">
+                and ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) >= #{approvedDateFrom}
+            </if>
+            <if test="approvedDateTo != null ">
+                and ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) &lt;= #{approvedDateTo}
+            </if>
+            <if test="creditLineStatus != null and creditLineStatus != '' ">
+                and hclc.credit_line_status = #{creditLineStatus}
+            </if>
+            <if test="creditFlag != null and creditFlag != ''">
+                and hclc.credit_flg = #{creditFlag}
+            </if>
+
+        </where>
+
+    </select>
+
+
 </mapper>

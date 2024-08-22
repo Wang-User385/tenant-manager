@@ -61,4 +61,11 @@ public interface HlsCusHlsCreditLineChanceMapper extends Mapper<HlsCusHlsCreditL
 
     List<HlsCusHlsCreditLineChance> queryChanceIdByCooperativeOrganization(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
     public List<SysUser> selectByUserId(@Param("userId")Long userId);
+
+    /***
+     * 保理主页面查询
+     * @param hlsCusHlsCreditLineChance
+     * @return
+     */
+    List<HlsCusHlsCreditLineChance> queryFactoringAll(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
 }

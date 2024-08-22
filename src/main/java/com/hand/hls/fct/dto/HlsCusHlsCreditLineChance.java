@@ -394,5 +394,10 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private String meetingType;
     @Transient
     private String meetingTypeN;
+
+    @Transient
+    private Date approvedTimeFrom;
+    @Transient
+    private Date approvedTimeTo;
 }
 
