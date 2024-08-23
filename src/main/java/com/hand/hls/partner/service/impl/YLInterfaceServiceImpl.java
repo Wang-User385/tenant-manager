@@ -279,6 +279,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         params.put("PARAMETER_01","YL");
         String codeRuleValue = fndCodingRuleValuesService.getCodeRuleValue(iRequest,"PRJ_PROJECT_IMPORT", "PRJLB", "LEASEBACK", params);
 
+        hlsCusPrjProject.setDocumentType("CAR");
+        hlsCusPrjProject.setDocumentCategory("PRJ_PROJECT");
         hlsCusPrjProject.setManufacturerId(hlsCusBpMasters.get(0).getBpId());
         hlsCusPrjProject.setProjectNumber(codeRuleValue);
         hlsCusPrjProject.setCompanyId(1L);
