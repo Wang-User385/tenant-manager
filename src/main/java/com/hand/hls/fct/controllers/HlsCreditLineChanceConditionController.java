@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
     private HlsICreditLineChanceConditionService service;
 
 
-    @RequestMapping(value = "/hls/credit/line/chance/condition/query")
+    @RequestMapping(value = "/hls/credit/line/chance/condition/queryAll")
     @ResponseBody
     public ResponseData query(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, @RequestParam(defaultValue = DEFAULT_PAGE) int pagenum,
         @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pagesize, HttpServletRequest request) {
