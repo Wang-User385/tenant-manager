@@ -27,7 +27,7 @@ public interface YLInterfaceService {
 
     String advancesSettleTrialCalculation(String decryptedStr) throws HlsCusException;
 
-    String advancesSettleRequest(String decryptedStr) throws HlsCusException;
+    String advancesSettleRequest(String decryptedStr, IRequest iRequest) throws HlsCusException;
 
     String dataAcquisition(String decryptedStr,IRequest iRequest) throws Exception;
 

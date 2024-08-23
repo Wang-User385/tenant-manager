@@ -15,6 +15,8 @@ import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
 import com.hand.hls.cont.service.IConContractCashflowService;
 import com.hand.hls.csh.dto.*;
+import com.hand.hls.csh.mapper.CshTransactionRefundLnMapper;
+import com.hand.hls.csh.mapper.HlsCusCshTransactionRefundMapper;
 import com.hand.hls.csh.service.*;
 import com.hand.hls.partner.mapper.YLCshTransferPaymentDtoMapper;
 import com.hand.hls.partner.service.IAlipayService;
@@ -40,6 +42,7 @@ import com.hand.hls.prj.mapper.*;
 import com.hand.hls.sys.dto.SysDocumentList;
 import com.hand.hls.sys.mapper.SysDocumentListMapper;
 import com.hand.hls.sys.utils.OracleUtils;
+import com.hand.hls.utils.HlsConstantUtil;
 import com.hand.hls.utils.ResMessageException;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
@@ -144,6 +147,15 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
     @Autowired
     private IAlipayService iAlipayService;
+
+    @Autowired
+    private CshPaymentReqHdService cshPaymentReqHdService;
+    @Autowired
+    private CshPaymentReqLnService cshPaymentReqLnService;
+    @Autowired
+    HlsCusCshTransactionRefundMapper cshTransactionRefundMapper;
+    @Autowired
+    private CshTransactionRefundLnMapper cshTransactionRefundLnMapper;
 
     /**
      * 用于代码获取工作流提交的实现类
@@ -708,7 +720,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
     }
 
     @Override
-    public String advancesSettleRequest(String decryptedStr) throws HlsCusException{
+    public String advancesSettleRequest(String decryptedStr,IRequest iRequest) throws HlsCusException{
         AdvancesSettleRequestDTO advancesSettleRequestDTO = JSONObject.parseObject(decryptedStr, AdvancesSettleRequestDTO.class);
         JSONObject jsonObject1 = new JSONObject();
         Date date = new Date();
@@ -746,6 +758,43 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         this.conContractCashflowMapper.insertSelective(conContractCashflow);
         //更新报价表上租赁期数
         conContractCashflowMapper.updatePrjQuotationLeaseTimesByOrderNo(conContractCashflow.getTimes(), advancesSettleRequestDTO.getOrderNo());
+
+        List<HlsCusCshWriteOff> hlsCusCshWriteOffs = new ArrayList<>();
+        List<HlsCusCshTransaction> transactionList = new ArrayList<>();
+        //已收款代偿自动进行退款申请并走完流程
+        for (HlsCusConContractCashflow cc : calculationResultsDto.getWriteOffList()){
+            //根据现金流查询代偿现金事务数据
+            transactionList = transactionMapper.queryTransactionByCashflowId(cc.getContractId(),cc.getCashflowId());
+            transactionList.stream().forEach(item -> {
+                        //根据现金事务创建退款申请头表
+                        HlsCusCshTransactionRefund transactionRefund = new HlsCusCshTransactionRefund();
+                        String refundNumber = cshPaymentReqHdService.getCodeValue(iRequest);
+                        transactionRefund.setRefundNumber(refundNumber);
+                        transactionRefund.setRefundStatus(HlsConstantUtil.WorkFlowStatus.APPROVED);
+                        transactionRefund.setPaymentRefundStatus(HlsConstantUtil.SlipStatus.PAYING);
+                        transactionRefund.setAuthorityRuleString(cshPaymentReqLnService.getAuthorityRuleString(iRequest));
+                        //设置付款信息
+                        transactionRefund.setBpBankName(item.getBpBankName());
+                        transactionRefund.setBpBankBranchName(item.getBpBankBranchName());
+                        transactionRefund.setBpBankAccountNum(item.getBpBankAccountNum());
+                        transactionRefund.setBpBankAccountName(item.getBpBankAccountName());
+                        transactionRefund.setDescription("代偿款退款");
+                        transactionRefund.setRefundAmount(item.getTransactionAmount());
+                        transactionRefund.setRefundDate(new Date());
+                        transactionRefund.setCurrencyCode("CNY");
+                        transactionRefund.setBpId(item.getBpId());
+                        cshTransactionRefundMapper.insertSelective(transactionRefund);
+
+                        //创建退款申请行表信息  此处行表信息只有一条
+                        CshTransactionRefundLn transactionRefundLine = new CshTransactionRefundLn();
+                        transactionRefundLine.setRefundId(transactionRefund.getRefundId());
+                        transactionRefundLine.setPaymentMethod(transactionRefund.getPaymentMethod());
+                        transactionRefundLine.setSourceTransactionId(item.getTransactionId());
+                        transactionRefundLine.setRefundAmount(item.getTransactionAmount());
+                        cshTransactionRefundLnMapper.insertSelective(transactionRefundLine);
+                    }
+            );
+        }
 
         //插入罚息 (提前结清罚息直接算到利息金额上)
        /* HlsCusConContractCashflow conContractCashflowPenalty = calculationResultsDto.getContractCashflowPenalty();
@@ -1815,81 +1864,116 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         List<HlsCusCshWriteOff> hlsCusCshWriteOffs = new ArrayList<>();
         List<HlsCusCshTransaction> transactionList = new ArrayList<>();
-        //已收代偿自动核销为租金
-        for (HlsCusConContractCashflow cc : calculationResultsDto.getWriteOffList()) {
+        //已收款代偿自动进行退款申请并走完流程
+        for (HlsCusConContractCashflow cc : calculationResultsDto.getWriteOffList()){
             //根据现金流查询代偿现金事务数据
             transactionList = transactionMapper.queryTransactionByCashflowId(cc.getContractId(),cc.getCashflowId());
-
-            //初始化剩余未核销金额
             transactionList.stream().forEach(item -> {
-                        Double unWriteOffAmount = HlsCusMathUtil.sub(item.getTransactionAmount()-nvl(item.getWriteOffAmount(),0.0), nvl(item.getAdvanceReceiptAmount(),0.0), 2);
-                        item.setAllocationAmount(unWriteOffAmount);
+                        //根据现金事务创建退款申请头表
+                        HlsCusCshTransactionRefund transactionRefund = new HlsCusCshTransactionRefund();
+                        String refundNumber = cshPaymentReqHdService.getCodeValue(iRequest);
+                        transactionRefund.setRefundNumber(refundNumber);
+                        transactionRefund.setRefundStatus(HlsConstantUtil.WorkFlowStatus.APPROVED);
+                        transactionRefund.setPaymentRefundStatus(HlsConstantUtil.SlipStatus.PAYING);
+                        transactionRefund.setAuthorityRuleString(cshPaymentReqLnService.getAuthorityRuleString(iRequest));
+                        //设置付款信息
+                        transactionRefund.setBpBankName(item.getBpBankName());
+                        transactionRefund.setBpBankBranchName(item.getBpBankBranchName());
+                        transactionRefund.setBpBankAccountNum(item.getBpBankAccountNum());
+                        transactionRefund.setBpBankAccountName(item.getBpBankAccountName());
+                        transactionRefund.setDescription("代偿款退款");
+                        transactionRefund.setRefundAmount(item.getTransactionAmount());
+                        transactionRefund.setRefundDate(new Date());
+                        transactionRefund.setCurrencyCode("CNY");
+                        transactionRefund.setBpId(item.getBpId());
+                        cshTransactionRefundMapper.insertSelective(transactionRefund);
+
+                        //创建退款申请行表信息  此处行表信息只有一条
+                        CshTransactionRefundLn transactionRefundLine = new CshTransactionRefundLn();
+                        transactionRefundLine.setRefundId(transactionRefund.getRefundId());
+                        transactionRefundLine.setPaymentMethod(transactionRefund.getPaymentMethod());
+                        transactionRefundLine.setSourceTransactionId(item.getTransactionId());
+                        transactionRefundLine.setRefundAmount(item.getTransactionAmount());
+                        cshTransactionRefundLnMapper.insertSelective(transactionRefundLine);
                     }
             );
-
-            Double allocationAmount = 0.00;
-            for (HlsCusCshTransaction cshTransaction : transactionList) {
-                Double receiptAllocationAmount = cshTransaction.getAllocationAmount();
-                Double writeOffDueAmount = HlsCusMathUtil.sub(cc.getDueAmount(), allocationAmount, 2);
-                //核销
-                HlsCusCshWriteOff cshWriteOff = new HlsCusCshWriteOff();
-                cshWriteOff.setCshWriteOffAmount(cshTransaction.getTransactionAmount());
-                cshWriteOff.setWriteOffDueAmount(cshTransaction.getTransactionAmount());
-                cshWriteOff.setDueAmount(cshTransaction.getTransactionAmount());
-                cshWriteOff.setCompanyId(iRequest.getCompanyId());
-                cshWriteOff.setCreationDate(new Date());
-                cshWriteOff.setWriteOffPrincipal(cc.getPrincipal());
-                cshWriteOff.setWriteOffInterest(cc.getInterest());
-                cshWriteOff = setCshWriteOff(cc, cshWriteOff, cshTransaction.getTransactionId(), "RECEIPT_CREDIT");
-
-                //如果 收款剩余未核销金额 大于等于 债权剩余待核销金额 且 债权剩余待核销金额 大于0
-                if (receiptAllocationAmount >= writeOffDueAmount && writeOffDueAmount > 0) {
-                    //收款剩余未核销金额  逐步减少
-                    cshTransaction.setAllocationAmount(HlsCusMathUtil.sub(cshTransaction.getAllocationAmount(), writeOffDueAmount, 2));
-                    //债权剩余待核销金额 逐步增长
-                    allocationAmount = HlsCusMathUtil.add(allocationAmount, writeOffDueAmount, 2);
-                    hlsCusCshWriteOffs.add(cshWriteOff);
-
-                }//如果  收款剩余未核销金额 小于等于 债权剩余待核销金额 且 金额大于0  同时 债权剩余待核销金额 大于0
-                else if (receiptAllocationAmount < writeOffDueAmount && receiptAllocationAmount > 0 && writeOffDueAmount > 0) {
-                    //设置核销本金 和 核销利息
-                    //如何核销金额小于待核销金额   优先核销利息 再核销本金
-                    if (cc.getInterest() >= receiptAllocationAmount) {
-                        cshWriteOff.setWriteOffInterest(receiptAllocationAmount);
-                        cc.setPrincipal(0.0);
-                        cc.setInterest(HlsCusMathUtil.sub(cc.getInterest(),receiptAllocationAmount));
-                    } else {
-                        cshWriteOff.setWriteOffPrincipal(HlsCusMathUtil.sub(receiptAllocationAmount, nvl(cshWriteOff.getWriteOffInterest(),0.0), 2));
-                        cc.setInterest(0.0);
-                        cc.setPrincipal(HlsCusMathUtil.sub(cc.getPrincipal(),cshWriteOff.getWriteOffPrincipal()));
-                    }
-                    hlsCusCshWriteOffs.add(cshWriteOff);
-                    //收款剩余未核销金额  逐步减少
-                    cshTransaction.setAllocationAmount(0.0);
-                    //债权剩余待核销金额 逐步增长
-                    allocationAmount = HlsCusMathUtil.add(allocationAmount, receiptAllocationAmount, 2);
-                }
-
-                HlsCusCshTransaction transaction = new HlsCusCshTransaction();
-                transaction.setTransactionId(cshTransaction.getTransactionId());
-                transaction.setContractId(cc.getContractId());
-                cshTransactionService.updateByPrimaryKeySelective(iRequest, cshTransaction);
-
-            }
-
-            //现金流核销
-            try {
-                cshWriteOffService.writeOff(iRequest, hlsCusCshWriteOffs, session);
-            }catch (Exception e) {
-                jsonObject1.put("code","400");
-                jsonObject1.put("message","代偿租金核销失败！"+e.getMessage());
-                throw new HlsCusException(jsonObject1.toJSONString());
-            }
-
-            //插入 分配相关表
-            saveAllocation(transactionList,cc,iRequest);
-
         }
+
+        //已收代偿自动核销为租金
+//        for (HlsCusConContractCashflow cc : calculationResultsDto.getWriteOffList()) {
+//            //根据现金流查询代偿现金事务数据
+//            transactionList = transactionMapper.queryTransactionByCashflowId(cc.getContractId(),cc.getCashflowId());
+//
+//            //初始化剩余未核销金额
+//            transactionList.stream().forEach(item -> {
+//                        Double unWriteOffAmount = HlsCusMathUtil.sub(item.getTransactionAmount()-nvl(item.getWriteOffAmount(),0.0), nvl(item.getAdvanceReceiptAmount(),0.0), 2);
+//                        item.setAllocationAmount(unWriteOffAmount);
+//                    }
+//            );
+//
+//            Double allocationAmount = 0.00;
+//            for (HlsCusCshTransaction cshTransaction : transactionList) {
+//                Double receiptAllocationAmount = cshTransaction.getAllocationAmount();
+//                Double writeOffDueAmount = HlsCusMathUtil.sub(cc.getDueAmount(), allocationAmount, 2);
+//                //核销
+//                HlsCusCshWriteOff cshWriteOff = new HlsCusCshWriteOff();
+//                cshWriteOff.setCshWriteOffAmount(cshTransaction.getTransactionAmount());
+//                cshWriteOff.setWriteOffDueAmount(cshTransaction.getTransactionAmount());
+//                cshWriteOff.setDueAmount(cshTransaction.getTransactionAmount());
+//                cshWriteOff.setCompanyId(iRequest.getCompanyId());
+//                cshWriteOff.setCreationDate(new Date());
+//                cshWriteOff.setWriteOffPrincipal(cc.getPrincipal());
+//                cshWriteOff.setWriteOffInterest(cc.getInterest());
+//                cshWriteOff = setCshWriteOff(cc, cshWriteOff, cshTransaction.getTransactionId(), "RECEIPT_CREDIT");
+//
+//                //如果 收款剩余未核销金额 大于等于 债权剩余待核销金额 且 债权剩余待核销金额 大于0
+//                if (receiptAllocationAmount >= writeOffDueAmount && writeOffDueAmount > 0) {
+//                    //收款剩余未核销金额  逐步减少
+//                    cshTransaction.setAllocationAmount(HlsCusMathUtil.sub(cshTransaction.getAllocationAmount(), writeOffDueAmount, 2));
+//                    //债权剩余待核销金额 逐步增长
+//                    allocationAmount = HlsCusMathUtil.add(allocationAmount, writeOffDueAmount, 2);
+//                    hlsCusCshWriteOffs.add(cshWriteOff);
+//
+//                }//如果  收款剩余未核销金额 小于等于 债权剩余待核销金额 且 金额大于0  同时 债权剩余待核销金额 大于0
+//                else if (receiptAllocationAmount < writeOffDueAmount && receiptAllocationAmount > 0 && writeOffDueAmount > 0) {
+//                    //设置核销本金 和 核销利息
+//                    //如何核销金额小于待核销金额   优先核销利息 再核销本金
+//                    if (cc.getInterest() >= receiptAllocationAmount) {
+//                        cshWriteOff.setWriteOffInterest(receiptAllocationAmount);
+//                        cc.setPrincipal(0.0);
+//                        cc.setInterest(HlsCusMathUtil.sub(cc.getInterest(),receiptAllocationAmount));
+//                    } else {
+//                        cshWriteOff.setWriteOffPrincipal(HlsCusMathUtil.sub(receiptAllocationAmount, nvl(cshWriteOff.getWriteOffInterest(),0.0), 2));
+//                        cc.setInterest(0.0);
+//                        cc.setPrincipal(HlsCusMathUtil.sub(cc.getPrincipal(),cshWriteOff.getWriteOffPrincipal()));
+//                    }
+//                    hlsCusCshWriteOffs.add(cshWriteOff);
+//                    //收款剩余未核销金额  逐步减少
+//                    cshTransaction.setAllocationAmount(0.0);
+//                    //债权剩余待核销金额 逐步增长
+//                    allocationAmount = HlsCusMathUtil.add(allocationAmount, receiptAllocationAmount, 2);
+//                }
+//
+//                HlsCusCshTransaction transaction = new HlsCusCshTransaction();
+//                transaction.setTransactionId(cshTransaction.getTransactionId());
+//                transaction.setContractId(cc.getContractId());
+//                cshTransactionService.updateByPrimaryKeySelective(iRequest, cshTransaction);
+//
+//            }
+//
+//            //现金流核销
+//            try {
+//                cshWriteOffService.writeOff(iRequest, hlsCusCshWriteOffs, session);
+//            }catch (Exception e) {
+//                jsonObject1.put("code","400");
+//                jsonObject1.put("message","代偿租金核销失败！"+e.getMessage());
+//                throw new HlsCusException(jsonObject1.toJSONString());
+//            }
+//
+//            //插入 分配相关表
+//            saveAllocation(transactionList,cc,iRequest);
+//
+//        }
 
         //            设置返回状态
         jsonObject1.put("code","200");

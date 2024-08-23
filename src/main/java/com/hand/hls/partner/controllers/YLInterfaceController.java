@@ -332,7 +332,7 @@ public class YLInterfaceController extends BaseController {
         String resStr = null;
         String returnStatus = "S";
         try{
-            resStr = ylInterfaceService.advancesSettleRequest(hlsWsRequests.getRequestJson());
+            resStr = ylInterfaceService.advancesSettleRequest(hlsWsRequests.getRequestJson(), iRequest);
         }catch(HlsCusException e){
             return updateLogs(hlsWsRequests,e.getMessage(),"S");
         }catch (Exception e){
