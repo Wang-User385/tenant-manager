@@ -288,6 +288,8 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
     private  CshPaymentReqLnBankAccountMapper cshPaymentReqLnBankAccountMapper;
     @Autowired
     private IYLMessageNoticeService messageNoticeService;
+    @Autowired
+    private HlsCusCshTransactionRefundMapper hlsCusCshTransactionRefundMapper;
 
     /**
      * 付款反冲 1、插入核销反冲记录 csh_write_off 可能为多条 2、更改csh_transaction原核销记录核销标志、日期
@@ -2630,12 +2632,59 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
     }
 
-    /**
-     * 二期功能：起租类型为"放款即起租”的零售合同，根据“实际支付日期”更改来调整合同现金流的“支付日期”所有期次的支付时间
-     *
-     * @param iRequest
-     * @param hlsCusCshPaymentReqHd
-     */
+    //退款申请支付 确认支付
+    @Override
+    public void refundPaymentNew(IRequest iRequest, HlsCusCshPaymentTran hlsCusCshPaymentTran, HttpSession session) throws Exception {
+        HlsCusCshTransactionRefund transactionRefund = new HlsCusCshTransactionRefund();
+        Long refundId = hlsCusCshPaymentTran.getRefundId();
+        transactionRefund.setRefundId(refundId);
+        transactionRefund = cshTransactionRefundService.selectByPrimaryKey(iRequest, transactionRefund);
+        transactionRefund.setActualPaymentDate(hlsCusCshPaymentTran.getTransactionDate());
+        CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount1 = new CshPaymentReqLnBankAccount();
+        cshPaymentReqLnBankAccount1.setRefundId(refundId);
+        List<CshPaymentReqLnBankAccount> reqLnBankAccounts = cshPaymentReqLnBankAccountMapper.selectPaymentReqLnBankAccount(cshPaymentReqLnBankAccount1);
+        for (int i = 0; i <reqLnBankAccounts.size() ; i++) {
+            cshPaymentReqLnBankAccount1.setCshBankId(reqLnBankAccounts.get(i).getCshBankId());
+            cshPaymentReqLnBankAccount1.setPaymentAmount(reqLnBankAccounts.get(i).getActualPaymentAmount());
+            cshPaymentReqLnBankAccount1.setActualPaymentDate(hlsCusCshPaymentTran.getTransactionDate());
+            cshPaymentReqLnBankAccountMapper.updateByPrimaryKeySelective(cshPaymentReqLnBankAccount1);
+        }
+
+        Double paymentAmount  = cshPaymentReqLnBankAccountMapper.queryRefundPaymentAmount(refundId);
+        if (paymentAmount < transactionRefund.getRefundAmount()){
+            //实际付款小于现金事务上的金额时报错
+            throw new ResMessageException("实际付款不能小于申请总金额！");
+        }else if(transactionRefund.getRefundAmount().compareTo(paymentAmount)  == 0) {
+            //修改申请单状态 PAID
+            transactionRefund.setPaymentRefundStatus("PAID");
+        }
+
+        //根据原现金事务更新对应现金流为已退款代偿
+        List<Map> cashflowInfos = hlsCusCshTransactionRefundMapper.refundPayTransactionCashflowIdByRefundId(refundId);
+        HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow();
+        for(Map cashflowInfo : cashflowInfos){
+            BigDecimal cashflowId = (BigDecimal) cashflowInfo.get("CASHFLOW_ID");
+            BigDecimal refundAmount = (BigDecimal) cashflowInfo.get("REFUND_AMOUNT");
+            conContractCashflow.setCashflowId(Long.valueOf(cashflowId.intValue()));
+            conContractCashflow.setRefundCompAmount(Double.valueOf(refundAmount.intValue()));
+            hlsCusConContractCashflowMapper.updateByPrimaryKeySelective(conContractCashflow);
+        }
+
+        //更新申请单
+        cshTransactionRefundService.updateByPrimaryKeySelective(iRequest, transactionRefund);
+        //更新银行流水行表
+        CshPaymentReqLnBankAccount cshPaymentReqLnBankAccount = new CshPaymentReqLnBankAccount();
+        cshPaymentReqLnBankAccount.setRefundId(refundId);
+        cshPaymentReqLnBankAccount.setPaymentStatus("PAID");
+        cshPaymentReqLnBankAccountMapper.updateCshPaymentReqLnBankAccountByLn(cshPaymentReqLnBankAccount);
+    }
+
+        /**
+         * 二期功能：起租类型为"放款即起租”的零售合同，根据“实际支付日期”更改来调整合同现金流的“支付日期”所有期次的支付时间
+         *
+         * @param iRequest
+         * @param hlsCusCshPaymentReqHd
+         */
     private void updateDueDateByActualPayDate(IRequest iRequest, HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd) {
 
         //实际支付日期
