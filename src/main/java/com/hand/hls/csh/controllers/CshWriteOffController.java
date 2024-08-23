@@ -283,7 +283,7 @@ public class CshWriteOffController extends BaseController {
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusCshPaymentTran cusCshPaymentTran = param.toJavaObject(HlsCusCshPaymentTran.class);
 
-        cshWriteOffService.refundPayment(createRequestContext(request), cusCshPaymentTran, session);
+        cshWriteOffService.refundPaymentNew(createRequestContext(request), cusCshPaymentTran, session);
         return new ResponseData();
 
     }

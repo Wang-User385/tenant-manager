@@ -77,6 +77,10 @@ public interface CshWriteOffService extends IBaseService<HlsCusCshWriteOff>, Pro
      * @throws Exception
      */
     void refundPayment(IRequest iRequest, HlsCusCshPaymentTran hlsCusCshPaymentTran, HttpSession session) throws Exception;
+
+    //退款申请支付 确认支付
+    public void refundPaymentNew(IRequest iRequest, HlsCusCshPaymentTran hlsCusCshPaymentTran, HttpSession session) throws Exception;
+
     /**
      * 核销发送sap接口
      * @param iRequest

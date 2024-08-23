@@ -77,4 +77,7 @@ public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMa
     List<HlsCusCshTransactionRefund> cshPaymentTransactionRefundQuery(HlsCusCshTransactionRefund cshTransactionRefund);
 
     Map refundPayHeadInfo(HlsCusCshTransactionRefund cshTransactionRefund);
+
+    //查找原现金事务对应合同的现金流ID和对应的退款金额
+    List<Map> refundPayTransactionCashflowIdByRefundId(@Param("refundId") Long refundId);
 }
