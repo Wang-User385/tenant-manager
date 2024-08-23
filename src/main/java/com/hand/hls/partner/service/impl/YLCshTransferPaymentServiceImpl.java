@@ -172,7 +172,7 @@ public class YLCshTransferPaymentServiceImpl extends BaseServiceImpl<YLCshTransf
         //设置核销类型
         hlsCusCshWriteOff.setWriteOffType("RECEIPT_CREDIT");
         //设置核销时间
-        hlsCusCshWriteOff.setWriteOffDate(new Date());
+        hlsCusCshWriteOff.setWriteOffDate(ylCshTransferPaymentDto.getRepayDate());
         //设置现金事务核销金额
         hlsCusCshWriteOff.setCshWriteOffAmount(hlsCusCshTransaction.getWriteOffAmount());
         //设置反冲标志

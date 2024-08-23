@@ -422,4 +422,18 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         return new ResponseData(sysUserMapper.selectByUserId(userId));
     }
 
+
+    /***
+     * 获取创建保理所需信息
+     * @param requestData
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/get/factoring/info")
+    @ResponseBody
+    public ResponseData getFactoringInfo(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        return new ResponseData(service.createInfo(requestCtx.getUserId()));
+    }
+
 }

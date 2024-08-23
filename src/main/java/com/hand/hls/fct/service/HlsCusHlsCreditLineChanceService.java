@@ -102,4 +102,6 @@ public interface HlsCusHlsCreditLineChanceService extends IBaseService<HlsCusHls
     void deleteRelaProject(IRequest requestCtx, List<HlsCusHlsCreditLineChanceBp> bpList);
 
     void checkCooperativeOrganization(IRequest iRequest, HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance) throws HlsCusException;
+
+    List<HlsCusHlsCreditLineChance> createInfo(Long userId);
 }

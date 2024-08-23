@@ -1425,4 +1425,11 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         }
     }
 
+    @Override
+    public List<HlsCusHlsCreditLineChance> createInfo(Long userId) {
+        HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance = new HlsCusHlsCreditLineChance();
+        hlsCusHlsCreditLineChance.setProposerUserId(userId);
+        return hlsCusHlsCreditLineChanceMapper.createInfo(hlsCusHlsCreditLineChance);
+    }
+
 }
