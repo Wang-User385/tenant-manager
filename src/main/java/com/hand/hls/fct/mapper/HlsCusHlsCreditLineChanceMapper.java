@@ -69,4 +69,10 @@ public interface HlsCusHlsCreditLineChanceMapper extends Mapper<HlsCusHlsCreditL
      */
     List<HlsCusHlsCreditLineChance> queryFactoringAll(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
     List<HlsCusHlsCreditLineChance> createInfo(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
+    /***
+     * 保理基本信息查询
+     */
+    List<HlsCusHlsCreditLineChance> basicInfo(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
+
+
 }

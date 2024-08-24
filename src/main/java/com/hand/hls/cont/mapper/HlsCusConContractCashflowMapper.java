@@ -356,4 +356,8 @@ public interface HlsCusConContractCashflowMapper extends Mapper<HlsCusConContrac
 
     //更新报价表上租赁期数
     void updatePrjQuotationLeaseTimesByOrderNo(@Param("times")Long times, @Param("orderNo")String orderNo);
+
+    //查询罚息现金流
+    HlsCusConContractCashflow queryConContractCashflowListPenalty(@Param("contractId") Long contractId, @Param("times") Long times);
+
 }

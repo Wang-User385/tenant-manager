@@ -401,5 +401,20 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private Date approvedTimeTo;
     @Transient
     private String creditLineStatusN;
+    private String factoringType;
+    @Transient
+    private String factoringTypeN;
+    private String factoringCategory;
+    @Transient
+    private String factoringCategoryN;
+    private String factoringRecourse;
+    @Transient
+    private String factoringRecourseN;
+    private String factoringOpen;
+    @Transient
+    private String factoringOpenN;
+    private String creditorAnalyse;
+    private String debtorAnalyse;
+    private String otherDesc;
 }
 

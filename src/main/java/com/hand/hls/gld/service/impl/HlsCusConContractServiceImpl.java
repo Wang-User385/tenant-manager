@@ -4738,7 +4738,7 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             iAlipayService.signCancel(hlsCusPrjProject.getProjectId());
         }
         //更新进件订单状态
-        hlsCusPrjProject.setProjectStatus("CLOSED");
+        hlsCusPrjProject.setOrderStatus("CLOSED");
         hlsCusPrjProjectMapper.updateByPrimaryKey(hlsCusPrjProject);
     }
 

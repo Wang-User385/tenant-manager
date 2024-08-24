@@ -83,6 +83,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
@@ -1812,10 +1813,40 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
     @Override
     public void allocationConfirm(IRequest iRequest, List<HlsCusCshTransaction> cshTransactionList, HttpSession session) throws Exception {
 
-        cshTransactionList.stream().forEach(item -> {
+
+        for (HlsCusCshTransaction item : cshTransactionList) {
             item.setUnWriteOffAmount(nvl(item.getUnWriteOffAmount(), 0.0));
             item.setAdvanceReceiptAmount(nvl(item.getAdvanceReceiptAmount(), 0.0));
-        });
+            //判断是否核销租金没有先核销罚息
+            List<HlsCusCshWriteOff> cshWriteOffList = item.getCshWriteOffList();
+            Map<Long, List<HlsCusCshWriteOff>> collect = cshWriteOffList.stream().collect(Collectors.groupingBy(HlsCusCshWriteOff::getContractId));
+            for (Map.Entry<Long, List<HlsCusCshWriteOff>> entry : collect.entrySet()) {
+                Long k = entry.getKey();
+                List<HlsCusCshWriteOff> v = entry.getValue();
+                Map<Long, List<HlsCusCshWriteOff>> map = v.stream().collect(Collectors.groupingBy(HlsCusCshWriteOff::getTimes));
+                for (Map.Entry<Long, List<HlsCusCshWriteOff>> innerEntry : map.entrySet()) {
+                    Long key = innerEntry.getKey();
+                    List<HlsCusCshWriteOff> value = innerEntry.getValue();
+                    HlsCusConContractCashflow penalty = hlsCusConContractCashflowMapper.queryConContractCashflowListPenalty(k, key);
+                    if (!ObjectUtils.isEmpty(penalty) && !"FULL".equals(penalty.getWriteOffFlag())){
+                        boolean flag = false;
+                        String contractNumber = "";
+                        for (HlsCusCshWriteOff hlsCusCshWriteOff : value) {
+                            if ((hlsCusCshWriteOff.getCfType() != null && hlsCusCshWriteOff.getCfType() == 9) || (hlsCusCshWriteOff.getCfItem() != null && hlsCusCshWriteOff.getCfItem() == 9)){
+                                flag = true;
+                                break;
+                            }
+                            contractNumber = hlsCusCshWriteOff.getContractNumber();
+                        }
+                        if (!flag){
+                            throw new ResMessageException("合同号为"+contractNumber+"中的第"+key+"期债权中罚息有剩余需要先核销罚息");
+                        }
+                    }
+                }
+            }
+
+
+        }
 
         //保证金待核销金额汇总
         Double allocationDepositWriteOffAmountTotal = 0D;
@@ -1937,10 +1968,10 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
             //核销为  预收款
             if (nvl(transaction.getAdvanceReceiptAmount(), 0.0).compareTo(0.0) == 1) {
-//            if (nvl(transaction.getWriteOffDueAmount(), 0.0).compareTo(0.0) == 1) {
                 HlsCusCshWriteOff advanceWriteOff = new HlsCusCshWriteOff();
                 advanceWriteOff = getCshWriteOff(iRequest, advanceWriteOff, transaction, transaction.getAdvanceReceiptAmount(), WRITE_OFF_TYPE_RECEIPT_ADVANCE_RECEIPT);
-                hlsCusCshWriteOffs.add(advanceWriteOff);
+                //粤海没有预收款类型,不放入预收款
+                //hlsCusCshWriteOffs.add(advanceWriteOff);
             }
 
             HlsCusCshTransaction cshTransaction = new HlsCusCshTransaction();
@@ -2254,7 +2285,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
             //修改现金流已收代偿金额
             HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow();
-            conContractCashflow.setWriteOffFlag("FULL");
+//            conContractCashflow.setWriteOffFlag("FULL");
             conContractCashflow.setCashflowId(advance.getCashflowId());
             conContractCashflow.setReceivedCompAmount(advance.getWriteOffDueAmount());
             hlsCusConContractCashflowService.updateByPrimaryKeySelective(iRequest,conContractCashflow);

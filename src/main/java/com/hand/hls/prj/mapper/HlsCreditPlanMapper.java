@@ -14,4 +14,11 @@ public interface HlsCreditPlanMapper extends Mapper<HlsCreditPlan> {
     List<Map> queryCreditPlanAuditInfo(HlsCusPrjProjectParam prjQuotation);
 
     List<Map> queryPaymentCreditPlanAuditInfo(HlsCusPrjProjectParam prjQuotation);
+
+
+    /***
+     * 保理授信信息
+     */
+    List<HlsCreditPlan> findFactoringInfo(HlsCreditPlan hlsCreditPlan);
+
 }

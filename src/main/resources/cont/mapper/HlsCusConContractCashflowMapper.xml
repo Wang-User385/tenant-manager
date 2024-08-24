@@ -3028,7 +3028,8 @@ AND sua.COMPANY_ID = #{companyId}
 
     <select id="queryContractCashflowLovNew" resultMap="BaseResultMap"
             resultType="com.hand.hls.cont.dto.HlsCusConContractCashflow">
-        SELECT
+        select t2.*
+        from (SELECT
         t1.*,	(
         SELECT
         hbv.bp_name
@@ -3038,7 +3039,9 @@ AND sua.COMPANY_ID = #{companyId}
         WHERE
         pp.PROJECT_NUMBER = t1.CONTRACT_NUMBER AND
         hbv.bp_id =  pp.manufacturer_id
-        ) manufacturer_name
+        ) manufacturer_name,
+        row_number() over( partition by t1.contract_number
+        ORDER BY t1.times asc  , t1.cf_type desc  , t1.cf_item desc) as r
         FROM
         (
         SELECT
@@ -3271,57 +3274,57 @@ AND sua.COMPANY_ID = #{companyId}
         and ct.REVERSED_FLAG = 'N'
         and ca.ALLOCATION_ID = car.ALLOCATION_ID
         and ca.ALLOCATION_STATUS = 'N')
-        ) t1
+        ) t1)t2
         WHERE
-        1 = 1 and (TO_DATE(TO_CHAR(sysdate,'yyyy-mm-dd'),'yyyy-mm-dd hh24:mi:ss') + 1-1/24/60/60) >= t1.due_date
+        1 = 1 and (TO_DATE(TO_CHAR(sysdate,'yyyy-mm-dd'),'yyyy-mm-dd hh24:mi:ss') + 1-1/24/60/60) >= t2.due_date
         <if test="contractId!=null">
-            and t1.contract_id = #{contractId}
+            and t2.contract_id = #{contractId}
         </if>
         <if test="bpName!=null">
-            and t1.bp_name like concat('%',concat(#{bpName},'%'))
+            and t2.bp_name like concat('%',concat(#{bpName},'%'))
         </if>
         <if test="contractNumber!=null">
-            and t1.contract_number like concat('%',concat(#{contractNumber},'%') )
+            and t2.contract_number like concat('%',concat(#{contractNumber},'%') )
         </if>
         <if test="prjConNumber!=null">
-            and t1.prj_con_number like concat('%',concat(#{prjConNumber},'%') )
+            and t2.prj_con_number like concat('%',concat(#{prjConNumber},'%') )
         </if>
         <if test="legalContractNumber!=null">
-            and t1.legal_contract_number like concat('%',concat(#{legalContractNumber},'%') )
+            and t2.legal_contract_number like concat('%',concat(#{legalContractNumber},'%') )
         </if>
         <if test="cfStatus!=null">
-            and t1.cf_status = #{cfStatus}
+            and t2.cf_status = #{cfStatus}
         </if>
         <if test="cfDirection!=null">
-            and t1.cf_direction = #{cfDirection}
+            and t2.cf_direction = #{cfDirection}
         </if>
         <if test="notCashflowIds!=null">
-            and t1.cashflow_id not in
+            and t2.cashflow_id not in
             <foreach collection="notCashflowIds" index="index" item="item" open="(" separator="," close=")">
                 #{item}
             </foreach>
         </if>
         <if test="inCashflowIds!=null">
-            and t1.cashflow_id in
+            and t2.cashflow_id in
             <foreach collection="inCashflowIds" index="index" item="item" open="(" separator="," close=")">
                 #{item}
             </foreach>
         </if>
         <if test="surplusAmountFlag!=null">
-            and ('Y' = #{surplusAmountFlag} and t1.surplus_amount >0)
+            and ('Y' = #{surplusAmountFlag} and t2.surplus_amount >0)
         </if>
         <if test="cfItem!=null">
-            and t1.cf_item = #{cfItem}
+            and t2.cf_item = #{cfItem}
         </if>
         <if test="cfItemN!=null">
-            and t1.cf_item_n like concat('%',concat(#{cfItemN},'%'))
+            and t2.cf_item_n like concat('%',concat(#{cfItemN},'%'))
         </if>
         <if test="dueDateFrom!=null">
-            AND to_char(t1.due_date,'YYYY-MM-DD') &gt;= to_char(#{dueDateFrom},'YYYY-MM-DD')
+            AND to_char(t2.due_date,'YYYY-MM-DD') &gt;= to_char(#{dueDateFrom},'YYYY-MM-DD')
 
         </if>
         <if test="dueDateTo!=null">
-            AND to_char(t1.due_date,'YYYY-MM-DD') &lt;= to_char(#{dueDateTo},'YYYY-MM-DD')
+            AND to_char(t2.due_date,'YYYY-MM-DD') &lt;= to_char(#{dueDateTo},'YYYY-MM-DD')
 
         </if>
 
@@ -3329,16 +3332,15 @@ AND sua.COMPANY_ID = #{companyId}
             and t1.cf_item != #{nCfItem}
         </if>-->
         <if test="cfType!=null">
-            and t1.cf_type = #{cfType}
+            and t2.cf_type = #{cfType}
         </if>
         <!--<if test="nCfType!=null">
             and t1.cf_type != #{nCfType}
         </if>-->
 
         <if test="depositFlag!=null">
-            AND t1.lease_times= t1.times
+            AND t2.lease_times= t2.times
         </if>
-        order by t1.contract_number,t1.times
     </select>
 
     <!---二期功能：收款管理-业务功能 核销为保证金 LOV 查询-->
@@ -9251,6 +9253,7 @@ and con.contract_status in
         ccc.cf_item,
         ccc.times,
         ccc.due_date,
+        ccc.RECEIVED_COMP_AMOUNT,
         to_char(ccc.due_date, 'yyyy-MM-dd') as due_date_format,
         (SELECT ci.description
         FROM hls_cashflow_item ci
@@ -9281,7 +9284,7 @@ and con.contract_status in
         and ca.ALLOCATION_ID = car.ALLOCATION_ID
         and ca.ALLOCATION_STATUS = 'N')) t1
         WHERE
-        1 = 1 and t1.write_off_flag = 'NOT'
+        1 = 1 and t1.write_off_flag = 'NOT' and nvl(t1.RECEIVED_COMP_AMOUNT,0) = 0
         <if test="contractId!=null">
             and t1.contract_id = #{contractId}
         </if>
@@ -9371,5 +9374,15 @@ and con.contract_status in
         where
          CONTRACT_ID = #{contractId}  AND TIMES = #{times} AND CF_STATUS != 'BLOCK'
     </select>
+
+    <select id="queryConContractCashflowListPenalty" resultMap="BaseResultMap">
+        select ccc.*
+        FROM
+            CON_CONTRACT_CASHFLOW ccc
+        where
+            CONTRACT_ID = #{contractId}  AND TIMES = #{times} AND CF_STATUS != 'BLOCK' and CF_TYPE = 9 and cf_item = 9
+    </select>
+
+
 
 </mapper>

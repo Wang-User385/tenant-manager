@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fct.mapper.HlsCreditPlanLineMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsCreditPlanLine">
+        <result column="LINE_ID" property="lineId" jdbcType="DECIMAL" />
+        <result column="CREDIT_PLAN_ID" property="creditPlanId" jdbcType="DECIMAL" />
+        <result column="FACTORING_CATEGORY" property="factoringCategory" jdbcType="VARCHAR" />
+        <result column="CREDIT_AMT" property="creditAmt" jdbcType="DECIMAL" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="bp_name" property="bpName" jdbcType="VARCHAR" />
+        <result column="bp_code" property="bpCode" jdbcType="VARCHAR" />
+        <result column="bp_type" property="bpType" jdbcType="VARCHAR" />
+        <result column="bp_type_n" property="bpTypeN" jdbcType="VARCHAR" />
+        <result column="group_companies" property="groupCompanies" jdbcType="VARCHAR" />
+        <result column="group_companies" property="factoringCategoryN" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="findFactoringInfo" resultMap="BaseResultMap">
+        SELECT
+        hbm.bp_name,
+        hbm.bp_code,
+        hbm.bp_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = hbm.bp_type ) bp_type_n,
+        hbm.group_companies,
+        hcpl.factoring_category,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = c.factoring_category ) factoring_category_n,
+        hcpl.credit_amt,
+        hcpl.description
+        FROM
+        hls_credit_plan_line hcpl
+        INNER JOIN hls_credit_plan hcp ON hcp.credit_plan_id = hcpl.credit_plan_id
+        INNER JOIN hls_credit_line_chance c ON hcp.source_document_category = 'HLS_CREDIT_LINE_CHANCE'
+        AND hcp.source_document_id = c.chance_id
+        INNER JOIN hls_bp_master hbm ON c.bp_id = hbm.bp_id
+        <where>
+            hbm.bp_type = 'FACTORING_SELLER'
+            and  hcpl.credit_plan_id = #{creditPlanId}
+
+        </where>
+
+    </select>
+
+
+</mapper>

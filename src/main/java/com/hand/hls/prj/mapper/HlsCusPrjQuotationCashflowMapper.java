@@ -127,4 +127,13 @@ public interface HlsCusPrjQuotationCashflowMapper extends Mapper<HlsCusPrjQuotat
      * 是否暂停代扣状态更新
      */
     void updateStopWithholdFlagByOrderNoAndTermNo(@Param("orderNo") String orderNo, @Param("stopWithholdFlag") String stopWithholdFlag, @Param("termNo") Integer termNo);
+
+    /***
+     * 保理现金流信息
+     * @param hlsCusPrjQuotationCashflow
+     * @return
+     */
+
+    List<HlsCusPrjQuotationCashflow> findFactoringInfo(HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow);
+
 }

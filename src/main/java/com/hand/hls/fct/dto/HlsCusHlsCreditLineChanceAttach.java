@@ -51,4 +51,9 @@ public class HlsCusHlsCreditLineChanceAttach extends BaseDTO {
     private String attachmentCategory;
     private String sourceType;
 
+    private Long createdBy;
+
+    @Transient
+    private String createdByN;
+
 }

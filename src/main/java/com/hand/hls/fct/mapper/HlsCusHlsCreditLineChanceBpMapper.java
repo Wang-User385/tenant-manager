@@ -27,4 +27,9 @@ public interface HlsCusHlsCreditLineChanceBpMapper extends Mapper<HlsCusHlsCredi
 
     //用来更新授信用户的已用金额
     void updateUsedAmountByBpId(HlsCusHlsCreditLineChanceBp cusHlsCreditLineChanceBp);
+    /**
+     * 保理客户信息
+     */
+    List<HlsCusHlsCreditLineChanceBp> findCustomer(HlsCusHlsCreditLineChanceBp cusHlsCreditLineChanceBp);
+
 }

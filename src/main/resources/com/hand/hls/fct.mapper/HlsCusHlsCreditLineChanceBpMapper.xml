@@ -195,4 +195,34 @@
         update HLS_CREDIT_LINE_CHANCE_BP set credit_amount_used=#{creditAmountUsed} where bp_id=#{bpId} AND chance_id=#{chanceId}
     </update>
 
+    <select id="findCustomer" resultMap="BaseResultMap">
+        SELECT
+        hclcb.chance_bp_id,
+        hclcb.bp_id,
+        hbm.bp_name ,
+        hbm.bp_code,
+        hclcb.bp_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = hclcb.bp_type ) bp_type_n,
+        hbm.economic_indu_classify,
+        (
+        SELECT
+        t.description
+        FROM
+        hls_stat_class t
+        WHERE
+        t.class_usage = 'BIZ_PARTNER'
+        AND t.enabled_flag = 'Y'
+        AND to_char( t.CLASS_ID ) = hbm.economic_indu_classify
+        )  economic_indu_classify_n,
+        hbm.group_companies,
+        hclcb.note
+        FROM
+        HLS_CREDIT_LINE_CHANCE_BP hclcb
+        INNER JOIN hls_bp_master hbm ON hclcb.bp_id = hbm.bp_id
+        <where>
+                hclcb.chance_id = #{chanceId}
+        </where>
+    </select>
+
+
 </mapper>

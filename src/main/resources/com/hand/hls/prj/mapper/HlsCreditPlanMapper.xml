@@ -390,4 +390,28 @@
     from prj_project pp, hls_credit_plan hcp
     where hcp.SOURCE_DOCUMENT_CATEGORY = 'PRJ_PROJECT' and hcp.SOURCE_DOCUMENT_ID = pp.project_id and pp.project_id = #{projectId}
   </select>
+
+    <select id="findFactoringInfo" resultMap="BaseResultMap">
+        SELECT
+        c.bp_id,
+        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = c.bp_id ) bp_name,
+        hcp.credit_amt,
+        hcp.quota_type,
+        (
+        select sc.meaning
+        from sys_code_value_b_v sc
+        where sc.code = 'FINANCING_LOAN'
+        AND sc.code_value = hcp.QUOTA_TYPE
+        ) QUOTA_TYPE_N,
+        hcp.date_from,
+        hcp.date_to,
+        hcp.credit_desc
+        FROM
+        hls_credit_plan hcp
+        INNER JOIN hls_credit_line_chance c ON hcp.source_document_category = 'HLS_CREDIT_LINE_CHANCE'
+        AND hcp.source_document_id = c.chance_id
+        <where>
+            c.chance_id = #{chanceId}
+        </where>
+    </select>
 </mapper>

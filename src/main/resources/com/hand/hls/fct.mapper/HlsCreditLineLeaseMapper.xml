@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.hand.hls.fct.mapper.HlsCreditLineLeaseMapper">
+    <resultMap id="BaseResultMap" type="com.hand.hls.fct.dto.HlsCreditLineLease">
+        <result column="LEASE_ID" property="leaseId" jdbcType="DECIMAL" />
+        <result column="CHANCE_ID" property="chanceId" jdbcType="DECIMAL" />
+        <result column="LEASE_NAME" property="leaseName" jdbcType="VARCHAR" />
+        <result column="LEASE_NUMBER" property="leaseNumber" jdbcType="VARCHAR" />
+        <result column="LEASE_CLASS" property="leaseClass" jdbcType="VARCHAR" />
+        <result column="PERSON_NAME" property="personName" jdbcType="VARCHAR" />
+        <result column="LEASE_STATUS" property="leaseStatus" jdbcType="VARCHAR" />
+        <result column="LEASE_PRICE" property="leasePrice" jdbcType="DECIMAL" />
+        <result column="DESCRIPTION" property="description" jdbcType="VARCHAR" />
+        <result column="lease_class_n" property="leaseClass" jdbcType="VARCHAR" />
+        <result column="lease_status_n" property="leaseStatus" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select id="findFactoringInfo" resultMap="BaseResultMap">
+        SELECT
+            hcll.lease_name,
+            hcll.lease_number,
+            hcll.lease_class,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_LEASE_STATUS' AND sc.code_value = hcll.lease_class ) lease_class_n,
+            hcll.person_name,
+            hcll.lease_status,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_LEASE_STATUS' AND sc.code_value = hcll.lease_status ) lease_status_n,
+            hcll.lease_price,
+            hcll.description
+        FROM
+            hls_credit_line_lease hcll
+        <where>
+            hcll.chance_id = #{chanceId}
+        </where>
+    </select>
+
+
+</mapper>

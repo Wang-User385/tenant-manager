@@ -51,6 +51,10 @@
 
         <result column="OBJECT_VERSION_NUMBER" property="objectVersionNumber" jdbcType="DECIMAL"/>
         <result column="PERSON_N" property="personN" jdbcType="VARCHAR"/>
+        <result column="factoring_recourse" property="factoringRecourse" jdbcType="VARCHAR"/>
+        <result column="factoring_recourse_n" property="factoringRecourseN" jdbcType="VARCHAR"/>
+        <result column="factoring_open" property="factoringOpen" jdbcType="VARCHAR"/>
+        <result column="factoring_open_n" property="factoringOpenN" jdbcType="VARCHAR"/>
 
         <result column="COMPANY_NAME" property="companyName" jdbcType="VARCHAR" />
         <result column="credit_line_status_value" property="creditLineStatusValue" jdbcType="VARCHAR" />
@@ -132,6 +136,10 @@
         <result column="CREDIT_FLAG_N" property="creditFlagN" jdbcType="VARCHAR" />
         <result column="BUSINESS_TYPE_N" property="businessTypeN" jdbcType="VARCHAR" />
         <result column="unit_id_n" property="unitIdN" jdbcType="VARCHAR"/>
+        <result column="factoring_type" property="factoringType" jdbcType="VARCHAR"/>
+        <result column="factoring_type_n" property="factoringTypeN" jdbcType="VARCHAR"/>
+        <result column="factoring_category" property="factoringCategory" jdbcType="VARCHAR"/>
+        <result column="factoring_category_n" property="factoringCategoryN" jdbcType="VARCHAR"/>
 
         <result column="COMPANY_ID_N" property="companyIdN" jdbcType="VARCHAR"/>
         <result column="PROJECT_MANAGER_N" property="projectManagerN" jdbcType="VARCHAR"/>
@@ -165,6 +173,9 @@
         <result column="legal_host" property="legalHost"/>
         <result column="meeting_type" property="meetingType"/>
         <result column="meeting_type_n" property="meetingTypeN"/>
+        <result column="creditor_analyse" property="creditorAnalyse" jdbcType="VARCHAR"/>
+        <result column="debtor_analyse" property="debtorAnalyse" jdbcType="VARCHAR"/>
+        <result column="other_desc" property="otherDesc" jdbcType="VARCHAR"/>
     </resultMap>
 
     <select id="selectModelByCondition" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance" resultMap="BaseResultMap">
@@ -1405,7 +1416,71 @@
                 INNER JOIN sys_user_allocation sua ON sua.user_id = su.user_id
                 INNER JOIN FND_EMPLOYEE_ASSIGNS fea ON fea.employee_assign_id = sua.employee_assign_id
                 INNER JOIN fnd_org_unit fou ON fou.unit_id = fea.unit_id
-        WHERE USER_id = #{proposerUserId}
+        WHERE su.USER_id = #{proposerUserId}
+    </select>
+
+    <select id="basicInfo" resultMap="BaseResultMap">
+        SELECT
+        hclc.chance_id,
+        hclc.credit_line_name,
+        hclc.company_id,
+        ( SELECT FC.COMPANY_FULL_NAME FROM FND_COMPANY FC WHERE hclc.COMPANY_ID = FC.COMPANY_ID ) COMPANY_ID_N,
+        hclc.credit_line_number,
+        hclc.creation_date,
+        hclc.unit_id,
+        ( SELECT fou.unit_name FROM fnd_org_unit fou WHERE hclc.unit_id = fou.unit_id ) unit_id_n,
+        hclc.proposer_employee_id,
+        ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROPOSER_EMPLOYEE_ID ) PROPOSER_EMPLOYEE_ID_N,
+        hclc.project_assistant,
+        ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROJECT_ASSISTANT ) project_assistant_n,
+        hclc.city,
+        (
+        SELECT
+        CONCAT(
+        ( SELECT P.DESCRIPTION FROM FND_PROVINCE P WHERE to_char( P.PROVINCE ) = fd.PROVINCE ),
+        CONCAT( ( SELECT fc.DESCRIPTION FROM FND_CITY fc WHERE to_char( fc.City ) = fd.City ), fd.DESCRIPTION )
+        )
+        FROM
+        fnd_district fd
+        WHERE
+        fd.DISTRICT = hclc.city
+        AND fd.enabled_flag = 'Y'
+        ) CITY_N,
+        hclc.factoring_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_TYPE' AND sc.code_value = hclc.factoring_type ) factoring_type_n,
+        hclc.factoring_category,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = hclc.factoring_category ) factoring_category_n,
+        hclc.factoring_recourse,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RECOURSE' AND sc.code_value = hclc.factoring_recourse ) factoring_recourse_n,
+        hclc.factoring_open,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_OPEN' AND sc.code_value = hclc.factoring_open ) factoring_open_n,
+        hclc.industry,
+        (
+        SELECT
+        scvb.meaning
+        FROM
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.code = 'CHANCE.INDUSTRY'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND hclc.INDUSTRY = scvb.value
+        ) INDUSTRY_N,
+        hclc.industry_type,
+        ( SELECT hsc.description FROM hls_stat_class hsc WHERE to_char( hsc.class_id ) = hclc.industry_type AND hsc.enabled_flag = 'Y' ) industry_type_n,
+        hclc.description,
+        hclc.credit_measures,
+        hclc.finance_note,
+        hclc.prj_info_desc,
+        hclc.creditor_analyse,
+        hclc.debtor_analyse,
+        hclc.other_desc
+        FROM
+        hls_credit_line_chance hclc
+        <where>
+            hclc.chance_id = #{chanceId}
+        </where>
     </select>
 
 </mapper>

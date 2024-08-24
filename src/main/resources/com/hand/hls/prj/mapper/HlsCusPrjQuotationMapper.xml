@@ -377,6 +377,11 @@
         <result column="credit_grade_n" property="creditGradeN" jdbcType="VARCHAR"/>
         <result column="surplus_amount" property="surplusAmount" jdbcType="VARCHAR"/>
         <result column="plus_finance_amount" property="plusFinanceAmount" jdbcType="DECIMAL"/>
+        <result column="alt_renting_fre_custom" property="altRentingFreCustom" jdbcType="VARCHAR"/>
+        <result column="alt_renting_frequency" property="altRentingFrequency" jdbcType="DECIMAL"/>
+
+
+
     </resultMap>
 
     <select id="selectQuotationFeeSum" parameterType="com.hand.hls.prj.dto.HlsCusPrjQuotation"
@@ -6300,4 +6305,34 @@
            set pq.lease_start_date = null
          where pq.quotation_id = #{quotationId}
     </update>
+
+    <select id="findFactoringQuotation" resultMap="BaseResultMap">
+        SELECT
+        hclc.chance_id,
+        pq.QUOTATION_ID,
+        pq.price_list,
+        nvl(pq.lease_item_amount,0),
+        pq.lease_start_date,
+        nvl(pq.down_payment,0),
+        pq.finance_amount,
+        pq.alt_renting_fre_custom,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RENTING' ) alt_renting_fre_custom_n,
+        pq.alt_renting_frequency,
+        pq.int_rate,
+        pq.lease_times,
+        nvl(pq.deposit,0),
+        nvl(pq.lease_charge,0),
+        nvl(pq.other_income,0),
+        nvl(pq.other_expenses,0),
+        pq.irr,
+        pq.irr_after_tax
+        FROM
+        prj_quotation pq
+        INNER JOIN HLS_CREDIT_LINE_CHANCE hclc ON pq.source_document_category = 'HLS_CREDIT_LINE_CHANCE'
+        AND pq.source_document_id = hclc.chance_id
+        <where>
+            hclc.chance_id = #{chanceId}
+        </where>
+    </select>
+
 </mapper>
