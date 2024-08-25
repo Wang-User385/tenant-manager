@@ -436,4 +436,16 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         return new ResponseData(service.createInfo(requestCtx.getUserId()));
     }
 
+
+    @RequestMapping(value = "/batch/delete/info")
+    @ResponseBody
+    public ResponseData batchDeleteInfo(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        JSONArray param = (JSONArray) requestData.get("parameter");
+        List<HlsCusHlsCreditLineChance> hlsCusHlsCreditLineChances = param.toJavaList(HlsCusHlsCreditLineChance.class);
+        service.batchDelete(hlsCusHlsCreditLineChances);
+        return new ResponseData();
+    }
+
+
 }

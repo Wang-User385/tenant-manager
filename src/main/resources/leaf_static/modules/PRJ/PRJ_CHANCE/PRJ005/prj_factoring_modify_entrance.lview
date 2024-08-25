@@ -49,9 +49,37 @@
         //删除
         window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
             debugger;
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'yl_csh_transfer_payment','G_CSH011_TC');
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
             var records = $(ds_id).getSelected();
-
+            if (records.length === 0){
+                Leaf.showErrorMessage('提示','请选择所需关闭的项目！');
+                return;
+            }
+            var delete_data = [];
+            for (let i = 0; i < records.length; i++) {
+                var record = records[i];
+                if (record.get('credit_line_status') != 'NEW'){
+                    Leaf.showErrorMessage('提示','非新建状态的单据，无法关闭!');
+                    return;
+                }
+                delete_data.push(record.data);
+            }
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: "${/request/@context_path}/batch/delete/info",
+                para: delete_data,
+                success: function (res) {
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    $(ds_id).query();
+                },
+                error: function (){
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function (){
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                sync: true
+            });
         };
 
         ]]></script>
