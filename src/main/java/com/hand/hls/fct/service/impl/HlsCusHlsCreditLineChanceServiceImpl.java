@@ -16,8 +16,11 @@ import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.atm.service.IFndAttachmentMultiService;
 import com.hand.hls.atm.service.IFndAttachmentService;
 import com.hand.hls.bp.components.CalculateUtil;
+import com.hand.hls.bp.dto.HlsCusBpMaster;
+import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
 import com.hand.hls.cont.dto.DocFileTempletRule;
+import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.dto.HlsDocFileTemplet;
 import com.hand.hls.cont.service.HlsDocFileTempletService;
 import com.hand.hls.cont.service.IDocFileTempletRuleService;
@@ -61,6 +64,7 @@ import com.hand.hls.ruleengine.service.IRuleEngineTypeService;
 import com.hand.hls.user.service.LoginUserInfoService;
 import com.hand.hls.utils.HlsCusConstant;
 import com.hand.hls.utils.ResMessageException;
+import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
 import hls.core.sys.event.service.SysEventService;
 import hls.core.utils.exception.HlsCusException;
@@ -1430,6 +1434,38 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance = new HlsCusHlsCreditLineChance();
         hlsCusHlsCreditLineChance.setProposerUserId(userId);
         return hlsCusHlsCreditLineChanceMapper.createInfo(hlsCusHlsCreditLineChance);
+    }
+    public static final String WORK_FLOW = "FACTORING_PROJRCT_PROPOSAL";
+    public static final String DEMO_NAME = "FACTORING_PROJRCT_PROPOSAL";
+    public static final String DOCUMENT_TYPE = "FACTORING";
+    public static final String DOCUMENT_NAME = "保理立项工作流";
+    @Autowired
+    private HlsCusBpMasterMapper hlsCusBpMasterMapper;
+    @Override
+    public List<HlsCusHlsCreditLineChance> submit(HlsCusHlsCreditLineChance dto,IRequest requestCtx) {
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("workFlowType", WORK_FLOW);
+        params.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW);
+        params.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME);
+        params.put(IActivitiCommonService.BUSINESS_KEY, dto.getChanceId());
+        params.put("chanceId", dto.getChanceId());
+        dto = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(dto);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(dto.getBpId());
+        hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
+        //单据类别
+        params.put("documentCategory",DOCUMENT_CATEGORY);
+        //单据类型
+        params.put("documentType", DOCUMENT_TYPE);
+        //单据名称
+        params.put("documentName", dto.getCreditLineName()+"-"+hlsCusBpMaster.getBpName()+"-"+DOCUMENT_NAME);
+        //单据编号
+        params.put("documentNumber", dto.getCreditLineName());
+        //查询
+        List<HlsCusHlsCreditLineChance> res = new ArrayList<>();
+        res.add(dto);
+        activitiStartService.start(requestCtx, res, params);
+        return  res;
     }
 
 }

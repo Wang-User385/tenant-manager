@@ -16,6 +16,7 @@
         <result column="status" property="status" jdbcType="VARCHAR"/>
         <result column="created_by" property="createdBy" jdbcType="VARCHAR"/>
         <result column="created_by_n" property="createdByN" jdbcType="VARCHAR"/>
+        <result column="info_name" property="infoName" jdbcType="VARCHAR"/>
     </resultMap>
 
 
@@ -54,19 +55,45 @@
 
     <select id="findFactoringInfo" resultMap="BaseResultMap">
         SELECT
-            hcla.CHANCE_ATTACHMENT_ID,
-            hcla.document_name,
-            hcla.created_by,
-            ( SELECT description FROM sys_user WHERE user_id = hcla.created_by ) created_by_n,
-            hcla.creation_date,
-            hcla.description
+        hcla.CHANCE_ATTACHMENT_ID,
+        hcla.document_name,
+        (
+        SELECT
+        LISTAGG ( file_name, ',' ) WITHIN GROUP ( ORDER BY file_name ) AS document_name
         FROM
-            hls_credit_line_attach hcla
+        fnd_atm_attachment_multi faam,
+        fnd_atm_attachment fat
+        WHERE
+        hcla.chance_attachment_id = faam.table_pk_value
+        AND faam.attachment_id = fat.attachment_id
+        AND faam.table_name = 'HLS_CREDIT_LINE_ATTACH'
+        AND hcla.attachment_category = 'CHANCE_ATT'
+        AND hcla.chance_id = #{ chanceId }
+        ) info_name,
+        hcla.created_by,
+        ( SELECT description FROM sys_user WHERE user_id = hcla.created_by ) created_by_n,
+        hcla.creation_date,
+        hcla.description
+        FROM
+        hls_credit_line_attach hcla
         <where>
             hcla.chance_id = #{chanceId}
         </where>
     </select>
 
+    <select id="findListHlsCusHlsCreditLineChanceAttach" resultMap="BaseResultMap">
+        SELECT
+            fat.file_name, fat.file_path
+        FROM
+            HLS_CREDIT_LINE_ATTACH hcla,
+            fnd_atm_attachment_multi faam,
+            fnd_atm_attachment       fat
+        WHERE
+            hcla.chance_attachment_id = faam.table_pk_value
+          AND faam.attachment_id = fat.attachment_id
+          AND faam.table_name = 'HLS_CREDIT_LINE_ATTACH'
+          AND hcla.chance_attachment_id = #{attachmentCategory} and hcla.chance_id = #{chanceId}
+    </select>
 
 
 

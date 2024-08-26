@@ -3,7 +3,100 @@
 <a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
+        <a:link id="factoring_bp_master_modify_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="factoring_finance_report_detail_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/financial_report_import_entrance.lview"/>
         <script><![CDATA[
+
+
+
+
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var link_function1 = 'upload';
+            if (name == 'bp_detail') {
+                return '<a href="javascript:open_master_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户明细信息</a>';
+            } else if (name == 'bp_financia') {
+                return '<a href="javascript:open_financia_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户财报信息</a>';
+            } else if (name == 'info') {
+                return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('chance_id') + '\');">附件</a>';
+
+            }
+        };
+
+        function open_master_detail_win(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '商业伙伴信息';
+            if (param['bp_class'] == 'ORG') {
+                param['function_code'] = 'BP100F1';
+            } else {
+                param['function_code'] = 'BP100F2';
+            }
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'factoring_bp_master_modify_winid';
+            hls_doc_get_layout_code(param, 'factoring_bp_master_modify_id', null, 'PRJ005F1');
+        }
+
+        function open_financia_detail_win(record_id, ds_id) {
+            var record = $(ds_id).getCurrentRecord();
+            var bp_id = record.get('bp_id');
+            var bp_name = record.data['bp_name'];
+            var bp_code = record.data['bp_code'];
+            var function_usage = 'QUERY';
+
+            new Leaf.Window({
+                id: 'factoring_financial_info_winid',
+                url: '${/request/@context_path}/modules/BP/BP100/hls_bp_master_financial_info.lview',
+                params: {
+                    bp_id: bp_id,
+                    bp_master_code: bp_code,
+                    bp_master_name: bp_name,
+                    function_usage: function_usage,
+                    winid: 'hls_bp_master_financial_info_winid'
+                },
+                title: '财务报表查看',
+                fullScreen: false,
+                width: 950,
+                height: 535,
+                side: "right",
+                draggable: true
+            });
+            hls_doc_get_layout_code(param, 'factoring_finance_report_detail_link_id', null, 'PRJ005F1');
+
+        }
+
+        window['upload'] = function (ds_id, record_id, pk_id) {
+            debugger;
+            var tableName = 'HLS_CREDIT_LINE_ATTACH';
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
+            var base_record;
+            var chance_attachment_id;
+            base_record = $(base_ds_id).findById(record_id);
+            chance_attachment_id = base_record.get('chance_attachment_id');
+            if (!chance_attachment_id) {
+                $L.showInfoMessage("提示", "请先保存再上传附件!");
+                return;
+            }
+            var url = '${/request/@context_path}/uploadFile.lview';
+            var win = new Leaf.Window({
+                id: 'PRJ005F1_open_attachment_factoring_winid',
+                url: url,
+                params: {
+                    'header_id': chance_attachment_id,
+                    'table_name': tableName,
+                    winid: 'PRJ005F1_open_attachment_factoring_winid'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                $(ds_id).query();
+            });
+        };
+
 
         //暂存
         window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
@@ -13,15 +106,16 @@
             // window['${/parameter/@layout_code}_ignore_required_before_save'] = function() {
             //     window['${/parameter/@layout_code}_not_ignore_required_flag'] = true;
             // };
-            var root_ds=$('${/parameter/@bp_seq}${/parameter/@layout_code}_virtual_ds');
-            var before_flag= true;
-            if(before_flag){
+            var root_ds = $('${/parameter/@bp_seq}${/parameter/@layout_code}_virtual_ds');
+            var before_flag = true;
+            if (before_flag) {
                 var winid = '${/parameter/@winid}';
                 var root_record = root_ds.getCurrentRecord();
                 root_ds.setSubmitParameter('layout_code', '${/parameter/@layout_code}');
-                function ON_LAYOUT_DYNAMIC_BEFORE_SAVE(){
 
-                    root_ds.un('beforesubmit',ON_LAYOUT_DYNAMIC_BEFORE_SAVE);
+                function ON_LAYOUT_DYNAMIC_BEFORE_SAVE() {
+
+                    root_ds.un('beforesubmit', ON_LAYOUT_DYNAMIC_BEFORE_SAVE);
                     var flag = false;
                     for (var name in root_record.data) {
                         if (root_record.data[name].data[0].ds && root_record.data[name].data[0].ds instanceof $L.DataSet) {
@@ -29,13 +123,13 @@
                             flag = window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'](root_record.data[name].data[0].ds, current_record);
                         }
                     }
-                    if(!flag){
+                    if (!flag) {
                         UN_SUBMIT_REF_FUNCTION();
                     }
                     return flag;
                 }
 
-                function UN_SUBMIT_REF_FUNCTION(){
+                function UN_SUBMIT_REF_FUNCTION() {
                     root_ds.un('submitsuccess', ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS);
                     root_ds.un('submitfailed', ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED);
                     root_ds.un('submiterror', ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR);
@@ -43,38 +137,266 @@
 
                 function ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS(ds, res) {
                     UN_SUBMIT_REF_FUNCTION();
-                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'](ds,root_record,res);
-                    if (typeof(nextStep) == 'function') {
+                    window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'](ds, root_record, res);
+                    if (typeof (nextStep) == 'function') {
                         nextStep(ds);
                     }
                 }
-                function ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED(){
+
+                function ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED() {
                     UN_SUBMIT_REF_FUNCTION();
                     window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
 
                 }
-                function ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR(){
+
+                function ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR() {
                     UN_SUBMIT_REF_FUNCTION();
                     window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
 
                 }
-                root_ds.on('beforesubmit',ON_LAYOUT_DYNAMIC_BEFORE_SAVE);
+
+                root_ds.on('beforesubmit', ON_LAYOUT_DYNAMIC_BEFORE_SAVE);
                 root_ds.on('submitsuccess', ON_LAYOUT_DYNAMIC_INNER_SUBMITSUCCESS);
                 root_ds.on('submitfailed', ON_LAYOUT_DYNAMIC_INNER_SUBMITFAILED);
                 root_ds.on('submiterror', ON_LAYOUT_DYNAMIC_INNER_SUBMITERROR);
 
-                root_ds.doNewSubmit(null,root_ds.getJsonData());
-            }
-            else{
+                root_ds.doNewSubmit(null, root_ds.getJsonData());
+            } else {
                 window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             }
 
         }
 
+
         //提交审批
-        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
+            var record = $(ds_id).getCurrentRecord();
+            var chance_id = record.get('chance_id');
+            new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+                Leaf.request({
+                    url: '${/request/@context_path}/credit/chance/submit',
+                    para: {
+                        chance_id: chance_id
+                    },
+                    success: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showSuccessMessage("提示", "提交审批成功!");
+                        // $(ds_id).query();
+                        $('review_detail_winid').close()
+                    },
+                    failure: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    },
+                    scope: this
+                });
+            }, function cancel() {
+                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            }, 200, 100 );
+        }
+
+        //一键下载
+        window['${/parameter/@layout_code}_G_ATTA_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            debugger;
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
+            var chance_id = parseInt($(base_ds_id).getCurrentRecord().get('chance_id'));
+            var down_url = "${/request/@context_path}/hls/credit/download?chanceId=" + chance_id + "&attachmentCategory=CHANCE_ATT";
+            location.href = down_url;
+        }
+
+
+        window['${/parameter/@layout_code}_on_layout_dynamic_grid_beforecreate'] = function (ds, record, config_records, bp_seq) {
+            var parentRecord = $(get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance')).getAt(0);
+            if (parentRecord.get('chance_id')) {
+                // isFlag = true;
+                return true;
+            } else {
+                Leaf.showMessage("提示", "请先保理立项基本信息!", null);
+                return false;
+            }
+        };
+
+        //保存前
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
+            var ds_id_pq = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation', 'F_QUOTATIO_FINANCIA');
+            if (ds_id == ds.id) {
+                if (!record.get('credit_line_status')) {
+                    record.set('creation_date', new Date());
+                    record.set('credit_line_status','NEW');
+                    record.set('credit_flag','${/parameter/@credit_flag}');
+                    record.set('document_category','HLS_CREDIT_LINE_CHANCE');
+                    record.set('unit_id','${/parameter/@unit_id}');
+                    record.set('company_id','${/parameter/@company_id_n}');
+                    var credit_line_amt = 0;
+                    if (ds_id_pq ){
+                        var record_pq = $(ds_id_pq).getCurrentRecord();
+                        if (record_pq){
+                            credit_line_amt = record_pq.get('lease_item_amount');
+                        }
+                    }
+                    record.set('credit_line_amt',credit_line_amt);
+                    var documentCategory = 'FACTORING_BASE';
+                    var documentType = 'FACTORING_BASE';
+                    var businessType = 'FACTORING_BASE';
+
+                    Leaf.request({
+                        url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + documentCategory
+                            + "&documentType=" + documentType + "&businessType=" + businessType,
+                        success: function (res) {
+                            $(ds_id).getCurrentRecord().set('credit_line_number', res.result.record[0]);
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        error: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        failure: function () {
+                            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        },
+                        sync: true,
+                        scope: this
+                    });
+                }
+            }
+        }
+
+        //保存submitsuccess调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
+            debugger;
+            window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            Leaf.showSuccessMessage('提示', '保存成功');
+            // $('factoring_detail_winid').close();
 
         }
+
+
+        //新增和加载时调用(form)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
+            var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            if (ds.id == ds_id) {
+                var credit_line_name = '${/parameter/@bp_id_n_n}' + '项目';
+                var company_id = '${/parameter/@company_id_n}';
+                var company_name = '${/parameter/@company_id_n_n}';
+                var unit_id = '${/parameter/@unit_id}';
+                var unit_name = '${/parameter/@unit_id_n}';
+                var proposer_employee_id = '${/parameter/@proposer_employee_id}';
+                var proposer_employee_id_n = '${/parameter/@proposer_employee_id_n}';
+                record.set('credit_line_name', credit_line_name);
+                record.set('bp_id', '${/parameter/@bp_id_n}');
+                record.set('company_id', company_id);
+                record.set('company_id_n', company_name);
+                record.set('unit_id', unit_id);
+                record.set('unit_id_n', unit_name);
+                record.set('proposer_employee_id', proposer_employee_id);
+                record.set('proposer_employee_id_n', proposer_employee_id_n);
+            } else if (ds.id == ds_id_au) {
+                record.set('bp_name', '${/parameter/@bp_id_n_n}');
+            }
+
+        }
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+            var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
+            if (ds_id_customer.id == ds.id) {
+                var records = $(ds_id_customer.id).getAll();
+                var query_data = [];
+                for (let i = 0; i < records.length; i++) {
+                    query_data.push(records[i].data);
+                }
+                Leaf.request({
+                    url: '${/request/@context_path}/get/factoring/bp/info',
+                    para: query_data,
+                    success: function (res) {
+                        var res_records = res.result.record;
+                        for (let i = 0; i < res_records.length; i++) {
+                            var record = records[i];
+                            var res_record = res_records[i];
+                            record.set('bp_name', res_record.bp_name);
+                            record.set('bp_code', res_record.bp_code);
+                            record.set('bp_type', res_record.bp_type);
+                            record.set('bp_type_n', res_record.bp_type_n);
+                            record.set('economic_indu_classify', res_record.economic_indu_classify);
+                            record.set('economic_indu_classify_n', res_record.economic_indu_classify_n);
+                            record.set('group_companies', res_record.group_companies);
+                        }
+                    },
+                    sync: true
+                });
+
+
+            }
+        };
+
+        //加载时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
+            debugger;
+            var ds_id_au_d = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
+            if (ds_id_au_d) {
+                if (ds.id == ds_id_au_d) {
+                    var cur_ds_au = $(ds_id_au_d);
+                    if ($(ds_id_au_d).getAll().length == 0) {
+                        var record_t_au = new Leaf.Record({
+                            'bp_name': '${/parameter/@bp_id_n}',
+                            'bp_name_n': '${/parameter/@bp_id_n_n}',
+                            'bp_code': '${/parameter/@bp_code}',
+                            'bp_type': '${/parameter/@bp_type}',
+                            'bp_type_n': '${/parameter/@bp_type_n}',
+                            'group_companies': '${/parameter/@group_companies}',
+                            'credit_amt': '0',
+                            'factoring_category': '',
+                            'factoring_category_n': '',
+                            'description': ''
+                        })
+                        cur_ds_au.add(record_t_au);
+                    }
+                }
+            }
+
+        };
+
+        Leaf.onReady(function () {
+            debugger;
+            var credit_flag = '${/parameter/@credit_flag}';
+            var credit_flag_n = '${/parameter/@credit_flag_n}';
+            if (credit_flag == 'N' || credit_flag_n == '否') {
+                $jq('#${/parameter/@layout_code}_T_METHOD_component_id').hide();//隐藏客户信息组件
+                $jq('#${/parameter/@layout_code}_F_METHOD_component_id').hide();//隐藏客户信息组件
+                $jq('#${/parameter/@layout_code}_T_METHOD_DETAIL_component_id').hide();//隐藏客户信息组件
+                $jq('#${/parameter/@layout_code}_G_METHOD_DETAIL_component_id').hide();//隐藏客户信息组件
+            }
+
+            //判断是否有值 没值 自动创建一条空记录
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
+            if (ds_id) {
+                var cur_ds = $(ds_id);
+                if ($(ds_id).getAll().length == 0) {
+                    var record_t = new Leaf.Record({
+                        'bp_id': '${/parameter/@bp_id_n}',
+                        'bp_name': '${/parameter/@bp_id_n}',
+                        'bp_name_n': '${/parameter/@bp_id_n_n}',
+                        'bp_code': '${/parameter/@bp_code}',
+                        'bp_type': '${/parameter/@bp_type}',
+                        'bp_type_n': '${/parameter/@bp_type_n}',
+                        'economic_indu_classify': '${/parameter/@economic_indu_classify}',
+                        'economic_indu_classify_n': '${/parameter/@economic_indu_classify_n}',
+                        'group_companies': '${/parameter/@group_companies}',
+                        'note': '${/parameter/@note}'
+                    })
+                    cur_ds.add(record_t);
+                }
+            }
+
+        });
 
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>

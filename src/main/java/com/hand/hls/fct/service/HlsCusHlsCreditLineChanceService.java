@@ -104,4 +104,6 @@ public interface HlsCusHlsCreditLineChanceService extends IBaseService<HlsCusHls
     void checkCooperativeOrganization(IRequest iRequest, HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance) throws HlsCusException;
 
     List<HlsCusHlsCreditLineChance> createInfo(Long userId);
+
+    List<HlsCusHlsCreditLineChance> submit(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance,IRequest requestCtx);
 }

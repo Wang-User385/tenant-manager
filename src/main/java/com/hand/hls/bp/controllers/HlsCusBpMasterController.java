@@ -1,6 +1,7 @@
 package com.hand.hls.bp.controllers;
 
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
@@ -8,6 +9,7 @@ import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.service.HlsCusBpMasterService;
+import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
 import org.apache.commons.lang3.StringUtils;
 import hls.core.utils.exception.HlsCusException;
 import leaf.bean.LeafRequestData;
@@ -213,6 +215,14 @@ public class HlsCusBpMasterController extends BaseController {
     @ResponseBody
     public ResponseData getConditionId(@RequestParam("bpId")Long bpId) {
         return new ResponseData(service.getConditionId(bpId));
+    }
+
+    @RequestMapping({"/get/bp/info"})
+    @ResponseBody
+    public ResponseData getBpInfo(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData) {
+        JSONArray param = (JSONArray) requestData.get("parameter");
+        List<HlsCusBpMaster> hlsCusBpMasters = param.toJavaList(HlsCusBpMaster.class);
+        return new ResponseData(service.getBpInfo(hlsCusBpMasters));
     }
 
 

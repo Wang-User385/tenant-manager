@@ -6630,5 +6630,29 @@ select hbm.bp_id value_code,
         </where>
     </select>
 
+    <select id="selectByBpId" resultMap="BaseResultMap">
+        SELECT
+            hbm.bp_name,
+            hbm.bp_id,
+            hbm.bp_code,
+            hbm.bp_class,
+            hbm.bp_type,
+            (SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = hbm.bp_type ) bp_type_n,
+            hbm.economic_indu_classify,
+            (
+                SELECT
+                    t.description
+                FROM
+                    hls_stat_class t
+                WHERE
+                    t.class_usage = 'BIZ_PARTNER'
+                  AND t.enabled_flag = 'Y'
+                  AND to_char( t.CLASS_ID ) = hbm.economic_indu_classify
+            )  economic_indu_classify_n,
+            hbm.group_companies
+        FROM
+            hls_bp_master hbm
+        where hbm.bp_id = #{bpId}
+    </select>
 
 </mapper>

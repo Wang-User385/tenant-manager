@@ -9,6 +9,7 @@ import com.hand.hap.system.service.impl.BaseServiceImpl;
 import com.hand.hls.bp.dto.*;
 import com.hand.hls.bp.mapper.*;
 import com.hand.hls.bp.service.*;
+import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
 import com.hand.hls.fnd.dto.FndCompany;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
@@ -1804,6 +1805,15 @@ public class HlsCusBpMasterServiceImpl extends BaseServiceImpl<HlsCusBpMaster> i
     @Override
     public List<Long> getConditionId(Long bpId) {
         return mapper.getConditionId(bpId);
+    }
+
+    @Override
+    public List<HlsCusBpMaster> getBpInfo(List<HlsCusBpMaster> hlsCusBpMasters){
+        List<HlsCusBpMaster> res = new ArrayList<>();
+        for (HlsCusBpMaster hlsCusBpMaster : hlsCusBpMasters) {
+            res.add(mapper.selectByBpId(hlsCusBpMaster));
+        }
+        return res;
     }
 
 

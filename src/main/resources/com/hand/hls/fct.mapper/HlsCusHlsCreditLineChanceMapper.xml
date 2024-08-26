@@ -176,6 +176,7 @@
         <result column="creditor_analyse" property="creditorAnalyse" jdbcType="VARCHAR"/>
         <result column="debtor_analyse" property="debtorAnalyse" jdbcType="VARCHAR"/>
         <result column="other_desc" property="otherDesc" jdbcType="VARCHAR"/>
+        <result column="quotation_id" property="quotationId" jdbcType="DECIMAL"/>
     </resultMap>
 
     <select id="selectModelByCondition" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance" resultMap="BaseResultMap">
@@ -1323,47 +1324,48 @@
 
     <select id="queryFactoringAll" resultMap="BaseResultMap" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance">
         SELECT
-            hclc.chance_id,
-            hclc.credit_line_number,
-            hclc.credit_line_name,
-            hclc.bp_id,
-            ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id ) bp_id_n,
-            hclc.credit_flag,
-            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'GT.HCLC.CREDIT_FLAG' AND sc.code_value = hclc.credit_flag ) credit_flag_n,
-            hclc.credit_line_amt,
-            hclc.industry,
-            (
-                SELECT
-                    scvb.meaning
-                FROM
-                    sys_code_value_b scvb,
-                    sys_code_b scb
-                WHERE
-                    scb.code = 'CHANCE.INDUSTRY'
-                  AND scb.code_id = scvb.code_id
-                  AND scvb.enabled_flag = 'Y'
-                  AND hclc.INDUSTRY = scvb.value
-            ) INDUSTRY_N,
-            hclc.proposer_employee_id,
-            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROPOSER_EMPLOYEE_ID )  PROPOSER_EMPLOYEE_ID_N,
-            hclc.project_assistant,
-            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROJECT_ASSISTANT )  project_assistant_n,
-            hclc.credit_line_status,
-            (
-                SELECT
-                    scv.MEANING
-                FROM
-                    sys_code_b sc,
-                    sys_code_value_b scv
-                WHERE
-                    sc.CODE_ID = scv.CODE_ID
-                  AND sc.CODE = 'CREDIT.APPROVE_STATUS'
-                  AND scv.value = hclc.credit_line_status
-            ) credit_line_status_n,
-            hclc.creation_date,
-            hclc.approved_date
+        hclc.chance_id,
+        ( SELECT quotation_id FROM prj_quotation pq WHERE pq.source_document_category = 'HLS_CREDIT_LINE_CHANCE' AND pq.source_document_id = hclc.chance_id ) quotation_id,
+        hclc.credit_line_number,
+        hclc.credit_line_name,
+        hclc.bp_id,
+        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id ) bp_id_n,
+        hclc.credit_flag,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'GT.HCLC.CREDIT_FLAG' AND sc.code_value = hclc.credit_flag ) credit_flag_n,
+        hclc.credit_line_amt,
+        hclc.industry,
+        (
+        SELECT
+        scvb.meaning
         FROM
-            hls_credit_line_chance hclc
+        sys_code_value_b scvb,
+        sys_code_b scb
+        WHERE
+        scb.code = 'CHANCE.INDUSTRY'
+        AND scb.code_id = scvb.code_id
+        AND scvb.enabled_flag = 'Y'
+        AND hclc.INDUSTRY = scvb.value
+        ) INDUSTRY_N,
+        hclc.proposer_employee_id,
+        ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROPOSER_EMPLOYEE_ID ) PROPOSER_EMPLOYEE_ID_N,
+        hclc.project_assistant,
+        ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROJECT_ASSISTANT ) project_assistant_n,
+        hclc.credit_line_status,
+        (
+        SELECT
+        scv.MEANING
+        FROM
+        sys_code_b sc,
+        sys_code_value_b scv
+        WHERE
+        sc.CODE_ID = scv.CODE_ID
+        AND sc.CODE = 'CREDIT.APPROVE_STATUS'
+        AND scv.value = hclc.credit_line_status
+        ) credit_line_status_n,
+        hclc.creation_date,
+        hclc.approved_date
+        FROM
+        hls_credit_line_chance hclc
         <where>
             1 = 1
             <if test="creditLineNumber != null and creditLineNumber != '' ">
@@ -1408,6 +1410,7 @@
 
     <select id="createInfo" resultMap="BaseResultMap">
         SELECT
+            su.user_id PROPOSER_EMPLOYEE_ID,
             su.DESCRIPTION PROPOSER_EMPLOYEE_ID_N,
             fou.UNIT_ID,
             fou.unit_name unit_id_n

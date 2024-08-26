@@ -3,6 +3,7 @@ package com.hand.hls.fct.service;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.ProxySelf;
 import com.hand.hap.system.service.IBaseService;
+import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.fct.dto.HlsCusHlsCreditChancePledge;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
 
@@ -23,4 +24,7 @@ public interface HlsCusHlsCreditLineChanceBpService extends IBaseService<HlsCusH
     List<HlsCusHlsCreditLineChanceBp> selectBpByMarket(IRequest requestContext, HlsCusHlsCreditLineChanceBp cusHlsCreditLineChanceBp);
 
     void updateUsedAmountByBpId(HlsCusHlsCreditLineChanceBp hlsCusHlsCreditLineChanceBp);
+
+    List<HlsCusHlsCreditLineChanceBp> getFactoringBPInfo(List<HlsCusHlsCreditLineChanceBp> hlsCusBpMasterList);
+
 }

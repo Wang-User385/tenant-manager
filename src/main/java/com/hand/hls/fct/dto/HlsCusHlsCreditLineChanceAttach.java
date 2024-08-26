@@ -40,6 +40,9 @@ public class HlsCusHlsCreditLineChanceAttach extends BaseDTO {
     private String  fileName;
 
     @Transient
+    private String filePath;
+
+    @Transient
     private String  attachmentId;
     @Transient
     private Date uploadDate;
@@ -55,5 +58,8 @@ public class HlsCusHlsCreditLineChanceAttach extends BaseDTO {
 
     @Transient
     private String createdByN;
+
+    @Transient
+    private String infoName;
 
 }

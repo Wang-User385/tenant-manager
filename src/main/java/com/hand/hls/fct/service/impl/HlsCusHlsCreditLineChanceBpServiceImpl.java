@@ -3,6 +3,7 @@ package com.hand.hls.fct.service.impl;
 import com.github.pagehelper.PageHelper;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
+import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.fct.dto.HlsCusHlsCreditChancePledge;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditChancePledgeMapper;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -57,6 +59,15 @@ public class HlsCusHlsCreditLineChanceBpServiceImpl extends BaseServiceImpl<HlsC
             return;
         }
         creditLineChanceBpMapper.updateUsedAmountByBpId(ChanceBp);
+    }
+
+    @Override
+    public List<HlsCusHlsCreditLineChanceBp> getFactoringBPInfo(List<HlsCusHlsCreditLineChanceBp> hlsCusBpMasterList) {
+        List<HlsCusHlsCreditLineChanceBp> res = new ArrayList<>();
+        for (HlsCusHlsCreditLineChanceBp hlsCusHlsCreditLineChanceBp : hlsCusBpMasterList) {
+            res.add(creditLineChanceBpMapper.selectByBpId(hlsCusHlsCreditLineChanceBp));
+        }
+        return res;
     }
 
 

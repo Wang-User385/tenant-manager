@@ -32,4 +32,5 @@ public interface HlsCusHlsCreditLineChanceBpMapper extends Mapper<HlsCusHlsCredi
      */
     List<HlsCusHlsCreditLineChanceBp> findCustomer(HlsCusHlsCreditLineChanceBp cusHlsCreditLineChanceBp);
 
+    HlsCusHlsCreditLineChanceBp selectByBpId(HlsCusHlsCreditLineChanceBp hlsCusHlsCreditLineChanceBp);
 }

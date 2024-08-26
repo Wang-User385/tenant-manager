@@ -448,4 +448,15 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
     }
 
 
+    @RequestMapping(value = "/credit/chance/submit")
+    @ResponseBody
+    public ResponseData submit(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance = param.toJavaObject(HlsCusHlsCreditLineChance.class);
+        return new ResponseData(service.submit(hlsCusHlsCreditLineChance,requestCtx));
+    }
+
+
 }

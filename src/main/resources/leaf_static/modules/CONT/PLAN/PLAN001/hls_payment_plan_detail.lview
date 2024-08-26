@@ -80,35 +80,86 @@
             var base_ds_id1 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_PRJ_CON_INFO_ATTA');
             var base_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_PRJ_MORTGAGE_INFO');
             var base_record;
-            var con_contract_attachment_id;
+            var project_attachment_id;
             if (ds_id == base_ds_id){
                 base_record = $(base_ds_id).findById(record_id);
-                con_contract_attachment_id = base_record.get('contract_attachment_id');
+                project_attachment_id = base_record.get('project_attachment_id');
+                if (!project_attachment_id){
+                    $L.showInfoMessage("提示", "请先保存再上传附件!");
+                    return;
+                }
+                var url = '${/request/@context_path}/downloadFile.lview';
+                var win = new Leaf.Window({
+                    id: 'MORT001F3_open_attachment_prj_winid1',
+                    url: url,
+                    params: {
+                        'header_id': project_attachment_id,
+                        'table_name': tableName,
+                        winid: 'MORT001F3_open_attachment_prj_winid1',
+                        function_usage: 'QUERY',
+                    },
+                    title: '文件下载',
+                    width: 800,
+                    height: 475
+                });
+                win.on('close', function () {
+                    $(ds_id).query();
+                });
             }else if (ds_id == base_ds_id1){
                 base_record = $(base_ds_id1).findById(record_id);
-                con_contract_attachment_id = base_record.get('contract_attachment_id');
+                project_attachment_id = base_record.get('project_attachment_id');
+                if (!project_attachment_id){
+                    $L.showInfoMessage("提示", "请先保存再上传附件!");
+                    return;
+                }
+                var url = '${/request/@context_path}/downloadFile.lview';
+                var win = new Leaf.Window({
+                    id: 'MORT001F3_open_attachment_prj_winid2',
+                    url: url,
+                    params: {
+                        'header_id': project_attachment_id,
+                        'table_name': tableName,
+                        function_usage: 'QUERY',
+                        winid: 'MORT001F3_open_attachment_prj_winid2'
+                    },
+                    title: '文件下载',
+                    width: 800,
+                    height: 475
+                });
+                win.on('close', function () {
+                    $(ds_id).query();
+                });
             }else {
                 base_record = $(base_ds_id2).findById(record_id);
-                con_contract_attachment_id = base_record.get('contract_attachment_id');
+                var status = base_record.get('mortgage_status');
+                var url = '${/request/@context_path}/downloadFile.lview';
+                var function_usage = 'QUERY';
+                if (!status){
+                    url = '${/request/@context_path}/uploadFile.lview';
+                    function_usage = 'MODIFY';
+                }
+                project_attachment_id = base_record.get('project_attachment_id');
+                if (!project_attachment_id){
+                    $L.showInfoMessage("提示", "请先保存再上传附件!");
+                    return;
+                }
+                var win = new Leaf.Window({
+                    id: 'MORT001F3_open_attachment_prj_winid3',
+                    url: url,
+                    params: {
+                        'header_id': project_attachment_id,
+                        'table_name': tableName,
+                        winid: 'MORT001F3_open_attachment_prj_winid3',
+                        function_usage: function_usage
+                    },
+                    title: '文件上传下载',
+                    width: 800,
+                    height: 475
+                });
+                win.on('close', function () {
+                    $(ds_id).query();
+                });
             }
-
-            var url = '${/request/@context_path}/downloadFile.lview';
-            var win = new Leaf.Window({
-                id: 'PLAN001F1_open_attachment_prj_winid1',
-                url: url,
-                params: {
-                    header_id: con_contract_attachment_id,
-                    table_name: tableName,
-                    winid: 'PLAN001F1_open_attachment_prj_winid1',
-                    function_usage: 'QUERY'
-                },
-                title: '文件查看',
-                width: 800,
-                height: 475
-            });
-            win.on('close', function () {
-                $(ds_id).query();
-            });
 
 
 

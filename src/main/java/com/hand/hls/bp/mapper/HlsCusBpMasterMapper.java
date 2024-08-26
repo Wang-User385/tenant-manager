@@ -153,4 +153,6 @@ public interface HlsCusBpMasterMapper extends HlsBpMasterMapper<HlsCusBpMaster> 
     List<HlsCusBpMaster> getMasterDetail(HlsCusBpMaster hlsCusBpMaster);
 
     List<HlsCusBpMaster> queryCusBpMasterDetails2(HlsCusBpMaster hlsCusBpMaster);
+
+    HlsCusBpMaster selectByBpId(HlsCusBpMaster hlsCusBpMasters);
 }

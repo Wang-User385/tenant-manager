@@ -418,5 +418,8 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private String creditorAnalyse;
     private String debtorAnalyse;
     private String otherDesc;
+
+    @Transient
+    private Long quotationId;
 }
 

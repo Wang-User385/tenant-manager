@@ -37,4 +37,6 @@ public interface HlsCusBpMasterService extends IBaseService<HlsCusBpMaster>, Pro
 
 
     List<Long> getConditionId(Long bpId);
+
+    List<HlsCusBpMaster> getBpInfo(List<HlsCusBpMaster> hlsCusBpMasters);
 }
