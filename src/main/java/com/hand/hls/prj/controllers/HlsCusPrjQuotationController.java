@@ -257,5 +257,15 @@ public class HlsCusPrjQuotationController extends BaseController {
         list.add(message);
         return new ResponseData(list);
     }
+    //保理id补偿
+    @RequestMapping({"/set/chanceId/quotation"})
+    @ResponseBody
+    public ResponseData setChanceIDQuotation(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestContext = this.createRequestContext(request);
+        JSONObject param = (JSONObject)requestData.get("parameter");
+        HlsCusPrjQuotation quotation = param.toJavaObject(HlsCusPrjQuotation.class);
+        service.updateByPrimaryKey(requestContext,quotation);
+        return new ResponseData();
+    }
 
 }
