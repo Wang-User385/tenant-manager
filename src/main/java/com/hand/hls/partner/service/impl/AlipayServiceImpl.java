@@ -29,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -452,21 +453,39 @@ public class AlipayServiceImpl implements IAlipayService {
         }else{
             extInfo = "*****未启用蚂蚁链接口************";
             alipayStatus = "ACTIVATED";
-
-            //在用户银行账户中插入一条对应数据
-            HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
-            hlsCusBpMasterBankAccount.setBpId(prjProject.getBpId());
-            //银行账号对应承租人身份证号
-            hlsCusBpMasterBankAccount.setBankAccountNum(userCertNo);
-            hlsCusBpMasterBankAccount.setBpId(bpMaster.getBpId());
-            hlsCusBpMasterBankAccount.setBankAccountName(bpMaster.getBpName());
-            hlsCusBpMasterBankAccount.setCurrency("CNY");
-            hlsCusBpMasterBankAccount.setEnabledFlag("Y");
-            hlsCusBpMasterBankAccount.setBankFullName("支付宝（中国）网络技术有限公司");
-            hlsCusBpMasterBankAccount.setBankBranchName("支付宝");
-            hlsCusBpMasterBankAccount.setCountry("中华人民共和国");
-            hlsCusBpMasterBankAccount.setBankSignType("Alipay");
-            hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
+            //判断用户当前是否已有银行账户信息
+            HlsCusBpMasterBankAccount queryBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+            queryBpMasterBankAccount.setBpId(prjProject.getTenantId());
+            //倒叙获取银行信息，拿最新的一条进行判断即可
+            List<HlsCusBpMasterBankAccount> hlsCusBpMasterBankAccounts = hlsCusBpMasterBankAccountMapper.queryCusBpMasterBankByBpId(queryBpMasterBankAccount);
+            if (!ObjectUtils.isEmpty(hlsCusBpMasterBankAccounts.get(0))){
+                //更新
+                HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+                hlsCusBpMasterBankAccount.setBankAccountId(hlsCusBpMasterBankAccounts.get(0).getBankAccountId());
+                hlsCusBpMasterBankAccount.setBankFullName("支付宝（中国）网络技术有限公司");
+                hlsCusBpMasterBankAccount.setBankBranchName("支付宝（中国）网络技术有限公司");
+                hlsCusBpMasterBankAccount.setBankSignType("Alipay");
+                hlsCusBpMasterBankAccount.setBankAccountNum(userCertNo);
+                hlsCusBpMasterBankAccount.setBankAccountName(bpMaster.getBpName());
+                hlsCusBpMasterBankAccount.setLastUpdateDate(new Date());
+                hlsCusBpMasterBankAccountMapper.updateByPrimaryKeySelective(hlsCusBpMasterBankAccount);
+            }else {
+                //在用户银行账户中插入一条对应数据
+                HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+                //银行账号对应承租人身份证号
+                hlsCusBpMasterBankAccount.setBankAccountNum(userCertNo);
+                hlsCusBpMasterBankAccount.setBpId(bpMaster.getBpId());
+                hlsCusBpMasterBankAccount.setBankAccountName(bpMaster.getBpName());
+                hlsCusBpMasterBankAccount.setCurrency("CNY");
+                hlsCusBpMasterBankAccount.setEnabledFlag("Y");
+                hlsCusBpMasterBankAccount.setBankFullName("支付宝（中国）网络技术有限公司");
+                hlsCusBpMasterBankAccount.setBankBranchName("支付宝（中国）网络技术有限公司");
+                hlsCusBpMasterBankAccount.setCountry("中华人民共和国");
+                hlsCusBpMasterBankAccount.setBankSignType("Alipay");
+                hlsCusBpMasterBankAccount.setCreationDate(new Date());
+                hlsCusBpMasterBankAccount.setLastUpdateDate(new Date());
+                hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
+            }
         }
 
         HlsCusPrjProject updateProject = new HlsCusPrjProject();
@@ -498,22 +517,43 @@ public class AlipayServiceImpl implements IAlipayService {
 
                 //如果已经代扣签约，则推送消息
                 if("ACTIVATED".equals(status)){
-                    //在用户银行账户中插入一条对应数据
-                    HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
-                    hlsCusBpMasterBankAccount.setBpId(prjProject.getBpId());
-                    //银行账号对应承租人身份证号
-                    HlsCusBpMaster bpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(prjProject.getTenantId());
-                    String userCertNo = bpMaster.getIdCardNo();
-                    hlsCusBpMasterBankAccount.setBankAccountNum(userCertNo);
-                    hlsCusBpMasterBankAccount.setBankAccountName(bpMaster.getBpName());
-                    hlsCusBpMasterBankAccount.setBpId(bpMaster.getBpId());
-                    hlsCusBpMasterBankAccount.setCurrency("CNY");
-                    hlsCusBpMasterBankAccount.setEnabledFlag("Y");
-                    hlsCusBpMasterBankAccount.setBankFullName("支付宝（中国）网络技术有限公司");
-                    hlsCusBpMasterBankAccount.setBankBranchName("支付宝");
-                    hlsCusBpMasterBankAccount.setCountry("中华人民共和国");
-                    hlsCusBpMasterBankAccount.setBankSignType("Alipay");
-                    hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
+                    //判断用户当前是否已有银行账户信息
+                    HlsCusBpMasterBankAccount queryBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+                    queryBpMasterBankAccount.setBpId(prjProject.getTenantId());
+                    //倒叙获取银行信息，拿最新的一条进行判断即可
+                    List<HlsCusBpMasterBankAccount> hlsCusBpMasterBankAccounts = hlsCusBpMasterBankAccountMapper.queryCusBpMasterBankByBpId(queryBpMasterBankAccount);
+                    if (!ObjectUtils.isEmpty(hlsCusBpMasterBankAccounts.get(0))){
+                        //更新
+                        HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+                        hlsCusBpMasterBankAccount.setBankAccountId(hlsCusBpMasterBankAccounts.get(0).getBankAccountId());
+                        hlsCusBpMasterBankAccount.setBankFullName("支付宝（中国）网络技术有限公司");
+                        hlsCusBpMasterBankAccount.setBankBranchName("支付宝（中国）网络技术有限公司");
+                        hlsCusBpMasterBankAccount.setBankSignType("Alipay");
+                        HlsCusBpMaster bpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(prjProject.getTenantId());
+                        String userCertNo = bpMaster.getIdCardNo();
+                        hlsCusBpMasterBankAccount.setBankAccountNum(userCertNo);
+                        hlsCusBpMasterBankAccount.setBankAccountName(bpMaster.getBpName());
+                        hlsCusBpMasterBankAccount.setLastUpdateDate(new Date());
+                        hlsCusBpMasterBankAccountMapper.updateByPrimaryKeySelective(hlsCusBpMasterBankAccount);
+                    }else {
+                        //在用户银行账户中插入一条对应数据
+                        HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+                        //银行账号对应承租人身份证号
+                        HlsCusBpMaster bpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(prjProject.getTenantId());
+                        String userCertNo = bpMaster.getIdCardNo();
+                        hlsCusBpMasterBankAccount.setBankAccountNum(userCertNo);
+                        hlsCusBpMasterBankAccount.setBankAccountName(bpMaster.getBpName());
+                        hlsCusBpMasterBankAccount.setBpId(bpMaster.getBpId());
+                        hlsCusBpMasterBankAccount.setCurrency("CNY");
+                        hlsCusBpMasterBankAccount.setEnabledFlag("Y");
+                        hlsCusBpMasterBankAccount.setBankFullName("支付宝（中国）网络技术有限公司");
+                        hlsCusBpMasterBankAccount.setBankBranchName("支付宝（中国）网络技术有限公司");
+                        hlsCusBpMasterBankAccount.setCountry("中华人民共和国");
+                        hlsCusBpMasterBankAccount.setBankSignType("Alipay");
+                        hlsCusBpMasterBankAccount.setCreationDate(new Date());
+                        hlsCusBpMasterBankAccount.setLastUpdateDate(new Date());
+                        hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
+                    }
                     messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
                 }
             }
