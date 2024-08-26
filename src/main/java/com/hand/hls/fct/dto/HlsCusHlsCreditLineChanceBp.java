@@ -37,8 +37,11 @@ public class HlsCusHlsCreditLineChanceBp extends BaseDTO {
     private String bpType;
 
     private String note;
+    private String guarMethod;//担保方式
     @Transient
     private String bpNameN;
+    @Transient
+    private String guarMethodN;
     @Transient
     private String bpIdN;
     @Transient

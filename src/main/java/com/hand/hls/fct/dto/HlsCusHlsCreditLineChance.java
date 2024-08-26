@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -127,6 +128,7 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
 
     private Long unitId;//部门ID
     //新增
+    //@DateTimeFormat("")
     private Date creationDate;//部门ID
 
     @Transient

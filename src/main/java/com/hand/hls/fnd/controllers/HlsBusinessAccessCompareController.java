@@ -1,5 +1,6 @@
 package com.hand.hls.fnd.controllers;
 
+import com.hand.hls.fnd.mapper.HlsBusinessAccessCompareMapper;
 import org.springframework.stereotype.Controller;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.core.IRequest;
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 
     @Autowired
     private IHlsBusinessAccessCompareService service;
+    @Autowired
+    private HlsBusinessAccessCompareMapper mapper;
 
 
     @RequestMapping(value = "/hls/business/access/compare/query")
@@ -36,6 +39,8 @@ import org.springframework.web.bind.annotation.*;
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsBusinessAccessCompare dto = param.toJavaObject(HlsBusinessAccessCompare.class);
         return new ResponseData(service.select(requestContext,dto,pagenum,pagesize));
+        //List<HlsBusinessAccessCompare> list = mapper.queryAll();
+        //return new ResponseData(list);
     }
 
     @RequestMapping(value = "/hls/business/access/compare/submit")

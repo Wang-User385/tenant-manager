@@ -4,15 +4,17 @@ package com.hand.hls.fnd.dto;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import com.hand.hap.mybatis.annotation.ExtensionAttribute;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 import javax.persistence.Table;
+import javax.persistence.Transient;
+
 import com.hand.hap.system.dto.BaseDTO;
 @ExtensionAttribute(disable=true)
 @Table(name = "HLS_BUSINESS_ACCESS_COMPARE")
-@Getter
-@Setter
+@Data
 public class HlsBusinessAccessCompare extends BaseDTO {
 
      public static final String FIELD_COMPARE_ID = "compareId";
@@ -24,7 +26,7 @@ public class HlsBusinessAccessCompare extends BaseDTO {
 
      @Id
      @GeneratedValue
-     private Float compareId;
+     private Long compareId;
 
      @Length(max = 300)
      private String businessAccess;
@@ -38,5 +40,6 @@ public class HlsBusinessAccessCompare extends BaseDTO {
      @Length(max = 3)
      private String systemFlag;
 
-
+     @Transient
+     private String businessAccessN;
 }
