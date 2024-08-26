@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
+import com.hand.hls.bp.dto.HlsCusBpMasterBankAccount;
+import com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.cont.dto.HlsCusConContractCashflow;
 import com.hand.hls.cont.mapper.HlsCusConContractCashflowMapper;
@@ -61,6 +63,9 @@ public class AlipayServiceImpl implements IAlipayService {
     private HlsCusCshTransactionMapper hlsCusCshTransactionMapper;
     @Autowired
     private CshWriteOffService cshWriteOffService;
+
+    @Autowired
+    private HlsCusBpMasterBankAccountMapper hlsCusBpMasterBankAccountMapper;
 
     public String orderApply(String outOrderNo) throws HlsCusException {
         String penetrateId = "";
@@ -447,6 +452,21 @@ public class AlipayServiceImpl implements IAlipayService {
         }else{
             extInfo = "*****未启用蚂蚁链接口************";
             alipayStatus = "ACTIVATED";
+
+            //在用户银行账户中插入一条对应数据
+            HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+            hlsCusBpMasterBankAccount.setBpId(prjProject.getBpId());
+            //银行账号对应承租人身份证号
+            hlsCusBpMasterBankAccount.setBankAccountNum(userCertNo);
+            hlsCusBpMasterBankAccount.setBpId(bpMaster.getBpId());
+            hlsCusBpMasterBankAccount.setBankAccountName(bpMaster.getBpName());
+            hlsCusBpMasterBankAccount.setCurrency("CNY");
+            hlsCusBpMasterBankAccount.setEnabledFlag("Y");
+            hlsCusBpMasterBankAccount.setBankFullName("支付宝（中国）网络技术有限公司");
+            hlsCusBpMasterBankAccount.setBankBranchName("支付宝");
+            hlsCusBpMasterBankAccount.setCountry("中华人民共和国");
+            hlsCusBpMasterBankAccount.setBankSignType("Alipay");
+            hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
         }
 
         HlsCusPrjProject updateProject = new HlsCusPrjProject();
@@ -478,6 +498,22 @@ public class AlipayServiceImpl implements IAlipayService {
 
                 //如果已经代扣签约，则推送消息
                 if("ACTIVATED".equals(status)){
+                    //在用户银行账户中插入一条对应数据
+                    HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = new HlsCusBpMasterBankAccount();
+                    hlsCusBpMasterBankAccount.setBpId(prjProject.getBpId());
+                    //银行账号对应承租人身份证号
+                    HlsCusBpMaster bpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(prjProject.getTenantId());
+                    String userCertNo = bpMaster.getIdCardNo();
+                    hlsCusBpMasterBankAccount.setBankAccountNum(userCertNo);
+                    hlsCusBpMasterBankAccount.setBankAccountName(bpMaster.getBpName());
+                    hlsCusBpMasterBankAccount.setBpId(bpMaster.getBpId());
+                    hlsCusBpMasterBankAccount.setCurrency("CNY");
+                    hlsCusBpMasterBankAccount.setEnabledFlag("Y");
+                    hlsCusBpMasterBankAccount.setBankFullName("支付宝（中国）网络技术有限公司");
+                    hlsCusBpMasterBankAccount.setBankBranchName("支付宝");
+                    hlsCusBpMasterBankAccount.setCountry("中华人民共和国");
+                    hlsCusBpMasterBankAccount.setBankSignType("Alipay");
+                    hlsCusBpMasterBankAccountMapper.insertSelective(hlsCusBpMasterBankAccount);
                     messageNoticeService.withholdContractResult(projectId,RequestHelper.getCurrentRequest());
                 }
             }
