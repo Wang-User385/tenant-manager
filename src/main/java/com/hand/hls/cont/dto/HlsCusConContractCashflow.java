@@ -1177,5 +1177,7 @@ HlsCusConContractCashflow extends BaseDTO {
     private Double unreceivedPenaltyAmount;
 
     private String transferPaymentFlag;
+    @Transient
+    private String accountNumber;
 
 }

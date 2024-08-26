@@ -11533,6 +11533,9 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         <result column="contract_id" property="contract_id"/>
         <result column="upload_date" property="upload_date"/>
         <result column="mortgage_status" property="mortgage_status"/>
+        <result column="file_names" property="file_names"/>
+        <result column="attachment_id_n" property="attachment_id_n"/>
+        <result column="source_pk_value" property="source_pk_value"/>
     </resultMap>
     <select id="findAttachReview" resultMap="PrjProjectAttachQueryMap">
         Select ppa.project_id,
@@ -11562,7 +11565,22 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                 where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
                   and faam.table_pk_value = ppa.project_attachment_id
                   and faa.source_pk_value = faam.record_id
-                  and rownum = 1) upload_date
+                  and rownum = 1) upload_date,
+               (Select to_char(wm_concat(faa.file_name)) file_name
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) file_names,
+               (Select to_char(wm_concat(faa.attachment_id)) attachment_id
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) attachment_id_n,
+               (Select to_char(wm_concat(faa.source_pk_value)) source_pk_value
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) source_pk_value
         From prj_project_attachment ppa,con_contract cc
         Where cc.contract_id = #{contractId}
             and ppa.project_id = cc.project_id
@@ -11596,7 +11614,22 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                 where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
                   and faam.table_pk_value = ppa.project_attachment_id
                   and faa.source_pk_value = faam.record_id
-                  and rownum = 1) upload_date
+                  and rownum = 1) upload_date,
+               (Select to_char(wm_concat(faa.file_name)) file_name
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) file_names,
+               (Select to_char(wm_concat(faa.attachment_id)) attachment_id
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) attachment_id_n,
+               (Select to_char(wm_concat(faa.source_pk_value)) source_pk_value
+                From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+                Where faam.attachment_id = faa.attachment_id
+                  And faam.table_pk_value = ppa.project_attachment_id
+                  And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) source_pk_value
         From prj_project_attachment ppa,con_contract cc
         Where cc.contract_id = #{contractId}
           and ppa.project_id = cc.project_id
@@ -11660,7 +11693,22 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                 AND faa.source_pk_value = faam.record_id
                 AND ROWNUM = 1
             ) upload_date,
-            cc.mortgage_status
+            cc.mortgage_status,
+           (Select to_char(wm_concat(faa.file_name)) file_name
+            From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+            Where faam.attachment_id = faa.attachment_id
+              And faam.table_pk_value = ppa.project_attachment_id
+              And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) file_names,
+           (Select to_char(wm_concat(faa.attachment_id)) attachment_id
+            From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+            Where faam.attachment_id = faa.attachment_id
+              And faam.table_pk_value = ppa.project_attachment_id
+              And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) attachment_id_n,
+           (Select to_char(wm_concat(faa.source_pk_value)) source_pk_value
+            From fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+            Where faam.attachment_id = faa.attachment_id
+              And faam.table_pk_value = ppa.project_attachment_id
+              And faam.table_name = 'PRJ_PROJECT_ATTACHMENT' ) source_pk_value
         FROM
             prj_project_attachment ppa,
             con_contract cc

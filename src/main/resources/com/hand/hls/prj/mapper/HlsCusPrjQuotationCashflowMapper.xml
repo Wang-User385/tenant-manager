@@ -508,7 +508,7 @@
         <result column="due_comp_amount" property="dueCompAmount" jdbcType="DECIMAL"/>
         <result column="received_comp_amount" property="receivedCompAmount" jdbcType="DECIMAL"/>
         <result column="refund_comp_amount" property="refundCompAmount" jdbcType="DECIMAL"/>
-
+        <result column="account_number" property="accountNumber" jdbcType="VARCHAR"/>
 
     </resultMap>
 
@@ -1961,7 +1961,17 @@ and pqc.quotation_id=#{quotationId}
         ORDER BY order_id DESC
         )
         WHERE ROWNUM = 1) AS last_received_date_n,
-        '支付宝' AS withholding_party
+        '支付宝' AS withholding_party,
+        nvl((select hbm.BP_NAME from PRJ_PROJECT pp, CON_CONTRACT cc , HLS_BP_MASTER hbm
+        where cc.CONTRACT_ID = ccc.contract_id
+        and cc.PROJECT_ID = pp.PROJECT_ID
+        and hbm.BP_ID = pp.TENANT_ID
+        and pp.alipay_status = 'ACTIVATED'), '') bp_name,
+        nvl((select hbm.ID_CARD_NO from PRJ_PROJECT pp, CON_CONTRACT cc , HLS_BP_MASTER hbm
+        where cc.CONTRACT_ID = ccc.contract_id
+        and cc.PROJECT_ID = pp.PROJECT_ID
+        and hbm.BP_ID = pp.TENANT_ID
+        and pp.alipay_status = 'ACTIVATED'), 0) account_number
         FROM CON_CONTRACT_CASHFLOW ccc
         where due_date &lt;= CURRENT_DATE and ccc.cf_direction='INFLOW'
         and (ccc.transfer_payment_flag is null or ccc.transfer_payment_flag='N')

@@ -9,8 +9,26 @@
           trace="true">
 
     <a:view>
-        <script><![CDATA[
+        <link href="${/request/@context_path}/resources/hls/imgPreview/viewer.css" rel="stylesheet" type="text/css"/>
+        <script src="${/request/@context_path}/resources/hls/imgPreview/viewer.js"/>
 
+        <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
+        <script><![CDATA[
+        function atmTypeRef(name) {
+            return /\.(jpg|png|gif|bmp|jpeg)$/i.test(name)
+        }
+
+        function checkPdf(name) {
+            return /\.(pdf)$/i.test(name)
+        }
+
+        function checkDox(name) {
+            return /\.(doc|docx)$/i.test(name)
+        }
+
+        function checkXls(name){
+            return /\.(xls|xlsx)$/i.test(name)
+        }
 
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
             // if (name == 'project_plan' && !record.isNew) {   //跟进情况  附件
@@ -23,7 +41,36 @@
             } else if (record.get('file_num') == 0 || name == 'info') {
                 return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('contract_id') + '\');">附件</a>';
             }
+            if (name == 'preview') {
+                if (record.get('attachment_id_n') != null) {
+                    var html = '';
+                    var fileNameList = record.get('file_names').split(',');
+                    var attachmentIdList = record.get('attachment_id_n').split(',');
+                    var sourcePkList = record.get('source_pk_value').split(',');
+                    for (var i = 0; i < fileNameList.length; i++) {
+                        if (html != '') {
+                            html += ',';
+                        }
+                        if (atmTypeRef(fileNameList[i])) {
+                            html += '<span><a target="_self" alt="' + fileNameList[i] + '" imageIndex="img_' + attachmentIdList[i] + '" ref="img_' + attachmentIdList[i] + '" href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkPdf(fileNameList[i])) {
+                            var url = encodeURIComponent('${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i]);
+                            html += '<span><a target="_blank" href="${/request/@context_path}/resources/hls/pdf/web/viewer.html?file=' + url + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkDox(fileNameList[i]) || checkXls(fileNameList[i]) ) {
+                            html += '<a href=javascript:queryDocFile(\'' + sourcePkList[i] + '\')> ' + fileNameList[i] + '在线预览</a>';
+                        } else {
+                            html += '<span><a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        }
+
+                    }
+                    return html;
+                }
+            }
             return value;
+        }
+        //在线预览
+        function queryDocFile(source_pk_value) {
+            window.open("${/request/@context_path}/sys/office/view?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
         }
 
         window['upload'] = function (ds_id, record_id, pk_id) {

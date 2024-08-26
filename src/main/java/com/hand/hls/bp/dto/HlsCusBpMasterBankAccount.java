@@ -33,6 +33,9 @@ public class HlsCusBpMasterBankAccount extends HlsBpMasterBankAccount {
 
     //BANK_ADDRESS
     private String bankAddress;
+    private String bankSignType; //银行签约类型
+    @Transient
+    private String bankSignTypeN;
 
     public String getPrimaryFlag() {
         return primaryFlag;
@@ -138,5 +141,21 @@ public class HlsCusBpMasterBankAccount extends HlsBpMasterBankAccount {
 
     public void setContactNum(String contactNum) {
         this.contactNum = contactNum;
+    }
+
+    public String getBankSignType() {
+        return bankSignType;
+    }
+
+    public void setBankSignType(String bankSignType) {
+        this.bankSignType = bankSignType;
+    }
+
+    public String getBankSignTypeN() {
+        return bankSignTypeN;
+    }
+
+    public void setBankSignTypeN(String bankSignTypeN) {
+        this.bankSignTypeN = bankSignTypeN;
     }
 }

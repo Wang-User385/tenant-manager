@@ -137,4 +137,10 @@ public class CshPaymentReqLnBankAccount extends BaseDTO {
 
     @Transient
     private Long fileNum;
+    @Transient
+    private String sourcePkValue;
+    @Transient
+    private String attachmentIdN;
+    @Transient
+    private String fileNames;
 }

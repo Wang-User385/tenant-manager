@@ -76,6 +76,9 @@
         <result column="payment_method_n" property="paymentMethodN" jdbcType="VARCHAR"/>
 
         <result column="file_num" property="fileNum" jdbcType="DECIMAL"/>
+        <result column="source_pk_value" property="sourcePkValue" jdbcType="VARCHAR"/>
+        <result column="attachment_id_n" property="attachmentIdN" jdbcType="VARCHAR"/>
+        <result column="file_names" property="fileNames" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="basic_column">
@@ -606,6 +609,21 @@
             fam.table_name = 'CSH_PAY_REQ_LN_BANK_ACCOUNT'
             AND fam.table_pk_value = cprba.csh_bank_id
             AND fa.attachment_id = fam.attachment_id) file_num,
+       (select wm_concat(faa.source_pk_value)
+        from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+        where faam.table_name = 'CSH_PAY_REQ_LN_BANK_ACCOUNT'
+          and faam.table_pk_value = cprba.csh_bank_id
+          AND faa.attachment_id = faam.attachment_id) source_pk_value,
+       (select wm_concat(faa.attachment_id)
+        from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+        where faam.table_name = 'CSH_PAY_REQ_LN_BANK_ACCOUNT'
+          and faam.table_pk_value = cprba.csh_bank_id
+          AND faa.attachment_id = faam.attachment_id) attachment_id_n,
+       (select wm_concat(faa.file_name)
+        from fnd_atm_attachment faa, fnd_atm_attachment_multi faam
+        where faam.table_name = 'CSH_PAY_REQ_LN_BANK_ACCOUNT'
+          and faam.table_pk_value = cprba.csh_bank_id
+          AND faa.attachment_id = faam.attachment_id) file_names,
         cprba.payment_name_id,
         cprba.payment_name,
         (select scvb.meaning from sys_code_value_b scvb , sys_code_b scb where

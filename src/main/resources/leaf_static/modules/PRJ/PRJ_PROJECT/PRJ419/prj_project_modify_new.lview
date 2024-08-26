@@ -32,6 +32,11 @@
                 url="${/request/@context_path}/modules/LEASE/LEASE001/lease_item_modify_detail.lview"/>
         <a:link id="prj419_lease_item_info_id"
                 url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ419/prj_project_lease_item_info.lview"/>
+
+        <link href="${/request/@context_path}/resources/hls/imgPreview/viewer.css" rel="stylesheet" type="text/css"/>
+        <script src="${/request/@context_path}/resources/hls/imgPreview/viewer.js"/>
+
+        <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
         <script><![CDATA[
 
         /*定义全局对象变量*/
@@ -53,6 +58,22 @@
         var ref_v02='${/parameter/@ref_v02}';
         var finance_amount=0;
         '${/parameter/@lease_channel}' == '10'
+
+        function atmTypeRef(name) {
+            return /\.(jpg|png|gif|bmp|jpeg)$/i.test(name)
+        }
+
+        function checkPdf(name) {
+            return /\.(pdf)$/i.test(name)
+        }
+
+        function checkDox(name) {
+            return /\.(doc|docx)$/i.test(name)
+        }
+
+        function checkXls(name){
+            return /\.(xls|xlsx)$/i.test(name)
+        }
 
         $L.onReady(function () {
             debugger
@@ -269,10 +290,39 @@
                     return '计算成功';
                 }
             }
+            if (name == 'preview') {
+                if (record.get('attachment_id_n') != null) {
+                    var html = '';
+                    var fileNameList = record.get('file_names').split(',');
+                    var attachmentIdList = record.get('attachment_id_n').split(',');
+                    var sourcePkList = record.get('source_pk_value').split(',');
+                    for (var i = 0; i < fileNameList.length; i++) {
+                        if (html != '') {
+                            html += ',';
+                        }
+                        if (atmTypeRef(fileNameList[i])) {
+                            html += '<span><a target="_self" alt="' + fileNameList[i] + '" imageIndex="img_' + attachmentIdList[i] + '" ref="img_' + attachmentIdList[i] + '" href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkPdf(fileNameList[i])) {
+                            var url = encodeURIComponent('${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i]);
+                            html += '<span><a target="_blank" href="${/request/@context_path}/resources/hls/pdf/web/viewer.html?file=' + url + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkDox(fileNameList[i]) || checkXls(fileNameList[i]) ) {
+                            html += '<a href=javascript:queryDocFile(\'' + sourcePkList[i] + '\')> ' + fileNameList[i] + '在线预览</a>';
+                        } else {
+                            html += '<span><a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        }
+
+                    }
+                    return html;
+                }
+            }
 
             return value;
         };
 
+        //在线预览
+        function queryDocFile(source_pk_value) {
+            window.open("${/request/@context_path}/sys/office/view?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
+        }
 
         //附件
         var win;
