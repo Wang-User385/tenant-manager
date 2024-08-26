@@ -30,21 +30,23 @@ public class AlipayJob extends AbstractJobWithIRequest{
     private IHlsWsRequestsService logService;
 
     @Override
-    public void safeExecuteWithIRequest(JobExecutionContext jobExecutionContext, IRequest iRequest) throws HlsCusException {
-        RequestHelper.setCurrentRequest(iRequest);
+    public void safeExecuteWithIRequest(JobExecutionContext jobExecutionContext, IRequest iRequest)  {
+        try {
+            RequestHelper.setCurrentRequest(iRequest);
 
-        List<HlsCusPrjProject> projectList = prjProjectMapper.selectProjectForAlipaySignQuery();
-        for (HlsCusPrjProject project : projectList) {
-            try {
+            List<HlsCusPrjProject> projectList = prjProjectMapper.selectProjectForAlipaySignQuery();
+            for (HlsCusPrjProject project : projectList) {
                 iAlipayService.signQuery(project.getProjectId());
+            }
+        } catch (HlsCusException e) {
+            if ("20000".equals(e.getCode()) || "系统繁忙".equals(e.getMessage())) {
+                logger.warn("Ignored HlsCusException during alipayJob signQuery execution: {}", e.getMessage());
+            } else {
+                logger.error("Unexpected HlsCusException during alipayJob signQuery execution", e);
 
-            } catch (HlsCusException e) {
-                if ("20000".equals(e.getCode()) || "系统繁忙".equals(e.getMessage())) {
-                    logger.error(e.getMessage(), e);
-                } else {
-                    throw e;
-                }
             }
         }
+
+
     }
 }
