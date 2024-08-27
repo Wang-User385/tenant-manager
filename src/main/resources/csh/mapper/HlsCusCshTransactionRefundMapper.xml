@@ -636,11 +636,10 @@
         FROM SYS_CODE_B scb
         LEFT JOIN SYS_CODE_VALUE_B scvb ON scb.CODE = 'CHS.CURRENCY_TYPE' AND scb.CODE_ID = scvb.CODE_ID
         WHERE scvb.VALUE = ct.CURRENCY_CODE)                                                       AS currency_code_desc,
-        (SELECT nvl(SUM(cwo.csh_write_off_amount), 0)
-        FROM csh_write_off cwo
-        WHERE cwo.csh_transaction_id = ct.transaction_id
-        AND cwo.reversed_flag = 'N'
-        AND cwo.write_off_type = 'REFUND')                                                          return_write_off_amount,
+        (select nvl((ctr.refund_amount - ctrl.refund_amount), 0)
+        from csh_transaction_refund ctr
+        where ctr.refund_id = ctrl.refund_id
+        and ctr.PAYMENT_REFUND_STATUS = 'PAID')                                                       return_write_off_amount,
         ( SELECT
         sum(ctr.REFUND_AMOUNT)
         FROM
@@ -649,10 +648,10 @@
         ctr.refund_status = 'APPROVING'
         AND ctr.TRANSACTION_ID = ct.TRANSACTION_ID
         )  refunding_amount,
-        (nvl(ct.transaction_amount, 0) - nvl(ct.block_amount, 0) - (SELECT nvl(SUM(cwo.csh_write_off_amount), 0)
-        FROM csh_write_off cwo
-        WHERE cwo.csh_transaction_id = ct.transaction_id
-        AND cwo.reversed_flag = 'N')) AS can_return_amount,
+        (select nvl((ctr.refund_amount - ctrl.refund_amount), 0)
+        from csh_transaction_refund ctr
+        where ctr.refund_id = ctrl.refund_id
+        and ctr.PAYMENT_REFUND_STATUS != 'PAID') AS can_return_amount,
         (select bm.bp_name from hls_bp_master bm where bm.bp_id=ct.bp_id) bp_name
         FROM csh_transaction_refund_ln ctrl
         INNER JOIN csh_transaction ct ON ct.TRANSACTION_ID = ctrl.SOURCE_TRANSACTION_ID
