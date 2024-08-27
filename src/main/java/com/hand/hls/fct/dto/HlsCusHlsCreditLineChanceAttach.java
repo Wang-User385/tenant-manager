@@ -62,4 +62,11 @@ public class HlsCusHlsCreditLineChanceAttach extends BaseDTO {
     @Transient
     private String infoName;
 
+    @Transient
+    private Date  creationDate;
+
+    @Transient
+    private Long fileNum;
+
+
 }

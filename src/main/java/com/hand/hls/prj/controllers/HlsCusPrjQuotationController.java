@@ -12,10 +12,12 @@ import com.hand.hls.prj.service.HlsCusPrjQuotationCashflowService;
 import com.hand.hls.prj.service.HlsCusPrjQuotationService;
 import hls.core.utils.exception.HlsCusException;
 import leaf.bean.LeafRequestData;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -260,10 +262,13 @@ public class HlsCusPrjQuotationController extends BaseController {
     //保理id补偿
     @RequestMapping({"/set/chanceId/quotation"})
     @ResponseBody
-    public ResponseData setChanceIDQuotation(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+    public ResponseData setChanceIDQuotation(@RequestParam("quotation_id")Long quotationId,
+            @RequestParam("source_document_id" ) Long sourceDocumentId, HttpServletRequest request) {
         IRequest requestContext = this.createRequestContext(request);
-        JSONObject param = (JSONObject)requestData.get("parameter");
-        HlsCusPrjQuotation quotation = param.toJavaObject(HlsCusPrjQuotation.class);
+        HlsCusPrjQuotation quotation = new HlsCusPrjQuotation();
+        quotation.setQuotationId(quotationId);
+        quotation = service.selectByPrimaryKey(requestContext,quotation);
+        quotation.setSourceDocumentId(sourceDocumentId);
         service.updateByPrimaryKey(requestContext,quotation);
         return new ResponseData();
     }

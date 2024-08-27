@@ -627,6 +627,8 @@ public class HlsCusPrjQuotation extends PrjQuotation {
     private Double managementFeeRatio;
     @Transient
     private Double managementFee;
+    @Transient
+    private String altRentingFreCustomN;
 
 
 
