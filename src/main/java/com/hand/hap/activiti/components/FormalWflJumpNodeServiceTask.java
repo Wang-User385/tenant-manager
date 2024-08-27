@@ -73,9 +73,11 @@ public class FormalWflJumpNodeServiceTask implements JavaDelegate, IActivitiBean
             approveResultResult = "拒绝";
             comment = "同盾风控系统返回审批拒绝,系统自动审批拒绝该节点";
         }else if(returnStatus.equals("CAREFUL_APPROVED")){
-            approveResult = "CAREFUL_APPROVED";
+            //approveResult = "CAREFUL_APPROVED";
+            approveResult = "REJECTED";
             approveResultResult = "谨慎通过";
-            comment = "同盾风控系统返回谨慎通过,系统自动审批通过该节点";
+            //comment = "同盾风控系统返回谨慎通过,系统自动审批通过该节点";
+            comment = "同盾风控系统返回谨慎通过,系统自动审批拒绝该节点";
         }
         Map<String, Object> vMap = new HashMap<String, Object>();
 
