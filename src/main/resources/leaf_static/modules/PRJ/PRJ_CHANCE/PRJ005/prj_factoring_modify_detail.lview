@@ -10,8 +10,7 @@
         <script><![CDATA[
 
 
-
-
+        var flag = false;
         //超链接渲染
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
             var link_function1 = 'upload';
@@ -19,7 +18,7 @@
                 return '<a href="javascript:open_master_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户明细信息</a>';
             } else if (name == 'bp_financia') {
                 return '<a href="javascript:open_financia_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户财报信息</a>';
-            } else if (name == 'info'&& record.get('file_num') == 0) {
+            } else if (name == 'info'&& (!record.get('file_num') || record.get('file_num') == 0)) {
                 return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('chance_id') + '\');">附件</a>';
             } else if(name == 'info'&& record.get('file_num') > 0){
                 return '<a href="javascript:window[\'' + link_function1 + '\'](\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('chance_id') + '\');">附件' + '(' +record.get("file_num") + ')' + '</a>';
@@ -248,6 +247,10 @@
         //提交审批
         window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
             debugger;
+            if (!flag){
+                Leaf.showInfoMessage('提示','数据没有进行保存前不允许提交审批');
+                return;
+            }
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
             var record = $(ds_id).getCurrentRecord();
             var chance_id = record.get('chance_id');
@@ -343,6 +346,7 @@
                     });
                 }
             }
+            flag = true;
             return check_flag;
         }
 

@@ -8,6 +8,10 @@
 <a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
+        <a:link id="factoring_bp_master_update_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="factoring_finance_report_detail_update_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/financial_report_import_entrance.lview"/>
         <script><![CDATA[
         //超链接渲染
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
@@ -50,7 +54,7 @@
             }
             param['function_usage'] = 'QUERY';
             param['winid'] = 'factoring_bp_master_modify_winid';
-            hls_doc_get_layout_code(param, 'factoring_bp_master_modify_link_id', null, 'PRJ005F1');
+            hls_doc_get_layout_code(param, 'factoring_bp_master_update_link_id', null, 'PRJ005F1');
         }
 
         function open_financia_detail_win(record_id, ds_id) {
@@ -78,7 +82,7 @@
                 side: "right",
                 draggable: true
             });
-            hls_doc_get_layout_code(param, 'factoring_finance_report_detail_link_id', null, 'PRJ005F1');
+            hls_doc_get_layout_code(param, 'factoring_finance_report_detail_update_link_id', null, 'PRJ005F1');
 
         }
 
@@ -367,8 +371,8 @@
                 // record.set('proposer_employee_id', proposer_employee_id);
                 // record.set('proposer_employee_id_n', proposer_employee_id_n);
             } else if (ds.id == ds_id_au) {
-                record.set('bp_name', '${/parameter/@bp_id_n_n}');
-                record.set('source_document_category', 'HLS_CREDIT_LINE_CHANCE');
+                // record.set('bp_name', '${/parameter/@bp_id_n_n}');
+                // record.set('source_document_category', 'HLS_CREDIT_LINE_CHANCE');
             } else if (ds.id == ds_id_pq) {
                 record.set('bp_id', '${/parameter/@bp_id_n}');
                 record.set('document_category', 'HLS_CREDIT_LINE_CHANCE');
@@ -382,7 +386,9 @@
             debugger;
             var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
             var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
-            if (ds_id_customer.id == ds.id) {
+            var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
+            var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            if (ds_id_customer == ds.id) {
                 var records = $(ds_id_customer.id).getAll();
                 var query_data = [];
                 for (let i = 0; i < records.length; i++) {
@@ -409,12 +415,32 @@
                 });
             }else if (ds.id == ds_id_atta){
                 var record_atta = $(ds_id_atta).getCurrentRecord();
-                record_atta.set('attachment_category',"CHANCE_ATT");
+                if (record_atta){
+                    record_atta.set('attachment_category',"CHANCE_ATT");
+                }
+            }else if (ds.id == ds_id_p){
+                if (record) {
+                    var record_ds_id_au = $(ds_id_au).getCurrentRecord();
+                    record.set('credit_plan_id', record_ds_id_au.get('credit_plan_id'));
+                }
+            }
+        };
+
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function(ds, qpara, bp_seq) {
+            debugger;
+            var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
+            var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            if (ds.id == ds_id_p){
+                var record = $(ds_id_au).getCurrentRecord();
+                if (record){
+                   $(ds_id_p).setQueryParameter('credit_line_id',record.get('credit_line_id'));
+                }
             }
         };
 
         //保存submitsuccess调用
-
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
             debugger;
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();

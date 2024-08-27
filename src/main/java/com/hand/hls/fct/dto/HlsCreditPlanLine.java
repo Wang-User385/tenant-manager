@@ -48,6 +48,10 @@ public class HlsCreditPlanLine extends BaseDTO {
      private String groupCompanies;
      @Transient
      private String factoringCategoryN;
+     @Transient
+     private Long bpId;
+     @Transient
+     private String bpNameN;
 
 
 
