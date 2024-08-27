@@ -377,7 +377,8 @@
         <result column="credit_grade_n" property="creditGradeN" jdbcType="VARCHAR"/>
         <result column="surplus_amount" property="surplusAmount" jdbcType="VARCHAR"/>
         <result column="plus_finance_amount" property="plusFinanceAmount" jdbcType="DECIMAL"/>
-        <result column="alt_renting_fre_custom" property="altRentingFreCustom" jdbcType="VARCHAR"/>
+        <result column="alt_renting_fre_custom" property="altRentingFreCustom" jdbcType="DECIMAL"/>
+        <result column="alt_renting_fre_custom_n" property="altRentingFreCustomN" jdbcType="VARCHAR"/>
         <result column="alt_renting_frequency" property="altRentingFrequency" jdbcType="DECIMAL"/>
 
 
@@ -6311,19 +6312,20 @@
         hclc.chance_id,
         pq.QUOTATION_ID,
         pq.price_list,
-        nvl(pq.lease_item_amount,0),
+        (select h.description from hls_price_list h where h.price_list = pq.price_list)price_list_n,
+        nvl( pq.lease_item_amount, 0 ) lease_item_amount,
         pq.lease_start_date,
-        nvl(pq.down_payment,0),
+        nvl( pq.down_payment, 0 ) down_payment,
         pq.finance_amount,
         pq.alt_renting_fre_custom,
-        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RENTING' ) alt_renting_fre_custom_n,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RENTING' AND sc.CODE_VALUE = TO_CHAR(pq.alt_renting_fre_custom) ) alt_renting_fre_custom_n,
         pq.alt_renting_frequency,
         pq.int_rate,
         pq.lease_times,
-        nvl(pq.deposit,0),
-        nvl(pq.lease_charge,0),
-        nvl(pq.other_income,0),
-        nvl(pq.other_expenses,0),
+        nvl( pq.deposit, 0 ) deposit,
+        nvl( pq.lease_charge, 0 ) lease_charge,
+        nvl( pq.other_income, 0 ) other_income,
+        nvl( pq.other_expenses, 0 ) other_expenses,
         pq.irr,
         pq.irr_after_tax
         FROM
