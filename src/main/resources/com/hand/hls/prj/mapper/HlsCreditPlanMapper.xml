@@ -59,6 +59,12 @@
     <result column="residual_price_type" jdbcType="VARCHAR" property="residualPriceType" />
     <result column="residual_price_type_n" jdbcType="VARCHAR" property="residualPriceTypeN" />
     <result column="residual" jdbcType="DECIMAL" property="residual" />
+    <result column="buy_back_day" jdbcType="DECIMAL" property="buyBackDay" />
+    <result column="compen_day" jdbcType="DECIMAL" property="compenDay" />
+    <result column="penalty_rate" jdbcType="DECIMAL" property="penaltyRate" />
+    <result column="lease_charge_ratio" jdbcType="DECIMAL" property="leaseChargeRatio" />
+    <result column="deposit_col_method" jdbcType="VARCHAR" property="depositColMethod" />
+    <result column="int_rate" jdbcType="DECIMAL" property="intRate" />
   </resultMap>
   <sql id="Base_Column_List">
     <!--@mbg.generated generated on Mon Jul 25 16:11:02 CST 2022.-->
@@ -147,9 +153,9 @@
       <if test="sourceDocumentCategory != null and creditPlanId == null">
         and v.source_document_category = #{sourceDocumentCategory}
       </if>
-        <if test="sourceDocumentCategory =='HLS_CREDIT_LINE_CHANCE' and chanceId!=null">
+      <if test="sourceDocumentCategory =='HLS_CREDIT_LINE_CHANCE' and chanceId!=null">
             and v.source_document_id = #{chanceId}
-        </if>
+      </if>
       <if test="sourceDocumentId != null and creditPlanId == null">
         and v.source_document_id = #{sourceDocumentId}
       </if>
@@ -209,6 +215,7 @@
     <result column="bp_name" property="bp_name" />
     <result column="down_payment_ratio" property="down_payment_ratio" />
     <result column="deposit_ratio" property="deposit_ratio" />
+    <result column="int_rate" property="int_rate" />
     <result column="annual_pay_times" property="annual_pay_times" />
     <result column="annual_pay_times_n" property="annual_pay_times_n" />
     <result column="residual_price_type" property="residual_price_type" />
@@ -416,6 +423,41 @@
         AND hcp.source_document_id = c.chance_id
         <where>
             c.chance_id = #{chanceId}
+        </where>
+    </select>
+    <select id="selectHlsCreditPlanByChanceId" resultMap="BaseResultMap">
+        SELECT
+        hcp.buy_back_day,
+        hcp.credit_plan_id,
+        hcp.compen_day,
+        hcp.penalty_rate,
+        hcp.lease_charge_ratio,
+        case deposit_col_method
+            when '1' then 1
+            when '2' then 2
+                end deposit_col_method,
+        hcp.deposit_ratio,
+        hcp.int_rate,
+        hcp.irr,
+        c.bp_id,
+        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = c.bp_id ) bp_name,
+        hcp.credit_amt,
+        hcp.quota_type,
+        (
+        select sc.meaning
+        from sys_code_value_b_v sc
+        where sc.code = 'FINANCING_LOAN'
+        AND sc.code_value = hcp.QUOTA_TYPE
+        ) QUOTA_TYPE_N,
+        hcp.date_from,
+        hcp.date_to,
+        hcp.credit_desc
+        FROM
+        hls_credit_plan hcp
+        INNER JOIN hls_credit_line_chance c ON hcp.source_document_category = 'HLS_CREDIT_LINE_CHANCE'
+        AND hcp.source_document_id = c.chance_id
+        <where>
+            hcp.source_document_id =#{chanceId}
         </where>
     </select>
 </mapper>

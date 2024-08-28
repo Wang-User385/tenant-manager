@@ -129,7 +129,10 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private Long unitId;//部门ID
     //新增
     //@DateTimeFormat("")
-    private Date creationDate;//部门ID
+    private Date creationDate;//
+    private String loanCondition;//
+    private String loanMethod;//
+    private String repaymentMethod;//
 
     @Transient
     private String companyName;

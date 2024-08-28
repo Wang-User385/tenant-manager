@@ -147,6 +147,9 @@
         <result column="PROJECT_ASSISTANT_N" property="projectAssistantN" jdbcType="VARCHAR"/>
         <!--        新增-->
         <result column="creation_date" property="creationDate" jdbcType="DATE"/>
+        <result column="loan_condition" property="loanCondition" jdbcType="VARCHAR"/>
+        <result column="loan_method" property="loanMethod" jdbcType="VARCHAR"/>
+        <result column="repayment_method" property="repaymentMethod" jdbcType="VARCHAR"/>
 
         <!--authorityRuleString-->
         <result column="AUTHORITY_RULE_STRING" property="authorityRuleString" jdbcType="VARCHAR"/>
@@ -514,10 +517,9 @@
         and hclcb.bp_type in ('TENANT', 'TENANT_SEC', 'ASSET_TRANSFEROR', 'ACCOUNTS_RECEIVABLE','MANUFACTURER')
         ) bp_name,
 
-        (select wm_concat(hclcb.bp_name)
-        FROM     Hls_Credit_Line_Chance_Bp       hclcb
-        WHERE hclcb.chance_id = clc.chance_id
-        and hclcb.bp_type in ('TENANT','TENANT_SEC')
+        (select wm_concat(hbm.bp_name)
+        FROM     hls_bp_master hbm
+        WHERE hbm.BP_ID = clc.BP_ID
         ) bp_id_n,
         (
         select hmr.MARKETING_REPORT_NUMBER
@@ -666,9 +668,13 @@
 
     </select>
 
-    <select id="selectCreditLineChanceById" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance" resultMap="BaseResultMap">
+        <select id="selectCreditLineChanceById" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance" resultMap="BaseResultMap">
         select
         clc.CHANCE_ID,
+        clc.LOAN_CONDITION,
+        clc.loan_method,
+        clc.other_desc,
+        clc.repayment_method,
         CLC.CREDIT_LINE_NUMBER,
         clc.CREDIT_LINE_NAME,
         clc.COMPANY_ID,
