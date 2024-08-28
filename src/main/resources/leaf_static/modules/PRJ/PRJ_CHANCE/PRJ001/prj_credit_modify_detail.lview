@@ -13,6 +13,10 @@
 <!--                       rootPath="chance_record_path"/>-->
 <!--    </a:init-procedure>-->
     <a:view>
+        <a:link id="factoring_bp_master_update_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="factoring_finance_report_detail_update_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/financial_report_import_entrance.lview"/>
 <!--        <a:link id="prj_chance_wfl_approve"-->
 <!--                url="${/request/@context_path}/hls/credit/line/chance/condition/submitApproval"/>-->
 <!--        <a:link id="prj_chance_save" url="${/request/@context_path}/hls/credit/line/chance/condition/cascadeSubmit"/>-->
@@ -45,25 +49,72 @@
             if (name == 'file_name') {
                 return '<a href="javascript:PRJ003_open_attach(\'' + record.id + '\',\'' + record.ds.id + '\');">附件资料</a>';
             }
-            if (name == 'attachment_detail') {
+            else if (name == 'attachment_detail') {
                 return '<a href="javascript:open_lessee_modify_win(\'' + record.id + '\',\'' + record.ds.id + '\');">附件</a>';
             }
-            // if (name == 'house_number') {
-            //     return '<a href="javascript:open_contract_modify_win(\'' + record.id + '\',\'' + record.ds.id + '\');">'+value+'</a>';
-            // }
+            else if (name == 'CUSTOMER_DETAIL_INFORMATION') {
+                return '<a href="javascript:open_master_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户明细信息</a>';
+             }
+            else if (name == 'CLIENT_FINANCIAL_REPORTS') {
+                return '<a href="javascript:open_financial_report_modify_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户财报</a>';
+            }
         };
+        //客户明细信息
+        function open_master_detail_win(record_id, ds_id) {
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '客户明细信息';
+            if (param['bp_class'] == 'ORG') {
+                param['function_code'] = 'BP100F1';
+            } else {
+                param['function_code'] = 'BP100F2';
+            }
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'factoring_bp_master_modify_winid';
+            hls_doc_get_layout_code(param, 'factoring_bp_master_update_link_id', null, 'PRJ005F1');
+        }
+        //客户财报
+        function open_financial_report_modify_win(record_id, ds_id) {
+            debugger;
+            var record = $(ds_id).getCurrentRecord();
+            var bp_id = record.get('bp_id');
+            var bp_name = record.data['bp_name'];
+            var bp_code = record.data['bp_code'];
+            var function_usage = 'QUERY';
+
+            new Leaf.Window({
+                id: 'factoring_financial_info_winid',
+                url: '${/request/@context_path}/modules/BP/BP100/hls_bp_master_financial_info.lview',
+                params: {
+                    bp_id: bp_id,
+                    bp_master_code: bp_code,
+                    bp_master_name: bp_name,
+                    function_usage: function_usage,
+                    winid: 'hls_bp_master_financial_info_winid'
+                },
+                title: '客户财报',
+                fullScreen: false,
+                width: 950,
+                height: 535,
+                side: "right",
+                draggable: true
+            });
+            hls_doc_get_layout_code(param, 'factoring_finance_report_detail_update_link_id', null, 'PRJ005F1');
+
+        }
         //上传
         function open_lessee_modify_win(record_id,ds_id){
             var chance_attachment_id = $(ds_id).findById(record_id).get('chance_attachment_id');
             var url = '${/request/@context_path}/uploadFile.lview';
 
             var win = new Leaf.Window({
-                id: 'demo010_open_attachment_winid',
+                id: 'PRJ003_open_attachment_winid',
                 url: url,
                 params: {
                     'header_id': chance_attachment_id,
                     'table_name': 'HLS_CREDIT_LINE_ATTACH',
-                    winid: 'demo010_open_attachment_winid'
+                    winid: 'PRJ003_open_attachment_winid'
                 },
                 title: '文件上传',
                 width: 800,

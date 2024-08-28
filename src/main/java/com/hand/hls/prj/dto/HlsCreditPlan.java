@@ -127,7 +127,10 @@ public class HlsCreditPlan {
     private Long chanceId;
 
     @Transient
-    private String quotaTypeN;
+    private String quotaTypeN;//
+
+    @Transient
+    private String depositColMethodN;//
 
     @Transient
     private String conglomerateFlagN;
