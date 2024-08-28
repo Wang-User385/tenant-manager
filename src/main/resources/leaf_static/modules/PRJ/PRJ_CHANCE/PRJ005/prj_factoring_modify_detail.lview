@@ -7,7 +7,27 @@
                 url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
         <a:link id="factoring_finance_report_detail_link_id"
                 url="${/request/@context_path}/modules/BP/BP100/financial_report_import_entrance.lview"/>
+        <link href="${/request/@context_path}/resources/hls/imgPreview/viewer.css" rel="stylesheet" type="text/css"/>
+        <script src="${/request/@context_path}/resources/hls/imgPreview/viewer.js"/>
+
+        <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
         <script><![CDATA[
+
+        function atmTypeRef(name) {
+            return /\.(jpg|png|gif|bmp|jpeg)$/i.test(name)
+        }
+
+        function checkPdf(name) {
+            return /\.(pdf)$/i.test(name)
+        }
+
+        function checkDox(name) {
+            return /\.(doc|docx)$/i.test(name)
+        }
+
+        function checkXls(name){
+            return /\.(xls|xlsx)$/i.test(name)
+        }
 
 
         var flag = false;
@@ -37,6 +57,31 @@
                     '    border-radius: 8px;\n' +
                     '    transition: background-color 0.3s;">报价测算' +
                     '</span></a>';
+            }
+            if (name == 'preview') {
+                if (record.get('attachment_id_n') != null) {
+                    var html = '';
+                    var fileNameList = record.get('file_names').split(',');
+                    var attachmentIdList = record.get('attachment_id_n').split(',');
+                    var sourcePkList = record.get('source_pk_value').split(',');
+                    for (let i = 0; i < fileNameList.length; i++) {
+                        if (html != '') {
+                            html += ',';
+                        }
+                        if (atmTypeRef(fileNameList[i])) {
+                            html += '<span><a target="_self" alt="' + fileNameList[i] + '" imageIndex="img_' + attachmentIdList[i] + '" ref="img_' + attachmentIdList[i] + '" href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkPdf(fileNameList[i])) {
+                            var url = encodeURIComponent('${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i]);
+                            html += '<span><a target="_blank" href="${/request/@context_path}/resources/hls/pdf/web/viewer.html?file=' + url + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkDox(fileNameList[i]) || checkXls(fileNameList[i]) ) {
+                            html += '<a href=javascript:queryDocFile(\'' + sourcePkList[i] + '\')> ' + fileNameList[i] + '在线预览</a>';
+                        } else {
+                            html += '<span><a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        }
+
+                    }
+                    return html;
+                }
             }
         };
 
@@ -328,9 +373,21 @@
             debugger;
             var check_flag = true;
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
+            var set = new Set();
+            var records_customer = $(ds_id_customer).getAll();
+            for (let i = 0; i < records_customer.length; i++) {
+                var record_customer = records_customer[i];
+                if (set.has(record_customer.get('TRANSFEREE_ASSETS'))){
+                    Leaf.showErrorMessage('提示','客户信息保理卖方只能有一个');
+                    return false;
+                }
+                set.add(record_customer.get('bp_type'));
+            }
+            set.clear();
             var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
             var records_p = $(ds_id_p).getAll();
-            var set = new Set();
+
             for (let i = 0; i < records_p.length; i++) {
                 var record_p = records_p[i];
                 if (set.has(record_p.get('factoring_category'))){
@@ -407,7 +464,7 @@
                 record.set('proposer_employee_id_n', proposer_employee_id_n);
             } else
             if (ds.id == ds_id_au) {
-                record.set('bp_name', '${/parameter/@bp_id_n_n}');
+                // record.set('bp_name', '${/parameter/@bp_id_n_n}');
                 record.set('source_document_category', 'HLS_CREDIT_LINE_CHANCE');
             } else if (ds.id == ds_id_pq) {
                 record.set('bp_id', '${/parameter/@bp_id_n}');
@@ -455,7 +512,7 @@
             }else if (ds.id == ds_id_p){
                 if (record) {
                     var record_ds_id_au = $(ds_id_au).getCurrentRecord();
-                    var record_f = $(ds_id_p).getAll()[0];
+                    var record_f = $(ds_id_customer).getAll()[0];
                     record.set('credit_plan_id', record_ds_id_au.get('credit_plan_id'));
                     record.set('bp_code', record_f.get('bp_code'));
                     record.set('bp_name', record_f.get('bp_name'));
@@ -551,7 +608,8 @@
                                 'credit_amt': '0',
                                 'factoring_category': '',
                                 'factoring_category_n': '',
-                                'description': ''
+                                'description': '',
+                                'first_flag': 'Y'
                             })
                             cur_ds_au.add(record_t_au);
                         }
@@ -565,12 +623,56 @@
             debugger;
             var credit_flag = '${/parameter/@credit_flag}';
             var credit_flag_n = '${/parameter/@credit_flag_n}';
+            if ('${/parameter/@wfl_flag}' != 'Y'){
+                //隐藏工作流要用组件
+                let business_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_BUSINESS_FAC_component_id']").attr("id");
+                let meeting_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_MEET_FAC_component_id']").attr("id");
+                let vote_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_VOTE_FAC_component_id']").attr("id");
+                let con_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_CON_FAC_component_id']").attr("id");
+                let con_after_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_CON_FAC_AFTER_component_id']").attr("id");
+                let business_grid_id = '#' + '${/parameter/@layout_code}_G_BUSINESS_FAC_chance_business_access_compare_layout_grid_id_wrap';
+                let meeting_grid_id = '#' + '${/parameter/@layout_code}_G_MEET_FAC_component_id';
+                let vote_grid_id = '#' + '${/parameter/@layout_code}_G_VOTE_FAC_hls_credit_line_chance_approver_layout_grid_id_wrap';
+                let con_grid_id = '#' + '${/parameter/@layout_code}_G_CON_FAC_hls_credit_line_chance_condition_layout_grid_id_wrap';
+                let con_after_grid_id = '#' + '${/parameter/@layout_code}_G_CON_FAC_AFTER_hls_credit_line_chance_condition_layout_grid_id_wrap';
+
+                jQuery(business_grid_id).hide();
+                jQuery(business_component_id).hide();
+                jQuery(business_component_id).prev().hide();
+                jQuery(business_component_id).hide();
+                jQuery(business_component_id).next().hide();
+
+                jQuery(meeting_grid_id).hide();
+                jQuery(meeting_component_id).hide();
+                jQuery(meeting_component_id).prev().hide();
+                jQuery(meeting_component_id).hide();
+                jQuery(meeting_component_id).next().hide();
+
+                jQuery(vote_grid_id).hide();
+                jQuery(vote_component_id).hide();
+                jQuery(vote_component_id).prev().hide();
+                jQuery(vote_component_id).hide();
+                jQuery(vote_component_id).next().hide();
+
+                jQuery(con_grid_id).hide();
+                jQuery(con_component_id).hide();
+                jQuery(con_component_id).prev().hide();
+                jQuery(con_component_id).hide();
+                jQuery(con_component_id).next().hide();
+
+                jQuery(con_after_grid_id).hide();
+                jQuery(con_after_component_id).hide();
+                jQuery(con_after_component_id).prev().hide();
+                jQuery(con_after_component_id).hide();
+                jQuery(con_after_component_id).next().hide();
+
+
+
+            }
             if (credit_flag == 'N' || credit_flag_n == '否') {
 
                 let plan_line_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_METHOD_DETAIL_component_id']").attr("id");
                 let plan_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_METHOD_component_id']").attr("id");
-                let plan_line_son_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_F_METHOD_component_component_id']").attr("id");
-                let plan_son_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_G_METHOD_DETAIL_component_component_id']").attr("id");
                 $jq('#${/parameter/@layout_code}_T_METHOD_DETAIL_component_id').hide();//隐藏客户信息组件
                 $jq('#${/parameter/@layout_code}_F_METHOD_component_id').hide();//隐藏客户信息组件
                 jQuery(plan_line_component_id).hide();
@@ -601,7 +703,8 @@
                             'economic_indu_classify': '${/parameter/@economic_indu_classify}',
                             'economic_indu_classify_n': '${/parameter/@economic_indu_classify_n}',
                             'group_companies': '${/parameter/@group_companies}',
-                            'note': '${/parameter/@note}'
+                            'note': '${/parameter/@note}',
+                            'first_flag': 'Y'
                         })
                         cur_ds.add(record_t);
                     }
@@ -609,15 +712,15 @@
             }
 
 
-            //控制主角色不能删除
-            // $('${/parameter/@layout_code}_F_CUSTOMER_hls_credit_line_chance_bp_ds').on('beforeremove', function (ds, records) {
-            //     for (var i = 0; i < records.length; i++) {
-            //         if (records[i].get('primary_flag') == 'Y') {
-            //             Leaf.showMessage("提示", "主角色无法删除!", null);
-            //             return false;
-            //         }
-            //     }
-            // });
+            // 控制主角色不能删除
+            $('${/parameter/@layout_code}_F_CUSTOMER_hls_credit_line_chance_bp_ds').on('beforeremove', function (ds, records) {
+                for (var i = 0; i < records.length; i++) {
+                    if (records[i].get('bp_type') == 'TRANSFEREE_ASSETS') {
+                        Leaf.showMessage("提示", "客户信息保理卖方不允许删除!", null);
+                        return false;
+                    }
+                }
+            });
 
 
         });

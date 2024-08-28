@@ -20,6 +20,9 @@
         <result column="creation_date" property="creationDate" jdbcType="DATE"/>
         <result column="file_num" property="fileNum" jdbcType="DECIMAL"/>
         <result column="file_path" property="filePath" jdbcType="VARCHAR"/>
+        <result column="file_names" property="fileNames" jdbcType="VARCHAR"/>
+        <result column="attachment_id_n" property="attachmentIdN" jdbcType="VARCHAR"/>
+        <result column="source_pk_value" property="sourcePkValue" jdbcType="VARCHAR"/>
     </resultMap>
 
 
@@ -87,7 +90,39 @@
         faam.attachment_id = faa.attachment_id
         AND faam.table_pk_value = hcla.chance_attachment_id
         AND faam.table_name = 'HLS_CREDIT_LINE_ATTACH'
-        ) file_num
+        ) file_num,
+        ( SELECT
+        to_char( wm_concat ( faa.file_name ) ) file_name
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = hcla.chance_attachment_id
+        AND faam.table_name = 'HLS_CREDIT_LINE_ATTACH'
+        ) file_names,
+        (
+        SELECT
+        to_char( wm_concat ( faa.attachment_id ) ) attachment_id
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = hcla.chance_attachment_id
+        AND faam.table_name = 'HLS_CREDIT_LINE_ATTACH'
+        ) attachment_id_n,
+        (
+        SELECT
+        to_char( wm_concat ( faa.source_pk_value ) ) source_pk_value
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = hcla.chance_attachment_id
+        AND faam.table_name = 'HLS_CREDIT_LINE_ATTACH'
+        ) source_pk_value
         FROM
         hls_credit_line_attach hcla
         <where>

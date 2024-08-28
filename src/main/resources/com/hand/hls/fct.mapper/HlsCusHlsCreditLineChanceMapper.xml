@@ -68,6 +68,8 @@
         <result column="BEGIN_DATE" property="beginDate" jdbcType="DATE"/>
         <result column="END_DATE" property="endDate" jdbcType="DATE"/>
         <result column="APPROVED_DATE" property="approvedDate" jdbcType="DATE"/>
+        <result column="CREATION_DATE_FROM" property="creationDateFrom" jdbcType="DATE"/>
+        <result column="CREATION_DATE_TO" property="creationDateTo" jdbcType="DATE"/>
 
         <result column="PROJECT_ASSISTANT_ASSIGNS_ID" property="projectAssistantAssignsId" jdbcType="DECIMAL"/>
         <result column="unit_id" property="unitId" jdbcType="DECIMAL"/>
@@ -1373,17 +1375,17 @@
             <if test="industry != null and industry != ''">
                hclc.industry like concat('%', concat(#{industry},'%'))
             </if>
-            <if test="approvedDateFrom != null">
-                and ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) >= #{approvedDateFrom}
+            <if test="creationDateFrom != null">
+                and hclc.creation_date >= to_date(#{creationDateFrom},'yyyy-mm-dd hh24:mi:ss')
             </if>
-            <if test="approvedDateTo != null ">
-                and ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) &lt;= to_date(#{approvedDateTo},'yyyy-mm-dd hh24:mi:ss')+1-1/24/60/60
+            <if test="creationDateTo != null ">
+                and hclc.creation_date &lt; to_date(#{creationDateTo},'yyyy-mm-dd hh24:mi:ss')+1
             </if>
             <if test="creditLineStatus != null and creditLineStatus != '' ">
                 and hclc.credit_line_status = #{creditLineStatus}
             </if>
             <if test="creditFlag != null and creditFlag != ''">
-                and hclc.credit_flg = #{creditFlag}
+                and hclc.credit_flag = #{creditFlag}
             </if>
 
         </where>

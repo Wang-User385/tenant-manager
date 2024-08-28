@@ -43,6 +43,13 @@ public class HlsCusHlsCreditLineChanceAttach extends BaseDTO {
     private String filePath;
 
     @Transient
+    private String fileNames;
+    @Transient
+    private String attachmentIdN;
+    @Transient
+    private String sourcePkValue;
+
+    @Transient
     private String  attachmentId;
     @Transient
     private Date uploadDate;

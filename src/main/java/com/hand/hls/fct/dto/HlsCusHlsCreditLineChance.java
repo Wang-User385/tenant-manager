@@ -172,6 +172,11 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
 
     private Date approvedDate;
 
+    @Transient
+    private Date creationDateFrom;
+    @Transient
+    private Date creationDateTo;
+
     /**
      * 主办项目经理
      */
@@ -401,9 +406,9 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private String meetingTypeN;
 
     @Transient
-    private Date approvedTimeFrom;
+    private Date approvedDateFrom;
     @Transient
-    private Date approvedTimeTo;
+    private Date approvedDateTo;
     @Transient
     private String creditLineStatusN;
     private String factoringType;
