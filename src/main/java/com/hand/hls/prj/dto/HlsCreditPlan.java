@@ -116,6 +116,12 @@ public class HlsCreditPlan {
      */
     @Column(name = "DATE_TO_BEFORE")
     private Date dateToBefore;
+    private  Double buyBackDay;
+    private  Double compenDay;
+    private  Double penaltyRate;
+    private  Double leaseChargeRatio;
+    private  String depositColMethod;
+    private  Double intRate;
 
     @Transient
     private Long chanceId;
