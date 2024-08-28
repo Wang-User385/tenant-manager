@@ -4,11 +4,13 @@ package com.hand.hls.fct.dto;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import com.hand.hap.mybatis.annotation.ExtensionAttribute;
+import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 import javax.persistence.Table;
 import com.hand.hap.system.dto.BaseDTO;
 @ExtensionAttribute(disable=true)
 @Table(name = "HLS_CREDIT_LINE_CHANCE_CONDITION")
+@Data
 public class HlsCreditLineChanceCondition extends BaseDTO {
 
      public static final String FIELD_CONDITION_ID = "conditionId";
@@ -18,36 +20,16 @@ public class HlsCreditLineChanceCondition extends BaseDTO {
 
      @Id
      @GeneratedValue
-     private Float conditionId;
+     private Long conditionId;
 
-     private Float chanceId;
+     private Long chanceId;
 
      @Length(max = 1024)
      private String content;
 
+     private String stage;
 
-     public void setConditionId(Float conditionId){
-         this.conditionId = conditionId;
-     }
 
-     public Float getConditionId(){
-         return conditionId;
-     }
 
-     public void setChanceId(Float chanceId){
-         this.chanceId = chanceId;
-     }
-
-     public Float getChanceId(){
-         return chanceId;
-     }
-
-     public void setContent(String content){
-         this.content = content;
-     }
-
-     public String getContent(){
-         return content;
-     }
 
      }

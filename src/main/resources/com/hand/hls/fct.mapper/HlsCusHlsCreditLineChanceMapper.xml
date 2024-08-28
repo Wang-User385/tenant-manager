@@ -1339,18 +1339,6 @@
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'GT.HCLC.CREDIT_FLAG' AND sc.code_value = hclc.credit_flag ) credit_flag_n,
         hclc.credit_line_amt,
         hclc.industry,
-        (
-        SELECT
-        scvb.meaning
-        FROM
-        sys_code_value_b scvb,
-        sys_code_b scb
-        WHERE
-        scb.code = 'CHANCE.INDUSTRY'
-        AND scb.code_id = scvb.code_id
-        AND scvb.enabled_flag = 'Y'
-        AND hclc.INDUSTRY = scvb.value
-        ) INDUSTRY_N,
         hclc.proposer_employee_id,
         ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROPOSER_EMPLOYEE_ID ) PROPOSER_EMPLOYEE_ID_N,
         hclc.project_assistant,
@@ -1382,19 +1370,8 @@
              <if test="bpName != null and bpName != '' ">
                 and ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id ) like concat('%', concat(#{bpName},'%'))
             </if>
-            <if test="industryN != null and industryN != ''">
-                and    (
-                SELECT
-                scvb.meaning
-                FROM
-                sys_code_value_b scvb,
-                sys_code_b scb
-                WHERE
-                scb.code = 'CHANCE.INDUSTRY'
-                AND scb.code_id = scvb.code_id
-                AND scvb.enabled_flag = 'Y'
-                AND hclc.INDUSTRY = scvb.value
-                ) like concat('%', concat(#{industryN},'%'))
+            <if test="industry != null and industry != ''">
+               hclc.industry like concat('%', concat(#{industry},'%'))
             </if>
             <if test="approvedDateFrom != null">
                 and ( SELECT max( END_TIME_ ) FROM ACT_HI_PROCINST ahp WHERE ahp.BUSINESS_KEY_ = hclc.CHANCE_ID AND hclc.CREDIT_LINE_STATUS = 'APPROVED' ) >= #{approvedDateFrom}
@@ -1410,7 +1387,7 @@
             </if>
 
         </where>
-        order by  hclc.approved_date desc
+        order by  hclc.creation_date desc
     </select>
 
     <select id="createInfo" resultMap="BaseResultMap">
@@ -1464,18 +1441,6 @@
         hclc.factoring_open,
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_OPEN' AND sc.code_value = hclc.factoring_open ) factoring_open_n,
         hclc.industry,
-        (
-        SELECT
-        scvb.meaning
-        FROM
-        sys_code_value_b scvb,
-        sys_code_b scb
-        WHERE
-        scb.code = 'CHANCE.INDUSTRY'
-        AND scb.code_id = scvb.code_id
-        AND scvb.enabled_flag = 'Y'
-        AND hclc.INDUSTRY = scvb.value
-        ) INDUSTRY_N,
         hclc.industry_type,
         ( SELECT hsc.description FROM hls_stat_class hsc WHERE to_char( hsc.class_id ) = hclc.industry_type AND hsc.enabled_flag = 'Y' ) industry_type_n,
         hclc.description,
@@ -1664,6 +1629,18 @@
                 and tt.unit_id_n = #{unitIdN}
             </if>
 
+        </where>
+    </select>
+
+    <select id="findFactoringMeetingInfo" resultMap="BaseResultMap">
+        SELECT
+        hclc.chance_id,
+        hclc.meeting_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.MEETING_TYPE' AND sc.CODE_VALUE = hclc.meeting_type ) meeting_type_n
+        FROM
+        hls_credit_line_chance hclc
+        <where>
+            hclc.chance_id = #{chanceId}
         </where>
     </select>
 

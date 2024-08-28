@@ -4,11 +4,15 @@ package com.hand.hls.fct.dto;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import com.hand.hap.mybatis.annotation.ExtensionAttribute;
+import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 import javax.persistence.Table;
+import javax.persistence.Transient;
+
 import com.hand.hap.system.dto.BaseDTO;
 @ExtensionAttribute(disable=true)
 @Table(name = "HLS_CREDIT_LINE_CHANCE_APPROVER")
+@Data
 public class HlsCreditLineChanceApprover extends BaseDTO {
 
      public static final String FIELD_APPROVER_ID = "approverId";
@@ -20,11 +24,11 @@ public class HlsCreditLineChanceApprover extends BaseDTO {
 
      @Id
      @GeneratedValue
-     private Float approverId;
+     private Long approverId;
 
-     private Float chanceId;
+     private Long chanceId;
 
-     private Float allocationId;
+     private Long allocationId;
 
      @Length(max = 64)
      private String voteStatus;
@@ -32,45 +36,17 @@ public class HlsCreditLineChanceApprover extends BaseDTO {
      @Length(max = 512)
      private String voteComment;
 
+     @Transient
+     private String unitName;
 
-     public void setApproverId(Float approverId){
-         this.approverId = approverId;
-     }
+     @Transient
+     private String positionName;
 
-     public Float getApproverId(){
-         return approverId;
-     }
+     @Transient
+     private String name;
 
-     public void setChanceId(Float chanceId){
-         this.chanceId = chanceId;
-     }
+     @Transient
+     private String voteStatusN;
 
-     public Float getChanceId(){
-         return chanceId;
-     }
-
-     public void setAllocationId(Float allocationId){
-         this.allocationId = allocationId;
-     }
-
-     public Float getAllocationId(){
-         return allocationId;
-     }
-
-     public void setVoteStatus(String voteStatus){
-         this.voteStatus = voteStatus;
-     }
-
-     public String getVoteStatus(){
-         return voteStatus;
-     }
-
-     public void setVoteComment(String voteComment){
-         this.voteComment = voteComment;
-     }
-
-     public String getVoteComment(){
-         return voteComment;
-     }
 
      }

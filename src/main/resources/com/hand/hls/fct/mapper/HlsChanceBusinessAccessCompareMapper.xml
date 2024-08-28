@@ -10,6 +10,7 @@
         <result column="ITEMS_DETAIL" property="itemsDetail" jdbcType="VARCHAR" />
         <result column="CHECK_RESULT" property="checkResult" jdbcType="VARCHAR" />
         <result column="CHECK_RESULT_N" property="checkResultN" jdbcType="VARCHAR" />
+        <result column="chance_id" property="chanceId" jdbcType="VARCHAR" />
     </resultMap>
 
     <select id="selectSeqId"  resultType="java.lang.Long">
@@ -87,4 +88,22 @@
         </where>
 
     </select>
+
+
+    <select id="findFactoringInfo" resultMap="BaseResultMap">
+        SELECT
+        cbac.chance_compare_id,
+        cbac.document_id chance_id,
+        cbac.business_access,
+        cbac.project_access_items,
+        cbac.items_detail,
+        cbac.check_result,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.CHECK_RESULT' AND sc.code_value = cbac.check_result ) check_result_n
+        FROM
+        CHANCE_BUSINESS_ACCESS_COMPARE cbac
+        <where>
+            cc.document_id=#{chanceId}
+        </where>
+    </select>
+
 </mapper>

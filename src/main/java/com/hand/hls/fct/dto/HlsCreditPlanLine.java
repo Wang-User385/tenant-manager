@@ -52,7 +52,8 @@ public class HlsCreditPlanLine extends BaseDTO {
      private Long bpId;
      @Transient
      private String bpNameN;
-
+     @Transient
+     private Long chanceId;
 
 
      }

@@ -8,6 +8,10 @@
         <result column="ALLOCATION_ID" property="allocationId" jdbcType="DECIMAL" />
         <result column="VOTE_STATUS" property="voteStatus" jdbcType="VARCHAR" />
         <result column="VOTE_COMMENT" property="voteComment" jdbcType="VARCHAR" />
+        <result column="unit_name" property="unitName" jdbcType="VARCHAR" />
+        <result column="position_name" property="positionName" jdbcType="VARCHAR" />
+        <result column="name" property="name" jdbcType="VARCHAR" />
+        <result column="vote_status_n" property="voteStatusN" jdbcType="VARCHAR" />
     </resultMap>
     <select id="queryAll" resultType="com.hand.hls.fct.dto.HlsCreditLineChanceApprover">
         select em.name ,fou.unit_name,fop.position_name
@@ -18,6 +22,30 @@
                  join fnd_employee em on em.employee_id=fea.employee_id
                  join fnd_org_unit fou on fou.unit_id=fea.unit_id
                  join fnd_org_position fop on fop.position_id=fea.position_id
+    </select>
+
+    <select id="findVoteInfo" resultMap="BaseResultMap">
+        SELECT
+        hclca.chance_id,
+        hclca.approver_id,
+        hclca.allocation_id,
+        em.name,
+        fou.unit_name,
+        fop.position_name,
+        hclca.vote_status,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RESULT' AND sc.code_value = hclca.vote_status ) vote_status_n,
+        hclca.vote_comment
+        FROM
+        hls_credit_line_chance_approver hclca
+        INNER JOIN sys_user_allocation sua ON sua.allocation_id = hclca.allocation_id
+        INNER JOIN FND_EMPLOYEE_ASSIGNS fea ON fea.employee_assign_id = sua.employee_assign_id
+        INNER JOIN fnd_employee em ON em.employee_id = fea.employee_id
+        INNER JOIN fnd_org_unit fou ON fou.unit_id = fea.unit_id
+        INNER JOIN fnd_org_position fop ON fop.position_id = fea.position_id
+        <where>
+            hclca.chance_id = #{chanceId}
+        </where>
+
     </select>
 
 

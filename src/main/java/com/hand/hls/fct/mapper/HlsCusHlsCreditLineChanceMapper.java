@@ -75,5 +75,12 @@ public interface HlsCusHlsCreditLineChanceMapper extends Mapper<HlsCusHlsCreditL
      */
     List<HlsCusHlsCreditLineChance> basicInfo(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
 
+    /***
+     *评委及表决结果
+     * @param hlsCusHlsCreditLineChance
+     * @return
+     */
+    List<HlsCusHlsCreditLineChance> findFactoringMeetingInfo(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
+
 
 }
