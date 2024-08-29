@@ -340,6 +340,7 @@ public class HlsCusCshTransaction extends CshTransaction {
     @Transient
     private String writeOffFlagN;
 
+    private Long conCashflowId;  //现金流ID
 
 
 
