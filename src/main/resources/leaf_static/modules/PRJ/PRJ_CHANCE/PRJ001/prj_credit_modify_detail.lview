@@ -134,8 +134,8 @@
         function open_lessee_modify_win(record_id,ds_id){
             debugger;
             var record = $(ds_id).findById(record_id);
-            var credit_rate_id = record.get('chance_attachment_id');
-            if (!credit_rate_id) {
+            var chance_attachment_id = record.get('chance_attachment_id');
+            if (!chance_attachment_id) {
                 Leaf.showErrorMessage('提示', '请先保存再上传附件！', null, 200, 100);
                 return;
             }
@@ -144,13 +144,19 @@
                 id: 'open_attachment_win_id',
                 url: '${/request/@context_path}/uploadFile.lview',
                 params: {
-                    header_id: credit_rate_id,
-                    table_name: 'HLS_BP_CREDIT_RATE',
+                    header_id: chance_attachment_id,
+                    table_name: 'HLS_CREDIT_LINE_ATTACH',
                     winid: 'open_attachment_win_id'
                 },
                 title: '附件上传',
                 width: 500,
                 height: 300
+            });
+            win.on('close', function () {
+                //debugger
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach');
+                $(ds_id).query();
+
             });
         };
         //下载
@@ -209,15 +215,15 @@
             });
 
         };
-        //一键下载
-        // window['${/parameter/@layout_code}_G_ATTA_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
-        //     debugger;
-        //     var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
-        //     var record = $(ds_id).getCurrentRecord();
-        //     var chance_id = parseInt(record.get('chance_id'));
-        //     var down_url = "${/request/@context_path}/hls/credit/download?chanceId=" + chance_id + "&attachmentCategory=CHANCE_ATT";
-        //     location.href = down_url;
-        // }
+       // 一键下载
+        window['${/parameter/@layout_code}_G_APPENDIX_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            debugger;
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_PR_BASIC');
+            var record = $(ds_id).getCurrentRecord();
+            var chance_id = parseInt(record.get('chance_id'));
+            var down_url = "${/request/@context_path}/hls/credit/download?chanceId=" + chance_id + "&attachmentCategory=CHANCE_ATT";
+            location.href = down_url;
+        }
         //附件预览
         window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
             var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
@@ -521,9 +527,9 @@
             window['${/parameter/@layout_code}_not_ignore_required_flag'] = true;
             window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
             window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
-                // debugger;
-                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_PRJ_BASIC');
-                var attach_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTACHMENT');
+                 debugger;
+                var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_PR_BASIC');
+                var attach_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_APPENDIX');
 
                 if ($(ds_id).validate()) {
                     var record = $(ds_id).getCurrentRecord();
