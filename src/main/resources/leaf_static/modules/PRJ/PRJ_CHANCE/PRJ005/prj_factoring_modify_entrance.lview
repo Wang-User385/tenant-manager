@@ -4,9 +4,9 @@
           trace="true">
     <a:view>
         <a:link id="prj_factoring_main_detail"
-        url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ005/prj_factoring_modify_detail.lview"/>
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ005/prj_factoring_modify_detail.lview"/>
         <a:link id="prj_factoring_main_add"
-        url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ005/prj_factoring_add.lview"/>
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ005/prj_factoring_add.lview"/>
         <script><![CDATA[
 
 
@@ -23,14 +23,19 @@
             var record = $(ds_id).findById(record_id);
             var param = record.data;
             param['chance_id'] = record.get('chance_id');
-            param['maintain_type'] = 'UPDATE';
-            param['function_usage'] = 'MODIFY';
+            var maintain_type = 'UPDATE';
+            var function_usage = 'MODIFY';
+            if (record.get('credit_line_status') != 'NEW') {
+                maintain_type = 'READONLY';
+                function_usage = 'QUERY';
+            }
+            param['maintain_type'] = maintain_type;
+            param['function_usage'] = function_usage;
             param['url_title'] = '立项维护';
             param['function_code'] = 'PRJ005F1';
             param['winid'] = 'factoring_detail_winid';
             hls_doc_get_layout_code(param, 'prj_factoring_main_detail', ds_id, 'PRJ005');
         }
-
 
 
         //创建
@@ -45,7 +50,7 @@
             param['winid'] = 'factoring_add_winid';
             param['screen_width'] = 800;
             param['screen_height'] = 615;
-            hls_doc_get_layout_code(param, 'prj_factoring_main_add', null ,'PRJ005');
+            hls_doc_get_layout_code(param, 'prj_factoring_main_add', null, 'PRJ005');
         };
 
         //删除
@@ -53,15 +58,15 @@
             debugger;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance');
             var records = $(ds_id).getSelected();
-            if (records.length === 0){
-                Leaf.showErrorMessage('提示','请选择所需关闭的项目！');
+            if (records.length === 0) {
+                Leaf.showErrorMessage('提示', '请选择所需关闭的项目！');
                 return;
             }
             var delete_data = [];
             for (let i = 0; i < records.length; i++) {
                 var record = records[i];
-                if (record.get('credit_line_status') != 'NEW'){
-                    Leaf.showErrorMessage('提示','非新建状态的单据，无法关闭!');
+                if (record.get('credit_line_status') != 'NEW') {
+                    Leaf.showErrorMessage('提示', '非新建状态的单据，无法关闭!');
                     return;
                 }
                 delete_data.push(record.data);
@@ -73,11 +78,12 @@
                 success: function (res) {
                     window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                     $(ds_id).query();
+                    Leaf.showSuccessMessage('提示', '删除成功');
                 },
-                error: function (){
+                error: function () {
                     window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                 },
-                failure: function (){
+                failure: function () {
                     window['${/parameter/@bp_seq}${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                 },
                 sync: true

@@ -1461,6 +1461,8 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         params.put("documentName", dto.getCreditLineName()+"-"+hlsCusBpMaster.getBpName()+"-"+DOCUMENT_NAME);
         //单据编号
         params.put("documentNumber", dto.getCreditLineName());
+        //是否授信
+        params.put("credit_flag", dto.getCreditFlag());
         //查询
         List<HlsCusHlsCreditLineChance> res = new ArrayList<>();
         res.add(dto);

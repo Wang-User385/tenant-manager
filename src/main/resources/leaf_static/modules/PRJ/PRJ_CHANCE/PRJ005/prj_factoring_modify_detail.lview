@@ -160,22 +160,62 @@
         };
 
         function quotation_factoring_detail_adjust(dsId, record_id, quotation_id) {
-            //debugger;
             var price_list = $(dsId).findById(record_id).get("price_list");
             if (quotation_id == 'undefined' || quotation_id == null || quotation_id == '') {
-                Leaf.showInfoMessage("提示", "请先进行调息计算");
+                Leaf.showInfoMessage("提示", "请先保存后，再进行报价测算");
                 return;
             }
-
-            var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=Y';
-            var win = new Leaf.Window({
-                id: 'hls901_open_price_winid',
-                url: url,
-                title: '项目报价',
-                fullScreen: true
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: '${/request/@context_path}/prj/quotation/calc?quotationId=' + quotation_id,
+                para: null,
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.SideBar.show({
+                        msg: '计算成功',
+                        duration: 2000
+                    });
+                    var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=N';
+                    var win = new Leaf.Window({
+                        id: 'hls901_open_price_winid',
+                        url: url,
+                        title: '项' +
+                            '目报价',
+                        fullScreen: true
+                    });
+                    var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+                    $(quo_ds).query();
+                    var ds_id_cp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+                    var record_cp = $(ds_id_cp).getCurrentRecord();
+                    if (record_cp){
+                        var record_quo =  $(quo_ds).getCurrentRecord();
+                        if (record_quo){
+                            record_cp.set('credit_amount',record_quo.get('finance_amount'));
+                        }
+                    }
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
             });
-
         }
+
+        //更新时调用
+        window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function(ds, record, name, value, old_value) {
+            var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+            if(ds.id === quo_ds){
+                if(name == 'lease_item_amount' || name == 'down_payment'){
+                    var lease_item_amount = record.get('lease_item_amount') || 0;
+                    var down_payment = record.get('down_payment') || 0;
+                    record.set('finance_amount',minus(lease_item_amount,down_payment));
+                }
+            }
+        };
+
 
 
         //暂存
@@ -325,6 +365,8 @@
                             success: function (res) {
                                 window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                                 $('${/parameter/@winid}').close();
+                                var ds_id_main = 'PRJ005_G_FAC_hls_credit_line_chance_ds';
+                                $(ds_id_main).query();
                                 Leaf.showSuccessMessage("提示", "提交审批成功!");
                             },
                             failure: function () {
@@ -461,6 +503,8 @@
                 record.set('unit_id_n', unit_name);
                 record.set('proposer_employee_id', proposer_employee_id);
                 record.set('proposer_employee_id_n', proposer_employee_id_n);
+                record.set('document_type', 'FACTORING');
+                record.set('document_category', 'HLS_CREDIT_LINE_CHANCE');
             } else if (ds.id == ds_id_au) {
                 if ('${/parameter/@function_usage}' == 'CREATE') {
                     record.set('bp_name', '${/parameter/@bp_id_n_n}');
@@ -740,6 +784,10 @@
 
 
         });
+        //task_detail
+        // function beforeSubmit(){
+        //
+        // }
 
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>

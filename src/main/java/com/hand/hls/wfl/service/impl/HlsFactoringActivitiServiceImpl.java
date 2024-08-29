@@ -50,6 +50,7 @@ public class HlsFactoringActivitiServiceImpl implements IActivitiCommonService {
         ProcessInstanceResponse processInstanceResponse = activitiService.startProcess(iRequest, processInstanceCreateRequest);
         HlsCusHlsCreditLineChance chance = new HlsCusHlsCreditLineChance();
         chance.setChanceId(((HlsCusHlsCreditLineChance) list.get(0)).getChanceId());
+        chance.setCreditLineStatus("APPROVING");
         hlsCusHlsCreditLineChanceService.updateByPrimaryKeySelective(iRequest,chance);
     }
 
@@ -59,6 +60,7 @@ public class HlsFactoringActivitiServiceImpl implements IActivitiCommonService {
         String businessKey = (String) params.get("businessKey");
         HlsCusHlsCreditLineChance chance = new HlsCusHlsCreditLineChance();
         chance.setChanceId(Long.parseLong(businessKey));
+        chance.setCreditLineStatus("CANCEL");
         hlsCusHlsCreditLineChanceService.updateByPrimaryKeySelective(iRequest,chance);
     }
 

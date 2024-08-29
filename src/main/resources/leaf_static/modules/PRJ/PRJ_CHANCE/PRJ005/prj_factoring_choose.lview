@@ -10,38 +10,84 @@
         </style>
         <script type="text/javascript"
                 src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
-        <a:link id="factoring_modify_wfl_link_id" url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ005/prj_factoring_modify_detail.lview"/>
+        <a:link id="factoring_modify_wfl_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ005/prj_factoring_modify_detail.lview"/>
         <script><![CDATA[
-
-
+        debugger;
         var nodeId = parent.currentTaskInfo.task_definition_key;
+        // var nodeId = parent.ds.data[0].get('start_activity_id');
+        console.log('${/parameter/@taskId}');
         var list = parent.currentTaskInfo.execution_variables;
         var work_flow;
         var function_usage = 'QUERY';
         var maintain_type = 'READONLY';
-        var map = new Map([
-
+        var businessKey = '${/parameter/@businessKey}';
+        var credit_flag = 'Y';
+        var wfl_flag = 'Y';
+        var map_usage = new Map([
+            ['FACTORING_PROJRCT_PROPOSALS2', 'MODIFY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS3', 'MODIFY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS4', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS5', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS6', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS7', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS8', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS9', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS10', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS11', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS12', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS13', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS14', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS15', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS16', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS17', 'QUERY_Y'],
+            ['FACTORING_PROJRCT_PROPOSALS18', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS19', 'QUERY_Y'],
+            ['FACTORING_PROJRCT_PROPOSALS20', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS21', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS22', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS23', 'QUERY_Y'],
+            ['FACTORING_PROJRCT_PROPOSALS24', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS25', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS26', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS27', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS28', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS29', 'QUERY_N'],
+            ['FACTORING_PROJRCT_PROPOSALS30', 'QUERY_N']
         ]);
+        var map_type = new Map([
+            ['QUERY', 'READONLY'],
+            ['MODIFY', 'UPDATE']
+        ]);
+        if (map_usage.has(nodeId)) {
+            var function_usage_and_wfl_flag = map_usage.get(nodeId);
+            var param = function_usage_and_wfl_flag.split('_');
+            function_usage = param[0];
+            wfl_flag = param[1];
+            maintain_type = map_type.get(function_usage);
+        }
 
-        for (var i = 0; i < list.length; i++) {
-            if(list[i].name === 'WORK_FLOW'){
+        for (let i = 0; i < list.length; i++) {
+            if (list[i].name === 'WORK_FLOW') {
                 work_flow = list[i].value;
+            } else if (list[i].name === 'credit_flag') {
+                credit_flag = list[i].value;
             }
         }
 
 
-
         var pageChooser = new PageChooser({
-            url: $('factoring_modify_wfl_link_id').getUrl()+'?function_code=PRJ005F1',
+            url: $('factoring_modify_wfl_link_id').getUrl() + '?function_code=PRJ005F1',
             function_code: 'PRJ005F1',
             context_path: '${/request/@context_path}',
             opt: {
-                project_id: "${/parameter/@businessKey}",
+                chance_id: businessKey,
                 maintain_type: maintain_type,
                 function_usage: function_usage,
-                wfl_flag: 'Y',
-                node_id:nodeId,
-                work_flow:work_flow
+                wfl_flag: wfl_flag,
+                node_id: nodeId,
+                work_flow: work_flow,
+                credit_flag: credit_flag
             },
             success: function (realUrl) {
                 location.href = realUrl;
