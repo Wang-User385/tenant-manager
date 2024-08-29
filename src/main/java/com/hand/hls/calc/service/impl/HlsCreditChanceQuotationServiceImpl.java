@@ -6,12 +6,14 @@ import com.hand.hls.calc.service.HlsCusCalcExcelImportUtilService;
 import com.hand.hls.calc.service.QuotationCommon;
 import com.hand.hls.hls.service.HlsCusHlsMarketingReportService;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
+import com.hand.hls.prj.dto.HlsCusPrjQuotationCashflow;
 import com.hand.hls.prj.dto.HlsCusPrjQuotationDetails;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationMapper;
 import com.hand.hls.prj.service.HlsCusPrjQuotationCashflowService;
 import com.hand.hls.prj.service.HlsCusPrjQuotationDetailsService;
 import com.hand.hls.prj.service.HlsCusPrjQuotationService;
+import com.hand.hls.utils.HlsCusXirr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -63,48 +66,19 @@ public class HlsCreditChanceQuotationServiceImpl implements QuotationCommon {
 
     @Override
     public HlsCusPrjQuotation PrjQuotationSubmit(IRequest iRequest, HlsCusPrjQuotation prjQuotation) throws Exception {
-        //校验公式是否被修改
-//        hlsCusCalcExcelImportUtilService.excelFormatHasChange(iRequest,prjQuotation.getPriceList(),prjQuotation.getSheets());
         String jsonStr = JSON.toJSONString(hlsCusCalcExcelImportUtilService.getExcelToCalcHdTable(iRequest, prjQuotation.getSheets(), prjQuotation.getPriceList(), "prj"));
         HlsCusPrjQuotation prjQuotationDto = JSON.parseObject(jsonStr, HlsCusPrjQuotation.class);
         if (prjQuotationDto.getLeaseTimes() == null) {
             throw new IllegalArgumentException("期数未取到！");
         }
         prjQuotationDto.setPriceList(prjQuotation.getPriceList());
-
-
         prjQuotationDto.setSheets(prjQuotation.getSheets());
         prjQuotationDto.setCompressSheets(prjQuotation.getCompressSheets());
         prjQuotationDto.setSourceDocumentCategory(prjQuotation.getSourceDocumentCategory());
         prjQuotationDto.setSourceDocumentId(prjQuotation.getSourceDocumentId());
         prjQuotationDto.setQuotationId(prjQuotation.getQuotationId());
-        prjQuotationDto.setDataClass("PRJ_PROJECT_INVEST");
-        prjQuotationDto.setFirstReleaseDate(prjQuotationDto.getLeaseStartDate());
-        prjQuotationDto.setIrrAfterTax(prjQuotationDto.getIrrAfterTax());
-        prjQuotationDto.setXirrPaynote(prjQuotationDto.getXirrPaynote());
-        prjQuotationDto.setXirr(prjQuotationDto.getXirr() );
-        //为空时没有回写
-        if(prjQuotationDto.getAptBillTerm() == null){
-            prjQuotationDto.setAptBillTerm(" ");
-        }
-        if(prjQuotationDto.getLfCreditTerm() == null){
-            prjQuotationDto.setLfCreditTerm(" ");
-        }
-
-
-        //当前项目下的只有一个报价
-        List<HlsCusPrjQuotation> prjQuotationList = prjQuotationMapper.prjQuotationDetailQuery(prjQuotationDto);
-        if (prjQuotationList.size() == 1) {
-            prjQuotationDto.setQuotationId(prjQuotationList.get(0).getQuotationId());
-            prjQuotationDto.setSourceDocumentId(prjQuotationList.get(0).getSourceDocumentId());
-        } else if (prjQuotationList.size() > 0 ) {
-            throw new IllegalArgumentException("当前单据下存在多条报价信息，请清除多余数据！");
-        }
-        prjQuotationDto.setStatus("NEW");
-
-
+        prjQuotationDto.setDataClass(prjQuotation.getDataClass());
         hlsCusPrjQuotationService.updateByPrimaryKeySelective(iRequest,prjQuotationDto);
-
 
         HlsCusPrjQuotationDetails prjQuotationDetails = new HlsCusPrjQuotationDetails();
         prjQuotationDetails.setQuotationId(prjQuotationDto.getQuotationId());
@@ -119,10 +93,23 @@ public class HlsCreditChanceQuotationServiceImpl implements QuotationCommon {
             detailsList.get(0).set__status("insert");
         }
         hlsCusPrjQuotationDetailsService.batchUpdate(iRequest, detailsList);
+
         //保存现金流表
         hlsCusPrjQuotationCashflowService.saveCalc2PrjQuotationCashflow(iRequest, prjQuotationDto);
-        //更新xirr
-        hlsCusPrjQuotationService.updateXirr(iRequest, prjQuotationDto);
+
+        //计算xirr
+        List<HlsCusPrjQuotationCashflow> cashflowList = hlsCusPrjQuotationCashflowMapper.selectCashflowForXirr(prjQuotationDto.getQuotationId());
+        double[] dueAmountList = new double[cashflowList.size()];
+        Date[] dueAmountDateList = new Date[cashflowList.size()];
+        for(int i = 0;i<cashflowList.size();i++){
+            HlsCusPrjQuotationCashflow cashflow = cashflowList.get(i);
+            dueAmountList[i] = cashflow.getCashflowIrr();
+            dueAmountDateList[i] = cashflow.getDueDate();
+        }
+        Double xirr = HlsCusXirr.Newtons_method(0.1, dueAmountList, dueAmountDateList);
+        prjQuotationDto.setXirr(xirr);
+        hlsCusPrjQuotationService.updateByPrimaryKeySelective(iRequest,prjQuotationDto);
+
         return prjQuotationDto;
     }
 }

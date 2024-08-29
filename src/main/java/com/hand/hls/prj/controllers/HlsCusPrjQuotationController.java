@@ -3,9 +3,11 @@ package com.hand.hls.prj.controllers;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.hand.hap.core.IRequest;
+import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.system.dto.ResponseData;
 import com.hand.hls.cont.dto.HlsCusConFloatingRateReqLn;
+import com.hand.hls.partner.service.IPrjQuotationCalcService;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import com.hand.hls.prj.dto.HlsCusPrjQuotationCashflow;
 import com.hand.hls.prj.service.HlsCusPrjQuotationCashflowService;
@@ -35,6 +37,8 @@ public class HlsCusPrjQuotationController extends BaseController {
 
     @Autowired
     private HlsCusPrjQuotationCashflowService hlsCusPrjQuotationCashflowService;
+    @Autowired
+    private IPrjQuotationCalcService prjQuotationCalcService;
 
     @RequestMapping(value = "/ct/prj/quotation/query/info")
     @ResponseBody
@@ -270,6 +274,14 @@ public class HlsCusPrjQuotationController extends BaseController {
         quotation = service.selectByPrimaryKey(requestContext,quotation);
         quotation.setSourceDocumentId(sourceDocumentId);
         service.updateByPrimaryKey(requestContext,quotation);
+        return new ResponseData();
+    }
+
+    @RequestMapping({"/prj/quotation/calc"})
+    @ResponseBody
+    public ResponseData prjQuotationCalc(@RequestParam("quotationId")Long quotationId,HttpServletRequest request) throws Exception {
+        IRequest iRequest = this.createRequestContext(request);
+        prjQuotationCalcService.prjQuotationCalc(quotationId,iRequest);
         return new ResponseData();
     }
 

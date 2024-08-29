@@ -577,26 +577,66 @@ public class PrjQuotationCalcServiceImpl extends BaseServiceImpl<HlsCusPrjQuotat
         //step2 构造需要替换的参数值
         Map quotationMap = (Map) prjQuotationMapper.queryQuotationInfoByQuotationIdMarketing(prjQuotation).get(0);
         List<Map> mapList = new ArrayList<>();
-        //年利率
-        Map map1 = new HashMap();
-        map1.put("field", "int_rate");
-        map1.put("value", doubleDataTran(quotationMap.get("int_rate")));
-        mapList.add(map1);
-        //租赁期数
-        Map map2 = new HashMap();
-        map2.put("field", "lease_times");
-        map2.put("value", doubleDataTran(quotationMap.get("lease_times")));
-        mapList.add(map2);
-        //起息日
-        Map map3 = new HashMap();
-        map3.put("field", "lease_start_date");
-        map3.put("value", DateDataTran(quotationMap.get("lease_start_date")));
-        mapList.add(map3);
-        //申请融资额
-        Map map4 = new HashMap();
-        map4.put("field", "finance_amount");
-        map4.put("value", doubleDataTran(quotationMap.get("finance_amount")));
-        mapList.add(map4);
+        if("GT_YL_EQUIVALENT_RENT".equals(prjQuotation.getPriceList())){
+            //年利率
+            Map map1 = new HashMap();
+            map1.put("field", "int_rate");
+            map1.put("value", doubleDataTran(quotationMap.get("int_rate")));
+            mapList.add(map1);
+            //租赁期数
+            Map map2 = new HashMap();
+            map2.put("field", "lease_times");
+            map2.put("value", doubleDataTran(quotationMap.get("lease_times")));
+            mapList.add(map2);
+            //起息日
+            Map map3 = new HashMap();
+            map3.put("field", "lease_start_date");
+            map3.put("value", DateDataTran(quotationMap.get("lease_start_date")));
+            mapList.add(map3);
+            //申请融资额
+            Map map4 = new HashMap();
+            map4.put("field", "finance_amount");
+            map4.put("value", doubleDataTran(quotationMap.get("finance_amount")));
+            mapList.add(map4);
+        }else if("GT-BL-PMT".equals(prjQuotation.getPriceList())){
+            //年利率
+            Map map1 = new HashMap();
+            map1.put("field", "int_rate");
+            map1.put("value", doubleDataTran(quotationMap.get("int_rate")));
+            mapList.add(map1);
+            //租赁期数
+            Map map2 = new HashMap();
+            map2.put("field", "lease_times");
+            map2.put("value", doubleDataTran(quotationMap.get("lease_times")));
+            mapList.add(map2);
+            //起息日
+            Map map3 = new HashMap();
+            map3.put("field", "lease_start_date");
+            map3.put("value", DateDataTran(quotationMap.get("lease_start_date")));
+            mapList.add(map3);
+            //申请融资额
+            Map map4 = new HashMap();
+            map4.put("field", "finance_amount");
+            map4.put("value", doubleDataTran(quotationMap.get("finance_amount")));
+            mapList.add(map4);
+            //手续费
+            Map map5 = new HashMap();
+            map5.put("field", "lease_charge");
+            map5.put("value", doubleDataTran(quotationMap.get("lease_charge")));
+            mapList.add(map5);
+
+            //收款间隔单位
+            Map map6 = new HashMap();
+            map6.put("field", "alt_renting_fre_custom");
+            map6.put("value", stringDataTran(quotationMap.get("alt_renting_fre_custom_n")));
+            mapList.add(map6);
+
+            //收款间隔
+            Map map7 = new HashMap();
+            map7.put("field", "alt_renting_frequency");
+            map7.put("value", doubleDataTran(quotationMap.get("alt_renting_frequency")));
+            mapList.add(map7);
+        }
 
         //step3 判断是否有detail数据，如果没有则取报价模板的sheet
         String priceList = prjQuotation.getPriceList();
