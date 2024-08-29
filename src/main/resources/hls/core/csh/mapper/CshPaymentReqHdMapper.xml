@@ -1619,6 +1619,9 @@ WHERE
             <if test="proposedLaunchDateTo != null">
                 and v.proposed_launch_date &lt;= to_date(#{proposedLaunchDateTo}, 'yyyy-mm-dd')
             </if>
+            <if test="amount != null ">
+                and v.amount = #{amount}
+            </if>
         </where>
         order by v.PAYMENT_APPROVED_STATUS desc, v.apply_pay_date desc, v.payment_req_number desc
 
@@ -1883,7 +1886,8 @@ WHERE
             act_hi_actinst t2
         WHERE t2.PROC_INST_ID_ in ( (select ahp.ID_ from prj_project pp, ACT_HI_PROCINST ahp
                                     where pp.project_number = #{projectNumber}
-                                      and ahp.BUSINESS_KEY_ = pp.PROJECT_ID ) )
+                                      and ahp.BUSINESS_KEY_ = pp.PROJECT_ID
+                                      AND INSTR( ahp.PROC_DEF_ID_, 'ADVERTISING_REVIEW_WORK_FLOW' ) > 0 ) )
           AND ( t2.ACT_TYPE_ IN ( 'endEvent', 'startEvent' )
             OR EXISTS ( SELECT 1  FROM act_hi_comment t1
                         WHERE t1.PROC_INST_ID_ = t2.PROC_INST_ID_
