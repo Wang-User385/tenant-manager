@@ -11,7 +11,6 @@ import com.hand.hls.csh.exception.WriteOffTypeNullException;
 import com.hand.hls.utils.ResMessageException;
 import com.hand.hls.exception.HlsCusException;
 import javax.servlet.http.HttpSession;
-import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -109,4 +108,12 @@ public interface CshWriteOffService extends IBaseService<HlsCusCshWriteOff>, Pro
      */
     void releaseCredit(IRequest iRequest, Long cfItem, Long contractId, Double writeOffPrincipal);
 
+    /**
+     * 收款核销债权导入
+     *
+     * @param iRequest
+     * @param headerId
+     * @param allocationId
+     */
+    void batchImportVirtualAccount(IRequest iRequest, Long headerId, String transactionType, String transactionId, String allocationId) throws HlsCusException;
 }

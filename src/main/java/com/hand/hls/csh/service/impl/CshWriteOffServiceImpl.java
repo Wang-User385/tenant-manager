@@ -5,12 +5,8 @@ import com.hand.hap.core.AppContextInitListener;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
-import com.hand.hls.abs.service.impl.HlsCusAbsProductServiceImpl;
-import com.hand.hls.app.utils.ArrayListUtils;
-import com.hand.hls.ast.dto.NoticeManage;
 import com.hand.hls.ast.service.INoticeManageService;
 import com.hand.hls.bp.components.CalculateUtil;
-import com.hand.hls.bp.dto.HlsCusBpMaster;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
 import com.hand.hls.calc.exception.ChangeLimitException;
@@ -34,6 +30,8 @@ import com.hand.hls.fin.dto.HlsCusLonContract;
 import com.hand.hls.fin.dto.HlsCusLonContractRepayment;
 import com.hand.hls.fin.mapper.HlsCusLonContractMapper;
 import com.hand.hls.fin.mapper.HlsCusLonContractRepaymentMapper;
+import com.hand.hls.fnd.dto.FndInterfaceLines;
+import com.hand.hls.fnd.mapper.FndInterfaceLinesMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.gld.components.AbstractJeTrxService;
 import com.hand.hls.gld.components.JeTrxCommonService;
@@ -59,7 +57,6 @@ import com.hand.hls.prj.service.IPrjProjectService;
 import com.hand.hls.sys.dto.HlsSystemNotice;
 import com.hand.hls.sys.mapper.HlsSystemNoticeMapper;
 import com.hand.hls.sys.utils.OracleUtils;
-import com.hand.hls.utils.HlsCusMathUtil;
 import com.hand.hls.utils.MathUtil;
 import com.hand.hls.utils.ResMessageException;
 import com.hand.hls.csh.dto.HlsCusPaymentDeduct;
@@ -70,7 +67,6 @@ import com.hand.hls.fct.dto.HlsCusFctQuotationCashflow;
 import com.hand.hls.fct.service.HlsCusFctQuotationCashflowService;
 import com.hand.hls.utils.service.HlsConstantUtil;
 import com.hand.hls.wsdl.utils.SapConstants;
-import com.mysql.jdbc.log.Log;
 import hls.core.sys.event.service.SysEventService;
 import com.hand.hls.exception.HlsCusException;
 import jodd.util.ArraysUtil;
@@ -92,10 +88,7 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
 
 import static com.hand.hls.utils.HlsCusMathUtil.add;
 import static com.hand.hls.utils.HlsCusMathUtil.sub;
@@ -158,6 +151,11 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
     public static final String CONTRACT_STATUS_INCEPT = "INCEPT";
 
 
+    //EXCEL导入相关提示
+    private static final String PARAM_NOT_FOUND = "参数未找到！";
+    private static final Long READ_LINE = 0L;
+    @Autowired
+    private FndInterfaceLinesMapper fndInterfaceLinesMapper;
 
     Map<String, String> params = new HashMap<String, String>();
 
@@ -2300,7 +2298,9 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 insertCshTransaction.setBusinessType(TRANSACTION_TYPE_ADVANCE_RECEIPT);
                 insertCshTransaction.setTransactionDate(cusCshTransaction.getTransactionDate());
                 insertCshTransaction.setCompanyId(cusCshTransaction.getCompanyId());
-                insertCshTransaction.setTransactionAmount(cusCshTransaction.getTransactionAmount()-nvl(cusCshTransaction.getWriteOffAmount(),0.0));
+                //insertCshTransaction.setTransactionAmount(cusCshTransaction.getTransactionAmount()-nvl(cusCshTransaction.getWriteOffAmount(),0.0));
+                //调整 每笔应收金额对应预收款每个合同的本次核销金额   此处只对应单笔现金事务的情况，如果是多笔则需要调整
+                insertCshTransaction.setTransactionAmount(nvl(advance.getWriteOffDueAmount(), 0.0));
                 insertCshTransaction.setCurrencyCode(cusCshTransaction.getCurrencyCode());
                 insertCshTransaction.setPaymentMethod(cusCshTransaction.getPaymentMethod());
                 insertCshTransaction.setBankAccountId(cusCshTransaction.getBankAccountId());
@@ -2321,6 +2321,8 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 insertCshTransaction.setComments(cusCshTransaction.getComments());
                 //收款编号
                 getTransactionNumAdvance(iRequest, insertCshTransaction);
+                //关联现金流id
+                insertCshTransaction.setConCashflowId(advance.getCashflowId());
                 //写入现金事务表
                 cshTransactionService.insertSelective(iRequest, insertCshTransaction);
                 //更新原有的现金事务记录为完全核销
@@ -2328,6 +2330,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 updateCshTransaction.setTransactionId(cusCshTransaction.getTransactionId());
                 updateCshTransaction = cshTransactionService.selectByPrimaryKey(iRequest, updateCshTransaction);
                 updateCshTransaction.setWriteOffFlag("FULL");
+                updateCshTransaction.setWriteOffAmount(cusCshTransaction.getTransactionAmount());
                 cshTransactionService.updateByPrimaryKeySelective(iRequest, updateCshTransaction);
 
                 //收款核销为预收款
@@ -3752,6 +3755,237 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             Double amount = Optional.ofNullable(writeOffPrincipal).orElse(0D);
             //TODO 零售业务核销后额度释放
             //hlsCreditLineService.releaseCredit(iRequest, hlsCusConContract.getCreditLineId(), amount);
+        }
+    }
+
+    //收款核销债券导入
+    @Override
+    public void batchImportVirtualAccount(IRequest iRequest, Long headerId, String transactionType, String transactionId, String allocationId) throws HlsCusException  {
+        if (headerId == null) {
+            throw new HlsCusException(PARAM_NOT_FOUND);
+        }
+
+        FndInterfaceLines fndInterfaceLines = new FndInterfaceLines();
+        fndInterfaceLines.setHeaderId(headerId);
+        fndInterfaceLines.setReadLine(READ_LINE);
+        fndInterfaceLines.setSheetName("Sheet1");
+        List<FndInterfaceLines> accountList = fndInterfaceLinesMapper.fndInterfaceLinesDetailQuery(fndInterfaceLines);
+
+        //合计本次核销总金额
+        Double write_off_amount_total = 0.0;
+        for (FndInterfaceLines account : accountList){
+            write_off_amount_total  += Double.valueOf(account.getAttributes_3());
+        }
+
+        //校验字段必填
+        for (FndInterfaceLines account : accountList){
+            if (StringUtils.isEmpty(account.getAttributes_1())){
+                throw new HlsCusException("第" + (account.getLineNumber() + 1) + "行，合同编号必填！");
+            }
+            if (StringUtils.isEmpty(account.getAttributes_2())){
+                throw new HlsCusException("第" + (account.getLineNumber() + 1) + "行，期数必填！");
+            }
+            if (StringUtils.isEmpty(account.getAttributes_3())){
+                throw new HlsCusException("第" + (account.getLineNumber() + 1) + "行，订单金额必填！");
+            }
+            //核销类型
+            Double surplusAmount = 0.0;
+            if ("RECEIPT".equals(transactionType)){
+                //校验剩余金额
+                HlsCusConContractCashflow queryConContractCashflow = new HlsCusConContractCashflow();
+                queryConContractCashflow.setTimes(Long.valueOf(account.getAttributes_2()));
+                queryConContractCashflow.setContractNumber(account.getAttributes_1());
+                List<HlsCusConContractCashflow> hlsCusConContractCashflows = hlsCusConContractCashflowMapper.queryContractCashflowLovNew(queryConContractCashflow);
+
+                //同一合同一期存在租金和罚息，进行相加判断
+                for (HlsCusConContractCashflow hlsCusConContractCashflow : hlsCusConContractCashflows){
+                    surplusAmount  += hlsCusConContractCashflow.getDueAmount();
+                }
+                for (HlsCusConContractCashflow hlsCusConContractCashflow : hlsCusConContractCashflows) {
+                    if (Double.compare(surplusAmount, Double.valueOf(account.getAttributes_3())) != 0) {
+                        throw new HlsCusException("第" + (account.getLineNumber() + 1) + "行，订单金额与现金流剩余金额不等，请检查！");
+                    }
+                    //进行保存操作
+                    HlsCusCshTransaction cshTransaction = new HlsCusCshTransaction();
+                    cshTransaction.setTransactionId(Long.valueOf(transactionId));
+                    cshTransaction.setContractId(hlsCusConContractCashflow.getContractId());
+                    cshTransactionService.updateByPrimaryKeySelective(iRequest, cshTransaction);
+
+                    if (allocationId == null) {
+                        //插入 分配相关表
+                        CshAllocation cshAllocation = new CshAllocation();
+                        cshAllocation.setAllocationNumber(codingRuleValuesService.getCodeRuleValue(iRequest, "CSH_TRX",
+                                "ALLOCATION", "ALLOCATION", null));
+                        cshAllocation.setAllocationDate(new Date());
+                        cshAllocation.setAllocationSource("MANUAL");
+                        cshAllocation.setAllocationStatus("N");
+                        cshAllocationService.insertSelective(iRequest, cshAllocation);
+
+                        //收款核销管理表
+                        CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
+                        cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
+                        cshAllocationReceipt.setTransactionId(Long.valueOf(transactionId));
+                        cshAllocationReceipt.setAdvanceReceiptAmount(0.0);
+                        cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
+
+                        //核销信息表
+                        CshAllocationCredit cshAllocationCredit = new CshAllocationCredit();
+                        cshAllocationCredit.setAllocationId(cshAllocation.getAllocationId());
+                        cshAllocationCredit.setCashflowId(hlsCusConContractCashflow.getCashflowId());
+                        cshAllocationCredit.setDueAmount(((hlsCusConContractCashflow.getDueAmount() != null) ? hlsCusConContractCashflow.getDueAmount() : 0.0));
+                        cshAllocationCredit.setPrincipal(((hlsCusConContractCashflow.getPrincipal() != null) ? hlsCusConContractCashflow.getPrincipal() : 0.0));
+                        cshAllocationCredit.setInterest(((hlsCusConContractCashflow.getInterest() != null) ? hlsCusConContractCashflow.getInterest() : 0.0));
+                        cshAllocationCreditService.insertSelective(iRequest, cshAllocationCredit);
+                    } else {
+                        //已经存在，更新关联表后，删除重新插入
+                        CshAllocation cshAllocation = new CshAllocation();
+                        cshAllocation.setAllocationStatus("N");
+                        cshAllocation.setAllocationId(Long.valueOf(allocationId));
+                        cshAllocationService.updateByPrimaryKeySelective(iRequest, cshAllocation);
+
+                        //删除后 重新插入
+                        CshAllocationReceipt allocationReceipt = new CshAllocationReceipt();
+                        allocationReceipt.setAllocationId(Long.valueOf(allocationId));
+                        cshAllocationReceiptService.batchDelete(cshAllocationReceiptMapper.select(allocationReceipt));
+
+                        CshAllocationCredit allocationCredit = new CshAllocationCredit();
+                        allocationCredit.setAllocationId(Long.valueOf(allocationId));
+                        cshAllocationCreditService.batchDelete(cshAllocationCreditMapper.select(allocationCredit));
+
+                        //重新插入
+                        //收款核销管理表
+                        CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
+                        cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
+                        cshAllocationReceipt.setTransactionId(Long.valueOf(transactionId));
+                        cshAllocationReceipt.setAdvanceReceiptAmount(0.0);
+                        cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
+
+                        //核销信息表
+                        CshAllocationCredit cshAllocationCredit = new CshAllocationCredit();
+                        cshAllocationCredit.setAllocationId(cshAllocation.getAllocationId());
+                        cshAllocationCredit.setCashflowId(hlsCusConContractCashflow.getCashflowId());
+                        cshAllocationCredit.setDueAmount(((hlsCusConContractCashflow.getDueAmount() != null) ? hlsCusConContractCashflow.getDueAmount() : 0.0));
+                        cshAllocationCredit.setPrincipal(((hlsCusConContractCashflow.getPrincipal() != null) ? hlsCusConContractCashflow.getPrincipal() : 0.0));
+                        cshAllocationCredit.setInterest(((hlsCusConContractCashflow.getInterest() != null) ? hlsCusConContractCashflow.getInterest() : 0.0));
+                        cshAllocationCreditService.insertSelective(iRequest, cshAllocationCredit);
+                    }
+                }
+            }else if ("ADVANCE_RECEIPT".equals(transactionType)){
+                //校验剩余金额
+                HlsCusConContractCashflow queryConContractCashflow = new HlsCusConContractCashflow();
+                queryConContractCashflow.setTimes(Long.valueOf(account.getAttributes_2()));
+                queryConContractCashflow.setContractNumber(account.getAttributes_1());
+                List<HlsCusConContractCashflow> hlsCusConContractCashflows = hlsCusConContractCashflowMapper.queryContractCashflowForCompLov(queryConContractCashflow);
+
+                for (HlsCusConContractCashflow hlsCusConContractCashflow : hlsCusConContractCashflows){
+                    if(Double.compare(hlsCusConContractCashflow.getSurplusAmount(), Double.valueOf(account.getAttributes_3())) != 0){
+                        throw new HlsCusException("第" + (account.getLineNumber() + 1) + "行，订单金额与现金流剩余金额不等，请检查！");
+                    }
+                    //进行保存操作
+                    HlsCusCshTransaction cshTransaction = new HlsCusCshTransaction();
+                    cshTransaction.setTransactionId(Long.valueOf(transactionId));
+                    cshTransaction.setContractId(hlsCusConContractCashflow.getContractId());
+                    cshTransactionService.updateByPrimaryKeySelective(iRequest, cshTransaction);
+
+                    //插入 分配相关表
+                    CshAllocation cshAllocation = new CshAllocation();
+                    cshAllocation.setAllocationNumber(codingRuleValuesService.getCodeRuleValue(iRequest, "CSH_TRX",
+                            "ALLOCATION", "ALLOCATION", null));
+                    cshAllocation.setAllocationDate(new Date());
+                    cshAllocation.setAllocationSource("MANUAL");
+                    cshAllocation.setAllocationStatus("Y");
+                    cshAllocationService.insertSelective(iRequest, cshAllocation);
+
+                    //收款核销管理表
+                    CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
+                    cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
+                    cshAllocationReceipt.setTransactionId(Long.valueOf(transactionId));
+                    cshAllocationReceipt.setAdvanceReceiptAmount( ((hlsCusConContractCashflow.getDueAmount() != null) ? hlsCusConContractCashflow.getDueAmount() : 0.0) );
+                    cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
+
+                    //1.插入表中
+                    CshAllocationAdvance allocationAdvance = new CshAllocationAdvance();
+                    allocationAdvance.setAllocationId(cshAllocation.getAllocationId());
+                    allocationAdvance.setBpId(hlsCusConContractCashflow.getBpId());
+                    allocationAdvance.setBpName(hlsCusConContractCashflow.getBpName());
+                    allocationAdvance.setWriteOffDueAmount( ((hlsCusConContractCashflow.getDueAmount() != null) ? hlsCusConContractCashflow.getDueAmount() : 0.0) );
+                    allocationAdvance.setWriteOffType("RECEIPT_ADVANCE_RECEIPT");
+                    allocationAdvance.setContractId(hlsCusConContractCashflow.getContractId());
+                    allocationAdvance.setCashflowId(hlsCusConContractCashflow.getCashflowId());
+                    advanceService.insertSelective(iRequest, allocationAdvance);
+
+                    //修改现金流已收代偿金额
+                    HlsCusConContractCashflow conContractCashflow = new HlsCusConContractCashflow();
+                    //conContractCashflow.setWriteOffFlag("FULL");
+                    conContractCashflow.setCashflowId(hlsCusConContractCashflow.getCashflowId());
+                    conContractCashflow.setReceivedCompAmount( ((hlsCusConContractCashflow.getDueAmount() != null) ? hlsCusConContractCashflow.getDueAmount() : 0.0) );
+                    hlsCusConContractCashflowService.updateByPrimaryKeySelective(iRequest,conContractCashflow);
+
+                    //2.新增一条预收款记录写入csh_transaction表中
+                    HlsCusCshTransaction queryHlsCusCshTransaction = new HlsCusCshTransaction();
+                    //queryHlsCusCshTransaction.setTransactionId(Long.valueOf(transactionId));
+                    ArrayList<Long> transactionIds = new ArrayList<>();
+                    transactionIds.add(Long.valueOf(transactionId));
+                    queryHlsCusCshTransaction.setTransactionIdS(transactionIds);
+                    List<HlsCusCshTransaction> hlsCusCshTransactions = cshTransactionMapper.detailQuery(queryHlsCusCshTransaction);
+                    //如果返回金额超过本次申请总额则提示
+                    if(write_off_amount_total.compareTo(hlsCusCshTransactions.get(0).getTransactionAmount()) == -1){
+                        throw new HlsCusException("剩余可核销金额小于订单金额合计！");
+                    }
+
+                    HlsCusCshTransaction insertCshTransaction = new HlsCusCshTransaction();
+                    insertCshTransaction.setTransactionCategory(hlsCusCshTransactions.get(0).getTransactionCategory());
+                    insertCshTransaction.setTransactionType(TRANSACTION_TYPE_ADVANCE_RECEIPT);
+                    insertCshTransaction.setBusinessType(TRANSACTION_TYPE_ADVANCE_RECEIPT);
+                    insertCshTransaction.setTransactionDate(hlsCusCshTransactions.get(0).getTransactionDate());
+                    insertCshTransaction.setCompanyId(hlsCusCshTransactions.get(0).getCompanyId());
+                    //调整 每笔应收金额对应预收款每个合同的本次核销金额   此处只对应单笔现金事务的情况，如果是多笔则需要调整
+                    insertCshTransaction.setTransactionAmount(nvl(allocationAdvance.getWriteOffDueAmount(), 0.0));
+                    insertCshTransaction.setCurrencyCode(hlsCusCshTransactions.get(0).getCurrencyCode());
+                    insertCshTransaction.setPaymentMethod(hlsCusCshTransactions.get(0).getPaymentMethod());
+                    insertCshTransaction.setBankAccountId(hlsCusCshTransactions.get(0).getBankAccountId());
+                    insertCshTransaction.setBpId(hlsCusConContractCashflow.getBpId());
+                    insertCshTransaction.setBpBankAccountId(hlsCusCshTransactions.get(0).getBpBankAccountId());
+                    insertCshTransaction.setBpBankName(hlsCusCshTransactions.get(0).getBpBankName());
+                    insertCshTransaction.setBpBankBranchName(hlsCusCshTransactions.get(0).getBpBankBranchName());
+                    insertCshTransaction.setBpBankAccountNum(hlsCusCshTransactions.get(0).getBpBankAccountNum());
+                    insertCshTransaction.setBpBankAccountName(hlsCusCshTransactions.get(0).getBpBankAccountName());
+                    insertCshTransaction.setReversedFlag("N");
+                    insertCshTransaction.setPostedFlag("N");
+                    insertCshTransaction.setDescription(hlsCusCshTransactions.get(0).getDescription());
+                    insertCshTransaction.setSourceDocCategory("ALLOCATION_MANUAL");
+                    insertCshTransaction.setSourceDocId(allocationAdvance.getAllocationId());
+                    insertCshTransaction.setSourceDocLineId(allocationAdvance.getAdvanceId());
+                    insertCshTransaction.setWriteOffFlag("NOT");
+                    insertCshTransaction.setSourceTransactionId(hlsCusCshTransactions.get(0).getTransactionId());
+                    insertCshTransaction.setComments(hlsCusCshTransactions.get(0).getComments());
+                    //收款编号
+                    getTransactionNumAdvance(iRequest, insertCshTransaction);
+                    //关联现金流id
+                    insertCshTransaction.setConCashflowId(hlsCusConContractCashflow.getCashflowId());
+                    //写入现金事务表
+                    cshTransactionService.insertSelective(iRequest, insertCshTransaction);
+                    //更新原有的现金事务记录为完全核销
+                    HlsCusCshTransaction updateCshTransaction = new HlsCusCshTransaction();
+                    updateCshTransaction.setTransactionId(hlsCusCshTransactions.get(0).getTransactionId());
+                    updateCshTransaction = cshTransactionService.selectByPrimaryKey(iRequest, updateCshTransaction);
+                    updateCshTransaction.setWriteOffFlag("FULL");
+                    updateCshTransaction.setWriteOffAmount(hlsCusCshTransactions.get(0).getTransactionAmount());
+                    cshTransactionService.updateByPrimaryKeySelective(iRequest, updateCshTransaction);
+
+                    //收款核销为预收款
+                    AbstractJeTrxService transactionJeTrxService = jeTrxCommonService.map.get("CSH_TRANSACTION");
+                    Map transactionParams = new HashMap<>();
+                    transactionParams.put("jeTrxId", hlsCusCshTransactions.get(0).getTransactionId());
+                    transactionParams.put("companyId", iRequest.getCompanyId());
+                    if (insertCshTransaction.getContractId() != null) {
+                        transactionParams.put("jeSourceId", insertCshTransaction.getContractId());
+                        transactionParams.put("jeSourceDoc", "CON_CONTRACT");
+                    }
+                    transactionJeTrxService.process(iRequest, transactionParams);
+                }
+
+            }
         }
     }
 

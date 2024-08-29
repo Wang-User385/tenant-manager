@@ -18,6 +18,7 @@ import com.hand.hls.csh.exception.BeyondAmountLimitException;
 import com.hand.hls.csh.exception.WriteOffTypeNullException;
 import com.hand.hls.csh.mapper.*;
 import com.hand.hls.csh.service.*;
+import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.utils.HlsCusMathUtil;
 import com.hand.hls.utils.MathUtil;
@@ -472,5 +473,12 @@ public class CshWriteOffController extends BaseController {
         return new ResponseData();
     }
 
-
+    //收款管理详情excel导入
+    @RequestMapping("/csh/write/off/batch/excel/import")
+    public ResponseData cshTransactionReceiptBatchExcelImport(HttpServletRequest request, Long headerId, String transactionType, String transactionId, String allocationId) throws HlsCusException {
+        ResponseData responseData = new ResponseData();
+        IRequest iRequest = createRequestContext(request);
+        cshWriteOffService.batchImportVirtualAccount(iRequest, headerId, transactionType, transactionId, allocationId);
+        return responseData;
+    }
 }
