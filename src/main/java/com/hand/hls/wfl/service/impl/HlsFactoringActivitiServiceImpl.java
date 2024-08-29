@@ -11,6 +11,8 @@ import com.hand.hls.wfl.service.IActivitiCommonService;
 import org.activiti.rest.service.api.runtime.process.ProcessInstanceCreateRequest;
 import org.activiti.rest.service.api.runtime.process.ProcessInstanceResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,8 @@ import java.util.Map;
  *
  * @author JINGZHOU.LI@hand-china.com 2024/8/28 9:14
  */
+@Service
+@Transactional(rollbackFor = Exception.class)
 public class HlsFactoringActivitiServiceImpl implements IActivitiCommonService {
     private static final String workFlowType = "FACTORING_PROJRCT_PROPOSAL";
 

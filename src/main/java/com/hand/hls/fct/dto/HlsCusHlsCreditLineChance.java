@@ -429,5 +429,12 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
 
     @Transient
     private Long quotationId;
+
+    @Transient
+    private Long passNum;
+    @Transient
+    private Long noPassNum;
+    @Transient
+    private Long conditionPassNum;
 }
 
