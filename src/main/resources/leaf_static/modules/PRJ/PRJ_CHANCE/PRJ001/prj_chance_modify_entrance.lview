@@ -39,13 +39,14 @@
             return months_result;
         }
 
+
         function prj001_detail_open(record_id, ds_id) {
              debugger;
             var record = $(ds_id).findById(record_id);
             var param = record.data;
             var status = param.credit_line_status;
             var business_type = param.business_type;
-            var type = (status === "APPROVING" || status === 'APPROVED' || status === "CLOSED" || status === "PENDING") ? 'QUERY' : 'MODIFY';
+           // var type = (status === "APPROVING" || status === 'APPROVED' || status === "CLOSED" || status === "PENDING") ? 'QUERY' : 'MODIFY';
 
             param['url_title'] = '立项维护';
                   debugger;
@@ -62,7 +63,7 @@
             // }
             param['function_code'] = 'PRJ003F1';
             var link_id = 'prj_credit_detail_id';
-            param['function_usage'] = type;
+            //param['function_usage'] = type;
             param['winid'] = 'prj_chance_detail_winid';
 
             hls_doc_get_layout_code(param, link_id, ds_id, 'PRJ001', null, null);
@@ -76,6 +77,30 @@
             if (name === 'credit_line_number') {
                 return '<a href="javascript:window[\'' + link_function + '\'](\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
             }
+            if (name == 'process_instance_id') {
+                return '<a href="javascript:open_project_approve_history_win(\'' + record.ds.id + '\',\'' + record.id + '\')"><span style="color:#68798a">审批明细查看</span></a>';
+            }
+        };
+        //审批明细跳转
+        function open_project_approve_history_win(ds_id, record_id) {
+            debugger
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            var process_instance_id = param['process_instance_id']
+
+
+            new Leaf.Window({
+                id: 'PRJ001_approve_history_winid',
+                params: {
+                    winid: 'PRJ001_approve_history_winid',
+                    id: process_instance_id
+                },
+                url: '${/request/@context_path}/modules/MYWFL/MYWFL002/process_approve_history.lview',
+                title: '审批明细',
+                fullScreen:true
+            });
+
+
         };
 
         // 新增立项

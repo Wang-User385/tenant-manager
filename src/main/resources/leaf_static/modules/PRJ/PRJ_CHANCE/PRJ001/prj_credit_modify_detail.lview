@@ -50,7 +50,7 @@
                 return '<a href="javascript:PRJ003_open_attach(\'' + record.id + '\',\'' + record.ds.id + '\');">附件资料</a>';
             }
              if (name == 'attachment_detail') {
-                return '<a href="javascript:open_lessee_modify_win(\'' + record.id + '\',\'' + record.ds.id + '\');">附件</a>';
+                return '<a href="javascript:open_lessee_modify_win(\'' + record.id + '\',\'' + record.ds.id + '\');">附件上传</a>';
             }
              if (name == 'customer_detail_information') {
                 return '<a href="javascript:open_master_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户明细信息</a>';
@@ -58,7 +58,34 @@
              if (name == 'client_financial_reports') {
                 return '<a href="javascript:open_financial_report_modify_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户财报</a>';
             }
+
+             if (name == 'preview') {
+                if (record.get('attachment_id_n') != null) {
+                    var html = '';
+                    var fileNameList = record.get('file_names').split(',');
+                    var attachmentIdList = record.get('attachment_id_n').split(',');
+                    var sourcePkList = record.get('source_pk_value').split(',');
+                    for (var i = 0; i < fileNameList.length; i++) {
+                        if (html != '') {
+                            html += ',';
+                        }
+                        if (atmTypeRef(fileNameList[i])) {
+                            html += '<span><a target="_self" alt="' + fileNameList[i] + '" imageIndex="img_' + attachmentIdList[i] + '" ref="img_' + attachmentIdList[i] + '" href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkPdf(fileNameList[i])) {
+                            var url = encodeURIComponent('${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i]);
+                            html += '<span><a target="_blank" href="${/request/@context_path}/resources/hls/pdf/web/viewer.html?file=' + url + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkDox(fileNameList[i]) || checkXls(fileNameList[i]) ) {
+                            html += '<a href=javascript:queryDocFile(\'' + sourcePkList[i] + '\')> ' + fileNameList[i] + '在线预览</a>';
+                        } else {
+                            html += '<span><a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        }
+
+                    }
+                    return html;
+                }
+            }
         };
+
         //客户明细信息
         function open_master_detail_win(record_id, ds_id) {
             debugger;
@@ -105,25 +132,26 @@
         };
         //上传
         function open_lessee_modify_win(record_id,ds_id){
-            var chance_attachment_id = $(ds_id).findById(record_id).get('chance_attachment_id');
-            var url = '${/request/@context_path}/uploadFile.lview';
-
-            var win = new Leaf.Window({
-                id: 'PRJ003_open_attachment_winid',
-                url: url,
+            debugger;
+            var record = $(ds_id).findById(record_id);
+            var credit_rate_id = record.get('chance_attachment_id');
+            if (!credit_rate_id) {
+                Leaf.showErrorMessage('提示', '请先保存再上传附件！', null, 200, 100);
+                return;
+            }
+            // console.log(record.get('issue_info_id'));
+            new Leaf.Window({
+                id: 'open_attachment_win_id',
+                url: '${/request/@context_path}/uploadFile.lview',
                 params: {
-                    'header_id': chance_attachment_id,
-                    'table_name': 'HLS_CREDIT_LINE_ATTACH',
-                    winid: 'PRJ003_open_attachment_winid'
+                    header_id: credit_rate_id,
+                    table_name: 'HLS_BP_CREDIT_RATE',
+                    winid: 'open_attachment_win_id'
                 },
-                title: '文件上传',
-                width: 800,
-                height: 475
+                title: '附件上传',
+                width: 500,
+                height: 300
             });
-            // win.on('close', function () {
-            //     var arr_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach');
-            //     $(arr_ds_id).query();
-            // });
         };
         //下载
         function PRJ003_open_attach(project_attachment_id, table_name,document_name,th_back_flag) {
@@ -179,7 +207,36 @@
                     record.getField('description').setReadOnly(false);
                 }
             });
-        }
+
+        };
+        //一键下载
+        // window['${/parameter/@layout_code}_G_ATTA_INFO_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+        //     debugger;
+        //     var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
+        //     var record = $(ds_id).getCurrentRecord();
+        //     var chance_id = parseInt(record.get('chance_id'));
+        //     var down_url = "${/request/@context_path}/hls/credit/download?chanceId=" + chance_id + "&attachmentCategory=CHANCE_ATT";
+        //     location.href = down_url;
+        // }
+        //附件预览
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
+            var prj_project_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(prj_project_ds_id).getCurrentRecord();
+            var contract_id =  record.get('project_id');
+            if (typeof(window.previewAtt) === 'function') {
+                previewAtt(contract_id,'project_id');
+            }else if(typeof(window.parent.previewAtt) === 'function'){
+                window.parent.previewAtt(contract_id,'project_id')
+            }else if(typeof(window.parent.parent.previewAtt) === 'function'){
+                window.parent.parent.previewAtt(contract_id,'project_id')
+            }else if(typeof(window.parent.parent.parent.previewAtt) === 'function'){
+                window.parent.parent.parent.previewAtt(contract_id,'project_id')
+            }
+        };
+        //在线预览
+        function queryDocFile(source_pk_value) {
+            window.open("${/request/@context_path}/sys/office/view?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
+        };
         //保存前调用
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
@@ -247,15 +304,71 @@
 
         //暂存
         window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            var chance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_PR_BASIC');
+            var chance_record = $(chance_ds_id).getCurrentRecord();
+            var chance_id = chance_record.get("chance_id");
+            var credit_line_number = chance_record.get("credit_line_number");
+            var credit_line_status = chance_record.get("credit_line_status");
+            var bp_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp');
+
+            var credit_plan_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan','F_CREDIT_PRO');
+            var credit_plan_reocrd = $(credit_plan_ds_id).getCurrentRecord();
+            var credit_plan_id=credit_plan_reocrd.get("credit_plan_id");
+            var credit_amt=credit_plan_reocrd.get("credit_amt");
+
+
+
+
+            // var bp_records = $(bp_ds_id).getAll();
+            // var k = 0;
+            // var m = 0;
+            //项目类型
+            // var business_type = chance_record.get("business_type");
+            // var cooperative_organization_id;
+            debugger;
+            if (credit_line_number == null) {
+                var document_category = 'PRJ_PROJECT';
+                var document_type = 'PRJ_PROJECT';
+                var business_type = 'LEASE';
+                //授信与非授信获取不同的项目编号
+                if(credit_flag == '1'){
+                    document_category = 'CREDIT_PRJ_PROJECT';
+                    document_type = 'CREDIT_PRJ_PROJECT';
+                }
+                debugger;
+
+                //window['${/parameter/@layout_code}_set_authority_rule_string']();
+                Leaf.request({
+                    url: "${/request/@context_path}/common/coding/getCodeValue?documentCategory=" + document_category + "&documentType=" + document_type + "&businessType=" + business_type,
+                    success: function (res) {
+                        console.log(res.result);
+                        chance_record.set('credit_line_number', res.result.record[0]);
+                        chance_record.set('credit_line_status', 'NEW');
+                        chance_record.set('credit_line_amt', credit_amt);
+
+
+                    },
+                    error: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                    },
+                    failure: function (res) {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+
+                    },
+                    sync: true,
+                    scope: this
+                });
+            }
             debugger;
             //忽略保存校验方法
             window['${/parameter/@layout_code}_ignore_required_before_save']();
-            var hls_bp_master_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
-            var record = $(hls_bp_master_ds_id).getCurrentRecord();
-            if (record.get('enabled_flag') == 'Y'){
-                Leaf.showErrorMessage('提示','请取消启用状态');
-                return;
-            }
+            // var hls_bp_master_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_bp_master');
+            // var record = $(hls_bp_master_ds_id).getCurrentRecord();
+            // if (record.get('enabled_flag') == 'Y'){
+            //     Leaf.showErrorMessage('提示','请取消启用状态');
+            //     return;
+            // }
             // window['${/parameter/@layout_code}_ignore_required_before_save'] = function() {
             //     window['${/parameter/@layout_code}_not_ignore_required_flag'] = true;
             // };
