@@ -182,6 +182,9 @@
         <result column="debtor_analyse" property="debtorAnalyse" jdbcType="VARCHAR"/>
         <result column="other_desc" property="otherDesc" jdbcType="VARCHAR"/>
         <result column="quotation_id" property="quotationId" jdbcType="DECIMAL"/>
+        <result column="pass_num" property="passNum" jdbcType="DECIMAL"/>
+        <result column="no_pass_num" property="noPassNum" jdbcType="DECIMAL"/>
+        <result column="condition_pass_num" property="conditionPassNum" jdbcType="DECIMAL"/>
     </resultMap>
 
     <select id="selectModelByCondition" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance" resultMap="BaseResultMap">
@@ -1362,7 +1365,7 @@
         FROM
         hls_credit_line_chance hclc
         <where>
-            1 = 1
+            1 = 1 and (SELECT bp_type from hls_bp_master hbm where hbm.bp_id = hclc.bp_id) = 'ASSET_TRANSFEROR'
             <if test="creditLineNumber != null and creditLineNumber != '' ">
                 and hclc.credit_line_number like concat('%', concat(#{creditLineNumber},'%'))
             </if>
@@ -1373,7 +1376,7 @@
                 and ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id ) like concat('%', concat(#{bpName},'%'))
             </if>
             <if test="industry != null and industry != ''">
-               hclc.industry like concat('%', concat(#{industry},'%'))
+                and hclc.industry like concat('%', concat(#{industry},'%'))
             </if>
             <if test="creationDateFrom != null">
                 and hclc.creation_date >= to_date(#{creationDateFrom},'yyyy-mm-dd hh24:mi:ss')
@@ -1451,7 +1454,12 @@
         hclc.prj_info_desc,
         hclc.creditor_analyse,
         hclc.debtor_analyse,
-        hclc.other_desc
+        hclc.other_desc,
+        hclc.meeting_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.MEETING_TYPE' AND sc.CODE_VALUE = hclc.meeting_type ) meeting_type_n,
+        nvl(( SELECT count(*) FROM hls_credit_line_chance_approver hclca where hclca.chance_id = hclc.chance_id and hclca.vote_status = '1'),0) pass_num,
+        nvl(( SELECT count(*) FROM hls_credit_line_chance_approver hclca where hclca.chance_id = hclc.chance_id and hclca.vote_status = '2'),0) no_pass_num,
+        nvl(( SELECT count(*) FROM hls_credit_line_chance_approver hclca where hclca.chance_id = hclc.chance_id and hclca.vote_status = '3'),0) condition_pass_num
         FROM
         hls_credit_line_chance hclc
         <where>
