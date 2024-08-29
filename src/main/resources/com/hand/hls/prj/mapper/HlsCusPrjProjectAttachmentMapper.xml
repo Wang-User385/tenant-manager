@@ -60,6 +60,8 @@
         <result column="attachment_sum" property="attachmentSum"/>
         <result column="signed_date" property="signedDate"/>
         <result column="contract_number" property="contractNumber"/>
+        <result column="file_names" property="fileNames"/>
+        <result column="source_pk_value" property="sourcePkValue"/>
     </resultMap>
 
     <!--签约审批通过复制签约附件至合同-->
@@ -501,6 +503,18 @@
         where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
         and faam.table_pk_value = ppa.project_attachment_id
         and faa.source_pk_value = faam.record_id) attachment_id_n,
+        (select wm_concat(faa.file_name)
+        from fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+        and faam.table_pk_value = ppa.project_attachment_id
+        and faa.source_pk_value = faam.record_id) file_names,
+        (select wm_concat(faa.source_pk_value)
+        from fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+        and faam.table_pk_value = ppa.project_attachment_id
+        and faa.source_pk_value = faam.record_id) source_pk_value,
         (select wm_concat(fat.file_name) from fnd_atm_attachment fat, fnd_atm_attachment_multi faam where
         fat.attachment_id = faam.attachment_id
         and faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and faam.table_pk_value = ppa.project_attachment_id

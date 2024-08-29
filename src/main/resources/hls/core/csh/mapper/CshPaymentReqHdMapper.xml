@@ -1827,6 +1827,73 @@ WHERE
         </where>
     </select>
 
+    <resultMap id="WflApprovedResultMap" type="map">
+        <result column="times" property="times"/>
+        <result column="actName" property="actName"/>
+        <result column="userName" property="userName"/>
+        <result column="action" property="action"/>
+        <result column="message" property="message"/>
+    </resultMap>
+
+    <!--查询投放审查工作审批历史记录-->
+    <select id="queryWflApprovedHisByprojectId" resultMap="WflApprovedResultMap">
+        SELECT
+            nvl((SELECT t1.TIME_  FROM act_hi_comment t1
+                 WHERE t1.PROC_INST_ID_ = t2.PROC_INST_ID_
+                   AND t1.TASK_ID_ = t2.TASK_ID_
+                   AND t1.TYPE_ = 'comment'  ), t2.START_TIME_  ) times,
+            nvl(( SELECT t3.NAME_ FROM act_hi_taskinst t3 WHERE t2.PROC_INST_ID_ = t3.PROC_INST_ID_ AND t2.EXECUTION_ID_ = t3.EXECUTION_ID_ ), t2.ACT_NAME_ ) actName,
+            CASE WHEN t2.ACT_TYPE_ = 'startEvent' THEN
+                     ( SELECT su.DESCRIPTION  FROM
+                                                  sys_user su, sys_user_allocation sua, ACT_HI_PROCINST ahp
+                       WHERE ahp.ID_ = t2.PROC_INST_ID_
+                         AND sua.USER_ID = su.USER_ID
+                         AND sua.ALLOCATION_ID = ahp.START_USER_ID_  )
+                 ELSE ( SELECT su.DESCRIPTION  FROM
+                                                   SYS_USER su, SYS_USER_ALLOCATION sua, act_hi_taskinst t3
+                        WHERE su.USER_ID = sua.USER_ID
+                          AND sua.allocation_id = t3.ASSIGNEE_
+                          AND t2.PROC_INST_ID_ = t3.PROC_INST_ID_
+                          AND t2.EXECUTION_ID_ = t3.EXECUTION_ID_  )
+                END userName,
+            CASE WHEN t2.ACT_TYPE_ = 'startEvent' THEN
+                         ( SELECT su.DESCRIPTION  FROM
+                                                      sys_user su, sys_user_allocation sua, ACT_HI_PROCINST ahp
+                           WHERE ahp.ID_ = t2.PROC_INST_ID_
+                             AND sua.USER_ID = su.USER_ID
+                             AND sua.ALLOCATION_ID = ahp.START_USER_ID_
+                         ) || '发起了审批流程'
+                 ELSE ( SELECT a.value_name action  FROM
+                     act_hi_comment ll
+                         LEFT JOIN ( SELECT scv.code_value value_code, scv.meaning value_name FROM sys_code_value_b_v scv WHERE scv.CODE IN ( 'WLF.ACTION' ) ) a ON a.value_code = ll.MESSAGE_
+                         LEFT JOIN act_hi_comment t1 ON ll.TASK_ID_ = t1.TASK_ID_
+                        WHERE ll.TYPE_ = 'action'
+                          AND t1.PROC_INST_ID_ = t2.PROC_INST_ID_
+                          AND t1.TASK_ID_ = t2.TASK_ID_
+                          AND t1.TYPE_ = 'comment'
+                          AND ROWNUM = 1  )
+                END action,
+            ( SELECT t1.MESSAGE_  FROM
+                act_hi_comment t1
+              WHERE t1.PROC_INST_ID_ = t2.PROC_INST_ID_
+                AND t1.TASK_ID_ = t2.TASK_ID_
+                AND t1.TYPE_ = 'comment'
+            ) message
+        FROM
+            act_hi_actinst t2
+        WHERE t2.PROC_INST_ID_ in ( (select ahp.ID_ from prj_project pp, ACT_HI_PROCINST ahp
+                                    where pp.project_number = #{projectNumber}
+                                      and ahp.BUSINESS_KEY_ = pp.PROJECT_ID ) )
+          AND ( t2.ACT_TYPE_ IN ( 'endEvent', 'startEvent' )
+            OR EXISTS ( SELECT 1  FROM act_hi_comment t1
+                        WHERE t1.PROC_INST_ID_ = t2.PROC_INST_ID_
+                          AND t1.TASK_ID_ = t2.TASK_ID_
+                          AND t1.TYPE_ = 'comment'
+                    )
+            )
+        ORDER BY
+            t2.START_TIME_
+    </select>
 
 
 
