@@ -57,8 +57,7 @@
                     '    border-radius: 8px;\n' +
                     '    transition: background-color 0.3s;">报价测算' +
                     '</span></a>';
-            }
-            if (name == 'preview') {
+            } else if (name == 'preview') {
                 if (record.get('attachment_id_n') != null) {
                     var html = '';
                     var fileNameList = record.get('file_names').split(',');
@@ -90,24 +89,18 @@
             var record = $(ds_id).findById(record_id);
             var param = record.data;
             param['url_title'] = '商业伙伴信息';
-            if (param['bp_class'] == 'ORG') {
-                param['function_code'] = 'BP100F1';
-            } else {
-                param['function_code'] = 'BP100F2';
-            }
+            param['function_code'] = 'BP100F1';
             param['function_usage'] = 'QUERY';
             param['winid'] = 'factoring_bp_master_modify_winid';
             hls_doc_get_layout_code(param, 'factoring_bp_master_modify_link_id', null, 'PRJ005F1');
         }
 
         function open_financia_detail_win(record_id, ds_id) {
-            debugger;
             var record = $(ds_id).getCurrentRecord();
             var bp_id = record.get('bp_id');
             var bp_name = record.data['bp_name'];
             var bp_code = record.data['bp_code'];
             var function_usage = 'QUERY';
-
             new Leaf.Window({
                 id: 'factoring_financial_info_winid',
                 url: '${/request/@context_path}/modules/BP/BP100/hls_bp_master_financial_info.lview',
@@ -160,7 +153,9 @@
         };
 
         function quotation_factoring_detail_adjust(dsId, record_id, quotation_id) {
+            debugger;
             var price_list = $(dsId).findById(record_id).get("price_list");
+            quotation_id = $(dsId).findById(record_id).get("quotation_id");
             if (quotation_id == 'undefined' || quotation_id == null || quotation_id == '') {
                 Leaf.showInfoMessage("提示", "请先保存后，再进行报价测算");
                 return;
@@ -175,12 +170,15 @@
                         msg: '计算成功',
                         duration: 2000
                     });
-                    var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=N';
+                    var readOnly = 'N';
+                    if ('${/parameter/@function_usage}' == 'QUERY') {
+                        readOnly = 'Y';
+                    }
+                    var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=' + readOnly;
                     var win = new Leaf.Window({
                         id: 'hls901_open_price_winid',
                         url: url,
-                        title: '项' +
-                            '目报价',
+                        title: '项目报价',
                         fullScreen: true
                     });
                     var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
@@ -517,7 +515,9 @@
                 }
                 record.set('source_document_category', 'HLS_CREDIT_LINE_CHANCE');
             } else if (ds.id == ds_id_pq) {
-                record.set('bp_id', '${/parameter/@bp_id_n}');
+                if ('${/parameter/@bp_id_n}') {
+                    record.set('bp_id', '${/parameter/@bp_id_n}');
+                }
                 record.set('document_category', 'HLS_CREDIT_LINE_CHANCE');
                 record.set('source_document_category', 'HLS_CREDIT_LINE_CHANCE');
             }
@@ -571,7 +571,7 @@
                     record.set('bp_type_n', record_f.get('bp_type_n'));
                     record.set('group_companies', record_f.get('group_companies'));
                     record.set('economic_indu_classify', record_f.get('economic_indu_classify'));
-                    record.set('economic_indu_classify', record_f.get('economic_indu_classify_n'));
+                    record.set('economic_indu_classify_n', record_f.get('economic_indu_classify_n'));
                 }
             }
         };
@@ -801,10 +801,43 @@
 
 
         });
-        //task_detail执行
-        // function beforeSubmit(){
-        //
-        // }
+
+        //task_detail执行提交前调用
+        function beforeSubmit(countiune) {
+            debugger;
+            var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
+            var chance_id = $(ds_root_id).getCurrentRecord().get('chance_id');
+            var cur_record = $('chance_appoint_user_ds').getCurrentRecord();
+            var risk_host = '';
+            var legal_host = '';
+            var examine_host = '';
+            if (cur_record) {
+                var allocation_id = cur_record.get('allocation_id');
+                var node_id = '${/parameter/@node_id}';
+                if ('FACTORING_PROJRCT_PROPOSALS6' == node_id) {
+                    risk_host = allocation_id;
+                } else if ('FACTORING_PROJRCT_PROPOSALS7' == node_id) {
+                    legal_host = allocation_id;
+                } else if ('FACTORING_PROJRCT_PROPOSALS8' == node_id) {
+                    examine_host = allocation_id;
+                }
+                if (node_id == 'FACTORING_PROJRCT_PROPOSALS6' || node_id == 'FACTORING_PROJRCT_PROPOSALS7' || node_id == 'FACTORING_PROJRCT_PROPOSALS8' ){
+                    Leaf.request({
+                        url: '${/request/@context_path}/save/factoring/info',
+                        para: {
+                            chance_id: chance_id,
+                            risk_host: risk_host,
+                            legal_host: legal_host,
+                            examine_host: examine_host
+                        },
+                        success: function (res) {
+                            countiune();
+                        },
+                        sync: true
+                    });
+                }
+            }
+        }
 
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>

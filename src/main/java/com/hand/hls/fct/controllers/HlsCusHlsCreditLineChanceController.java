@@ -458,5 +458,16 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         return new ResponseData(service.submit(hlsCusHlsCreditLineChance,requestCtx));
     }
 
+    @RequestMapping(value = "/save/factoring/info")
+    @ResponseBody
+    public ResponseData saveFactoringInfo(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusHlsCreditLineChance chance = param.toJavaObject(HlsCusHlsCreditLineChance.class);
+        service.updateByPrimaryKeySelective(requestCtx,chance);
+        return new ResponseData();
+    }
+
 
 }
