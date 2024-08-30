@@ -3811,7 +3811,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                     cshTransaction.setContractId(hlsCusConContractCashflow.getContractId());
                     cshTransactionService.updateByPrimaryKeySelective(iRequest, cshTransaction);
 
-                    if (allocationId == null) {
+                    if (StringUtils.isEmpty(allocationId)) {
                         //插入 分配相关表
                         CshAllocation cshAllocation = new CshAllocation();
                         cshAllocation.setAllocationNumber(codingRuleValuesService.getCodeRuleValue(iRequest, "CSH_TRX",
