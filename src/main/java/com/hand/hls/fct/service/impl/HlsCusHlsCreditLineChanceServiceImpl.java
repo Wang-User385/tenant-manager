@@ -609,12 +609,14 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         if ("APPROVING".equalsIgnoreCase(creditLineChance.getCreditLineStatus()) || "APPROVED".equalsIgnoreCase(creditLineChance.getCreditLineStatus())
                 || "CLOSED".equalsIgnoreCase(creditLineChance.getCreditLineStatus())) {
 
+
+
         }
 
         //开始流程
         Map<String, Object> params = new HashMap<String, Object>();
         //此次启动的工作流的唯一标识
-        params.put("workFlowType", "FCT_PROJECTCREATE_WFL");
+        params.put("workFlowType", "CREDIT_CHANCE_CREATE_WFL");
 
         //工作流状态
         params.put("creditLineStatus", creditLineChance.getCreditLineStatus());
@@ -1127,30 +1129,29 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
 
     @Override
     public HlsCusHlsCreditLineChance prjChangeSubmitWfl(IRequest iRequest, HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance) {
+
         HlsCusHlsCreditLineChance prjChance = new HlsCusHlsCreditLineChance();
-
         prjChance = self().selectByPrimaryKey(iRequest, hlsCusHlsCreditLineChance);
-
         List<HlsCusHlsCreditLineChance> hlsCusPrjProjectList = new ArrayList<>();
         hlsCusPrjProjectList.add(prjChance);
 
         /*修改审批信息表*/
-        HlsCusChangeReqInfo hlsCusChangeReqInfo = new HlsCusChangeReqInfo();
-        hlsCusChangeReqInfo.setChangeReqId(prjChance.getChangeReqId());
-        hlsCusChangeReqInfo = hlsCusChangeReqInfoService.selectByPrimaryKey(iRequest, hlsCusChangeReqInfo);
-        hlsCusChangeReqInfo.setStatus("APPROVING");
-        hlsCusChangeReqInfo.setWflNodeStatus(null);
-        hlsCusChangeReqInfo = hlsCusChangeReqInfoService.updateByPrimaryKey(iRequest, hlsCusChangeReqInfo);
-        HlsCusHlsCreditLineChance prjChanceOld = new HlsCusHlsCreditLineChance();
-        prjChanceOld.setChanceId(hlsCusChangeReqInfo.getDocumentId());
-        prjChanceOld = self().selectByPrimaryKey(iRequest, prjChanceOld);
-        prjChanceOld.setCreditLineStatus("PENDING");
-        self().updateByPrimaryKeySelective(iRequest, prjChanceOld);
+//        HlsCusChangeReqInfo hlsCusChangeReqInfo = new HlsCusChangeReqInfo();
+//        hlsCusChangeReqInfo.setChangeReqId(prjChance.getChangeReqId());
+//        hlsCusChangeReqInfo = hlsCusChangeReqInfoService.selectByPrimaryKey(iRequest, hlsCusChangeReqInfo);
+//        hlsCusChangeReqInfo.setStatus("APPROVING");
+//        hlsCusChangeReqInfo.setWflNodeStatus(null);
+//        hlsCusChangeReqInfo = hlsCusChangeReqInfoService.updateByPrimaryKey(iRequest, hlsCusChangeReqInfo);
+//        HlsCusHlsCreditLineChance prjChanceOld = new HlsCusHlsCreditLineChance();
+//        prjChanceOld.setChanceId(hlsCusChangeReqInfo.getDocumentId());
+//        prjChanceOld = self().selectByPrimaryKey(iRequest, prjChanceOld);
+//        prjChanceOld.setCreditLineStatus("PENDING");
+//        self().updateByPrimaryKeySelective(iRequest, prjChanceOld);
 
         //获取申请人
-        HlsEmployee employee = employeeMapper.getEmployeeCode(iRequest.getUserId());
-        String employeeCode = employee.getEmployeeCode();
-        iRequest.setEmployeeCode(employeeCode);
+//        HlsEmployee employee = employeeMapper.getEmployeeCode(iRequest.getUserId());
+//        String employeeCode = employee.getEmployeeCode();
+//        iRequest.setEmployeeCode(employeeCode);
 
         //开始流程
         Map<String, Object> params = new HashMap<String, Object>();
@@ -1164,8 +1165,8 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
             params.put("wflKey", "PRJ_CREDIT_CHANCE_CHANGE_WFL");
         }*/
 
-        params.put("workFlowType", "CRL_CHANGE_WFL");
-        params.put("wflKey", "CRL_CHANGE_WFL");// PRJ_PROJECT_CHANGE_WFL
+        params.put("workFlowType", "PRJ_CHANCE_CHANGE_WFL");
+        params.put("wflKey", "PRJ_CHANCE_CHANGE_WFL");// PRJ_PROJECT_CHANGE_WFL
 
         activitiStartService.start(iRequest, hlsCusPrjProjectList, params);
 

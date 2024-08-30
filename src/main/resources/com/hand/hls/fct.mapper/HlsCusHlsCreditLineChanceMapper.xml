@@ -706,6 +706,22 @@
         clc.VALID_TO,
         clc.BP_Id,
         clc.APPROVED_DATE,
+        clc.industry_type,
+            ( SELECT hsc.description FROM hls_stat_class hsc WHERE to_char( hsc.class_id ) = clc.industry_type AND hsc.enabled_flag = 'Y' ) industry_type_n,
+        clc.city,
+        (
+            SELECT
+            CONCAT(
+            ( SELECT P.DESCRIPTION FROM FND_PROVINCE P WHERE to_char( P.PROVINCE ) = fd.PROVINCE ),
+            CONCAT( ( SELECT fc.DESCRIPTION FROM FND_CITY fc WHERE to_char( fc.City ) = fd.City ), fd.DESCRIPTION )
+            )
+            FROM
+            fnd_district fd
+            WHERE
+            fd.DISTRICT = clc.city
+            AND fd.enabled_flag = 'Y'
+            ) CITY_N,
+
         (SELECT f.COMPANY_SHORT_NAME AS value_name FROM fnd_company f WHERE f.ENABLED_FLAG = 'Y' and f.COMPANY_ID = clc.COMPANY_ID) COMPANY_ID_N,
 		clc.CREDIT_FLAG,
         (select scv.MEANING from sys_code_b sc, sys_code_value_b scv where sc.CODE_ID = scv.CODE_ID and scv.value = clc.CREDIT_FLAG and rownum=1)CREDIT_FLAG_N,
@@ -805,15 +821,8 @@
         END),
         CLC.INDUSTRY,
         (select scvb.meaning from sys_code_value_b scvb, sys_code_b scb where scb.code = 'CHANCE.INDUSTRY' and scb.code_id = scvb.code_id and scvb.enabled_flag = 'Y' AND CLC.INDUSTRY=scvb.value) INDUSTRY_n,
-        CLC.INDUSTRY_TYPE,
-        (select scvb.meaning from sys_code_value_b scvb, sys_code_b scb where scb.code = 'CHANCE.INDUSTRY_TYPE' and scb.code_id = scvb.code_id and scvb.enabled_flag = 'Y' AND CLC.INDUSTRY_TYPE=scvb.value) INDUSTRY_TYPE_N,
         to_char(clc.CREATION_DATE, 'yyyy-mm-dd') TOUCH_CREATED_DATE,
         clc.CREDIT_MEASURES,
-        clc.city,
-        (select CONCAT((SELECT P.DESCRIPTION FROM FND_PROVINCE P WHERE to_char(P.PROVINCE) = C.PROVINCE), C.DESCRIPTION)
-        from fnd_city c
-        where c.city = clc.city
-        and c.enabled_flag = 'Y') CITY_N,
         clc.tenant_analyse,
         clc.guarantee_analyse
         from HLS_CREDIT_LINE_CHANCE CLC
