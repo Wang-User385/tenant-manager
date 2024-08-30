@@ -598,7 +598,9 @@ public class PrjQuotationCalcServiceImpl extends BaseServiceImpl<HlsCusPrjQuotat
             map4.put("field", "finance_amount");
             map4.put("value", doubleDataTran(quotationMap.get("finance_amount")));
             mapList.add(map4);
-        }else if("GT-BL-PMT".equals(prjQuotation.getPriceList())){
+        }else if("GT-BL-PMT".equals(prjQuotation.getPriceList())
+                || "GT-FREEPRIN-BL".equals(prjQuotation.getPriceList())
+                || "GT-ONEPAY-BL".equals(prjQuotation.getPriceList())){
             //年利率
             Map map1 = new HashMap();
             map1.put("field", "int_rate");
@@ -636,6 +638,30 @@ public class PrjQuotationCalcServiceImpl extends BaseServiceImpl<HlsCusPrjQuotat
             map7.put("field", "alt_renting_frequency");
             map7.put("value", doubleDataTran(quotationMap.get("alt_renting_frequency")));
             mapList.add(map7);
+
+            //首付款
+            Map map8 = new HashMap();
+            map8.put("field", "down_payment");
+            map8.put("value", doubleDataTran(quotationMap.get("down_payment")));
+            mapList.add(map8);
+
+            //保证金
+            Map map9 = new HashMap();
+            map9.put("field", "deposit");
+            map9.put("value", doubleDataTran(quotationMap.get("deposit")));
+            mapList.add(map9);
+
+            //其他收入
+            Map map10 = new HashMap();
+            map10.put("field", "other_income");
+            map10.put("value", doubleDataTran(quotationMap.get("other_income")));
+            mapList.add(map10);
+
+            //其他支出
+            Map map11 = new HashMap();
+            map11.put("field", "other_expenses");
+            map11.put("value", doubleDataTran(quotationMap.get("other_expenses")));
+            mapList.add(map11);
         }
 
         //step3 判断是否有detail数据，如果没有则取报价模板的sheet
