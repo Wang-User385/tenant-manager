@@ -14,47 +14,47 @@ public class YLRabbitMqConfiguration {
     /**
      * Direct模式:易靓审核结果消息队列
      */
-    public static final String QUEUE_GT_YL_ORDER_AUDIT_RESULT = "ORDER_AUDIT_RESULT";
+    public static final String QUEUE_GT_YL_ORDER_AUDIT_RESULT = "GT-YL-N001";
 
     /**
      * 易靓放款结果通知队列
      */
-    public static final String QUEUE_GT_YL_ORDER_LOAN_RESULT = "ORDER_LOAN_RESULT";
+    public static final String QUEUE_GT_YL_ORDER_LOAN_RESULT = "GT-YL-N002";
 
     /**
      * 易靓关单结果通知队列
      */
-    public static final String QUEUE_GT_YL_ORDER_CLOSED_NOTIFY = "ORDER_CLOSED_NOTIFY";
+    public static final String QUEUE_GT_YL_ORDER_CLOSED_NOTIFY = "GT-YL-N003";
 
     /**
      * 易靓还款计划生成通知队列
      */
-    public static final String QUEUE_GT_YL_REPAY_PLAN_CREATED_NOTIFY = "REPAY_PLAN_CREATED_NOTIFY";
+    public static final String QUEUE_GT_YL_REPAY_PLAN_CREATED_NOTIFY = "GT-YL-N004";
 
     /**
      * 易靓逾期算费完成通知队列
      */
-    public static final String QUEUE_GT_YL_OVERDUE_CALCULATE_FINISHED_NOTIFY = "OVERDUE_CALCULATE_FINISHED_NOTIFY";
+    public static final String QUEUE_GT_YL_OVERDUE_CALCULATE_FINISHED_NOTIFY = "GT-YL-N005";
 
     /**
      * 易靓需代偿通知队列
      */
-    public static final String QUEUE_GT_YL_ASSET_NEED_SUBSTITUTE = "ASSET_NEED_SUBSTITUTE";
+    public static final String QUEUE_GT_YL_ASSET_NEED_SUBSTITUTE = "GT-YL-N006";
 
     /**
      * 易靓需回购通知队列
      */
-    public static final String QUEUE_GT_YL_ASSET_NEED_BUYBACK = "ASSET_NEED_BUYBACK";
+    public static final String QUEUE_GT_YL_ASSET_NEED_BUYBACK = "GT-YL-N007";
 
     /**
      * 易靓代扣签约结果通知队列
      */
-    public static final String QUEUE_GT_YL_WITHHOLD_CONTRACT_RESULT = "WITHHOLD_CONTRACT_RESULT";
+    public static final String QUEUE_GT_YL_WITHHOLD_CONTRACT_RESULT = "GT-YL-N008";
 
     /**
      * 易靓期次代扣结果通知队列
      */
-    public static final String QUEUE_GT_YL_REPAY_PLAN_REPAID_NOTIFY = "REPAY_PLAN_REPAID_NOTIFY";
+    public static final String QUEUE_GT_YL_REPAY_PLAN_REPAID_NOTIFY = "GT-YL-N009";
 
 
     /**

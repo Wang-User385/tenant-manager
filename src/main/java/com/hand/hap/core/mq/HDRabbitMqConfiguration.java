@@ -18,47 +18,47 @@ public class HDRabbitMqConfiguration {
     /**
      * Direct模式:汉得审核结果消息队列
      */
-    public static final String QUEUE_GT_HD_ORDER_AUDIT_RESULT = "HD_ORDER_AUDIT_RESULT";
+    public static final String QUEUE_GT_HD_ORDER_AUDIT_RESULT = "HD-YL-N001";
 
     /**
      * 汉得放款结果通知队列
      */
-    public static final String QUEUE_GT_HD_ORDER_LOAN_RESULT = "HD_ORDER_LOAN_RESULT";
+    public static final String QUEUE_GT_HD_ORDER_LOAN_RESULT = "HD-YL-N002";
 
     /**
      * 汉得关单结果通知队列
      */
-    public static final String QUEUE_GT_HD_ORDER_CLOSED_NOTIFY = "HD_ORDER_CLOSED_NOTIFY";
+    public static final String QUEUE_GT_HD_ORDER_CLOSED_NOTIFY = "HD-YL-N003";
 
     /**
      * 汉得还款计划生成通知队列
      */
-    public static final String QUEUE_GT_HD_REPAY_PLAN_CREATED_NOTIFY = "HD_REPAY_PLAN_CREATED_NOTIFY";
+    public static final String QUEUE_GT_HD_REPAY_PLAN_CREATED_NOTIFY = "HD-YL-N004";
 
     /**
      * 汉得逾期算费完成通知队列
      */
-    public static final String QUEUE_GT_HD_OVERDUE_CALCULATE_FINISHED_NOTIFY = "HD_OVERDUE_CALCULATE_FINISHED_NOTIFY";
+    public static final String QUEUE_GT_HD_OVERDUE_CALCULATE_FINISHED_NOTIFY = "HD-YL-N005";
 
     /**
      * 汉得需代偿通知队列
      */
-    public static final String QUEUE_GT_HD_ASSET_NEED_SUBSTITUTE = "HD_ASSET_NEED_SUBSTITUTE";
+    public static final String QUEUE_GT_HD_ASSET_NEED_SUBSTITUTE = "HD-YL-N006";
 
     /**
      * 汉得需回购通知队列
      */
-    public static final String QUEUE_GT_HD_ASSET_NEED_BUYBACK = "HD_ASSET_NEED_BUYBACK";
+    public static final String QUEUE_GT_HD_ASSET_NEED_BUYBACK = "HD-YL-N007";
 
     /**
      * 汉得代扣签约结果通知队列
      */
-    public static final String QUEUE_GT_HD_WITHHOLD_CONTRACT_RESULT = "HD_WITHHOLD_CONTRACT_RESULT";
+    public static final String QUEUE_GT_HD_WITHHOLD_CONTRACT_RESULT = "HD-YL-N008";
 
     /**
      * 汉得期次代扣结果通知队列
      */
-    public static final String QUEUE_GT_HD_REPAY_PLAN_REPAID_NOTIFY = "HD_REPAY_PLAN_REPAID_NOTIFY";
+    public static final String QUEUE_GT_HD_REPAY_PLAN_REPAID_NOTIFY = "HD-YL-N009";
 
 
     /**
