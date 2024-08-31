@@ -13,23 +13,6 @@
         <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
         <script><![CDATA[
 
-        function atmTypeRef(name) {
-            return /\.(jpg|png|gif|bmp|jpeg)$/i.test(name)
-        }
-
-        function checkPdf(name) {
-            return /\.(pdf)$/i.test(name)
-        }
-
-        function checkDox(name) {
-            return /\.(doc|docx)$/i.test(name)
-        }
-
-        function checkXls(name) {
-            return /\.(xls|xlsx)$/i.test(name)
-        }
-
-
         //超链接渲染
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
             var file_num = record.get('file_num') || 0;
@@ -81,124 +64,6 @@
                 }
             }
         };
-
-        function open_master_detail_win(record_id, ds_id) {
-            ;
-            var record = $(ds_id).findById(record_id);
-            var param = record.data;
-            param['url_title'] = '商业伙伴信息';
-            param['function_code'] = 'BP100F1';
-            param['function_usage'] = 'QUERY';
-            param['winid'] = 'factoring_bp_master_modify_winid';
-            hls_doc_get_layout_code(param, 'factoring_bp_master_modify_link_id', null, 'PRJ005F1');
-        }
-
-        function open_financia_detail_win(record_id, ds_id) {
-            var record = $(ds_id).getCurrentRecord();
-            var bp_id = record.get('bp_id');
-            var bp_name = record.data['bp_name'];
-            var bp_code = record.data['bp_code'];
-            var function_usage = 'QUERY';
-            new Leaf.Window({
-                id: 'factoring_financial_info_winid',
-                url: '${/request/@context_path}/modules/BP/BP100/hls_bp_master_financial_info.lview',
-                params: {
-                    bp_id: bp_id,
-                    bp_master_code: bp_code,
-                    bp_master_name: bp_name,
-                    function_usage: function_usage,
-                    winid: 'hls_bp_master_financial_info_winid'
-                },
-                title: '财务报表查看',
-                fullScreen: false,
-                width: 950,
-                height: 535,
-                side: "right",
-                draggable: true
-            });
-            hls_doc_get_layout_code(param, 'factoring_finance_report_detail_link_id', null, 'PRJ005F1');
-
-        }
-
-        function upload(ds_id, record_id, pk_id) {
-            var tableName = 'HLS_CREDIT_LINE_ATTACH';
-            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
-            var base_record;
-            var chance_attachment_id;
-            base_record = $(base_ds_id).findById(record_id);
-            chance_attachment_id = base_record.get('chance_attachment_id');
-            if (!chance_attachment_id) {
-                $L.showInfoMessage("提示", "请先保存再上传附件!");
-                return;
-            }
-            var url = '${/request/@context_path}/uploadFile.lview';
-            var win = new Leaf.Window({
-                id: 'PRJ005F1_open_attachment_factoring_winid',
-                url: url,
-                params: {
-                    'header_id': chance_attachment_id,
-                    'table_name': tableName,
-                    winid: 'PRJ005F1_open_attachment_factoring_winid'
-                },
-                title: '文件上传下载',
-                width: 800,
-                height: 475
-            });
-            win.on('close', function () {
-                $(ds_id).query();
-            });
-        };
-
-        function quotation_factoring_detail_adjust(dsId, record_id, quotation_id) {
-            debugger;
-            var price_list = $(dsId).findById(record_id).get("price_list");
-            quotation_id = $(dsId).findById(record_id).get("quotation_id");
-            if (quotation_id == 'undefined' || quotation_id == null || quotation_id == '') {
-                Leaf.showInfoMessage("提示", "请先保存后，再进行报价测算");
-                return;
-            }
-            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
-            Leaf.request({
-                url: '${/request/@context_path}/prj/quotation/calc?quotationId=' + quotation_id,
-                para: null,
-                success: function (res) {
-                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                    Leaf.SideBar.show({
-                        msg: '计算成功',
-                        duration: 2000
-                    });
-                    var readOnly = 'N';
-                    if ('${/parameter/@function_usage}' == 'QUERY') {
-                        readOnly = 'Y';
-                    }
-                    var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=' + readOnly;
-                    var win = new Leaf.Window({
-                        id: 'hls901_open_price_winid',
-                        url: url,
-                        title: '项目报价',
-                        fullScreen: true
-                    });
-                    var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
-                    $(quo_ds).query();
-                    var ds_id_cp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
-                    var record_cp = $(ds_id_cp).getCurrentRecord();
-                    if (record_cp) {
-                        var record_quo = $(quo_ds).getCurrentRecord();
-                        if (record_quo) {
-                            record_cp.set('credit_amount', record_quo.get('finance_amount'));
-                        }
-                    }
-                },
-                error: function () {
-                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                },
-                failure: function () {
-                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                },
-                scope: this
-            });
-        }
-
 
         //暂存
         window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
@@ -334,39 +199,6 @@
             location.href = down_url;
         }
 
-        Leaf.onReady(function () {
-            var credit_flag = '${/parameter/@credit_flag}';
-            var credit_flag_n = '${/parameter/@credit_flag_n}';
-            if ('${/parameter/@wfl_flag}' != 'Y') {
-                //隐藏工作流要用组件
-                wflComponentHide();
-            }
-            if (credit_flag == 'N' || credit_flag_n == '否') {
-                //不是授信则隐藏
-                noCreditFlogComponentHide();
-            }
-            if ('${/parameter/@function_usage}' == 'CREATE') {
-                $('factoring_add_winid').close();
-                var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
-                addCustomerInCreate(ds_id_customer);
-                // if('${/parameter/@credit_flag}' == 'Y'){
-                //     var ds_id_au_d = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
-                //     addCreditPlanInfoInCreate(ds_id_au_d);
-                // }
-            }
-            // 控制主角色不能删除
-            $('${/parameter/@layout_code}_F_CUSTOMER_hls_credit_line_chance_bp_ds').on('beforeremove', function (ds, records) {
-                for (var i = 0; i < records.length; i++) {
-                    if (records[i].get('bp_type') == 'TRANSFEREE_ASSETS') {
-                        Leaf.showMessage("提示", "客户信息保理卖方不允许删除!", null);
-                        return false;
-                    }
-                }
-            });
-
-
-        });
-
         //更新时调用
         window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value) {
             var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
@@ -408,13 +240,21 @@
             set.clear();
             var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
             var records_p = $(ds_id_p).getAll();
-            for (let i = 0; i < records_p.length; i++) {
-                var record_p = records_p[i];
-                if (set.has(record_p.get('factoring_category'))) {
-                    Leaf.showErrorMessage('提示', '授信明细保理种类为' + record_p.get('factoring_category_n') + '有多个');
-                    return false;
+            if (records_p){
+                for (let i = 0; i < records_p.length; i++) {
+                    var record_p = records_p[i];
+                    if (set.has(record_p.get('factoring_category'))) {
+                        Leaf.showErrorMessage('提示', '授信明细保理种类为' + record_p.get('factoring_category_n') + '有多个');
+                        return false;
+                    }
+                    set.add(record_p.get('factoring_category'));
                 }
-                set.add(record_p.get('factoring_category'));
+            }
+            var ds_id_cp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            var record_cp = $(ds_id_cp).getCurrentRecord();
+            if (record_cp.get('date_from') > record_cp.get('date_to')){
+                Leaf.showErrorMessage('提示', '授信开始日期不能大于授信结束日期');
+                return false;
             }
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
             var ds_id_pq = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation', 'F_QUOTATIO_FINANCIA');
@@ -594,6 +434,170 @@
             }
         };
 
+        Leaf.onReady(function () {
+            var credit_flag = '${/parameter/@credit_flag}';
+            var credit_flag_n = '${/parameter/@credit_flag_n}';
+            if ('${/parameter/@wfl_flag}' != 'Y') {
+                //隐藏工作流要用组件
+                wflComponentHide();
+            }
+            if (credit_flag == 'N' || credit_flag_n == '否') {
+                //不是授信则隐藏
+                noCreditFlogComponentHide();
+            }
+            if ('${/parameter/@function_usage}' == 'CREATE') {
+                $('factoring_add_winid').close();
+                var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
+                addCustomerInCreate(ds_id_customer);
+                // if('${/parameter/@credit_flag}' == 'Y'){
+                //     var ds_id_au_d = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
+                //     addCreditPlanInfoInCreate(ds_id_au_d);
+                // }
+            }
+            // 控制主角色不能删除
+            $('${/parameter/@layout_code}_F_CUSTOMER_hls_credit_line_chance_bp_ds').on('beforeremove', function (ds, records) {
+                for (var i = 0; i < records.length; i++) {
+                    if (records[i].get('bp_type') == 'TRANSFEREE_ASSETS') {
+                        Leaf.showMessage("提示", "客户信息保理卖方不允许删除!", null);
+                        return false;
+                    }
+                }
+            });
+
+
+        });
+
+        function atmTypeRef(name) {
+            return /\.(jpg|png|gif|bmp|jpeg)$/i.test(name)
+        }
+
+        function checkPdf(name) {
+            return /\.(pdf)$/i.test(name)
+        }
+
+        function checkDox(name) {
+            return /\.(doc|docx)$/i.test(name)
+        }
+
+        function checkXls(name) {
+            return /\.(xls|xlsx)$/i.test(name)
+        }
+
+        function open_master_detail_win(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '商业伙伴信息';
+            param['function_code'] = 'BP100F1';
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'factoring_bp_master_modify_winid';
+            hls_doc_get_layout_code(param, 'factoring_bp_master_modify_link_id', null, 'PRJ005F1');
+        }
+
+        function open_financia_detail_win(record_id, ds_id) {
+            var record = $(ds_id).getCurrentRecord();
+            var bp_id = record.get('bp_id');
+            var bp_name = record.data['bp_name'];
+            var bp_code = record.data['bp_code'];
+            var function_usage = 'QUERY';
+            new Leaf.Window({
+                id: 'factoring_financial_info_winid',
+                url: '${/request/@context_path}/modules/BP/BP100/hls_bp_master_financial_info.lview',
+                params: {
+                    bp_id: bp_id,
+                    bp_master_code: bp_code,
+                    bp_master_name: bp_name,
+                    function_usage: function_usage,
+                    winid: 'hls_bp_master_financial_info_winid'
+                },
+                title: '财务报表查看',
+                fullScreen: false,
+                width: 950,
+                height: 535,
+                side: "right",
+                draggable: true
+            });
+            hls_doc_get_layout_code(param, 'factoring_finance_report_detail_link_id', null, 'PRJ005F1');
+
+        }
+
+        function upload(ds_id, record_id, pk_id) {
+            var tableName = 'HLS_CREDIT_LINE_ATTACH';
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
+            var base_record;
+            var chance_attachment_id;
+            base_record = $(base_ds_id).findById(record_id);
+            chance_attachment_id = base_record.get('chance_attachment_id');
+            if (!chance_attachment_id) {
+                $L.showInfoMessage("提示", "请先保存再上传附件!");
+                return;
+            }
+            var url = '${/request/@context_path}/uploadFile.lview';
+            var win = new Leaf.Window({
+                id: 'PRJ005F1_open_attachment_factoring_winid',
+                url: url,
+                params: {
+                    'header_id': chance_attachment_id,
+                    'table_name': tableName,
+                    winid: 'PRJ005F1_open_attachment_factoring_winid'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                $(ds_id).query();
+            });
+        }
+
+        function quotation_factoring_detail_adjust(dsId, record_id, quotation_id) {
+            debugger;
+            var price_list = $(dsId).findById(record_id).get("price_list");
+            quotation_id = $(dsId).findById(record_id).get("quotation_id");
+            if (quotation_id == 'undefined' || quotation_id == null || quotation_id == '') {
+                Leaf.showInfoMessage("提示", "请先保存后，再进行报价测算");
+                return;
+            }
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: '${/request/@context_path}/prj/quotation/calc?quotationId=' + quotation_id,
+                para: null,
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.SideBar.show({
+                        msg: '计算成功',
+                        duration: 2000
+                    });
+                    var readOnly = 'N';
+                    if ('${/parameter/@function_usage}' == 'QUERY') {
+                        readOnly = 'Y';
+                    }
+                    var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=' + readOnly;
+                    var win = new Leaf.Window({
+                        id: 'hls901_open_price_winid',
+                        url: url,
+                        title: '项目报价',
+                        fullScreen: true
+                    });
+                    var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
+                    $(quo_ds).query();
+                    var ds_id_cp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+                    var record_cp = $(ds_id_cp).getCurrentRecord();
+                    if (record_cp) {
+                        var record_quo = $(quo_ds).getCurrentRecord();
+                        if (record_quo) {
+                            record_cp.set('credit_amount', record_quo.get('finance_amount'));
+                        }
+                    }
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        }
 
         function addCustomerInCreate(ds_id) {
             var cur_ds = $(ds_id);
