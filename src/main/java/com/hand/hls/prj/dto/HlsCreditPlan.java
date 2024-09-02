@@ -123,6 +123,7 @@ public class HlsCreditPlan {
     private  String depositColMethod;
     private  Double intRate;
 
+    @Transient
     private Long projectId;
 
     @Transient
