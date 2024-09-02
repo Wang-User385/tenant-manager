@@ -3,7 +3,31 @@
           trace="true">
     <a:view>
         <script><![CDATA[
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            if (name == 'project_number' && value) {
+                return '<a href="javascript:open_prj_project_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">' + value + '</a>';
+            }
 
+            function open_prj_project_detail_win(record_id, ds_id) {
+                var record = $(ds_id).findById(record_id);
+                var param = record.data;
+                param['chance_id'] = record.get('chance_id');
+                var maintain_type = 'UPDATE';
+                var function_usage = 'MODIFY';
+                if (record.get('credit_line_status') != 'NEW' && record.get('credit_line_status') != 'TERMINATE') {
+                    maintain_type = 'READONLY';
+                    function_usage = 'QUERY';
+                }
+                param['maintain_type'] = maintain_type;
+                param['function_usage'] = function_usage;
+                param['url_title'] = '项目审批';
+                param['function_code'] = 'PRJ00516F1';
+                param['winid'] = 'factoring_prj_detail_winid';
+                hls_doc_get_layout_code(param, 'prj_factoring_main_detail', ds_id, 'PRJ005');
+            }
+
+        };
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
     </a:view>

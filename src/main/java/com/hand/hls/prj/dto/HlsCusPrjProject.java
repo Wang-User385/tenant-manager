@@ -3052,6 +3052,11 @@ public class HlsCusPrjProject extends PrjProject {
     private Date contractEndDate;
 
     @Transient
+    private Date creationDateFrom;
+    @Transient
+    private Date creationDateTo;
+
+    @Transient
     private String financialLeaseStatus;
 
     @Transient

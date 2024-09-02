@@ -135,6 +135,7 @@
         <result column="virtual_con_counts" property="virtualConCounts" jdbcType="DECIMAL"/>
         <result column="tenant_sec_id" property="tenantSecId"/>
         <result column="tenant_sec_id_n" property="tenantSecIdN"/>
+        <result column="industry" property="industry" jdbcType="VARCHAR"/>
 
         <result column="credit_condition" property="creditCondition" jdbcType="VARCHAR"/>
         <result column="payment_condition" property="paymentCondition" jdbcType="VARCHAR"/>
@@ -13569,6 +13570,58 @@ WHERE
         <if test="projectId != null">
             and pp.project_id = #{projectId}
         </if>
+    </select>
+
+    <select id="findFactoringApprovalInfo" resultMap="BaseResultMap">
+        SELECT
+            pp.project_id,
+            pp.project_number,
+            pp.tenant_id,
+            ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
+            pp.credit_flag,
+            ( SELECT v.meaning FROM sys_code_value_b_v v WHERE v.CODE = 'GT.HCLC.CREDIT_FLAG' AND pp.CREDIT_FLAG = v.CODE_VALUE ) AS credit_flag_n,
+            pp.lease_item_amount,
+            pp.industry,
+            pp.host_project_manager,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = pp.host_project_manager ) host_project_manager_n,
+            pp.assist_project_manager,
+            ( SELECT a.description FROM sys_user a WHERE a.user_id = pp.assist_project_manager ) assist_project_manager_n,
+            pp.project_status,
+            ( SELECT v.meaning FROM sys_code_value_b_v v WHERE v.CODE = 'CHANCE.FACTORING_PRJ_STATUS' AND v.code_value = pp.project_status ) project_status_n,
+            pp.creation_date,
+            pp.approved_date
+        FROM
+            prj_project pp
+        <where>
+            pp.document_type = 'FACTORING' and pp.document_category='PRJ_PROJECT'
+            <if test="projectNumber != null and  projectNumber != '' ">
+                and pp.project_number like concat('%',concat(#{projectNumber},'%'))
+            </if>
+            <if test="projectName != null and  projectName != '' ">
+                and pp.project_name like concat('%',concat(#{projectName},'%'))
+            </if>
+            <if test="tenantIdN != null and  tenantIdN != '' ">
+                and ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = pp.tenant_id ) like concat('%',concat(#{tenantIdN},'%'))
+            </if>
+            <if test="tenantIdN != null and  tenantIdN != '' ">
+                and pp.tenant_id_n like concat('%',concat(#{tenantIdN},'%'))
+            </if>
+            <if test="industry != null and industry != ''">
+                and pp.industry like concat('%', concat(#{industry},'%'))
+            </if>
+            <if test="creationDateFrom != null">
+                and pp.creation_date >= to_date(#{creationDateFrom},'yyyy-mm-dd hh24:mi:ss')
+            </if>
+            <if test="creationDateTo != null ">
+                and pp.creation_date &lt; to_date(#{creationDateTo},'yyyy-mm-dd hh24:mi:ss')+1
+            </if>
+            <if test="projectStatus != null and projectStatus != '' ">
+                and pp.project_status = #{projectStatus}
+            </if>
+            <if test="creditFlag != null and creditFlag != ''">
+                and pp.credit_flag = #{creditFlag}
+            </if>
+        </where>
     </select>
 
 </mapper>
