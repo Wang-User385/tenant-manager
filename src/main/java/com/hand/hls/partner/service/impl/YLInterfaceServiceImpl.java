@@ -447,11 +447,11 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         }
         queryOrder.setOrderNo(queryOrderDTO.getOrderNo());
         queryOrder.setRepayPlanTerms(repayPlanTermInfoDTOList);
-        queryOrder.setStatus("NORMAL");
+        //queryOrder.setStatus("NORMAL");
         //订单存在，判断合同状态是否为起租后状态、结清状态
         //如果是，则返回数据，如果不是，返回错误
         String contractStatus = prjProjectMapper.selectContractByOrderNo(queryOrderDTO.getOrderNo());
-        if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus)){
+        if ("ET".equals(contractStatus)  || "INCEPT".equals(contractStatus) || "TERMINATE".equals(contractStatus)){
             returnJson.put("code","200");
             returnJson.put("message","查询成功");
             returnJson.put("result",queryOrder);
@@ -641,6 +641,23 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
 
         //根据订单编号查询数据
         //List<HlsCusCshTransaction> hlsCusCshTransactionList = prjProjectMapper.selectTranSactionByOrderNo(claimsSubrogationDTO.getOrderNo());
+        //和代偿试算校验保持一致
+        HlsCusPrjProject hlsCusPrjProject = prjProjectMapper.selectProjectByOrderNo(claimsSubrogationDTO.getOrderNo());
+        if (hlsCusPrjProject==null){
+            jsonObject1.put("code","100003");
+            jsonObject1.put("message","订单不存在");
+            throw new HlsCusException(jsonObject1.toJSONString());
+        }
+        CompensatoryTrialCalculationDTO queryCompensatory = new CompensatoryTrialCalculationDTO();
+        queryCompensatory.setOrderNo(claimsSubrogationDTO.getOrderNo());
+        queryCompensatory.setTermNo(claimsSubrogationDTO.getTermNo());
+        queryCompensatory.setTrialTime(String.valueOf(new Date()));
+        CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(queryCompensatory);
+        if (compensatoryTrialCalculation1==null){
+            jsonObject1.put("code","100003");
+            jsonObject1.put("message","数据不存在");
+            throw new HlsCusException(jsonObject1.toJSONString());
+        }
 
         //根据订单编号和期次获取需要代偿的现金流数据
         HlsCusConContractCashflow conContractCashflow = conContractCashflowMapper.queryClaimsSubrogation(claimsSubrogationDTO);
@@ -655,8 +672,6 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             jsonObject1.put("message","代偿金额不匹配！");
             throw new HlsCusException(jsonObject1.toJSONString());
         }
-
-
 
         //将代偿数据入库
         conContractCashflow.setPlanType("COMP");
@@ -770,7 +785,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         HlsCusCshTransactionRefund transactionRefund = new HlsCusCshTransactionRefund();
                         String refundNumber = cshPaymentReqHdService.getCodeValue(iRequest);
                         transactionRefund.setRefundNumber(refundNumber);
-                        transactionRefund.setRefundStatus(HlsConstantUtil.WorkFlowStatus.APPROVED);
+                        transactionRefund.setRefundStatus(HlsConstantUtil.WorkFlowStatus.NEW);
                         transactionRefund.setPaymentRefundStatus(HlsConstantUtil.SlipStatus.PAYING);
                         transactionRefund.setAuthorityRuleString(cshPaymentReqLnService.getAuthorityRuleString(iRequest));
                         //设置付款信息
@@ -1873,7 +1888,7 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
                         HlsCusCshTransactionRefund transactionRefund = new HlsCusCshTransactionRefund();
                         String refundNumber = cshPaymentReqHdService.getCodeValue(iRequest);
                         transactionRefund.setRefundNumber(refundNumber);
-                        transactionRefund.setRefundStatus(HlsConstantUtil.WorkFlowStatus.APPROVED);
+                        transactionRefund.setRefundStatus(HlsConstantUtil.WorkFlowStatus.NEW);
                         transactionRefund.setPaymentRefundStatus(HlsConstantUtil.SlipStatus.PAYING);
                         transactionRefund.setAuthorityRuleString(cshPaymentReqLnService.getAuthorityRuleString(iRequest));
                         //设置付款信息

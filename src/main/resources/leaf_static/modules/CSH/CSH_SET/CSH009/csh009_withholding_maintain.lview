@@ -49,17 +49,23 @@
            }
 
 
-                for (let i = 0; i < records.length; i++) {
-                const record = records[i];
-                const status = record.get('status_n');
-                     debugger;
-                if (!(status === 'CLOSED' || status === 'NEW' || status === undefined)) {
-            Leaf.showErrorMessage('提示信息', "请勾选交易状态为新建、扣款失败的数据！");
-            return;
-        }
-
-
+          for (let i = 0; i < records.length; i++) {
+            const record = records[i];
+            const status = record.get('status_n');
+            if (!(status === 'CLOSED' || status === 'NEW' || status === undefined)) {
+                Leaf.showErrorMessage('提示信息', "请勾选交易状态为新建、扣款失败的数据！");
+                return;
             }
+            //转付和暂停代扣校验
+            if (record.get('transfer_payment_flag') != 'Y') {
+              Leaf.showErrorMessage('提示信息', "转付单据无法进行代扣！");
+              return;
+            }
+            if (record.get('stop_withhold_flag') != 'Y') {
+              Leaf.showErrorMessage('提示信息', "暂停代扣单据无法进行代扣！");
+              return;
+            }
+          }
 
             var printData = [];
             for (var i = 0; i < records.length; i++) {
