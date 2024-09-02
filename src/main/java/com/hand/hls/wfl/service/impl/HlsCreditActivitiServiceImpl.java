@@ -30,11 +30,11 @@ import java.util.Map;
  * @Description: copy from GDXF by yy.chen
  */
 
-//@Service
-//@Transactional(rollbackFor = Exception.class)
-public class HlsCusCreditChanceActivitiStartServiceImpl implements IActivitiCommonService {
-    private static final String workFlowType = "CREDIT_CHANCE_CREATE_WFL_NEW";
-    private static final String namespace = "CREDIT_CHANCE_CREATE_WFL_NEW";
+@Service
+@Transactional(rollbackFor = Exception.class)
+public class HlsCreditActivitiServiceImpl  implements IActivitiCommonService{
+    private static final String workFlowType = "CREDIT_CHANCE_CREATE_WFL";
+    private static final String namespace = "CREDIT_CHANCE_CREATE_WFL";
 
     @Autowired
     private IActivitiService activitiService;
@@ -153,44 +153,6 @@ public class HlsCusCreditChanceActivitiStartServiceImpl implements IActivitiComm
         restVariable17.setName("unitId");
         restVariable17.setValue(hlsCusHlsCreditLineChance.getUnitId());
         variables.add(restVariable17);
-
-        //经办人projectId
-        RestVariable restVariable18 = new RestVariable();
-        restVariable18.setName("projectId");
-        restVariable18.setValue(hlsCusHlsCreditLineChance.getChanceId());
-        variables.add(restVariable18);
-
-        RestVariable restVariable19 = new RestVariable();
-        restVariable19.setName("projectDocumentCategory");
-        restVariable19.setValue("HLS_CREDIT_LINE");
-        variables.add(restVariable19);
-
-        RestVariable restVariable21 = new RestVariable();
-        restVariable21.setName("businessKey");
-        restVariable21.setValue(hlsCusHlsCreditLineChance.getChanceId());
-        variables.add(restVariable21);
-
-        //协办经理
-        RestVariable restVariable22 = new RestVariable();
-        restVariable22.setName("projectAssistant");
-        restVariable22.setValue(hlsCusHlsCreditLineChance.getProjectAssistant());
-        variables.add(restVariable22);
-
-        RestVariable restVariable23 = new RestVariable();
-        restVariable23.setName("chanceId");
-        restVariable23.setValue(hlsCusHlsCreditLineChance.getChanceId());
-        variables.add(restVariable23);
-
-        RestVariable restVariable24 = new RestVariable();
-        restVariable24.setName("BUSINESS_KEY");
-        restVariable24.setValue(hlsCusHlsCreditLineChance.getChanceId());
-        variables.add(restVariable24);
-
-        RestVariable restVariable25 = new RestVariable();
-        restVariable25.setName("creditFlag");
-        restVariable25.setValue(hlsCusHlsCreditLineChance.getCreditFlag());
-        variables.add(restVariable25);
-
         createRequest.setVariables(variables);
         createRequest.setTransientVariables(transientVariables);
 

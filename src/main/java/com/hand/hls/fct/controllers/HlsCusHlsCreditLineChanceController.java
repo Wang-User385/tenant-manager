@@ -204,6 +204,16 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         }
     }
 
+    @RequestMapping(value = "/credit/chance/submit/credit")
+    @ResponseBody
+    public ResponseData submitCredit(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) throws HlsCusException {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance = param.toJavaObject(HlsCusHlsCreditLineChance.class);
+        return new ResponseData(service.submitCredit(hlsCusHlsCreditLineChance, requestCtx));
+    }
+
     /**
      * 授信立项级联提交
      *
@@ -277,14 +287,14 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
     }
 
     @RequestMapping("/hls/credit/chance/cooperativeOrganizationCheck")
-    public ResponseData creditChanceCooperativeOrganizationCheck(HttpServletRequest request, @ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData)  throws HlsCusException{
+    public ResponseData creditChanceCooperativeOrganizationCheck(HttpServletRequest request, @ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData) throws HlsCusException {
         IRequest iRequest = createRequestContext(request);
 
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusHlsCreditLineChance dto = param.toJavaObject(HlsCusHlsCreditLineChance.class);
         dto.setBpId(Long.parseLong(param.get("cooperative_organization_id").toString()));
-        String dateFromS=param.get("date_from").toString();
-        String dateToS=param.get("date_to").toString();
+        String dateFromS = param.get("date_from").toString();
+        String dateToS = param.get("date_to").toString();
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
         try {
             dto.setValidFrom(formatter.parse(dateFromS));
@@ -342,7 +352,6 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         hlsCusChanceList.add(dto);
         return new ResponseData(hlsCusChanceList);
     }
-
 
 
     /*立项变更提交*/
@@ -455,7 +464,7 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         RequestHelper.setCurrentRequest(requestCtx);
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance = param.toJavaObject(HlsCusHlsCreditLineChance.class);
-        return new ResponseData(service.submit(hlsCusHlsCreditLineChance,requestCtx));
+        return new ResponseData(service.submit(hlsCusHlsCreditLineChance, requestCtx));
     }
 
     @RequestMapping(value = "/save/factoring/info")

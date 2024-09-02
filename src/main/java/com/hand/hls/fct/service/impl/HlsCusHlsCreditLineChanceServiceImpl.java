@@ -606,12 +606,12 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         List<HlsCusHlsCreditLineChance> creditChanceListParam = new ArrayList<>();
         creditChanceListParam.add(creditLineChance);
 
-        if ("APPROVING".equalsIgnoreCase(creditLineChance.getCreditLineStatus()) || "APPROVED".equalsIgnoreCase(creditLineChance.getCreditLineStatus())
-                || "CLOSED".equalsIgnoreCase(creditLineChance.getCreditLineStatus())) {
-
-
-
-        }
+//        if ("APPROVING".equalsIgnoreCase(creditLineChance.getCreditLineStatus()) || "APPROVED".equalsIgnoreCase(creditLineChance.getCreditLineStatus())
+//                || "CLOSED".equalsIgnoreCase(creditLineChance.getCreditLineStatus())) {
+//
+//
+//
+//        }
 
         //开始流程
         Map<String, Object> params = new HashMap<String, Object>();
@@ -1468,6 +1468,50 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         List<HlsCusHlsCreditLineChance> res = new ArrayList<>();
         res.add(dto);
         activitiStartService.start(requestCtx, res, params);
+        return  res;
+    }
+
+    public static final String CREDIT_WORK_FLOW = "CREDIT_CHANCE_CREATE_WFL";
+    public static final String CREDIT_DEMO_NAME = "CREDIT_CHANCE_CREATE_WFL";
+    public static final String CREDIT_DOCUMENT_TYPE = "CREDIT";
+    public static final String CREDIT_DOCUMENT_CATEGORY = "HLS_CREDIT_LINE_CHANCE";
+    public static final String CREDIT_DOCUMENT_NAME = "授信立项工作流";
+    @Override
+    public List<HlsCusHlsCreditLineChance> submitCredit(HlsCusHlsCreditLineChance dto,IRequest requestCtx) throws HlsCusException {
+        if ("APPROVING".equalsIgnoreCase(dto.getCreditLineStatus()) || "APPROVED".equalsIgnoreCase(dto.getCreditLineStatus())
+                || "CLOSED".equalsIgnoreCase(dto.getCreditLineStatus())) {
+
+           throw new HlsCusException("当前单据状态不能提交申请");
+
+        }
+
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("workFlowType", CREDIT_WORK_FLOW);
+        params.put(IActivitiCommonService.WORK_FLOW_NAME, CREDIT_WORK_FLOW);
+        params.put(IActivitiCommonService.DEMO_NAME, CREDIT_DEMO_NAME);
+        params.put(IActivitiCommonService.BUSINESS_KEY, dto.getChanceId());
+        params.put("chanceId", dto.getChanceId());
+        dto = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(dto);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(dto.getBpId());
+        hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
+        //单据类别
+        params.put("documentCategory",CREDIT_DOCUMENT_CATEGORY);
+        //单据类型
+        params.put("documentType", CREDIT_DOCUMENT_TYPE);
+        //单据名称
+        params.put("documentName", dto.getCreditLineName()+"-"+hlsCusBpMaster.getBpName()+"-"+CREDIT_DOCUMENT_NAME);
+        //单据编号
+        params.put("documentNumber", dto.getCreditLineName());
+        //是否授信
+        params.put("creditFlag", dto.getCreditFlag());
+        //查询
+        List<HlsCusHlsCreditLineChance> res = new ArrayList<>();
+        res.add(dto);
+        activitiStartService.start(requestCtx, res, params);
+        HlsCusHlsCreditLineChance chance = new HlsCusHlsCreditLineChance();
+        chance.setCreditLineStatus("APPROVING");
+        hlsCusHlsCreditLineChanceMapper.updateByPrimaryKeySelective(chance);
         return  res;
     }
 

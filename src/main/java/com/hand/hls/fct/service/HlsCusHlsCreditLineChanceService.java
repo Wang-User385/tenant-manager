@@ -106,4 +106,6 @@ public interface HlsCusHlsCreditLineChanceService extends IBaseService<HlsCusHls
     List<HlsCusHlsCreditLineChance> createInfo(Long userId);
 
     List<HlsCusHlsCreditLineChance> submit(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance,IRequest requestCtx);
+
+    List<HlsCusHlsCreditLineChance> submitCredit(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance, IRequest requestCtx) throws HlsCusException;
 }
