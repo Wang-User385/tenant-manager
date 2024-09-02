@@ -114,4 +114,5 @@ public class CshTransactionRefundLn extends BaseDTO {
      * 二期功能：以上字段均为 退款申请支付 添加
      */
 
+    private Long conCashflowId; //合同现金流ID
 }

@@ -7,6 +7,7 @@ import lombok.Setter;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Copyright (C) Hand Business Consulting Services
@@ -188,5 +189,28 @@ public class HlsCusCshTransactionRefund extends CshTransactionRefund{
     private String bpTypeN; //对象类别
     @Transient
     private Long paymentBpId;
+    @Transient
+    private String writeOffFlag; //现金流核销状态
+    @Transient
+    private String writeOffFlagN; //现金流核销状态
+    @Transient
+    private Long times; //现金流期数
+    @Transient
+    private Date dueDate; //现金流应收日
+    @Transient
+    private Double dueAmount; //现金流应收金额
+    @Transient
+    private Double receivedAmount; //现金流已收金额
+    @Transient
+    private Double receivedCompAmount; //现金流已收代偿款
+    @Transient
+    private Long transactionId; //现金事务ID
+    @Transient
+    private Long cashflowId; //现金流ID
+    @Transient
+    private List<Long> cashflowIdS;
+
+    private Long processInstanceId;  //退款申请工作流ID
+    private String refundStatus; //退款申请工作流状态
 
 }

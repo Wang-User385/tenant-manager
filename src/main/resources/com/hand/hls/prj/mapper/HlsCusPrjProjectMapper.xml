@@ -12767,7 +12767,14 @@ WHERE
 
     <select id="selectQueryOrderByOrderNo" resultType="com.hand.hls.partner.dto.QueryOrder">
         select
-            max(ccc.TIMES) termCount
+            max(ccc.TIMES) termCount,
+            (select case when cc.CONTRACT_STATUS in ('ET', 'TERMINATE', 'CANCEL', 'END') THEN
+                             'ENDED'
+                         ELSE
+                             'NORMAL '
+                        end
+             from con_contract cc
+             where cc.PROJECT_ID = pp.PROJECT_ID) contractStatus
         from
             CON_CONTRACT_CASHFLOW ccc
                 right join
@@ -12781,6 +12788,7 @@ WHERE
           and ccc.CF_DIRECTION = 'INFLOW'
           and ccc.CF_STATUS = 'RELEASE'
           and ccc.CF_ITEM in (1,11,13)
+        group by pp.PROJECT_ID
     </select>
     <select id="selectRepayPlanByOrderNo" resultType="com.hand.hls.partner.dto.RepayPlanTermInfoDTO">
         SELECT

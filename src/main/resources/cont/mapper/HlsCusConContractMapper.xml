@@ -11735,7 +11735,25 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
           AND faam.attachment_id = fat.attachment_id
           AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT' and ppa.project_attachment_category = 'PLEDGE'  and ppa.project_id = cc.project_id
             ) document_name,
-            ( SELECT max( m.creation_date ) FROM fnd_atm_attachment_multi m WHERE m.table_name = 'PRJ_PROJECT_ATTACHMENT' AND m.table_pk_value = ppa.project_attachment_id ) upload_date
+            ( SELECT max( m.creation_date ) FROM fnd_atm_attachment_multi m WHERE m.table_name = 'PRJ_PROJECT_ATTACHMENT' AND m.table_pk_value = ppa.project_attachment_id ) upload_date,
+            (select wm_concat(faa.attachment_id)
+             from fnd_atm_attachment faa,
+                  fnd_atm_attachment_multi faam
+             where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+               and faam.table_pk_value = ppa.project_attachment_id
+               and faa.source_pk_value = faam.record_id) attachment_id_n,
+            (select wm_concat(faa.file_name)
+             from fnd_atm_attachment faa,
+                  fnd_atm_attachment_multi faam
+             where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+               and faam.table_pk_value = ppa.project_attachment_id
+               and faa.source_pk_value = faam.record_id) file_names,
+            (select wm_concat(faa.source_pk_value)
+             from fnd_atm_attachment faa,
+                  fnd_atm_attachment_multi faam
+             where faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+               and faam.table_pk_value = ppa.project_attachment_id
+               and faa.source_pk_value = faam.record_id) source_pk_value
         FROM
             prj_project_attachment ppa,
             con_contract cc

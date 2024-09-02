@@ -119,7 +119,11 @@
         FROM prj_quotation q
         WHERE q.source_document_category = 'CON_CONTRACT'
         AND t.contract_id = q.source_document_id) quotation_id,
-        cwo.deal_date,
+        (case when t.transfer_payment_flag = 'Y' then
+          (select yctp.confirm_date from yl_csh_transfer_payment yctp where yctp.cashflow_id = t.cashflow_id)
+         else
+          cwo.deal_date
+         end) deal_date,
         cwo.last_update_date
         FROM con_contract_cashflow t
         left join csh_write_off cwo on cwo.cashflow_id = t.cashflow_id, con_contract c,csh_allocation_credit cac

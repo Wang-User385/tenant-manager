@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.PageHelper;
 import com.hand.hap.core.IRequest;
+import com.hand.hap.core.exception.EmailException;
 import com.hand.hap.lock.components.DatabaseLockProvider;
 import com.hand.hap.system.dto.DTOStatus;
 import com.hand.hap.system.dto.ResponseData;
@@ -63,7 +64,8 @@ public class CshTransactionRefundServiceImpl extends BaseServiceImpl<HlsCusCshTr
     private static final String WORK_FLOW_TYPE_OR_NAME_REFUND = "CSH_REFUND_APPLY_WORK_FLOW";
     private static final String WORK_FLOW_DEMO_REFUND = "REFUND";
 
-
+    private static final String WORK_FLOW_NAME_REFUND_PAYMENT = "REFUND_PAYMENT_WORK_FLOW";
+    private static final String WORK_FLOW_NAME_REFUND_PAYMENT_INFO = "退款支付申请流程";
 
 
     @Autowired
@@ -89,6 +91,8 @@ public class CshTransactionRefundServiceImpl extends BaseServiceImpl<HlsCusCshTr
 
     @Autowired
     private HlsBpMasterBankAccountService bpMasterBankAccountService;
+    @Autowired
+    private HlsCusCshTransactionRefundMapper hlsCusCshTransactionRefundMapper;
 
     /**
      * 二期功能：退款申请创建tab页查询
@@ -102,7 +106,8 @@ public class CshTransactionRefundServiceImpl extends BaseServiceImpl<HlsCusCshTr
     @Override
     public List<HlsCusCshTransactionRefund> createRefundQuery(IRequest request, HlsCusCshTransactionRefund transactionRefund, int page, int pageSize) {
         PageHelper.startPage(page, pageSize);
-        return cshTransactionRefundMapper.createRefundQuery(transactionRefund);
+        //return cshTransactionRefundMapper.createRefundQuery(transactionRefund);
+        return cshTransactionRefundMapper.createRefundQueryNew(transactionRefund);
     }
 
     /**
@@ -132,7 +137,8 @@ public class CshTransactionRefundServiceImpl extends BaseServiceImpl<HlsCusCshTr
     @Override
     public List<HlsCusCshTransactionRefund> refundInfoLnQuery(IRequest iRequest, HlsCusCshTransactionRefund transactionRefund, int page, int pageSize) {
         PageHelper.startPage(page, pageSize);
-        return cshTransactionRefundMapper.refundInfoLnQuery(transactionRefund);
+        //return cshTransactionRefundMapper.refundInfoLnQuery(transactionRefund);
+        return cshTransactionRefundMapper.refundInfoLnQueryCashflow(transactionRefund);
     }
 
     /**
@@ -364,10 +370,38 @@ public class CshTransactionRefundServiceImpl extends BaseServiceImpl<HlsCusCshTr
         //通过申请单ID修改单据支付状态为待支付
         HlsCusCshTransactionRefund transactionRefund = new HlsCusCshTransactionRefund();
         transactionRefund.setRefundId(refundId);
+        List<HlsCusCshTransactionRefund> hlsCusCshTransactionRefunds = hlsCusCshTransactionRefundMapper.cshTransactionRefundQuery(transactionRefund);
         transactionRefund.setPaymentRefundStatus(HlsConstantUtil.SlipStatus.PAYING);
 
-        //直接将单据状态设置为审批通过，为了不影响原来页面的只读判断
-        transactionRefund.setRefundStatus("APPROVED");
+        //校验当前状态
+        if ("APPROVED".equals(hlsCusCshTransactionRefunds.get(0).getRefundStatus())){
+            throw new RuntimeException("当前订单已经审批通过");
+        }
+        if ("APPROVING".equals(hlsCusCshTransactionRefunds.get(0).getRefundStatus())){
+            throw new RuntimeException("当前订单正在审批中");
+        }
+
+        //提交退款申请工作流
+        List<HlsCusCshTransactionRefund> ra = new ArrayList<>();
+        ra.add(hlsCusCshTransactionRefunds.get(0));
+        Map<String, Object> map = new HashMap<>();
+        map.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW_NAME_REFUND_PAYMENT);
+        map.put(IActivitiCommonService.DEMO_NAME, WORK_FLOW_NAME_REFUND_PAYMENT);
+        map.put(IActivitiCommonService.BUSINESS_KEY, refundId);
+        map.put("refundId", refundId);
+        //单据类别
+        map.put("documentCategory","REFUND_PAYMENT");
+        //单据类型
+        map.put("documentType", "REFUND_PAYMENT");
+        //单据名称
+        map.put("documentName", hlsCusCshTransactionRefunds.get(0).getRefundNumber() + "-" + WORK_FLOW_NAME_REFUND_PAYMENT_INFO);
+        //单据编号
+        map.put("documentNumber", hlsCusCshTransactionRefunds.get(0).getRefundNumber());
+        //设置工作流参数
+        map.put("refund_number", hlsCusCshTransactionRefunds.get(0).getRefundNumber());
+        map.put("workFlowType", WORK_FLOW_NAME_REFUND_PAYMENT);
+        activitiStartService.start(iRequest, ra, map);
+
         this.updateByPrimaryKeySelective(iRequest,transactionRefund);
         List<HlsCusCshTransactionRefund> list = new ArrayList<>(1);
         list.add(transactionRefund);

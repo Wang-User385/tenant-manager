@@ -9,6 +9,7 @@ import com.hand.hls.csh.dto.HlsCusCshTransaction;
 import com.hand.hls.csh.dto.HlsCusCshTransactionRefund;
 import com.hand.hls.csh.exception.BeyondAmountLimitException;
 import com.hand.hls.csh.mapper.HlsCusCshTransactionMapper;
+import com.hand.hls.csh.mapper.HlsCusCshTransactionRefundMapper;
 import com.hand.hls.csh.service.CshTransactionService;
 import com.hand.hls.utils.HlsConstantUtil;
 import com.hand.hls.utils.ResMessageException;
@@ -567,6 +568,43 @@ public class CshTransactionController extends BaseController {
             metadataRelation.setTransactionIdS(transactionIds);
         }
         List<HlsCusCshTransaction> list = service.queryLov(requestCtx, metadataRelation, pagenum, pagesize);
+        return new ResponseData(list);
+    }
+
+    @RequestMapping(value = "/csh/cashflow/query/Adlov")
+    @ResponseBody
+    public ResponseData queryCashflowAdLov(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,
+                                 HttpServletRequest request, String notInCashflowIds,
+                                           String writeOffFlag,
+                                           String bpBankAccountName,
+                                           String manufacturerId,
+                                           String transactionType,
+                                 @RequestParam(defaultValue = DEFAULT_PAGE) int pagenum,
+                                 @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pagesize) throws ParseException {
+        JSONObject param = (JSONObject) requestData.get(HlsConstantUtil.BaseController.PARAMETER);
+        HlsCusCshTransactionRefund metadataRelation = param.toJavaObject(HlsCusCshTransactionRefund.class);
+        IRequest requestCtx = createRequestContext(request);
+        requestCtx.setAttribute("authorityRuleFlag", "N");
+        if(StringUtils.isNotEmpty(writeOffFlag)){
+            metadataRelation.setWriteOffFlag(writeOffFlag);
+        }
+        if(StringUtils.isNotEmpty(bpBankAccountName)){
+            metadataRelation.setBpBankAccountName(bpBankAccountName);
+        }
+        if(StringUtils.isNotEmpty(manufacturerId)){
+            metadataRelation.setManufacturerId(Long.valueOf(manufacturerId));
+        }
+        if (StringUtils.isNotEmpty(notInCashflowIds)) {
+            String[] cashflowIdsStr = notInCashflowIds.split(",");
+            List<Long> notInCashflowIdList = new ArrayList<>(cashflowIdsStr.length);
+            for (int i = 0; i < cashflowIdsStr.length; i++) {
+                if (StringUtils.isNotEmpty(cashflowIdsStr[i])) {
+                    notInCashflowIdList.add(Long.valueOf(cashflowIdsStr[i]));
+                }
+            }
+            metadataRelation.setCashflowIdS(notInCashflowIdList);
+        }
+        List<HlsCusCshTransactionRefund> list = service.queryCashflowRefundAdLov(requestCtx, metadataRelation, pagenum, pagesize);
         return new ResponseData(list);
     }
 

@@ -49,13 +49,13 @@
         }
 
         //取消支付
-        window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+        window['${/parameter/@layout_code}_user_button2_layout_dynamic_click'] = function () {
             debugger;
             var payment_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_transaction_refund', 'PAYMENT_FORM');
             var records = $(payment_ds_id).getCurrentRecord();
             var refundId = records.get('refund_id');
             var payment_refund_status = records.get('payment_refund_status');
-            if(payment_refund_status != 'NEW'){
+            if(payment_refund_status != 'NEW' && payment_refund_status != 'PAYING'){
                 Leaf.showErrorMessage("错误", "只有新建状态的支付单可操作取消支付");
                 return;
             }
@@ -116,14 +116,12 @@
 
         function pay() {
             debugger;
-            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            //window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
             var csh_transaction_refund_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_transaction_refund', 'PAYMENT_FORM');
             var csh_record = $(csh_transaction_refund_ds).getCurrentRecord();
             var itemFlag = 'N';
             //二期退款支付业务标示
             var businessFlag = 'REFUND';
-
-
 
             var transaction_amount = csh_record.get('refund_amount');
             //var actual_pay_date = csh_record.get('actual_payment_date');
@@ -137,20 +135,19 @@
 
             if (!actual_pay_date) {
                 Leaf.showErrorMessage('提示', '请选择实际支付日期');
-                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                //window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                 return false;
             }
             if (actual_pay_date > today_date) {
                 Leaf.showErrorMessage('提示', '实际支付日期不能大于当前日期');
-                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                //window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                 return false;
             }
 
 
 
             new Leaf.showConfirm("提示", "确认支付么？", function okFun() {
-
-
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
                 Leaf.request({
                     url: $('csh_transaction_refund_payment_link').getUrl(),
                     para: {
@@ -164,10 +161,11 @@
                     success: function (res) {
 
                         window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                        $L.showInfoMessage("提示", "退款支付成功!", function () {
-                            $('${/parameter/@parent_ds}').query();
-                            $('${/parameter/@winid}').close();
-                        });
+                        Leaf.showMessage('提示', '退款支付成功！');
+                        // $L.showInfoMessage("提示", "退款支付成功!", function () {
+                        //     $('${/parameter/@parent_ds}').query();
+                        //     $('${/parameter/@winid}').close();
+                        // });
 
                     },
                     failure: function () {
@@ -516,9 +514,27 @@
         }
 
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function (ds, record, config_records, bp_seq) {
-            var ln_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_transaction_refund_ln');
 
         }
+
+        //初始化
+        Leaf.onReady(function () {
+            //退款行
+            var ln_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_transaction_refund_ln');
+            $(ln_ds_id).setQueryParameter('refund_id', '${/parameter/@refund_id}');
+            //实际付款
+            var ln_bank_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_pay_req_ln_bank_account');
+            $(ln_bank_ds_id).setQueryParameter('refund_id', '${/parameter/@refund_id}');
+
+            $(ln_bank_ds_id).query();
+            $(ln_ds_id).query();
+
+            //隐藏实际付款
+            var wfl_flag_payment = '${/parameter/@wfl_flag_payment}';
+            if (wfl_flag_payment == 'N'){
+                document.getElementById('${/parameter/@layout_code}_F_ACTPAY_PAYMENT').style.display = "none";
+            }
+        });
 
 
         function beforeSubmit(countiune) {

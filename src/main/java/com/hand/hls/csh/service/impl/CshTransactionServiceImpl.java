@@ -1958,6 +1958,12 @@ public class CshTransactionServiceImpl extends BaseServiceImpl<HlsCusCshTransact
     }
 
     @Override
+    public List<HlsCusCshTransactionRefund> queryCashflowRefundAdLov(IRequest iRequest, HlsCusCshTransactionRefund hlsCusCshTransactionRefund, int page, int pageSize) throws ParseException {
+        PageHelper.startPage(page, pageSize);
+        return hlsCusCshTransactionRefundMapper.createRefundQueryNew(hlsCusCshTransactionRefund);
+    }
+
+    @Override
     public List<HlsCusCshTransaction> queryDepositDeductMethod(IRequest requestCtx, HlsCusCshTransaction hlsCusCshTransaction, int pagenum, int pagesize) {
         PageHelper.startPage(pagenum, pagesize);
         return hlsCusCshTransactionMapper.queryDepositDeductMethod(hlsCusCshTransaction);

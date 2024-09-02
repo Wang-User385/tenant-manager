@@ -21,6 +21,9 @@
                 refund_id : '${/parameter/@refund_id}' || -1,
                 bp_id : '${/parameter/@bp_id}' || -1,
                 bp_name : '${/parameter/@bp_name}' || '',
+                bp_bank_name : '${/parameter/@bp_bank_name}' || '',
+                bp_bank_account_num : '${/parameter/@bp_bank_account_num}' || '',
+                bp_bank_account_name : '${/parameter/@bp_bank_account_name}' || '',
                 currency_code : '${/parameter/@currency_code}',
                 transaction_ids : '${/parameter/@transaction_ids}',
                 total_can_return_amount : '${/parameter/@total_can_return_amount}',
@@ -123,19 +126,21 @@
 
                 },
                 save : function(){
+                    debugger;
                     var result;
                     var form_ds = $('csh_transaction_refund_detail_form_ds').getAt(0);
                     var bp_id = form_ds.get('bp_id');
+                    var bp_name = form_ds.get('bp_name');
                     var bp_bank_account_id = form_ds.get('bp_bank_account_id');
                     var bp_bank_account_name = form_ds.get('bp_bank_account_name');
                     var bp_bank_account_num = form_ds.get('bp_bank_account_num');
                     var bp_bank_name = form_ds.get('bp_bank_name');
                     /*var payment_method = form_ds.get('payment_method');*/
 
-                    // if(!bp_id){
-                    //     Leaf.showMessage('提示！', '付款对象必填！');
-                    //     return false;
-                    // }
+                    if(!bp_name){
+                        Leaf.showMessage('提示！', '收款对象必填！');
+                        return false;
+                    }
                     // if(!bp_bank_account_id){
                     //     Leaf.showMessage('提示！', '付款对象账户必选！');
                     //     return false;
@@ -165,8 +170,8 @@
                         }
                         var saveData = [];
                         for (var i = 0; i < datas.length; i++) {
-                            if(datas[i].get('refund_amount') > datas[i].get('can_return_amount')){
-                                Leaf.showMessage('提示！', '现金事务编号为'+datas[i].get('transaction_num')+'付款金额大于可退款金额！');
+                            if(datas[i].get('refund_amount') > datas[i].get('received_comp_amount')){
+                                Leaf.showMessage('提示！', '业务编号为'+datas[i].get('contract_number')+'本次申请退款金额大于代偿款金额！');
                                 return false;
                             }
                         	saveData.push(datas[i].data);
@@ -243,12 +248,16 @@
                 },
                 form_load_event : function(ds,e){
                     var form_ds = $('csh_transaction_refund_detail_form_ds');
+                    debugger;
                     if(!form_ds.getAt(0)){
                         form_ds.create();
                         form_ds.getAt(0).set('refund_date', new Date());
                         form_ds.getAt(0).set('refund_amount', viewModel.model.total_can_return_amount);
                         form_ds.getAt(0).set('bp_id', viewModel.model.bp_id);
                         form_ds.getAt(0).set('bp_name', viewModel.model.bp_name);
+                        form_ds.getAt(0).set('bp_bank_name', viewModel.model.bp_bank_name);
+                        form_ds.getAt(0).set('bp_bank_account_num', viewModel.model.bp_bank_account_num);
+                        form_ds.getAt(0).set('bp_bank_account_name', viewModel.model.bp_bank_account_name);
                         form_ds.getAt(0).set('currency_code', viewModel.model.currency_code);
 
                     }
@@ -422,30 +431,44 @@
                         for(var i = 0; i < result_records.length; i++){
                             $('csh_transaction_refund_detail_grid').showEditorByRecord($('csh_transaction_refund_detail_grid_ds').create());
                             var ln_record = ds.getCurrentRecord();
-                            ln_record.set('transaction_id', result_records[i].get('transaction_id'));
-                            ln_record.set('transaction_num', result_records[i].get('transaction_num'));
-                            ln_record.set('transaction_date', result_records[i].get('transaction_date'));
-                            ln_record.set('transaction_amount', result_records[i].get('transaction_amount'));
-                            ln_record.set('transaction_type', result_records[i].get('transaction_type'));
-                            ln_record.set('transaction_type_desc', result_records[i].get('transaction_type_desc'));
-                            ln_record.set('currency_code', result_records[i].get('currency_code'));
-                            ln_record.set('currency_code_desc', result_records[i].get('currency_code_desc'));
-                            ln_record.set('bp_name_tenant', result_records[i].get('payment_bp_name'));
-                            ln_record.set('bp_name', result_records[i].get('bp_name'));
-                            ln_record.set('contract_id', result_records[i].get('contract_id'));
+                            ln_record.set('con_cashflow_id', result_records[i].get('cashflow_id'));
+                            ln_record.set('write_off_flag', result_records[i].get('write_off_flag'));
+                            ln_record.set('bp_bank_account_name', result_records[i].get('bp_bank_account_name'));
+                            ln_record.set('manufacturer_id', result_records[i].get('manufacturer_id'));
                             ln_record.set('contract_number', result_records[i].get('contract_number'));
-                            ln_record.set('write_off_amount', result_records[i].get('write_off_amount'));
-                            ln_record.set('return_write_off_amount', result_records[i].get('return_write_off_amount'));
-                            ln_record.set('can_return_amount', result_records[i].get('can_return_amount'));
-                            ln_record.set('refund_amount', result_records[i].get('can_return_amount'));
-                            ln_record.set('refund_date', new Date());
-                            ln_record.set('posted_flag', result_records[i].get('posted_flag'));
+                            ln_record.set('times', result_records[i].get('times'));
+                            ln_record.set('received_comp_amount', result_records[i].get('received_comp_amount'));
+                            ln_record.set('refund_amount', result_records[i].get('received_comp_amount'));
+                            ln_record.set('transaction_num', result_records[i].get('transaction_num'));
+                            ln_record.set('transaction_id', result_records[i].get('transaction_id'));
+                            ln_record.set('transaction_date', result_records[i].get('transaction_date'));
+                            ln_record.set('transaction_type', result_records[i].get('transaction_type'));
+                            //注释
+                            // ln_record.set('transaction_id', result_records[i].get('transaction_id'));
+                            // ln_record.set('transaction_num', result_records[i].get('transaction_num'));
+                            // ln_record.set('transaction_date', result_records[i].get('transaction_date'));
+                            // ln_record.set('transaction_amount', result_records[i].get('transaction_amount'));
+                            // ln_record.set('transaction_type', result_records[i].get('transaction_type'));
+                            // ln_record.set('transaction_type_desc', result_records[i].get('transaction_type_desc'));
+                            // ln_record.set('currency_code', result_records[i].get('currency_code'));
+                            // ln_record.set('currency_code_desc', result_records[i].get('currency_code_desc'));
+                            // ln_record.set('bp_name_tenant', result_records[i].get('payment_bp_name'));
+                            // ln_record.set('bp_name', result_records[i].get('bp_name'));
+                            // ln_record.set('contract_id', result_records[i].get('contract_id'));
+                            // ln_record.set('contract_number', result_records[i].get('contract_number'));
+                            // ln_record.set('write_off_amount', result_records[i].get('write_off_amount'));
+                            // ln_record.set('return_write_off_amount', result_records[i].get('return_write_off_amount'));
+                            // ln_record.set('can_return_amount', result_records[i].get('can_return_amount'));
+                            // ln_record.set('refund_amount', result_records[i].get('can_return_amount'));
+                            // ln_record.set('refund_date', new Date());
+                            // ln_record.set('posted_flag', result_records[i].get('posted_flag'));
                         }
                     }
                     if(viewModel.model.read_only === 'Y'){
                         var datas = ds.getAll();
                         for(var i = 0; i < datas.length; i++){
                             datas[i].getField('transaction_num').setReadOnly(true);
+                            datas[i].getField('contract_number').setReadOnly(true);
                             datas[i].getField('refund_date').setReadOnly(true);
                             datas[i].getField('refund_amount').setReadOnly(true);
                         }
@@ -464,16 +487,20 @@
                 },
                 transaction_num_editor : function(lov){
                     var datas = $('csh_transaction_refund_detail_grid_ds').getAll();
-                    var not_in_transaction_ids = '';
+                    //var not_in_transaction_ids = '';
+                    var not_in_cashflow_ids = '';
                     debugger;
                     if(datas.length > 0){
                         for(var i = 0; i < datas.length; i++){
-                            if(!!datas[i].get('transaction_id')){
-                                not_in_transaction_ids += datas[i].get('transaction_id') + ',';
+                            if(!!datas[i].get('con_cashflow_id')){
+                                not_in_cashflow_ids += datas[i].get('con_cashflow_id') + ',';
                             }
                         }
                         lov.para = {
-                            'notInTransactionIds' : not_in_transaction_ids,
+                            'notIncashflowIds' : not_in_cashflow_ids,
+                            'writeOffFlag' : 'FULL',
+                            'bpBankAccountName' : datas[0].get('bp_bank_account_name'),
+                            'manufacturerId' : datas[0].get('manufacturer_id'),
                             'transactionType' : 'ADVANCE_RECEIPT,DEPOSIT,MANAGEMENT_FEE,PERFORMANCE_BOND'
                         };
                         if('DEPOSIT' === datas[0].get('transaction_type')){
@@ -615,28 +642,44 @@
                            deleteUrl="${/request/@context_path}/csh/transaction/refund/ln/remove"
                            selectable="true">
                     <a:fields>
-                        <a:field name="transaction_num" autoComplete="true" required="true" lovGridHeight="350"
+                        <a:field name="contract_number" autoComplete="true" required="true" lovGridHeight="350"
                                  lovHeight="550" lovLabelWidth="90" lovWidth="1000"
-                                 lovService="/csh/transaction/query/lov~hls.layout.dto.LovCshTransactionDto"
-                                 title="收款编号" prompt="收款编号">
+                                 lovService="/csh/cashflow/query/Adlov~hls.layout.dto.LovConCashflowCompDto"
+                                 title="业务编号" prompt="业务编号">
                             <a:mapping>
-                                <a:map from="transaction_num" to="transaction_num"/>
-                                <a:map from="bp_name" to="bp_name"/>
-                                <a:map from="transaction_type" to="transaction_type"/>
-                                <a:map from="transaction_type_desc" to="transaction_type_desc"/>
-                                <a:map from="transaction_date" to="transaction_date"/>
-                                <a:map from="transaction_amount" to="transaction_amount"/>
-                                <a:map from="write_off_amount" to="write_off_amount"/>
-                                <a:map from="transaction_id" to="transaction_id"/>
                                 <a:map from="contract_number" to="contract_number"/>
-                                <a:map from="bp_name_tenant" to="bp_payment_name"/>
-                                <a:map from="contract_id" to="contract_id"/>
-                                <a:map from="can_return_amount" to="can_return_amount"/>
-                                <a:map from="can_return_amount" to="refund_amount"/>
-                                <a:map from="transaction_id" to="transaction_id"/>
+                                <a:map from="times" to="times"/>
+                                <a:map from="received_comp_amount" to="received_comp_amount"/>
+                                <a:map from="transaction_num" to="transaction_num"/>
+                                <a:map from="transaction_date" to="transaction_date"/>
+<!--                                <a:map from="transaction_num" to="transaction_num"/>-->
+<!--                                <a:map from="bp_name" to="bp_name"/>-->
+<!--                                <a:map from="transaction_type" to="transaction_type"/>-->
+<!--                                <a:map from="transaction_type_desc" to="transaction_type_desc"/>-->
+<!--                                <a:map from="transaction_date" to="transaction_date"/>-->
+<!--                                <a:map from="transaction_amount" to="transaction_amount"/>-->
+<!--                                <a:map from="write_off_amount" to="write_off_amount"/>-->
+<!--                                <a:map from="transaction_id" to="transaction_id"/>-->
+<!--                                <a:map from="contract_number" to="contract_number"/>-->
+<!--                                <a:map from="bp_name_tenant" to="bp_payment_name"/>-->
+<!--                                <a:map from="contract_id" to="contract_id"/>-->
+<!--                                <a:map from="can_return_amount" to="can_return_amount"/>-->
+<!--                                <a:map from="can_return_amount" to="refund_amount"/>-->
+<!--                                <a:map from="transaction_id" to="transaction_id"/>-->
                             </a:mapping>
                         </a:field>
-                        <a:field name="refund_date" datatype="date"/>
+<!--                        <a:field name="contract_number" />-->
+<!--                        <a:field name="times" />-->
+<!--                        <a:field name="received_comp_amount" />-->
+<!--                        <a:field name="transaction_num" />-->
+                        <a:field name="transaction_date" />
+                        <a:field name="transaction_type" />
+                        <a:field name="transaction_id" />
+                        <a:field name="refund_amount" />
+                        <a:field name="write_off_flag" />
+                        <a:field name="manufacturer_id" />
+                        <a:field name="con_cashflow_id" />
+                        <a:field name="bp_bank_account_name" />
                     </a:fields>
                     <a:events>
                         <a:event name="query" handler="viewModel.grid.grid_query_event"/>
@@ -657,6 +700,7 @@
                         <a:textField name="refund_number" prompt="退款申请编号" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
                         <a:numberField name="refund_amount" prompt="申请总金额" width="200" renderer="Leaf.formatMoney" bindTarget="csh_transaction_refund_detail_form_ds"/>
                         <a:datePicker name="refund_date" prompt="申请退款日期" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                        <a:textField name="bp_name" prompt="收款对象" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
                         <!--<a:lov name="bp_name" id="bp_name" prompt="收款对象" width="200" bindTarget="csh_transaction_refund_detail_form_ds">-->
                         <!--    <a:events>-->
                         <!--       <a:event name="beforetriggerclick" handler="viewModel.form.bp_name_lov_event"/>-->
@@ -665,14 +709,13 @@
                         <!--</a:lov>-->
                     </a:hBox>
                     <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40">
-
 <!--                        <a:lov name="bp_bank_account_name" id="bp_bank_account_name" prompt="收款账户名" width="200" bindTarget="csh_transaction_refund_detail_form_ds">-->
 <!--                            <a:events>-->
 <!--                                <a:event name="beforetriggerclick" handler="viewModel.form.bp_bank_account_name_event"/>-->
 <!--                            </a:events>-->
 <!--                        </a:lov>-->
-                        <a:textField name="bp_bank_account_name" id="bp_bank_account_name" prompt="收款账户名" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
                         <a:textField name="bp_bank_account_num" prompt="收款银行账号" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
+                        <a:textField name="bp_bank_account_name" id="bp_bank_account_name" prompt="收款账户名" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
                         <a:textField name="bp_bank_name" prompt="收款银行" width="200" bindTarget="csh_transaction_refund_detail_form_ds"/>
                     </a:hBox>
 <!--                    <a:hBox labelSeparator=" " labelWidth="100" marginWidth="40" id="fileuplowd">
@@ -703,8 +746,15 @@
                         <a:button type="delete"/>
                     </a:toolBar>
                     <a:columns>
-                        <a:column name="transaction_num" prompt="收款编号" width="120" editor="transaction_num_editor"/>
-                        <a:column name="transaction_type_desc" prompt="现金事务类型" width="120"/>
+                        <a:column name="contract_number" prompt="业务编号" width="120" editor="transaction_num_editor"/>
+                        <a:column name="times" prompt="期数" width="120"/>
+                        <a:column name="received_comp_amount" prompt="已收代偿金额" align="right" width="100" renderer="Leaf.formatMoney"/>
+                        <a:column name="refund_amount" prompt="本次申请退款金额" align="right" width="100" renderer="Leaf.formatMoney"  editor="csh_transaction_refund_amount_editor"/>
+                        <a:column name="transaction_num" prompt="收款编号" width="120"/>
+                        <a:column name="transaction_date" prompt="收款日期"  align="center" width="100" renderer="Leaf.formatDate"/>
+                        <a:column name="bp_bank_account_name" prompt="对方银行账号" width="120"/>
+<!--                        <a:column name="transaction_num" prompt="收款编号" width="120" editor="transaction_num_editor"/>-->
+<!--                        <a:column name="transaction_type_desc" prompt="现金事务类型" width="120"/>-->
                         <!--<a:column name="contract_number" prompt="合同编号" width="200"/>
                         <a:column name="bp_payment_name" prompt="承租人(或预收款挂账对象)" width="230"/>-->
                         <!--<a:column name="bp_name" prompt="收款对象" width="300"/>-->
@@ -712,13 +762,13 @@
                         <!--<a:column name="bp_bank_account_num" prompt="付款账号" width="150"/>-->
                         <!--<a:column name="bp_bank_name" prompt="付款账户银行" width="150"/>-->
                         <!--<a:column name="refund_date" align="center" width="100" renderer="Leaf.formatDate" prompt="付款日期" editor="csh_transaction_refund_date_editor"/>-->
-                        <a:column name="transaction_amount" align="right" width="100" renderer="Leaf.formatMoney" prompt="收款金额" />
-                        <a:column name="refund_amount" align="right" width="100" renderer="Leaf.formatMoney" prompt="本次申请退款金额金额" editor="csh_transaction_refund_amount_editor"/>
-                        <a:column name="write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已核销金额"/>
-                        <a:column name="return_write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已退款金额"/>
-                        <a:column name="can_return_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="可退款金额"/>
-                        <!--<a:column name="payment_method_n" width="120" prompt="付款方式"/>-->
-                        <a:column name="transaction_id" prompt="" width="120" renderer="receipt_add_update_renderer_detail" align="center"/>
+<!--                        <a:column name="transaction_amount" align="right" width="100" renderer="Leaf.formatMoney" prompt="收款金额" />-->
+<!--                        <a:column name="refund_amount" align="right" width="100" renderer="Leaf.formatMoney" prompt="本次申请退款金额金额" editor="csh_transaction_refund_amount_editor"/>-->
+<!--                        <a:column name="write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已核销金额"/>-->
+<!--                        <a:column name="return_write_off_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="已退款金额"/>-->
+<!--                        <a:column name="can_return_amount" align="right" renderer="Leaf.formatMoney" width="120" prompt="可退款金额"/>-->
+<!--                        &lt;!&ndash;<a:column name="payment_method_n" width="120" prompt="付款方式"/>&ndash;&gt;-->
+<!--                        <a:column name="transaction_id" prompt="" width="120" renderer="receipt_add_update_renderer_detail" align="center"/>-->
                     </a:columns>
                     <a:editors>
                         <a:lov id="transaction_num_editor">

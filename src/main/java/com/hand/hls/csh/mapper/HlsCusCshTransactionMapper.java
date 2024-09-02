@@ -2,6 +2,7 @@ package com.hand.hls.csh.mapper;
 
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.csh.dto.HlsCusCshTransaction;
+import com.hand.hls.csh.dto.HlsCusCshTransactionRefund;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 

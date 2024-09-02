@@ -99,7 +99,16 @@
         <result column="bp_type_n" property="bpTypeN" jdbcType="VARCHAR"/>
         <result column="payment_bp_id" property="paymentBpId" jdbcType="BIGINT"/>
 
-
+        <result column="times" property="times" jdbcType="BIGINT"/>
+        <result column="due_date" property="dueDate" jdbcType="DATE"/>
+        <result column="due_amount" property="dueAmount" jdbcType="DECIMAL"/>
+        <result column="received_amount" property="receivedAmount" jdbcType="DECIMAL"/>
+        <result column="write_off_flag" property="writeOffFlag" jdbcType="VARCHAR"/>
+        <result column="write_off_flag_n" property="writeOffFlagN" jdbcType="VARCHAR"/>
+        <result column="received_comp_amount" property="receivedCompAmount" jdbcType="DECIMAL"/>
+        <result column="cashflow_id" property="cashflowId" jdbcType="BIGINT"/>
+        <result column="process_instance_id" property="processInstanceId" jdbcType="BIGINT"/>
+        <result column="refund_status" property="refundStatus" jdbcType="VARCHAR"/>
     </resultMap>
 
     <!--二期功能：退款申请创建tab页查询-->
@@ -296,6 +305,90 @@
                 AND t1.bp_type = #{bpType}
             </if>
         </where>
+    </select>
+
+    <!--退款申请创建tab页查询  维度调整为现金流维度-->
+    <select id="createRefundQueryNew" parameterType="com.hand.hls.csh.dto.HlsCusCshTransactionRefund" resultMap="BaseResultMap">
+        select cc.CONTRACT_NUMBER,
+                (SELECT hbv.bp_id FROM hls_bp_master hbv, prj_project pp
+                WHERE hbv.bp_id = pp.TENANT_ID and pp.PROJECT_ID = cc.project_id) bp_id,
+               (SELECT hbv.bp_name FROM hls_bp_master hbv, prj_project pp
+                WHERE hbv.bp_id = pp.TENANT_ID and pp.PROJECT_ID = cc.project_id) bp_name,
+               ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.manufacturer_id ) manufacturer_id_n,
+               cc.manufacturer_id,
+               ccc.TIMES,
+               trunc(ccc.DUE_DATE) due_date,
+               ccc.DUE_AMOUNT,
+               ccc.RECEIVED_AMOUNT,
+               ccc.WRITE_OFF_FLAG,
+               ( SELECT v.meaning FROM sys_code_value_b_v v
+                 WHERE v.CODE = 'CON.CASHFLOW_WRITE_OFF_FLAG' AND v.code_value = ccc.write_off_flag ) write_off_flag_n,
+               ccc.RECEIVED_COMP_AMOUNT,
+               ct.TRANSACTION_NUM,
+               trunc(ct.TRANSACTION_DATE) transaction_date,
+               ct.bp_id payment_bp_id,
+               ct.bp_bank_name,
+               ct.bp_bank_account_name,
+               ct.bp_bank_account_num,
+               ct.bank_slip_num,
+               ct.bank_account_id,
+               ct.posted_flag,
+               ct.CURRENCY_CODE,
+               ct.transaction_type,
+               ct.transaction_id,
+               ccc.cashflow_id,
+                (Select scvb.MEANING
+                From SYS_CODE_B scb
+                Left Join SYS_CODE_VALUE_B scvb
+                On scb.CODE = 'CHS.CURRENCY_TYPE'
+                And scb.CODE_ID = scvb.CODE_ID
+                Where scvb.VALUE = ct.CURRENCY_CODE) As currency_code_desc
+        from CON_CONTRACT_CASHFLOW ccc
+         LEFT JOIN CON_CONTRACT cc ON cc.CONTRACT_ID = ccc.CONTRACT_ID
+         LEFT JOIN CSH_TRANSACTION ct ON ct.con_cashflow_id = ccc.CASHFLOW_ID
+        Where ct.TRANSACTION_TYPE In ('ADVANCE_RECEIPT', 'DEPOSIT', 'MANAGEMENT_FEE', 'PERFORMANCE_BOND')
+          And ct.WRITE_OFF_FLAG != 'FULL'
+          And ct.REVERSED_FLAG = 'N'
+          and not exists(select 1
+                         from CSH_TRANSACTION_REFUND_LN line,
+                              CSH_TRANSACTION_REFUND head
+                         where head.REFUND_ID = line.REFUND_ID
+                           and line.SOURCE_TRANSACTION_ID = ct.TRANSACTION_ID
+                           and head.REFUND_STATUS not in ('CANCEL', 'REJECTED')
+            )
+        <if test="contractNumber != null">
+            <bind name="contractNumber" value="'%'+contractNumber+'%'"/>
+            and cc.contract_number like #{contractNumber}
+        </if>
+        <if test="bpName!=null">
+            <bind name="bpName" value="'%'+bpName+'%'"/>
+            and (SELECT hbv.bp_name FROM hls_bp_master hbv, prj_project pp
+                WHERE hbv.bp_id = pp.TENANT_ID and pp.PROJECT_ID = cc.project_id) like #{bpName}
+        </if>
+        <if test="manufacturerIdN!=null">
+            <bind name="manufacturerIdN" value="'%'+manufacturerIdN+'%'"/>
+            and ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.manufacturer_id ) like #{manufacturerIdN}
+        </if>
+        <if test="writeOffFlag!=null">
+            AND ccc.write_off_flag = #{writeOffFlag}
+        </if>
+        <if test="transactionNum != null">
+            <bind name="transactionNum" value="'%'+transactionNum+'%'"/>
+            and ct.transaction_num like #{transactionNum}
+        </if>
+        <if test="bpBankAccountName != null">
+            <bind name="bpBankAccountName" value="'%'+bpBankAccountName+'%'"/>
+            and ct.bp_bank_account_name like #{bpBankAccountName}
+        </if>
+        <if test="manufacturerId!=null">
+            AND cc.manufacturer_id = #{manufacturerId}
+        </if>
+        <if test="cashflowIdS != null">
+            and ccc.CASHFLOW_ID not in
+            <foreach collection="cashflowIdS" open="(" separator="," close=")" item="item" index="index">
+                #{item}
+            </foreach>
+        </if>
     </select>
 
     <!--二期功能：退款申请维护tab页查询-->
@@ -670,6 +763,99 @@
         </where>
     </select>
 
+    <!--退款明细行查询 合同现金流维度-->
+    <select id="refundInfoLnQueryCashflow" parameterType="com.hand.hls.csh.dto.HlsCusCshTransactionRefund" resultMap="BaseResultMap">
+        SELECT t1.*
+        FROM (SELECT ct.TRANSACTION_ID,
+        ct.TRANSACTION_NUM,
+        ct.TRANSACTION_TYPE,
+        ct.posted_flag,
+        cc.CONTRACT_ID,
+        cc.contract_number,
+        ctrl.ln_id,
+        ctrl.refund_id,
+        ctrl.bank_account_id,
+        ctrl.refund_amount,
+        ctrl.payment_method,
+        (
+        SELECT scv.meaning
+        FROM sys_code_b scb,
+        sys_code_value_b scv
+        WHERE scb.CODE = 'CSH.PAYMENT_METHOD'
+        AND scb.CODE_ID = scv.CODE_ID
+        and scv.value = ctrl.payment_method
+        )                                                                                   payment_method_n,
+        ctrl.bank_slip_num,
+        ctrl.object_version_number,
+        ctrl.request_id,
+        ctrl.program_id,
+        ctrl.created_by,
+        ctrl.creation_date,
+        ctrl.last_updated_by,
+        ctrl.last_update_date,
+        ctrl.last_update_login,
+        ctrl.SOURCE_TRANSACTION_ID,
+        ct.TRANSACTION_DATE,
+        ct.TRANSACTION_AMOUNT,
+        ct.CURRENCY_CODE,
+        nvl(ct.WRITE_OFF_AMOUNT, 0)                                                                 AS WRITE_OFF_AMOUNT,
+        (SELECT m.BP_NAME FROM HLS_BP_MASTER m WHERE m.BP_ID = ct.BP_ID)                            AS bp_payment_name,
+        (SELECT scvb.MEANING
+        FROM SYS_CODE_B scb
+        LEFT JOIN SYS_CODE_VALUE_B scvb
+        ON scb.CODE = 'CSH301_TRANSACTION_TYPE' AND scb.CODE_ID = scvb.CODE_ID
+        WHERE scvb.VALUE = ct.TRANSACTION_TYPE)                                                    AS transaction_type_desc,
+        (SELECT scvb.MEANING
+        FROM SYS_CODE_B scb
+        LEFT JOIN SYS_CODE_VALUE_B scvb ON scb.CODE = 'CHS.CURRENCY_TYPE' AND scb.CODE_ID = scvb.CODE_ID
+        WHERE scvb.VALUE = ct.CURRENCY_CODE)                                                       AS currency_code_desc,
+        (select nvl((ctr.refund_amount - ctrl.refund_amount), 0)
+        from csh_transaction_refund ctr
+        where ctr.refund_id = ctrl.refund_id
+        and ctr.PAYMENT_REFUND_STATUS = 'PAID')                                                       return_write_off_amount,
+        ( SELECT
+        sum(ctr.REFUND_AMOUNT)
+        FROM
+        csh_transaction_refund ctr
+        WHERE
+        ctr.refund_status = 'APPROVING'
+        AND ctr.TRANSACTION_ID = ct.TRANSACTION_ID
+        )  refunding_amount,
+        (select nvl((ctr.refund_amount - ctrl.refund_amount), 0)
+        from csh_transaction_refund ctr
+        where ctr.refund_id = ctrl.refund_id
+        and ctr.PAYMENT_REFUND_STATUS != 'PAID') AS can_return_amount,
+        (select bm.bp_name from hls_bp_master bm where bm.bp_id=ct.bp_id) bp_name,
+        ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = cc.manufacturer_id ) manufacturer_id_n,
+           cc.manufacturer_id,
+           ccc.TIMES,
+           trunc(ccc.DUE_DATE) DUE_DATE,
+           ccc.DUE_AMOUNT,
+           ccc.RECEIVED_AMOUNT,
+           ccc.WRITE_OFF_FLAG,
+           ( SELECT v.meaning FROM sys_code_value_b_v v
+             WHERE v.CODE = 'CON.CASHFLOW_WRITE_OFF_FLAG' AND v.code_value = ccc.write_off_flag ) write_off_flag_n,
+           ccc.RECEIVED_COMP_AMOUNT,
+           ccc.cashflow_id,
+           ct.bp_bank_account_name
+        FROM csh_transaction_refund_ln ctrl
+        INNER JOIN csh_transaction ct ON ct.TRANSACTION_ID = ctrl.SOURCE_TRANSACTION_ID
+        LEFT JOIN con_contract_cashflow ccc ON ccc.cashflow_id = ct.con_cashflow_id
+        LEFT JOIN con_contract cc ON ccc.contract_id = cc.contract_id
+        WHERE ct.TRANSACTION_TYPE IN ('ADVANCE_RECEIPT', 'DEPOSIT', 'MANAGEMENT_FEE', 'PERFORMANCE_BOND')) t1
+        <where>
+            <if test="refundId != null">
+                and t1.refund_id = #{refundId}
+            </if>
+            <if test="transactionIds != null">
+                AND t1.transaction_id in
+                <foreach collection="transactionIds" open="(" separator="," close=")" item="item" index="index">
+                    #{item,jdbcType=DECIMAL}
+                </foreach>
+            </if>
+        </where>
+    </select>
+
     <!--二期功能：待支付清单-退款申请 首页查询-->
     <select id="refundPayHome" parameterType="com.hand.hls.csh.dto.HlsCusCshTransactionRefund" resultMap="BaseResultMap">
         select *
@@ -770,6 +956,7 @@
         <result column="bp_bank_account_name" property="bp_bank_account_name"/>
         <result column="bp_bank_name" property="bp_bank_name"/>
         <result column="bp_bank_branch_name" property="bp_bank_branch_name"/>
+        <result column="payment_refund_status" property="payment_refund_status"/>
     </resultMap>
     <select id="refundPayHeadInfo" resultMap="BaseInfoMap">
         select ctr.refund_id,
@@ -803,7 +990,8 @@
                 ctr.bp_bank_account_num bp_bank_account_num,
                 ctr.bp_bank_account_name bp_bank_account_name,
                 ctr.bp_bank_name bp_bank_name,
-                ctr.bp_bank_branch_name bp_bank_branch_name
+                ctr.bp_bank_branch_name bp_bank_branch_name,
+                ctr.payment_refund_status payment_refund_status
         from csh_transaction_refund ctr
         <where>
             <if test="refundId!=null and refundId!=''">

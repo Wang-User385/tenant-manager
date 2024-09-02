@@ -26,6 +26,11 @@ public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMa
     List<HlsCusCshTransactionRefund> createRefundQuery(HlsCusCshTransactionRefund transactionRefund);
 
     /**
+     * 退款申请创建 tab页面查询  现金流维度
+     */
+    List<HlsCusCshTransactionRefund> createRefundQueryNew(HlsCusCshTransactionRefund transactionRefund);
+
+    /**
      * 二期功能：退款申请维护tab页查询
      *
      * @param transactionRefund
@@ -40,6 +45,11 @@ public interface HlsCusCshTransactionRefundMapper extends CshTransactionRefundMa
      * @return
      */
     List<HlsCusCshTransactionRefund> refundInfoLnQuery(HlsCusCshTransactionRefund transactionRefund);
+
+    /**
+     * 退款明细行信息查询  合同现金流维度
+     */
+    List<HlsCusCshTransactionRefund> refundInfoLnQueryCashflow(HlsCusCshTransactionRefund transactionRefund);
 
     /**
      * 二期功能：待支付清单-退款申请 首页查询

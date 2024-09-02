@@ -77,6 +77,12 @@ public interface CshTransactionService extends IBaseService<HlsCusCshTransaction
      */
     List<HlsCusCshTransaction> queryLov(IRequest iRequest, HlsCusCshTransaction hlsCusCshTransaction, int page, int pageSize) throws ParseException;
 
+    /**
+     * 退款申请创建明细页面现金流查询lov
+     */
+    List<HlsCusCshTransactionRefund> queryCashflowRefundAdLov(IRequest iRequest, HlsCusCshTransactionRefund hlsCusCshTransactionRefund, int page, int pageSize) throws ParseException;
+
+
     List<HlsCusCshTransaction> queryDepositDeductMethod(IRequest requestCtx, HlsCusCshTransaction hlsCusCshTransaction, int pagenum, int pagesize);
 
     void updateDepositDeductMethod(IRequest requestCtx, List<HlsCusCshTransaction> transactionList) throws ResMessageException;

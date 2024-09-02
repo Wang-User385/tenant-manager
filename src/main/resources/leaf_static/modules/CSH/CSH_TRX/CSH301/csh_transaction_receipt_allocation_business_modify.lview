@@ -610,6 +610,52 @@
             para['write_off_types'] = ["RECEIPT_ADVANCE_RECEIPT"];
         }
 
+        //核销债权导入
+        function csh301_transaction_receipt_allocation_credit_import(){
+            var receipt_ds = $('csh_transaction_allocation_receipt_ds');
+            var records = receipt_ds.getAll();
+            console.log(records);
+            new Leaf.Window({
+                id: 'csh301_transaction_receipt_import_winid',
+                url: '${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_import.lview',
+                params: {
+                    winid: 'csh301_transaction_receipt_import_winid',
+                    transaction_type: 'RECEIPT',
+                    allocation_id: '${/parameter/@allocation_id}',
+                    transaction_id: records[0].get('transaction_id')
+                },
+                title: '核销债权导入',
+                fullScreen: false,
+                width: 500,
+                draggable: true
+            });
+            win.on('close', function () {
+                $('csh_transaction_allocation_credit_ds').query();
+            });
+        }
+
+        //核销为预收款导入
+        function csh301_transaction_receipt_allocation_advance_import(){
+            var receipt_ds = $('csh_transaction_allocation_receipt_ds');
+            var records = receipt_ds.getAll();
+            new Leaf.Window({
+                id: 'csh301_transaction_advance_import_winid',
+                url: '${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_allocation_import.lview',
+                params: {
+                    winid: 'csh301_transaction_advance_import_winid',
+                    transaction_type: 'ADVANCE_RECEIPT',
+                    allocation_id: '${/parameter/@allocation_id}',
+                    transaction_id: records[0].get('transaction_id')
+                },
+                title: '核销为预收款导入',
+                fullScreen: false,
+                width: 500,
+                draggable: true
+            });
+            win.on('close', function () {
+                $('csh_transaction_allocation_advance_ds').query();
+            });
+        }
 
         ]]></script>
         <a:dataSets>
@@ -841,6 +887,8 @@
                                     <a:button click="csh301_transaction_receipt_allocation_credit_add" height="36" text="新增" width="36"/>
                                     <a:button click="csh301_transaction_receipt_allocation_credit_delete" height="36" text="删除" width="36"/>
                                     <a:button type="excel"/>
+                                    <a:button click="csh301_transaction_receipt_allocation_credit_import" height="36" text="导入"
+                                              width="36"/>
                                 </a:toolBar>
                                 <a:columns>
                                     <a:column name="contract_number" prompt="合同编号" width="120"/>
@@ -885,6 +933,8 @@
                                     <a:button click="csh301_transaction_receipt_allocation_advance_delete" height="36" text="删除"
                                               width="36"/>
                                     <a:button type="excel"/>
+                                    <a:button click="csh301_transaction_receipt_allocation_advance_import" height="36" text="导入"
+                                              width="36"/>
                                 </a:toolBar>
                                 <a:columns>
                                     <a:column name="write_off_due_amount" prompt="本次核销金额" renderer="Leaf.formatMoney"

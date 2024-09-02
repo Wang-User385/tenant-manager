@@ -1822,6 +1822,7 @@ from con_contract cc  where cc.contract_id=#{contractId})t
         AND cc.contract_id =  #{contractId}
         AND cf.due_amount-nvl(cf.RECEIVED_AMOUNT,0)>0
         AND cf.cf_status = 'RELEASE'
+        and nvl(cf.transfer_payment_flag, 'N') = 'N'
     </select>
 
     <select id="selectCalcPenaltyCashFlowBySourceId" parameterType="com.hand.hls.cont.dto.HlsCusConContractCashflow"
@@ -3067,7 +3068,11 @@ AND sua.COMPANY_ID = #{companyId}
         ) prj_con_number,
         t.times,
         t.due_date,
-        t.due_date due_date_format,
+        (case when t.transfer_payment_flag = 'Y' then
+          (select yctp.confirm_date from yl_csh_transfer_payment yctp where yctp.cashflow_id = t.cashflow_id)
+         else
+          t.due_date
+         end) due_date_format,
         t.due_amount,
         t.cf_item,
         t.cf_type,
