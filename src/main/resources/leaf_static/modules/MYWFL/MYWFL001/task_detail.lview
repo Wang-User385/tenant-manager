@@ -295,7 +295,10 @@
                 task_definition_key == 'FACTORING_PROJRCT_PROPOSALS16'){
                 jQuery('#chance_meeting_select_form').show();
             }
-
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S15' ||
+                task_definition_key == 'FACTORING_PROJRCT_PROPOSALS18'){
+                jQuery('#chance_vote_form').show();
+            }
 
 
         }
@@ -333,7 +336,10 @@
             }
             if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S4' ||
                 task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S5' ||
-                task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S6'){
+                task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S6' ||
+                task_definition_key == 'FACTORING_PROJRCT_PROPOSALS6'||
+                task_definition_key == 'FACTORING_PROJRCT_PROPOSALS7'||
+                task_definition_key == 'FACTORING_PROJRCT_PROPOSALS8'){
                 var appoint_record = $('chance_appoint_user_ds').getCurrentRecord();
                 if(Ext.isEmpty(appoint_record)){
                     Leaf.showMessage('提示','请先分配审查人员，再操作！');
@@ -345,7 +351,8 @@
                     return false;
                 }
             }
-            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S14'){
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S14' ||
+                task_definition_key == 'FACTORING_PROJRCT_PROPOSALS16'){
                 var chance_meeting = $('chance_meeting_select_ds').getCurrentRecord();
                 if(Ext.isEmpty(chance_meeting)){
                     Leaf.showMessage('提示','请选择会议形式');
@@ -354,6 +361,19 @@
                 var meeting_type = chance_meeting.get('meeting_type');
                 if(Ext.isEmpty(meeting_type)){
                     Leaf.showMessage('提示','请选择会议形式');
+                    return false;
+                }
+            }
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S15' ||
+                task_definition_key == 'FACTORING_PROJRCT_PROPOSALS18'){
+                var chance_vote = $('chance_vote_ds').getCurrentRecord();
+                if(Ext.isEmpty(chance_vote)){
+                    Leaf.showMessage('提示','请选择投票结果');
+                    return false;
+                }
+                var vote_status = chance_vote.get('vote_status');
+                if(Ext.isEmpty(vote_status)){
+                    Leaf.showMessage('提示','请选择投票结果');
                     return false;
                 }
             }
@@ -661,6 +681,14 @@
                              returnField="meeting_type" valueField="code_value"/>
                 </a:fields>
             </a:dataSet>
+            <a:dataSet id="vote_status_ds" lookupCode="CHANCE.FACTORING_RESULT"/>
+            <a:dataSet id="chance_vote_ds" autoCreate="true">
+                <a:fields>
+                    <a:field name="vote_status_n" displayField="code_value_name" options="vote_status_ds"
+                             returnField="vote_status" valueField="code_value"/>
+                    <a:field name="vote_comment"/>
+                </a:fields>
+            </a:dataSet>
         </a:dataSets>
         <a:screenBody>
             <!--审批事项信息-->
@@ -725,6 +753,10 @@
             </a:form>
             <a:form title="会议形式" id="chance_meeting_select_form" labelWidth="120" style="display: none;">
                 <a:comboBox name="meeting_type_n" bindTarget="chance_meeting_select_ds" prompt="会议形式" required="true"/>
+            </a:form>
+            <a:form title="投票信息" id="chance_vote_form" labelWidth="120" style="display: none;">
+                <a:comboBox name="vote_status_n" bindTarget="chance_vote_ds" prompt="投票结果" required="true"/>
+                <a:textField name="vote_comment" width="1300" prompt="投票意见" bindTarget="chance_vote_ds"/>
             </a:form>
             <!--操作按钮-->
             <div style="height:40px;">
