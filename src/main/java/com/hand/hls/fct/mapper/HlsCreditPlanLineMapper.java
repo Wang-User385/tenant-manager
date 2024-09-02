@@ -9,9 +9,16 @@ import java.util.List;
 public interface HlsCreditPlanLineMapper extends Mapper<HlsCreditPlanLine>{
 
     /***
-     * 保理方案明细查询
+     * 保理方案授信明细查询
      * @param hlsCreditPlanLine
      * @return
      */
     List<HlsCreditPlanLine> findFactoringInfo(HlsCreditPlanLine hlsCreditPlanLine);
+
+    /***
+     * 保理项目审批授信明细查询
+     * @param hlsCreditPlanLine
+     * @return
+     */
+    List<HlsCreditPlanLine> findFactoringApprovalInfo(HlsCreditPlanLine hlsCreditPlanLine);
 }

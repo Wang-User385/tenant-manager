@@ -136,4 +136,11 @@ public interface HlsCusPrjQuotationMapper extends Mapper<HlsCusPrjQuotation> {
      */
     List<HlsCusPrjQuotation> findFactoringQuotation(HlsCusPrjQuotation hlsCusPrjQuotation);
 
+    /***
+     * 保理项目审批报价信息
+     * @param hlsCusPrjQuotation
+     * @return
+     */
+    List<HlsCusPrjQuotation> findFactoringApprovalQuotation(HlsCusPrjQuotation hlsCusPrjQuotation);
+
 }

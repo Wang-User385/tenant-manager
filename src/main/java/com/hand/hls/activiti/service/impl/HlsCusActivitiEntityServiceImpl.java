@@ -2,6 +2,7 @@ package com.hand.hls.activiti.service.impl;
 
 
 import com.alibaba.fastjson.JSON;
+import com.hand.hap.account.dto.User;
 import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
@@ -1301,6 +1302,12 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
     public String getCreditChanceAssistant(DelegateExecution delegateExecution){
         Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
         HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
+        if ("FACTORING".equals(chance.getDocumentCategory()) && "HLS_CREDIT_LINE_CHANCE".equals(chance.getDocumentType())){
+            SysUser user =  sysUserMapper.findAllocationIdByUserID(chance.getProjectAssistant());
+            if (user != null){
+                return user.getAllocationId().toString();
+            }
+        }
         return chance.getProjectAssistant().toString();
     }
 

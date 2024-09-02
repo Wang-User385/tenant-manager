@@ -1392,4 +1392,7 @@ public class HlsCusPrjProjectBp extends BaseDTO {
     public void setPaidUpCapital(String paidUpCapital) {
         this.paidUpCapital = paidUpCapital;
     }
+
+    @Transient
+    private String bpNameN;
 }

@@ -22,4 +22,10 @@ public interface HlsCreditPlanMapper extends Mapper<HlsCreditPlan> {
     List<HlsCreditPlan> findFactoringInfo(HlsCreditPlan hlsCreditPlan);
     List<HlsCreditPlan> selectHlsCreditPlanByChanceId(HlsCreditPlan hlsCreditPlan);
 
+
+    /***
+     * 保理项目审批授信信息
+     */
+    List<HlsCreditPlan> findFactoringApprovalInfo(HlsCreditPlan hlsCreditPlan);
+
 }

@@ -64,4 +64,6 @@ public interface SysUserMapper extends Mapper<SysUser> {
 	List<Long> selectAllocationIdByRoleCode(String roleCode);
 
 	List<SysUser> selectEemployeeUtil(SysUser model);
+
+	SysUser findAllocationIdByUserID(@Param("userId") Long userId);
 }

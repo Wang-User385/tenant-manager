@@ -100,6 +100,13 @@ public interface HlsCusPrjProjectAttachmentMapper extends Mapper<HlsCusPrjProjec
 
     List<HlsCusPrjProjectAttachment> findListByHlsCusPrjProjectAttachment(HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment);
 
+    /***
+     * 保理立项审批附件信息
+     * @param hlsCusPrjProjectAttachment
+     * @return
+     */
+    List<HlsCusPrjProjectAttachment> findFactroingApprovalInfo(HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment);
+
 
 
 }

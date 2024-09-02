@@ -42,6 +42,7 @@
         <result column="SERIAL_NUMBER" property="serialNumber" jdbcType="VARCHAR"/>
         <result column="bp_role_type" property="bpRoleType" jdbcType="VARCHAR"/>
         <result column="is_credit_flag" property="isCreditFlag"/>
+        <result column="bp_name_n" property="bpNameN" jdbcType="VARCHAR"/>
 
         <result column="bp_class" property="bpClass" jdbcType="VARCHAR"/>
         <result column="phone" property="phone" jdbcType="VARCHAR"/>
@@ -1493,4 +1494,39 @@ and m.BP_CLASS= #{bpClass}
             </if>
         </where>
     </select>
+
+    <select id="findFactoringBPInfo" resultMap="BaseResultMap">
+        SELECT
+        ppb.project_id,
+        ppb.prj_bp_id,
+        ppb.bp_id,
+        hbm.bp_name,
+        hbm.bp_name bp_name_n,
+        hbm.bp_code,
+        hbm.bp_class,
+        ppb.bp_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = ppb.bp_type ) bp_type_n,
+        hbm.economic_indu_classify,
+        (
+        SELECT
+        t.description
+        FROM
+        hls_stat_class t
+        WHERE
+        t.class_usage = 'BIZ_PARTNER'
+        AND t.enabled_flag = 'Y'
+        AND to_char( t.CLASS_ID ) = hbm.economic_indu_classify
+        ) economic_indu_classify_n,
+        hbm.group_companies,
+        ppb.description
+        FROM
+        prj_project_bp ppb
+        INNER JOIN hls_bp_master hbm ON ppb.bp_id = ppb.bp_id
+        <where>
+            ppb.project_id = #{projectId}
+        </where>
+
+    </select>
+
+
 </mapper>

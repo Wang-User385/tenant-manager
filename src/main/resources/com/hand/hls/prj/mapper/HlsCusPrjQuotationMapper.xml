@@ -6354,4 +6354,35 @@
         </where>
     </select>
 
+    <select id="findFactoringApprovalQuotation" resultMap="BaseResultMap">
+        SELECT
+        pp.project_id,
+        pq.QUOTATION_ID,
+        pq.price_list,
+        ( SELECT h.description FROM hls_price_list h WHERE h.price_list = pq.price_list ) price_list_n,
+        nvl( pq.lease_item_amount, 0 ) lease_item_amount,
+        pq.lease_start_date,
+        nvl( pq.down_payment, 0 ) down_payment,
+        pq.finance_amount,
+        pq.alt_renting_fre_custom,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RENTING' AND sc.CODE_VALUE = TO_CHAR( pq.alt_renting_fre_custom ) ) alt_renting_fre_custom_n,
+        pq.alt_renting_frequency,
+        pq.int_rate,
+        pq.lease_times,
+        nvl( pq.deposit, 0 ) deposit,
+        nvl( pq.lease_charge, 0 ) lease_charge,
+        nvl( pq.other_income, 0 ) other_income,
+        nvl( pq.other_expenses, 0 ) other_expenses,
+        pq.irr,
+        pq.irr_after_tax
+        FROM
+        prj_quotation pq
+        INNER JOIN prj_project pp ON pq.source_document_category = 'PRJ_PROJECT'
+        AND pq.source_document_id = pp.project_id
+        <where>
+            pp.project_id = #{projectId}
+        </where>
+    </select>
+
+
 </mapper>

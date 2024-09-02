@@ -302,4 +302,12 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
      * @return
      */
     List<HlsCusPrjProject> findFactoringApprovalInfo(HlsCusPrjProject hlsCusPrjProject);
+
+    /***
+     * 保理项目审批基础信息
+     * @param hlsCusPrjProject
+     * @return
+     */
+
+    List<HlsCusPrjProject> findBasicInfo(HlsCusPrjProject hlsCusPrjProject);
 }

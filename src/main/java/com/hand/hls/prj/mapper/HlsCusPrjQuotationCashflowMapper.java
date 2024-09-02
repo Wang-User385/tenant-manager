@@ -136,4 +136,11 @@ public interface HlsCusPrjQuotationCashflowMapper extends Mapper<HlsCusPrjQuotat
 
     List<HlsCusPrjQuotationCashflow> findFactoringInfo(HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow);
 
+    /***
+     * 保理项目审批现金流信息
+     * @param hlsCusPrjQuotationCashflow
+     * @return
+     */
+    List<HlsCusPrjQuotationCashflow> findFactoringApprovalInfo(HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow);
+
 }

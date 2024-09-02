@@ -3222,4 +3222,24 @@ public class HlsCusPrjProject extends PrjProject {
     private Long compenDay; //代偿天数
 
     private Long buyBackDay; //回购天数
+
+    private String factoringType;
+    @Transient
+    private String factoringTypeN;
+    private String factoringCategory;
+    @Transient
+    private String factoringCategoryN;
+    private String factoringRecourse;
+    @Transient
+    private String factoringRecourseN;
+    private String factoringOpen;
+    @Transient
+    private String factoringOpenN;
+    private String prjInfoDesc;
+    private String creditorAnalyse;
+    private String debtorAnalyse;
+    private String otherDesc;
+    private String creditMeasures;
+
+
 }

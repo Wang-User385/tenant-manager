@@ -437,6 +437,21 @@
         <result column="compen_day" property="compenDay" jdbcType="DECIMAL"/>
         <result column="buy_back_day" property="buyBackDay" jdbcType="DECIMAL"/>
         <result column="investment_status" property="investmentStatus"/>
+
+        <result column="factoring_type" property="factoringType" jdbcType="VARCHAR"/>
+        <result column="factoring_type_n" property="factoringTypeN" jdbcType="VARCHAR"/>
+        <result column="factoring_category" property="factoringCategory" jdbcType="VARCHAR"/>
+        <result column="factoring_category_n" property="factoringCategoryN" jdbcType="VARCHAR"/>
+        <result column="factoring_recourse" property="factoringRecourse" jdbcType="VARCHAR"/>
+        <result column="factoring_recourse_n" property="factoringRecourseN" jdbcType="VARCHAR"/>
+        <result column="factoring_open" property="factoringOpen" jdbcType="VARCHAR"/>
+        <result column="factoring_open_n" property="factoringOpenN" jdbcType="VARCHAR"/>
+        <result column="prj_info_desc" property="prjInfoDesc" jdbcType="VARCHAR"/>
+        <result column="creditor_analyse" property="creditorAnalyse" jdbcType="VARCHAR"/>
+        <result column="debtor_analyse" property="debtorAnalyse" jdbcType="VARCHAR"/>
+        <result column="other_desc" property="otherDesc" jdbcType="VARCHAR"/>
+        <result column="credit_measures" property="creditMeasures" jdbcType="VARCHAR" />
+
     </resultMap>
 
     <resultMap id="prjHomePageGetAllStatusProjectCountMap" type="java.util.Map">
@@ -13622,6 +13637,56 @@ WHERE
                 and pp.credit_flag = #{creditFlag}
             </if>
         </where>
+    </select>
+
+    <select id="findBasicInfo" resultMap="BaseResultMap">
+        SELECT
+            pp.project_id,
+            pp.project_number,
+            pp.project_name,
+            pp.tenant_id,
+            ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
+            pp.company_id,
+            ( SELECT FC.COMPANY_FULL_NAME FROM FND_COMPANY FC WHERE pp.COMPANY_ID = FC.COMPANY_ID ) COMPANY_ID_N,
+            pp.creation_date,
+            pp.unit_id,
+            ( SELECT fou.unit_name FROM fnd_org_unit fou WHERE pp.unit_id = fou.unit_id ) unit_id_n,
+            pp.host_project_manager,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = pp.host_project_manager ) host_project_manager_n,
+            pp.assist_project_manager,
+            ( SELECT a.description FROM sys_user a WHERE a.user_id = pp.assist_project_manager ) assist_project_manager_n,
+            pp.city,
+            (
+                SELECT
+                    CONCAT(
+                            ( SELECT P.DESCRIPTION FROM FND_PROVINCE P WHERE to_char( P.PROVINCE ) = fd.PROVINCE ),
+                            CONCAT( ( SELECT fc.DESCRIPTION FROM FND_CITY fc WHERE to_char( fc.City ) = fd.City ), fd.DESCRIPTION )
+                        )
+                FROM
+                    fnd_district fd
+                WHERE
+                    fd.DISTRICT = pp.city
+                  AND fd.enabled_flag = 'Y'
+            ) CITY_N,
+            pp.factoring_type,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_TYPE' AND sc.code_value = pp.factoring_type ) factoring_type_n,
+            pp.factoring_category,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = pp.factoring_category ) factoring_category_n,
+            pp.factoring_recourse,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RECOURSE' AND sc.code_value = pp.factoring_recourse ) factoring_recourse_n,
+            pp.factoring_open,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_OPEN' AND sc.code_value = pp.factoring_open ) factoring_open_n,
+            pp.industry_type,
+            pp.description,
+            pp.credit_measures,
+            pp.finance_note,
+            pp.prj_info_desc,
+            pp.creditor_analyse,
+            pp.debtor_analyse,
+            pp.other_desc
+        FROM
+            PRJ_PROJECT pp
+        where  pp.project_id = #{projectId}
     </select>
 
 </mapper>

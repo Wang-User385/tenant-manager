@@ -57,4 +57,14 @@ public interface HlsCusPrjProjectBpMapper extends Mapper<HlsCusPrjProjectBp> {
     HlsCusPrjProjectBp selectGurProjectBp(@Param("projectId") Long projectId);
 
     HlsCusPrjProjectBp selectSecTenantProjectBp(@Param("projectId") Long projectId);
+
+    /***
+     * 保理客户信息
+     * @param hlsCusPrjProjectBp
+     * @return
+     */
+
+    List<HlsCusPrjProjectBp> findFactoringBPInfo(HlsCusPrjProjectBp hlsCusPrjProjectBp);
+
+
 }

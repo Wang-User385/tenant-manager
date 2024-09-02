@@ -66,6 +66,7 @@
     <result column="deposit_col_method" jdbcType="VARCHAR" property="depositColMethod" />
     <result column="deposit_col_method_n" jdbcType="VARCHAR" property="depositColMethodN" />
     <result column="int_rate" jdbcType="DECIMAL" property="intRate" />
+    <result column="project_id" jdbcType="DECIMAL" property="projectId" />
   </resultMap>
   <sql id="Base_Column_List">
     <!--@mbg.generated generated on Mon Jul 25 16:11:02 CST 2022.-->
@@ -421,7 +422,7 @@
         FROM
         hls_credit_plan hcp
         INNER JOIN hls_credit_line_chance c ON hcp.source_document_category = 'HLS_CREDIT_LINE_CHANCE'
-        AND hcp.source_document_id = c.chance_id
+        AND hcp.source_document_id = c.chance_id AND (SELECT bp_type from hls_bp_master hbm where hbm.bp_id = c.bp_id) = 'ASSET_TRANSFEROR'
         <where>
             c.chance_id = #{chanceId}
         </where>
@@ -460,4 +461,26 @@
             hcp.source_document_id =#{chanceId}
         </where>
     </select>
+
+
+    <select id="findFactoringApprovalInfo" resultMap="BaseResultMap">
+        SELECT
+        hcp.credit_plan_id,
+        pp.tenant_id bp_id,
+        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = pp.tenant_id ) bp_name,
+        hcp.credit_amt,
+        hcp.quota_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'FINANCING_LOAN' AND sc.code_value = hcp.QUOTA_TYPE ) QUOTA_TYPE_N,
+        hcp.date_from,
+        hcp.date_to,
+        hcp.credit_desc
+        FROM
+        hls_credit_plan hcp
+        INNER JOIN prj_project pp ON hcp.source_document_category = 'PRJ_PROJECT'
+        AND hcp.source_document_id = pp.project_id AND (SELECT bp_type from hls_bp_master hbm where hbm.bp_id = pp.tenant_id) = 'ASSET_TRANSFEROR'
+        <where>
+            pp.project_id = #{projectId}
+        </where>
+    </select>
+
 </mapper>
