@@ -204,6 +204,7 @@ HlsCusConContractCashflow extends BaseDTO {
     private   String transferPaymentFlagN;//是否转付
     @Transient
     private   String stopWithholdFlagN;//是否转付
+
     /**
      * 商业模式
      */
@@ -1180,4 +1181,5 @@ HlsCusConContractCashflow extends BaseDTO {
     @Transient
     private String accountNumber;
 
+    private String stopWithholdFlag; //是否暂停代扣
 }
