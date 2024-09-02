@@ -24,7 +24,7 @@
             } else if (name == 'info') {
                 return '<a href="javascript:upload(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('chance_id') + '\');">' + attach_name + '</a>';
             } else if (name == 'quote') {
-                return '<a href="javascript:quotation_factoring_detail_adjust(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('quotation_id') + '\')"><span style="    width: 82px;\n' +
+                return '<a href="javascript:quotation_factoring_detail_adjust(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('quotation_id') + '\',\'' + record.get('chance_id') + '\')"><span style="    width: 82px;\n' +
                     '    background-color: #4CAF50;\n' +
                     '    border: none;\n' +
                     '    color: white;\n' +
@@ -240,7 +240,7 @@
             set.clear();
             var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
             var records_p = $(ds_id_p).getAll();
-            if (records_p){
+            if (records_p) {
                 for (let i = 0; i < records_p.length; i++) {
                     var record_p = records_p[i];
                     if (set.has(record_p.get('factoring_category'))) {
@@ -252,7 +252,7 @@
             }
             var ds_id_cp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
             var record_cp = $(ds_id_cp).getCurrentRecord();
-            if (record_cp.get('date_from') > record_cp.get('date_to')){
+            if (record_cp.get('date_from') > record_cp.get('date_to')) {
                 Leaf.showErrorMessage('提示', '授信开始日期不能大于授信结束日期');
                 return false;
             }
@@ -549,10 +549,10 @@
             });
         }
 
-        function quotation_factoring_detail_adjust(dsId, record_id, quotation_id) {
-            debugger;
+        function quotation_factoring_detail_adjust(dsId, record_id, quotation_id,chance_id) {
             var price_list = $(dsId).findById(record_id).get("price_list");
             quotation_id = $(dsId).findById(record_id).get("quotation_id");
+            chance_id = $(dsId).findById(record_id).get("chance_id");
             if (quotation_id == 'undefined' || quotation_id == null || quotation_id == '') {
                 Leaf.showInfoMessage("提示", "请先保存后，再进行报价测算");
                 return;
@@ -578,16 +578,21 @@
                         title: '项目报价',
                         fullScreen: true
                     });
-                    var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
-                    $(quo_ds).query();
-                    var ds_id_cp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
-                    var record_cp = $(ds_id_cp).getCurrentRecord();
-                    if (record_cp) {
-                        var record_quo = $(quo_ds).getCurrentRecord();
-                        if (record_quo) {
-                            record_cp.set('credit_amount', record_quo.get('finance_amount'));
+                    win.on('close', function () {
+                        var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation','F_QUOTATIO_FINANCIA');
+                        if (chance_id){
+                            $(quo_ds).setQueryParameter('chance_id',chance_id);
                         }
-                    }
+                        $(quo_ds).query();
+                        var ds_id_cp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+                        var record_cp = $(ds_id_cp).getCurrentRecord();
+                        if (record_cp) {
+                            var record_quo = $(quo_ds).getCurrentRecord();
+                            if (record_quo) {
+                                record_cp.set('credit_amount', record_quo.get('finance_amount'));
+                            }
+                        }
+                    })
                 },
                 error: function () {
                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
@@ -761,12 +766,12 @@
                             examine_host: examine_host
                         },
                         success: function (res) {
-                            countiune();
                         },
                         sync: true
                     });
                 }
             }
+            countiune();
         }
 
         ]]></script>

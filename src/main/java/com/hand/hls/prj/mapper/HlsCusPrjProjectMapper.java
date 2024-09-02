@@ -295,4 +295,11 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
 
     List<HlsCusPrjProject> selectProjectForAlipaySignQuery();
     List<HlsCusPrjProject> findDetailConContract(HlsCusPrjProject hlsCusPrjProject);
+
+    /***
+     * 保理项目审批主页面
+     * @param hlsCusPrjProject
+     * @return
+     */
+    List<HlsCusPrjProject> findFactoringApprovalInfo(HlsCusPrjProject hlsCusPrjProject);
 }

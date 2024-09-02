@@ -8,8 +8,14 @@ import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
 import com.hand.hls.fct.service.HlsCusHlsCreditLineChanceService;
 import com.hand.hls.gld.service.HlsCusConContractService;
 import com.hand.hls.partner.service.IYLMessageNoticeService;
+import com.hand.hls.prj.dto.HlsCusPrjProject;
+import com.hand.hls.prj.dto.HlsCusPrjQuotation;
+import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
+import com.hand.hls.prj.service.HlsCusPrjProjectService;
+import com.hand.hls.prj.service.HlsCusPrjQuotationService;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +44,8 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
     @Autowired
     private HlsCusHlsCreditLineChanceService hlsCusHlsCreditLineChanceService;
 
+    @Autowired
+    private HlsCusPrjProjectService hlsCusPrjProjectService;
 
     @Override
     public void execute(DelegateExecution delegateExecution) {
@@ -62,6 +70,16 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
                 chance.setCreditLineStatus(DELEGATE);
                 hlsCusHlsCreditLineChanceService.updateByPrimaryKeySelective(requestCtx, chance);
             }
+            //创建项目审批记录
+            HlsCusPrjProject prjProject = new HlsCusPrjProject();
+            BeanUtils.copyProperties(chance,prjProject);
+            prjProject.setProjectNumber(chance.getCreditLineNumber());
+            prjProject.setSourceDocumentCategory("PRJ_PROJECT");
+            prjProject.setDocumentType("FACTORING");
+            prjProject.setSourceDocumentId(chanceId);
+            prjProject.setHostProjectManager(chance.getProposerEmployeeId());
+            prjProject.setAssistProjectManager(chance.getProjectAssistant());
+            hlsCusPrjProjectService.insert(requestCtx,prjProject);
         }
     }
 
