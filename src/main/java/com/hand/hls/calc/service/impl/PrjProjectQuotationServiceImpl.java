@@ -122,7 +122,9 @@ public class PrjProjectQuotationServiceImpl implements QuotationCommon {
             dueAmountDateList[i] = cashflow.getDueDate();
         }
         Double xirr = HlsCusXirr.Newtons_method(0.1, dueAmountList, dueAmountDateList);
-        prjQuotationDto.setXirr(xirr);
+        if(Double.isFinite(xirr)){
+            prjQuotationDto.setXirr(xirr);
+        }
         hlsCusPrjQuotationService.updateByPrimaryKeySelective(iRequest,prjQuotationDto);
 
         return prjQuotationDto;
