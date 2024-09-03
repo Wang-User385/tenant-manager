@@ -477,6 +477,16 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         service.updateByPrimaryKeySelective(requestCtx,chance);
         return new ResponseData();
     }
+    @RequestMapping(value = "/save/credit/info")
+    @ResponseBody
+    public ResponseData saveCreditInfo(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusHlsCreditLineChance chance = param.toJavaObject(HlsCusHlsCreditLineChance.class);
+        service.updateByPrimaryKeySelective(requestCtx,chance);
+        return new ResponseData();
+    }
 
 
 }

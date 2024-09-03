@@ -51,18 +51,14 @@
         (SELECT su.DESCRIPTION
         FROM sys_user su
         WHERE su.user_id =
-        (select max(fa.created_by)
-        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
-        where fa.attachment_id = fam.attachment_id
-        and fam.table_name in
-        ('HLS_CREDIT_LINE_ATTACH', 'HLS_CREDIT_CHANCE_DOCX')
-        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value)) upload_person_n,
-        (select max(fa.creation_date)
-        from fnd_atm_attachment fa, fnd_atm_attachment_multi fam
-        where fa.attachment_id = fam.attachment_id
-        and fam.table_name in
-        ('HLS_CREDIT_LINE_ATTACH', 'HLS_CREDIT_CHANCE_DOCX')
-        and to_char(hra.CHANCE_ATTACHMENT_ID) = fam.table_pk_value) upload_date,
+        ( SELECT max(fam.created_by)
+         FROM fnd_atm_attachment fa,fnd_atm_attachment_multi fam
+         WHERE fa.attachment_id=fam.attachment_id
+         and fam.attachment_id=hra.chance_id)) upload_person_n,
+        (SELECT max(fam.creation_date)
+         FROM fnd_atm_attachment fa,fnd_atm_attachment_multi fam
+         WHERE fa.attachment_id=fam.attachment_id
+         and fam.attachment_id=hra.chance_id) upload_date,
         hra.status,
         nvl2((select distinct necessary_upload_flag
         from sys_document_list sdl

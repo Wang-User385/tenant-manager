@@ -527,10 +527,10 @@
         WHERE hbm.BP_ID = clc.BP_ID
         ) bp_id_n,
         (
-        select hmr.MARKETING_REPORT_NUMBER
+        select WM_CONCAT(hmr.MARKETING_REPORT_NUMBER)
         from hls_marketing_report hmr
         where hmr.MARKETING_REPORT_ID = clc.MARKETING_REPORT_ID
-        )MARKETING_REPORT_NUMBER,
+        ) MARKETING_REPORT_NUMBER,
         nvl(CLC.credit_line_amt,(select q.finance_amount from prj_quotation q where q.source_document_id = clc.chance_id and q.source_document_category = 'HLS_CREDIT_LINE_CHANCE'))credit_line_amt,
         nvl(CLC.credit_line_amt/10000,(select q.finance_amount/10000 from prj_quotation q where q.source_document_id = clc.chance_id and q.source_document_category = 'HLS_CREDIT_LINE_CHANCE'))credit_line_amt_w,
         CLC.CREDIT_EXPOSURE_AMT,
@@ -539,14 +539,14 @@
         WHEN '1'  THEN '是'
         WHEN '2'  THEN '否'
         END  CREDIT_FLAG,
-                 (
-                 select scv.MEANING
-                 from sys_code_b sc, sys_code_value_b scv
-                 where sc.CODE_ID = scv.CODE_ID
-                 and scv.value = clc.CREDIT_FLAG
-                 and sc.CODE = 'SYS.YES_NO'
-                and rownum=1
-                 ) CREDIT_FLAG_N,
+        (
+        select scv.MEANING
+        from sys_code_b sc, sys_code_value_b scv
+        where sc.CODE_ID = scv.CODE_ID
+        and scv.value = clc.CREDIT_FLAG
+        and sc.CODE = 'SYS.YES_NO'
+        and rownum=1
+        ) CREDIT_FLAG_N,
         clc.APPROVED_DATE,
         clc.BUSINESS_TYPE,
         (select  v.description  from hls_business_type v where v.enabled_flag = 'Y' and v.DOCUMENT_CATEGORY = 'CHANCE' and clc.BUSINESS_TYPE = V.business_type) BUSINESS_TYPE_N,
@@ -556,11 +556,11 @@
         WHERE  a.user_id = clc.PROPOSER_EMPLOYEE_ID) as PROPOSER_EMPLOYEE_ID_N,
 
         clc.PROJECT_ASSISTANT ,
-        (SELECT  a.description
+        (SELECT  WM_CONCAT(a.description)
         FROM  sys_user a
         WHERE  a.user_id = clc.PROJECT_ASSISTANT) as PROJECT_ASSISTANT_N,
         clc.unit_id,
-        (select fou.unit_name from fnd_org_unit fou where fou.unit_id=clc.unit_id) as unit_id_n,
+        (select WM_CONCAT(fou.unit_name) from fnd_org_unit fou where fou.unit_id=clc.unit_id) as unit_id_n,
         CLC.CREDIT_LINE_STATUS,
         (select scv.MEANING
         from sys_code_b sc, sys_code_value_b scv
@@ -571,9 +571,9 @@
         to_char(clc.CREATION_DATE, 'yyyy-mm-dd') TOUCH_CREATED_DATE
         from HLS_CREDIT_LINE_CHANCE CLC
         where CLC.credit_line_status not in('CLOSED') and nvl(CLC.DATA_TYPE, 'NORMAL') not in ('CHANGE_REQ', 'HISTORY', 'CHANGE_REQ_HISTORY')
-        and nvl(clc.chance_type, 'CHANCE') != 'CREDIT'
+        and CLC.document_type= 'CREDIT'
         order by clc.CREATION_DATE  desc
-         )tt
+        )tt
 
         <where>
         1=1
