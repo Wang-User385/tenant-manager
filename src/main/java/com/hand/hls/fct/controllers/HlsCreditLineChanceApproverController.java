@@ -55,7 +55,7 @@ import org.springframework.web.bind.annotation.*;
         return new ResponseData();
     }
 
-    @RequestMapping(value = "/hls/credit/line/chance/approver/remove")
+    @RequestMapping(value = "/credit/line/chance/approver/remove")
     @ResponseBody
     public ResponseData delete(HttpServletRequest request,@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData){
         IRequest iRequest = createRequestContext(request);
