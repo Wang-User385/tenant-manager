@@ -148,6 +148,7 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
 
     //项目尽调首页查询 prjHomePageProjectInfoGridHome
     List<HlsCusPrjProject> prjHomePageProjectInfoGridHome(HlsCusPrjProject prjProject);
+    List<HlsCusPrjProject> queryAll(HlsCusPrjProject prjProject);
     Long queryAssistUnitId(Long assistProjectManager);
 
     List<HlsCusPrjProject> queryAllApproveContract(HlsCusPrjProject hlsCusPrjProject);
