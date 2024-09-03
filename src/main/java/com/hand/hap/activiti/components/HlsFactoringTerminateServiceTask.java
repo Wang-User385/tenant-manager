@@ -8,6 +8,7 @@ import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <p>
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
  */
 
 @Component
+@Transactional(rollbackFor = Exception.class)
 public class HlsFactoringTerminateServiceTask implements JavaDelegate, IActivitiBean {
 
     private static final String APPROVED = "APPROVED";

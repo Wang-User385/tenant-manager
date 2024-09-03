@@ -9,7 +9,7 @@ public interface HlsCreditLineChanceConditionMapper extends Mapper<HlsCreditLine
     List<HlsCreditLineChanceCondition> queryAll();
 
         /***
-         * 保理投放前提条件
+         * 保理投放条件
          * @param hlsCreditLineChanceCondition
          * @return
          */

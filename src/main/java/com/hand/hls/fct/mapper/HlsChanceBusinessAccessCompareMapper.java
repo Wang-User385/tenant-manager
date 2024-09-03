@@ -16,8 +16,8 @@ public interface HlsChanceBusinessAccessCompareMapper extends Mapper<HlsChanceBu
 
     /***
      * 保理业务审核信息
-     * @param hlsCusHlsCreditLineChance
+     * @param HlsChanceBusinessAccessCompare
      * @return
      */
-    List<HlsChanceBusinessAccessCompare> findFactoringInfo(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
+    List<HlsChanceBusinessAccessCompare> findFactoringInfo(HlsChanceBusinessAccessCompare HlsChanceBusinessAccessCompare);
 }
