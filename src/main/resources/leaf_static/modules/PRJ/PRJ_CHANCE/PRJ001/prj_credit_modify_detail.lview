@@ -450,13 +450,15 @@
             var chance_id = $(ds_root_id).getCurrentRecord().get('chance_id');
             var cur_record = $('chance_appoint_user_ds').getCurrentRecord();
             var meeting_record = $('chance_meeting_select_ds').getCurrentRecord();
+            var vote_record = $('chance_vote_ds').getCurrentRecord();
 
+            var node_id = '${/parameter/@node_id}';
             var risk_host = '';
             var legal_host = '';
             var examine_host = '';
             if (cur_record) {
                 var allocation_id = cur_record.get('allocation_id');
-                var node_id = '${/parameter/@node_id}';
+
 
                 if ('CREDIT_CHANCE_CREATE_WFL_S4' == node_id) {
                     examine_host = allocation_id;
@@ -479,7 +481,8 @@
                         sync: true
                     });
                 }
-            } else if(meeting_record){
+            }
+            if(meeting_record){
                 var meeting_type = meeting_record.get('meeting_type');
                 if (node_id == 'CREDIT_CHANCE_CREATE_WFL_S14') {
                     Leaf.request({
@@ -487,6 +490,21 @@
                         para: {
                             chance_id: chance_id,
                             meeting_type:meeting_type
+                        },
+                        success: function (res) {
+                        },
+                        sync: true
+                    });
+                }
+            }
+            if(vote_record){
+                var vote_status = vote_record.get('vote_status');
+                if (node_id == 'CREDIT_CHANCE_CREATE_WFL_S19') {
+                    Leaf.request({
+                        url: '${/request/@context_path}/hls/credit/line/chance/approver/submit',
+                        para: {
+                            chance_id: chance_id,
+                            vote_status:vote_status
                         },
                         success: function (res) {
                         },

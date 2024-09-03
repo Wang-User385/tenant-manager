@@ -51,7 +51,8 @@ import org.springframework.web.bind.annotation.*;
             responseData.setMessage(getErrorMessage(result, request));
             return responseData;
         }
-        return new ResponseData(service.batchUpdate(requestCtx, list));
+        service.updateByPrimaryKeySelective(requestCtx, list.get(0));
+        return new ResponseData();
     }
 
     @RequestMapping(value = "/hls/credit/line/chance/approver/remove")
