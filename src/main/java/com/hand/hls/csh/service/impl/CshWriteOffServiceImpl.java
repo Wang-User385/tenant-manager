@@ -3931,8 +3931,8 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                     queryHlsCusCshTransaction.setTransactionIdS(transactionIds);
                     List<HlsCusCshTransaction> hlsCusCshTransactions = cshTransactionMapper.detailQuery(queryHlsCusCshTransaction);
                     //如果返回金额超过本次申请总额则提示
-                    if(write_off_amount_total.compareTo(hlsCusCshTransactions.get(0).getTransactionAmount()) == -1){
-                        throw new HlsCusException("剩余可核销金额小于订单金额合计！");
+                    if(write_off_amount_total.compareTo(hlsCusCshTransactions.get(0).getTransactionAmount()) != 0){
+                        throw new HlsCusException("剩余可核销金额与待核销金额不一致！");
                     }
 
                     HlsCusCshTransaction insertCshTransaction = new HlsCusCshTransaction();

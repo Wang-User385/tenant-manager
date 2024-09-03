@@ -574,7 +574,7 @@ public class CshTransactionController extends BaseController {
     @RequestMapping(value = "/csh/cashflow/query/Adlov")
     @ResponseBody
     public ResponseData queryCashflowAdLov(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,
-                                 HttpServletRequest request, String notInCashflowIds,
+                                 HttpServletRequest request, String notIncashflowIds,
                                            String writeOffFlag,
                                            String bpBankAccountName,
                                            String manufacturerId,
@@ -594,8 +594,8 @@ public class CshTransactionController extends BaseController {
         if(StringUtils.isNotEmpty(manufacturerId)){
             metadataRelation.setManufacturerId(Long.valueOf(manufacturerId));
         }
-        if (StringUtils.isNotEmpty(notInCashflowIds)) {
-            String[] cashflowIdsStr = notInCashflowIds.split(",");
+        if (StringUtils.isNotEmpty(notIncashflowIds)) {
+            String[] cashflowIdsStr = notIncashflowIds.split(",");
             List<Long> notInCashflowIdList = new ArrayList<>(cashflowIdsStr.length);
             for (int i = 0; i < cashflowIdsStr.length; i++) {
                 if (StringUtils.isNotEmpty(cashflowIdsStr[i])) {

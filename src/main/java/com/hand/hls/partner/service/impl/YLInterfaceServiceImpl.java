@@ -2557,8 +2557,8 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
             interest = queryUnReceivedByOrderNoList.getInterest() - queryUnReceivedByOrderNoList.getReceivedInterest();
         }
         if ("REPO".equals(type)){
-            //回购结清应收金额 = 当前时间下一期租金应收本金 + 当前时间下一期租金剩余本金 - 当前时间下一期已收本金
-            payableAmount = queryUnReceivedByOrderNoList.getPrincipal() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedPrincipal();
+            //回购结清应收金额 = 当前时间下一期租金应收金额 + 当前时间下一期租金剩余本金 - 当前时间下一期已收本金
+            payableAmount = queryUnReceivedByOrderNoList.getDueAmount() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedPrincipal();
             principal = queryUnReceivedByOrderNoList.getPrincipal() + queryUnReceivedByOrderNoList.getOutstandingPrincipal() - queryUnReceivedByOrderNoList.getReceivedPrincipal();
             interest = queryUnReceivedByOrderNoList.getInterest() - queryUnReceivedByOrderNoList.getReceivedInterest();
         }
