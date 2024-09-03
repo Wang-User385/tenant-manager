@@ -2109,10 +2109,10 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         if (CollectionUtils.isNotEmpty(cshWriteOffList)){
             canWriteOffAmountTotal = round(cshWriteOffList.stream().collect(Collectors.summingDouble(HlsCusCshWriteOff::getWriteOffDueAmount)), 2);
             transactionTypeFlag = "CREDIT";
-
-            if (unWriteOffAmountTotal.compareTo(add(canWriteOffAmountTotal, advanceReceiptAmountTotal)) != 0 && TRANSACTION_TYPE_RECEIPT.equals(transactionType)) {
-                throw new ResMessageException("收款金额与待核销金额不一致！");
-            }
+            //债权核销不进行校验  注释
+            //if (unWriteOffAmountTotal.compareTo(add(canWriteOffAmountTotal, advanceReceiptAmountTotal)) != 0 && TRANSACTION_TYPE_RECEIPT.equals(transactionType)) {
+            //    throw new ResMessageException("收款金额与待核销金额不一致！");
+            //}
 
             for (HlsCusCshTransaction transaction : cshTransactionList) {
                 HlsCusCshTransaction cshTransaction = new HlsCusCshTransaction();

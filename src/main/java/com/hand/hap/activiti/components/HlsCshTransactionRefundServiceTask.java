@@ -4,6 +4,7 @@ import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hap.core.IRequest;
 import com.hand.hls.csh.dto.HlsCusCshTransactionRefund;
 import com.hand.hls.csh.service.CshTransactionRefundService;
+import com.hand.hls.utils.ResMessageException;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,14 @@ public class HlsCshTransactionRefundServiceTask  implements JavaDelegate, IActiv
         transactionRefund.setRefundId(refundId);
         transactionRefund = cshTransactionRefundService.selectByPrimaryKey(requestCtx, transactionRefund);
         if (!APPROVED.equalsIgnoreCase(transactionRefund.getRefundStatus()) && !REJECTED.equalsIgnoreCase(transactionRefund.getRefundStatus())) {
+            //审批通过前校验当前已确认支付
+            if (!"PAID".equals(transactionRefund.getPaymentRefundStatus()) ){
+                try {
+                    throw new ResMessageException("当前单据未支付无法确认");
+                } catch (ResMessageException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             if (APPROVED.equalsIgnoreCase(result)) {
                 transactionRefund.setLastUpdateDate(new Date());
                 transactionRefund.setRefundStatus(APPROVED);
@@ -40,7 +49,6 @@ public class HlsCshTransactionRefundServiceTask  implements JavaDelegate, IActiv
             } else if (REJECTED.equalsIgnoreCase(result)) {
                 transactionRefund.setLastUpdateDate(new Date());
                 transactionRefund.setRefundStatus(REJECTED);
-                transactionRefund.setPaymentRefundStatus("CANCEL_PAY");
                 cshTransactionRefundService.updateByPrimaryKeySelective(requestCtx, transactionRefund);
             }
         }
