@@ -3777,6 +3777,59 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             write_off_amount_total  += Double.valueOf(account.getAttributes_3());
         }
 
+        //匹配单号单独创建，不进入循环
+        CshAllocation cshAllocation = new CshAllocation();
+        if(StringUtils.isEmpty(allocationId)){
+            cshAllocation.setAllocationNumber(codingRuleValuesService.getCodeRuleValue(iRequest, "CSH_TRX",
+                    "ALLOCATION", "ALLOCATION", null));
+            cshAllocation.setAllocationDate(new Date());
+            cshAllocation.setAllocationSource("MANUAL");
+            if ("RECEIPT".equals(transactionType)){
+                cshAllocation.setAllocationStatus("N");
+            }else {
+                cshAllocation.setAllocationStatus("Y");
+            }
+            cshAllocationService.insertSelective(iRequest, cshAllocation);
+        }else {
+            //已经存在，更新关联表
+            cshAllocation.setAllocationStatus("N");
+            cshAllocation.setAllocationId(Long.valueOf(allocationId));
+            cshAllocationService.updateByPrimaryKeySelective(iRequest, cshAllocation);
+        }
+
+        //收款核销管理表  根据现金事务ID进行插入 不进入循环
+        CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
+        if(StringUtils.isEmpty(allocationId)){
+            cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
+            cshAllocationReceipt.setTransactionId(Long.valueOf(transactionId));
+            if ("RECEIPT".equals(transactionType)){
+                cshAllocationReceipt.setAdvanceReceiptAmount(0.0);
+            }else{
+                cshAllocationReceipt.setAdvanceReceiptAmount(write_off_amount_total);
+            }
+            cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
+        }else{
+            //已经存在
+            //删除后 重新插入
+            CshAllocationReceipt allocationReceipt = new CshAllocationReceipt();
+            allocationReceipt.setAllocationId(Long.valueOf(allocationId));
+            cshAllocationReceiptService.batchDelete(cshAllocationReceiptMapper.select(allocationReceipt));
+
+            CshAllocationCredit allocationCredit = new CshAllocationCredit();
+            allocationCredit.setAllocationId(Long.valueOf(allocationId));
+            cshAllocationCreditService.batchDelete(cshAllocationCreditMapper.select(allocationCredit));
+
+            //重新插入收款表
+            cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
+            cshAllocationReceipt.setTransactionId(Long.valueOf(transactionId));
+            if ("RECEIPT".equals(transactionType)){
+                cshAllocationReceipt.setAdvanceReceiptAmount(0.0);
+            }else{
+                cshAllocationReceipt.setAdvanceReceiptAmount(write_off_amount_total);
+            }
+            cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
+        }
+
         //校验字段必填
         for (FndInterfaceLines account : accountList){
             if (StringUtils.isEmpty(account.getAttributes_1())){
@@ -3801,6 +3854,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                 for (HlsCusConContractCashflow hlsCusConContractCashflow : hlsCusConContractCashflows){
                     surplusAmount  += hlsCusConContractCashflow.getDueAmount();
                 }
+
                 for (HlsCusConContractCashflow hlsCusConContractCashflow : hlsCusConContractCashflows) {
                     if (Double.compare(surplusAmount, Double.valueOf(account.getAttributes_3())) != 0) {
                         throw new HlsCusException("第" + (account.getLineNumber() + 1) + "行，订单金额与现金流剩余金额不等，请检查！");
@@ -3813,21 +3867,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
                     if (StringUtils.isEmpty(allocationId)) {
                         //插入 分配相关表
-                        CshAllocation cshAllocation = new CshAllocation();
-                        cshAllocation.setAllocationNumber(codingRuleValuesService.getCodeRuleValue(iRequest, "CSH_TRX",
-                                "ALLOCATION", "ALLOCATION", null));
-                        cshAllocation.setAllocationDate(new Date());
-                        cshAllocation.setAllocationSource("MANUAL");
-                        cshAllocation.setAllocationStatus("N");
-                        cshAllocationService.insertSelective(iRequest, cshAllocation);
-
-                        //收款核销管理表
-                        CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
-                        cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
-                        cshAllocationReceipt.setTransactionId(Long.valueOf(transactionId));
-                        cshAllocationReceipt.setAdvanceReceiptAmount(0.0);
-                        cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
-
                         //核销信息表
                         CshAllocationCredit cshAllocationCredit = new CshAllocationCredit();
                         cshAllocationCredit.setAllocationId(cshAllocation.getAllocationId());
@@ -3837,29 +3876,7 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                         cshAllocationCredit.setInterest(((hlsCusConContractCashflow.getInterest() != null) ? hlsCusConContractCashflow.getInterest() : 0.0));
                         cshAllocationCreditService.insertSelective(iRequest, cshAllocationCredit);
                     } else {
-                        //已经存在，更新关联表后，删除重新插入
-                        CshAllocation cshAllocation = new CshAllocation();
-                        cshAllocation.setAllocationStatus("N");
-                        cshAllocation.setAllocationId(Long.valueOf(allocationId));
-                        cshAllocationService.updateByPrimaryKeySelective(iRequest, cshAllocation);
-
-                        //删除后 重新插入
-                        CshAllocationReceipt allocationReceipt = new CshAllocationReceipt();
-                        allocationReceipt.setAllocationId(Long.valueOf(allocationId));
-                        cshAllocationReceiptService.batchDelete(cshAllocationReceiptMapper.select(allocationReceipt));
-
-                        CshAllocationCredit allocationCredit = new CshAllocationCredit();
-                        allocationCredit.setAllocationId(Long.valueOf(allocationId));
-                        cshAllocationCreditService.batchDelete(cshAllocationCreditMapper.select(allocationCredit));
-
                         //重新插入
-                        //收款核销管理表
-                        CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
-                        cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
-                        cshAllocationReceipt.setTransactionId(Long.valueOf(transactionId));
-                        cshAllocationReceipt.setAdvanceReceiptAmount(0.0);
-                        cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
-
                         //核销信息表
                         CshAllocationCredit cshAllocationCredit = new CshAllocationCredit();
                         cshAllocationCredit.setAllocationId(cshAllocation.getAllocationId());
@@ -3888,21 +3905,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                     cshTransactionService.updateByPrimaryKeySelective(iRequest, cshTransaction);
 
                     //插入 分配相关表
-                    CshAllocation cshAllocation = new CshAllocation();
-                    cshAllocation.setAllocationNumber(codingRuleValuesService.getCodeRuleValue(iRequest, "CSH_TRX",
-                            "ALLOCATION", "ALLOCATION", null));
-                    cshAllocation.setAllocationDate(new Date());
-                    cshAllocation.setAllocationSource("MANUAL");
-                    cshAllocation.setAllocationStatus("Y");
-                    cshAllocationService.insertSelective(iRequest, cshAllocation);
-
-                    //收款核销管理表
-                    CshAllocationReceipt cshAllocationReceipt = new CshAllocationReceipt();
-                    cshAllocationReceipt.setAllocationId(cshAllocation.getAllocationId());
-                    cshAllocationReceipt.setTransactionId(Long.valueOf(transactionId));
-                    cshAllocationReceipt.setAdvanceReceiptAmount( ((hlsCusConContractCashflow.getDueAmount() != null) ? hlsCusConContractCashflow.getDueAmount() : 0.0) );
-                    cshAllocationReceiptService.insertSelective(iRequest, cshAllocationReceipt);
-
                     //1.插入表中
                     CshAllocationAdvance allocationAdvance = new CshAllocationAdvance();
                     allocationAdvance.setAllocationId(cshAllocation.getAllocationId());
