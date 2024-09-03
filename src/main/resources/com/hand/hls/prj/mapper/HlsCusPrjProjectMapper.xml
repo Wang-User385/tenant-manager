@@ -13696,13 +13696,69 @@ WHERE
             PRJ_PROJECT pp
         where  pp.project_id = #{projectId}
     </select>
-    <select id="queryAll" parameterType="com.hand.hls.prj.dto.HlsCusPrjProject"
+    <select id="queryProjectAll" parameterType="com.hand.hls.prj.dto.HlsCusPrjProject"
             resultMap="BaseResultMap">
-        select p.project_number,p.project_name,p.tenant_id,
-               p.credit_flag,p.lease_item_amount,
-               p.host_project_manager,p.assist_project_manager,
-               p.project_status,p.approved_date
-               from prj_project p where p.document_type='CREDIT'
+
+        select p.project_number,
+               p.project_name,
+               p.tenant_id,
+               (SELECT m.bp_name
+                FROM hls_bp_master m
+                WHERE m.bp_id = p.tenant_id)        as      tenant_id_n,
+               p.credit_flag,
+               (SELECT v.meaning
+                FROM sys_code_value_b_v v
+                WHERE v.CODE = 'GT.HCLC.CREDIT_FLAG'
+                  AND p.CREDIT_FLAG = v.CODE_VALUE) AS      credit_flag_n,
+               p.lease_item_amount,
+               p.host_project_manager,
+               (SELECT su.description
+                FROM sys_user su
+                WHERE su.user_id = p.host_project_manager)  host_project_manager_n,
+               p.assist_project_manager,
+               (SELECT a.description
+                FROM sys_user a
+                WHERE a.user_id = p.assist_project_manager) assist_project_manager_n,
+               p.project_status,
+               (SELECT v.meaning
+                FROM sys_code_value_b_v v
+                WHERE v.CODE = 'CHANCE.FACTORING_PRJ_STATUS'
+                  AND v.code_value = p.project_status)      project_status_n,
+               p.approved_date
+        from prj_project p
+        <where>
+         p.document_type = 'CREDIT'
+        <if test="projectNumber !=null">
+            and p.project_number like concat('%',concat(#{projectNumber},'%'))
+        </if>
+        <if test="projectName !=null">
+             and p.project_name like concat('%',concat(#{projectName},'%'))
+         </if>
+            <if test="tenantIdN !=null">
+                and p.tenant_id_n like concat('%',concat(#{tenantIdN},'%'))
+            </if>
+            <if test="hostProjectManager !=null">
+                and p.host_project_manager like concat('%',concat(#{hostProjectManager},'%'))
+            </if>
+            <if test="businessType !=null">
+                and business_type like concat('%',concat(#{businessType},'%'))
+            </if>
+            <if test="leaseItemAmountFrom !=null and leaseItemAmountTo !=null">
+                AND lease_item_amount_from  BETWEEN  #{leaseItemAmountFrom}  AND  #{leaseItemAmountTo}
+            </if>
+            <if test="assistProjectManager !=null">
+                and assist_project_manager like concat('%',concat(#{assistProjectManager},'%'))
+            </if>
+            <if test="approvedTimeFrom !=null and approvedTimeTo !=null">
+                AND TO_CHAR(approved_time, 'yyyy-MM-dd') BETWEEN  #{approvedTimeFrom}  AND  #{approvedTimeTo}
+            </if>
+            <if test="projectStatus !=null">
+                and project_status like concat('%',concat(#{projectStatus},'%'))
+            </if>
+            <if test="creditFlag !=null">
+                and credit_flag = #{creditFlag}
+            </if>
+        </where>
     </select>
 
 </mapper>
