@@ -314,10 +314,14 @@
 
         //新增时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            debugger;
             var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
             var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
             var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
             var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
+            var ds_id_pre = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC');
+            var ds_id_after = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC_AFTER');
+            var vote_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_approver', 'G_VOTE_FAC');
             if (ds_id_customer.id == ds.id && '${/parameter/@function_usage}' == 'CREATE') {
                 var records = $(ds_id_customer.id).getAll();
                 var query_data = [];
@@ -344,6 +348,11 @@
                     sync: true
                 });
             } else if (ds.id == ds_id_atta) {
+                if ('${/parameter/@special_node_flag}' == 'Y') {
+                    record.getField('document_name').setReadOnly(false);
+                    record.getField('document_name').setRequired(true);
+                    record.getField('description').setReadOnly(false);
+                }
                 var record_atta = $(ds_id_atta).getCurrentRecord();
                 record_atta.set('attachment_category', "CHANCE_ATT");
             } else if (ds.id == ds_id_p) {
@@ -360,6 +369,30 @@
                     record.set('economic_indu_classify', record_f.get('economic_indu_classify'));
                     record.set('economic_indu_classify_n', record_f.get('economic_indu_classify_n'));
                 }
+            } else if (ds.id == ds_id_pre) {
+                if (record&& '${/parameter/@special_node_flag}' == 'Y') {
+                    record.getField('content').setReadOnly(false);
+                    record.getField('content').setRequired(true);
+                }
+                record.set('stage', 'STAGE_PRE');
+
+            } else if (ds.id == ds_id_after) {
+                if (record&& '${/parameter/@special_node_flag}' == 'Y') {
+                    record.getField('content').setReadOnly(false);
+                    record.getField('content').setRequired(true);
+                }
+                record.set('stage', 'STAGE_AFTER');
+            } else if (ds.id == vote_ds_id) {
+                if (record && '${/parameter/@special_node_flag}' == 'Y') {
+                    record.getField('name').setReadOnly(false);
+                    record.getField('name').setRequired(true);
+                    record.getField('unit_name').setReadOnly(false);
+                    record.getField('unit_name').setRequired(true);
+                    record.getField('position_name').setReadOnly(false);
+                    record.getField('position_name').setRequired(true);
+                    record.getField('vote_status').setReadOnly(false);
+                    record.getField('vote_status').setRequired(true);
+                }
             }
         };
 
@@ -367,11 +400,17 @@
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
             var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
             var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            var ds_id_pre = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC');
+            var ds_id_after = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC_AFTER');
             if (ds.id == ds_id_p) {
                 var record = $(ds_id_au).getCurrentRecord();
                 if (record) {
                     $(ds_id_p).setQueryParameter('credit_line_id', record.get('credit_line_id'));
                 }
+            }else if (ds.id == ds_id_pre){
+                $(ds_id_pre).setQueryParameter('stage','STAGE_PRE')
+            }else if (ds.id == ds_id_after){
+                $(ds_id_after).setQueryParameter('stage','STAGE_AFTER')
             }
         };
 
@@ -438,8 +477,8 @@
         };
 
 
-
         Leaf.onReady(function () {
+            debugger;
             var credit_flag = '${/parameter/@credit_flag}';
             var credit_flag_n = '${/parameter/@credit_flag_n}';
             //隐藏工作流要用组件
@@ -450,18 +489,14 @@
             if (credit_flag == 'N' || credit_flag_n == '否') {
                 noCreditFlogComponentHide();
             }
-            //特殊按钮让部分组件变为可编辑
-            if ('${/parameter/@special_node_flag}' == 'Y'){
-                specialNodeProcessing();
+            //不是特殊节点不显示按钮
+            if ('${/parameter/@special_node_flag}' != 'Y' && '${/parameter/@function_usage}' == 'QUERY') {
+                noSpecialNodeProcessing();
             }
             if ('${/parameter/@function_usage}' == 'CREATE') {
                 $('factoring_add_winid').close();
                 var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
                 addCustomerInCreate(ds_id_customer);
-                // if('${/parameter/@credit_flag}' == 'Y'){
-                //     var ds_id_au_d = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
-                //     addCreditPlanInfoInCreate(ds_id_au_d);
-                // }
             }
             // 控制主角色不能删除
             $('${/parameter/@layout_code}_F_CUSTOMER_hls_credit_line_chance_bp_ds').on('beforeremove', function (ds, records) {
@@ -681,8 +716,8 @@
             });
         }
 
-        function specialNodeProcessing() {
-            debugger;
+        function noSpecialNodeProcessing() {
+            hideBigSaveButton();
             var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_tb';
             var vote_grid_div_id = 'PRJ005F1_G_VOTE_FAC_hls_credit_line_chance_approver_layout_grid_id_tb';
             var condition_grid_div_id = 'PRJ005F1_G_CON_FAC_hls_credit_line_chance_condition_layout_grid_id_tb';
@@ -691,47 +726,29 @@
             processingGridByDivId(vote_grid_div_id);
             processingGridByDivId(condition_grid_div_id);
             processingGridByDivId(condition_after_grid_div_id);
-            var attach_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
-            var vote_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_approver', 'G_VOTE_FAC');
-            var condition_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC');
-            var condition_after_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC_AFTER');
-            var record = $(attach_ds_id).getCurrentRecord();
-            if (record){
-                record.getField('document_name').setReadOnly(false);
-                record.getField('document_name').setRequired(true);
-                record.getField('description').setReadOnly(false);
-            }
-            record = $(vote_ds_id);
-            if (record){
-                record.getField('name').setReadOnly(false);
-                record.getField('name').setRequired(true);
-                record.getField('unit_name').setReadOnly(false);
-                record.getField('unit_name').setRequired(true);
-                record.getField('position_name').setReadOnly(false);
-                record.getField('position_name').setRequired(true);
-                record.getField('vote_status').setReadOnly(false);
-                record.getField('vote_status').setRequired(true);
-            }
-            record = $(condition_ds_id);
-            if (record){
-                record.getField('content').setReadOnly(false);
-                record.getField('content').setRequired(true);
-            }
-            record = $(condition_after_ds_id);
-            if (record){
-                record.getField('content').setReadOnly(false);
-                record.getField('content').setRequired(true);
-            }
-
         }
 
-        function processingGridByDivId(div_id){
+        function hideBigSaveButton() {
+            // 获取特定 class 的 div
+            const div = document.querySelector('.screenTopToolbar.clearfix');
+            // 获取 div 下的所有 button
+            const buttons = div.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.textContent === '保存') {
+                    button.style.display = 'none';
+                }
+            });
+        }
+
+        function processingGridByDivId(div_id) {
             var targetDiv = document.getElementById(div_id);
             // 获取该 div 下的所有 button 元素
             var buttonsInDiv = targetDiv.getElementsByTagName('button');
             // 遍历按钮并设置为显示
             for (var i = 0; i < buttonsInDiv.length; i++) {
-                buttonsInDiv[i].style.display = 'block';
+                if (buttonsInDiv[i].textContent !== '导出') {
+                    buttonsInDiv[i].style.display = 'none';
+                }
             }
         }
 
@@ -756,13 +773,11 @@
             let vote_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_VOTE_FAC_component_id']").attr("id");
             let con_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_CON_FAC_component_id']").attr("id");
             let con_after_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_CON_FAC_AFTER_component_id']").attr("id");
-            let attach_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_ATTA_INFO_component_id']").attr("id")
             let business_grid_id = '#' + '${/parameter/@layout_code}_G_BUSINESS_FAC_chance_business_access_compare_layout_grid_id_wrap';
             let meeting_grid_id = '#' + '${/parameter/@layout_code}_G_MEET_FAC_component_id';
             let vote_grid_id = '#' + '${/parameter/@layout_code}_G_VOTE_FAC_hls_credit_line_chance_approver_layout_grid_id_wrap';
             let con_grid_id = '#' + '${/parameter/@layout_code}_G_CON_FAC_hls_credit_line_chance_condition_layout_grid_id_wrap';
             let con_after_grid_id = '#' + '${/parameter/@layout_code}_G_CON_FAC_AFTER_hls_credit_line_chance_condition_layout_grid_id_wrap';
-            let attach_grid_id = '#' + '${/parameter/@layout_code}_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_wrap';
 
             jQuery(business_grid_id).hide();
             jQuery(business_component_id).hide();
@@ -808,6 +823,8 @@
             var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
             var chance_id = $(ds_root_id).getCurrentRecord().get('chance_id');
             var cur_record = $('chance_appoint_user_ds').getCurrentRecord();
+            var meeting_record = $('chance_meeting_select_ds').getCurrentRecord();
+            var vote_record = $('chance_vote_ds').getCurrentRecord();
             var risk_host = '';
             var legal_host = '';
             var examine_host = '';
@@ -836,6 +853,36 @@
                     });
                 }
             }
+            if(meeting_record){
+                var meeting_type = meeting_record.get('meeting_type');
+                if (node_id == 'FACTORING_PROJRCT_PROPOSALS16') {
+                    Leaf.request({
+                        url: '${/request/@context_path}/save/credit/info',
+                        para: {
+                            chance_id: chance_id,
+                            meeting_type:meeting_type
+                        },
+                        success: function (res) {
+                        },
+                        sync: true
+                    });
+                }
+            }
+            // if(vote_record){
+            //     var vote_status = vote_record.get('vote_status');
+            //     if (node_id == 'FACTORING_PROJRCT_PROPOSALS16') {
+            //         Leaf.request({
+            //             url: '${/request/@context_path}/credit/line/chance/approver/submit',
+            //             para: {
+            //                 chance_id: chance_id,
+            //                 vote_status:vote_status
+            //             },
+            //             success: function (res) {
+            //             },
+            //             sync: true
+            //         });
+            //     }
+            // }
             countiune();
         }
 

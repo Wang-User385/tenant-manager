@@ -21,9 +21,9 @@ public class HlsCusPrjProjectCondition extends BaseDTO {
 
      @Id
      @GeneratedValue
-     private Float conditionId;
+     private Long conditionId;
 
-     private Float projectId;
+     private Long projectId;
 
      @Length(max = 1024)
      private String content;
@@ -32,36 +32,5 @@ public class HlsCusPrjProjectCondition extends BaseDTO {
      private String stage;
 
 
-     public void setConditionId(Float conditionId){
-         this.conditionId = conditionId;
-     }
-
-     public Float getConditionId(){
-         return conditionId;
-     }
-
-     public void setProjectId(Float projectId){
-         this.projectId = projectId;
-     }
-
-     public Float getProjectId(){
-         return projectId;
-     }
-
-     public void setContent(String content){
-         this.content = content;
-     }
-
-     public String getContent(){
-         return content;
-     }
-
-     public void setStage(String stage){
-         this.stage = stage;
-     }
-
-     public String getStage(){
-         return stage;
-     }
 
      }
