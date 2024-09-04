@@ -3705,6 +3705,12 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     }
 
     @Override
+    public List<Map> queryCreditProject(IRequest requestCt, HlsCusPrjProject hlsCusPrjProject, int page, int pageSize) {
+        PageHelper.startPage(page, pageSize);
+        return hlsCusPrjProjectMapper.queryProjectAll(hlsCusPrjProject);
+    }
+
+    @Override
     public List<CompositeMap> selectProjectTenantRecLoop(CompositeMap map, String whereStr) {
         IRequest iRequest = RequestHelper.getCurrentRequest(true);
         //HlsBpMaster hlsBpMaster = new HlsBpMaster();
