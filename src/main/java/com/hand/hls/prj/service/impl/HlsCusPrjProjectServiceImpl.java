@@ -45,6 +45,7 @@ import com.hand.hls.csh.service.IProjectCreditConditionService;
 import com.hand.hls.docx4J.component.BookMarkReplaceComponent;
 import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.fct.dto.*;
+import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceMapper;
 import com.hand.hls.fct.service.*;
 import com.hand.hls.fnd.components.Datasource2Json;
 import com.hand.hls.fnd.dto.*;
@@ -96,6 +97,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -244,7 +246,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     //自然人
     public static final String NP = "NP";
     //项目状态
-    public static final String PROJECT_STATUS_NEW  = "NEW";
+    public static final String PROJECT_STATUS_NEW = "NEW";
     private static final String INSURANCE_PURCHASE_STATUS = "INSURANCE_PURCHASE_STATUS";
     public static final String ID_CARD_EXCEPTION = "配偶身份证号校验失败!";
     /*
@@ -1722,7 +1724,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         //额度占用创建的尽调走 额度占用审批
         if ("CREDIT_NORMAL".equals(prjProject.getDataType())) {
             params.put("workFlowType", QUOTA_OCCUPATION_WFL);
-        } else{
+        } else {
             params.put("workFlowType", PROJECT_REVIEW_WFL);
         }
         //表单的主键
@@ -2110,8 +2112,8 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
 
             HlsCusConContractCashflow hlsCusConContractCashflowQuery = new HlsCusConContractCashflow();
             hlsCusConContractCashflowQuery.setContractId(hlsCusConContract.getContractId());
-            List<HlsCusConContractCashflow> hlsCusConContractCashflowList = hlsCusConContractCashflowService.select(iRequest,hlsCusConContractCashflowQuery,1,100000);
-            for(HlsCusConContractCashflow cashflow:hlsCusConContractCashflowList){
+            List<HlsCusConContractCashflow> hlsCusConContractCashflowList = hlsCusConContractCashflowService.select(iRequest, hlsCusConContractCashflowQuery, 1, 100000);
+            for (HlsCusConContractCashflow cashflow : hlsCusConContractCashflowList) {
                 HlsCusPrjQuotationCashflow hlsCusPrjQuotationCashflow1 = new HlsCusPrjQuotationCashflow();
                 Map<String, String> mapCsh = hlsBeanRefUtilService.getFieldValueMap(cashflow);
                 hlsBeanRefUtilService.setFieldValue(hlsCusPrjQuotationCashflow1, mapCsh);
@@ -3704,10 +3706,39 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         return hlsCusPrjProjectMapper.queryProjectRiskReportAttachment(hlsCusPrjProject);
     }
 
+
+    @Autowired
+    private HlsCusHlsCreditLineChanceMapper CreditLineChanceMapper;
+
     @Override
-    public List<Map> queryCreditProject(IRequest requestCt, HlsCusPrjProject hlsCusPrjProject, int page, int pageSize) {
+    public List<HlsCusPrjProject> queryCreditProject(IRequest requestCt, HlsCusPrjProject hlsCusPrjProject, int page, int pageSize) {
         PageHelper.startPage(page, pageSize);
-        return hlsCusPrjProjectMapper.queryProjectAll(hlsCusPrjProject);
+        // 查询creditChance
+        List<HlsCusHlsCreditLineChance> creditChances = CreditLineChanceMapper.selectCreditLineChanceByStatusAndPass(new HlsCusHlsCreditLineChance());
+
+        // 查询project
+        List<HlsCusPrjProject> projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
+
+        if (creditChances.size() > projects.size()) {
+            try {
+                // 创建并填充额外的project对象
+                for (int i = projects.size(); i < creditChances.size(); i++) {
+                    HlsCusPrjProject project = new HlsCusPrjProject();
+                    //保存新创建的对象到数据库
+                    copyAndSaveProject(requestCt,creditChances.get(i),project);
+                }
+                projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
+            } catch (Exception e) {
+                logger.error("Error occurred while copying properties from creditChance to project", e);
+            }
+        }
+
+             // 返回最新的projects列表
+        return projects;
+    }
+    private void copyAndSaveProject(IRequest requestCt,HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws Exception {
+        BeanUtils.copyProperties(creditChance, project);
+        self().insertSelective(requestCt, project);
     }
 
     @Override
@@ -5371,11 +5402,12 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
 
     /**
      * 二期功能：进件投放审查申请工作流提交
-     * @param iRequest 请求
-     * @param project 进件投放审查申请数据
+     *
+     * @param iRequest     请求
+     * @param project      进件投放审查申请数据
      * @param workFlowType 用于代码获取工作流提交的实现类
      */
-    private void signWorkFlowSubmit(IRequest iRequest, HlsCusPrjProject project, String workFlowType){
+    private void signWorkFlowSubmit(IRequest iRequest, HlsCusPrjProject project, String workFlowType) {
         List<HlsCusPrjProject> list = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
 
@@ -6434,7 +6466,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                     .sorted(Comparator.comparing(HlsCusChangeReqInfo::getChangeReqNumber).reversed());
         }
         Long number = hlsCusChangeReqInfoList.size() + ONE;
-        String changeReqNumber = project.getProjectNumber()+ "-" + number;
+        String changeReqNumber = project.getProjectNumber() + "-" + number;
         hlsCusChangeReqInfo.setChangeReqNumber(changeReqNumber);
         hlsCusChangeReqInfo.setDocumentVersionId(hlsCusChangeReqInfoList.size() + ONE);
         hlsCusChangeReqInfo.setChangeReqUserId(request.getUserId());
@@ -7639,7 +7671,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                 return true;
             }
 
-        }else if(StringUtils.equals(hlsBpMaster.getBpClass(), ORG)){
+        } else if (StringUtils.equals(hlsBpMaster.getBpClass(), ORG)) {
             //社会统一信用代码
             queryMaster.setRegno(hlsBpMaster.getRegno());
             queryMaster = hlsBpMasterMapper.selectOne(queryMaster);
@@ -8159,7 +8191,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                 Matcher m1 = p1.matcher(excelInfo.getMobilePhone());
                 if (m.matches() || m1.matches()) {
                     hlsBpMasterAddress.setCellPhone(excelInfo.getMobilePhone());
-                }else {
+                } else {
                     throw new HlsCusException(getExceptionInfo(sheetName, i, 26, "联系方式不符合规范，请检查！"));
                 }
             }
@@ -8555,7 +8587,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         return new HlsCusPrjQuotation();
     }
 
-    private PrjExcelImportDto setValueToExcelDto(String excelType, FndInterfaceLines fndInterfaceLines,String division) {
+    private PrjExcelImportDto setValueToExcelDto(String excelType, FndInterfaceLines fndInterfaceLines, String division) {
         PrjExcelImportDto prjExcelImportDto = new PrjExcelImportDto();
 
         if (StringUtils.equals(excelType, PROJECT_TENANT)) {
@@ -8663,7 +8695,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             prjExcelImportDto.setVenderSignType(fndInterfaceLines.getAttributes_85());
             prjExcelImportDto.setDealerSignType(fndInterfaceLines.getAttributes_86());
             //商用车
-            if (StringUtils.equals(division,COMMERCIAL_VEHICLE)) {
+            if (StringUtils.equals(division, COMMERCIAL_VEHICLE)) {
                 //是否抵押越秀
                 prjExcelImportDto.setPledgeFlag(fndInterfaceLines.getAttributes_87());
                 //保险购买情况
@@ -8698,7 +8730,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             prjExcelImportDto.setLeaseNum(fndInterfaceLines.getAttributes_2());
             prjExcelImportDto.setLeaseFullName(fndInterfaceLines.getAttributes_3());
             prjExcelImportDto.setLeaseShortName(fndInterfaceLines.getAttributes_4());
-            if (StringUtils.equals(division,COMMERCIAL_VEHICLE)) {
+            if (StringUtils.equals(division, COMMERCIAL_VEHICLE)) {
                 //5-车辆类型
                 prjExcelImportDto.setTrailerFlag(fndInterfaceLines.getAttributes_5());
                 //6-租赁物净价
@@ -8744,7 +8776,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                 //26-第一受益人
                 prjExcelImportDto.setFirstBeneficiary(fndInterfaceLines.getAttributes_26());
 
-            }else {
+            } else {
                 prjExcelImportDto.setSpecification(fndInterfaceLines.getAttributes_5());
                 prjExcelImportDto.setSerialNumber(fndInterfaceLines.getAttributes_6());
                 prjExcelImportDto.setLeasePrice(fndInterfaceLines.getAttributes_7());
@@ -8912,21 +8944,22 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         }
         return true;
     }
+
     @Override
     public List<FndAttachmentMulti> contextCreateMultiple(IRequest request, List<Long> list, HttpServletResponse response) throws Exception {
 
         List<FndAttachmentMulti> fndAttachmentMultiList1 = new ArrayList<>();
-        for (Long projectId: list) {
-            HlsCusPrjProject hlsCusPrjProject=new HlsCusPrjProject();
+        for (Long projectId : list) {
+            HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
             hlsCusPrjProject.setProjectId(projectId);
-            hlsCusPrjProject=self().selectByPrimaryKey(request,hlsCusPrjProject);
-            HlsCusBpMaster hlsBpMaster=new HlsCusBpMaster();
+            hlsCusPrjProject = self().selectByPrimaryKey(request, hlsCusPrjProject);
+            HlsCusBpMaster hlsBpMaster = new HlsCusBpMaster();
             hlsBpMaster.setBpId(hlsCusPrjProject.getTenantId());
-            hlsBpMaster=hlsBpMasterMapper.selectByPrimaryKey(hlsBpMaster);
+            hlsBpMaster = hlsBpMasterMapper.selectByPrimaryKey(hlsBpMaster);
             HlsDocFileTemplet templet = new HlsDocFileTemplet();
-            if (!"ORG".equals(hlsBpMaster.getBpClass())){
+            if (!"ORG".equals(hlsBpMaster.getBpClass())) {
                 templet.setTempletCode("INTO_BUSINESS_CONFIRMATION");
-            }else{
+            } else {
                 templet.setTempletCode("INTO_BUSINESS_CONFIRMATION2");
             }
 //            HlsDocFileTemplet templet = new HlsDocFileTemplet();
@@ -8965,9 +8998,9 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             params.put("templetId", templetId);
             params.put("projectId", projectId);
             //生成合同文本
-            String userName=hlsBpMaster.getBpName();
+            String userName = hlsBpMaster.getBpName();
             HlsCusDownloadDocxUtil.createDocx(request, modelIs, new File(copyPath), params);
-            FndAttachmentMulti fndAttachmentMulti = insertAtm(request, copyPath, userName+"业务确认函" ,projectId);
+            FndAttachmentMulti fndAttachmentMulti = insertAtm(request, copyPath, userName + "业务确认函", projectId);
             fndAttachmentMultiList1.add(fndAttachmentMulti);
 //            List<BusinessConfirm> businessConfirmList=businessConfirmMapper.query(confirmBatch.getBatchId());
 //            for(BusinessConfirm businessConfirm: businessConfirmList){
@@ -8987,7 +9020,8 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
 //        fndAttachmentService1.batchDownloadAttachment(request,attachmentIds,response);
         return fndAttachmentMultiList1;
     }
-    private FndAttachmentMulti insertAtm(IRequest currentRequest, String filePath, String fileName,Long lnId) {
+
+    private FndAttachmentMulti insertAtm(IRequest currentRequest, String filePath, String fileName, Long lnId) {
         File file = new File(filePath);
         //插入附件表
         FndAttachmentMulti fndAttachmentMulti = new FndAttachmentMulti();
@@ -9007,20 +9041,22 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         fndAttachmentMultiService.updateByPrimaryKeySelective(currentRequest, fndAttachmentMulti);
         return fndAttachmentMulti;
     }
+
     @Override
     public List<HlsCusPrjProject> manufacturerQueryProductInfo2(IRequest iRequest, HlsCusPrjProject hlsCusPrjProject, int pageNum, int pageSize) {
-        PageHelper.startPage(pageNum,pageSize);
+        PageHelper.startPage(pageNum, pageSize);
         return hlsCusPrjProjectMapper.manufacturerQueryProductInfo2(hlsCusPrjProject);
     }
+
     @Override
     public List<HlsCusPrjProject> manufacturerQueryProductInfo3(IRequest iRequest, HlsCusPrjProject hlsCusPrjProject, int pageNum, int pageSize) {
-        PageHelper.startPage(pageNum,pageSize);
+        PageHelper.startPage(pageNum, pageSize);
         return hlsCusPrjProjectMapper.manufacturerQueryProductInfo3(hlsCusPrjProject);
     }
 
     @Override
     public List<HlsEmployee> selectSalesByEmployeeName(IRequest iRequest, String name, int pageNum, int pageSize) {
-        PageHelper.startPage(pageNum,pageSize);
+        PageHelper.startPage(pageNum, pageSize);
         List<HlsEmployee> hlsEmployees = userMapper.selectSalesByEmployeeName(name);
         return hlsEmployees;
     }
@@ -9048,6 +9084,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         }
         return prjProjectMapper.checkLeaseItemCheck(itemNumber, columnName, contractNumber, classifyId);
     }
+
     @Override
     public List<Map> queryListForRpt(IRequest requestContext, Map<String, Object> project, int pagenum, int pagesize) {
         PageHelper.startPage(pagenum, pagesize);
@@ -9058,5 +9095,10 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     public List<Map> prjProcessInfoQuery(IRequest iRequest, Map<String, Object> project, int pagenum, int pagesize) {
         PageHelper.startPage(pagenum, pagesize);
         return hlsCusPrjProjectMapper.prjProcessExportQuery(project);
+    }
+
+    @Override
+    public HlsCusPrjProjectService self() {
+        return HlsCusPrjProjectService.super.self();
     }
 }
