@@ -84,5 +84,5 @@ public interface HlsCusHlsCreditLineChanceMapper extends Mapper<HlsCusHlsCreditL
      */
     List<HlsCusHlsCreditLineChance> findFactoringMeetingInfo(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
 
-
+    HlsCusHlsCreditLineChance selectCreditLineChanceVoteCountById(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
 }

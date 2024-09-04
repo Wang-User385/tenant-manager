@@ -147,6 +147,10 @@
         <result column="PROJECT_MANAGER_N" property="projectManagerN" jdbcType="VARCHAR"/>
         <result column="PROPOSER_EMPLOYEE_ID_N" property="proposerEmployeeIdN" jdbcType="VARCHAR"/>
         <result column="PROJECT_ASSISTANT_N" property="projectAssistantN" jdbcType="VARCHAR"/>
+        <!--        投票新增-->
+        <result column="number_passers" property="numberPassers" jdbcType="DECIMAL"/>
+        <result column="number_failures" property="numberFailures" jdbcType="DECIMAL"/>
+        <result column="number_conditiona" property="numberConditiona" jdbcType="DECIMAL"/>
         <!--        新增-->
         <result column="creation_date" property="creationDate" jdbcType="DATE"/>
         <result column="loan_condition" property="loanCondition" jdbcType="VARCHAR"/>
@@ -755,6 +759,7 @@
 
         <where>
             1=1
+            and credit_line_status='APPROVED'
             <if test="createdBy!=null">
                 and (
                 tt.created_by = #{createdBy}
@@ -1906,6 +1911,29 @@
 
         </where>
         order by  hclc.creation_date desc
+    </select>
+    <select id="selectCreditLineChanceVoteCountById"
+            resultType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance">
+        SELECT
+            t.meeting_type,
+            NVL(NUMBER_PASSERS, 0) AS NUMBER_PASSERS,
+            NVL(NUMBER_FAILURES, 0) AS NUMBER_FAILURES,
+            NVL(NUMBER_CONDITIONA, 0) AS NUMBER_CONDITIONA,
+            CASE
+                WHEN NUMBER_PASSERS > NUMBER_FAILURES AND NUMBER_PASSERS > NUMBER_CONDITIONA THEN '通过'
+                WHEN NUMBER_FAILURES > NUMBER_CONDITIONA AND NUMBER_FAILURES > NUMBER_PASSERS THEN '不通过'
+                WHEN NUMBER_CONDITIONA > NUMBER_PASSERS AND NUMBER_CONDITIONA > NUMBER_FAILURES THEN '有条件通过'
+                END AS VOTING_RESULT
+        FROM (
+                 SELECT
+                     c.chance_id,
+                     c.meeting_type,
+                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 1 AND cv.chance_id = c.chance_id) AS NUMBER_PASSERS,
+                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 2 AND cv.chance_id = c.chance_id) AS NUMBER_FAILURES,
+                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 3 AND cv.chance_id = c.chance_id) AS NUMBER_CONDITIONA
+                 FROM
+                     hls_credit_line_chance c
+             ) t
     </select>
 
 </mapper>
