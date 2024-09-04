@@ -34,14 +34,6 @@ public class HlsCshTransactionRefundServiceTask  implements JavaDelegate, IActiv
         transactionRefund.setRefundId(refundId);
         transactionRefund = cshTransactionRefundService.selectByPrimaryKey(requestCtx, transactionRefund);
         if (!APPROVED.equalsIgnoreCase(transactionRefund.getRefundStatus()) && !REJECTED.equalsIgnoreCase(transactionRefund.getRefundStatus())) {
-            //审批通过前校验当前已确认支付
-            if (!"PAID".equals(transactionRefund.getPaymentRefundStatus()) ){
-                try {
-                    throw new ResMessageException("当前单据未支付无法确认");
-                } catch (ResMessageException e) {
-                    throw new RuntimeException(e);
-                }
-            }
             if (APPROVED.equalsIgnoreCase(result)) {
                 transactionRefund.setLastUpdateDate(new Date());
                 transactionRefund.setRefundStatus(APPROVED);

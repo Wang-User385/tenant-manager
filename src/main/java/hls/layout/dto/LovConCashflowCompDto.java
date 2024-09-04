@@ -29,4 +29,20 @@ public class LovConCashflowCompDto
     private Double receivedAmount;
     @LovField(prompt = "代偿金额", field = "received_comp_amount", forDisplay = true, displayWidth = 130)
     private Double receivedCompAmount;
+    @LovField(prompt = "退款金额", field = "refund_amount" , displayWidth = 130)
+    private Double refundAmount;
+    @LovField(prompt = "收款账户名", field = "bp_bank_account_name" , displayWidth = 130)
+    private Double bpBankAccountName;
+    @LovField(prompt = "收款银行账号", field = "bp_bank_account_num" , displayWidth = 130)
+    private Double bpBankAccountNum;
+    @LovField(prompt = "现金事务ID", field = "transaction_id" , displayWidth = 130)
+    private Double transactionId;
+    @LovField(prompt = "现金事务类型", field = "transaction_type" , displayWidth = 130)
+    private Double transactionType;
+    @LovField(prompt = "核销状态", field = "write_off_flag" , displayWidth = 130)
+    private Double writeOffFlag;
+    @LovField(prompt = "供应商ID", field = "manufacturer_id" , displayWidth = 130)
+    private Double manufacturerId;
+    @LovField(prompt = "现金流ID", field = "cashflow_id" , displayWidth = 130)
+    private Double cashflowId;
 }

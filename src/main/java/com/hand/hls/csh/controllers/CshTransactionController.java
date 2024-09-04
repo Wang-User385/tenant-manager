@@ -578,6 +578,7 @@ public class CshTransactionController extends BaseController {
                                            String writeOffFlag,
                                            String bpBankAccountName,
                                            String manufacturerId,
+                                           String bpBankAccountNum,
                                            String transactionType,
                                  @RequestParam(defaultValue = DEFAULT_PAGE) int pagenum,
                                  @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pagesize) throws ParseException {
@@ -593,6 +594,9 @@ public class CshTransactionController extends BaseController {
         }
         if(StringUtils.isNotEmpty(manufacturerId)){
             metadataRelation.setManufacturerId(Long.valueOf(manufacturerId));
+        }
+        if(StringUtils.isNotEmpty(bpBankAccountNum)){
+            metadataRelation.setBpBankAccountNum(bpBankAccountNum);
         }
         if (StringUtils.isNotEmpty(notIncashflowIds)) {
             String[] cashflowIdsStr = notIncashflowIds.split(",");
