@@ -26,6 +26,7 @@ import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.service.IConContractService;
 import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLine;
+import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceAttach;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceBpMapper;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditLineMapper;
@@ -48,6 +49,7 @@ import com.hand.hls.pam.mapper.HlsCusLeaseItemMapper;
 import com.hand.hls.prj.dto.HlsBpMaster;
 import com.hand.hls.prj.dto.HlsBpMasterRole;
 import com.hand.hls.prj.service.*;
+import com.hand.hls.prj.utils.HlsCusZipUtil;
 import com.hand.hls.sign.mapper.SignPartyMapper;
 import com.hand.hls.sys.service.ISysDocumentListService;
 import com.hand.hls.utils.*;
@@ -3320,4 +3322,53 @@ public class HlsCusPrjProjectController extends BaseController {
         List<Map> result = service.prjProcessInfoQuery(requestContext, project,pagenum, pagesize);
         return new ResponseData(result);
     }
+
+
+
+    @RequestMapping(value = "/prj/factoring/download")
+    @ResponseBody
+    public void download(@RequestParam("projectId") Long projectId,
+                         @RequestParam("projectAttachmentCategory") String projectAttachmentCategory,
+                         HttpServletResponse response, HttpServletRequest request) throws ResMessageException {
+        HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment = new HlsCusPrjProjectAttachment();
+        hlsCusPrjProjectAttachment.setProjectId(projectId);
+        hlsCusPrjProjectAttachment.setProjectAttachmentCategory(projectAttachmentCategory);
+        //获取所有的数据
+        List<HlsCusPrjProjectAttachment> byHlsCusPrjProjectAttachment = hlsCusPrjProjectAttachmentMapper.findListByHlsCusPrjProjectAttachment(hlsCusPrjProjectAttachment);
+        if (!org.springframework.util.CollectionUtils.isEmpty(byHlsCusPrjProjectAttachment)) {
+            String zipFilePath = "";
+            String fileName = "";
+            List<HlsCusSysFile> hlsCusSysFiles = new ArrayList<>();
+            for (HlsCusPrjProjectAttachment cusPrjProjectAttachment : byHlsCusPrjProjectAttachment) {
+                HlsCusSysFile hlsCusSysFile = new HlsCusSysFile();
+                String filePath = cusPrjProjectAttachment.getFilePath();
+                String fileName1 = cusPrjProjectAttachment.getFileName();
+                hlsCusSysFile.setFilePath(filePath);
+                hlsCusSysFile.setFileName(fileName1);
+                hlsCusSysFiles.add(hlsCusSysFile);
+            }
+            if (!org.springframework.util.CollectionUtils.isEmpty(hlsCusSysFiles)) {
+                File zipFilePath1 = new File(zipFilePath);
+                //拼接文件名,用户名+系统时间,避免出现重复
+                fileName = "downloadZip_" + System.currentTimeMillis();
+                //String zipFile = "attachment;filename=" + new String(fileName.getBytes("utf-8"), "iso-8859-1") + ".zip";
+                String zipFile = zipFilePath1 + fileName + ".zip";
+                try {
+                    FileOutputStream outStream = new FileOutputStream(zipFile);
+                    ZipOutputStream toClient = new ZipOutputStream(outStream);
+                    //打包转换为zip文件
+                    HlsCusZipUtil.zipFile(hlsCusSysFiles, toClient);
+                    toClient.close();
+                    outStream.close();
+                    //下载zip文件
+                    HlsCusZipUtil.downloadZip(new File(zipFile), response);
+                } catch (Exception e) {
+                    throw new ResMessageException("一键下载异常");
+                }
+            }
+
+        }
+    }
+
+
 }
