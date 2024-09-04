@@ -47,7 +47,7 @@ public class HlsCreditLineLease extends BaseDTO {
      @Length(max = 32)
      private String leaseStatus;
 
-     private Float leasePrice;
+     private Double leasePrice;
 
      @Length(max = 512)
      private String description;

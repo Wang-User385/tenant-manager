@@ -1302,7 +1302,7 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
     public String getCreditChanceAssistant(DelegateExecution delegateExecution){
         Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
         HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
-        if ("FACTORING".equals(chance.getDocumentCategory()) && "HLS_CREDIT_LINE_CHANCE".equals(chance.getDocumentType())){
+        if ("FACTORING".equals(chance.getDocumentType()) && "HLS_CREDIT_LINE_CHANCE".equals(chance.getDocumentCategory())){
             SysUser user =  sysUserMapper.findAllocationIdByUserID(chance.getProjectAssistant());
             if (user != null){
                 return user.getAllocationId().toString();

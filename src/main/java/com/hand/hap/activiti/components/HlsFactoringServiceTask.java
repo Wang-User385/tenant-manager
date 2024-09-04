@@ -2,6 +2,10 @@ package com.hand.hap.activiti.components;
 
 import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hap.core.IRequest;
+import com.hand.hls.atm.dto.FndAttachment;
+import com.hand.hls.atm.dto.FndAttachmentMulti;
+import com.hand.hls.atm.mapper.FndAttachmentMapper;
+import com.hand.hls.atm.mapper.FndAttachmentMultiMapper;
 import com.hand.hls.fct.dto.HlsChanceBusinessAccessCompare;
 import com.hand.hls.fct.dto.HlsCreditLineChanceCondition;
 import com.hand.hls.fct.dto.HlsCreditLineLease;
@@ -109,6 +113,12 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
     @Autowired
     private HlsCusPrjQuotationService hlsCusPrjQuotationService;
 
+    @Autowired
+    private FndAttachmentMultiMapper fndAttachmentMultiMapper;
+    @Autowired
+    private FndAttachmentMapper fndAttachmentMapper;
+
+
     public static final String CHANCE_PRJ_ATT = "CHANCE_PRJ_ATT";
 
     public static final String HLS_CREDIT_LINE_CHANCE = "HLS_CREDIT_LINE_CHANCE";
@@ -123,6 +133,9 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
     //移交
     private static final String DELEGATE = "DELEGATE";
 
+    private static final String HLS_CREDIT_LINE_ATTACH = "HLS_CREDIT_LINE_ATTACH";
+    private static final String PRJ_PROJECT_ATTACHMENT = "PRJ_PROJECT_ATTACHMENT";
+
     @Override
     public void execute(DelegateExecution delegateExecution) {
         IRequest requestCtx = (IRequest) delegateExecution.getVariable("iRequest");
@@ -133,8 +146,6 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
         chance = hlsCusHlsCreditLineChanceService.selectByPrimaryKey(requestCtx, chance);
         if (isValid(chance)) {
             updateCreditLineStatus(requestCtx, chance, result);
-            //目前写在这
-            copyFactoringToProjectApproval(requestCtx, chanceId, chance);
         }
     }
 
@@ -142,6 +153,8 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
         if (APPROVED.equalsIgnoreCase(result)) {
             chance.setCreditLineStatus(APPROVED);
             chance.setApprovedDate(new Date());
+            //目前写在这
+            copyFactoringToProjectApproval(requestCtx, chance.getChanceId(), chance);
         } else if (REJECTED.equalsIgnoreCase(result)) {
             chance.setCreditLineStatus(REJECTED);
         } else if (PEER_REJECTED.equalsIgnoreCase(chance.getCreditLineStatus())) {
@@ -187,6 +200,7 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
         prjProject.setDocumentType("FACTORING");
         prjProject.setSourceDocumentId(chanceId);
         prjProject.setApprovedDate(null);
+        prjProject.setDataClass("VIRTUAL_CON");
         prjProject.setHostProjectManager(chance.getProposerEmployeeId());
         prjProject.setAssistProjectManager(chance.getProjectAssistant());
         hlsCusPrjProjectService.insert(requestCtx, prjProject);
@@ -329,6 +343,33 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
                 hlsCusPrjProjectAttachment.setProjectId(prjProject.getProjectId());
                 hlsCusPrjProjectAttachment.setProjectAttachmentCategory(CHANCE_PRJ_ATT);
                 hlsCusPrjProjectAttachmentService.insert(requestCtx, hlsCusPrjProjectAttachment);
+                // 复制附件
+                //获取原来的附件
+                FndAttachmentMulti fndAttachmentMulti = new FndAttachmentMulti();
+                fndAttachmentMulti.setTableName(HLS_CREDIT_LINE_ATTACH);
+                fndAttachmentMulti.setTablePkValue(v.getChanceAttachmentId().toString());
+                List<FndAttachmentMulti> fndAttachmentMultis = fndAttachmentMultiMapper.select(fndAttachmentMulti);
+                if (!fndAttachmentMultis.isEmpty()){
+                    fndAttachmentMultis.forEach(attachmentMulti -> {
+                        FndAttachment fndAttachment = fndAttachmentMapper.selectByPrimaryKey(attachmentMulti.getAttachmentId());
+                        if(fndAttachment==null){
+                            return;
+                        }
+                        FndAttachment newAttachment = new FndAttachment();
+                        BeanUtils.copyProperties(fndAttachment,newAttachment);
+                        newAttachment.setAttachmentId(null);
+                        fndAttachmentMapper.insertSelective(newAttachment);
+                        FndAttachmentMulti newMulti = new FndAttachmentMulti();
+                        BeanUtils.copyProperties(attachmentMulti,newMulti);
+                        newMulti.setTablePkValue(hlsCusPrjProjectAttachment.getProjectAttachmentId().toString());
+                        newMulti.setRecordId(null);
+                        newMulti.setAttachmentId(newAttachment.getAttachmentId());
+                        newMulti.setTableName(PRJ_PROJECT_ATTACHMENT);
+                        fndAttachmentMultiMapper.insertSelective(newMulti);
+                        newAttachment.setSourcePkValue(newMulti.getRecordId().toString());
+                        fndAttachmentMapper.updateByPrimaryKeySelective(newAttachment);
+                    });
+                }
             });
         }
     }
