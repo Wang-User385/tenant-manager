@@ -1509,9 +1509,8 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         List<HlsCusHlsCreditLineChance> res = new ArrayList<>();
         res.add(dto);
         activitiStartService.start(requestCtx, res, params);
-        HlsCusHlsCreditLineChance chance = new HlsCusHlsCreditLineChance();
-        chance.setCreditLineStatus("APPROVING");
-        hlsCusHlsCreditLineChanceMapper.updateByPrimaryKeySelective(chance);
+        dto.setCreditLineStatus("APPROVING");
+        hlsCusHlsCreditLineChanceMapper.updateByPrimaryKeySelective(dto);
         return  res;
     }
 

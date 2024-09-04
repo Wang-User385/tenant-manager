@@ -298,6 +298,22 @@ public class HlsCusPrjProjectController extends BaseController {
         return new ResponseData(service.queryProjectRiskReportAttachment(requestContext, dto, page, pageSize));
     }
 
+    /**
+     * 授信审批主页面查询
+     * @param requestData
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/prj/project/credit/query")
+    @ResponseBody
+    public ResponseData queryCreditProject(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, @RequestParam(defaultValue = DEFAULT_PAGE) int page,
+                                                  @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pageSize, HttpServletRequest request) {
+        IRequest requestContext = createRequestContext(request);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject dto = param.toJavaObject(HlsCusPrjProject.class);
+        return new ResponseData(service.queryCreditProject(requestContext, dto, page, pageSize));
+    }
+
 
     @RequestMapping(value = "/ct/prj/project/detail/query")
     @ResponseBody
