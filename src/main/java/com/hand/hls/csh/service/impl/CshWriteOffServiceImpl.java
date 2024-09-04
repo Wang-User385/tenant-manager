@@ -1891,8 +1891,8 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         }
 
         if (CREDIT.equals(writeOffTypeFlag)){
-            if (unWriteOffAmountTotal.compareTo(add(canWriteOffAmountTotal, advanceReceiptAmountTotal)) != 0 && TRANSACTION_TYPE_RECEIPT.equals(transactionType)) {
-                throw new ResMessageException("收款金额与待核销金额不一致！");
+            if (unWriteOffAmountTotal.compareTo(add(canWriteOffAmountTotal, advanceReceiptAmountTotal)) == -1 && TRANSACTION_TYPE_RECEIPT.equals(transactionType)) {
+                throw new ResMessageException("收款金额小于待核销金额！");
             }
         }
         if (DEPOSIT.equals(writeOffTypeFlag)){
@@ -2109,10 +2109,9 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
         if (CollectionUtils.isNotEmpty(cshWriteOffList)){
             canWriteOffAmountTotal = round(cshWriteOffList.stream().collect(Collectors.summingDouble(HlsCusCshWriteOff::getWriteOffDueAmount)), 2);
             transactionTypeFlag = "CREDIT";
-            //债权核销不进行校验  注释
-            //if (unWriteOffAmountTotal.compareTo(add(canWriteOffAmountTotal, advanceReceiptAmountTotal)) != 0 && TRANSACTION_TYPE_RECEIPT.equals(transactionType)) {
-            //    throw new ResMessageException("收款金额与待核销金额不一致！");
-            //}
+            if (unWriteOffAmountTotal.compareTo(add(canWriteOffAmountTotal, advanceReceiptAmountTotal)) == -1 && TRANSACTION_TYPE_RECEIPT.equals(transactionType)) {
+                throw new ResMessageException("待核销金额不能大于剩余可核销金额！");
+            }
 
             for (HlsCusCshTransaction transaction : cshTransactionList) {
                 HlsCusCshTransaction cshTransaction = new HlsCusCshTransaction();
@@ -3799,6 +3798,13 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             cshAllocationCreditService.batchDelete(cshAllocationCreditMapper.select(allocationCredit));
         }
 
+        HlsCusCshTransaction queryHlsCusCshTransaction = new HlsCusCshTransaction();
+        //queryHlsCusCshTransaction.setTransactionId(Long.valueOf(transactionId));
+        ArrayList<Long> transactionIds = new ArrayList<>();
+        transactionIds.add(Long.valueOf(transactionId));
+        queryHlsCusCshTransaction.setTransactionIdS(transactionIds);
+        List<HlsCusCshTransaction> hlsCusCshTransactions = cshTransactionMapper.detailQuery(queryHlsCusCshTransaction);
+
         //校验字段必填
         for (FndInterfaceLines account : accountList){
             if (StringUtils.isEmpty(account.getAttributes_1())){
@@ -3814,6 +3820,11 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
             Double surplusAmount = 0.0;
             if ("RECEIPT".equals(transactionType)){
                 //校验剩余金额
+                //如果返回金额超过本次申请总额则提示
+                if(write_off_amount_total.compareTo(hlsCusCshTransactions.get(0).getTransactionAmount()) == 1){
+                    throw new HlsCusException("待核销金额不能大于剩余可核销金额！");
+                }
+
                 HlsCusConContractCashflow queryConContractCashflow = new HlsCusConContractCashflow();
                 queryConContractCashflow.setTimes(Long.valueOf(account.getAttributes_2()));
                 queryConContractCashflow.setContractNumber(account.getAttributes_1());
@@ -3867,6 +3878,12 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
 
                 }
             }else if ("ADVANCE_RECEIPT".equals(transactionType)){
+
+                //如果返回金额超过本次申请总额则提示
+                if(write_off_amount_total.compareTo(hlsCusCshTransactions.get(0).getTransactionAmount()) != 0){
+                    throw new HlsCusException("剩余可核销金额与待核销金额不一致！");
+                }
+
                 //校验剩余金额
                 HlsCusConContractCashflow queryConContractCashflow = new HlsCusConContractCashflow();
                 queryConContractCashflow.setTimes(Long.valueOf(account.getAttributes_2()));
@@ -3922,17 +3939,6 @@ public class CshWriteOffServiceImpl extends BaseServiceImpl<HlsCusCshWriteOff> i
                     hlsCusConContractCashflowService.updateByPrimaryKeySelective(iRequest,conContractCashflow);
 
                     //2.新增一条预收款记录写入csh_transaction表中
-                    HlsCusCshTransaction queryHlsCusCshTransaction = new HlsCusCshTransaction();
-                    //queryHlsCusCshTransaction.setTransactionId(Long.valueOf(transactionId));
-                    ArrayList<Long> transactionIds = new ArrayList<>();
-                    transactionIds.add(Long.valueOf(transactionId));
-                    queryHlsCusCshTransaction.setTransactionIdS(transactionIds);
-                    List<HlsCusCshTransaction> hlsCusCshTransactions = cshTransactionMapper.detailQuery(queryHlsCusCshTransaction);
-                    //如果返回金额超过本次申请总额则提示
-                    if(write_off_amount_total.compareTo(hlsCusCshTransactions.get(0).getTransactionAmount()) != 0){
-                        throw new HlsCusException("剩余可核销金额与待核销金额不一致！");
-                    }
-
                     HlsCusCshTransaction insertCshTransaction = new HlsCusCshTransaction();
                     insertCshTransaction.setTransactionCategory(hlsCusCshTransactions.get(0).getTransactionCategory());
                     insertCshTransaction.setTransactionType(TRANSACTION_TYPE_ADVANCE_RECEIPT);
