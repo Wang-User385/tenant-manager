@@ -3087,6 +3087,12 @@ public class HlsCusPrjProject extends PrjProject {
     @Transient
     private String cityN;
 
+
+    private String spotCheckDesc;
+
+
+    private String riskInvestDesc;
+
     @Transient
     private String industryTypeN;
 

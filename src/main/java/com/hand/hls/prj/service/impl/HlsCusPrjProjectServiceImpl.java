@@ -85,6 +85,7 @@ import com.hand.hls.sys.mapper.FndCompanyMapper;
 import com.hand.hls.sys.mapper.SysDocumentListMapper;
 import com.hand.hls.user.service.LoginUserInfoService;
 import com.hand.hls.utils.*;
+import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
 import hls.core.sys.event.service.SysEventService;
 import leaf.service.validation.ParameterNullException;
@@ -9101,4 +9102,41 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     public HlsCusPrjProjectService self() {
         return HlsCusPrjProjectService.super.self();
     }
+
+
+    public static final String WORK_FLOW = "FACTORING_BUSINESS_APPROVAL";
+    public static final String DEMO_NAME = "FACTORING_BUSINESS_APPROVAL";
+    public static final String DOCUMENT_TYPE_APPROVAL = "FACTORING_APPROVAL";
+    public static final String DOCUMENT_NAME_APPROVAL = "保理立项审批工作流";
+
+    @Override
+    public List<HlsCusPrjProject> submit(HlsCusPrjProject dto,IRequest requestCtx) {
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("workFlowType", WORK_FLOW);
+        params.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW);
+        params.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME);
+        params.put(IActivitiCommonService.BUSINESS_KEY, dto.getProjectId());
+        params.put("projectId", dto.getProjectId());
+        dto = hlsCusPrjProjectMapper.selectByPrimaryKey(dto);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(dto.getTenantId());
+        hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
+        //单据类别
+        params.put("documentCategory",PROJECT_DOCUMENT_CATEGORY);
+        //单据类型
+        params.put("documentType", DOCUMENT_TYPE_APPROVAL);
+        //单据名称
+        params.put("documentName", dto.getProjectNumber()+"-"+hlsCusBpMaster.getBpName()+"-"+DOCUMENT_NAME_APPROVAL);
+        //单据编号
+        params.put("documentNumber", dto.getProjectNumber());
+        //是否授信
+        params.put("credit_flag", dto.getCreditFlag());
+        //查询
+        List<HlsCusPrjProject> res = new ArrayList<>();
+        res.add(dto);
+        activitiStartService.start(requestCtx, res, params);
+        return  res;
+    }
+
+
 }

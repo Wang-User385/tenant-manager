@@ -2,7 +2,112 @@
 <a:screen xmlns:a="http://www.leaf-framework.org/application" trace="true">
     <a:init-procedure/>
     <a:view>
+        <style>
+            body {
+                height: 400px;
+                width: 1000px;
+            }
+        </style>
+        <script type="text/javascript"
+                src="${/request/@context_path}/resources/js/CONT/CON_CONTRACT/wfl-dymanic-page-chooser.js"></script>
+
+        <a:link id="factoring_approval_modify_wfl_link_id"
+                url="${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ516/project_factoring_modify_detail.lview"/>
         <script><![CDATA[
+        var nodeId = parent.currentTaskInfo.task_definition_key;
+        var list = parent.currentTaskInfo.execution_variables;
+        var work_flow;
+        var function_usage = 'QUERY';
+        var maintain_type = 'READONLY';
+        var businessKey = '${/parameter/@businessKey}';
+        var credit_flag = 'Y';
+        var special_node_flag = 'N';
+        //控制组件显示个数 授信 A -> 11个组件 B -> 14个组件 C->15 D->17
+        var wfl_flag = 'Y';
+        var map_usage = new Map([
+            ['FACTORING_BUSINESS_APPROVALS2', 'MODIFY_A'],
+            ['FACTORING_BUSINESS_APPROVALS3', 'MODIFY_A'],
+            ['FACTORING_BUSINESS_APPROVALS4', 'MODIFY_A'],
+            ['FACTORING_BUSINESS_APPROVALS5', 'MODIFY_A'],
+            ['FACTORING_BUSINESS_APPROVALS6', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS7', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS8', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS9', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS10', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS11', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS12', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS13', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS14', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS15', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS16', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS17', 'MODIFY_B'],
+            ['FACTORING_BUSINESS_APPROVALS18', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS19', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS20', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS21', 'MODIFY_C'],
+            ['FACTORING_BUSINESS_APPROVALS22', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS23', 'MODIFY_N'],
+            ['FACTORING_BUSINESS_APPROVALS24', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS25', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS26', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS27', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS28', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS29', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS30', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS31', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS32', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS33', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS34', 'MODIFY_D'],
+            ['FACTORING_BUSINESS_APPROVALS35', 'MODIFY_D']
+
+        ]);
+        var map_type = new Map([
+            ['QUERY', 'READONLY'],
+            ['MODIFY', 'UPDATE']
+        ]);
+        var map_special = new Map([
+            ['FACTORING_PROJRCT_PROPOSALS19', 'Y'],
+            ['FACTORING_PROJRCT_PROPOSALS23', 'Y']
+        ])
+        if (map_usage.has(nodeId)) {
+            var function_usage_and_wfl_flag = map_usage.get(nodeId);
+            var param = function_usage_and_wfl_flag.split('_');
+            function_usage = param[0];
+            wfl_flag = param[1];
+            maintain_type = map_type.get(function_usage);
+        }
+        if (map_special.has(nodeId)){
+            special_node_flag = map_special.get(nodeId);
+        }
+
+        for (let i = 0; i < list.length; i++) {
+            if (list[i].name === 'WORK_FLOW') {
+                work_flow = list[i].value;
+            } else if (list[i].name === 'credit_flag') {
+                credit_flag = list[i].value;
+            }
+        }
+
+
+        var pageChooser = new PageChooser({
+            url: $('factoring_approval_modify_wfl_link_id').getUrl() + '?function_code=PRJ516F1',
+            function_code: 'PRJ516F1',
+            context_path: '${/request/@context_path}',
+            opt: {
+                project_id: businessKey,
+                maintain_type: maintain_type,
+                function_usage: function_usage,
+                wfl_flag: wfl_flag,
+                node_id: nodeId,
+                work_flow: work_flow,
+                credit_flag: credit_flag,
+                special_node_flag: special_node_flag
+            },
+            success: function (realUrl) {
+                location.href = realUrl;
+            }
+        });
+
 
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>

@@ -329,4 +329,12 @@ public interface HlsCusPrjProjectService extends IBaseService<HlsCusPrjProject>,
      * 进件审批历史流程查询
      */
     List<Map> prjProcessInfoQuery(IRequest iRequest, Map<String, Object> project, int pagenum, int pagesize);
+
+    /***
+     * 保理立项提交审批
+     * @param hlsCusPrjProject
+     * @param requestCtx
+     * @return
+     */
+    List<HlsCusPrjProject> submit(HlsCusPrjProject hlsCusPrjProject, IRequest requestCtx);
 }
