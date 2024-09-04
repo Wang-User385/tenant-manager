@@ -2,7 +2,191 @@
 <a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
+        <a:link id="factoring_approval_bp_master_modify_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+        <a:link id="factoring_finance_approval_report_detail_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/financial_report_import_entrance.lview"/>
+        <link href="${/request/@context_path}/resources/hls/imgPreview/viewer.css" rel="stylesheet" type="text/css"/>
+        <script src="${/request/@context_path}/resources/hls/imgPreview/viewer.js"/>
+
+        <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
         <script><![CDATA[
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            debugger;
+            var file_num = record.get('file_num') || 0;
+            var attach_name = file_num === 0 ? '附件' : '附件(' + file_num + ')';
+            if (name == 'bp_detail') {
+                return '<a href="javascript:open_master_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户明细信息</a>';
+            } else if (name == 'bp_financia') {
+                return '<a href="javascript:open_financia_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户财报信息</a>';
+            } else if (name == 'info') {
+                return '<a href="javascript:upload(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('project_id') + '\');">' + attach_name + '</a>';
+            } else if (name == 'quote') {
+                return '<a href="javascript:quotation_factoring_detail_adjust(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('quotation_id') + '\',\'' + record.get('chance_id') + '\')"><span style="    width: 82px;\n' +
+                    '    background-color: #4CAF50;\n' +
+                    '    border: none;\n' +
+                    '    color: white;\n' +
+                    '    padding: 1px 33px;\n' +
+                    '    text-align: center;\n' +
+                    '    text-decoration: none;\n' +
+                    '    display: inline-block;\n' +
+                    '    font-size: 13px;\n' +
+                    '    margin: 0px 0px;\n' +
+                    '    cursor: pointer;\n' +
+                    '    border-radius: 8px;\n' +
+                    '    transition: background-color 0.3s;">报价测算' +
+                    '</span></a>';
+            } else if (name == 'preview') {
+                if (record.get('attachment_id_n') != null) {
+                    var html = '';
+                    var fileNameList = record.get('file_names').split(',');
+                    var attachmentIdList = record.get('attachment_id_n').split(',');
+                    var sourcePkList = record.get('source_pk_value').split(',');
+                    for (let i = 0; i < fileNameList.length; i++) {
+                        if (html != '') {
+                            html += ',';
+                        }
+                        if (atmTypeRef(fileNameList[i])) {
+                            html += '<span><a target="_self" alt="' + fileNameList[i] + '" imageIndex="img_' + attachmentIdList[i] + '" ref="img_' + attachmentIdList[i] + '" href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkPdf(fileNameList[i])) {
+                            var url = encodeURIComponent('${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i]);
+                            html += '<span><a target="_blank" href="${/request/@context_path}/resources/hls/pdf/web/viewer.html?file=' + url + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkDox(fileNameList[i]) || checkXls(fileNameList[i])) {
+                            html += '<a href=javascript:queryDocFile(\'' + sourcePkList[i] + '\')> ' + fileNameList[i] + '在线预览</a>';
+                        } else {
+                            html += '<span><a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        }
+
+                    }
+                    return html;
+                }
+            }
+        };
+
+
+        function open_master_detail_win(record_id, ds_id) {
+            var record = $(ds_id).findById(record_id);
+            var param = record.data;
+            param['url_title'] = '商业伙伴信息';
+            param['function_code'] = 'BP100F1';
+            param['function_usage'] = 'QUERY';
+            param['winid'] = 'factoring_bp_master_modify_winid';
+            hls_doc_get_layout_code(param, 'factoring_finance_approval_report_detail_link_id', null, 'PRJ561F1');
+        }
+
+        function open_financia_detail_win(record_id, ds_id) {
+            debugger;
+            var record = $(ds_id).getCurrentRecord();
+            var bp_id = record.get('bp_id');
+            var bp_name = record.data['bp_name'];
+            var bp_code = record.data['bp_code'];
+            var function_usage = 'QUERY';
+            new Leaf.Window({
+                id: 'factoring_financial_approval_info_winid',
+                url: '${/request/@context_path}/modules/BP/BP100/hls_bp_master_financial_info.lview',
+                params: {
+                    bp_id: bp_id,
+                    bp_master_code: bp_code,
+                    bp_master_name: bp_name,
+                    function_usage: function_usage,
+                    winid: 'hls_bp_master_financial_approval_info_winid'
+                },
+                title: '财务报表查看',
+                fullScreen: false,
+                width: 950,
+                height: 535,
+                side: "right",
+                draggable: true
+            });
+            hls_doc_get_layout_code(param, 'factoring_finance_approval_report_detail_link_id', null, 'PRJ561F1');
+
+        }
+
+        function upload(ds_id, record_id, pk_id) {
+            var tableName = 'PRJ_PROJECT_ATTACHMENT';
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
+            var base_record;
+            var project_attachment_id;
+            base_record = $(base_ds_id).findById(record_id);
+            project_attachment_id = base_record.get('project_attachment_id');
+            if (!project_attachment_id) {
+                $L.showInfoMessage("提示", "请先保存再上传附件!");
+                return;
+            }
+            var url = '${/request/@context_path}/uploadFile.lview';
+            var win = new Leaf.Window({
+                id: 'PRJ516F1_open_attachment_factoring_winid',
+                url: url,
+                params: {
+                    'header_id': project_attachment_id,
+                    'table_name': tableName,
+                    winid: 'PRJ516F1_open_attachment_factoring_winid'
+                },
+                title: '文件上传下载',
+                width: 800,
+                height: 475
+            });
+            win.on('close', function () {
+                $(ds_id).query();
+            });
+        }
+
+        function quotation_factoring_detail_adjust(dsId, record_id, quotation_id, project_id) {
+            var price_list = $(dsId).findById(record_id).get("price_list");
+            quotation_id = $(dsId).findById(record_id).get("quotation_id");
+            project_id = $(dsId).findById(record_id).get("project_id");
+            if (quotation_id == 'undefined' || quotation_id == null || quotation_id == '') {
+                Leaf.showInfoMessage("提示", "请先保存后，再进行报价测算");
+                return;
+            }
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: '${/request/@context_path}/prj/quotation/calc?quotationId=' + quotation_id,
+                para: null,
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.SideBar.show({
+                        msg: '计算成功',
+                        duration: 2000
+                    });
+                    var readOnly = 'N';
+                    if ('${/parameter/@function_usage}' == 'QUERY') {
+                        readOnly = 'Y';
+                    }
+                    var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=' + readOnly;
+                    var win = new Leaf.Window({
+                        id: 'hls901_open_price_winid',
+                        url: url,
+                        title: '项目报价',
+                        fullScreen: true
+                    });
+                    win.on('close', function () {
+                        var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation', 'F_QUOTATION_FINANCIA');
+                        if (project_id) {
+                            $(quo_ds).setQueryParameter('chance_id', project_id);
+                        }
+                        $(quo_ds).query();
+                        var ds_id_cp = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+                        var record_cp = $(ds_id_cp).getCurrentRecord();
+                        if (record_cp) {
+                            var record_quo = $(quo_ds).getCurrentRecord();
+                            if (record_quo) {
+                                record_cp.set('credit_amt', record_quo.get('finance_amount'));
+                            }
+                        }
+                    })
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                failure: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                },
+                scope: this
+            });
+        }
+
 
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>

@@ -355,7 +355,7 @@
         <result column="FIRST_PAY_DATE" property="firstPayDate" jdbcType="DATE" />
         <result column="FALSIFY_INTEREST_RATE" property="falsifyInterestRate"/>
         <result column="EARLY_TERMINATION_RATIO" property="earlyTerminationRatio"/>
-
+        <result column="industry_type_n" property="industryTypeN" jdbcType="VARCHAR"/>
         <result column="EARLY_ALSO_RENT_RATIO" property="earlyAlsoRentRatio"/>
         <result column="whether_labeling_n" property="whetherLabelingabelinN" jdbcType="VARCHAR"/>
         <result column="BANK_ACCOUNT_ID" property="bankAccountId"/>
@@ -451,6 +451,8 @@
         <result column="debtor_analyse" property="debtorAnalyse" jdbcType="VARCHAR"/>
         <result column="other_desc" property="otherDesc" jdbcType="VARCHAR"/>
         <result column="credit_measures" property="creditMeasures" jdbcType="VARCHAR" />
+        <result column="city" property="city" jdbcType="VARCHAR"/>
+        <result column="city_n" property="cityN" jdbcType="VARCHAR"/>
 
     </resultMap>
 
@@ -13599,6 +13601,7 @@ WHERE
         SELECT
             pp.project_id,
             pp.project_number,
+            pp.project_name,
             pp.tenant_id,
             ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
             pp.credit_flag,
@@ -13626,9 +13629,6 @@ WHERE
             <if test="tenantIdN != null and  tenantIdN != '' ">
                 and ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = pp.tenant_id ) like concat('%',concat(#{tenantIdN},'%'))
             </if>
-            <if test="tenantIdN != null and  tenantIdN != '' ">
-                and pp.tenant_id_n like concat('%',concat(#{tenantIdN},'%'))
-            </if>
             <if test="industry != null and industry != ''">
                 and pp.industry like concat('%', concat(#{industry},'%'))
             </if>
@@ -13652,6 +13652,7 @@ WHERE
             pp.project_id,
             pp.project_number,
             pp.project_name,
+            pp.industry,
             pp.tenant_id,
             ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
             pp.company_id,
@@ -13685,6 +13686,7 @@ WHERE
             pp.factoring_open,
             ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_OPEN' AND sc.code_value = pp.factoring_open ) factoring_open_n,
             pp.industry_type,
+            ( SELECT hsc.description FROM hls_stat_class hsc WHERE to_char( hsc.class_id ) = pp.industry_type AND hsc.enabled_flag = 'Y' ) industry_type_n,
             pp.description,
             pp.credit_measures,
             pp.finance_note,

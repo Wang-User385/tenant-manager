@@ -67,7 +67,6 @@
 
         //暂存
         window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
-            debugger;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
             var ds_id_pq = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation', 'F_QUOTATIO_FINANCIA');
             if (ds_id) {
@@ -140,6 +139,11 @@
                 var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
                 var ds_id_re = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_receivable', 'G_RECEIVE_PAY');
                 var ds_id_at = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
+                var ds_id_cf = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_PLAN');
+                if (!$(ds_id_cf).getAll() || $(ds_id_cf).getAll().length === 0){
+                    Leaf.showInfoMessage('提示', '请生成现金流计划后再提交审批');
+                    return;
+                }
                 if (!$(ds_id_re).getAll() || $(ds_id_re).getAll().length === 0) {
                     Leaf.showInfoMessage('提示', '应收账款信息不能为空！');
                     return;
@@ -156,6 +160,8 @@
                         return;
                     }
                 }
+
+
                 var record = $(ds_id).getCurrentRecord();
                 var chance_id = record.get('chance_id');
                 if (chance_id != null) {
@@ -225,7 +231,6 @@
         //保存前
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
             var check_flag = true;
-            debugger;
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
             var set = new Set();
@@ -263,6 +268,10 @@
                 if ('${/parameter/@function_usage}' == 'CREATE' && !record.get('credit_line_number')) {
                     setBasicInfoInCreate(record, ds_id_pq, ds_id);
                 }
+            }
+            var record_quo =  $(ds_id_pq).getCurrentRecord();
+            if (record_quo){
+                record_cp.set('credit_amt', record_quo.get('finance_amount'));
             }
             return check_flag;
         }
@@ -314,7 +323,6 @@
 
         //新增时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
-            debugger;
             var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
             var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
             var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
@@ -370,14 +378,14 @@
                     record.set('economic_indu_classify_n', record_f.get('economic_indu_classify_n'));
                 }
             } else if (ds.id == ds_id_pre) {
-                if (record&& '${/parameter/@special_node_flag}' == 'Y') {
+                if (record && '${/parameter/@special_node_flag}' == 'Y') {
                     record.getField('content').setReadOnly(false);
                     record.getField('content').setRequired(true);
                 }
                 record.set('stage', 'STAGE_PRE');
 
             } else if (ds.id == ds_id_after) {
-                if (record&& '${/parameter/@special_node_flag}' == 'Y') {
+                if (record && '${/parameter/@special_node_flag}' == 'Y') {
                     record.getField('content').setReadOnly(false);
                     record.getField('content').setRequired(true);
                 }
@@ -407,10 +415,10 @@
                 if (record) {
                     $(ds_id_p).setQueryParameter('credit_line_id', record.get('credit_line_id'));
                 }
-            }else if (ds.id == ds_id_pre){
-                $(ds_id_pre).setQueryParameter('stage','STAGE_PRE')
-            }else if (ds.id == ds_id_after){
-                $(ds_id_after).setQueryParameter('stage','STAGE_AFTER')
+            } else if (ds.id == ds_id_pre) {
+                $(ds_id_pre).setQueryParameter('stage', 'STAGE_PRE')
+            } else if (ds.id == ds_id_after) {
+                $(ds_id_after).setQueryParameter('stage', 'STAGE_AFTER')
             }
         };
 
@@ -478,7 +486,6 @@
 
 
         Leaf.onReady(function () {
-            debugger;
             var credit_flag = '${/parameter/@credit_flag}';
             var credit_flag_n = '${/parameter/@credit_flag_n}';
             //隐藏工作流要用组件
@@ -631,7 +638,7 @@
                         if (record_cp) {
                             var record_quo = $(quo_ds).getCurrentRecord();
                             if (record_quo) {
-                                record_cp.set('credit_amount', record_quo.get('finance_amount'));
+                                record_cp.set('credit_amt', record_quo.get('finance_amount'));
                             }
                         }
                     })
@@ -828,9 +835,9 @@
             var risk_host = '';
             var legal_host = '';
             var examine_host = '';
+            var node_id = '${/parameter/@node_id}';
             if (cur_record) {
                 var allocation_id = cur_record.get('allocation_id');
-                var node_id = '${/parameter/@node_id}';
                 if ('FACTORING_PROJRCT_PROPOSALS6' == node_id) {
                     risk_host = allocation_id;
                 } else if ('FACTORING_PROJRCT_PROPOSALS7' == node_id) {
@@ -853,14 +860,14 @@
                     });
                 }
             }
-            if(meeting_record){
+            if (meeting_record) {
                 var meeting_type = meeting_record.get('meeting_type');
                 if (node_id == 'FACTORING_PROJRCT_PROPOSALS16') {
                     Leaf.request({
                         url: '${/request/@context_path}/save/credit/info',
                         para: {
                             chance_id: chance_id,
-                            meeting_type:meeting_type
+                            meeting_type: meeting_type
                         },
                         success: function (res) {
                         },

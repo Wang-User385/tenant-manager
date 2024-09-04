@@ -2,10 +2,7 @@ package com.hand.hap.activiti.components;
 
 import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hap.core.IRequest;
-import com.hand.hap.lock.components.DatabaseLockProvider;
-import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.fct.dto.HlsChanceBusinessAccessCompare;
-import com.hand.hls.fct.dto.HlsCreditLineAttach;
 import com.hand.hls.fct.dto.HlsCreditLineChanceCondition;
 import com.hand.hls.fct.dto.HlsCreditLineLease;
 import com.hand.hls.fct.dto.HlsCreditLineReceivable;
@@ -14,19 +11,14 @@ import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceAttach;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
 import com.hand.hls.fct.mapper.HlsChanceBusinessAccessCompareMapper;
-import com.hand.hls.fct.mapper.HlsCreditLineAttachMapper;
 import com.hand.hls.fct.mapper.HlsCreditLineChanceConditionMapper;
 import com.hand.hls.fct.mapper.HlsCreditLineLeaseMapper;
 import com.hand.hls.fct.mapper.HlsCreditLineReceivableMapper;
 import com.hand.hls.fct.mapper.HlsCreditPlanLineMapper;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceAttachMapper;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceBpMapper;
-import com.hand.hls.fct.service.HlsCusHlsCreditLineChanceAttachService;
-import com.hand.hls.fct.service.HlsCusHlsCreditLineChanceBpService;
 import com.hand.hls.fct.service.HlsCusHlsCreditLineChanceService;
 import com.hand.hls.fct.service.HlsICreditPlanLineService;
-import com.hand.hls.gld.service.HlsCusConContractService;
-import com.hand.hls.partner.service.IYLMessageNoticeService;
 import com.hand.hls.prj.dto.HlsCreditPlan;
 import com.hand.hls.prj.dto.HlsCusPrjBusinessAccessCompare;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
@@ -37,12 +29,7 @@ import com.hand.hls.prj.dto.HlsCusPrjProjectLease;
 import com.hand.hls.prj.dto.HlsCusPrjProjectReceivable;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import com.hand.hls.prj.dto.HlsCusPrjQuotationCashflow;
-import com.hand.hls.prj.dto.PrjQuotation;
 import com.hand.hls.prj.mapper.HlsCreditPlanMapper;
-import com.hand.hls.prj.mapper.HlsCusPrjBusinessAccessCompareMapper;
-import com.hand.hls.prj.mapper.HlsCusPrjProjectConditionMapper;
-import com.hand.hls.prj.mapper.HlsCusPrjProjectLeaseMapper;
-import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationMapper;
 import com.hand.hls.prj.service.HlsCreditPlanService;
@@ -60,10 +47,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.ObjectUtils;
-
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -150,6 +133,7 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
         chance = hlsCusHlsCreditLineChanceService.selectByPrimaryKey(requestCtx, chance);
         if (isValid(chance)) {
             updateCreditLineStatus(requestCtx, chance, result);
+            //目前写在这
             copyFactoringToProjectApproval(requestCtx, chanceId, chance);
         }
     }
@@ -157,6 +141,7 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
     private void updateCreditLineStatus(IRequest requestCtx, HlsCusHlsCreditLineChance chance, String result) {
         if (APPROVED.equalsIgnoreCase(result)) {
             chance.setCreditLineStatus(APPROVED);
+            chance.setApprovedDate(new Date());
         } else if (REJECTED.equalsIgnoreCase(result)) {
             chance.setCreditLineStatus(REJECTED);
         } else if (PEER_REJECTED.equalsIgnoreCase(chance.getCreditLineStatus())) {
@@ -170,14 +155,7 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
     private void copyFactoringToProjectApproval(IRequest requestCtx, Long chanceId, HlsCusHlsCreditLineChance chance) {
         // 项目基本信息
         HlsCusPrjProject prjProject = new HlsCusPrjProject();
-        BeanUtils.copyProperties(chance, prjProject);
-        prjProject.setProjectNumber(chance.getCreditLineNumber());
-        prjProject.setDocumentCategory(PRJ_PROJECT);
-        prjProject.setDocumentType("FACTORING");
-        prjProject.setSourceDocumentId(chanceId);
-        prjProject.setHostProjectManager(chance.getProposerEmployeeId());
-        prjProject.setAssistProjectManager(chance.getProjectAssistant());
-        hlsCusPrjProjectService.insert(requestCtx, prjProject);
+        copyProjectInfo(requestCtx, chanceId, chance, prjProject);
         // 复制客户信息
         copyCustomerInfo(requestCtx, chanceId, prjProject);
         // 复制报价基本方案
@@ -198,6 +176,22 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
         copyAttachmentInfo(requestCtx, chanceId, prjProject);
     }
 
+    private void copyProjectInfo(IRequest requestCtx, Long chanceId, HlsCusHlsCreditLineChance chance, HlsCusPrjProject prjProject) {
+        BeanUtils.copyProperties(chance, prjProject);
+        prjProject.setTenantId(chance.getBpId());
+        prjProject.setLeaseItemAmount(chance.getCreditLineAmt());
+        prjProject.setProjectStatus("NEW");
+        prjProject.setProjectName(chance.getCreditLineName());
+        prjProject.setProjectNumber(chance.getCreditLineNumber());
+        prjProject.setDocumentCategory(PRJ_PROJECT);
+        prjProject.setDocumentType("FACTORING");
+        prjProject.setSourceDocumentId(chanceId);
+        prjProject.setApprovedDate(null);
+        prjProject.setHostProjectManager(chance.getProposerEmployeeId());
+        prjProject.setAssistProjectManager(chance.getProjectAssistant());
+        hlsCusPrjProjectService.insert(requestCtx, prjProject);
+    }
+
     private void copyCustomerInfo(IRequest requestCtx, Long chanceId, HlsCusPrjProject prjProject) {
         HlsCusHlsCreditLineChanceBp hlsCusHlsCreditLineChanceBp = new HlsCusHlsCreditLineChanceBp();
         hlsCusHlsCreditLineChanceBp.setChanceId(chanceId);
@@ -207,6 +201,7 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
                 HlsCusPrjProjectBp hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
                 BeanUtils.copyProperties(v, hlsCusPrjProjectBp);
                 hlsCusPrjProjectBp.setDescription(v.getNote());
+                hlsCusPrjProjectBp.setProjectId(prjProject.getProjectId());
                 hlsCusPrjProjectBpService.insert(requestCtx, hlsCusPrjProjectBp);
             });
         }
@@ -220,7 +215,8 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
             HlsCusPrjQuotation approvalQuotation = new HlsCusPrjQuotation();
             factoringQuotation.forEach(v -> {
                 BeanUtils.copyProperties(v, approvalQuotation);
-                approvalQuotation.setProjectId(prjProject.getProjectId());
+                approvalQuotation.setSourceDocumentCategory(PRJ_PROJECT);
+                approvalQuotation.setSourceDocumentId(prjProject.getProjectId());
                 hlsCusPrjQuotationService.insert(requestCtx, approvalQuotation);
             });
             // 复制现金流信息
@@ -240,8 +236,7 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
 
     private void copyCreditPlanInfo(IRequest requestCtx, Long chanceId, HlsCusPrjProject prjProject) {
         HlsCreditPlan hlsCreditPlan = new HlsCreditPlan();
-        hlsCreditPlan.setSourceDocumentId(chanceId);
-        hlsCreditPlan.setSourceDocumentCategory(HLS_CREDIT_LINE_CHANCE);
+        hlsCreditPlan.setChanceId(chanceId);
         List<HlsCreditPlan> factoringCreditPlanInfo = hlsCreditPlanMapper.findFactoringInfo(hlsCreditPlan);
         if (!factoringCreditPlanInfo.isEmpty()) {
             HlsCreditPlan hlsCreditPlanApproval = new HlsCreditPlan();
@@ -259,7 +254,7 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
                 factoringCreditPlanLineInfo.forEach(v -> {
                     HlsCreditPlanLine hlsCreditPlanLineApproval = new HlsCreditPlanLine();
                     BeanUtils.copyProperties(v, hlsCreditPlanLineApproval);
-                    hlsCreditPlanApproval.setCreditPlanId(hlsCreditPlanApproval.getCreditPlanId());
+                    hlsCreditPlanLineApproval.setCreditPlanId(hlsCreditPlanApproval.getCreditPlanId());
                     hlsCreditPlanLineService.insert(requestCtx, hlsCreditPlanLineApproval);
                 });
             }
@@ -268,11 +263,12 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
 
     private void copyReceivableInfo(IRequest requestCtx, Long chanceId, HlsCusPrjProject prjProject) {
         HlsCreditLineReceivable hlsCreditLineReceivable = new HlsCreditLineReceivable();
+        hlsCreditLineReceivable.setChanceId(chanceId);
         List<HlsCreditLineReceivable> factoringInfoReceivable = hlsCreditLineReceivableMapper.findFactoringInfo(hlsCreditLineReceivable);
         if (!factoringInfoReceivable.isEmpty()) {
             factoringInfoReceivable.forEach(v -> {
                 HlsCusPrjProjectReceivable hlsCusPrjProjectReceivable = new HlsCusPrjProjectReceivable();
-                BeanUtils.copyProperties(v, hlsCreditLineReceivable);
+                BeanUtils.copyProperties(v, hlsCusPrjProjectReceivable);
                 hlsCusPrjProjectReceivable.setProjectId(prjProject.getProjectId());
                 hlsCusPrjIProjectReceivableService.insert(requestCtx, hlsCusPrjProjectReceivable);
             });
@@ -339,7 +335,6 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
 
     private boolean isValid(HlsCusHlsCreditLineChance chance) {
         return !APPROVED.equalsIgnoreCase(chance.getCreditLineStatus()) &&
-                !REJECTED.equalsIgnoreCase(chance.getCreditLineStatus()) &&
                 !PEER_REJECTED.equalsIgnoreCase(chance.getCreditLineStatus()) &&
                 !DELEGATE.equalsIgnoreCase(chance.getCreditLineStatus());
     }

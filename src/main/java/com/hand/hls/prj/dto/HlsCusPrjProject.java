@@ -3084,6 +3084,12 @@ public class HlsCusPrjProject extends PrjProject {
     private String industryType;
     private String city;
 
+    @Transient
+    private String cityN;
+
+    @Transient
+    private String industryTypeN;
+
     private Long riskAllocationId;
     private Long legalAllocationId;
 
