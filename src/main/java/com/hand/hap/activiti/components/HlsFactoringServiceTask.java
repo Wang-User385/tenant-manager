@@ -157,9 +157,9 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
             copyFactoringToProjectApproval(requestCtx, chance.getChanceId(), chance);
         } else if (REJECTED.equalsIgnoreCase(result)) {
             chance.setCreditLineStatus(REJECTED);
-        } else if (PEER_REJECTED.equalsIgnoreCase(chance.getCreditLineStatus())) {
+        } else if (PEER_REJECTED.equalsIgnoreCase(result)) {
             chance.setCreditLineStatus(PEER_REJECTED);
-        } else if (DELEGATE.equalsIgnoreCase(chance.getCreditLineStatus())) {
+        } else if (DELEGATE.equalsIgnoreCase(result)) {
             chance.setCreditLineStatus(DELEGATE);
         }
         hlsCusHlsCreditLineChanceService.updateByPrimaryKeySelective(requestCtx, chance);
@@ -376,6 +376,7 @@ public class HlsFactoringServiceTask implements JavaDelegate, IActivitiBean {
 
     private boolean isValid(HlsCusHlsCreditLineChance chance) {
         return !APPROVED.equalsIgnoreCase(chance.getCreditLineStatus()) &&
+                !REJECTED.equalsIgnoreCase(chance.getCreditLineStatus()) &&
                 !PEER_REJECTED.equalsIgnoreCase(chance.getCreditLineStatus()) &&
                 !DELEGATE.equalsIgnoreCase(chance.getCreditLineStatus());
     }

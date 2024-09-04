@@ -13,6 +13,7 @@ import java.util.Map;
 public interface HlsCusHlsCreditLineChanceMapper extends Mapper<HlsCusHlsCreditLineChance> {
 
     List<HlsCusHlsCreditLineChance> selectCreditLineChanceByStatus(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
+    List<HlsCusHlsCreditLineChance> selectCreditLineChanceByStatusAndPass(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
     List<HlsCusHlsCreditLineChance> selectCreditLineChanceByConditions(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
 
     List<HlsCusHlsCreditLineChance> selectGroupCreditLineChance(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
@@ -83,5 +84,5 @@ public interface HlsCusHlsCreditLineChanceMapper extends Mapper<HlsCusHlsCreditL
      */
     List<HlsCusHlsCreditLineChance> findFactoringMeetingInfo(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
 
-
+    HlsCusHlsCreditLineChance selectCreditLineChanceVoteCountById(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
 }

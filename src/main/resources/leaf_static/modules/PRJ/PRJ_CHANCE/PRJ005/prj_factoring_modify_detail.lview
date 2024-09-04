@@ -400,6 +400,11 @@
                     record.getField('position_name').setRequired(true);
                     record.getField('vote_status').setReadOnly(false);
                     record.getField('vote_status').setRequired(true);
+                    record.getField('vote_status_n').setReadOnly(false);
+                    record.getField('vote_status_n').setRequired(true);
+                    record.getField('vote_comment').setReadOnly(false);
+                    record.getField('vote_comment').setRequired(false);
+
                 }
             }
         };
@@ -488,9 +493,13 @@
         Leaf.onReady(function () {
             var credit_flag = '${/parameter/@credit_flag}';
             var credit_flag_n = '${/parameter/@credit_flag_n}';
-            //隐藏工作流要用组件
+            //隐藏工作流要用组件 '' 和 N
             if ('${/parameter/@wfl_flag}' != 'Y') {
                 wflComponentHide();
+            }
+            //如果是从工作流来到的这个页面隐藏退出按钮
+            if ('${/parameter/@wfl_flag}'){
+                hideBigExitButton();
             }
             //不是授信则隐藏授信组件
             if (credit_flag == 'N' || credit_flag_n == '否') {
@@ -747,6 +756,19 @@
             });
         }
 
+        function hideBigExitButton() {
+            // 获取特定 class 的 div
+            const div = document.querySelector('.screenTopToolbar.clearfix');
+            // 获取 div 下的所有 button
+            const buttons = div.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.textContent === '退出') {
+                    button.style.display = 'none';
+                }
+            });
+        }
+
+
         function processingGridByDivId(div_id) {
             var targetDiv = document.getElementById(div_id);
             // 获取该 div 下的所有 button 元素
@@ -818,7 +840,7 @@
             jQuery(con_after_component_id).next().hide();
 
 
-            //隐藏按钮
+            //隐藏按钮目的是去除当是工作流时且为前两个可编辑节点的自定义
             if ('${/parameter/@wfl_flag}' == 'N') {
                 jQuery('#${/parameter/@layout_code}_user_button1').hide();
                 jQuery('#${/parameter/@layout_code}_user_button2').hide();

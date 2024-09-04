@@ -26,6 +26,7 @@ import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.service.IConContractService;
 import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLine;
+import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceAttach;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceBpMapper;
@@ -3369,6 +3370,18 @@ public class HlsCusPrjProjectController extends BaseController {
 
         }
     }
+
+    @RequestMapping(value = "/prj/factoring/submit")
+    @ResponseBody
+    public ResponseData submit(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject hlsCusPrjProject = param.toJavaObject(HlsCusPrjProject.class);
+        return new ResponseData(service.submit(hlsCusPrjProject, requestCtx));
+    }
+
+
 
 
 }

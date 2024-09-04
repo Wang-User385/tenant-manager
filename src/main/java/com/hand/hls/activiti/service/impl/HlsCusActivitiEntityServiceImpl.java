@@ -1,6 +1,7 @@
 package com.hand.hls.activiti.service.impl;
 
 
+import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.fastjson.JSON;
 import com.hand.hap.account.dto.User;
 import com.hand.hap.activiti.custom.IActivitiBean;
@@ -38,6 +39,7 @@ import com.hand.hls.sys.mapper.SysUserMapper;
 import com.hand.hls.sys.service.SysUserService;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -1298,8 +1300,21 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
         }
     }
 
+    @Autowired
+    private HlsCusPrjProjectMapper hlsCusPrjProjectMapper;
     @Override
     public String getCreditChanceAssistant(DelegateExecution delegateExecution){
+        Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
+        if (!ObjectUtil.isEmpty(prjProject)){
+            if ("FACTORING".equals(prjProject.getDocumentType()) && "PRJ_PROJECT".equals(prjProject.getDocumentCategory())){
+                SysUser user =  sysUserMapper.findAllocationIdByUserID(prjProject.getAssistProjectManager());
+                if (user != null){
+                    return user.getAllocationId().toString();
+                }
+            }
+            return prjProject.getAssistProjectManager().toString();
+        }
         Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
         HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
         if ("FACTORING".equals(chance.getDocumentType()) && "HLS_CREDIT_LINE_CHANCE".equals(chance.getDocumentCategory())){
@@ -1308,6 +1323,7 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
                 return user.getAllocationId().toString();
             }
         }
+
         return chance.getProjectAssistant().toString();
     }
 

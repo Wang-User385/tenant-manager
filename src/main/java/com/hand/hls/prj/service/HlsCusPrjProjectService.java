@@ -141,7 +141,7 @@ public interface HlsCusPrjProjectService extends IBaseService<HlsCusPrjProject>,
     Long selectRefProjectIdByProjectId(IRequest requestContext, Long projectId);
 
     List<Map> queryProjectRiskReportAttachment(IRequest requestCt,HlsCusPrjProject hlsCusPrjProject,int page, int pageSize);
-    List<Map> queryCreditProject(IRequest requestCt,HlsCusPrjProject hlsCusPrjProject,int page, int pageSize);
+    List<HlsCusPrjProject> queryCreditProject(IRequest requestCt,HlsCusPrjProject hlsCusPrjProject,int page, int pageSize);
 
     List<CompositeMap> selectProjectTenantRecLoop(CompositeMap map, String whereStr);
 
@@ -329,4 +329,12 @@ public interface HlsCusPrjProjectService extends IBaseService<HlsCusPrjProject>,
      * 进件审批历史流程查询
      */
     List<Map> prjProcessInfoQuery(IRequest iRequest, Map<String, Object> project, int pagenum, int pagesize);
+
+    /***
+     * 保理立项提交审批
+     * @param hlsCusPrjProject
+     * @param requestCtx
+     * @return
+     */
+    List<HlsCusPrjProject> submit(HlsCusPrjProject hlsCusPrjProject, IRequest requestCtx);
 }

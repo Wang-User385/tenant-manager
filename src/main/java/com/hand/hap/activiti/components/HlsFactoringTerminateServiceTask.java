@@ -55,10 +55,10 @@ public class HlsFactoringTerminateServiceTask implements JavaDelegate, IActiviti
             } else if (REJECTED.equalsIgnoreCase(result)) {
                 chance.setCreditLineStatus(TERMINATE);
                 hlsCusHlsCreditLineChanceService.updateByPrimaryKeySelective(requestCtx, chance);
-            } else if (PEER_REJECTED.equalsIgnoreCase(chance.getCreditLineStatus())) {
+            } else if (PEER_REJECTED.equalsIgnoreCase(result)) {
                 chance.setCreditLineStatus(PEER_REJECTED);
                 hlsCusHlsCreditLineChanceService.updateByPrimaryKeySelective(requestCtx, chance);
-            } else if (DELEGATE.equalsIgnoreCase(chance.getCreditLineStatus())) {
+            } else if (DELEGATE.equalsIgnoreCase(result)) {
                 chance.setCreditLineStatus(DELEGATE);
                 hlsCusHlsCreditLineChanceService.updateByPrimaryKeySelective(requestCtx, chance);
             }
