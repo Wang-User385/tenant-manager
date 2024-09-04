@@ -91,6 +91,7 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
 
     List<Map> queryProjectRiskReportAttachment(HlsCusPrjProject hlsCusPrjProject);
 
+
     List<CompositeMap> selectProjectTenantRecLoop(String tenant_sec_id);
 
     List<CompositeMap> selectProjectBpTabLoop(Long bpCount);
@@ -148,7 +149,7 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
 
     //项目尽调首页查询 prjHomePageProjectInfoGridHome
     List<HlsCusPrjProject> prjHomePageProjectInfoGridHome(HlsCusPrjProject prjProject);
-    List<HlsCusPrjProject> queryProjectAll(HlsCusPrjProject prjProject);
+    List<Map> queryProjectAll(HlsCusPrjProject prjProject);
     Long queryAssistUnitId(Long assistProjectManager);
 
     List<HlsCusPrjProject> queryAllApproveContract(HlsCusPrjProject hlsCusPrjProject);
