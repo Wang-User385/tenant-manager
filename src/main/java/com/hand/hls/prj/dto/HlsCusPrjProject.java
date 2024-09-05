@@ -2705,6 +2705,8 @@ public class HlsCusPrjProject extends PrjProject {
     @Transient
     private Date creditExpiryDate;
 
+    private Long examineHost;
+
     @Transient
     private String tenantAllName;
 

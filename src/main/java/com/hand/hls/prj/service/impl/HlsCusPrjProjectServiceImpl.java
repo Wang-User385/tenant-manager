@@ -325,6 +325,8 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     @Autowired
     private HlsBpMasterMainMembersMapper hlsBpMasterMainMembersMapper;
     @Autowired
+    private HlsCusPrjBusinessAccessCompareMapper hlsCusPrjBusinessAccessCompareMapper;
+    @Autowired
     private SysEventService sysEventService;
     @Autowired
     private HlsBeanRefUtilService hlsBeanRefUtilService;
@@ -3726,7 +3728,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                 for (int i = projects.size(); i < creditChances.size(); i++) {
                     HlsCusPrjProject project = new HlsCusPrjProject();
                     //保存新创建的对象到数据库
-                    copyAndSaveProject(requestCt,creditChances.get(i),project);
+                    copyAndSaveProject(requestCt, creditChances.get(i), project);
                 }
                 projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
             } catch (Exception e) {
@@ -3734,10 +3736,11 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             }
         }
 
-             // 返回最新的projects列表
+        // 返回最新的projects列表
         return projects;
     }
-    private void copyAndSaveProject(IRequest requestCt,HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws Exception {
+
+    private void copyAndSaveProject(IRequest requestCt, HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws Exception {
         BeanUtils.copyProperties(creditChance, project);
         self().insertSelective(requestCt, project);
     }
@@ -3920,7 +3923,6 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         }*/
 
 
-
         Long companyId = iRequest.getCompanyId();
         if (companyId == null || companyId == -1L) {
             companyId = 3L;
@@ -3949,7 +3951,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             json = datasource2Json.executeSQL4Json(docFileTempletRule.getDataSourceId(), pMap);
         } catch (IOException e) {
             e.printStackTrace();
-            throw new ResMessageException("查找规则树条件时遇到错误!",e.getMessage());
+            throw new ResMessageException("查找规则树条件时遇到错误!", e.getMessage());
         }
 
         JSONObject jsonObject0 = JSON.parseObject(json);
@@ -5221,7 +5223,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         if (StringUtils.isNotEmpty(errorMessageStr) && (errorMessageStr.lastIndexOf(BR) + BR.length() == errorMessageStr.length())) {
             errorMessageStr = errorMessageStr.substring(0, errorMessageStr.lastIndexOf(BR));
         }
-        if (errorNum > 0){
+        if (errorNum > 0) {
             submitMessage.append("本次提交").append(list.size() - errorNum).append("条单据成功，")
                     .append(errorNum).append("条单据失败。失败信息为：").append(BR).append(errorMessageStr);
         } else {
@@ -5277,9 +5279,10 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
 
     /**
      * 二期功能：进件投放审查申请工作流提交前校验：承租人的投放金额是否在合作方有效可用额度范围内，
-     *                                      且该承租人累计已用额度+本次投放金额是否超过其用信上限。
-     *                                      只有满足 '在合作方有效可用额度范围内，且该承租人累计已用额度+本次投放金额不超过超过其用信上限'
-     *                                      才能通过校验，提交申请。
+     * 且该承租人累计已用额度+本次投放金额是否超过其用信上限。
+     * 只有满足 '在合作方有效可用额度范围内，且该承租人累计已用额度+本次投放金额不超过超过其用信上限'
+     * 才能通过校验，提交申请。
+     *
      * @param iRequest
      * @param hlsCusPrjProjectList
      */
@@ -5314,7 +5317,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             hlsCusPrjQuotation.setSourceDocumentId(project.getProjectId());
             hlsCusPrjQuotation.setSourceDocumentCategory(PRJ_PROJECT);
             List<HlsCusPrjQuotation> hlsCusPrjQuotationList = hlsCusPrjQuotationService.selectSelective(iRequest, hlsCusPrjQuotation);
-            if (hlsCusPrjQuotationList.size()>0){
+            if (hlsCusPrjQuotationList.size() > 0) {
                 releaseAmount = hlsCusPrjQuotationList.get(0).getFinanceAmount();
             }
 
@@ -5323,14 +5326,14 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             HlsCusPrjProject hlsCusPrjProject = new HlsCusPrjProject();
             hlsCusPrjProject.setTenantId(project.getManufacturerId());
             List<HlsCusPrjProject> hlsCusPrjProjects = hlsCusPrjProjectMapper.prjHomePageProjectInfoGridHome(hlsCusPrjProject);
-            if (hlsCusPrjProjects.size() > 0){
+            if (hlsCusPrjProjects.size() > 0) {
                 //通过查到合作方的chanceId来找到合作方授信金额
                 //合作方授信总额
-                HlsCreditPlan hlsCreditPlan=new HlsCreditPlan();
+                HlsCreditPlan hlsCreditPlan = new HlsCreditPlan();
                 hlsCreditPlan.setSourceDocumentId(hlsCusPrjProjects.get(0).getChanceId());
                 List<HlsCreditPlan> hlsCreditPlans = hlsCreditPlanMapper.queryCreditPlanInfo(hlsCreditPlan);
-                if (hlsCreditPlans.size() > 0){
-                    if (hlsCreditPlans.get(0).getCreditAmt() != null){
+                if (hlsCreditPlans.size() > 0) {
+                    if (hlsCreditPlans.get(0).getCreditAmt() != null) {
                         creditAmount = hlsCreditPlans.get(0).getCreditAmt();
                     }
                 }
@@ -5339,12 +5342,12 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                 hlsCusPrjProject.setTenantAllName(hlsCusPrjProjects.get(0).getTenantAllName());
                 List<HlsCusPrjProject> cusPrjProjects = hlsCusPrjProjectMapper.queryPrjHomePageProjectInfoGridNew(hlsCusPrjProject);
                 for (HlsCusPrjProject cusPrjProject : cusPrjProjects) {
-                    if (cusPrjProject.getFinanceAmount() != null){
+                    if (cusPrjProject.getFinanceAmount() != null) {
                         tenantAmount += cusPrjProject.getFinanceAmount();
                     }
                     //该承租人已用额度
-                    if (thisTenantId.equals(cusPrjProject.getTenantId())){
-                        if (cusPrjProject.getFinanceAmount() != null){
+                    if (thisTenantId.equals(cusPrjProject.getTenantId())) {
+                        if (cusPrjProject.getFinanceAmount() != null) {
                             thisTenantAmount += cusPrjProject.getFinanceAmount();
                         }
                     }
@@ -5370,10 +5373,10 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             creditFlag = add(tenantAmount, releaseAmount, 2) > creditAmount;
 
 
-            if (creditReplyAmount == 0){
+            if (creditReplyAmount == 0) {
                 //不存在批复用信上限
 
-                if (incrementalCreditAmountTotal == 0){
+                if (incrementalCreditAmountTotal == 0) {
                     //不存在增量授信
                     topLimitFlag = add(thisTenantAmount, releaseAmount, 2) > topLimitCreditAmount;
                 } else {
@@ -5384,7 +5387,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             } else {
                 //存在批复用信上限
 
-                if (incrementalCreditAmountTotal == 0){
+                if (incrementalCreditAmountTotal == 0) {
                     //不存在增量授信
                     topLimitFlag = add(thisTenantAmount, releaseAmount, 2) > creditReplyAmount;
                 } else {
@@ -5394,7 +5397,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             }
 
             //超过合作方有效可用额度 或者 超过该承租人累计已用额度+本次投放金额超过其用信上限
-            if (creditFlag || topLimitFlag){
+            if (creditFlag || topLimitFlag) {
                 throw new ResMessageException("本次投放金额大于合作方可用额度/该承租人累计已用额度即将超过用信上限，请检查！");
             }
         }
@@ -6578,6 +6581,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         sysEventService.eventSave(iRequest, prjProject.getProjectId(), prjProject.getDocumentCategory(), prjProject.getDocumentType(), "BAC", "PRJ_PROJECT_WFL", "P2D", paramsEvent);
         return prjProject;
     }
+
     public boolean regBlank(String value) {
         String pattern = "(.*)[\\s](.*)";
         boolean isMatch = Pattern.matches(pattern, value);
@@ -6589,6 +6593,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         boolean isMatch = Pattern.matches(pattern, value);
         return isMatch;
     }
+
     public boolean regCn(String value) {
         String pattern = "(.*)[·！#￥（——）……：；“”‘、，|《。》？、【】\\[\\]](.*)";
         boolean isMatch = Pattern.matches(pattern, value);
@@ -6627,7 +6632,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         for (int i = 0; i < projectTenants.size(); i++) {
             try {
                 int row = Math.toIntExact(projectTenants.get(i).getLineNumber());
-                PrjExcelImportDto prjSheetImportDto = setValueToExcelDto(PROJECT_TENANT, projectTenants.get(i),division);
+                PrjExcelImportDto prjSheetImportDto = setValueToExcelDto(PROJECT_TENANT, projectTenants.get(i), division);
 
                 //商业伙伴数据处理
                 hlsBpMaster = importHlsBpMasterInfo(iRequest, prjSheetImportDto, PROJECT_TENANT_SHEET, row, TENANT);
@@ -6642,7 +6647,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                 }
 
                 //处理进件信息
-                hlsCusPrjProject = importPrjProject(iRequest, prjSheetImportDto, PROJECT_TENANT_SHEET, row, hlsBpMaster.getBpId(),division);
+                hlsCusPrjProject = importPrjProject(iRequest, prjSheetImportDto, PROJECT_TENANT_SHEET, row, hlsBpMaster.getBpId(), division);
 
                 //处理报价信息
                 prjQuotation = importPrjQuotation(iRequest, prjSheetImportDto, PROJECT_TENANT_SHEET, row);
@@ -6744,7 +6749,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                 for (int k = 0; k < guarantorList.size(); k++) {
                     int guarantorRow = Math.toIntExact(guarantorList.get(k).getLineNumber());
                     hlsCusPrjProjectBp = new HlsCusPrjProjectBp();
-                    PrjExcelImportDto guarantorImportDto = setValueToExcelDto(GUARANTOR_SHEET, guarantorList.get(k),division);
+                    PrjExcelImportDto guarantorImportDto = setValueToExcelDto(GUARANTOR_SHEET, guarantorList.get(k), division);
                     HlsCusBpMaster guarantor = importGuarantorInfo(iRequest, guarantorImportDto, GUARANTOR_SHEET, guarantorRow, GUARANTOR);
                     //生成担保人信息
                     hlsCusPrjProjectBp.setProjectId(hlsCusPrjProject.getProjectId());
@@ -6827,7 +6832,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         //如果是自然人，则根据身份证号进行查询
         if (IPrjProjectService.NP_DESC.equals(excelInfo.getBpClass())) {
             hlsBpMaster.setBpClass(IPrjProjectService.NP);
-            String value =  codeValueMapper.selectCodeValuesByCodeNameAndValue("HLS211_ID_TYPE", excelInfo.getIdType());
+            String value = codeValueMapper.selectCodeValuesByCodeNameAndValue("HLS211_ID_TYPE", excelInfo.getIdType());
             if (StringUtils.isEmpty(value)) {
                 throw new HlsCusException(getExceptionInfo(sheetName, i, 5, "证件类型描述有误!"));
             }
@@ -6891,23 +6896,23 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                     Pattern p1 = Pattern.compile(regExp1);
                     Matcher m = p.matcher(excelInfo.getDealerTel());
                     Matcher m1 = p1.matcher(excelInfo.getDealerTel());
-                    if(m.matches() || m1.matches()) {
+                    if (m.matches() || m1.matches()) {
                         hlsBpMaster.setCellPhone(excelInfo.getDealerTel());
-                    }else{
+                    } else {
                         throw new HlsCusException(getExceptionInfo(sheetName, i, 20, "担保人联系方式不符合规范，请检查！"));
                     }
                 }
-            }else if (IPrjProjectService.ORG_DESC.equals(excelInfo.getBpClass())) {
-                if(StringUtil.isNotEmpty(excelInfo.getDealerTel())){
+            } else if (IPrjProjectService.ORG_DESC.equals(excelInfo.getBpClass())) {
+                if (StringUtil.isNotEmpty(excelInfo.getDealerTel())) {
                     String regExp = "^1([358][0-9]|4[579]|66|7[0135678]|9[89])[0-9]{8}$";
                     String regExp1 = "^(1)\\d{10}$";
                     Pattern p = Pattern.compile(regExp);
                     Pattern p1 = Pattern.compile(regExp1);
                     Matcher m = p.matcher(excelInfo.getDealerTel());
                     Matcher m1 = p1.matcher(excelInfo.getDealerTel());
-                    if(m.matches() || m1.matches()) {
+                    if (m.matches() || m1.matches()) {
                         hlsBpMaster.setCellPhone(excelInfo.getDealerTel());
-                    }else{
+                    } else {
                         throw new HlsCusException(getExceptionInfo(sheetName, i, 20, "担保人联系方式不符合规范，请检查！"));
                     }
                 }
@@ -6938,9 +6943,9 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                     Pattern p1 = Pattern.compile(regExp1);
                     Matcher m = p.matcher(excelInfo.getDealerTel());
                     Matcher m1 = p1.matcher(excelInfo.getDealerTel());
-                    if(m.matches() || m1.matches()) {
+                    if (m.matches() || m1.matches()) {
                         hlsBpMaster.setCellPhone(excelInfo.getDealerTel());
-                    }else{
+                    } else {
                         throw new HlsCusException(getExceptionInfo(sheetName, i, 20, "担保人联系方式不符合规范，请检查！"));
                     }
                 }
@@ -7028,16 +7033,16 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                 hlsBpMaster.setRegnotype("07");
 
                 //担保人联系方式
-                if(StringUtil.isNotEmpty(excelInfo.getDealerTel())){
+                if (StringUtil.isNotEmpty(excelInfo.getDealerTel())) {
                     String regExp = "^1([358][0-9]|4[579]|66|7[0135678]|9[89])[0-9]{8}$";
                     String regExp1 = "^(1)\\d{10}$";
                     Pattern p = Pattern.compile(regExp);
                     Pattern p1 = Pattern.compile(regExp1);
                     Matcher m = p.matcher(excelInfo.getDealerTel());
                     Matcher m1 = p1.matcher(excelInfo.getDealerTel());
-                    if(m.matches() || m1.matches()) {
+                    if (m.matches() || m1.matches()) {
                         hlsBpMaster.setCellPhone(excelInfo.getDealerTel());
-                    }else{
+                    } else {
                         throw new HlsCusException(getExceptionInfo(sheetName, i, 20, "担保人联系方式不符合规范，请检查！"));
                     }
                 }
@@ -7200,7 +7205,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             Pattern p1 = Pattern.compile(regExp1);
             Matcher m = p.matcher(excelInfo.getMobilePhone());
             Matcher m1 = p1.matcher(excelInfo.getMobilePhone());
-            if(!(m1.matches() || m.matches())){
+            if (!(m1.matches() || m.matches())) {
                 throw new HlsCusException(getExceptionInfo(sheetName, i, 26, "联系方式不符合规范，请检查!"));
             }
         }
@@ -7588,7 +7593,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                     throw new HlsCusException(getExceptionInfo(sheetName, i, 40, "记录历史版本错误"));
                 }
             }
-            hlsBpMasterService.updateByPrimaryKeySelective(iRequest,hlsBpMaster);
+            hlsBpMasterService.updateByPrimaryKeySelective(iRequest, hlsBpMaster);
 
         } else {
 
@@ -7647,17 +7652,17 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     /**
      * 检查商业伙伴基础信息是不是有更新
      *
-     * @auther ycx 2022.01.10
-     * @param hlsBpMaster            商业伙伴信息
+     * @param hlsBpMaster 商业伙伴信息
      * @return
+     * @auther ycx 2022.01.10
      */
     private boolean checkBpMasterBaseIsUpdate(HlsCusBpMaster hlsBpMaster) {
         HlsCusBpMaster queryMaster = new HlsCusBpMaster();
         //查询改承租人是否有审批中或者审批完成的进件
-        if(hlsBpMasterMapper.queryProjectStatusbyBPId(hlsBpMaster.getBpId() ) == null || hlsBpMasterMapper.queryProjectStatusbyBPId(hlsBpMaster.getBpId()).size() == 0){
+        if (hlsBpMasterMapper.queryProjectStatusbyBPId(hlsBpMaster.getBpId()) == null || hlsBpMasterMapper.queryProjectStatusbyBPId(hlsBpMaster.getBpId()).size() == 0) {
             return false;
         }
-        if (StringUtils.equals(hlsBpMaster.getBpClass(), NP) ) {
+        if (StringUtils.equals(hlsBpMaster.getBpClass(), NP)) {
             //证件号码
             queryMaster.setIdCardNo(hlsBpMaster.getIdCardNo());
             queryMaster = hlsBpMasterMapper.selectOne(queryMaster);
@@ -9110,7 +9115,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     public static final String DOCUMENT_NAME_APPROVAL = "保理立项审批工作流";
 
     @Override
-    public List<HlsCusPrjProject> submit(HlsCusPrjProject dto,IRequest requestCtx) {
+    public List<HlsCusPrjProject> submit(HlsCusPrjProject dto, IRequest requestCtx) {
         HashMap<String, Object> params = new HashMap<>();
         params.put("workFlowType", WORK_FLOW);
         params.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW);
@@ -9120,22 +9125,24 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         dto = hlsCusPrjProjectMapper.selectByPrimaryKey(dto);
         HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
         hlsCusBpMaster.setBpId(dto.getTenantId());
-        hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
+        hlsCusBpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
         //单据类别
-        params.put("documentCategory",PROJECT_DOCUMENT_CATEGORY);
+        params.put("documentCategory", PROJECT_DOCUMENT_CATEGORY);
         //单据类型
         params.put("documentType", DOCUMENT_TYPE_APPROVAL);
         //单据名称
-        params.put("documentName", dto.getProjectNumber()+"-"+hlsCusBpMaster.getBpName()+"-"+DOCUMENT_NAME_APPROVAL);
+        params.put("documentName", dto.getProjectNumber() + "-" + hlsCusBpMaster.getBpName() + "-" + DOCUMENT_NAME_APPROVAL);
         //单据编号
         params.put("documentNumber", dto.getProjectNumber());
         //是否授信
         params.put("credit_flag", dto.getCreditFlag());
+        //保存业务准入信息
+        saveBusinessInfo(dto.getProjectId());
         //查询
         List<HlsCusPrjProject> res = new ArrayList<>();
         res.add(dto);
         activitiStartService.start(requestCtx, res, params);
-        return  res;
+        return res;
     }
 
     //保理合同审批提交
@@ -9170,6 +9177,31 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         res.add(hlsCusPrjProject);
         activitiStartService.start(requestCtx, res, params);
         return res;
+    }
+
+    private void saveBusinessInfo(Long projectId) {
+        HlsCusPrjBusinessAccessCompare hlsCusPrjBusinessAccessCompare = new HlsCusPrjBusinessAccessCompare();
+        hlsCusPrjBusinessAccessCompare.setProjectId(projectId);
+        List<HlsCusPrjBusinessAccessCompare> factoringApprovalInfo = hlsCusPrjBusinessAccessCompareMapper.findFactoringApprovalInfo(hlsCusPrjBusinessAccessCompare);
+        if (!CollectionUtils.isEmpty(factoringApprovalInfo)) {
+            return;
+        }
+        String riskKey = "风险控制信息";
+        String approvalKey = "审批部控制信息";
+        List<String> res = new ArrayList<>(Arrays.asList("承租人是否有最近三年的审计报告及近期财务报表",
+                "承租人不属于发改委公布的淘汰类或限制类行业",
+                "承租人不属于工信部公布的淘汰落后产能企业",
+                "所报送项目资料符合全面性，完整性及规范性要求检查",
+                "所报送项目资料符合合规性审查要求",
+                "是否上报征信"));
+        for (int i = 0; i < res.size(); i++) {
+            String v = res.get(i);
+            HlsCusPrjBusinessAccessCompare compare = new HlsCusPrjBusinessAccessCompare();
+            compare.setBusinessAccess(i <= res.size() ? riskKey : approvalKey);
+            compare.setProjectAccessItems(v);
+            compare.setProjectId(projectId);
+            hlsCusPrjBusinessAccessCompareMapper.insertSelective(compare);
+        }
     }
 
 

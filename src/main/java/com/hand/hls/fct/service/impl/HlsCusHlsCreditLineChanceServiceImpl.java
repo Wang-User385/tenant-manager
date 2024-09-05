@@ -1464,11 +1464,33 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         params.put("documentNumber", dto.getCreditLineName());
         //是否授信
         params.put("credit_flag", dto.getCreditFlag());
+        //保存业务准入信息
+        saveBusinessInfo(dto.getChanceId());
         //查询
         List<HlsCusHlsCreditLineChance> res = new ArrayList<>();
         res.add(dto);
         activitiStartService.start(requestCtx, res, params);
         return  res;
+    }
+
+    private void saveBusinessInfo( Long chanceId) {
+        HlsChanceBusinessAccessCompare hlsChanceBusinessAccessCompare = new HlsChanceBusinessAccessCompare();
+        hlsChanceBusinessAccessCompare.setChanceId(chanceId);
+        List<HlsChanceBusinessAccessCompare> factoringInfo = chanceCompareMapper.findFactoringInfo(hlsChanceBusinessAccessCompare);
+        if (!CollectionUtils.isEmpty(factoringInfo)){
+            return;
+        }
+        String key = "承租人基本资料";
+        List<String> res = new ArrayList<>(Arrays.asList("承租人是否有最近三年的审计报告及近期财务报表",
+                "承租人不属于发改委公布的淘汰类或限制类行业","承租人不属于工信部公布的淘汰落后产能企业" ));
+        res.forEach(v->{
+            HlsChanceBusinessAccessCompare compare = new HlsChanceBusinessAccessCompare();
+            compare.setBusinessAccess(key);
+            compare.setProjectAccessItems(v);
+            compare.setDocumentId(chanceId);
+            chanceCompareMapper.insertSelective(compare);
+        });
+
     }
 
     public static final String CREDIT_WORK_FLOW = "CREDIT_CHANCE_CREATE_WFL";

@@ -140,7 +140,7 @@
                 var ds_id_re = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_receivable', 'G_RECEIVE_PAY');
                 var ds_id_at = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
                 var ds_id_cf = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation_cashflow', 'G_PLAN');
-                if (!$(ds_id_cf).getAll() || $(ds_id_cf).getAll().length === 0){
+                if (!$(ds_id_cf).getAll() || $(ds_id_cf).getAll().length === 0) {
                     Leaf.showInfoMessage('提示', '请生成现金流计划后再提交审批');
                     return;
                 }
@@ -269,8 +269,8 @@
                     setBasicInfoInCreate(record, ds_id_pq, ds_id);
                 }
             }
-            var record_quo =  $(ds_id_pq).getCurrentRecord();
-            if (record_quo){
+            var record_quo = $(ds_id_pq).getCurrentRecord();
+            if (record_quo) {
                 record_cp.set('credit_amt', record_quo.get('finance_amount'));
             }
             return check_flag;
@@ -489,7 +489,6 @@
             }
         };
 
-
         Leaf.onReady(function () {
             var credit_flag = '${/parameter/@credit_flag}';
             var credit_flag_n = '${/parameter/@credit_flag_n}';
@@ -498,7 +497,7 @@
                 wflComponentHide();
             }
             //如果是从工作流来到的这个页面隐藏退出按钮
-            if ('${/parameter/@wfl_flag}'){
+            if ('${/parameter/@wfl_flag}') {
                 hideBigExitButton();
             }
             //不是授信则隐藏授信组件
@@ -513,6 +512,26 @@
                 $('factoring_add_winid').close();
                 var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
                 addCustomerInCreate(ds_id_customer);
+            }
+            //当前节点可以编辑业务准入信息
+            if ('${/parameter/@edit_business_flag}' == 'Y') {
+                var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
+                editBusiness(ds_id_business);
+            }
+            //审批当中不允许删除其他人的附件
+            if ('${/parameter/@edit_attachment_flag}' == 'Y'){
+                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS25'){
+                    var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_tb';
+                    processingGridByDivId(attach_grid_div_id);
+                }
+                $('${/parameter/@layout_code}_G_ATTA_INFO_hls_credit_line_attach_ds').on('beforeremove', function (ds, records) {
+                    for (var i = 0; i < records.length; i++) {
+                        if (records[i].get('created_by') != '${/session/@userId}') {
+                            Leaf.showMessage("提示", "不允许删除不是自己创建的附件记录!", null);
+                            return false;
+                        }
+                    }
+                });
             }
             // 控制主角色不能删除
             $('${/parameter/@layout_code}_F_CUSTOMER_hls_credit_line_chance_bp_ds').on('beforeremove', function (ds, records) {
@@ -732,6 +751,20 @@
             });
         }
 
+        function editBusiness(ds_id_business) {
+            openBigSaveButton();
+            var records_business = $(ds_id_business).getAll();
+            for (let i = 0; i < records.length; i++) {
+                var record_business = records_business[i];
+                record_business.getField('items_detail').setReadOnly(true);
+                record_business.getField('items_detail').setRequired(false);
+                record_business.getField('check_result').setReadOnly(false);
+                record_business.getField('check_result').setRequired(true);
+                record_business.getField('check_result_n').setReadOnly(false);
+                record_business.getField('check_result_n').setRequired(true);
+            }
+        }
+
         function noSpecialNodeProcessing() {
             hideBigSaveButton();
             var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_tb';
@@ -752,6 +785,18 @@
             buttons.forEach(button => {
                 if (button.textContent === '保存') {
                     button.style.display = 'none';
+                }
+            });
+        }
+
+        function openBigSaveButton() {
+            // 获取特定 class 的 div
+            const div = document.querySelector('.screenTopToolbar.clearfix');
+            // 获取 div 下的所有 button
+            const buttons = div.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.textContent === '保存') {
+                    button.style.display = 'block';
                 }
             });
         }
