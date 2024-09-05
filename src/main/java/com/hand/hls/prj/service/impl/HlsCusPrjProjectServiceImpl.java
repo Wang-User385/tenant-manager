@@ -3742,6 +3742,13 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
 
     private void copyAndSaveProject(IRequest requestCt, HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws Exception {
         BeanUtils.copyProperties(creditChance, project);
+        project.setProjectNumber(creditChance.getCreditLineNumber());
+        project.setProjectName(creditChance.getCreditLineName());
+        project.setTenantId(creditChance.getBpId());
+        project.setCreditFlag(creditChance.getCreditFlag());
+        project.setLeaseItemAmount(creditChance.getCreditLineAmt());
+        project.setHostProjectManager(creditChance.getProposerEmployeeId());
+        project.setAssistProjectManager(creditChance.getProjectAssistant());
         self().insertSelective(requestCt, project);
     }
 

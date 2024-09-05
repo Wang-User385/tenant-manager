@@ -6,6 +6,7 @@
         <result column="APPROVER_ID" property="approverId" jdbcType="DECIMAL" />
         <result column="CHANCE_ID" property="chanceId" jdbcType="DECIMAL" />
         <result column="ALLOCATION_ID" property="allocationId" jdbcType="DECIMAL" />
+        <result column="ALLOCATION_ID_N" property="allocationIdN" jdbcType="VARCHAR" />
         <result column="VOTE_STATUS" property="voteStatus" jdbcType="VARCHAR" />
         <result column="VOTE_COMMENT" property="voteComment" jdbcType="VARCHAR" />
         <result column="unit_name" property="unitName" jdbcType="VARCHAR" />
@@ -14,7 +15,15 @@
         <result column="vote_status_n" property="voteStatusN" jdbcType="VARCHAR" />
     </resultMap>
     <select id="queryAll" resultType="com.hand.hls.fct.dto.HlsCreditLineChanceApprover">
-        select em.name ,fou.unit_name,fop.position_name
+        select sua.allocation_id,
+               em.name,
+               fou.unit_name,
+               fop.position_name,
+               ca.vote_comment,
+               ca.vote_status,
+       (select v.MEANING
+        from sys_code_value_b_v v
+        where v.code='CHANCE.FACTORING_RESULT' and v.code_value= ca.vote_status) vote_status_n
         from hls_credit_line_chance_approver ca
                  join sys_user_allocation sua
                       on sua.allocation_id= ca.allocation_id
@@ -22,6 +31,9 @@
                  join fnd_employee em on em.employee_id=fea.employee_id
                  join fnd_org_unit fou on fou.unit_id=fea.unit_id
                  join fnd_org_position fop on fop.position_id=fea.position_id
+        <where>
+            chance_id=#{chanceId}
+        </where>
     </select>
 
     <select id="findVoteInfo" resultMap="BaseResultMap">
@@ -29,7 +41,7 @@
         hclca.chance_id,
         hclca.approver_id,
         hclca.allocation_id,
-        em.name,
+        em.name as allocation_id_n,
         fou.unit_name,
         fop.position_name,
         hclca.vote_status,

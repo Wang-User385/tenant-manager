@@ -182,6 +182,7 @@
         <result column="legal_host" property="legalHost"/>
         <result column="meeting_type" property="meetingType"/>
         <result column="meeting_type_n" property="meetingTypeN"/>
+        <result column="voting_result" property="votingResult"/>
         <result column="creditor_analyse" property="creditorAnalyse" jdbcType="VARCHAR"/>
         <result column="debtor_analyse" property="debtorAnalyse" jdbcType="VARCHAR"/>
         <result column="other_desc" property="otherDesc" jdbcType="VARCHAR"/>
@@ -754,12 +755,13 @@
         from HLS_CREDIT_LINE_CHANCE CLC
         where CLC.credit_line_status not in('CLOSED') and nvl(CLC.DATA_TYPE, 'NORMAL') not in ('CHANGE_REQ', 'HISTORY', 'CHANGE_REQ_HISTORY')
         and CLC.document_type= 'CREDIT'
+        clc.credit_line_status='APPROVED'
         order by clc.CREATION_DATE  desc
         )tt
 
         <where>
             1=1
-            and credit_line_status='APPROVED'
+
             <if test="createdBy!=null">
                 and (
                 tt.created_by = #{createdBy}
@@ -857,43 +859,50 @@
     </select>
 
         <select id="selectCreditLineChanceById" parameterType="com.hand.hls.fct.dto.HlsCusHlsCreditLineChance" resultMap="BaseResultMap">
-        select
-        clc.CHANCE_ID,
-        clc.LOAN_CONDITION,
-        clc.loan_method,
-        clc.other_desc,
-        clc.repayment_method,
-        CLC.CREDIT_LINE_NUMBER,
-        clc.CREDIT_LINE_NAME,
-        clc.COMPANY_ID,
-        clc.AUTHORITY_RULE_STRING,
-        clc.GUARANTEE_YN,
-        clc.MORTGAGE_YN,
-        clc.PLEDGE_YN,
-        clc.OTHER_YN,
-        clc.INSURANCE_PLAN_NOTE,
-        clc.INSURANCE_AMOUNT,
-        clc.BOND_AMOUNT,
-        clc.INSURED_AMOUNT,
-        clc.BENEFICIARY,
-        clc.INSURANCE_PERIOD,
-        clc.COM_RISK_FLAG,
-        clc.MACHINE_DAMAGE_FLAG,
-        clc.ENGIN_MACH_FLAG,
-        clc.ENGIN_ALL_FLAG,
-        clc.COMPULSORY_INS_FLAG,
-        clc.THIRD_INS_FLAG,
-        clc.OTHERS_FLAG,
-        clc.DESCRIPTION,
-        clc.VALID_FROM,
-        clc.VALID_TO,
-        clc.BP_Id,
-        clc.APPROVED_DATE,
-        clc.creation_date,
-        clc.industry_type,
+            select t.* ,
+            CASE
+            WHEN NUMBER_PASSERS > NUMBER_FAILURES AND NUMBER_PASSERS > NUMBER_CONDITIONA THEN '通过'
+            WHEN NUMBER_FAILURES > NUMBER_CONDITIONA AND NUMBER_FAILURES > NUMBER_PASSERS THEN '不通过'
+            WHEN NUMBER_CONDITIONA > NUMBER_PASSERS AND NUMBER_CONDITIONA > NUMBER_FAILURES THEN '有条件通过'
+            END AS VOTING_RESULT
+            from(
+            select
+            clc.CHANCE_ID,
+            clc.LOAN_CONDITION,
+            clc.loan_method,
+            clc.other_desc,
+            clc.repayment_method,
+            CLC.CREDIT_LINE_NUMBER,
+            clc.CREDIT_LINE_NAME,
+            clc.COMPANY_ID,
+            clc.AUTHORITY_RULE_STRING,
+            clc.GUARANTEE_YN,
+            clc.MORTGAGE_YN,
+            clc.PLEDGE_YN,
+            clc.OTHER_YN,
+            clc.INSURANCE_PLAN_NOTE,
+            clc.INSURANCE_AMOUNT,
+            clc.BOND_AMOUNT,
+            clc.INSURED_AMOUNT,
+            clc.BENEFICIARY,
+            clc.INSURANCE_PERIOD,
+            clc.COM_RISK_FLAG,
+            clc.MACHINE_DAMAGE_FLAG,
+            clc.ENGIN_MACH_FLAG,
+            clc.ENGIN_ALL_FLAG,
+            clc.COMPULSORY_INS_FLAG,
+            clc.THIRD_INS_FLAG,
+            clc.OTHERS_FLAG,
+            clc.DESCRIPTION,
+            clc.VALID_FROM,
+            clc.VALID_TO,
+            clc.BP_Id,
+            clc.APPROVED_DATE,
+            clc.creation_date,
+            clc.industry_type,
             ( SELECT hsc.description FROM hls_stat_class hsc WHERE to_char( hsc.class_id ) = clc.industry_type AND hsc.enabled_flag = 'Y' ) industry_type_n,
-        clc.city,
-        (
+            clc.city,
+            (
             SELECT
             CONCAT(
             ( SELECT P.DESCRIPTION FROM FND_PROVINCE P WHERE to_char( P.PROVINCE ) = fd.PROVINCE ),
@@ -906,110 +915,117 @@
             AND fd.enabled_flag = 'Y'
             ) CITY_N,
 
-        (SELECT f.COMPANY_SHORT_NAME AS value_name FROM fnd_company f WHERE f.ENABLED_FLAG = 'Y' and f.COMPANY_ID = clc.COMPANY_ID) COMPANY_ID_N,
-		clc.CREDIT_FLAG,
-        (select scv.MEANING from sys_code_b sc, sys_code_value_b scv where sc.CODE_ID = scv.CODE_ID and scv.value = clc.CREDIT_FLAG and rownum=1)CREDIT_FLAG_N,
-		clc.CREDIT_APPLY,
-		clc.BUSINESS_TYPE,
-        (select  v.description  from hls_business_type v where v.enabled_flag = 'Y' and v.DOCUMENT_CATEGORY = 'CHANCE' and clc.BUSINESS_TYPE = V.business_type ) BUSINESS_TYPE_N,
-        clc.PROPOSER_EMPLOYEE_ID ,
-        (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.PROPOSER_EMPLOYEE_ID) as PROPOSER_EMPLOYEE_ID_N,
-        clc.PROJECT_ASSISTANT,
-        (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.PROJECT_ASSISTANT) as PROJECT_ASSISTANT_N,
-        clc.PROJECT_ASSISTANT2,
-        (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.PROJECT_ASSISTANT2) as PROJECT_ASSISTANT2_N,
+            (SELECT f.COMPANY_SHORT_NAME AS value_name FROM fnd_company f WHERE f.ENABLED_FLAG = 'Y' and f.COMPANY_ID = clc.COMPANY_ID) COMPANY_ID_N,
+            clc.CREDIT_FLAG,
+            (select scv.MEANING from sys_code_b sc, sys_code_value_b scv where sc.CODE_ID = scv.CODE_ID and scv.value = clc.CREDIT_FLAG and rownum=1)CREDIT_FLAG_N,
+            clc.CREDIT_APPLY,
+            clc.BUSINESS_TYPE,
+            (select  v.description  from hls_business_type v where v.enabled_flag = 'Y' and v.DOCUMENT_CATEGORY = 'CHANCE' and clc.BUSINESS_TYPE = V.business_type ) BUSINESS_TYPE_N,
+            clc.PROPOSER_EMPLOYEE_ID ,
+            (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.PROPOSER_EMPLOYEE_ID) as PROPOSER_EMPLOYEE_ID_N,
+            clc.PROJECT_ASSISTANT,
+            (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.PROJECT_ASSISTANT) as PROJECT_ASSISTANT_N,
+            clc.PROJECT_ASSISTANT2,
+            (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.PROJECT_ASSISTANT2) as PROJECT_ASSISTANT2_N,
 
-        (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.RISK_HOST) as RISK_HOST_N,
-        clc.RISK_HOST,
-        (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.RISK_ASSISTANT_FIRST) as RISK_ASSISTANT_FIRST_N,
-        clc.RISK_ASSISTANT_FIRST,
-        (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.RISK_ASSISTANT_SECOND) as RISK_ASSISTANT_SECOND_N,
-        clc.RISK_ASSISTANT_SECOND,
-        clc.PROPOSER_EMPLOYEE_RATIO,
-        clc.PROJECT_ASSISTANT_RATIO,
-        clc.PROJECT_ASSISTANT2_RATIO,
-        clc.RISK_HOST_RATIO,
-        clc.RISK_ASSISTANT_FIRST_RATIO,
-        clc.RISK_ASSISTANT_SECOND_RATIO,
-        (SELECT
-        fe. NAME
-        FROM
-        fnd_org_unit fou,
-        fnd_org_position fop,
-        fnd_employee_assigns fea,
-        fnd_employee fe
-        WHERE
-        fou.unit_id = clc.unit_id
-        AND fou.unit_id = fop.unit_id
-        and fop.chief_position_flag = 'Y'
-        AND fop.position_id = fea.position_id
-        and fe.ENABLED_FLAG = 'Y'
-        and fea.ENABLED_FLAG = 'Y'
-        AND fea.employee_id = fe.employee_id) PROJECT_MANAGER_N,
-		clc.unit_id,
-        (select fou.unit_name from fnd_org_unit fou where fou.unit_id=clc.unit_id) as unit_id_n,
-		clc.MARKETING_REPORT_ID,
-		(select hmr.MARKETING_REPORT_NUMBER from hls_marketing_report hmr where hmr.MARKETING_REPORT_ID = clc.MARKETING_REPORT_ID)MARKETING_REPORT_NUMBER,
-		clc.CREDIT_NOTE,
-        clc.LEASE_MATTER_NOTE,
-        clc.GUARANTEE_METHOD_NOTE,
-        clc.FINANCE_NOTE,
-        (SELECT
-        max(fa.SOURCE_PK_VALUE)
-        FROM
-        fnd_atm_attachment fa,
-        fnd_atm_attachment_multi faa,
-        hls_credit_line_attach ha
-        WHERE
-        fa.ATTACHMENT_ID = faa.ATTACHMENT_ID
-        AND faa.TABLE_PK_VALUE = ha.CHANCE_ATTACHMENT_ID
-        and ha.ATTACHMENT_CATEGORY='HLS_CREDIT_CHANCE_DOCX'
-        and faa.TABLE_NAME = 'HLS_CREDIT_CHANCE_DOCX'
-        AND ha.CHANCE_ID = CLC.CHANCE_ID)SOURCE_PK_VALUE,
-        clc.contract_text_status,
-        clc.insure_flag,
-        clc.GUARANTEE_METHOD,
-        clc.PAY_METHOD,
-        clc.docx_flag,
-        (select v.meaning from sys_code_value_b_v v where v.code = 'SYS.YES_NO' and clc.insure_flag = v.CODE_VALUE)insure_flag_n,
+            (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.RISK_HOST) as RISK_HOST_N,
+            clc.RISK_HOST,
+            (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.RISK_ASSISTANT_FIRST) as RISK_ASSISTANT_FIRST_N,
+            clc.RISK_ASSISTANT_FIRST,
+            (SELECT  a.description FROM  sys_user a WHERE  a.user_id = clc.RISK_ASSISTANT_SECOND) as RISK_ASSISTANT_SECOND_N,
+            clc.RISK_ASSISTANT_SECOND,
+            clc.PROPOSER_EMPLOYEE_RATIO,
+            clc.PROJECT_ASSISTANT_RATIO,
+            clc.PROJECT_ASSISTANT2_RATIO,
+            clc.RISK_HOST_RATIO,
+            clc.RISK_ASSISTANT_FIRST_RATIO,
+            clc.RISK_ASSISTANT_SECOND_RATIO,
+            (SELECT
+            fe. NAME
+            FROM
+            fnd_org_unit fou,
+            fnd_org_position fop,
+            fnd_employee_assigns fea,
+            fnd_employee fe
+            WHERE
+            fou.unit_id = clc.unit_id
+            AND fou.unit_id = fop.unit_id
+            and fop.chief_position_flag = 'Y'
+            AND fop.position_id = fea.position_id
+            and fe.ENABLED_FLAG = 'Y'
+            and fea.ENABLED_FLAG = 'Y'
+            AND fea.employee_id = fe.employee_id) PROJECT_MANAGER_N,
+            clc.unit_id,
+            (select fou.unit_name from fnd_org_unit fou where fou.unit_id=clc.unit_id) as unit_id_n,
+            clc.MARKETING_REPORT_ID,
+            (select hmr.MARKETING_REPORT_NUMBER from hls_marketing_report hmr where hmr.MARKETING_REPORT_ID = clc.MARKETING_REPORT_ID)MARKETING_REPORT_NUMBER,
+            clc.CREDIT_NOTE,
+            clc.LEASE_MATTER_NOTE,
+            clc.GUARANTEE_METHOD_NOTE,
+            clc.FINANCE_NOTE,
+            (SELECT
+            max(fa.SOURCE_PK_VALUE)
+            FROM
+            fnd_atm_attachment fa,
+            fnd_atm_attachment_multi faa,
+            hls_credit_line_attach ha
+            WHERE
+            fa.ATTACHMENT_ID = faa.ATTACHMENT_ID
+            AND faa.TABLE_PK_VALUE = ha.CHANCE_ATTACHMENT_ID
+            and ha.ATTACHMENT_CATEGORY='HLS_CREDIT_CHANCE_DOCX'
+            and faa.TABLE_NAME = 'HLS_CREDIT_CHANCE_DOCX'
+            AND ha.CHANCE_ID = CLC.CHANCE_ID)SOURCE_PK_VALUE,
+            clc.contract_text_status,
+            clc.insure_flag,
+            clc.GUARANTEE_METHOD,
+            clc.PAY_METHOD,
+            clc.docx_flag,
+            (select v.meaning from sys_code_value_b_v v where v.code = 'SYS.YES_NO' and clc.insure_flag = v.CODE_VALUE)insure_flag_n,
 
-        clc.infrastructure_business_flag,
-        (select v.meaning from sys_code_value_b_v v where v.code = 'SYS.YES_NO' and clc.infrastructure_business_flag = v.CODE_VALUE)infrastructure_business_flag_n,
+            clc.infrastructure_business_flag,
+            (select v.meaning from sys_code_value_b_v v where v.code = 'SYS.YES_NO' and clc.infrastructure_business_flag = v.CODE_VALUE)infrastructure_business_flag_n,
 
 
-        (select v.meaning from sys_code_value_b_v v where v.code = 'GUARANTEE_METHOD' and clc.GUARANTEE_METHOD = v.CODE_VALUE)GUARANTEE_METHOD_N,
-        (select v.meaning from sys_code_value_b_v v where v.code = 'PAY_METHOD' and clc.PAY_METHOD = v.CODE_VALUE)PAY_METHOD_N,
-        clc.factor_nature,
-        (select v.meaning from sys_code_value_b_v v where v.code = 'FACTOR_NATURE' and clc.factor_nature = v.CODE_VALUE)factor_nature_n,
-        (
+            (select v.meaning from sys_code_value_b_v v where v.code = 'GUARANTEE_METHOD' and clc.GUARANTEE_METHOD = v.CODE_VALUE)GUARANTEE_METHOD_N,
+            (select v.meaning from sys_code_value_b_v v where v.code = 'PAY_METHOD' and clc.PAY_METHOD = v.CODE_VALUE)PAY_METHOD_N,
+            clc.factor_nature,
+            (select v.meaning from sys_code_value_b_v v where v.code = 'FACTOR_NATURE' and clc.factor_nature = v.CODE_VALUE)factor_nature_n,
+            (
             SELECT
             wm_concat( hbm.bp_name)
             FROM hls_bp_master hbm
             WHERE hbm.bp_id = clc.bp_id
             ) AS bp_id_n,
-        (
-        SELECT
-        wm_concat( hbm.bp_name)
-        FROM hls_bp_master hbm, Hls_Credit_Line_Chance_Bp hclcb
-        WHERE hclcb.chance_id = clc.chance_id
-        AND hbm.bp_id = hclcb.bp_id
-        AND hclcb.bp_type IN ( 'GUARANTOR','WARRANTOR' )
-        ) AS GUARANTEE_N,
-        (CASE WHEN clc.GUARANTEE_YN = 'Y' THEN '保证 ' ELSE NULL
-        END || ',' || CASE
-        WHEN clc.MORTGAGE_YN = 'Y' THEN '抵押 ' ELSE NULL
-        END || ',' || CASE
-        WHEN clc.PLEDGE_YN = 'Y' THEN '质押 ' ELSE  NULL
-        END || ',' || CASE
-        WHEN clc.OTHER_YN = 'Y' THEN '其他 ' ELSE NULL
-        END),
-        CLC.INDUSTRY,
-        clc.CREDIT_MEASURES,
-        clc.tenant_analyse,
-        clc.guarantee_analyse
-        from HLS_CREDIT_LINE_CHANCE CLC
+            (
+            SELECT
+            wm_concat( hbm.bp_name)
+            FROM hls_bp_master hbm, Hls_Credit_Line_Chance_Bp hclcb
+            WHERE hclcb.chance_id = clc.chance_id
+            AND hbm.bp_id = hclcb.bp_id
+            AND hclcb.bp_type IN ( 'GUARANTOR','WARRANTOR' )
+            ) AS GUARANTEE_N,
+            (CASE WHEN clc.GUARANTEE_YN = 'Y' THEN '保证 ' ELSE NULL
+            END || ',' || CASE
+            WHEN clc.MORTGAGE_YN = 'Y' THEN '抵押 ' ELSE NULL
+            END || ',' || CASE
+            WHEN clc.PLEDGE_YN = 'Y' THEN '质押 ' ELSE  NULL
+            END || ',' || CASE
+            WHEN clc.OTHER_YN = 'Y' THEN '其他 ' ELSE NULL
+            END),
+            CLC.INDUSTRY,
+            clc.CREDIT_MEASURES,
+            clc.tenant_analyse,
+            clc.guarantee_analyse,
+            clc.meeting_type,
+            (SELECT v.MEANING  FROM SYS_CODE_VALUE_B_V V
+            WHERE V.CODE='CHANCE.MEETING_TYPE'
+            and v.code_value=clc.meeting_type) as meeting_type_n,
+            (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 10 AND cv.chance_id = clc.chance_id) AS NUMBER_PASSERS,
+            (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 20 AND cv.chance_id = clc.chance_id) AS NUMBER_FAILURES,
+            (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 30 AND cv.chance_id = clc.chance_id) AS NUMBER_CONDITIONA
+            from HLS_CREDIT_LINE_CHANCE CLC) t
       <where>
-          CLC.CHANCE_ID = #{chanceId}
+          t.CHANCE_ID = #{chanceId}
       </where>
 
     </select>
@@ -1928,11 +1944,11 @@
                  SELECT
                      c.chance_id,
                      c.meeting_type,
-                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 1 AND cv.chance_id = c.chance_id) AS NUMBER_PASSERS,
-                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 2 AND cv.chance_id = c.chance_id) AS NUMBER_FAILURES,
-                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 3 AND cv.chance_id = c.chance_id) AS NUMBER_CONDITIONA
+                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 10 AND cv.chance_id = c.chance_id) AS NUMBER_PASSERS,
+                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 20 AND cv.chance_id = c.chance_id) AS NUMBER_FAILURES,
+                     (SELECT COUNT(1) FROM hls_credit_line_chance_approver cv WHERE cv.vote_status = 30 AND cv.chance_id = c.chance_id) AS NUMBER_CONDITIONA
                  FROM
-                     hls_credit_line_chance c
+                     hls_credit_line_chance c where chance_id=#{chanceId}
              ) t
     </select>
 

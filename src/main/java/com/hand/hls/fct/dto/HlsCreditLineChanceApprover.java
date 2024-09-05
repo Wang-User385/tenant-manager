@@ -46,7 +46,9 @@ public class HlsCreditLineChanceApprover extends BaseDTO {
      private String name;
 
      @Transient
-     private String voteStatusN;
+     private String voteStatusN;//
+     @Transient
+     private String allocationIdN;//
 
 
      }

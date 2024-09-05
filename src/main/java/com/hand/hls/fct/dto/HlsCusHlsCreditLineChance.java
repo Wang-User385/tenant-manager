@@ -84,6 +84,8 @@ public class HlsCusHlsCreditLineChance extends BaseDTO {
     private String touchCreatedDateFrom;
     @Transient
     private String touchCreatedDateTo;
+    @Transient
+    private String votingResult;
 
     private Double creditLineAmt;
 
