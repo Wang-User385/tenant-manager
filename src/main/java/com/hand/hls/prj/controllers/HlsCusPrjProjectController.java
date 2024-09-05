@@ -3381,7 +3381,16 @@ public class HlsCusPrjProjectController extends BaseController {
         return new ResponseData(service.submit(hlsCusPrjProject, requestCtx));
     }
 
-
+    //保理合同审批提交
+    @RequestMapping(value = "/prj/virtual/contract/wfl/submit")
+    @ResponseBody
+    public ResponseData submitVirtualFactoringWfl(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject hlsCusPrjProject = param.toJavaObject(HlsCusPrjProject.class);
+        return new ResponseData(service.submitVirtualFactoringWfl(hlsCusPrjProject, requestCtx));
+    }
 
 
 }

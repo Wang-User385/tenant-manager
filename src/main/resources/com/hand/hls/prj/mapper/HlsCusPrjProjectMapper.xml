@@ -457,6 +457,17 @@
         <result column="spot_check_desc" property="spotCheckDesc" jdbcType="VARCHAR"/>
         <result column="risk_invest_desc" property="riskInvestDesc" jdbcType="VARCHAR"/>
 
+        <result column="vir_con_process_instatnce_id" property="virConProcessInstatnceId" jdbcType="VARCHAR"/>
+        <result column="contract_status" property="contractStatus" jdbcType="VARCHAR"/>
+        <result column="contract_status_n" property="contractStatusN" jdbcType="VARCHAR"/>
+        <result column="contract_content_number" property="contractContentNumber" jdbcType="VARCHAR"/>
+        <result column="contract_sign_address" property="contractSignAddress" jdbcType="VARCHAR"/>
+        <result column="contract_sign_times" property="contractSignTimes" jdbcType="VARCHAR"/>
+        <result column="contract_special_condit" property="contractSpecialCondit" jdbcType="VARCHAR"/>
+        <result column="contract_out_law_name" property="contractOutLawName" jdbcType="VARCHAR"/>
+        <result column="contract_out_law_reviewer" property="contractOutLawReviewer" jdbcType="VARCHAR"/>
+        <result column="contract_out_law_date" property="contractOutLawDate" jdbcType="VARCHAR"/>
+        <result column="contract_out_law_comment" property="contractOutLawComment" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="prjHomePageGetAllStatusProjectCountMap" type="java.util.Map">
@@ -13765,6 +13776,130 @@ WHERE
             <if test="creditFlag !=null">
                 and credit_flag = #{creditFlag}
             </if>
+        </where>
+    </select>
+
+    <!--保理合同审批首页查询-->
+    <select id="selectVirtualConFactoringEntrance" resultMap="BaseResultMap">
+        SELECT
+            pp.CONTRACT_NUMBER,
+            pp.PROJECT_NUMBER,
+            pp.PROJECT_NAME,
+            hbm.bp_name TENANT_ID_N,
+            pp.TENANT_ID,
+            pp.CREDIT_FLAG,
+            pp.LEASE_ITEM_AMOUNT,
+            pp.INDUSTRY,
+            pp.HOST_PROJECT_MANAGER,
+            (SELECT  a.description
+            FROM  sys_user a
+            WHERE  a.user_id = pp.host_project_manager) host_project_manager_n,
+            pp.ASSIST_PROJECT_MANAGER,
+            (SELECT  a.description
+            FROM  sys_user a
+            WHERE  a.user_id = pp.ASSIST_PROJECT_MANAGER) assist_project_manager_n,
+            pp.CONTRACT_STATUS,
+            (select v.meaning
+            FROM sys_code_value_b_v v
+            WHERE v.code = 'HLS.WORK_FLOW_STATUS'
+            AND v.code_value = pp.contract_status) contract_status_n,
+            pp.CONTRACT_END_DATE,
+            pp.PROJECT_ID,
+            pp.document_type,
+            pp.document_category,
+            pp.data_class
+        FROM PRJ_PROJECT pp
+        LEFT JOIN hls_bp_master hbm ON hbm.bp_id = pp.TENANT_ID
+        <where>
+           pp.document_type = 'FACTORING'
+          AND pp.document_category = 'PRJ_PROJECT'
+          AND pp.data_class = 'VIRTUAL_CON'
+          <if test="projectId != null">
+              and pp.project_id = #{projectId}
+          </if>
+          <if test="contractNumber != null">
+             and pp.contract_number like concat('%',concat(#{contractNumber},'%'))
+          </if>
+          <if test="projectName != null">
+              and pp.PROJECT_NAME like concat('%',concat(#{projectName},'%'))
+          </if>
+          <if test="tenantIdN != null">
+              and hbm.bp_name like concat('%',concat(#{tenantIdN},'%'))
+          </if>
+          <if test="contractStatus != null">
+              and pp.contract_status = #{contractStatus}
+          </if>
+        </where>
+    </select>
+
+    <!--保理合同明细页面基本信息查询-->
+    <select id="selectVirtualConFactoringBaseInfo"  resultMap="BaseResultMap">
+        SELECT
+            '' as contract_content_number,  -- 合同用印份数
+            '' as contract_sign_address,  -- 合同签订地点
+            '' as contract_sign_times,  -- 合同签订日期
+            '' as contract_special_condit,  -- 合同特别约定条款
+            '' as contract_out_law_name,   -- 外聘律师事务所机构名称
+            '' as contract_out_law_reviewer,  -- 外聘律师事务所审查人
+            '' as contract_out_law_date,   -- 外聘律师事务所审查日期
+            '' as contract_out_law_comment, -- 外聘律师事务所审查意见
+            pp.project_id,
+            pp.project_number,
+            pp.project_name,
+            pp.contract_number,
+            pp.industry,
+            pp.tenant_id,
+            pp.credit_measures,
+            ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
+            pp.company_id,
+            ( SELECT FC.COMPANY_FULL_NAME FROM FND_COMPANY FC WHERE pp.COMPANY_ID = FC.COMPANY_ID ) COMPANY_ID_N,
+            pp.creation_date,
+            pp.unit_id,
+            ( SELECT fou.unit_name FROM fnd_org_unit fou WHERE pp.unit_id = fou.unit_id ) unit_id_n,
+            pp.host_project_manager,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = pp.host_project_manager ) host_project_manager_n,
+            pp.assist_project_manager,
+            ( SELECT a.description FROM sys_user a WHERE a.user_id = pp.assist_project_manager ) assist_project_manager_n,
+            pp.city,
+            (
+                SELECT
+                    CONCAT(
+                            ( SELECT P.DESCRIPTION FROM FND_PROVINCE P WHERE to_char( P.PROVINCE ) = fd.PROVINCE ),
+                            CONCAT( ( SELECT fc.DESCRIPTION FROM FND_CITY fc WHERE to_char( fc.City ) = fd.City ), fd.DESCRIPTION )
+                        )
+                FROM
+                    fnd_district fd
+                WHERE
+                    fd.DISTRICT = pp.city
+                  AND fd.enabled_flag = 'Y'
+            ) CITY_N,
+            pp.factoring_type,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_TYPE' AND sc.code_value = pp.factoring_type ) factoring_type_n,
+            pp.factoring_category,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = pp.factoring_category ) factoring_category_n,
+            pp.factoring_recourse,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RECOURSE' AND sc.code_value = pp.factoring_recourse ) factoring_recourse_n,
+            pp.factoring_open,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_OPEN' AND sc.code_value = pp.factoring_open ) factoring_open_n,
+            pp.industry_type,
+            ( SELECT hsc.description FROM hls_stat_class hsc WHERE to_char( hsc.class_id ) = pp.industry_type AND hsc.enabled_flag = 'Y' ) industry_type_n,
+            pp.CONTRACT_STATUS,
+            (select v.meaning
+             FROM sys_code_value_b_v v
+             WHERE v.code = 'HLS.WORK_FLOW_STATUS'
+               AND v.code_value = pp.contract_status) contract_status_n,
+            pp.CONTRACT_END_DATE,
+            pp.document_type,
+            pp.document_category,
+            pp.data_class
+        FROM PRJ_PROJECT pp
+        <where>
+          pp.document_type = 'FACTORING'
+          AND pp.document_category = 'PRJ_PROJECT'
+          AND pp.data_class = 'VIRTUAL_CON'
+          <if test="projectId != null">
+              and pp.project_id = #{projectId}
+          </if>
         </where>
     </select>
 

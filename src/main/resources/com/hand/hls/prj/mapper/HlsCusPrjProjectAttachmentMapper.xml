@@ -2362,4 +2362,77 @@ and faa.source_pk_value = faam.record_id) attachment_sum,
         </where>
     </select>
 
+    <!--合同文本-->
+    <select id="findVirtualConFactroingApprovalInfo" resultMap="BaseResultMap">
+        SELECT
+        ppa.project_id,
+        ppa.project_attachment_id,
+        ppa.document_name,
+        (
+        SELECT
+        LISTAGG ( file_name, ',' ) WITHIN GROUP ( ORDER BY file_name ) AS document_name
+        FROM
+        fnd_atm_attachment_multi faam,
+        fnd_atm_attachment fat
+        WHERE
+        ppa.project_attachment_id = faam.table_pk_value
+        AND faam.attachment_id = fat.attachment_id
+        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+        AND ppa.project_attachment_category = 'VIRTUAL_CON_CONTENT'
+        ) info_name,
+        ppa.created_by,
+        ( SELECT description FROM sys_user WHERE user_id = ppa.created_by ) created_by_n,
+        ppa.creation_date,
+        ppa.description,
+        (
+        SELECT
+        count( 1 )
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = ppa.project_attachment_id
+        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+        ) file_num,
+        ( SELECT
+        to_char( wm_concat ( faa.file_name ) ) file_name
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = ppa.project_attachment_id
+        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+        ) file_names,
+        (
+        SELECT
+        to_char( wm_concat ( faa.attachment_id ) ) attachment_id
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = ppa.project_attachment_id
+        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+        ) attachment_id_n,
+        (
+        SELECT
+        to_char( wm_concat ( faa.source_pk_value ) ) source_pk_value
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = ppa.project_attachment_id
+        AND faam.table_name = 'PRJ_PROJECT_ATTACHMENT'
+        ) source_pk_value
+        FROM
+        prj_project_attachment ppa
+        <where>
+            ppa.project_attachment_category = 'VIRTUAL_CON_CONTENT'
+            and ppa.project_id = #{projectId}
+        </where>
+    </select>
+
 </mapper>

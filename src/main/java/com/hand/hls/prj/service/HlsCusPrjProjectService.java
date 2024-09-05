@@ -337,4 +337,9 @@ public interface HlsCusPrjProjectService extends IBaseService<HlsCusPrjProject>,
      * @return
      */
     List<HlsCusPrjProject> submit(HlsCusPrjProject hlsCusPrjProject, IRequest requestCtx);
+
+    /**
+     * 保理合同审批提交
+     */
+    List<HlsCusPrjProject> submitVirtualFactoringWfl(HlsCusPrjProject hlsCusPrjProject, IRequest requestCtx);
 }

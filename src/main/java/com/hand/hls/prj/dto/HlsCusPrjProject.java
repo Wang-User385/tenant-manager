@@ -140,6 +140,8 @@ public class HlsCusPrjProject extends PrjProject {
     private Long refProjectId;//虚拟合同指向项目ID
 
     private String contractStatus;//虚拟合同状态
+    @Transient
+    private String contractStatusN;//虚拟合同状态
 
     private Double contractAmount;//虚拟合同金额
 
@@ -3253,5 +3255,24 @@ public class HlsCusPrjProject extends PrjProject {
     private String otherDesc;
     private String creditMeasures;
 
+    private Long virConProcessInstatnceId; //保理合同工作流实例ID
+    @Transient
+    private String paymentApprovedStatus;
+    @Transient
+    private String contractContentNumber;
+    @Transient
+    private String contractSignAddress;
+    @Transient
+    private String contractSignTimes;
+    @Transient
+    private String contractSpecialCondit;
+    @Transient
+    private String contractOutLawName;
+    @Transient
+    private String contractOutLawReviewer;
+    @Transient
+    private String contractOutLawDate;
+    @Transient
+    private String contractOutLawComment;
 
 }

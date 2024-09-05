@@ -9138,5 +9138,39 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         return  res;
     }
 
+    //保理合同审批提交
+    public static final String WORK_FLOW_VIRTUAL_CON = "CONTRACT_APPROVAL";
+    public static final String DEMO_NAME_VIRTUAL_CON = "CONTRACT_APPROVAL";
+    public static final String DOCUMENT_TYPE_APPROVAL_VIRTUAL_CON = "VIRTUAL_CON_FACTORING_APPROVAL";
+    public static final String DOCUMENT_NAME_APPROVAL_VIRTUAL_CON = "保理合同审批工作流";
+    @Override
+    public List<HlsCusPrjProject> submitVirtualFactoringWfl(HlsCusPrjProject hlsCusPrjProject, IRequest requestCtx) {
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("workFlowType", WORK_FLOW_VIRTUAL_CON);
+        params.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW_VIRTUAL_CON);
+        params.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME_VIRTUAL_CON);
+        params.put(IActivitiCommonService.BUSINESS_KEY, hlsCusPrjProject.getProjectId());
+        params.put("projectId", hlsCusPrjProject.getProjectId());
+        hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(hlsCusPrjProject.getTenantId());
+        hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
+        //单据类别
+        params.put("documentCategory",PROJECT_DOCUMENT_CATEGORY);
+        //单据类型
+        params.put("documentType", DOCUMENT_TYPE_APPROVAL_VIRTUAL_CON);
+        //单据名称
+        params.put("documentName", hlsCusPrjProject.getProjectNumber()+"-"+hlsCusBpMaster.getBpName()+"-"+DOCUMENT_NAME_APPROVAL_VIRTUAL_CON);
+        //单据编号
+        params.put("documentNumber", hlsCusPrjProject.getProjectNumber());
+        //是否授信
+        params.put("credit_flag", hlsCusPrjProject.getCreditFlag());
+        //查询
+        List<HlsCusPrjProject> res = new ArrayList<>();
+        res.add(hlsCusPrjProject);
+        activitiStartService.start(requestCtx, res, params);
+        return res;
+    }
+
 
 }
