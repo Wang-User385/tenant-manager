@@ -10677,6 +10677,20 @@ WHERE
             <if test="investmentStatus != null">
                 and nvl(pp.investment_status, 'NEW') = #{investmentStatus}
             </if>
+            <if test="leaseItemType != null">
+                and pp.lease_item_type = #{leaseItemType}
+            </if>
+            <if test="paymentResultN != null">
+                and decode((select count(1)
+                from con_contract cc, con_contract_cashflow ccc
+                where cc.contract_id = ccc.contract_id
+                and ccc.cf_item = 0
+                and ccc.cf_type = 0
+                and ccc.cf_direction = 'OUTFLOW'
+                and ccc.cf_status = 'RELEASE'
+                and ccc.write_off_flag ='FULL'
+                and cc.project_id = pp.project_id),0,'未支付',1,'支付成功') = #{paymentResultN}
+            </if>
         </where>
         ) temp where 1=1
 
