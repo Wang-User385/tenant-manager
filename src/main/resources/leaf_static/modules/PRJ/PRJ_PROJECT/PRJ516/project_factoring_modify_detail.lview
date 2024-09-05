@@ -219,7 +219,6 @@
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_form_add_and_load'] = function (ds, record, config_records, bp_seq) {
             var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
             var ds_id_investigation = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
-            debugger;
             if (ds.id == ds_id_au) {
                 if ('${/parameter/@credit_flag}' == 'N') {
                     record.getField('quota_type').setRequired(false);
@@ -253,19 +252,34 @@
 
         //查询时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            debugger;
             var ds_id_pre = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_condition', 'G_CON_FAC');
             var ds_id_after = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_condition', 'G_CON_FAC_AFTER');
+            var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
+            var ds_id_risk = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
+            var ds_id_law = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_LAW');
+            var ds_id_approve = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_APPROVE');
+            var ds_id_prj = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_PRJ');
             if (ds.id == ds_id_pre) {
                 $(ds_id_pre).setQueryParameter('stage', 'STAGE_PRE')
             } else if (ds.id == ds_id_after) {
                 $(ds_id_after).setQueryParameter('stage', 'STAGE_AFTER')
+            } else if (ds.id == ds_id_atta) {
+                $(ds_id_atta).setQueryParameter('project_attachment_category', 'CHANCE_PRJ_ATT')
+            } else if (ds.id == ds_id_risk) {
+                $(ds_id_risk).setQueryParameter('project_attachment_category', 'CHANCE_PRJ_RISK_ATT')
+            } else if (ds.id == ds_id_law) {
+                $(ds_id_law).setQueryParameter('project_attachment_category', 'CHANCE_PRJ_LAW_ATT')
+            } else if (ds.id == ds_id_approve) {
+                $(ds_id_approve).setQueryParameter('project_attachment_category', 'CHANCE_PRJ_APPROVE_ATT')
+            } else if (ds.id == ds_id_prj) {
+                $(ds_id_prj).setQueryParameter('project_attachment_category', 'CHANCE_PRJ_PRJ_ATT')
             }
         };
 
 
         //保存前
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
-            debugger;
             var check_flag = true;
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
             var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_bp', 'F_CUSTOMER');
@@ -313,23 +327,23 @@
         }
 
         Leaf.onReady(function () {
-            debugger;
             var credit_flag = '${/parameter/@credit_flag}';
             var credit_flag_n = '${/parameter/@credit_flag_n}';
             //隐藏工作流要用组件
             if (!'${/parameter/@wfl_flag}') {
                 wflCommonHide();
+            }else {
+                hideBigExitButton();
             }
-            // if ('${/parameter/@wfl_flag}' == 'A'){
-            //     wflComponentHide();
-            // }
-            // if ('${/parameter/@wfl_flag}' == 'B'){
-            //     wflComponentHideTo14Component();
-            // }
-            // if ('${/parameter/@wfl_flag}' == 'C'){
-            //     wflComponentHideTo15Component();
-            // }
-
+            if ('${/parameter/@wfl_flag}' == 'A') {
+                wflComponentHide();
+            }
+            if ('${/parameter/@wfl_flag}' == 'B'){
+                wflComponentHideTo14Component();
+            }
+            if ('${/parameter/@wfl_flag}' == 'C'){
+                wflComponentHideTo15Component();
+            }
             //不是授信则隐藏授信组件
             if (credit_flag == 'N' || credit_flag_n == '否') {
                 noCreditFlogComponentHide();
@@ -337,11 +351,6 @@
             // //不是特殊节点不显示按钮
             // if ('${/parameter/@special_node_flag}' != 'Y' && '${/parameter/@function_usage}' == 'QUERY') {
             //     noSpecialNodeProcessing();
-            // }
-            // if ('${/parameter/@function_usage}' == 'CREATE') {
-            //     $('factoring_add_winid').close();
-            //     var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
-            //     addCustomerInCreate(ds_id_customer);
             // }
             // 控制主角色不能删除
             $('${/parameter/@layout_code}_F_CUSTOMER_prj_project_bp_ds').on('beforeremove', function (ds, records) {
@@ -381,7 +390,6 @@
         }
 
         function open_financia_detail_win(record_id, ds_id) {
-            debugger;
             var record = $(ds_id).getCurrentRecord();
             var bp_id = record.get('bp_id');
             var bp_name = record.data['bp_name'];
@@ -544,16 +552,12 @@
         }
 
         function wflCommonHide() {
-            let business_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_BUSINESS_FAC_component_id']").attr("id");
+            hideBusinessComponent();
+            hideExamRiskComponent();
+            hideExamLawComponent();
+            hideExamApproveComponent();
+            hideExamPrjComponent();
             let investigation_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_INVESTIGATION_component_id']").attr("id");
-            let business_grid_id = '#' + '${/parameter/@layout_code}_G_BUSINESS_FAC_project_business_access_compare_layout_grid_id_wrap';
-
-            jQuery(business_grid_id).hide();
-            jQuery(business_component_id).hide();
-            jQuery(business_component_id).prev().hide();
-            jQuery(business_component_id).hide();
-            jQuery(business_component_id).next().hide();
-
             $jq('#${/parameter/@layout_code}_F_INVESTIGATION_component_id').hide();//隐藏客户信息组件
             jQuery(investigation_component_id).hide();
             jQuery(investigation_component_id).prev().hide();
@@ -564,18 +568,80 @@
         function wflComponentHide() {
             wflCommonHide();
             //隐藏按钮
-            // if ('${/parameter/@wfl_flag}' == 'N') {
-            //     jQuery('#${/parameter/@layout_code}_user_button1').hide();
-            //     jQuery('#${/parameter/@layout_code}_user_button2').hide();
-            // }
+            jQuery('#${/parameter/@layout_code}_user_button1').hide();
+            jQuery('#${/parameter/@layout_code}_user_button2').hide();
         }
 
         function wflComponentHideTo14Component() {
-
+            hideExamRiskComponent();
+            hideExamLawComponent();
+            hideExamPrjComponent();
         }
 
         function wflComponentHideTo15Component() {
 
+        }
+
+        function openBigSaveButton() {
+            // 获取特定 class 的 div
+            const div = document.querySelector('.screenTopToolbar.clearfix');
+            // 获取 div 下的所有 button
+            const buttons = div.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.textContent === '保存') {
+                    button.style.display = 'block';
+                }
+            });
+        }
+
+        function hideBigExitButton() {
+            // 获取特定 class 的 div
+            const div = document.querySelector('.screenTopToolbar.clearfix');
+            // 获取 div 下的所有 button
+            const buttons = div.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.textContent === '退出') {
+                    button.style.display = 'none';
+                }
+            });
+        }
+
+        function hideBusinessComponent(){
+            let business_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_BUSINESS_FAC_component_id']").attr("id");
+            let business_grid_id = '#' + '${/parameter/@layout_code}_G_BUSINESS_FAC_project_business_access_compare_layout_grid_id_wrap';
+            hideLeftMenuAndGrid(business_component_id,business_grid_id);
+        }
+
+        function hideExamRiskComponent() {
+            let risk_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_EXAMINATION_RISK_component_id']").attr("id");
+            let risk_grid_id = '#' + '${/parameter/@layout_code}_G_EXAMINATION_RISK_prj_project_attachment_layout_grid_id_wrap';
+            hideLeftMenuAndGrid(risk_component_id,risk_grid_id);
+        }
+
+        function hideExamLawComponent() {
+            let law_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_EXAMINATION_LAW_component_id']").attr("id");
+            let law_grid_id = '#' + '${/parameter/@layout_code}_G_EXAMINATION_LAW_prj_project_attachment_layout_grid_id_wrap';
+            hideLeftMenuAndGrid(law_component_id,law_grid_id);
+        }
+
+        function hideExamApproveComponent() {
+            let approve_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_EXAMINATION_APPROVE_component_id']").attr("id");
+            let approve_grid_id = '#' + '${/parameter/@layout_code}_G_EXAMINATION_APPROVE_prj_project_attachment_layout_grid_id_wrap';
+            hideLeftMenuAndGrid(approve_component_id,approve_grid_id);
+        }
+
+        function hideExamPrjComponent() {
+            let risk_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_EXAMINATION_PRJ_component_id']").attr("id");
+            let risk_grid_id = '#' + '${/parameter/@layout_code}_G_EXAMINATION_PRJ_prj_project_attachment_layout_grid_id_wrap';
+            hideLeftMenuAndGrid(risk_component_id,risk_grid_id);
+        }
+
+        function hideLeftMenuAndGrid(left_menu_component_id,grid_id){
+            jQuery(grid_id).hide();
+            jQuery(left_menu_component_id).hide();
+            jQuery(left_menu_component_id).prev().hide();
+            jQuery(left_menu_component_id).hide();
+            jQuery(left_menu_component_id).next().hide();
         }
 
 

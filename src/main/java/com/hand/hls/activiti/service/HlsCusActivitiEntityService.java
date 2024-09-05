@@ -345,4 +345,10 @@ public interface HlsCusActivitiEntityService {
 
     List<String> getCreditChanceJudges(DelegateExecution delegateExecution);
 
+    String getCreditChanceApprovalLegal(DelegateExecution delegateExecution);
+    String getCreditChanceApprovalRisk(DelegateExecution delegateExecution);
+    String getCreditChanceApprovalExamine(DelegateExecution delegateExecution);
+
+
+
 }

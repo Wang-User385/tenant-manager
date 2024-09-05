@@ -1362,4 +1362,25 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
         return returnList;
     }
 
+    @Override
+    public String getCreditChanceApprovalRisk(DelegateExecution delegateExecution){
+        Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusPrjProject hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
+        return hlsCusPrjProject.getRiskHost().toString();
+    }
+
+    @Override
+    public String getCreditChanceApprovalLegal(DelegateExecution delegateExecution){
+        Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusPrjProject hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
+        return hlsCusPrjProject.getLegalHost().toString();
+    }
+
+    @Override
+    public String getCreditChanceApprovalExamine(DelegateExecution delegateExecution){
+        Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusPrjProject hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
+        return hlsCusPrjProject.getExamineHost().toString();
+    }
+
 }
