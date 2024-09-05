@@ -16,6 +16,7 @@
         <a:link id="transaction_modify_link"
                         url="${/request/@context_path}/modules/CSH/CSH_TRX/CSH301/csh_transaction_receipt_modify.lview"/>
 
+        <a:link id="csh307_transaction_refund_save_link" url="${/request/@context_path}/csh/transaction/refund/with-lines/save"/>
         <script><![CDATA[
         var refund_id;
         function csh_transaction_refund_create_query() {
@@ -49,10 +50,6 @@
             var transaction_type;
             //是否已还清
             var is_terminate_count = 0;
-            //合作商校验标志
-            var manufacturer_flag = 'N';
-            //对方账户校验标志
-            var bp_bank_account_name_flag = 'N';
 
             for (var i = 0; i < records.length; i++) {
                 //字段“是否已还清”为“否”不可发起保证金退款申请创建，并提示“承租人下有应收款项未收到，不能发起保证金退款流程!”。
@@ -146,32 +143,84 @@
             var bp_bank_account_num = records[0].get('bp_bank_account_num');
             var bp_bank_account_name = records[0].get('bp_bank_account_name');
 
-            var win = new Leaf.Window({
-                id: 'csh_transaction_refund_create_win_id',
-                url: $('csh_transaction_refund_detail_link_id').getUrl(),
-                params: {
-                    win_id: 'csh_transaction_refund_create_win_id',
-                    bp_id : payment_bp_id,
-                    transaction_id:transaction_id,
-                    bp_name : bp_name,
-                    bp_bank_name : bp_bank_name,
-                    bp_bank_account_num : bp_bank_account_num,
-                    bp_bank_account_name : bp_bank_account_name,
-                    currency_code: currency_code,
-                    total_can_return_amount : total_can_return_amount,
-                    transaction_ids : transaction_ids.join(','),
-                    read_only : 'N',
-                    transaction_type : transaction_type,
-                    source_typ : 'CREATE'
+            //退款头表信息封装
+            var refund_headerInfo = {};
+            refund_headerInfo['bp_id'] = payment_bp_id;
+            refund_headerInfo['bp_name'] = bp_name;
+            refund_headerInfo['bp_bank_name'] = bp_bank_name;
+            refund_headerInfo['bp_bank_account_num'] = bp_bank_account_num;
+            refund_headerInfo['bp_bank_account_name'] = bp_bank_account_name;
+            refund_headerInfo['currency_code'] = currency_code;
+            refund_headerInfo['refund_amount'] = total_can_return_amount;
+            refund_headerInfo['refund_date'] = new Date();
+            //退款行表信息封装
+            var saveData = [];
+            for (var i = 0; i < records.length; i++) {
+                records[i].data.con_cashflow_id = records[i].data.cashflow_id;
+                saveData.push(records[i].data);
+            }
+
+            //自动创建退款信息
+            Leaf.request({
+                url: $('csh307_transaction_refund_save_link').getUrl(),
+                para: {
+                    transactionRefund : refund_headerInfo,
+                    transactionRefundLnList : saveData
                 },
-                title: '退款创建',
-                fullScreen: true,
-                draggable: true
+                success: function (res) {
+                    console.log(res.result.record);
+                    var win = new Leaf.Window({
+                        id: 'csh_transaction_refund_create_win_id',
+                        url: $('csh_transaction_refund_detail_link_id').getUrl(),
+                        params: {
+                            win_id: 'csh_transaction_refund_create_win_id',
+                            refund_id : res.result.record[0].refund_id,
+                            read_only : 'N',
+                            source_type : 'MODIFY'
+                        },
+                        title: '退款创建',
+                        fullScreen: true,
+                        draggable: true
+                    });
+                    win.on('close', function () {
+                        csh_transaction_refund_create_query();
+                        csh_transaction_refund_modify_query();
+                    });
+                },
+                failure: function () {
+                },
+                error: function () {
+                },
+                sync: true,
+                scope: this
             });
-            win.on('close', function () {
-                csh_transaction_refund_create_query();
-                csh_transaction_refund_modify_query();
-            });
+
+            // var win = new Leaf.Window({
+            //     id: 'csh_transaction_refund_create_win_id',
+            //     url: $('csh_transaction_refund_detail_link_id').getUrl(),
+            //     params: {
+            //         win_id: 'csh_transaction_refund_create_win_id',
+            //         bp_id : payment_bp_id,
+            //         transaction_id:transaction_id,
+            //         bp_name : bp_name,
+            //         bp_bank_name : bp_bank_name,
+            //         bp_bank_account_num : bp_bank_account_num,
+            //         bp_bank_account_name : bp_bank_account_name,
+            //         currency_code: currency_code,
+            //         total_can_return_amount : total_can_return_amount,
+            //         transaction_ids : transaction_ids.join(','),
+            //         read_only : 'N',
+            //         transaction_type : transaction_type,
+            //         source_typ : 'CREATE'
+            //     },
+            //     title: '退款创建',
+            //     fullScreen: true,
+            //     draggable: true
+            // });
+            // win.on('close', function () {
+            //     csh_transaction_refund_create_query();
+            //     csh_transaction_refund_modify_query();
+            // });
         }
 
         function csh_transaction_refund_modify_query() {
