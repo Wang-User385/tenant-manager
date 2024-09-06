@@ -356,7 +356,7 @@
                     sync: true
                 });
             } else if (ds.id == ds_id_atta) {
-                if ('${/parameter/@special_node_flag}' == 'Y') {
+                if ('${/parameter/@special_node_flag}' == 'Y' || '${/parameter/@edit_attachment_flag}' == 'Y') {
                     record.getField('document_name').setReadOnly(false);
                     record.getField('document_name').setRequired(true);
                     record.getField('description').setReadOnly(false);
@@ -391,7 +391,7 @@
                 }
                 record.set('stage', 'STAGE_AFTER');
             } else if (ds.id == vote_ds_id) {
-                if (record && '${/parameter/@special_node_flag}' == 'Y') {
+                if (record && '${/parameter/@special_node_flag}' == 'Y'&&'${/parameter/@meeting_type}' == 'OFFLINE_MEETING') {
                     record.getField('allocation_id').setReadOnly(false);
                     record.getField('allocation_id').setRequired(true);
                     record.getField('allocation_id_n').setReadOnly(false);
@@ -506,10 +506,14 @@
             if (credit_flag == 'N' || credit_flag_n == '否') {
                 noCreditFlogComponentHide();
             }
+            if ('${/parameter/@special_node_flag}' == 'Y' && '${/parameter/@meeting_type}' == 'ONLINE_MEETING'){
+                specialNodeFlagComponentHide();
+            }
             //不是特殊节点不显示按钮
             if ('${/parameter/@special_node_flag}' != 'Y' && '${/parameter/@function_usage}' == 'QUERY') {
                 noSpecialNodeProcessing();
             }
+
             if ('${/parameter/@function_usage}' == 'CREATE') {
                 $('factoring_add_winid').close();
                 var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
@@ -522,6 +526,7 @@
             }
             //审批当中不允许删除其他人的附件
             if ('${/parameter/@edit_attachment_flag}' == 'Y'){
+                openBigSaveButton();
                 if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS25'){
                     var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_tb';
                     processingGridByDivIdShow(attach_grid_div_id);
@@ -535,6 +540,7 @@
                     }
                 });
             }
+
             // 控制主角色不能删除
             $('${/parameter/@layout_code}_F_CUSTOMER_hls_credit_line_chance_bp_ds').on('beforeremove', function (ds, records) {
                 for (var i = 0; i < records.length; i++) {
@@ -767,6 +773,11 @@
             }
         }
 
+        function specialNodeFlagComponentHide(){
+            var vote_grid_div_id = 'PRJ005F1_G_VOTE_FAC_hls_credit_line_chance_approver_layout_grid_id_tb';
+            processingGridByDivId(vote_grid_div_id);
+        }
+
         function noSpecialNodeProcessing() {
             hideBigSaveButton();
             var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_tb';
@@ -820,7 +831,7 @@
             var targetDiv = document.getElementById(div_id);
             // 获取该 div 下的所有 button 元素
             var buttonsInDiv = targetDiv.getElementsByTagName('button');
-            // 遍历按钮并设置为显示
+            // 遍历按钮并设置为不显示
             for (var i = 0; i < buttonsInDiv.length; i++) {
                 if (buttonsInDiv[i].textContent !== '导出') {
                     buttonsInDiv[i].style.display = 'none';
@@ -959,7 +970,7 @@
                 var vote_status = vote_record.get('vote_status');
                 if (node_id == 'FACTORING_PROJRCT_PROPOSALS18') {
                     Leaf.request({
-                        url: '${/request/@context_path}/credit/line/chance/approver/submit',
+                        url: '${/request/@context_path}/hls/credit/line/chance/approver/submit',
                         para: {
                             chance_id: chance_id,
                             vote_status: vote_status
