@@ -3258,6 +3258,7 @@ public class HlsCusPrjProject extends PrjProject {
     private String creditMeasures;
 
     private Long virConProcessInstatnceId; //保理合同工作流实例ID
+    private Long financeChargeId; //财务部负责人ID
     @Transient
     private String paymentApprovedStatus;
     @Transient

@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
+
 /**
  * <p>
  * description
@@ -49,6 +51,7 @@ public class HlsFactoringApprovalServiceTask implements JavaDelegate, IActivitiB
         if (isValid(prjProject)) {
             if (APPROVED.equalsIgnoreCase(result)) {
                 prjProject.setProjectStatus(APPROVED);
+                prjProject.setApprovedDate(new Date());
                 hlsCusPrjProjectService.updateByPrimaryKeySelective(requestCtx, prjProject);
             } else if (REJECTED.equalsIgnoreCase(result)) {
                 prjProject.setProjectStatus(REJECTED);

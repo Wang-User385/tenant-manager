@@ -1383,4 +1383,12 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
         return hlsCusPrjProject.getExamineHost().toString();
     }
 
+    //保理合同财务部经办人
+    @Override
+    public String getVirtualConFinanceCharge(DelegateExecution delegateExecution){
+        Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        HlsCusPrjProject hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
+        return hlsCusPrjProject.getFinanceChargeId().toString();
+    }
+
 }

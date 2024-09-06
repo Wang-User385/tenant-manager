@@ -349,6 +349,7 @@ public interface HlsCusActivitiEntityService {
     String getCreditChanceApprovalRisk(DelegateExecution delegateExecution);
     String getCreditChanceApprovalExamine(DelegateExecution delegateExecution);
 
-
+    //保理合同财务部经办人
+    String getVirtualConFinanceCharge(DelegateExecution delegateExecution);
 
 }
