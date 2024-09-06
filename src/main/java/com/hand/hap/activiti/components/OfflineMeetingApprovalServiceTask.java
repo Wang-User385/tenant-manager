@@ -3,6 +3,7 @@ package com.hand.hap.activiti.components;
 
 import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hls.fct.dto.HlsCreditLineChanceApprover;
+import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
 import com.hand.hls.fct.mapper.HlsCreditLineChanceApproverMapper;
 import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceMapper;
 import org.activiti.engine.delegate.DelegateExecution;
@@ -21,17 +22,16 @@ public class OfflineMeetingApprovalServiceTask implements JavaDelegate, IActivit
     @Autowired
     private HlsCreditLineChanceApproverMapper approverMapper;
 
+
     @Override
     public void execute(DelegateExecution delegateExecution) {
-        //todo改一下逻辑
         String result = (String) delegateExecution.getVariable("approveResult");
         if(!StringUtils.isEmpty(result)){
             Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
-            HlsCreditLineChanceApprover chanceApprover = new HlsCreditLineChanceApprover();
-            chanceApprover.setChanceId(chanceId);
-            HlsCreditLineChanceApprover approver = approverMapper.selectOne(chanceApprover);
-            String voteStatus = approver.getVoteStatus();
-            delegateExecution.setVariable("voteStatus",voteStatus);
+            HlsCusHlsCreditLineChance lineChance = new HlsCusHlsCreditLineChance();
+            lineChance.setChanceId(chanceId);
+            lineChance = chanceMapper.selectCreditLineChanceById(lineChance);
+            delegateExecution.setVariable("voteStatus",lineChance.getVotingResult());
         }
 
 

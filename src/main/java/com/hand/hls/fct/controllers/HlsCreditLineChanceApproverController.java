@@ -1,5 +1,7 @@
 package com.hand.hls.fct.controllers;
 
+import com.hand.hls.sys.dto.SysUser;
+import com.hand.hls.sys.mapper.SysUserMapper;
 import org.springframework.stereotype.Controller;
 import com.hand.hap.system.controllers.BaseController;
 import com.hand.hap.core.IRequest;
@@ -37,6 +39,8 @@ import org.springframework.web.bind.annotation.*;
         HlsCreditLineChanceApprover dto = param.toJavaObject(HlsCreditLineChanceApprover.class);
         return new ResponseData(service.select(requestContext,dto,pagenum,pagesize));
     }
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @RequestMapping(value = "/hls/credit/line/chance/approver/submit")
     @ResponseBody
@@ -51,7 +55,13 @@ import org.springframework.web.bind.annotation.*;
             responseData.setMessage(getErrorMessage(result, request));
             return responseData;
         }
-        service.updateByPrimaryKeySelective(requestCtx, list.get(0));
+        HlsCreditLineChanceApprover chanceApprover = list.get(0);
+        //chanceApprover.getAllocationId拿到的是userId
+        SysUser user = sysUserMapper.findAllocationIdByUserID(chanceApprover.getAllocationId());
+        if (user != null){
+            chanceApprover.setApproverId(user.getAllocationId());
+        }
+        service.updateByPrimaryKeySelective(requestCtx, chanceApprover);
         return new ResponseData();
     }
 
