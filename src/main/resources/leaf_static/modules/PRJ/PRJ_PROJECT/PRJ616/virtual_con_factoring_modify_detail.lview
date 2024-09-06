@@ -31,7 +31,6 @@
 
         //超链接渲染
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
-            debugger;
             var file_num = record.get('file_num') || 0;
             var attach_name = file_num === 0 ? '附件' : '附件(' + file_num + ')';
             if (name == 'bp_detail') {
@@ -273,6 +272,40 @@
                 $L.showInfoMessage("提示", "请先保存!", null);
             }
 
+        }
+
+        //task_detail执行提交前调用
+        function beforeSubmit(countiune) {
+            debugger;
+            var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC');
+            var project_id = $(ds_root_id).getCurrentRecord().get('project_id');
+            var cur_record = $('chance_appoint_user_ds').getCurrentRecord();
+            var fin = '';
+            var finance_charge_id = '';
+            var legal_host = '';
+            var node_id = '${/parameter/@node_id}';
+            if (cur_record) {
+                var allocation_id = cur_record.get('allocation_id');
+                if ('CONTRACT_APPROVALS5' == node_id) {
+                    finance_charge_id = allocation_id;
+                } else if ('CONTRACT_APPROVALS8' == node_id) {
+                    legal_host = allocation_id;
+                }
+                if (node_id == 'CONTRACT_APPROVALS5' || node_id == 'CONTRACT_APPROVALS8') {
+                    Leaf.request({
+                        url: '${/request/@context_path}/prj/virtual/contract/save/approver',
+                        para: {
+                            project_id: project_id,
+                            finance_charge_id: finance_charge_id,
+                            legal_host: legal_host
+                        },
+                        success: function (res) {
+                        },
+                        sync: true
+                    });
+                }
+            }
+            countiune();
         }
 
         ]]></script>
