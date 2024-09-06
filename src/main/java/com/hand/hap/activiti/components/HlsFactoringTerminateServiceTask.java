@@ -204,7 +204,6 @@ public class HlsFactoringTerminateServiceTask implements JavaDelegate, IActiviti
         prjProject.setDocumentType("FACTORING");
         prjProject.setSourceDocumentId(chanceId);
         prjProject.setApprovedDate(null);
-        prjProject.setDataClass("VIRTUAL_CON");
         prjProject.setHostProjectManager(chance.getProposerEmployeeId());
         prjProject.setAssistProjectManager(chance.getProjectAssistant());
         hlsCusPrjProjectService.insert(requestCtx, prjProject);

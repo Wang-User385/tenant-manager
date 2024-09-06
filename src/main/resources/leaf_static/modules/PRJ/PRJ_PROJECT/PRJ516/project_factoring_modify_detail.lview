@@ -332,26 +332,29 @@
             //隐藏工作流要用组件
             if (!'${/parameter/@wfl_flag}') {
                 wflCommonHide();
-            }else {
+            } else {
                 hideBigExitButton();
             }
             if ('${/parameter/@wfl_flag}' == 'A') {
                 wflComponentHide();
             }
-            if ('${/parameter/@wfl_flag}' == 'B'){
+            if ('${/parameter/@wfl_flag}' == 'B') {
                 wflComponentHideTo14Component();
             }
-            if ('${/parameter/@wfl_flag}' == 'C'){
+            if ('${/parameter/@wfl_flag}' == 'C') {
                 wflComponentHideTo15Component();
+            }
+            if ('${/parameter/@wfl_flag}' == 'D') {
+                wflComponentHideTo16Component();
             }
             //不是授信则隐藏授信组件
             if (credit_flag == 'N' || credit_flag_n == '否') {
                 noCreditFlogComponentHide();
             }
-            // //不是特殊节点不显示按钮
-            // if ('${/parameter/@special_node_flag}' != 'Y' && '${/parameter/@function_usage}' == 'QUERY') {
-            //     noSpecialNodeProcessing();
-            // }
+            if ('${/parameter/@special_node_flag}' == 'Y') {
+                specialNodeProcessing();
+            }
+
             // 控制主角色不能删除
             $('${/parameter/@layout_code}_F_CUSTOMER_prj_project_bp_ds').on('beforeremove', function (ds, records) {
                 for (var i = 0; i < records.length; i++) {
@@ -500,17 +503,19 @@
             });
         }
 
-        function noSpecialNodeProcessing() {
-            hideBigSaveButton();
-            var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_tb';
-            var vote_grid_div_id = 'PRJ005F1_G_VOTE_FAC_hls_credit_line_chance_approver_layout_grid_id_tb';
-            var condition_grid_div_id = 'PRJ005F1_G_CON_FAC_hls_credit_line_chance_condition_layout_grid_id_tb';
-            var condition_after_grid_div_id = 'PRJ005F1_G_CON_FAC_AFTER_hls_credit_line_chance_condition_layout_grid_id_tb';
-            processingGridByDivId(attach_grid_div_id);
-            processingGridByDivId(vote_grid_div_id);
-            processingGridByDivId(condition_grid_div_id);
-            processingGridByDivId(condition_after_grid_div_id);
+        function specialNodeProcessing() {
+            var node_id = '${/parameter/@node_id}';
+            openBigSaveButton();
+            var ds_id_investigation = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id_investigation).getAll()[0];
+            record.getField('spot_check_desc').setRequired(true);
+            record.getField('spot_check_desc').setReadOnly(false);
+            record.getField('risk_invest_desc').setReadOnly(false);
+            record.getField('risk_invest_desc').setRequired(true);
+
+
         }
+
 
         function hideBigSaveButton() {
             // 获取特定 class 的 div
@@ -528,7 +533,7 @@
             var targetDiv = document.getElementById(div_id);
             // 获取该 div 下的所有 button 元素
             var buttonsInDiv = targetDiv.getElementsByTagName('button');
-            // 遍历按钮并设置为显示
+            // 遍历按钮并设置为不显示
             for (var i = 0; i < buttonsInDiv.length; i++) {
                 if (buttonsInDiv[i].textContent !== '导出') {
                     buttonsInDiv[i].style.display = 'none';
@@ -573,13 +578,26 @@
         }
 
         function wflComponentHideTo14Component() {
-            hideExamRiskComponent();
-            hideExamLawComponent();
-            hideExamPrjComponent();
+            var node_id = '${/parameter/@node_id}';
+            if (node_id === 'FACTORING_BUSINESS_APPROVALS6' || node_id === 'FACTORING_BUSINESS_APPROVALS8') {
+                hideExamLawComponent();
+                hideExamApproveComponent();
+                hideExamPrjComponent();
+            }
+            if (node_id === 'FACTORING_BUSINESS_APPROVALS7' || node_id === 'FACTORING_BUSINESS_APPROVALS9') {
+                hideExamRiskComponent();
+                hideExamApproveComponent();
+                hideExamPrjComponent();
+            }
         }
 
         function wflComponentHideTo15Component() {
+            hideExamApproveComponent();
+            hideExamPrjComponent();
+        }
 
+        function wflComponentHideTo16Component() {
+            hideExamPrjComponent();
         }
 
         function openBigSaveButton() {
@@ -606,42 +624,52 @@
             });
         }
 
-        function hideBusinessComponent(){
+        function hideBusinessComponent() {
             let business_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_BUSINESS_FAC_component_id']").attr("id");
             let business_grid_id = '#' + '${/parameter/@layout_code}_G_BUSINESS_FAC_project_business_access_compare_layout_grid_id_wrap';
-            hideLeftMenuAndGrid(business_component_id,business_grid_id);
+            hideLeftMenuAndGrid(business_component_id, business_grid_id);
         }
 
         function hideExamRiskComponent() {
             let risk_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_EXAMINATION_RISK_component_id']").attr("id");
             let risk_grid_id = '#' + '${/parameter/@layout_code}_G_EXAMINATION_RISK_prj_project_attachment_layout_grid_id_wrap';
-            hideLeftMenuAndGrid(risk_component_id,risk_grid_id);
+            hideLeftMenuAndGrid(risk_component_id, risk_grid_id);
         }
 
         function hideExamLawComponent() {
             let law_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_EXAMINATION_LAW_component_id']").attr("id");
             let law_grid_id = '#' + '${/parameter/@layout_code}_G_EXAMINATION_LAW_prj_project_attachment_layout_grid_id_wrap';
-            hideLeftMenuAndGrid(law_component_id,law_grid_id);
+            hideLeftMenuAndGrid(law_component_id, law_grid_id);
         }
 
         function hideExamApproveComponent() {
             let approve_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_EXAMINATION_APPROVE_component_id']").attr("id");
             let approve_grid_id = '#' + '${/parameter/@layout_code}_G_EXAMINATION_APPROVE_prj_project_attachment_layout_grid_id_wrap';
-            hideLeftMenuAndGrid(approve_component_id,approve_grid_id);
+            hideLeftMenuAndGrid(approve_component_id, approve_grid_id);
         }
 
         function hideExamPrjComponent() {
             let risk_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_EXAMINATION_PRJ_component_id']").attr("id");
             let risk_grid_id = '#' + '${/parameter/@layout_code}_G_EXAMINATION_PRJ_prj_project_attachment_layout_grid_id_wrap';
-            hideLeftMenuAndGrid(risk_component_id,risk_grid_id);
+            hideLeftMenuAndGrid(risk_component_id, risk_grid_id);
         }
 
-        function hideLeftMenuAndGrid(left_menu_component_id,grid_id){
+        function hideLeftMenuAndGrid(left_menu_component_id, grid_id) {
             jQuery(grid_id).hide();
             jQuery(left_menu_component_id).hide();
             jQuery(left_menu_component_id).prev().hide();
             jQuery(left_menu_component_id).hide();
             jQuery(left_menu_component_id).next().hide();
+        }
+
+        function processingGridByDivIdShow(div_id) {
+            var targetDiv = document.getElementById(div_id);
+            // 获取该 div 下的所有 button 元素
+            var buttonsInDiv = targetDiv.getElementsByTagName('button');
+            // 遍历按钮并设置为显示
+            for (var i = 0; i < buttonsInDiv.length; i++) {
+                buttonsInDiv[i].style.display = 'block';
+            }
         }
 
 

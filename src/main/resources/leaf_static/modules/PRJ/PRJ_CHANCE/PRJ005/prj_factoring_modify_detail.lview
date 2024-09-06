@@ -392,12 +392,14 @@
                 record.set('stage', 'STAGE_AFTER');
             } else if (ds.id == vote_ds_id) {
                 if (record && '${/parameter/@special_node_flag}' == 'Y') {
-                    record.getField('name').setReadOnly(false);
-                    record.getField('name').setRequired(true);
-                    record.getField('unit_name').setReadOnly(false);
-                    record.getField('unit_name').setRequired(true);
-                    record.getField('position_name').setReadOnly(false);
-                    record.getField('position_name').setRequired(true);
+                    record.getField('allocation_id').setReadOnly(false);
+                    record.getField('allocation_id').setRequired(true);
+                    record.getField('allocation_id_n').setReadOnly(false);
+                    record.getField('allocation_id_n').setRequired(true);
+                    record.getField('unit_name').setReadOnly(true);
+                    record.getField('unit_name').setRequired(false);
+                    record.getField('position_name').setReadOnly(true);
+                    record.getField('position_name').setRequired(false);
                     record.getField('vote_status').setReadOnly(false);
                     record.getField('vote_status').setRequired(true);
                     record.getField('vote_status_n').setReadOnly(false);
@@ -522,7 +524,7 @@
             if ('${/parameter/@edit_attachment_flag}' == 'Y'){
                 if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS25'){
                     var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_tb';
-                    processingGridByDivId(attach_grid_div_id);
+                    processingGridByDivIdShow(attach_grid_div_id);
                 }
                 $('${/parameter/@layout_code}_G_ATTA_INFO_hls_credit_line_attach_ds').on('beforeremove', function (ds, records) {
                     for (var i = 0; i < records.length; i++) {
@@ -826,6 +828,16 @@
             }
         }
 
+        function processingGridByDivIdShow(div_id) {
+            var targetDiv = document.getElementById(div_id);
+            // 获取该 div 下的所有 button 元素
+            var buttonsInDiv = targetDiv.getElementsByTagName('button');
+            // 遍历按钮并设置为显示
+            for (var i = 0; i < buttonsInDiv.length; i++) {
+                buttonsInDiv[i].style.display = 'block';
+            }
+        }
+
         function noCreditFlogComponentHide() {
             let plan_line_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_METHOD_DETAIL_component_id']").attr("id");
             let plan_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_METHOD_component_id']").attr("id");
@@ -894,6 +906,7 @@
 
         //task_detail执行提交前调用
         function beforeSubmit(countiune) {
+            debugger;
             var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
             var chance_id = $(ds_root_id).getCurrentRecord().get('chance_id');
             var cur_record = $('chance_appoint_user_ds').getCurrentRecord();
@@ -942,21 +955,21 @@
                     });
                 }
             }
-            // if(vote_record){
-            //     var vote_status = vote_record.get('vote_status');
-            //     if (node_id == 'FACTORING_PROJRCT_PROPOSALS16') {
-            //         Leaf.request({
-            //             url: '${/request/@context_path}/credit/line/chance/approver/submit',
-            //             para: {
-            //                 chance_id: chance_id,
-            //                 vote_status:vote_status
-            //             },
-            //             success: function (res) {
-            //             },
-            //             sync: true
-            //         });
-            //     }
-            // }
+            if(vote_record){
+                var vote_status = vote_record.get('vote_status');
+                if (node_id == 'FACTORING_PROJRCT_PROPOSALS18') {
+                    Leaf.request({
+                        url: '${/request/@context_path}/credit/line/chance/approver/submit',
+                        para: {
+                            chance_id: chance_id,
+                            vote_status: vote_status
+                        },
+                        success: function (res) {
+                        },
+                        sync: true
+                    });
+                }
+            }
             countiune();
         }
 
