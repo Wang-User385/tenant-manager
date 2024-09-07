@@ -15,9 +15,6 @@ import org.springframework.stereotype.Service;
 import com.hand.hls.fct.dto.HlsCreditLineChanceApprover;
 import com.hand.hls.fct.service.HlsICreditLineChanceApproverService;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.ObjectUtils;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,6 +33,8 @@ public class HlsCreditLineChanceApproverServiceImpl extends BaseServiceImpl<HlsC
     @Autowired
     private DatabaseLockProvider databaseLockProvider;
 
+
+
     @Override
     public void saveVote(IRequest requestCtx, HlsCreditLineChanceApprover approver) throws ResMessageException {
         PrjMeetingJudge prjMeetingJudge = new PrjMeetingJudge();
@@ -47,6 +46,7 @@ public class HlsCreditLineChanceApproverServiceImpl extends BaseServiceImpl<HlsC
             approver.setAllocationId(users.get(0).getAllocationId());
         }
         //防止重复提交
+        //TODO 需要进行加锁处理
         for (HlsCreditLineChanceApprover chanceApprover : voteInfo) {
             if (Objects.equals(chanceApprover.getAllocationId(), approver.getAllocationId())) {
                 throw new ResMessageException("提示", "请不要重复提交");
