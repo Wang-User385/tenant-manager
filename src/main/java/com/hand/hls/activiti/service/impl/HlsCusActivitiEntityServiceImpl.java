@@ -1308,9 +1308,9 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
         HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
         if (!ObjectUtil.isEmpty(prjProject)){
             if ("FACTORING".equals(prjProject.getDocumentType()) && "PRJ_PROJECT".equals(prjProject.getDocumentCategory())){
-                SysUser user =  sysUserMapper.findAllocationIdByUserID(prjProject.getAssistProjectManager());
+                List<SysUser> user =  sysUserMapper.findAllocationIdByUserID(prjProject.getAssistProjectManager());
                 if (user != null){
-                    return user.getAllocationId().toString();
+                    return user.get(0).getAllocationId().toString();
                 }
             }
             return prjProject.getAssistProjectManager().toString();
@@ -1318,9 +1318,9 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
         Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
         HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
         if ("FACTORING".equals(chance.getDocumentType()) && "HLS_CREDIT_LINE_CHANCE".equals(chance.getDocumentCategory())){
-            SysUser user =  sysUserMapper.findAllocationIdByUserID(chance.getProjectAssistant());
+            List<SysUser> user =  sysUserMapper.findAllocationIdByUserID(chance.getProjectAssistant());
             if (user != null){
-                return user.getAllocationId().toString();
+                return user.get(0).getAllocationId().toString();
             }
         }
 
