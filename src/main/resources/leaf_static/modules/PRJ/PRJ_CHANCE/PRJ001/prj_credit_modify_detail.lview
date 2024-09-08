@@ -188,17 +188,7 @@
                 return check_flag;
             };
         }
-        if(stream_flag == 'Y'){
-            window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_before_submit'] = function (ds, record) {
-                window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                var approver_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_approver', 'G_VOTING_MEMBERS');
-                if (approver_ds_id) {
 
-                }
-                }
-
-
-            }
 
 
         //暂存
@@ -336,6 +326,7 @@
         if (stream_flag != 'Y') {
             //新增时调用(attach)
             window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_attach_add'] = function (ds, record, config_records, bp_seq) {
+
                 var chance_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_PR_BASIC');
                 var chance_record = $(chance_ds_id).getCurrentRecord();
                 chance_record.set('credit_line_status', 'NEW');
@@ -386,59 +377,27 @@
 
         if (stream_flag != 'Y') {
             Leaf.onReady(function () {
-
-                var credit_flag = '${/parameter/@credit_flag}';
-                var credit_flag_n = '${/parameter/@credit_flag_n}';
-
-
-                // if ('${/parameter/@wfl_flag}' != 'Y') {
-                //     //隐藏工作流要用组件
-                //     wflComponentHide();
-                // }
-
-
-                // if (credit_flag == '2' || credit_flag_n == '否') {
-                //     noCreditFlogComponentHide();
-                // }
-
-                //判断是否有值 没值 自动创建一条空记录
                 if ('${/parameter/@function_usage}' == 'CREATE') {
-                    // $('factoring_add_winid').close();
-                    var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER_CREDIT');
-                    if (ds_id) {
-                        var cur_ds = $(ds_id);
-                        if ($(ds_id).getAll().length == 0) {
-                            var record_t = new Leaf.Record({
-                                'bp_id': '${/parameter/@bp_id_n}',
-                                'bp_name': '${/parameter/@bp_id_n}',
-                                'bp_name_n': '${/parameter/@bp_id_n_n}',
-                                'bp_code': '${/parameter/@bp_code}',
-                                'bp_type': '${/parameter/@bp_type}',
-                                'bp_type_n': '${/parameter/@bp_type_n}',
-                                'economic_indu_classify': '${/parameter/@economic_indu_classify}',
-                                'economic_indu_classify_n': '${/parameter/@economic_indu_classify_n}',
-                                'group_companies': '${/parameter/@group_companies}',
-                                'note': '${/parameter/@note}',
-                                'first_flag': 'Y'
-                            })
-                            cur_ds.add(record_t);
-                        }
-                    }
+                    $('prj_chance_new_winid').close();
+                    var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER_CREDIT');
+                    addCustomerInCreate(ds_id_customer);
                 }
 
-
-                // 控制主角色不能删除
-                $('${/parameter/@layout_code}_F_CUSTOMER_CREDIT_hls_credit_line_chance_bp_ds').on('beforeremove', function (ds, records) {
-                    // for (var i = 0; i < records.length; i++) {
-                    //     if (records[i].get('bp_type') == 'TRANSFEREE_ASSETS') {
-                    //         Leaf.showMessage("提示", "客户信息保理卖方不允许删除!", null);
-                    //         return false;
-                    //     }
-                    // }
-                });
-
-
             });
+        }
+        function addCustomerInCreate(ds_id) {
+            debugger;
+            var cur_ds = $(ds_id);
+            var record = new Leaf.Record({
+                'bp_id': '${/parameter/@bp_id}',
+                'bp_name': '${/parameter/@bp_id}',
+                'bp_name_n': '${/parameter/@bp_id_n}',
+                'bp_code': '${/parameter/@bp_code}',
+                'bp_type': '${/parameter/@bp_type}',
+                'bp_type_n': '${/parameter/@bp_type_n}',
+                'bp_class': 'ORG'
+            })
+            cur_ds.add(record);
         }
 
 
@@ -564,7 +523,8 @@
         //新增时调用(grid,table,gridBox)
         if(stream_flag=='Y'){
             window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
-                var node_id ='${/parameter/@node_id}' ;
+                debugger;
+                var node_id ='${/parameter/@node_id}';
                 var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_APPENDIX');
                 var ds_id_compare = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_REVIEW');
                 var ds_id_condition = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CONDITIONS_APPROVAL');
@@ -584,7 +544,10 @@
                         record.getField('description').setReadOnly(false);
                         record.getField('description').setRequired(true);
                         var record_atta = $(ds_id_atta).getCurrentRecord();
-                        record_atta.set('attachment_category', "CHANCE_ATT");
+                        if(record_atta !=null){
+                            record_atta.set('attachment_category', "CHANCE_ATT");
+                        }
+
                         if(node_id=='CREDIT_CHANCE_CREATE_WFL_S7'){
                             record.getField('business_access').setReadOnly(false);
                             record.getField('business_access').setRequired(true);
@@ -594,28 +557,36 @@
                             record.getField('check_result').setRequired(true);
                             record.getField('item_detail').setReadOnly(false);
                             record.getField('item_detail').setRequired(true);
-                        }else if(node_id=='CREDIT_CHANCE_CREATE_WFL_S16'){
+                        }else if(node_id=='CREDIT_CHANCE_CREATE_WFL_S16' || node_id=='CREDIT_CHANCE_CREATE_WFL_S20'){
                             //批复条件
                             record.getField('content').setReadOnly(false);
-                            record.getField('content').setRequired(true)
+                            record.getField('content').setRequired(false)
                             //会议附件
                             record.getField('document_name').setReadOnly(false);
-                            record.getField('document_name').setRequired(true);
+                            record.getField('document_name').setRequired(false);
                             record.getField('attachment_detail').setReadOnly(false);
-                            record.getField('attachment_detail').setRequired(true);
+                            record.getField('attachment_detail').setRequired(false);
                             record.getField('file_name').setReadOnly(false);
-                            record.getField('file_name').setRequired(true)
+                            record.getField('file_name').setRequired(false)
                             record.getField('creation_date').setReadOnly(false);
-                            record.getField('creation_date').setRequired(true);
+                            record.getField('creation_date').setRequired(false);
                             record.getField('created_by').setReadOnly(false);
-                            record.getField('created_by').setRequired(true);
+                            record.getField('created_by').setRequired(false);
                             record.getField('description').setReadOnly(false);
-                            record.getField('description').setRequired(true);
-                            var record_atta = $(ds_id_atta).getCurrentRecord();
-                            record_atta.set('attachment_category', "CHANCE_ATT");
-                            record.set('stage', 'STAGE_PRE');
+                            record.getField('description').setRequired(true)
+
+                                var record_atta = $(ds_id_atta).getCurrentRecord();
+                            if(record_atta !=null){
+                                record_atta.set('attachment_category', "CHANCE_ATT");
+                                record.set('stage', 'STAGE_PRE');
+                            }
+
+
+
                             if(node_id=='CREDIT_CHANCE_CREATE_WFL_S20'){
                                 //委员投票结果
+                                record.getField('allocation_id_n').setReadOnly(false);
+                                record.getField('allocation_id_n').setRequired(true);
                                 record.getField('allocation_id').setReadOnly(false);
                                 record.getField('allocation_id').setRequired(true);
                                 record.getField('unit_name').setReadOnly(false);
@@ -624,6 +595,8 @@
                                 record.getField('vote_comment').setRequired(true);
                                 record.getField('vote_status').setReadOnly(false);
                                 record.getField('vote_status').setRequired(true);
+                                record.getField('vote_status_n').setReadOnly(false);
+                                record.getField('vote_status_n').setRequired(true);
                                 record.getField('position_name').setReadOnly(false);
                                 record.getField('position_name').setRequired(true);
                             }

@@ -3713,6 +3713,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     @Autowired
     private HlsCusHlsCreditLineChanceMapper CreditLineChanceMapper;
 
+
     @Override
     public List<HlsCusPrjProject> queryCreditProject(IRequest requestCt, HlsCusPrjProject hlsCusPrjProject, int page, int pageSize) {
         PageHelper.startPage(page, pageSize);
@@ -3721,35 +3722,50 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
 
         // 查询project
         List<HlsCusPrjProject> projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
-
-        if (creditChances.size() > projects.size()) {
-            try {
-                // 创建并填充额外的project对象
-                for (int i = projects.size(); i < creditChances.size(); i++) {
-                    HlsCusPrjProject project = new HlsCusPrjProject();
-                    //保存新创建的对象到数据库
-                    copyAndSaveProject(requestCt, creditChances.get(i), project);
+        for (HlsCusHlsCreditLineChance creditChance : creditChances) {
+            for (HlsCusPrjProject project : projects) {
+                if (creditChance.getChanceId()!=null && !creditChance.getChanceId().equals(project.getChanceId())) {
+                    try {
+                        // 创建并填充额外的project对象
+                            HlsCusPrjProject prjProject = new HlsCusPrjProject();
+                            //保存新创建的对象到数据库
+                            copyAndSaveProject(requestCt,creditChance, prjProject);
+                    } catch (Exception e) {
+                        logger.error("Error occurred while copying properties from creditChance to project", e);
+                    }
                 }
-                projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
-            } catch (Exception e) {
-                logger.error("Error occurred while copying properties from creditChance to project", e);
             }
         }
-
         // 返回最新的projects列表
+        projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
         return projects;
     }
 
-    private void copyAndSaveProject(IRequest requestCt, HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws Exception {
-        BeanUtils.copyProperties(creditChance, project);
-        project.setProjectNumber(creditChance.getCreditLineNumber());
-        project.setProjectName(creditChance.getCreditLineName());
-        project.setTenantId(creditChance.getBpId());
-        project.setCreditFlag(creditChance.getCreditFlag());
-        project.setLeaseItemAmount(creditChance.getCreditLineAmt());
-        project.setHostProjectManager(creditChance.getProposerEmployeeId());
-        project.setAssistProjectManager(creditChance.getProjectAssistant());
-        self().insertSelective(requestCt, project);
+    private void copyAndSaveProject(IRequest requestCt, HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws HlsCusException {
+        try {
+            // 复制公共属性
+            BeanUtils.copyProperties(creditChance,project);
+
+            // 设置不能自动复制的属性
+            project.setProjectNumber(creditChance.getCreditLineNumber());
+            project.setProjectName(creditChance.getCreditLineName());
+            project.setTenantId(creditChance.getBpId());
+            project.setCreditFlag(creditChance.getCreditFlag());
+            project.setLeaseItemAmount(creditChance.getCreditLineAmt());
+            project.setHostProjectManager(creditChance.getProposerEmployeeId());
+            project.setAssistProjectManager(creditChance.getProjectAssistant());
+            project.setProjectStatus(creditChance.getCreditLineStatus());
+            project.setApprovedDate(creditChance.getApprovedDate());
+            project.setDocumentType("CREDIT");
+            project.setDocumentCategory("HLS_CREDIT_LINE_CHANCE");
+
+            // 保存新创建的对象到数据库
+            self().insert(requestCt,project);
+        } catch (Exception e) {
+            logger.error("Failed to copy and save project", e);
+            throw new HlsCusException(e.getMessage());
+        }
+
     }
 
     @Override

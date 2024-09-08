@@ -65,5 +65,6 @@ public interface SysUserMapper extends Mapper<SysUser> {
 
 	List<SysUser> selectEemployeeUtil(SysUser model);
 
-	List<SysUser> findAllocationIdByUserID(@Param("userId") Long userId);
+	SysUser findAllocationIdByUserID(@Param("userId") Long userId);
+	SysUser findVoteAllocationIdByUserID(@Param("userId") Long userId);
 }

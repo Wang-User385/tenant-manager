@@ -9,6 +9,8 @@ import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceMapper;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.delegate.JavaDelegate;
 import org.apache.axis.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ public class OfflineMeetingApprovalServiceTask implements JavaDelegate, IActivit
     private HlsCusHlsCreditLineChanceMapper chanceMapper;
     @Autowired
     private HlsCreditLineChanceApproverMapper approverMapper;
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
 
 
     @Override
@@ -31,7 +34,12 @@ public class OfflineMeetingApprovalServiceTask implements JavaDelegate, IActivit
             HlsCusHlsCreditLineChance lineChance = new HlsCusHlsCreditLineChance();
             lineChance.setChanceId(chanceId);
             lineChance = chanceMapper.selectCreditLineChanceById(lineChance);
-            delegateExecution.setVariable("voteStatus",lineChance.getVotingResult());
+            if (lineChance != null) {
+                delegateExecution.setVariable("voteStatus", lineChance.getVotingResult());
+            } else {
+
+                logger.warn("No HlsCusHlsCreditLineChance found for chanceId: " + chanceId);
+            }
         }
 
 

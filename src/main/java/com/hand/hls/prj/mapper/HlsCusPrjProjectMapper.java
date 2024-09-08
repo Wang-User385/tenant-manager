@@ -235,6 +235,7 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
     List<Map> prjRpModifyEntranceQuery1(Map prjRpModifyMap);
 
     void saveDescription(HlsCusPrjProject hlsCusPrjProject);
+    void saveProject(HlsCusPrjProject hlsCusPrjProject);
     List<HlsCusPrjProject> manufacturerQueryProductInfo2(HlsCusPrjProject hlsCusPrjProject);
     List<HlsCusPrjProject> manufacturerQueryProductInfo3(HlsCusPrjProject hlsCusPrjProject);
     void updateStatus(HlsCusPrjProject hlsCusPrjProject);
