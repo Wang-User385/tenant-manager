@@ -354,7 +354,17 @@
             if ('${/parameter/@special_node_flag}' == 'Y') {
                 specialNodeProcessing();
             }
-
+            var node_id = '${/parameter/@node_id}';
+            if (node_id == 'FACTORING_BUSINESS_APPROVALS26' || node_id == 'FACTORING_BUSINESS_APPROVALS31') {
+                $('${/parameter/@layout_code}_G_ATTA_INFO_prj_project_attachment_ds').on('beforeremove', function (ds, records) {
+                    for (var i = 0; i < records.length; i++) {
+                        if (records[i].get('created_by') != '${/session/@userId}') {
+                            Leaf.showMessage("提示", "不允许删除不是自己创建的附件记录!", null);
+                            return false;
+                        }
+                    }
+                });
+            }
             // 控制主角色不能删除
             $('${/parameter/@layout_code}_F_CUSTOMER_prj_project_bp_ds').on('beforeremove', function (ds, records) {
                 for (var i = 0; i < records.length; i++) {
@@ -389,7 +399,7 @@
             param['function_code'] = 'BP100F1';
             param['function_usage'] = 'QUERY';
             param['winid'] = 'factoring_bp_master_modify_winid';
-            hls_doc_get_layout_code(param, 'factoring_finance_approval_report_detail_link_id', null, 'PRJ561F1');
+            hls_doc_get_layout_code(param, 'factoring_approval_bp_master_modify_link_id', null, 'PRJ561F1');
         }
 
         function open_financia_detail_win(record_id, ds_id) {
@@ -467,7 +477,8 @@
                         duration: 2000
                     });
                     var readOnly = 'N';
-                    if ('${/parameter/@function_usage}' == 'QUERY') {
+                    var node_id = '${/parameter/@node_id}';
+                    if ('${/parameter/@function_usage}' == 'QUERY' && node_id != 'FACTORING_BUSINESS_APPROVALS27' ) {
                         readOnly = 'Y';
                     }
                     var url = '${/request/@context_path}/modules/PRJ/PRJ_PROJECT/PRJ316F3/prj_project_fin_calculate.lview?quotationId=' + quotation_id + '&priceList=' + price_list + '&readOnly=' + readOnly;
@@ -503,16 +514,33 @@
             });
         }
 
+
         function specialNodeProcessing() {
             var node_id = '${/parameter/@node_id}';
             openBigSaveButton();
-            var ds_id_investigation = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
-            var record = $(ds_id_investigation).getAll()[0];
-            record.getField('spot_check_desc').setRequired(true);
-            record.getField('spot_check_desc').setReadOnly(false);
-            record.getField('risk_invest_desc').setReadOnly(false);
-            record.getField('risk_invest_desc').setRequired(true);
-
+            if (node_id == 'FACTORING_BUSINESS_APPROVALS6' || node_id == 'FACTORING_BUSINESS_APPROVALS12') {
+                projectFieldSetting();
+                businessFieldSetting();
+                unitFieldSetting('G_EXAMINATION_RISK');
+            }
+            if (node_id == 'FACTORING_BUSINESS_APPROVALS7' || node_id == 'FACTORING_BUSINESS_APPROVALS13') {
+                projectFieldSetting();
+                businessFieldSetting();
+                unitFieldSetting('G_EXAMINATION_LAW');
+            }
+            if (node_id == 'FACTORING_BUSINESS_APPROVALS17') {
+                businessFieldSetting();
+                unitFieldSetting('G_EXAMINATION_APPROVE');
+            }
+            if (node_id == 'FACTORING_BUSINESS_APPROVALS26' || node_id == 'FACTORING_BUSINESS_APPROVALS31') {
+                var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_prj_project_attachment_layout_grid_id_tb';
+                processingGridByDivIdShow(attach_grid_div_id);
+                unitFieldSetting('G_ATTA_INFO');
+            }
+            if (node_id == 'FACTORING_BUSINESS_APPROVALS27') {
+                quotationFieldSetting();
+                unitFieldSetting('G_EXAMINATION_PRJ');
+            }
 
         }
 
@@ -670,6 +698,67 @@
             for (var i = 0; i < buttonsInDiv.length; i++) {
                 buttonsInDiv[i].style.display = 'block';
             }
+        }
+
+        function projectFieldSetting() {
+            var ds_id_investigation = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
+            var record = $(ds_id_investigation).getAll()[0];
+            record.getField('spot_check_desc').setRequired(true);
+            record.getField('spot_check_desc').setReadOnly(false);
+            record.getField('risk_invest_desc').setReadOnly(false);
+            record.getField('risk_invest_desc').setRequired(true);
+        }
+
+        function businessFieldSetting() {
+            var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'project_business_access_compare', 'G_BUSINESS_FAC');
+            var record = $(ds_id_business).getAll()[0];
+            record.getField('item_detail').setRequired(true);
+            record.getField('item_detail').setReadOnly(false);
+            record.getField('check_result').setRequired(true);
+            record.getField('check_result').setReadOnly(false);
+            record.getField('check_result_n').setRequired(true);
+            record.getField('check_result_n').setReadOnly(false);
+        }
+
+        function unitFieldSetting(component_name) {
+            var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'project_business_access_compare', component_name);
+            var record = $(ds_id_atta).getAll()[0];
+            record.getField('document_name').setRequired(true);
+            record.getField('document_name').setReadOnly(false);
+            record.getField('description').setReadOnly(false);
+        }
+
+        function quotationFieldSetting() {
+            var ds_id_quo = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation', 'F_QUOTATION_FINANCIA');
+            var record = $(ds_id_quo).getAll()[0];
+            record.getField('price_list').setRequired(true);
+            record.getField('price_list').setReadOnly(false);
+            record.getField('price_list_n').setRequired(true);
+            record.getField('price_list_n').setReadOnly(false);
+            record.getField('lease_item_amount').setRequired(true);
+            record.getField('lease_item_amount  ').setReadOnly(false);
+            record.getField('lease_start_date').setRequired(true);
+            record.getField('lease_start_date').setReadOnly(false);
+            record.getField('down_payment').setRequired(true);
+            record.getField('down_payment').setReadOnly(false);
+            record.getField('alt_renting_fre_custom').setRequired(true);
+            record.getField('alt_renting_fre_custom').setReadOnly(false);
+            record.getField('alt_renting_fre_custom_n').setRequired(true);
+            record.getField('alt_renting_fre_custom_n').setReadOnly(false);
+            record.getField('alt_renting_frequency').setRequired(true);
+            record.getField('alt_renting_frequency').setReadOnly(false);
+            record.getField('int_rate').setRequired(true);
+            record.getField('int_rate').setReadOnly(false);
+            record.getField('lease_times').setRequired(true);
+            record.getField('lease_times').setReadOnly(false);
+            record.getField('deposit').setRequired(true);
+            record.getField('deposit').setReadOnly(false);
+            record.getField('lease_charge').setRequired(true);
+            record.getField('lease_charge').setReadOnly(false);
+            record.getField('other_income').setRequired(true);
+            record.getField('other_income').setReadOnly(false);
+            record.getField('other_expenses').setRequired(true);
+            record.getField('other_expenses').setReadOnly(false);
         }
 
 

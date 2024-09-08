@@ -26,19 +26,12 @@ public class OnlineMeetingServiceTask implements JavaDelegate, IActivitiBean {
     @Override
     public void execute(DelegateExecution delegateExecution) {
         String result = (String) delegateExecution.getVariable("approveResult");
-//        if ("APPROVED".equalsIgnoreCase(result)) {
-//            Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
-//            HlsCusHlsCreditLineChance chance = chanceMapper.selectByPrimaryKey(chanceId);
-//            String meetingType = chance.getMeetingType();
-//            delegateExecution.setVariable("meetingType",meetingType);
-//        }
         if(!StringUtils.isEmpty(result)){
             Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
-            HlsCreditLineChanceApprover chanceApprover = new HlsCreditLineChanceApprover();
-            chanceApprover.setChanceId(chanceId);
-            HlsCreditLineChanceApprover approver = approverMapper.selectOne(chanceApprover);
-            String voteStatus = approver.getVoteStatus();
-            delegateExecution.setVariable("voteStatus",voteStatus);
+            HlsCusHlsCreditLineChance lineChance = new HlsCusHlsCreditLineChance();
+            lineChance.setChanceId(chanceId);
+            lineChance = chanceMapper.selectCreditLineChanceById(lineChance);
+            delegateExecution.setVariable("voteStatus",lineChance.getVotingResult());
         }
 
 

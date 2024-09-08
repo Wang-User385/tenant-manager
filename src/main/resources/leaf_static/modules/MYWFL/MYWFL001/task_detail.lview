@@ -202,6 +202,8 @@
                     value = "<span class='action_dangerous'>点对点退回业务经理</span>";
                 } else if (value == 'DELEGATE') {
                     value = "<div class='action_dangerous'>转交</div>";
+                }else if (value == 'CONDITION'){
+                    value = "<div class='action_dangerous'>有条件</div>";
                 }
                 else{
                         value = value || ''
@@ -221,7 +223,7 @@
 
             currentTaskInfo.form_data.form_properties.forEach(function(value,i,arr){
                 if (value.id == 'approveResult' && value.type == 'enum') {
-                    var findApproved = false, findReject = false, findPeerRejected = false;
+                    var findApproved = false, findReject = false, findPeerRejected = false,findCondition = false;
                     value.enum_values.forEach(function (rr,i) {
                         if (isContains(rr.id) && rr.name) {
                             var openBox = jQuery("<button/>").attr({
@@ -244,7 +246,10 @@
                         } else if(rr.id == 'PEER_REJECTED' && rr.name){
                             findPeerRejected = true;
                             jQuery('#text-peer-rejected').text(rr.name)
-                        } else {
+                        } else if(rr.id == 'CONDITION' && rr.name){
+                            findCondition = true;
+                            jQuery('#text-condition').text(rr.name)
+                        }else {
                             //  custom button
                             var cb0 = jQuery("<button/>").attr({
                                 'id': 'btn-custom-' + rr.id,
@@ -268,6 +273,10 @@
                     if(findPeerRejected){
                         jQuery('#btn-peer-rejected').show();
                     }
+                    if(findCondition){
+                        jQuery('#btn-condition').show();
+                    }
+
                 }
                 if (value.id == 'APPROVAL_ACTION' && value.type == 'enum') {
                     jQuery.each(value.enum_values, function (ii, rr) {
@@ -301,8 +310,8 @@
                 task_definition_key == 'FACTORING_PROJRCT_PROPOSALS18'){
                 jQuery('#chance_vote_form').show();
             }
-
-            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S20'){
+            if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S20' ||
+                task_definition_key == 'FACTORING_PROJRCT_PROPOSALS18'){
                 jQuery('#btn-rejected').hide();
             }
 
@@ -452,6 +461,22 @@
             }
             Leaf.showOkCancelWindow("提示","确认？",function (e) {
                 taskAction({approveResult: 'PEER_REJECTED', approveResultDesc: jQuery('#text-peer-rejected').text()});
+            },function () {return true;},200,200);
+        });
+
+        jQuery('#btn-condition').click(function () {
+            var comment = $("approval_comments_ds").data[0] ? $("approval_comments_ds").data[0].data["comment"] : "";
+            if(comment == "" || comment == null){
+                Leaf.showMessage('提示','请先输入审批意见，再操作！');
+                return false;
+            }
+            //长度不能超过1000字符
+            if(comment.length > 1000){
+                Leaf.showMessage('提示','审批意见最多只能输入1000个字！');
+                return false;
+            }
+            Leaf.showOkCancelWindow("提示","确认？",function (e) {
+                taskAction({approveResult: 'CONDITION', approveResultDesc: jQuery('#text-condition').text()});
             },function () {return true;},200,200);
         });
 
@@ -789,6 +814,9 @@
                 </button>
                 <button id='btn-peer-rejected' type="button" class="btn btn-warning" style="display: none;">
                     <span class="fa fa-times-circle"></span><span id='text-peer-rejected'>点对点退回业务经理</span>
+                </button>
+                <button id='btn-condition' type="button" class="btn btn-condition" style="display: none;">
+                    <span class="fa fa-times-circle"></span><span id='text-condition'>有条件</span>
                 </button>
                 <div id="custom-btn-container" style="display: inline-block;"> </div>
                 <div id="custom-btn-open" style="display: inline-block;"> </div>

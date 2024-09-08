@@ -184,13 +184,13 @@ public class HlsFactoringTerminateServiceTask implements JavaDelegate, IActiviti
         // 复制抵押信息
         copyLeaseInfo(requestCtx, chanceId, prjProject);
         // 复制业务准入审核
-        copyBusinessAccessCompareInfo(requestCtx, chanceId, prjProject);
+//        copyBusinessAccessCompareInfo(requestCtx, chanceId, prjProject);
         // 复制投放前
         copyConditionInfo(requestCtx, chanceId, prjProject, STAGE_PRE);
         // 复制投放后
         copyConditionInfo(requestCtx, chanceId, prjProject, STAGE_AFTER);
         // 复制附件
-        copyAttachmentInfo(requestCtx, chanceId, prjProject);
+//        copyAttachmentInfo(requestCtx, chanceId, prjProject);
     }
 
     private void copyProjectInfo(IRequest requestCtx, Long chanceId, HlsCusHlsCreditLineChance chance, HlsCusPrjProject prjProject) {
