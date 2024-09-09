@@ -130,10 +130,18 @@
             debugger;
             var tableName = 'PRJ_PROJECT_ATTACHMENT';
             var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
+            var att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
             var base_record;
+            var att_record;
             var project_attachment_id;
             base_record = $(base_ds_id).findById(record_id);
-            project_attachment_id = base_record.get('project_attachment_id');
+            att_record = $(att_ds_id).findById(record_id);
+
+            if(ds_id == base_ds_id){
+                project_attachment_id = base_record.get('project_attachment_id');
+            }else if(ds_id == att_ds_id){
+                project_attachment_id = att_record.get('project_attachment_id');
+            }
             if (!project_attachment_id) {
                 $L.showInfoMessage("提示", "请先保存再上传附件!");
                 return;
@@ -369,6 +377,7 @@
             debugger;
             var node_id = '${/parameter/@node_id}';
             var function_usage = '${/parameter/@function_usage}';
+            var query_flag = '${/parameter/@query_flag}';
 
             //从工作流来到的这个页面
             if ('${/parameter/@wfl_flag}') {
@@ -392,7 +401,17 @@
                     //隐藏外聘法律信息
                     hideOutLawInfo();
                 }
-            }else{
+
+                //设置外聘律师可输入
+                if(node_id == 'CONTRACT_APPROVALS9'){
+                    OutLawInfoSetting();
+                }
+
+            } else if(query_flag === 'Y'){
+                //全部按钮隐藏
+                hideBigSaveButton();
+                unHideConContentGridBtn();
+            } else{
                 if(function_usage === 'QUERY'){
                     //只读页面隐藏保存
                     hideBigSaveButton();
@@ -502,6 +521,16 @@
             jQuery(plan_line_component_id).next().hide();
         }
 
+        function OutLawInfoSetting(){
+            var ds_law_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_OUT_LAW');
+            //外聘律师
+            var law_info = $(ds_law_id).getCurrentRecord();
+            law_info.getField('contract_out_law_name').setReadOnly(false);
+            law_info.getField('contract_out_law_reviewer').setReadOnly(false);
+            law_info.getField('contract_out_law_date').setReadOnly(false);
+            law_info.getField('contract_out_law_comment').setReadOnly(false);
+        }
+
         //业务准入审核
         function businessFieldSetting() {
             var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'project_business_access_compare', 'G_BUSINESS_FAC');
@@ -525,14 +554,16 @@
             jQuery(con_making_component_id).next().hide();
         }
 
-        //隐藏合同文本、附件、授信明细新增删除按钮
+        //隐藏合同文本、附件、授信明细、合同审查简表新增删除按钮
         function unHideConContentGridBtn(){
             var con_attach_grid_div_id = 'PRJ616F1_G_CON_TEXT_prj_project_attachment_layout_grid_id_tb';
             var attach_grid_div_id = 'PRJ616F1_G_ATTA_INFO_prj_project_attachment_layout_grid_id_tb';
             var method_detail_grid_div_id = 'PRJ616F1_G_METHOD_DETAIL_hls_credit_plan_line_layout_grid_id_tb';
+            var con_make_grid_div_id = 'PRJ616F1_G_CON_MAKING_prj_project_attachment_layout_grid_id_tb';
             processingGridByDivIdHide(con_attach_grid_div_id);
             processingGridByDivIdHide(attach_grid_div_id);
             processingGridByDivIdHide(method_detail_grid_div_id);
+            processingGridByDivIdHide(con_make_grid_div_id);
         }
 
         function hideBigExitButton() {
