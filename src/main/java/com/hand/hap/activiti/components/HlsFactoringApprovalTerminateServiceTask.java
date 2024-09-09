@@ -2,10 +2,12 @@ package com.hand.hap.activiti.components;
 
 import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hap.core.IRequest;
+import com.hand.hls.fct.dto.HlsChanceBusinessAccessCompare;
 import com.hand.hls.fct.dto.HlsCreditPlanLine;
 import com.hand.hls.fct.mapper.HlsCreditPlanLineMapper;
 import com.hand.hls.fct.service.HlsICreditPlanLineService;
 import com.hand.hls.prj.dto.HlsCreditPlan;
+import com.hand.hls.prj.dto.HlsCusPrjBusinessAccessCompare;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectBp;
 import com.hand.hls.prj.dto.HlsCusPrjProjectLease;
@@ -13,12 +15,14 @@ import com.hand.hls.prj.dto.HlsCusPrjProjectReceivable;
 import com.hand.hls.prj.dto.HlsCusPrjQuotation;
 import com.hand.hls.prj.dto.HlsCusPrjQuotationCashflow;
 import com.hand.hls.prj.mapper.HlsCreditPlanMapper;
+import com.hand.hls.prj.mapper.HlsCusPrjBusinessAccessCompareMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectBpMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectLeaseMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectReceivableMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
 import com.hand.hls.prj.mapper.HlsCusPrjQuotationMapper;
 import com.hand.hls.prj.service.HlsCreditPlanService;
+import com.hand.hls.prj.service.HlsCusPrjIBusinessAccessCompareService;
 import com.hand.hls.prj.service.HlsCusPrjIProjectLeaseService;
 import com.hand.hls.prj.service.HlsCusPrjIProjectReceivableService;
 import com.hand.hls.prj.service.HlsCusPrjProjectBpService;
@@ -97,6 +101,12 @@ public class HlsFactoringApprovalTerminateServiceTask implements JavaDelegate, I
     @Autowired
     private HlsCusPrjProjectLeaseMapper hlsCusPrjProjectLeaseMapper;
 
+    @Autowired
+    private HlsCusPrjBusinessAccessCompareMapper hlsCusPrjBusinessAccessCompareMapper;
+
+    @Autowired
+    private HlsCusPrjIBusinessAccessCompareService hlsCusPrjIBusinessAccessCompareService;
+
 
     @Override
     public void execute(DelegateExecution delegateExecution) {
@@ -140,6 +150,9 @@ public class HlsFactoringApprovalTerminateServiceTask implements JavaDelegate, I
         copyReceivableInfo(requestCtx, projectId, prjProject.getProjectId());
         // 复制抵押信息
         copyLeaseInfo(requestCtx, projectId, prjProject.getProjectId());
+        // 复制业务准入审核
+        copyBusinessAccessCompareInfo(requestCtx, projectId, prjProject.getProjectId());
+
     }
 
     private void copyProjectInfo(IRequest requestCtx, Long projectId, HlsCusPrjProject root, HlsCusPrjProject prjProject) {
@@ -243,6 +256,20 @@ public class HlsFactoringApprovalTerminateServiceTask implements JavaDelegate, I
                 BeanUtils.copyProperties(v, hlsCusPrjProjectLease);
                 hlsCusPrjProjectLease.setProjectId(newProjectId);
                 hlsCusPrjIProjectLeaseService.insert(requestCtx, hlsCusPrjProjectLease);
+            });
+        }
+    }
+
+    private void copyBusinessAccessCompareInfo(IRequest requestCtx, Long oldProjectId, Long newProjectId) {
+        HlsCusPrjBusinessAccessCompare prjBusinessAccessCompare = new HlsCusPrjBusinessAccessCompare();
+        prjBusinessAccessCompare.setProjectId(oldProjectId);
+        List<HlsCusPrjBusinessAccessCompare> factoringInfoCompare = hlsCusPrjBusinessAccessCompareMapper.findFactoringApprovalInfo(prjBusinessAccessCompare);
+        if (!factoringInfoCompare.isEmpty()) {
+            factoringInfoCompare.forEach(v -> {
+                HlsCusPrjBusinessAccessCompare hlsCusPrjBusinessAccessCompare = new HlsCusPrjBusinessAccessCompare();
+                BeanUtils.copyProperties(v, hlsCusPrjBusinessAccessCompare);
+                hlsCusPrjBusinessAccessCompare.setProjectId(newProjectId);
+                hlsCusPrjIBusinessAccessCompareService.insert(requestCtx, hlsCusPrjBusinessAccessCompare);
             });
         }
     }

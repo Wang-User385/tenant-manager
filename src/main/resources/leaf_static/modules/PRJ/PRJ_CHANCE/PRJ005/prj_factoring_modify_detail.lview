@@ -12,7 +12,7 @@
 
         <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
         <script><![CDATA[
-
+        var vote_flag = false;
         //超链接渲染
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
             var file_num = record.get('file_num') || 0;
@@ -392,6 +392,7 @@
                 record.set('stage', 'STAGE_AFTER');
             } else if (ds.id == vote_ds_id) {
                 if (record && '${/parameter/@special_node_flag}' == 'Y'&&'${/parameter/@meeting_type}' == 'OFFLINE_MEETING') {
+                    vote_flag = true;
                     record.getField('allocation_id').setReadOnly(false);
                     record.getField('allocation_id').setRequired(true);
                     record.getField('allocation_id_n').setReadOnly(false);
@@ -406,7 +407,6 @@
                     record.getField('vote_status_n').setRequired(true);
                     record.getField('vote_comment').setReadOnly(false);
                     record.getField('vote_comment').setRequired(false);
-
                 }
             }
         };
@@ -432,6 +432,7 @@
         //保存submitsuccess调用
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            vote_flag = false;
             var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
             if (ds_root_id) {
                 var root_record = $(ds_root_id).getCurrentRecord();
@@ -520,9 +521,12 @@
                 addCustomerInCreate(ds_id_customer);
             }
             //当前节点可以编辑业务准入信息
+            debugger;
+            var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
             if ('${/parameter/@edit_business_flag}' == 'Y') {
-                var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
                 editBusiness(ds_id_business);
+            }else {
+                noEditBusiness(ds_id_business);
             }
             //审批当中不允许删除其他人的附件
             if ('${/parameter/@edit_attachment_flag}' == 'Y'){
@@ -763,16 +767,29 @@
         function editBusiness(ds_id_business) {
             openBigSaveButton();
             var records_business = $(ds_id_business).getAll();
-            for (let i = 0; i < records.length; i++) {
+            for (let i = 0; i < records_business.length; i++) {
                 var record_business = records_business[i];
-                record_business.getField('items_detail').setReadOnly(true);
-                record_business.getField('items_detail').setRequired(false);
+                record_business.getField('items_detail').setReadOnly(false);
                 record_business.getField('check_result').setReadOnly(false);
                 record_business.getField('check_result').setRequired(true);
                 record_business.getField('check_result_n').setReadOnly(false);
                 record_business.getField('check_result_n').setRequired(true);
             }
         }
+
+        function noEditBusiness(ds_id_business) {
+            var records_business = $(ds_id_business).getAll();
+            for (let i = 0; i < records_business.length; i++) {
+                var record_business = records_business[i];
+                record_business.getField('items_detail').setReadOnly(true);
+                record_business.getField('items_detail').setRequired(false);
+                record_business.getField('check_result').setReadOnly(true);
+                record_business.getField('check_result').setRequired(false);
+                record_business.getField('check_result_n').setReadOnly(true);
+                record_business.getField('check_result_n').setRequired(false);
+            }
+        }
+
 
         function specialNodeFlagComponentHide(){
             var vote_grid_div_id = 'PRJ005F1_G_VOTE_FAC_hls_credit_line_chance_approver_layout_grid_id_tb';
@@ -878,7 +895,7 @@
             let con_after_grid_id = '#' + '${/parameter/@layout_code}_G_CON_FAC_AFTER_hls_credit_line_chance_condition_layout_grid_id_wrap';
 
             var node_id = '${/parameter/@node_id}';
-            if (node_id != 'FACTORING_PROJRCT_PROPOSALS11' && node_id != 'FACTORING_PROJRCT_PROPOSALS14' && node_id != 'FACTORING_PROJRCT_PROPOSALS15'){
+            if (node_id != 'FACTORING_PROJRCT_PROPOSALS11' && node_id != 'FACTORING_PROJRCT_PROPOSALS14' && node_id != 'FACTORING_PROJRCT_PROPOSALS15' && node_id != 'FACTORING_PROJRCT_PROPOSALS16'){
                 jQuery(business_grid_id).hide();
                 jQuery(business_component_id).hide();
                 jQuery(business_component_id).prev().hide();
@@ -986,6 +1003,10 @@
                         sync: true
                     });
                 }
+            }
+            if (vote_flag){
+                Leaf.showInfoMessage('提示','请保存投票数据');
+                return false;
             }
             countiune();
         }
