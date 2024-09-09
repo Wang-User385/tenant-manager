@@ -1536,4 +1536,19 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         return  res;
     }
 
+    @Override
+    public void transfer(IRequest requestCtx,List<HlsCusHlsCreditLineChance> chanceList, String flag,Long userId) {
+        if ("HOST".equals(flag)){
+            chanceList.forEach(v-> v.setProposerEmployeeId(userId));
+        }else if ("SLAVE".equals(flag)){
+            chanceList.forEach(v-> v.setProjectAssistant(userId));
+        }
+        if (!CollectionUtils.isEmpty(chanceList)){
+            chanceList.forEach(v->{
+                hlsCusHlsCreditLineChanceMapper.updateByPrimaryKeySelective(v);
+            });
+        }
+
+    }
+
 }

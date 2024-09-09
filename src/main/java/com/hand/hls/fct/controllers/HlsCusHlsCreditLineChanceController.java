@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 public class HlsCusHlsCreditLineChanceController extends BaseController {
@@ -485,6 +486,29 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusHlsCreditLineChance chance = param.toJavaObject(HlsCusHlsCreditLineChance.class);
         service.updateByPrimaryKeySelective(requestCtx,chance);
+        return new ResponseData();
+    }
+
+    @RequestMapping(value = "/transfer/confirm")
+    @ResponseBody
+    public ResponseData transferConfirm(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        String flag = param.getString("flag");
+        Long userId = param.getLong("user_id");
+        String transferData = param.getString("transfer_data");
+        List<HlsCusHlsCreditLineChance> chanceList = Arrays.stream(transferData.split("_"))
+                .filter(s ->!s.isEmpty())
+                .map(Long::parseLong)
+                .map(chanceId -> {
+                    HlsCusHlsCreditLineChance chance = new HlsCusHlsCreditLineChance();
+                    chance.setChanceId(chanceId);
+                    chance = service.selectByPrimaryKey(requestCtx,chance);
+                    return chance;
+                })
+                .collect(Collectors.toList());
+        service.transfer(requestCtx,chanceList,flag,userId);
         return new ResponseData();
     }
 
