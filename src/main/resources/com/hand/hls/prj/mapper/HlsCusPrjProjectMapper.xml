@@ -10528,6 +10528,7 @@ WHERE
         On pp.DOCUMENT_TYPE = hdt.document_type
         <where>
             pp.PROJECT_STATUS = 'APPROVED'
+            and pp.DOCUMENT_TYPE not in ('CREDIT', 'FACTORING')
             and (select fou.UNIT_CODE
                 from fnd_org_unit fou
                 where pp.unit_id = fou.unit_id
@@ -12824,10 +12825,10 @@ WHERE
             (select case when cc.CONTRACT_STATUS in ('TERMINATE') THEN
                              'ENDED'
                          ELSE
-                             'NORMAL '
+                             'NORMAL'
                         end
              from con_contract cc
-             where cc.PROJECT_ID = pp.PROJECT_ID) contractStatus
+             where cc.PROJECT_ID = pp.PROJECT_ID) status
         from
             CON_CONTRACT_CASHFLOW ccc
                 right join
@@ -12847,10 +12848,10 @@ WHERE
         SELECT
         ccc.TIMES termNo,
         CASE
+        WHEN ccc.DUE_AMOUNT-ccc.RECEIVED_AMOUNT = 0 THEN 'ENDED'
         WHEN SYSDATE &lt; ccc.DUE_DATE THEN 'NOT_START_TERM'
         WHEN SYSDATE > ccc.DUE_DATE THEN 'OVERDUE_TERM'
         WHEN trunc(SYSDATE) = trunc(ccc.DUE_DATE) THEN 'CURRENT_TERM'
-        WHEN ccc.DUE_AMOUNT-ccc.RECEIVED_AMOUNT = 0 THEN 'ENDED'
         ELSE
         'GRACE_TERM'
         END status,
