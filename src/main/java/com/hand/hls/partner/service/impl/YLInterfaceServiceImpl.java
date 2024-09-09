@@ -651,7 +651,9 @@ public class YLInterfaceServiceImpl implements YLInterfaceService {
         CompensatoryTrialCalculationDTO queryCompensatory = new CompensatoryTrialCalculationDTO();
         queryCompensatory.setOrderNo(claimsSubrogationDTO.getOrderNo());
         queryCompensatory.setTermNo(claimsSubrogationDTO.getTermNo());
-        queryCompensatory.setTrialTime(String.valueOf(new Date()));
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        //判断试算日期是否为空，如果为空则使用当前日期，如果有，则使用传入日期
+        queryCompensatory.setTrialTime(simpleDateFormat.format(new Date()));
         CompensatoryTrialCalculationDTO compensatoryTrialCalculation1 = prjProjectMapper.selectCTCByOrderNo(queryCompensatory);
         if (compensatoryTrialCalculation1==null){
             jsonObject1.put("code","100003");
