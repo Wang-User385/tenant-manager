@@ -3261,21 +3261,21 @@ public class HlsCusPrjProject extends PrjProject {
     private Long financeChargeId; //财务部负责人ID
     @Transient
     private String paymentApprovedStatus;
-    @Transient
-    private String contractContentNumber;
-    @Transient
-    private String contractSignAddress;
-    @Transient
-    private String contractSignTimes;
-    @Transient
-    private String contractSpecialCondit;
-    @Transient
-    private String contractOutLawName;
-    @Transient
-    private String contractOutLawReviewer;
-    @Transient
-    private String contractOutLawDate;
-    @Transient
-    private String contractOutLawComment;
+
+    private String contractContentNumber; //合同用印份数
+
+    private String contractSignAddress; //合同签订地点
+
+    private String contractSignTimes; //合同签订日期
+
+    private String contractSpecialCondit; //合同特别约定条款
+
+    private String contractOutLawName;  //外聘律师事务所机构名称
+
+    private String contractOutLawReviewer; //外聘律师事务所审查人
+
+    private String contractOutLawDate; //外聘律师事务所审查日期
+
+    private String contractOutLawComment; //外聘律师事务所审查意见
 
 }
