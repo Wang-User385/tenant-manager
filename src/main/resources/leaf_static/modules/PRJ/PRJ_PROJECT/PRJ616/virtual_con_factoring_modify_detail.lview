@@ -214,10 +214,58 @@
 
         //新增时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
-            var base_ds_id2 = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
-            if (ds.id==base_ds_id2){
-                $(base_ds_id2).getCurrentRecord().set('project_attachment_category','VIRTUAL_CON_CONTENT');
-                $(base_ds_id2).getCurrentRecord().set('project_id','${/parameter/@project_id}');
+            debugger;
+            var ds_id_att = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
+            var ds_id_con_att = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
+            var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_bp', 'F_CUSTOMER');
+            var ds_id_p = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
+            var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+
+            if (ds_id_customer.id == ds.id && '${/parameter/@function_usage}' == 'CREATE') {
+                var records = $(ds_id_customer.id).getAll();
+                var query_data = [];
+                for (let i = 0; i < records.length; i++) {
+                    query_data.push(records[i].data);
+                }
+                Leaf.request({
+                    url: '${/request/@context_path}/get/factoring/bp/info',
+                    para: query_data,
+                    success: function (res) {
+                        var res_records = res.result.record;
+                        for (let i = 0; i < res_records.length; i++) {
+                            var record = records[i];
+                            var res_record = res_records[i];
+                            record.set('bp_name', res_record.bp_name);
+                            record.set('bp_code', res_record.bp_code);
+                            record.set('bp_type', res_record.bp_type);
+                            record.set('bp_type_n', res_record.bp_type_n);
+                            record.set('economic_indu_classify', res_record.economic_indu_classify);
+                            record.set('economic_indu_classify_n', res_record.economic_indu_classify_n);
+                            record.set('group_companies', res_record.group_companies);
+                        }
+                    },
+                    sync: true
+                });
+            } else if (ds.id == ds_id_p) {
+                if (record) {
+                    var record_ds_id_au = $(ds_id_au).getCurrentRecord();
+                    var record_f = $(ds_id_customer).getAll()[0];
+                    record.set('credit_plan_id', record_ds_id_au.get('credit_plan_id'));
+                    record.set('bp_code', record_f.get('bp_code'));
+                    record.set('bp_name', record_f.get('bp_name'));
+                    record.set('bp_name_n', record_f.get('bp_name_n'));
+                    record.set('bp_type', record_f.get('bp_type'));
+                    record.set('bp_type_n', record_f.get('bp_type_n'));
+                    record.set('group_companies', record_f.get('group_companies'));
+                    record.set('economic_indu_classify', record_f.get('economic_indu_classify'));
+                    record.set('economic_indu_classify_n', record_f.get('economic_indu_classify_n'));
+                }
+            } else if (ds.id == ds_id_con_att){
+                $(ds_id_con_att).getCurrentRecord().set('project_attachment_category','VIRTUAL_CON_CONTENT');
+                $(ds_id_con_att).getCurrentRecord().set('project_id','${/parameter/@project_id}');
+            } else if (ds.id == ds_id_att){
+                $(ds_id_con_att).getCurrentRecord().set('project_attachment_category','VIRTUAL_CON_ATT');
+                $(ds_id_con_att).getCurrentRecord().set('project_id','${/parameter/@project_id}');
             }
         };
 
@@ -228,7 +276,7 @@
             var ds_id_at = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
 
             if (!$(ds_id_at).getAll() || $(ds_id_at).getAll().length === 0) {
-                Leaf.showInfoMessage('提示', '附件信息不能为空！');
+                Leaf.showInfoMessage('提示', '合同文本附件信息不能为空！');
                 return;
             }
             var records = $(ds_id_at).getAll();
@@ -306,6 +354,236 @@
                 }
             }
             countiune();
+        }
+
+        //初始化页面
+        Leaf.onReady(function () {
+            debugger;
+            var node_id = '${/parameter/@node_id}';
+            var function_usage = '${/parameter/@function_usage}';
+
+            //从工作流来到的这个页面
+            if ('${/parameter/@wfl_flag}') {
+                hideBigExitButton();
+                //业务复核人节点设置可输字段
+                if (node_id == 'CONTRACT_APPROVALS3' ){
+                    contractApprovedModify();
+                }
+                //隐藏保存按钮
+                if (node_id !== 'CONTRACT_APPROVALS3' ){
+                    hideBigSaveButton();
+                    //附件按钮不显示
+                    unHideConContentGridBtn();
+                }
+
+                //隐藏法律相关信息
+                if(node_id !== 'CONTRACT_APPROVALS9'){
+                    hideLawInfo();
+                    //隐藏合同审批表附件
+                    hideConApproveTable();
+                }
+            }else{
+                if(function_usage === 'QUERY'){
+                    //只读页面隐藏保存
+                    hideBigSaveButton();
+                    //附件按钮不显示
+                    unHideConContentGridBtn();
+                }
+                //隐藏法律相关信息
+                hideLawInfo();
+                //隐藏合同审批表附件
+                hideConApproveTable();
+            }
+
+        });
+
+        //新增和加载时调用(grid)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_load'] = function(ds, record, config_records, bp_seq) {
+            debugger;
+            var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC');
+            var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            var prj_info = $(ds_root_id).getCurrentRecord();
+            var credit_method = $(ds_id_au).getCurrentRecord();
+            //非授信项目隐藏授信方案和明细
+            if(prj_info.get('credit_flag') !== 'Y'){
+                //设置授信相关字段非必填
+                credit_method.getField("quota_type").setRequired(false);
+                credit_method.getField('quota_type_n').setRequired(false);
+                credit_method.getField("date_from").setRequired(false);
+                credit_method.getField("date_to").setRequired(false);
+                credit_method.getField("credit_desc").setRequired(false);
+                //隐藏
+                hideCreditMethod();
+            }
+
+
+        }
+
+
+        function contractApprovedModify() {
+            var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC');
+            var ds_quotation_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation', 'F_QUOTATION_FINANCIA');
+            var ds_credit_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            var ds_business_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'project_business_access_compare', 'G_BUSINESS_FAC');
+
+            //基本信息
+            var prj_info = $(ds_root_id).getCurrentRecord();
+            //报价信息
+            var quo_info = $(ds_quotation_id).getCurrentRecord();
+            //授信方案
+            var credit_info = $(ds_credit_id).getCurrentRecord();
+            //业务准入审核
+            var business_infos = $(ds_business_id).getAll();
+
+            //基本信息字段设置
+            prj_info.getField("contract_number").setReadOnly(false);
+            prj_info.getField("contract_number").setRequired(true);
+            prj_info.getField("contract_content_number").setReadOnly(false);
+            prj_info.getField("contract_content_number").setRequired(true);
+            prj_info.getField("contract_sign_address").setReadOnly(false);
+            prj_info.getField("contract_sign_address").setRequired(true);
+            prj_info.getField("contract_sign_times").setReadOnly(false);
+            prj_info.getField("contract_sign_times").setRequired(true);
+            prj_info.getField("factoring_category").setReadOnly(false);
+            prj_info.getField("credit_measures").setReadOnly(false);
+            prj_info.getField("credit_measures").setRequired(true);
+            prj_info.getField("contract_special_condit").setReadOnly(false);
+            prj_info.getField("contract_special_condit").setRequired(true);
+
+            //报价信息
+            quo_info.getField("lease_start_date").setReadOnly(false);
+            quo_info.getField("lease_start_date").setRequired(true);
+
+            //授信方案
+            credit_info.getField("date_from").setReadOnly(false);
+            credit_info.getField("date_from").setRequired(true);
+            credit_info.getField("date_to").setReadOnly(false);
+            credit_info.getField("date_to").setRequired(true);
+
+            //业务准入审核
+            for (var i = 0; i < business_infos.length; i++){
+                business_infos[i].getField("check_result").setReadOnly(false);
+                business_infos[i].getField("check_result").setRequired(true);
+            }
+
+        }
+
+        function hideCreditMethod(){
+            let plan_line_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_METHOD_DETAIL_component_id']").attr("id");
+            let plan_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_METHOD_component_id']").attr("id");
+            $jq('#${/parameter/@layout_code}_T_METHOD_DETAIL_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_F_METHOD_component_id').hide();//隐藏客户信息组件
+            jQuery(plan_line_component_id).hide();
+            jQuery(plan_line_component_id).prev().hide();
+            jQuery(plan_line_component_id).hide();
+            jQuery(plan_line_component_id).next().hide();
+            jQuery(plan_component_id).hide();
+            jQuery(plan_component_id).prev().hide();
+            jQuery(plan_component_id).hide();
+            jQuery(plan_component_id).next().hide();
+        }
+
+        function hideLawInfo(){
+
+        }
+
+
+        function hideConApproveTable(){
+            let con_making_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_CON_MAKING_component_id']").attr("id");
+            let con_making_grid_id = '#' + '${/parameter/@layout_code}_G_CON_MAKING_prj_project_attachment_layout_grid_id_wrap';
+            jQuery(con_making_grid_id).hide();
+            jQuery(con_making_component_id).hide();
+            jQuery(con_making_component_id).prev().hide();
+            jQuery(con_making_component_id).hide();
+            jQuery(con_making_component_id).next().hide();
+        }
+
+        //隐藏合同文本、附件、授信明细新增删除按钮
+        function unHideConContentGridBtn(){
+            var con_attach_grid_div_id = 'PRJ616F1_G_CON_TEXT_prj_project_attachment_layout_grid_id_tb';
+            var attach_grid_div_id = 'PRJ616F1_G_ATTA_INFO_prj_project_attachment_layout_grid_id_tb';
+            var method_detail_grid_div_id = 'PRJ616F1_G_METHOD_DETAIL_prj_project_attachment_layout_grid_id_tb';
+            processingGridByDivIdHide(con_attach_grid_div_id);
+            processingGridByDivIdHide(attach_grid_div_id);
+            processingGridByDivIdHide(method_detail_grid_div_id);
+        }
+
+        function hideBigExitButton() {
+            // 获取特定 class 的 div
+            const div = document.querySelector('.screenTopToolbar.clearfix');
+            // 获取 div 下的所有 button
+            const buttons = div.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.textContent === '退出') {
+                    button.style.display = 'none';
+                }
+            });
+        }
+
+        //隐藏保存按钮
+        function hideBigSaveButton() {
+            // 获取特定 class 的 div
+            const div = document.querySelector('.screenTopToolbar.clearfix');
+            // 获取 div 下的所有 button
+            const buttons = div.querySelectorAll('button');
+            buttons.forEach(button => {
+                if (button.textContent === '保存') {
+                    button.style.display = 'none';
+                }
+            });
+        }
+
+        function processingGridByDivIdHide(div_id) {
+            var targetDiv = document.getElementById(div_id);
+            // 获取该 div 下的所有 button 元素
+            var buttonsInDiv = targetDiv.getElementsByTagName('button');
+            // 遍历按钮并设置为隐藏
+            for (var i = 0; i < buttonsInDiv.length; i++) {
+                buttonsInDiv[i].style.display = 'none';
+            }
+        }
+
+
+        //合同文本grid按钮
+        function processingConGridByDivId(div_id) {
+            var targetDiv = document.getElementById(div_id);
+            // 获取该 div 下的所有 button 元素
+            var buttonsInDiv = targetDiv.getElementsByTagName('button');
+            // 遍历按钮并设置为显示
+            for (var i = 0; i < buttonsInDiv.length; i++) {
+                //展示新增按钮
+                if (buttonsInDiv[i].textContent == '新增') {
+                    buttonsInDiv[i].style.display = '';
+                }
+                //展示删除按钮
+                if (buttonsInDiv[i].textContent == '删除') {
+                    buttonsInDiv[i].style.display = '';
+                }
+            }
+        }
+
+        //附件信息grid按钮
+        function processingAttGridByDivId(div_id) {
+            var targetDiv = document.getElementById(div_id);
+            // 获取该 div 下的所有 button 元素
+            var buttonsInDiv = targetDiv.getElementsByTagName('button');
+            // 遍历按钮并设置为显示
+            for (var i = 0; i < buttonsInDiv.length; i++) {
+                //展示新增按钮
+                if (buttonsInDiv[i].textContent == '新增') {
+                    buttonsInDiv[i].style.display = '';
+                }
+                //展示删除按钮
+                if (buttonsInDiv[i].textContent == '删除') {
+                    buttonsInDiv[i].style.display = '';
+                }
+                if (buttonsInDiv[i].textContent == '附件下载') {
+                    buttonsInDiv[i].style.display = '';
+                }
+                if (buttonsInDiv[i].textContent == '导出') {
+                    buttonsInDiv[i].style.display = '';
+                }
+            }
         }
 
         ]]></script>

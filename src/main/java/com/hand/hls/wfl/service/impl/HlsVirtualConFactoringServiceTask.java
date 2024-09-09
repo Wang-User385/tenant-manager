@@ -36,10 +36,12 @@ public class HlsVirtualConFactoringServiceTask implements JavaDelegate, IActivit
         if (!APPROVED.equalsIgnoreCase(hlsCusPrjProject.getContractStatus()) && !REJECTED.equalsIgnoreCase(hlsCusPrjProject.getContractStatus())) {
             if (APPROVED.equalsIgnoreCase(result)) {
                 hlsCusPrjProject.setLastUpdateDate(new Date());
+                hlsCusPrjProject.setContractEndDate(new Date());
                 hlsCusPrjProject.setContractStatus(APPROVED);
                 hlsCusPrjProjectService.updateByPrimaryKeySelective(requestCtx, hlsCusPrjProject);
             } else if (REJECTED.equalsIgnoreCase(result)) {
                 hlsCusPrjProject.setLastUpdateDate(new Date());
+                hlsCusPrjProject.setContractEndDate(new Date());
                 hlsCusPrjProject.setContractStatus(REJECTED);
                 hlsCusPrjProjectService.updateByPrimaryKeySelective(requestCtx, hlsCusPrjProject);
             }

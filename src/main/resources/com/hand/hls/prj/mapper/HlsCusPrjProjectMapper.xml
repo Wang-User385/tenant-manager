@@ -10528,6 +10528,10 @@ WHERE
         On pp.DOCUMENT_TYPE = hdt.document_type
         <where>
             pp.PROJECT_STATUS = 'APPROVED'
+            and (select fou.UNIT_CODE
+                from fnd_org_unit fou
+                where pp.unit_id = fou.unit_id
+                and fou.ENABLED_FLAG='Y') = 'VEHICLE_RENTAL_DEPARTMENT'
             <if test="createdBy!=null">
                 and (exists(
                 select 1
@@ -13030,11 +13034,14 @@ WHERE
         FROM sys_code_value_b v, sys_code_b b
         WHERE b.CODE = 'PRODUCT.LEASE_ITEM_TYPE'
         AND v.code_id = b.code_id
-        AND v. VALUE = pp.lease_item_type) lease_item_type_n
+        AND v. VALUE = pp.lease_item_type) lease_item_type_n,
+        pp.document_category,
+        pp.DATA_CLASS
         FROM prj_project pp
         LEFT JOIN hls_bp_master hbm
         ON pp.TENANT_ID = hbm.bp_id) v
         <where>
+            and v.document_type != 'FACTORING'
             <if test="createdBy!=null">
                 and (v.created_by = #{createdBy}
                 or exists(
@@ -13844,6 +13851,10 @@ WHERE
             hbm.bp_name TENANT_ID_N,
             pp.TENANT_ID,
             pp.CREDIT_FLAG,
+           (SELECT v.meaning
+            FROM sys_code_value_b_v v
+            WHERE v.CODE = 'GT.HCLC.CREDIT_FLAG'
+              AND pp.CREDIT_FLAG = v.CODE_VALUE) AS      credit_flag_n,
             pp.LEASE_ITEM_AMOUNT,
             pp.INDUSTRY,
             pp.HOST_PROJECT_MANAGER,
@@ -13906,6 +13917,11 @@ WHERE
             pp.industry,
             pp.tenant_id,
             pp.credit_measures,
+            pp.credit_flag,
+           (SELECT v.meaning
+            FROM sys_code_value_b_v v
+            WHERE v.CODE = 'GT.HCLC.CREDIT_FLAG'
+              AND pp.CREDIT_FLAG = v.CODE_VALUE) AS      credit_flag_n,
             ( SELECT hbv.bp_name FROM hls_bp_master hbv WHERE hbv.bp_id = pp.tenant_id ) tenant_id_n,
             pp.company_id,
             ( SELECT FC.COMPANY_FULL_NAME FROM FND_COMPANY FC WHERE pp.COMPANY_ID = FC.COMPANY_ID ) COMPANY_ID_N,
