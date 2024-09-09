@@ -271,7 +271,6 @@
 
         //提交审批
         window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
-            debugger;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC');
             var ds_id_at = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
 
@@ -327,11 +326,20 @@
             debugger;
             var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC');
             var project_id = $(ds_root_id).getCurrentRecord().get('project_id');
+            var ds_id_con_make = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_MAKING');
             var cur_record = $('chance_appoint_user_ds').getCurrentRecord();
             var fin = '';
             var finance_charge_id = '';
             var legal_host = '';
             var node_id = '${/parameter/@node_id}';
+            //S9节点校验合同审查表附件
+            if ('CONTRACT_APPROVALS9' == node_id){
+                if (!$(ds_id_con_make).getAll() || $(ds_id_con_make).getAll().length === 0) {
+                    Leaf.showInfoMessage('提示', '请先制作合同审查简表，再操作！');
+                    return;
+                }
+            }
+
             if (cur_record) {
                 var allocation_id = cur_record.get('allocation_id');
                 if ('CONTRACT_APPROVALS5' == node_id) {
@@ -374,13 +382,15 @@
                     hideBigSaveButton();
                     //附件按钮不显示
                     unHideConContentGridBtn();
+                    //业务准入审核设置为非必填只读
+                    businessFieldSetting();
                 }
 
-                //隐藏法律相关信息
                 if(node_id !== 'CONTRACT_APPROVALS9'){
-                    hideLawInfo();
                     //隐藏合同审批表附件
                     hideConApproveTable();
+                    //隐藏外聘法律信息
+                    hideOutLawInfo();
                 }
             }else{
                 if(function_usage === 'QUERY'){
@@ -390,7 +400,7 @@
                     unHideConContentGridBtn();
                 }
                 //隐藏法律相关信息
-                hideLawInfo();
+                hideOutLawInfo();
                 //隐藏合同审批表附件
                 hideConApproveTable();
             }
@@ -412,7 +422,7 @@
                 credit_method.getField("date_from").setRequired(false);
                 credit_method.getField("date_to").setRequired(false);
                 credit_method.getField("credit_desc").setRequired(false);
-                //隐藏
+                //隐藏授信组件
                 hideCreditMethod();
             }
 
@@ -471,8 +481,8 @@
         function hideCreditMethod(){
             let plan_line_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_METHOD_DETAIL_component_id']").attr("id");
             let plan_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_METHOD_component_id']").attr("id");
-            $jq('#${/parameter/@layout_code}_T_METHOD_DETAIL_component_id').hide();//隐藏客户信息组件
-            $jq('#${/parameter/@layout_code}_F_METHOD_component_id').hide();//隐藏客户信息组件
+            $jq('#${/parameter/@layout_code}_T_METHOD_DETAIL_component_id').hide();//隐藏授信明细信息组件
+            $jq('#${/parameter/@layout_code}_F_METHOD_component_id').hide();//隐藏授信信息组件
             jQuery(plan_line_component_id).hide();
             jQuery(plan_line_component_id).prev().hide();
             jQuery(plan_line_component_id).hide();
@@ -483,8 +493,25 @@
             jQuery(plan_component_id).next().hide();
         }
 
-        function hideLawInfo(){
+        function hideOutLawInfo(){
+            let plan_line_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_OUT_LAW_component_id']").attr("id");
+            $jq('#${/parameter/@layout_code}_T_OUT_LAW_component_id').hide();//隐藏授信明细信息组件
+            jQuery(plan_line_component_id).hide();
+            jQuery(plan_line_component_id).prev().hide();
+            jQuery(plan_line_component_id).hide();
+            jQuery(plan_line_component_id).next().hide();
+        }
 
+        //业务准入审核
+        function businessFieldSetting() {
+            var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'project_business_access_compare', 'G_BUSINESS_FAC');
+            var record = $(ds_id_business).getAll()[0];
+            record.getField('item_detail').setRequired(false);
+            record.getField('item_detail').setReadOnly(true);
+            record.getField('check_result').setRequired(false);
+            record.getField('check_result').setReadOnly(true);
+            record.getField('check_result_n').setRequired(false);
+            record.getField('check_result_n').setReadOnly(true);
         }
 
 
@@ -502,7 +529,7 @@
         function unHideConContentGridBtn(){
             var con_attach_grid_div_id = 'PRJ616F1_G_CON_TEXT_prj_project_attachment_layout_grid_id_tb';
             var attach_grid_div_id = 'PRJ616F1_G_ATTA_INFO_prj_project_attachment_layout_grid_id_tb';
-            var method_detail_grid_div_id = 'PRJ616F1_G_METHOD_DETAIL_prj_project_attachment_layout_grid_id_tb';
+            var method_detail_grid_div_id = 'PRJ616F1_G_METHOD_DETAIL_hls_credit_plan_line_layout_grid_id_tb';
             processingGridByDivIdHide(con_attach_grid_div_id);
             processingGridByDivIdHide(attach_grid_div_id);
             processingGridByDivIdHide(method_detail_grid_div_id);
