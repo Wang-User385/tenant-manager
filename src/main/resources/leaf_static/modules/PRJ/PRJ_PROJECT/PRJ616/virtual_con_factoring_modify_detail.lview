@@ -278,8 +278,11 @@
         //查询时调用(grid,table,gridBox)
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
             var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
+            var ds_id_con_make = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_MAKING');
             if (ds.id == ds_id_atta) {
-                $(ds_id_atta).setQueryParameter('project_attachment_category', 'VIRTUAL_CON_ATT')
+                $(ds_id_atta).setQueryParameter('project_attachment_category', 'VIRTUAL_CON_ATT');
+            }else if(ds.id == ds_id_con_make){
+                $(ds_id_con_make).setQueryParameter('project_attachment_category', 'VIRTUAL_CON_TABLE');
             }
         }
 
@@ -379,6 +382,7 @@
 
         //初始化页面
         Leaf.onReady(function () {
+            debugger;
             var node_id = '${/parameter/@node_id}';
             var function_usage = '${/parameter/@function_usage}';
             var query_flag = '${/parameter/@query_flag}';
@@ -570,7 +574,7 @@
             jQuery(con_making_component_id).next().hide();
         }
 
-        //隐藏合同文本、附件、授信明细、合同审查简表新增删除按钮
+        //隐藏合同文本、附件、授信明细 表新增删除按钮
         function unHideConContentGridBtn(){
             var con_attach_grid_div_id = 'PRJ616F1_G_CON_TEXT_prj_project_attachment_layout_grid_id_tb';
             var attach_grid_div_id = 'PRJ616F1_G_ATTA_INFO_prj_project_attachment_layout_grid_id_tb';
@@ -619,33 +623,50 @@
         window['${/parameter/@layout_code}_G_CON_MAKING_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
             debugger;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC');
-            var record = $(ds_root_id).getCurrentRecord();
+            var record = $(ds_id).getCurrentRecord();
             var template_code = "VIRTUAL_CON_TABLE";
             if(record.get('project_id') && record.get('project_id') != null && record.get('project_id') != '' ){
-                Leaf.Masker.mask(Ext.getBody(), '正在生成文件...');
+                window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
                 Leaf.request({
-                    url: "${/request/@context_path}/prj/project/create/content",
+                    url: "${/request/@context_path}/prj/factoring/content",
                     para: {project_id: record.get('project_id'),template_code},
                     success: function (res) {
-                        console.log(res);
-                        var source_pk_value1 = res.result.record[0].source_pk_value1;
-                        if (source_pk_value1 == 'undefined' || source_pk_value1 == '' || source_pk_value1 == null) {
-                            Leaf.Masker.unmask(Ext.getBody());
-                            Leaf.showInfoMessage('未找到文件模板!');
-                            return;
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        var down_url = '';
+                        if (records.length == 1) {
+                            var attachment_id = res.result.record[0].attachment_id;
+                            down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
+                            location.href = down_url;
+                            Leaf.SideBar.show({
+                                msg: '生成成功',
+                                duration: 2000
+                            });
                         } else {
-                            Leaf.Masker.unmask(Ext.getBody());
-                            // Leaf.showInfoMessage('合同文本生成成功!');
-                            var ds_con = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project');
-                            // $(ds_con).query();
-                            editOffice(source_pk_value1);
+                            var attachment_ids = "";
+                            for (var i = 0; i < res.result.record.length; i++) {
+                                if (i == 0) {
+                                    attachment_ids = res.result.record[0].attachment_id;
+                                } else {
+                                    attachment_ids = attachment_ids + ',' + res.result.record[i].attachment_id;
+                                }
+                            }
+                            down_url = "${/request/@context_path}/fnd/attachment/download/zip?attachment_id=" + attachment_ids;
+                            location.href = down_url;
+                            Leaf.SideBar.show({
+                                msg: '生成成功',
+                                duration: 2000
+                            });
                         }
+                        var ds_id_con_make = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_MAKING');
+                        $(ds_id_con_make).query();
                     },
-                    error: function (res) {
-                        Leaf.Masker.unmask(Ext.getBody());
+                    error: function () {
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showMessage("提示", "生成失败!", null);
                     },
                     failure: function (res) {
-                        Leaf.Masker.unmask(Ext.getBody());
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        Leaf.showMessage("提示", "生成失败!", null);
                     },
                     scope: this
                 });
