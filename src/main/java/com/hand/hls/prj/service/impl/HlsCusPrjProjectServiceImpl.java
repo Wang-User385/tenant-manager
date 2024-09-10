@@ -9372,6 +9372,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         }
         hlsCusPrjProjectAttachment.setProjectId(hlsCusPrjProject.getProjectId());
         hlsCusPrjProjectAttachment.setDocumentName(fileName + ".docx");
+        hlsCusPrjProjectAttachment.setCreatedBy(requestCtx.getUserId());
         attachmentMapper.insertSelective(hlsCusPrjProjectAttachment);
         HlsCusDownloadDocxUtil.createDocx(iRequest, modelIs, new File(copyPath), params);
         FndAttachmentMulti fndAttachmentMulti = insertAtmAttachement(iRequest, copyPath,
