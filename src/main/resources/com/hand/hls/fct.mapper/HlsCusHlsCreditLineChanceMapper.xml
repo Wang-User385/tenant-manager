@@ -1785,4 +1785,71 @@
              ) t
     </select>
 
+    <select id="findAll" resultMap="BaseResultMap">
+        SELECT
+            hclc.chance_id,
+            ( SELECT quotation_id FROM prj_quotation pq WHERE pq.source_document_category = 'HLS_CREDIT_LINE_CHANCE' AND pq.source_document_id = hclc.chance_id ) quotation_id,
+            hclc.credit_line_number,
+            hclc.credit_line_name,
+            hclc.bp_id,
+            ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id ) bp_id_n,
+            hclc.credit_flag,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'GT.HCLC.CREDIT_FLAG' AND sc.code_value = hclc.credit_flag ) credit_flag_n,
+            hclc.credit_line_amt,
+            hclc.industry,
+            hclc.proposer_employee_id,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROPOSER_EMPLOYEE_ID ) PROPOSER_EMPLOYEE_ID_N,
+            hclc.project_assistant,
+            ( SELECT su.description FROM sys_user su WHERE su.user_id = hclc.PROJECT_ASSISTANT ) project_assistant_n,
+            hclc.credit_line_status,
+            (
+                SELECT
+                    scv.MEANING
+                FROM
+                    sys_code_b sc,
+                    sys_code_value_b scv
+                WHERE
+                    sc.CODE_ID = scv.CODE_ID
+                  AND sc.CODE = 'CREDIT.APPROVE_STATUS'
+                  AND scv.value = hclc.credit_line_status
+            ) credit_line_status_n,
+            hclc.creation_date,
+            hclc.approved_date,
+            hclc.document_type
+        FROM
+            hls_credit_line_chance hclc
+        <where>
+            1 =  1
+            <if test="creditLineNumber != null and creditLineNumber != '' ">
+                and hclc.credit_line_number like concat('%', concat(#{creditLineNumber},'%'))
+            </if>
+            <if test="creditLineName != null and creditLineName != ''">
+                and hclc.credit_line_name like  concat('%', concat(#{creditLineName},'%'))
+            </if>
+            <if test="bpName != null and bpName != '' ">
+                and ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id ) like concat('%', concat(#{bpName},'%'))
+            </if>
+            <if test="industry != null and industry != ''">
+                and hclc.industry like concat('%', concat(#{industry},'%'))
+            </if>
+            <if test="creationDateFrom != null">
+                and hclc.creation_date >= to_date(#{creationDateFrom},'yyyy-mm-dd hh24:mi:ss')
+            </if>
+            <if test="creationDateTo != null ">
+                and hclc.creation_date &lt; to_date(#{creationDateTo},'yyyy-mm-dd hh24:mi:ss')+1
+            </if>
+            <if test="creditLineStatus != null and creditLineStatus != '' ">
+                and hclc.credit_line_status = #{creditLineStatus}
+            </if>
+            <if test="creditFlag != null and creditFlag != ''">
+                and hclc.credit_flag = #{creditFlag}
+            </if>
+            <if test="bpIdN !=null">
+                and  ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = hclc.bp_id )   like concat('%', concat(#{bpIdN},'%'))
+            </if>
+
+        </where>
+        order by  hclc.creation_date desc
+    </select>
+
 </mapper>

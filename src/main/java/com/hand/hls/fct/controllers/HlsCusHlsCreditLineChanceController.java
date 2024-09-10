@@ -18,6 +18,7 @@ import com.hand.hls.hls.dto.HlsCusHlsMarketingReport;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectInsure;
 import com.hand.hls.sys.mapper.SysUserMapper;
+import com.hand.hls.utils.ResMessageException;
 import hls.core.utils.exception.HlsCusException;
 import leaf.bean.LeafRequestData;
 import org.slf4j.Logger;
@@ -491,7 +492,7 @@ public class HlsCusHlsCreditLineChanceController extends BaseController {
 
     @RequestMapping(value = "/transfer/confirm")
     @ResponseBody
-    public ResponseData transferConfirm(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) {
+    public ResponseData transferConfirm(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) throws ResMessageException {
         IRequest requestCtx = createRequestContext(request);
         RequestHelper.setCurrentRequest(requestCtx);
         JSONObject param = (JSONObject) requestData.get("parameter");

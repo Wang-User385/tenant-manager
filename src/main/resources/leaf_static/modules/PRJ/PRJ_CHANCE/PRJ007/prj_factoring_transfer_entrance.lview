@@ -7,6 +7,8 @@
                 url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ005/prj_factoring_modify_detail.lview"/>
         <a:link id="transfer_page_factoring"
                 url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ007/prj_factoring_transfer_host.lview"/>
+        <a:link id="prj_credit_jump_detail"
+                url="${/request/@context_path}/modules/PRJ/PRJ_CHANCE/PRJ001/prj_credit_modify_detail.lview"/>
         <script><![CDATA[
         //超链接渲染
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
@@ -26,17 +28,29 @@
             param['url_title'] = '立项维护';
             param['function_code'] = 'PRJ005F1';
             param['winid'] = 'factoring_detail_winid';
-            hls_doc_get_layout_code(param, 'prj_factoring_transfer_main_detail', ds_id, 'PRJ007');
+            var url = 'prj_factoring_transfer_main_detail'
+            if (record.get('document_type') != 'FACTORING'){
+                param['function_code'] = 'PRJ003F1';
+                url = 'prj_credit_jump_detail';
+            }
+            hls_doc_get_layout_code(param, url, ds_id, 'PRJ007');
         }
 
 
         //项目主办移交
         window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
+            debugger;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'G_LINE_CHANCE');
             var records = $(ds_id).getSelected();
             if (records.length === 0) {
                 Leaf.showInfoMessage('提示', '请选择数据后再进行项目主办移交');
                 return;
+            }
+            for (let i = 1; i < records.length; i++) {
+                if (records[i].get('document_type') != records[i-1].get('document_type')){
+                    Leaf.showErrorMessage('提示','保理项目和授信项目不能同时移交');
+                    return;
+                }
             }
             var transfer_data = '';
             var param = {};
@@ -51,7 +65,11 @@
             param['maintain_type'] = 'UPDATE';
             param['function_usage'] = 'MODIFY';
             param['url_title'] = '项目主办移交';
-            param['function_code'] = 'PRJ007F1';
+            if (records[0].get('document_type') === 'FACTORING'){
+                param['function_code'] = 'PRJ007F1';
+            }else {
+                param['function_code'] = 'PRJ007F2';
+            }
             param['winid'] = 'transfer_host_winid';
             param['flag'] = 'HOST';
             param['screen_width'] = 450;
@@ -68,6 +86,12 @@
                 Leaf.showInfoMessage('提示', '请选择数据后再进行项目协办移交');
                 return;
             }
+            for (let i = 1; i < records.length; i++) {
+                if (records[i].get('document_type') != records[i-1].get('document_type')){
+                    Leaf.showErrorMessage('提示','保理项目和授信项目不能同时移交');
+                    return;
+                }
+            }
             var transfer_data = '';
             var param = {};
             for (let i = 0; i < records.length; i++) {
@@ -76,6 +100,11 @@
                 } else {
                     transfer_data = transfer_data + '_' + records[i].get('chance_id');
                 }
+            }
+            if (records[0].get('document_type') === 'FACTORING'){
+                param['function_code'] = 'PRJ007F1';
+            }else {
+                param['function_code'] = 'PRJ007F2';
             }
             param['transfer_data'] = transfer_data;
             param['maintain_type'] = 'UPDATE';

@@ -12,6 +12,7 @@ import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
 import com.hand.hls.hls.dto.HlsCusHlsMarketingReport;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
+import com.hand.hls.utils.ResMessageException;
 import hls.core.utils.exception.HlsCusException;
 import uncertain.composite.CompositeMap;
 
@@ -109,5 +110,5 @@ public interface HlsCusHlsCreditLineChanceService extends IBaseService<HlsCusHls
 
     List<HlsCusHlsCreditLineChance> submitCredit(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance, IRequest requestCtx) throws HlsCusException;
 
-    void transfer(IRequest requestCtx,List<HlsCusHlsCreditLineChance> chanceList, String flag,Long userId);
+    void transfer(IRequest requestCtx,List<HlsCusHlsCreditLineChance> chanceList, String flag,Long userId) throws ResMessageException;
 }

@@ -1536,9 +1536,18 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
     }
 
     @Override
-    public void transfer(IRequest requestCtx,List<HlsCusHlsCreditLineChance> chanceList, String flag,Long userId) {
+    public void transfer(IRequest requestCtx,List<HlsCusHlsCreditLineChance> chanceList, String flag,Long userId) throws ResMessageException {
         if ("HOST".equals(flag)){
-            chanceList.forEach(v-> v.setProposerEmployeeId(userId));
+            for (HlsCusHlsCreditLineChance v : chanceList) {
+                if (v.getBpId() == null){
+                    throw new ResMessageException("关联客户信息被冻结，或这被删除");
+                }
+                HlsCusBpMaster bpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(v.getBpId());
+                bpMaster.setBpId(v.getBpId());
+                bpMaster.setCreatedBy(userId);
+                hlsCusBpMasterMapper.updateCreatedBy(bpMaster);
+                v.setProposerEmployeeId(userId);
+            }
         }else if ("SLAVE".equals(flag)){
             chanceList.forEach(v-> v.setProjectAssistant(userId));
         }
