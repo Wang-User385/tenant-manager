@@ -9255,5 +9255,97 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         }
     }
 
+    @Override
+    public List<FndAttachmentMulti> contextFactoringCreateMultiple(IRequest requestCtx, HlsCusPrjProject hlsCusPrjProject, String templateCode, HttpServletResponse response) throws Exception {
+        IRequest iRequest = RequestHelper.getCurrentRequest();
+        List<FndAttachmentMulti> fndAttachmentMultiList = new ArrayList<>();
+
+        hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
+        HlsDocFileTemplet templet = new HlsDocFileTemplet();
+        // 模板代码
+        templet.setTempletCode(templateCode);
+        List<HlsDocFileTemplet> docFileTemplets = hlsDocFileTempletMapper.select(templet);
+        if (docFileTemplets.size() != 1) {
+            throw new HlsCusException("不存在模板,请配置");
+        }
+        Long templetId = docFileTemplets.get(0).getTempletId();
+        FndAttachmentMulti fileParam = new FndAttachmentMulti();
+        fileParam.setTableName("hls_doc_file_templet");
+        fileParam.setTablePkValue(templetId.toString());
+        FndAttachmentMulti sysFileMulti =
+                fndAttachmentMultiService.selectSelective(iRequest, fileParam).get(0);
+        FndAttachment templateFileParam = new FndAttachment();
+        templateFileParam.setSourceTypeCode("fnd_atm_attachment_multi");
+        templateFileParam.setSourcePkValue(sysFileMulti.getRecordId().toString());
+        List<FndAttachment> fndAttachments =
+                fndAttachmentService.selectSelective(iRequest, templateFileParam);
+        Validate.notEmpty(fndAttachments, "文件模版不存在");
+
+        FndAttachment sysFile = fndAttachments.get(0);
+        if (sysFile == null || org.apache.commons.lang.StringUtils.isBlank(sysFile.getFilePath())) {
+            throw new HlsCusException("文件模版不存在");
+        }
+        File file = new File(sysFile.getFilePath());
+        if (!file.exists()) {
+            throw new HlsCusException("文件模版不存在");
+        }
+
+        InputStream inStream = new FileInputStream(file);
+
+        // 定义复制模板的filepath,使用uuid拼接于文件末尾，避免备份文件重名覆盖
+        String copyPath = sysFile.getFilePath().concat("_back_").concat(UUID.randomUUID().toString());
+        // 复制模板
+        HlsCusDownloadDocxUtil.copyModel(copyPath, inStream);
+        // 用输入流读取复制后的模板
+        InputStream modelIs = new FileInputStream(copyPath);
+        Map<String, Object> params = new HashMap<>();
+        params.put("templetId", templetId);
+        params.put("projectId", hlsCusPrjProject.getProjectId());
+        // 生成合同文本
+        String tableName = "PRJ_PROJECT_ATTACHMENT";
+        //文件名
+        String fileName = hlsCusPrjProject.getProjectNumber() + "合同文本";
+
+        //插入关联的中间附件表
+        HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment = new HlsCusPrjProjectAttachment();
+        if ("VIRTUAL_CON_TABLE".equals(templateCode)){
+            hlsCusPrjProjectAttachment.setProjectAttachmentCategory("VIRTUAL_CON_TABLE");
+        }else{
+            hlsCusPrjProjectAttachment.setProjectAttachmentCategory("PRJ_PROJECT");
+        }
+        hlsCusPrjProjectAttachment.setProjectId(hlsCusPrjProject.getProjectId());
+        hlsCusPrjProjectAttachment.setDocumentName(fileName + ".docx");
+        attachmentMapper.insertSelective(hlsCusPrjProjectAttachment);
+
+        HlsCusDownloadDocxUtil.createDocx(iRequest, modelIs, new File(copyPath), params);
+        FndAttachmentMulti fndAttachmentMulti = insertAtmAttachement(iRequest, copyPath,
+                fileName,
+                hlsCusPrjProjectAttachment.getProjectAttachmentId(), tableName);
+        fndAttachmentMultiList.add(fndAttachmentMulti);
+
+        return fndAttachmentMultiList;
+    }
+
+    //插入附件表
+    private FndAttachmentMulti insertAtmAttachement(IRequest currentRequest, String filePath, String fileName, Long lnId, String tableName) {
+        File file = new File(filePath);
+        //插入附件表
+        FndAttachmentMulti fndAttachmentMulti = new FndAttachmentMulti();
+        fndAttachmentMulti.setTableName(tableName);
+        fndAttachmentMulti.setTablePkValue(lnId.toString());
+        fndAttachmentMulti = fndAttachmentMultiService.insertSelective(currentRequest, fndAttachmentMulti);
+        FndAttachment fndAttachment = new FndAttachment();
+        fndAttachment.setSourceTypeCode("fnd_atm_attachment_multi");
+        fndAttachment.setSourcePkValue(fndAttachmentMulti.getRecordId().toString());
+        fndAttachment.setFileTypeCode("docx");
+        fndAttachment.setMimeType("application/msword");
+        fndAttachment.setFileName(fileName + ".docx");
+        fndAttachment.setFileSize(file.length());
+        fndAttachment.setFilePath(filePath);
+        fndAttachmentService.insertSelective(currentRequest, fndAttachment);
+        fndAttachmentMulti.setAttachmentId(fndAttachment.getAttachmentId());
+        fndAttachmentMultiService.updateByPrimaryKeySelective(currentRequest, fndAttachmentMulti);
+        return fndAttachmentMulti;
+    }
 
 }

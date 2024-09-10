@@ -3404,4 +3404,18 @@ public class HlsCusPrjProjectController extends BaseController {
         return new ResponseData();
     }
 
+    @RequestMapping(value = "/prj/factoring/content")
+    @ResponseBody
+    public ResponseData contentFactoringCreate(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,
+                                               HttpServletRequest request, HttpServletResponse response) throws Exception {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        String templateCode = (String) param.get("template_code");
+        HlsCusPrjProject hlsCusPrjProject = param.toJavaObject(HlsCusPrjProject.class);
+        List<FndAttachmentMulti> list =
+                service.contextFactoringCreateMultiple(requestCtx, hlsCusPrjProject, templateCode, response);
+        return new ResponseData(list);
+    }
+
 }
