@@ -482,85 +482,38 @@
             pp.project_id = #{projectId}
         </where>
     </select>
-    <select id="queryCreditPlanInfoByProject" resultType="com.hand.hls.prj.dto.HlsCreditPlan">
-        select v.*,(v.credit_amt -v.used_amount) left_credit_amt
-        from(select
-                 hcp.*,
-
-                 CASE WHEN HCP.SOURCE_DOCUMENT_CATEGORY='HLS_CREDIT_LINE_CHANCE'
-                          THEN
-                          (select bm.bp_name
-                           from HLS_CREDIT_LINE_CHANCE_BP b,hls_bp_master bm
-                           where hcp.source_document_id = b.chance_id
-                             and b.bp_type='MANUFACTURER'
-                             and bm.bp_id=b.bp_id and rownum=1)
-                      ELSE  (select bm.bp_name
-                             from prj_project_bp b,hls_bp_master bm
-                             where hcp.source_document_id = b.project_id
-                               and b.bp_type='MANUFACTURER'
-                               and bm.bp_id=b.bp_id and rownum=1) END AS bp_name,
-                 (select scv.MEANING
-                  from sys_code_b sc,sys_code_value_b scv
-                  where sc.CODE_ID = scv.CODE_ID
-                    and sc.CODE = 'SYS.YES_NO'
-                    and scv.value = hcp.CONGLOMERATE_FLAG) CONGLOMERATE_FLAG_N,
-                 (select scv.MEANING
-                  from sys_code_b sc,sys_code_value_b scv
-                  where sc.CODE_ID = scv.CODE_ID
-                    and sc.CODE = 'FINANCING_LOAN'
-                    and scv.value = hcp.QUOTA_TYPE) QUOTA_TYPE_N,
-                 /*这里要等付款支付改造完成后取值*/
-                 0 used_amount,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v.CODE = 'SYS.YES_NO'
-                    AND v.code_value = hcp.bear_guarantee_flag) bear_guarantee_flag_n,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v. CODE = 'CON.FLOATING_RANGE_METHOD'
-                    and v.ENABLED_FLAG = 'Y'
-                    AND v.code_value = hcp.floating_range_method) floating_range_method_n,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v.CODE = 'GUARANTEE_METHOD'
-                    and v.ENABLED_FLAG = 'Y'
-                    AND v.code_value = hcp.GUARANTEE_METHOD) GUARANTEE_METHOD_N,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v.CODE = 'SYS.YES_NO'
-                    and v.ENABLED_FLAG = 'Y'
-                    AND v.code_value = hcp.guarantee_method_rent) guarantee_method_rent_n,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v.CODE = 'SYS.YES_NO'
-                    and v.ENABLED_FLAG = 'Y'
-                    AND v.code_value = hcp.guarantee_method_difference) guarantee_method_difference_n,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v.CODE = 'SYS.YES_NO'
-                    and v.ENABLED_FLAG = 'Y'
-                    AND v.code_value = hcp.guarantee_method_repurcharse) guarantee_method_repurcharse_n,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v.CODE = 'SYS.YES_NO'
-                    and v.ENABLED_FLAG = 'Y'
-                    AND v.code_value = hcp.guarantee_method_response) guarantee_method_response_n,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v.CODE = 'HLS500_ANNUAL_PAY_TIMES'
-                    and v.ENABLED_FLAG = 'Y'
-                    AND v.code_value = hcp.annual_pay_times) annual_pay_times_n,
-                 (SELECT v.meaning
-                  FROM sys_code_value_b_v v
-                  WHERE v.CODE = 'RESIDUAL_PRICE_TYPE'
-                    and v.ENABLED_FLAG = 'Y'
-                    AND v.code_value = hcp.residual_price_type) residual_price_type_n
-             from HLS_CREDIT_PLAN hcp) v
+    <select id="queryCreditPlanInfoByProject" resultMap="BaseResultMap">
+       SELECT
+        hcp.buy_back_day,
+        hcp.credit_plan_id,
+        hcp.compen_day,
+        hcp.penalty_rate,
+        hcp.lease_charge_ratio,
+        hcp.deposit_col_method,
+        ( select v.MEANING from sys_code_value_b_v v
+        where v.CODE='CREDIT.DEPOSIT_COL_METHOD' and  v.code_value=hcp.deposit_col_method) as deposit_col_method_n,
+        hcp.deposit_ratio,
+        hcp.int_rate,
+        hcp.irr,
+        c.bp_id,
+        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = c.bp_id ) bp_name,
+        hcp.credit_amt,
+        hcp.quota_type,
+        (
+        select sc.meaning
+        from sys_code_value_b_v sc
+        where sc.code = 'FINANCING_LOAN'
+        AND sc.code_value = hcp.QUOTA_TYPE
+        ) QUOTA_TYPE_N,
+        hcp.date_from,
+        hcp.date_to,
+        hcp.credit_desc
+        FROM
+        hls_credit_plan hcp
+        INNER JOIN hls_credit_line_chance c ON hcp.source_document_category = 'HLS_CREDIT_LINE_CHANCE'
+        AND hcp.source_document_id = c.chance_id
         <where>
-            1=1
-            <if test="sourceDocumentCategory =='HLS_CREDIT_LINE_CHANCE' and chanceId!=null">
-                and v.source_document_id = #{chanceId}
-            </if>
+            hcp.source_document_id =#{chanceId}
         </where>
     </select>
 

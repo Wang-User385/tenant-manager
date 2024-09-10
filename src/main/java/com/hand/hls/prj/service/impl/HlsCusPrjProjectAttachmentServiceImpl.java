@@ -177,7 +177,10 @@ public class HlsCusPrjProjectAttachmentServiceImpl extends BaseServiceImpl<HlsCu
         List<HlsCreditLineAttach> lineAttaches = hlsCreditLineAttachMapper.queryCredAttachmentByChanceId(lineAttach);
         if (CollectionUtils.isNotEmpty(lineAttaches)) {
             for (HlsCreditLineAttach chanceBp : lineAttaches) {
-                copyPublicFields(requestContext,hlsCusPrjProjectAttachment, chanceBp);
+                if(chanceBp != null){
+                    copyPublicFields(requestContext,hlsCusPrjProjectAttachment, chanceBp);
+                }
+
             }
         }
 

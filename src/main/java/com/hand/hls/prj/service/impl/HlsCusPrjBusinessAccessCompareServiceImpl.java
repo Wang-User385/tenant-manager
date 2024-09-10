@@ -31,7 +31,10 @@ private HlsChanceBusinessAccessCompareMapper hlsChanceBusinessAccessCompareMappe
         List<HlsChanceBusinessAccessCompare> accessCompares = hlsChanceBusinessAccessCompareMapper.queryChanceCompareByProjectChanceId(lineChance);
         if (CollectionUtils.isNotEmpty(accessCompares)) {
             for (HlsChanceBusinessAccessCompare accessCompare : accessCompares) {
-                copyPublicFields(request,dto, accessCompare);
+                if(accessCompare != null){
+                    copyPublicFields(request,dto, accessCompare);
+
+                }
             }
         }
         return null;

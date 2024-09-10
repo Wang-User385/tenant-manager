@@ -6,9 +6,11 @@ import com.hand.hap.system.service.IBaseService;
 import com.hand.hls.atm.dto.FndAttachment;
 import com.hand.hls.atm.dto.FndAttachmentMulti;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
+import com.hand.hls.cont.dto.ConfirmBatch;
 import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.fnd.dto.HlsEmployee;
+import com.hand.hls.hls.dto.HlsCusHlsMarketingReport;
 import com.hand.hls.hn.dto.PrjCheck;
 import com.hand.hls.prj.dto.*;
 import com.hand.hls.utils.ResMessageException;
@@ -340,6 +342,8 @@ public interface HlsCusPrjProjectService extends IBaseService<HlsCusPrjProject>,
      * 保理合同审批提交
      */
     List<HlsCusPrjProject> submitVirtualFactoringWfl(HlsCusPrjProject hlsCusPrjProject, IRequest requestCtx);
+
+    List<HlsCusPrjProject> submitCredit(HlsCusPrjProject chanceProject, IRequest requestCtx) throws HlsCusException;
 
     List<FndAttachmentMulti> contextFactoringCreateMultiple(IRequest requestCtx, HlsCusPrjProject hlsCusPrjProject, String templateCode, HttpServletResponse response) throws Exception;
 }

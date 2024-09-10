@@ -41,6 +41,10 @@ public class HlsCusPrjProject extends PrjProject {
     private String usedNumberFlag;
     private String conApplicationStatus;
     private String conApplicationChangeStatus;
+    private String guaranteeAnalyse;
+    private String loanCondition;
+    private String loanMethod;
+    private String repaymentMethod;
     @Transient
     private String conApplicationStatusN;
     @Transient

@@ -3403,6 +3403,15 @@ public class HlsCusPrjProjectController extends BaseController {
         service.updateByPrimaryKeySelective(requestCtx,hlsCusPrjProject);
         return new ResponseData();
     }
+    @RequestMapping(value = "/submit/credit/project")
+    @ResponseBody
+    public ResponseData submitCreditProject(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) throws hls.core.utils.exception.HlsCusException, HlsCusException {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject chanceProject = param.toJavaObject(HlsCusPrjProject.class);
+        return new ResponseData(service.submitCredit(chanceProject, requestCtx));
+    }
 
     @RequestMapping(value = "/prj/factoring/content")
     @ResponseBody

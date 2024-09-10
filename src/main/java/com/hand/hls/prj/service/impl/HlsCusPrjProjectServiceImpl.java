@@ -3729,7 +3729,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         for (HlsCusHlsCreditLineChance creditChance : creditChances) {
             boolean foundMatchingProject = false;
             for (HlsCusPrjProject project : projects) {
-                if (creditChance.getChanceId() != null && creditChance.getChanceId().equals(project.getChanceId())) {
+                if (creditChance.getChanceId().equals(project.getChanceId())) {
                     foundMatchingProject = true;
                     break;
                 }
@@ -3766,14 +3766,15 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                         accessCompare.setProjectId(hlsCusPrjProjects.get(0).getProjectId());
                         service.queryBusinessCompare(requestCt, accessCompare);
                     }
+                    projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
                 } catch (Exception e) {
                     logger.error("Error occurred while copying properties from creditChance to project", e);
                 }
             }
         }
         // 返回最新的projects列表
-        projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
-        return projects;
+        List<HlsCusPrjProject> hlsCusPrjProjects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
+        return hlsCusPrjProjects;
     }
 
     private void copyAndSaveProject(IRequest requestCt, HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws HlsCusException {
@@ -3791,6 +3792,12 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             project.setAssistProjectManager(creditChance.getProjectAssistant());
             project.setProjectStatus(creditChance.getCreditLineStatus());
             project.setApprovedDate(creditChance.getApprovedDate());
+            project.setDescription(creditChance.getDescription());
+            project.setGuaranteeAnalyse(creditChance.getGuaranteeAnalyse());
+            project.setLoanCondition(creditChance.getLoanCondition());
+            project.setLoanMethod(creditChance.getLoanMethod());
+            project.setRepaymentMethod(creditChance.getRepaymentMethod());
+            project.setOtherDesc(creditChance.getOtherDesc());
             project.setDocumentType("CREDIT");
             project.setDocumentCategory("HLS_CREDIT_LINE_CHANCE");
 
@@ -9235,6 +9242,49 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         List<HlsCusPrjProject> res = new ArrayList<>();
         res.add(hlsCusPrjProject);
         activitiStartService.start(requestCtx, res, params);
+        return res;
+    }
+    public static final String CREDIT_WORK_FLOW = "CREDIT_TENANT_AMOUNT_WFL";
+    public static final String CREDIT_DEMO_NAME = "CREDIT_TENANT_AMOUNT_WFL";
+    public static final String CREDIT_DOCUMENT_TYPE = "CREDIT";
+    public static final String CREDIT_DOCUMENT_CATEGORY = "PRJ_PROJECT";
+    public static final String CREDIT_DOCUMENT_NAME = "授信审批工作流";
+
+    @Override
+    public List<HlsCusPrjProject> submitCredit(HlsCusPrjProject dto, IRequest requestCtx) throws HlsCusException {
+//        if ("APPROVING".equalsIgnoreCase(dto.getProjectStatus()) || "APPROVED".equalsIgnoreCase(dto.getProjectStatus())
+//                || "CLOSED".equalsIgnoreCase(dto.getProjectStatus())) {
+//
+//            throw new HlsCusException("当前单据状态不能提交申请");
+//
+//        }
+
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("workFlowType", CREDIT_WORK_FLOW);
+        params.put(IActivitiCommonService.WORK_FLOW_NAME, CREDIT_WORK_FLOW);
+        params.put(IActivitiCommonService.DEMO_NAME, CREDIT_DEMO_NAME);
+        params.put(IActivitiCommonService.BUSINESS_KEY, dto.getProjectId());
+        params.put("projectId", dto.getProjectId());
+        dto = prjProjectMapper.selectByPrimaryKey(dto);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(dto.getBpId());
+        hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
+        //单据类别
+        params.put("documentCategory",CREDIT_DOCUMENT_CATEGORY);
+        //单据类型
+        params.put("documentType", CREDIT_DOCUMENT_TYPE);
+        //单据名称
+        params.put("documentName", dto.getProjectNumber()+"-"+hlsCusBpMaster.getBpName()+"-"+CREDIT_DOCUMENT_NAME);
+        //单据编号
+        params.put("documentNumber", dto.getProjectNumber());
+        //是否授信
+        params.put("creditFlag", dto.getCreditFlag());
+        //查询
+        List<HlsCusPrjProject> res = new ArrayList<>();
+        res.add(dto);
+        activitiStartService.start(requestCtx, res, params);
+        dto.setProjectStatus("APPROVING");
+        prjProjectMapper.updateByPrimaryKeySelective(dto);
         return res;
     }
 
