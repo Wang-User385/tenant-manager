@@ -9267,14 +9267,17 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         params.put("projectId", dto.getProjectId());
         dto = prjProjectMapper.selectByPrimaryKey(dto);
         HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
-        hlsCusBpMaster.setBpId(dto.getBpId());
+        hlsCusBpMaster.setBpId(dto.getTenantId());
         hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
         //单据类别
         params.put("documentCategory",CREDIT_DOCUMENT_CATEGORY);
         //单据类型
         params.put("documentType", CREDIT_DOCUMENT_TYPE);
-        //单据名称
-        params.put("documentName", dto.getProjectNumber()+"-"+hlsCusBpMaster.getBpName()+"-"+CREDIT_DOCUMENT_NAME);
+        if(hlsCusBpMaster !=null){
+            //单据名称
+            params.put("documentName", dto.getProjectNumber()+"-"+hlsCusBpMaster.getBpName()+"-"+CREDIT_DOCUMENT_NAME);
+        }
+
         //单据编号
         params.put("documentNumber", dto.getProjectNumber());
         //是否授信
