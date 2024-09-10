@@ -9245,19 +9245,11 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         if (!CollectionUtils.isEmpty(factoringApprovalInfo)) {
             return;
         }
-        String riskKey = "风险控制信息";
-        String approvalKey = "审批部控制信息";
-        List<String> res = new ArrayList<>(Arrays.asList("承租人是否有最近三年的审计报告及近期财务报表",
-                "承租人不属于发改委公布的淘汰类或限制类行业",
-                "承租人不属于工信部公布的淘汰落后产能企业",
-                "所报送项目资料符合全面性，完整性及规范性要求检查",
-                "所报送项目资料符合合规性审查要求",
-                "是否上报征信"));
-        for (int i = 0; i < res.size(); i++) {
-            String v = res.get(i);
+        List<HlsCusPrjBusinessAccessCompare> compareList = hlsCusPrjBusinessAccessCompareMapper.findPrjFactoringApprovalCompare();
+        for (HlsCusPrjBusinessAccessCompare v : compareList) {
             HlsCusPrjBusinessAccessCompare compare = new HlsCusPrjBusinessAccessCompare();
-            compare.setBusinessAccess(i <= res.size() ? riskKey : approvalKey);
-            compare.setProjectAccessItems(v);
+            BeanUtils.copyProperties(v, compare);
+            compare.setProjectCompareId(null);
             compare.setProjectId(projectId);
             hlsCusPrjBusinessAccessCompareMapper.insertSelective(compare);
         }

@@ -3,6 +3,7 @@ package com.hand.hls.fct.mapper;
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.fct.dto.HlsChanceBusinessAccessCompare;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLineChance;
+import com.hand.hls.fnd.dto.HlsBusinessAccessCompare;
 
 import java.util.List;
 
@@ -21,4 +22,6 @@ public interface HlsChanceBusinessAccessCompareMapper extends Mapper<HlsChanceBu
      * @return
      */
     List<HlsChanceBusinessAccessCompare> findFactoringInfo(HlsChanceBusinessAccessCompare HlsChanceBusinessAccessCompare);
+
+    List<HlsBusinessAccessCompare> findFactoringBusinessCompare();
 }

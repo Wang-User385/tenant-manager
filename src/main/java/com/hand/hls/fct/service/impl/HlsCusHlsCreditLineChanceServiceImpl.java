@@ -73,6 +73,7 @@ import leaf.service.validation.ParameterNullException;
 import lombok.SneakyThrows;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -1480,14 +1481,12 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         if (!CollectionUtils.isEmpty(factoringInfo)){
             return;
         }
-        String key = "承租人基本资料";
-        List<String> res = new ArrayList<>(Arrays.asList("承租人是否有最近三年的审计报告及近期财务报表",
-                "承租人不属于发改委公布的淘汰类或限制类行业","承租人不属于工信部公布的淘汰落后产能企业" ));
-        res.forEach(v->{
+        List<HlsBusinessAccessCompare> compareList = chanceCompareMapper.findFactoringBusinessCompare();
+        compareList.forEach(v->{
             HlsChanceBusinessAccessCompare compare = new HlsChanceBusinessAccessCompare();
-            compare.setBusinessAccess(key);
-            compare.setProjectAccessItems(v);
+            BeanUtils.copyProperties(v,compare);
             compare.setDocumentId(chanceId);
+            compare.setChanceCompareId(null);
             chanceCompareMapper.insertSelective(compare);
         });
 

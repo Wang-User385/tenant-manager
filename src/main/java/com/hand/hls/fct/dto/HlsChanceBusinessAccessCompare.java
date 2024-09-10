@@ -50,5 +50,7 @@ public class HlsChanceBusinessAccessCompare extends BaseDTO {
     private String checkResultN;
     @Transient
     private Long chanceId;
+    @Transient
+    private String businessAccessN;
 }
 
