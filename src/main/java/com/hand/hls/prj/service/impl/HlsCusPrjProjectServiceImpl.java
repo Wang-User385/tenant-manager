@@ -3712,7 +3712,11 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
 
     @Autowired
     private HlsCusHlsCreditLineChanceMapper CreditLineChanceMapper;
+//    @Autowired
+//    private HlsCusPrjProjectAttachmentService hlsCusPrjProjectAttachmentService;
 
+    @Autowired
+    private HlsCusPrjIBusinessAccessCompareService service;
 
     @Override
     public List<HlsCusPrjProject> queryCreditProject(IRequest requestCt, HlsCusPrjProject hlsCusPrjProject, int page, int pageSize) {
@@ -3723,16 +3727,47 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         // 查询project
         List<HlsCusPrjProject> projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
         for (HlsCusHlsCreditLineChance creditChance : creditChances) {
+            boolean foundMatchingProject = false;
             for (HlsCusPrjProject project : projects) {
-                if (creditChance.getChanceId()!=null && !creditChance.getChanceId().equals(project.getChanceId())) {
-                    try {
-                        // 创建并填充额外的project对象
-                            HlsCusPrjProject prjProject = new HlsCusPrjProject();
-                            //保存新创建的对象到数据库
-                            copyAndSaveProject(requestCt,creditChance, prjProject);
-                    } catch (Exception e) {
-                        logger.error("Error occurred while copying properties from creditChance to project", e);
+                if (creditChance.getChanceId() != null && creditChance.getChanceId().equals(project.getChanceId())) {
+                    foundMatchingProject = true;
+                    break;
+                }
+            }
+            if (!foundMatchingProject) {
+
+                try {
+                    // 创建并填充额外的project对象
+                    HlsCusPrjProject prjProject = new HlsCusPrjProject();
+                    //保存project的对象到数据库
+                    copyAndSaveProject(requestCt, creditChance, prjProject);
+
+                    // 保存bp
+                    HlsCusPrjProject cusPrjProject = new HlsCusPrjProject();
+                    cusPrjProject.setChanceId(creditChance.getChanceId());
+                    List<HlsCusPrjProject> hlsCusPrjProjects = self().selectSelective(requestCt, cusPrjProject);
+                    if (!hlsCusPrjProjects.isEmpty()) {
+                        HlsCusPrjProjectBp projectBp = new HlsCusPrjProjectBp();
+                        projectBp.setChanceId(creditChance.getChanceId());
+                        projectBp.setProjectId(hlsCusPrjProjects.get(0).getProjectId());
+                        hlsCusPrjProjectBpService.saveBpByChanceId(requestCt, projectBp);
                     }
+                    //保存attachment
+                    if (!hlsCusPrjProjects.isEmpty()) {
+                        HlsCusPrjProjectAttachment projectAttachment = new HlsCusPrjProjectAttachment();
+                        projectAttachment.setSourceId(creditChance.getChanceId());
+                        projectAttachment.setProjectId(hlsCusPrjProjects.get(0).getProjectId());
+                        hlsCusPrjProjectAttachmentService.saveProjectAttachment(requestCt, projectAttachment);
+                    }
+                    //保存compare
+                    if (!hlsCusPrjProjects.isEmpty()) {
+                        HlsCusPrjBusinessAccessCompare accessCompare = new HlsCusPrjBusinessAccessCompare();
+                        accessCompare.setProgramId(creditChance.getChanceId());
+                        accessCompare.setProjectId(hlsCusPrjProjects.get(0).getProjectId());
+                        service.queryBusinessCompare(requestCt, accessCompare);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error occurred while copying properties from creditChance to project", e);
                 }
             }
         }
@@ -3744,7 +3779,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     private void copyAndSaveProject(IRequest requestCt, HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws HlsCusException {
         try {
             // 复制公共属性
-            BeanUtils.copyProperties(creditChance,project);
+            BeanUtils.copyProperties(creditChance, project);
 
             // 设置不能自动复制的属性
             project.setProjectNumber(creditChance.getCreditLineNumber());
@@ -3760,7 +3795,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             project.setDocumentCategory("HLS_CREDIT_LINE_CHANCE");
 
             // 保存新创建的对象到数据库
-            self().insert(requestCt,project);
+            self().insert(requestCt, project);
         } catch (Exception e) {
             logger.error("Failed to copy and save project", e);
             throw new HlsCusException(e.getMessage());
@@ -9173,6 +9208,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     public static final String DEMO_NAME_VIRTUAL_CON = "CONTRACT_APPROVAL";
     public static final String DOCUMENT_TYPE_APPROVAL_VIRTUAL_CON = "VIRTUAL_CON_FACTORING_APPROVAL";
     public static final String DOCUMENT_NAME_APPROVAL_VIRTUAL_CON = "保理合同审批工作流";
+
     @Override
     public List<HlsCusPrjProject> submitVirtualFactoringWfl(HlsCusPrjProject hlsCusPrjProject, IRequest requestCtx) {
         HashMap<String, Object> params = new HashMap<>();
@@ -9184,13 +9220,13 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         hlsCusPrjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
         HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
         hlsCusBpMaster.setBpId(hlsCusPrjProject.getTenantId());
-        hlsCusBpMaster =  hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
+        hlsCusBpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
         //单据类别
-        params.put("documentCategory",PROJECT_DOCUMENT_CATEGORY);
+        params.put("documentCategory", PROJECT_DOCUMENT_CATEGORY);
         //单据类型
         params.put("documentType", DOCUMENT_TYPE_APPROVAL_VIRTUAL_CON);
         //单据名称
-        params.put("documentName", hlsCusPrjProject.getProjectNumber()+"-"+hlsCusBpMaster.getBpName()+"-"+DOCUMENT_NAME_APPROVAL_VIRTUAL_CON);
+        params.put("documentName", hlsCusPrjProject.getProjectNumber() + "-" + hlsCusBpMaster.getBpName() + "-" + DOCUMENT_NAME_APPROVAL_VIRTUAL_CON);
         //单据编号
         params.put("documentNumber", hlsCusPrjProject.getProjectNumber());
         //是否授信

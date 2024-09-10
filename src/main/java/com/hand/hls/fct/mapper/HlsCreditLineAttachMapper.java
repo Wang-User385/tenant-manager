@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface HlsCreditLineAttachMapper extends Mapper<HlsCreditLineAttach>{
     List<HlsCreditLineAttach> queryCredAttachment(HlsCreditLineAttach hlsCreditLineAttach);
+    List<HlsCreditLineAttach> queryCredAttachmentByChanceId(HlsCreditLineAttach hlsCreditLineAttach);
     List<HlsCreditLineAttach> selectCreditChangeAttachmentInfo(HlsCreditLineAttach hlsCreditLineAttach);
 }

@@ -3,6 +3,7 @@ package com.hand.hls.prj.service;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.ProxySelf;
 import com.hand.hap.system.service.IBaseService;
+import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.prj.dto.HlsCusPrjProjectAttachment;
 
 import java.util.List;
@@ -74,6 +75,7 @@ public interface HlsCusPrjProjectAttachmentService extends IBaseService<HlsCusPr
     int selectAttachmentCodeNullCount(Long projectId, String projectAttachmentCategory);
 
     int selectAttachmentExistCount(Long projectId, String projectAttachmentCategory);
+    int saveProjectAttachment(IRequest requestContext,HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment) throws HlsCusException;
 
     void batchUpdateAttachemnt(IRequest requestContext, List<HlsCusPrjProjectAttachment> list);
 

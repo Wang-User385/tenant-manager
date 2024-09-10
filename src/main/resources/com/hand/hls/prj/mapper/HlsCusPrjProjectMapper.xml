@@ -13781,6 +13781,7 @@ WHERE
             resultMap="BaseResultMap">
 
         select DISTINCT p.project_number,
+                        p.chance_id,
                p.project_name,
                p.tenant_id,
                (SELECT m.bp_name
@@ -13973,6 +13974,50 @@ WHERE
           <if test="projectId != null">
               and pp.project_id = #{projectId}
           </if>
+        </where>
+    </select>
+    <select id="queryProjectById" resultType="com.hand.hls.prj.dto.HlsCusPrjProject">
+        select DISTINCT p.project_number,
+        p.project_name,
+        p.creation_date,
+        p.unit_id,
+        p.city,
+        p.industry_type,
+        p.tenant_id,
+        p.business_type,
+        p.description,
+        p.guarantee_analyse,
+        p.loan_condition,
+        p.loan_method,
+        p.repayment_method,
+        p.other_desc,
+        (SELECT m.bp_name
+        FROM hls_bp_master m
+        WHERE m.bp_id = p.tenant_id)        as      tenant_id_n,
+        p.credit_flag,
+        (SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'GT.HCLC.CREDIT_FLAG'
+        AND p.CREDIT_FLAG = v.CODE_VALUE) AS      credit_flag_n,
+        p.lease_item_amount,
+        p.host_project_manager,
+        (SELECT su.description
+        FROM sys_user su
+        WHERE su.user_id = p.host_project_manager)  host_project_manager_n,
+        p.assist_project_manager,
+        (SELECT a.description
+        FROM sys_user a
+        WHERE a.user_id = p.assist_project_manager) assist_project_manager_n,
+        p.project_status,
+        (SELECT v.meaning
+        FROM sys_code_value_b_v v
+        WHERE v.CODE = 'CHANCE.FACTORING_PRJ_STATUS'
+        AND v.code_value = p.project_status)      project_status_n,
+        p.approved_date
+        from prj_project p
+        <where>
+            1=1
+            and p.project_id = #{projectId}
         </where>
     </select>
 

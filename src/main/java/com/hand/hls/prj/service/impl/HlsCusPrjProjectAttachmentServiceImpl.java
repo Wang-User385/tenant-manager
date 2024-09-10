@@ -15,13 +15,19 @@ import com.hand.hls.cont.dto.HlsCusConContractAttachment;
 import com.hand.hls.cont.dto.HlsCusContractAttachment;
 import com.hand.hls.cont.service.HlsCusContractAttachmentService;
 import com.hand.hls.cont.utils.BeanRefUtils;
+import com.hand.hls.exception.HlsCusException;
+import com.hand.hls.fct.dto.HlsCreditLineAttach;
+import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
+import com.hand.hls.fct.mapper.HlsCreditLineAttachMapper;
 import com.hand.hls.prj.dto.HlsCusPrjProjectAttachment;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectAttachmentMapper;
 import com.hand.hls.prj.service.HlsCusPrjProjectAttachmentService;
 import com.hand.hls.utils.HlsCusConstant;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -161,6 +167,38 @@ public class HlsCusPrjProjectAttachmentServiceImpl extends BaseServiceImpl<HlsCu
     public int selectAttachmentExistCount(Long projectId, String projectAttachmentCategory) {
         return hlsCusPrjProjectAttachmentMapper.selectAttachmentExistCount(projectId, projectAttachmentCategory);
     }
+    @Autowired
+    private HlsCreditLineAttachMapper hlsCreditLineAttachMapper;
+
+    @Override
+    public int saveProjectAttachment(IRequest requestContext,HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment) throws HlsCusException {
+        HlsCreditLineAttach lineAttach = new HlsCreditLineAttach();
+        lineAttach.setChanceId(hlsCusPrjProjectAttachment.getSourceId());
+        List<HlsCreditLineAttach> lineAttaches = hlsCreditLineAttachMapper.queryCredAttachmentByChanceId(lineAttach);
+        if (CollectionUtils.isNotEmpty(lineAttaches)) {
+            for (HlsCreditLineAttach chanceBp : lineAttaches) {
+                copyPublicFields(requestContext,hlsCusPrjProjectAttachment, chanceBp);
+            }
+        }
+
+        return 0;
+    }
+
+
+    private void copyPublicFields(IRequest request, HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment, HlsCreditLineAttach chanceBp) throws HlsCusException {
+        try {
+            hlsCusPrjProjectAttachment.setSourceId(null);
+            // 复制公共属性
+            BeanUtils.copyProperties(chanceBp,hlsCusPrjProjectAttachment);
+            hlsCusPrjProjectAttachment.setProjectAttachmentCategory(chanceBp.getAttachmentCategory());
+
+            // 保存新创建的对象到数据库
+            self().insertSelective(request,hlsCusPrjProjectAttachment);
+        } catch (Exception e) {
+            logger.error("Failed to copy and save project attachment", e);
+            throw new HlsCusException(e.getMessage());
+        }
+    }
 
 
     @Override
@@ -215,4 +253,8 @@ public class HlsCusPrjProjectAttachmentServiceImpl extends BaseServiceImpl<HlsCu
         return list;
     }
 
+    @Override
+    public HlsCusPrjProjectAttachmentService self() {
+        return HlsCusPrjProjectAttachmentService.super.self();
+    }
 }

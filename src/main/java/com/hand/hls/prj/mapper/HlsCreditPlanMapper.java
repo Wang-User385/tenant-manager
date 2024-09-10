@@ -10,6 +10,7 @@ import java.util.Map;
 public interface HlsCreditPlanMapper extends Mapper<HlsCreditPlan> {
 
     List<HlsCreditPlan> queryCreditPlanInfo(HlsCreditPlan hlsCreditPlan);
+    List<HlsCreditPlan> queryCreditPlanInfoByProject(HlsCreditPlan hlsCreditPlan);
 
     List<Map> queryCreditPlanAuditInfo(HlsCusPrjProjectParam prjQuotation);
 

@@ -15,4 +15,5 @@ public interface HlsCusPrjBusinessAccessCompareMapper extends Mapper<HlsCusPrjBu
      * @return
      */
     List<HlsCusPrjBusinessAccessCompare> findFactoringApprovalInfo(HlsCusPrjBusinessAccessCompare hlsCusPrjBusinessAccessCompare);
+    List<HlsCusPrjBusinessAccessCompare> findProjectAccessInfo(HlsCusPrjBusinessAccessCompare hlsCusPrjBusinessAccessCompare);
 }

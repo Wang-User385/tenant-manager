@@ -13,6 +13,7 @@ public interface HlsChanceBusinessAccessCompareMapper extends Mapper<HlsChanceBu
 
     List<HlsChanceBusinessAccessCompare> queryChanceCompare(HlsChanceBusinessAccessCompare dto);
     List<HlsChanceBusinessAccessCompare> queryChanceCompareByChanceId(HlsCusHlsCreditLineChance dto);
+    List<HlsChanceBusinessAccessCompare> queryChanceCompareByProjectChanceId(HlsCusHlsCreditLineChance dto);
 
     /***
      * 保理业务审核信息

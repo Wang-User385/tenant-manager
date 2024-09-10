@@ -4,6 +4,9 @@ import com.github.pagehelper.PageHelper;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.lock.components.DatabaseLockProvider;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
+import com.hand.hls.exception.HlsCusException;
+import com.hand.hls.fct.dto.HlsCusHlsCreditLineChanceBp;
+import com.hand.hls.fct.mapper.HlsCusHlsCreditLineChanceBpMapper;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectBp;
 import com.hand.hls.prj.mapper.HlsCusPrjProjectBpMapper;
@@ -11,10 +14,15 @@ import com.hand.hls.prj.service.HlsCusPrjProjectBpService;
 import com.hand.hls.prj.service.HlsCusPrjProjectService;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.ILoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -72,6 +80,38 @@ public class HlsCusPrjProjectBpServiceImpl extends BaseServiceImpl<HlsCusPrjProj
         List<HlsCusPrjProjectBp> hlsCusPrjProjectBpList=new ArrayList<>();
         hlsCusPrjProjectBpList=hlsCusPrjProjectBpMapper.selecttBpByProjectIdOrderByBpCategory(hlsCusPrjProjectBp);
         return hlsCusPrjProjectBpList;
+    }
+    @Autowired
+    private HlsCusHlsCreditLineChanceBpMapper chanceBpMapper;
+
+    @Override
+    public List<HlsCusPrjProjectBp> saveBpByChanceId(IRequest requestCt,HlsCusPrjProjectBp hlsCusPrjProjectBp) throws HlsCusException {
+
+        HlsCusHlsCreditLineChanceBp lineChanceBp = new HlsCusHlsCreditLineChanceBp();
+        lineChanceBp.setChanceId(hlsCusPrjProjectBp.getChanceId());
+        List<HlsCusHlsCreditLineChanceBp> chanceBps = chanceBpMapper.selectChanceBpByChanceId(lineChanceBp);
+        if (CollectionUtils.isNotEmpty(chanceBps)) {
+            for (HlsCusHlsCreditLineChanceBp chanceBp : chanceBps) {
+                copyPublicFields(requestCt,hlsCusPrjProjectBp, chanceBp);
+            }
+        }
+
+        return null;
+    }
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    private void copyPublicFields(IRequest iRequest,HlsCusPrjProjectBp hlsCusPrjProjectBp, HlsCusHlsCreditLineChanceBp chanceBp) throws HlsCusException {
+        try {
+            // 复制公共属性
+            BeanUtils.copyProperties(chanceBp,hlsCusPrjProjectBp);
+            hlsCusPrjProjectBp.setDescription(chanceBp.getNote());
+
+            // 保存新创建的对象到数据库
+           self().insertSelective(iRequest,hlsCusPrjProjectBp);
+        } catch (Exception e) {
+           logger.error("Failed to copy and save project", e);
+           throw new HlsCusException(e.getMessage());
+        }
+
     }
 
     @Override

@@ -9,6 +9,8 @@ import java.util.List;
 public interface HlsCusHlsCreditLineChanceBpMapper extends Mapper<HlsCusHlsCreditLineChanceBp> {
 
     List<HlsCusHlsCreditLineChanceBp> selectByForeignKey(HlsCusHlsCreditLineChanceBp cusHlsCreditLineChanceBp);
+    List<HlsCusHlsCreditLineChanceBp> selectChanceBpByChanceId(HlsCusHlsCreditLineChanceBp cusHlsCreditLineChanceBp);
+    List<HlsCusHlsCreditLineChanceBp>  selectProjectBpByProjectId(HlsCusHlsCreditLineChanceBp cusHlsCreditLineChanceBp);
 
     List<HlsCusHlsCreditLineChanceBp> selectBpByMarket(HlsCusHlsCreditLineChanceBp cusHlsCreditLineChanceBp);
 

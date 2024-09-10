@@ -65,6 +65,7 @@ public interface HlsCusPrjProjectBpMapper extends Mapper<HlsCusPrjProjectBp> {
      */
 
     List<HlsCusPrjProjectBp> findFactoringBPInfo(HlsCusPrjProjectBp hlsCusPrjProjectBp);
+    List<HlsCusPrjProjectBp> selectProjectBpByProjectId(HlsCusPrjProjectBp hlsCusPrjProjectBp);
 
 
 }
