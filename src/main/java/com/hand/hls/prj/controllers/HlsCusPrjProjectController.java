@@ -3418,4 +3418,20 @@ public class HlsCusPrjProjectController extends BaseController {
         return new ResponseData(list);
     }
 
+    //合同文本
+    @RequestMapping(value = "/hls/prj/text")
+    @ResponseBody
+    public ResponseData contentFactoringPRJCreate(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,
+                                      HttpServletRequest request, HttpServletResponse response) throws Exception {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        String templateCode = param.getString("template_code");
+        JSONArray jsonArray = param.getJSONArray("print_data");
+        List<HlsCusPrjProject> projectList = jsonArray.toJavaList(HlsCusPrjProject.class);
+        List<FndAttachmentMulti> list =
+                service.contextFactoringCreateMultiple(requestCtx, projectList.get(0),templateCode ,response);
+        return new ResponseData(list);
+    }
+
 }

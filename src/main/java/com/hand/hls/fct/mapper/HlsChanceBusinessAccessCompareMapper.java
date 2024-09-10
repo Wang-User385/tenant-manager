@@ -23,5 +23,5 @@ public interface HlsChanceBusinessAccessCompareMapper extends Mapper<HlsChanceBu
      */
     List<HlsChanceBusinessAccessCompare> findFactoringInfo(HlsChanceBusinessAccessCompare HlsChanceBusinessAccessCompare);
 
-    List<HlsBusinessAccessCompare> findFactoringBusinessCompare();
+    List<HlsChanceBusinessAccessCompare> findFactoringBusinessCompare();
 }

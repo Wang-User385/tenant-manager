@@ -206,26 +206,23 @@
 
         //合同文本生成
         window['${/parameter/@layout_code}_G_EXAMINATION_RISK_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
-            var record = $(ds_id).getAll()[0];
+            var template_code = "FACTORING_RISK";
+            generateText(template_code);
         }
         //合同文本生成
         window['${/parameter/@layout_code}_G_EXAMINATION_LAW_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_LAW');
-            var record = $(ds_id).getAll()[0];
-
+            var template_code = "FACTORING_LAW";
+            generateText(template_code);
         }
         //合同文本生成
         window['${/parameter/@layout_code}_G_EXAMINATION_APPROVE_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_APPROVE');
-            var record = $(ds_id).getAll()[0];
-
+            var template_code = "FACTORING_APPROVE";
+            generateText(template_code);
         }
         //合同文本生成
         window['${/parameter/@layout_code}_G_EXAMINATION_PRJ_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_PRJ');
-            var record = $(ds_id).getAll()[0];
-
+            var template_code = "FACTORING_PRJ";
+            generateText(template_code);
         }
 
         //更新时调用
@@ -298,7 +295,7 @@
             } else if (ds.id == ds_id_approve) {
                 $(ds_id_approve).setQueryParameter('project_attachment_category', 'CHANCE_PRJ_APPROVE_ATT')
             } else if (ds.id == ds_id_prj) {
-                $(ds_id_prj).setQueryParameter('project_attachment_category', 'CHANCE_PRJ_PRJ_ATT')
+                $(ds_id_prj).setQueryParameter('project_attachment_category', 'CHANCE_PROJECT_ATT')
             }
         };
 
@@ -786,6 +783,61 @@
             record.getField('other_income').setReadOnly(false);
             record.getField('other_expenses').setRequired(true);
             record.getField('other_expenses').setReadOnly(false);
+        }
+
+        function generateText(template_code) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
+            var records = $(ds_id).getAll();
+            var print_data = [];
+            for (let i = 0; i < records.length; i++) {
+                print_data.push(records[i].data);
+            }
+            window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
+            Leaf.request({
+                url: "${/request/@context_path}/hls/prj/text",
+                para: {
+                    print_data: print_data,
+                    template_code: template_code
+                },
+                success: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    var down_url = '';
+
+                    if (records.length == 1) {
+                        var attachment_id = res.result.record[0].attachment_id;
+                        down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
+                        location.href = down_url;
+                        Leaf.SideBar.show({
+                            msg: '生成成功',
+                            duration: 2000
+                        });
+                    } else {
+                        var attachment_ids = "";
+                        for (var i = 0; i < res.result.record.length; i++) {
+                            if (i == 0) {
+                                attachment_ids = res.result.record[0].attachment_id;
+                            } else {
+                                attachment_ids = attachment_ids + ',' + res.result.record[i].attachment_id;
+                            }
+                        }
+                        down_url = "${/request/@context_path}/fnd/attachment/download/zip?attachment_id=" + attachment_ids;
+                        location.href = down_url;
+                        Leaf.SideBar.show({
+                            msg: '生成成功',
+                            duration: 2000
+                        });
+                    }
+                },
+                error: function () {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage("提示", "生成失败!", null);
+                },
+                failure: function (res) {
+                    window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                    Leaf.showMessage("提示", "生成失败!", null);
+                },
+                scope: this
+            });
         }
 
 

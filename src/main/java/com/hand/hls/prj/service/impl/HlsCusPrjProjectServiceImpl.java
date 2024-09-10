@@ -9304,25 +9304,30 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         // 生成合同文本
         String tableName = "PRJ_PROJECT_ATTACHMENT";
         //文件名
-        String fileName = hlsCusPrjProject.getProjectNumber() + "合同文本";
-
+        String fileName = hlsCusPrjProject.getProjectNumber() + "合同文本" + UUID.randomUUID().toString().replaceAll("-","");
         //插入关联的中间附件表
         HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment = new HlsCusPrjProjectAttachment();
-        if ("VIRTUAL_CON_TABLE".equals(templateCode)){
+        if ("VIRTUAL_CON_TABLE".equals(templateCode)) {
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("VIRTUAL_CON_TABLE");
-        }else{
+        } else if ("FACTORING_RISK".equals(templateCode)) {
+            hlsCusPrjProjectAttachment.setProjectAttachmentCategory("CHANCE_PRJ_RISK_ATT");
+        } else if ("FACTORING_LAW".equals(templateCode)) {
+            hlsCusPrjProjectAttachment.setProjectAttachmentCategory("CHANCE_PRJ_LAW_ATT");
+        } else if ("FACTORING_APPROVE".equals(templateCode)) {
+            hlsCusPrjProjectAttachment.setProjectAttachmentCategory("CHANCE_PRJ_APPROVE_ATT");
+        } else if ("FACTORING_PRJ".equals(templateCode)) {
+            hlsCusPrjProjectAttachment.setProjectAttachmentCategory("CHANCE_PROJECT_ATT");
+        } else {
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("PRJ_PROJECT");
         }
         hlsCusPrjProjectAttachment.setProjectId(hlsCusPrjProject.getProjectId());
         hlsCusPrjProjectAttachment.setDocumentName(fileName + ".docx");
         attachmentMapper.insertSelective(hlsCusPrjProjectAttachment);
-
         HlsCusDownloadDocxUtil.createDocx(iRequest, modelIs, new File(copyPath), params);
         FndAttachmentMulti fndAttachmentMulti = insertAtmAttachement(iRequest, copyPath,
                 fileName,
                 hlsCusPrjProjectAttachment.getProjectAttachmentId(), tableName);
         fndAttachmentMultiList.add(fndAttachmentMulti);
-
         return fndAttachmentMultiList;
     }
 

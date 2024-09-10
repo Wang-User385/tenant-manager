@@ -1481,7 +1481,7 @@ public class HlsCusHlsCreditLineChanceServiceImpl extends BaseServiceImpl<HlsCus
         if (!CollectionUtils.isEmpty(factoringInfo)){
             return;
         }
-        List<HlsBusinessAccessCompare> compareList = chanceCompareMapper.findFactoringBusinessCompare();
+        List<HlsChanceBusinessAccessCompare> compareList = chanceCompareMapper.findFactoringBusinessCompare();
         compareList.forEach(v->{
             HlsChanceBusinessAccessCompare compare = new HlsChanceBusinessAccessCompare();
             BeanUtils.copyProperties(v,compare);
