@@ -6,6 +6,8 @@ import com.hand.hls.fct.dto.HlsChanceBusinessAccessCompare;
 import com.hand.hls.fct.dto.HlsCreditPlanLine;
 import com.hand.hls.fct.mapper.HlsCreditPlanLineMapper;
 import com.hand.hls.fct.service.HlsICreditPlanLineService;
+import com.hand.hls.fnd.dto.HlsBusinessAccessCompare;
+import com.hand.hls.fnd.mapper.HlsBusinessAccessCompareMapper;
 import com.hand.hls.prj.dto.HlsCreditPlan;
 import com.hand.hls.prj.dto.HlsCusPrjBusinessAccessCompare;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
@@ -106,6 +108,8 @@ public class HlsFactoringApprovalTerminateServiceTask implements JavaDelegate, I
 
     @Autowired
     private HlsCusPrjIBusinessAccessCompareService hlsCusPrjIBusinessAccessCompareService;
+    @Autowired
+    private HlsBusinessAccessCompareMapper hlsBusinessAccessCompareMapper;
 
 
     @Override
@@ -263,9 +267,10 @@ public class HlsFactoringApprovalTerminateServiceTask implements JavaDelegate, I
     private void copyBusinessAccessCompareInfo(IRequest requestCtx, Long oldProjectId, Long newProjectId) {
         HlsCusPrjBusinessAccessCompare prjBusinessAccessCompare = new HlsCusPrjBusinessAccessCompare();
         prjBusinessAccessCompare.setProjectId(oldProjectId);
-        List<HlsCusPrjBusinessAccessCompare> factoringInfoCompare = hlsCusPrjBusinessAccessCompareMapper.findFactoringApprovalInfo(prjBusinessAccessCompare);
-        if (!factoringInfoCompare.isEmpty()) {
-            factoringInfoCompare.forEach(v -> {
+        //List<HlsCusPrjBusinessAccessCompare> factoringInfoCompare = hlsCusPrjBusinessAccessCompareMapper.findFactoringApprovalInfo(prjBusinessAccessCompare);
+        List<HlsBusinessAccessCompare> hlsBusinessAccessCompares = hlsBusinessAccessCompareMapper.queryVirtualConInfo();
+        if (!hlsBusinessAccessCompares.isEmpty()) {
+            hlsBusinessAccessCompares.forEach(v -> {
                 HlsCusPrjBusinessAccessCompare hlsCusPrjBusinessAccessCompare = new HlsCusPrjBusinessAccessCompare();
                 BeanUtils.copyProperties(v, hlsCusPrjBusinessAccessCompare);
                 hlsCusPrjBusinessAccessCompare.setProjectId(newProjectId);

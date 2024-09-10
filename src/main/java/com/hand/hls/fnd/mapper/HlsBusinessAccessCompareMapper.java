@@ -9,6 +9,7 @@ import java.util.List;
 public interface HlsBusinessAccessCompareMapper extends Mapper<HlsBusinessAccessCompare>{
 
     List<HlsBusinessAccessCompare>  queryAll();
-    
 
+    //保理合同业务准入审核信息
+    List<HlsBusinessAccessCompare>  queryVirtualConInfo();
 }
