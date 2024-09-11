@@ -129,16 +129,20 @@
             var tableName = 'PRJ_PROJECT_ATTACHMENT';
             var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
             var att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
+            var con_make_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_MAKING');
             var base_record;
             var att_record;
             var project_attachment_id;
             base_record = $(base_ds_id).findById(record_id);
             att_record = $(att_ds_id).findById(record_id);
+            con_make_record = $(con_make_ds_id).findById(record_id);
 
             if(ds_id == base_ds_id){
                 project_attachment_id = base_record.get('project_attachment_id');
             }else if(ds_id == att_ds_id){
                 project_attachment_id = att_record.get('project_attachment_id');
+            }else if(ds_id == con_make_ds_id){
+                project_attachment_id = con_make_record.get('project_attachment_id');
             }
             if (!project_attachment_id) {
                 $L.showInfoMessage("提示", "请先保存再上传附件!");
@@ -632,8 +636,9 @@
                     para: {project_id: record.get('project_id'),template_code},
                     success: function (res) {
                         window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+                        console.log(res);
                         var down_url = '';
-                        if (records.length == 1) {
+                        if (record.length == 1) {
                             var attachment_id = res.result.record[0].attachment_id;
                             down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
                             location.href = down_url;

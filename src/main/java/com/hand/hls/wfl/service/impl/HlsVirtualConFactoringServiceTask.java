@@ -22,6 +22,7 @@ public class HlsVirtualConFactoringServiceTask implements JavaDelegate, IActivit
     private static final String APPROVED = "APPROVED";
 
     private static final String REJECTED = "REJECTED";
+    private static final String TEMPLATECODE = "VIRTUAL_CON_TABLE";
 
     @Autowired
     private HlsCusPrjProjectService hlsCusPrjProjectService;
@@ -35,6 +36,12 @@ public class HlsVirtualConFactoringServiceTask implements JavaDelegate, IActivit
         hlsCusPrjProject = hlsCusPrjProjectService.selectByPrimaryKey(requestCtx, hlsCusPrjProject);
         if (!APPROVED.equalsIgnoreCase(hlsCusPrjProject.getContractStatus()) && !REJECTED.equalsIgnoreCase(hlsCusPrjProject.getContractStatus())) {
             if (APPROVED.equalsIgnoreCase(result)) {
+                //自动生成合同审查表
+                try {
+                    hlsCusPrjProjectService.contextFactoringCreateMultiple(requestCtx, hlsCusPrjProject, TEMPLATECODE, null);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
                 hlsCusPrjProject.setLastUpdateDate(new Date());
                 hlsCusPrjProject.setContractEndDate(new Date());
                 hlsCusPrjProject.setContractStatus(APPROVED);
