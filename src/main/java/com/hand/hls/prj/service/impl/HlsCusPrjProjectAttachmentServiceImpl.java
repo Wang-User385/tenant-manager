@@ -179,6 +179,33 @@ public class HlsCusPrjProjectAttachmentServiceImpl extends BaseServiceImpl<HlsCu
             for (HlsCreditLineAttach chanceBp : lineAttaches) {
                 if(chanceBp != null){
                     copyPublicFields(requestContext,hlsCusPrjProjectAttachment, chanceBp);
+                    // 复制附件
+                    //获取原来的附件
+                    FndAttachmentMulti fndAttachmentMulti = new FndAttachmentMulti();
+                    fndAttachmentMulti.setTableName("hls_credit_line_attach");
+                    fndAttachmentMulti.setTablePkValue(chanceBp.getChanceAttachmentId().toString());
+                    List<FndAttachmentMulti> fndAttachmentMultis = fndAttachmentMultiMapper.select(fndAttachmentMulti);
+                    if (!fndAttachmentMultis.isEmpty()){
+                        fndAttachmentMultis.forEach(attachmentMulti -> {
+                            FndAttachment fndAttachment = fndAttachmentMapper.selectByPrimaryKey(attachmentMulti.getAttachmentId());
+                            if(fndAttachment==null){
+                                return;
+                            }
+                            FndAttachment newAttachment = new FndAttachment();
+                            BeanUtils.copyProperties(fndAttachment,newAttachment);
+                            newAttachment.setAttachmentId(null);
+                            fndAttachmentMapper.insertSelective(newAttachment);
+                            FndAttachmentMulti newMulti = new FndAttachmentMulti();
+                            BeanUtils.copyProperties(attachmentMulti,newMulti);
+                            newMulti.setTablePkValue(hlsCusPrjProjectAttachment.getProjectAttachmentId().toString());
+                            newMulti.setRecordId(null);
+                            newMulti.setAttachmentId(newAttachment.getAttachmentId());
+                            newMulti.setTableName("PRJ_PROJECT_ATTACHMENT");
+                            fndAttachmentMultiMapper.insertSelective(newMulti);
+                            newAttachment.setSourcePkValue(newMulti.getRecordId().toString());
+                            fndAttachmentMapper.updateByPrimaryKeySelective(newAttachment);
+                        });
+                    }
                 }
 
             }

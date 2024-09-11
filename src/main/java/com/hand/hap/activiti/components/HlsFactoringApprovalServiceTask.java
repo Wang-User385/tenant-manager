@@ -63,10 +63,11 @@ public class HlsFactoringApprovalServiceTask implements JavaDelegate, IActivitiB
         IRequest requestCtx = (IRequest) delegateExecution.getVariable("iRequest");
         String result = (String) delegateExecution.getVariable("approveResult");
         Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
-        //Long processInstanceId = Long.parseLong(delegateExecution.getProcessInstanceId());
+        Long processInstanceId = Long.parseLong(delegateExecution.getProcessInstanceId());
         HlsCusPrjProject prjProject = new HlsCusPrjProject();
         prjProject.setProjectId(projectId);
         prjProject = hlsCusPrjProjectService.selectByPrimaryKey(requestCtx, prjProject);
+        prjProject.setVirConProcessInstatnceId(processInstanceId);
         if (isValid(prjProject)) {
             if (APPROVED.equalsIgnoreCase(result)) {
                 prjProject.setProjectStatus(APPROVED);
