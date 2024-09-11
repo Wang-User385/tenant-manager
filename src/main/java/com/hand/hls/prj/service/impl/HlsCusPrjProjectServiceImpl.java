@@ -3790,7 +3790,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             project.setLeaseItemAmount(creditChance.getCreditLineAmt());
             project.setHostProjectManager(creditChance.getProposerEmployeeId());
             project.setAssistProjectManager(creditChance.getProjectAssistant());
-            project.setProjectStatus(creditChance.getCreditLineStatus());
+            project.setProjectStatus("NEW");
             project.setApprovedDate(creditChance.getApprovedDate());
             project.setDescription(creditChance.getDescription());
             project.setGuaranteeAnalyse(creditChance.getGuaranteeAnalyse());
