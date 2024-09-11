@@ -13989,9 +13989,23 @@ WHERE
         p.creation_date,
         p.unit_id,
         p.city,
+        (
+        SELECT
+        CONCAT(
+        ( SELECT P.DESCRIPTION FROM FND_PROVINCE P WHERE to_char( P.PROVINCE ) = fd.PROVINCE ),
+        CONCAT( ( SELECT fc.DESCRIPTION FROM FND_CITY fc WHERE to_char( fc.City ) = fd.City ), fd.DESCRIPTION )
+        )
+        FROM
+        fnd_district fd
+        WHERE
+        fd.DISTRICT = p.city
+        AND fd.enabled_flag = 'Y'
+        ) CITY_N,
         p.industry_type,
+        ( SELECT hsc.description FROM hls_stat_class hsc WHERE to_char( hsc.class_id ) = p.industry_type AND hsc.enabled_flag = 'Y' ) industry_type_n,
         p.tenant_id,
         p.business_type,
+        ( SELECT bt.description FROM hls_business_type bt WHERE bt.DOCUMENT_CATEGORY = 'CHANCE' AND bt.business_type = p.business_type ) business_type_n,
         p.description,
         p.guarantee_analyse,
         p.loan_condition,
@@ -14000,12 +14014,12 @@ WHERE
         p.other_desc,
         (SELECT m.bp_name
         FROM hls_bp_master m
-        WHERE m.bp_id = p.tenant_id)        as      tenant_id_n,
+        WHERE m.bp_id = p.tenant_id)  as   tenant_id_n,
         p.credit_flag,
         (SELECT v.meaning
         FROM sys_code_value_b_v v
         WHERE v.CODE = 'GT.HCLC.CREDIT_FLAG'
-        AND p.CREDIT_FLAG = v.CODE_VALUE) AS      credit_flag_n,
+        AND p.CREDIT_FLAG = v.CODE_VALUE) AS   credit_flag_n,
         p.lease_item_amount,
         p.host_project_manager,
         (SELECT su.description
@@ -14019,7 +14033,7 @@ WHERE
         (SELECT v.meaning
         FROM sys_code_value_b_v v
         WHERE v.CODE = 'CHANCE.FACTORING_PRJ_STATUS'
-        AND v.code_value = p.project_status)      project_status_n,
+        AND v.code_value = p.project_status)    project_status_n,
         p.approved_date
         from prj_project p
         <where>
