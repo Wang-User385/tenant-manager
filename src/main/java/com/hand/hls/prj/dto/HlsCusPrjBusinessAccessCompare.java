@@ -48,5 +48,8 @@ public class HlsCusPrjBusinessAccessCompare extends BaseDTO {
      @Transient
      private String checkResultN;
 
+     @Transient
+     private String userId;
+
 
      }
