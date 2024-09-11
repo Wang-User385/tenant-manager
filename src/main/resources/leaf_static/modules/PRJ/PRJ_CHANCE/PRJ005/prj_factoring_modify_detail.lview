@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--创建-->
-<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
+<a:screen xmlns:a="http://www.leaf-framework.org/application"  customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
         <a:link id="factoring_bp_master_modify_link_id"
@@ -13,6 +13,7 @@
         <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
         <script><![CDATA[
         var vote_flag = false;
+        var wfl_is_save = true;
         //超链接渲染
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
             var file_num = record.get('file_num') || 0;
@@ -207,6 +208,7 @@
 
         //更新时调用
         window['${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value) {
+            wfl_is_save = false;
             var quo_ds = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation');
             if (ds.id === quo_ds) {
                 if (name == 'lease_item_amount' || name == 'down_payment') {
@@ -391,7 +393,7 @@
                 }
                 record.set('stage', 'STAGE_AFTER');
             } else if (ds.id == vote_ds_id) {
-                if (record && '${/parameter/@special_node_flag}' == 'Y'&&'${/parameter/@meeting_type}' == 'OFFLINE_MEETING') {
+                if (record && '${/parameter/@special_node_flag}' == 'Y' && '${/parameter/@meeting_type}' == 'OFFLINE_MEETING') {
                     vote_flag = true;
                     record.getField('allocation_id').setReadOnly(false);
                     record.getField('allocation_id').setRequired(true);
@@ -417,6 +419,7 @@
             var ds_id_au = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
             var ds_id_pre = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC');
             var ds_id_after = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC_AFTER');
+            var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
             if (ds.id == ds_id_p) {
                 var record = $(ds_id_au).getCurrentRecord();
                 if (record) {
@@ -426,12 +429,15 @@
                 $(ds_id_pre).setQueryParameter('stage', 'STAGE_PRE')
             } else if (ds.id == ds_id_after) {
                 $(ds_id_after).setQueryParameter('stage', 'STAGE_AFTER')
+            }else if (ds.id == ds_id_business){
+                $(ds_id_business).fetchall == true;
             }
         };
 
         //保存submitsuccess调用
         window['${/parameter/@layout_code}_on_layout_dynamic_submitsuccess'] = function (ds, record, res, bp_seq) {
             window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
+            wfl_is_save = true;
             vote_flag = false;
             var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_BASIC');
             if (ds_root_id) {
@@ -490,19 +496,20 @@
                     }
                 }
             }
+            //当前节点可以编辑业务准入信息
+            var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
+            if (ds.id == ds_id_business ){
+                if ('${/parameter/@edit_business_flag}' == 'Y' || '${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS11' ) {
+                    editBusiness(ds_id_business);
+                } else {
+                    noEditBusiness(ds_id_business);
+                }
+            }
         };
 
         Leaf.onReady(function () {
             var credit_flag = '${/parameter/@credit_flag}';
             var credit_flag_n = '${/parameter/@credit_flag_n}';
-            //当前节点可以编辑业务准入信息
-            debugger;
-            var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
-            if ('${/parameter/@edit_business_flag}' == 'Y') {
-                editBusiness(ds_id_business);
-            }else {
-                noEditBusiness(ds_id_business);
-            }
             //隐藏工作流要用组件 '' 和 N
             if ('${/parameter/@wfl_flag}' != 'Y') {
                 wflComponentHide();
@@ -515,7 +522,7 @@
             if (credit_flag == 'N' || credit_flag_n == '否') {
                 noCreditFlogComponentHide();
             }
-            if ('${/parameter/@special_node_flag}' == 'Y' && '${/parameter/@meeting_type}' == 'ONLINE_MEETING'){
+            if ('${/parameter/@special_node_flag}' == 'Y' && '${/parameter/@meeting_type}' == 'ONLINE_MEETING') {
                 specialNodeFlagComponentHide();
             }
             //不是特殊节点不显示按钮
@@ -528,10 +535,14 @@
                 var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
                 addCustomerInCreate(ds_id_customer);
             }
+
+
             //审批当中不允许删除其他人的附件
-            if ('${/parameter/@edit_attachment_flag}' == 'Y'){
+            if ('${/parameter/@edit_attachment_flag}' == 'Y') {
                 openBigSaveButton();
-                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS25'){
+                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS25' ||
+                    '${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS11'
+                ) {
                     var attach_grid_div_id = 'PRJ005F1_G_ATTA_INFO_hls_credit_line_attach_layout_grid_id_tb';
                     processingGridByDivIdShow(attach_grid_div_id);
                 }
@@ -611,6 +622,7 @@
         }
 
         function upload(ds_id, record_id, pk_id) {
+            debugger;
             var tableName = 'HLS_CREDIT_LINE_ATTACH';
             var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ATTA_INFO');
             var base_record;
@@ -622,13 +634,21 @@
                 return;
             }
             var url = '${/request/@context_path}/uploadFile.lview';
+            var created_by = base_record.get('created_by');
+            var cur_by = '${/session/@user_id}'
+            var function_usage = 'MODIFY'
+            if (created_by && created_by !== cur_by) {
+                function_usage = 'QUERY';
+                url = '${/request/@context_path}/downloadFile.lview'
+            }
             var win = new Leaf.Window({
                 id: 'PRJ005F1_open_attachment_factoring_winid',
                 url: url,
                 params: {
                     'header_id': chance_attachment_id,
                     'table_name': tableName,
-                    winid: 'PRJ005F1_open_attachment_factoring_winid'
+                    winid: 'PRJ005F1_open_attachment_factoring_winid',
+                    function_usage: function_usage
                 },
                 title: '文件上传下载',
                 width: 800,
@@ -791,7 +811,7 @@
         }
 
 
-        function specialNodeFlagComponentHide(){
+        function specialNodeFlagComponentHide() {
             var vote_grid_div_id = 'PRJ005F1_G_VOTE_FAC_hls_credit_line_chance_approver_layout_grid_id_tb';
             processingGridByDivId(vote_grid_div_id);
         }
@@ -895,7 +915,7 @@
             let con_after_grid_id = '#' + '${/parameter/@layout_code}_G_CON_FAC_AFTER_hls_credit_line_chance_condition_layout_grid_id_wrap';
 
             var node_id = '${/parameter/@node_id}';
-            if (node_id != 'FACTORING_PROJRCT_PROPOSALS11' && node_id != 'FACTORING_PROJRCT_PROPOSALS14' && node_id != 'FACTORING_PROJRCT_PROPOSALS15' && node_id != 'FACTORING_PROJRCT_PROPOSALS16'){
+            if (node_id != 'FACTORING_PROJRCT_PROPOSALS11' && node_id != 'FACTORING_PROJRCT_PROPOSALS14' && node_id != 'FACTORING_PROJRCT_PROPOSALS15' && node_id != 'FACTORING_PROJRCT_PROPOSALS16') {
                 jQuery(business_grid_id).hide();
                 jQuery(business_component_id).hide();
                 jQuery(business_component_id).prev().hide();
@@ -987,7 +1007,7 @@
                     });
                 }
             }
-            if(vote_record){
+            if (vote_record) {
                 var vote_status = vote_record.get('vote_status');
                 var vote_comment = vote_record.get('vote_comment');
                 if (node_id == 'FACTORING_PROJRCT_PROPOSALS18') {
@@ -1004,19 +1024,28 @@
                     });
                 }
             }
-            if (node_id == 'FACTORING_PROJRCT_PROPOSALS11'){
+            if (node_id == 'FACTORING_PROJRCT_PROPOSALS11') {
                 var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
-                if (!$(ds_id_business).validate()){
-                    Leaf.showInfoMessage('提示','请保存业务准入审核结果');
+                if (!$(ds_id_business).validate()) {
                     return false;
                 }
             }
-            if (node_id == 'FACTORING_PROJRCT_PROPOSALS23'){
-                if (vote_flag){
-                    Leaf.showInfoMessage('提示','请保存投票数据');
-                    return false;
-                }
+            if ((node_id == 'FACTORING_PROJRCT_PROPOSALS11' ||
+                node_id == 'FACTORING_PROJRCT_PROPOSALS18' ||
+                node_id == 'FACTORING_PROJRCT_PROPOSALS24')) {
+                //提交时自动保存
+                window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {
+                    countiune();
+                });
+                return;
             }
+
+            // if (node_id == 'FACTORING_PROJRCT_PROPOSALS23') {
+            //     if (vote_flag) {
+            //         Leaf.showInfoMessage('提示', '请保存投票数据');
+            //         return false;
+            //     }
+            // }
             countiune();
         }
 

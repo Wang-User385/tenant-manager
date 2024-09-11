@@ -51,7 +51,7 @@ public class OnlineMeetingFactoringApprovalServiceTask implements JavaDelegate, 
             }
             int max = Math.max(Math.max(pass, noPass), condition);
             voteStatus = max == pass ? "PASS" :
-                    max == noPass ? "NO_PASS" : "CONDITION";
+                    max == condition ? "CONDITION" : "NO_PASS";
             delegateExecution.setVariable("voteStatus", voteStatus);
         }
     }
