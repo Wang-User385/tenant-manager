@@ -13,4 +13,5 @@ public interface HlsCusPrjProjectConditionMapper extends Mapper<HlsCusPrjProject
      * @return
      */
     List<HlsCusPrjProjectCondition> findFactoringApprovalCondition(HlsCusPrjProjectCondition hlsCusPrjProjectCondition);
+    List<HlsCusPrjProjectCondition> queryProjectConditionByProjectId(HlsCusPrjProjectCondition hlsCusPrjProjectCondition);
 }

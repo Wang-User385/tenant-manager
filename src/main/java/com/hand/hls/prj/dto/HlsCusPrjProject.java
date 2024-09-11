@@ -430,6 +430,12 @@ public class HlsCusPrjProject extends PrjProject {
     private Double outstandingPrincipal;
     @Transient
     private String contractNum;
+    private String riskStaffAdvice;
+    @Transient
+    private String riskStaffAdviceN;
+    private String legalStaffAdvice;
+    @Transient
+    private String legalStaffAdviceN;
 
     private Date leaseLatestDeliveryDate;
     private Double terminationCompensationRatio;
@@ -3094,12 +3100,21 @@ public class HlsCusPrjProject extends PrjProject {
 
     @Transient
     private String cityN;
+    @Transient
+    private String votingResult;
+    @Transient
+    private Long numberPassers;
+    @Transient
+    private Long numberFailures;
+    @Transient
+    private Long numberConditiona;
 
 
     private String spotCheckDesc;
 
 
     private String riskInvestDesc;
+    private Date meetingTime;
 
     @Transient
     private String industryTypeN;

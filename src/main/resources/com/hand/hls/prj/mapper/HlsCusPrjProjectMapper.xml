@@ -11,6 +11,10 @@
         <result column="outstanding_principal" property="outstandingPrincipal" jdbcType="DECIMAL"/>
         <result column="check_id" property="checkId" jdbcType="DECIMAL"/>
         <result column="contract_num" property="contractNum" jdbcType="VARCHAR"/>
+        <result column="risk_staff_advice" property="riskStaffAdvice" jdbcType="VARCHAR"/>
+        <result column="risk_staff_advice_n" property="riskStaffAdviceN" jdbcType="VARCHAR"/>
+        <result column="legal_staff_advice" property="legalStaffAdvice" jdbcType="VARCHAR"/>
+        <result column="legal_staff_advice_n" property="legalStaffAdviceN" jdbcType="VARCHAR"/>
         <result column="down_payment_ratio" property="downPaymentRatio" jdbcType="DECIMAL"/>
         <result column="deposit_ratio" property="depositRatio" jdbcType="DECIMAL"/>
         <result column="residual" property="residual" jdbcType="DECIMAL"/>
@@ -459,7 +463,12 @@
         <result column="city" property="city" jdbcType="VARCHAR"/>
         <result column="city_n" property="cityN" jdbcType="VARCHAR"/>
         <result column="spot_check_desc" property="spotCheckDesc" jdbcType="VARCHAR"/>
+        <result column="voting_result" property="votingResult" jdbcType="VARCHAR"/>
+        <result column="number_passers" property="numberPassers" jdbcType="DECIMAL"/>
+        <result column="number_failures" property="numberFailures" jdbcType="DECIMAL"/>
+        <result column="number_conditiona" property="numberConditiona" jdbcType="DECIMAL"/>
         <result column="risk_invest_desc" property="riskInvestDesc" jdbcType="VARCHAR"/>
+        <result column="meeting_time" property="meetingTime" jdbcType="DATE"/>
 
         <result column="vir_con_process_instatnce_id" property="virConProcessInstatnceId" jdbcType="VARCHAR"/>
         <result column="contract_status" property="contractStatus" jdbcType="VARCHAR"/>
@@ -13982,12 +13991,32 @@ WHERE
         </where>
     </select>
     <select id="queryProjectById" resultMap="BaseResultMap">
-        select  p.project_number,
+        select t.*,
+        CASE
+        WHEN NUMBER_PASSERS > NUMBER_FAILURES AND NUMBER_PASSERS > NUMBER_CONDITIONA THEN '通过'
+        WHEN NUMBER_FAILURES > NUMBER_CONDITIONA AND NUMBER_FAILURES > NUMBER_PASSERS THEN '不通过'
+        WHEN NUMBER_CONDITIONA > NUMBER_PASSERS AND NUMBER_CONDITIONA > NUMBER_FAILURES THEN '有条件通过'
+        END AS VOTING_RESULT
+        from( select  p.project_number,
         p.project_name,
         p.chance_id,
         p.project_id,
+        p.spot_check_desc,
+        p.risk_invest_desc,
+        p.meeting_time,
+        p.meeting_location,
+        p.meeting_name,
+        p.risk_staff_advice,
+        (select v.MEANING from sys_code_value_b_v v
+        where v.code='PROJECT.RISK_STAFF_ADVICE'
+        and v.code_value=p.risk_staff_advice) as risk_staff_advice_n,
+        p.legal_staff_advice,
+        (select v.MEANING from sys_code_value_b_v v
+        where v.code='PROJECT.RISK_STAFF_ADVICE'
+        and v.code_value=p.legal_staff_advice) as legal_staff_advice_n,
         p.creation_date,
         p.unit_id,
+        ( SELECT fou.unit_name FROM fnd_org_unit fou WHERE fou.unit_id = p.unit_id ) unit_id_n,
         p.city,
         (
         SELECT
@@ -14034,11 +14063,14 @@ WHERE
         FROM sys_code_value_b_v v
         WHERE v.CODE = 'CHANCE.FACTORING_PRJ_STATUS'
         AND v.code_value = p.project_status)    project_status_n,
-        p.approved_date
-        from prj_project p
+        p.approved_date,
+        (SELECT COUNT(1) FROM prj_project_approver cv WHERE cv.vote_status = 10 AND cv.project_id = p.chance_id) AS NUMBER_PASSERS,
+        (SELECT COUNT(1) FROM prj_project_approver cv WHERE cv.vote_status = 20 AND cv.project_id = p.project_id) AS NUMBER_FAILURES,
+        (SELECT COUNT(1) FROM prj_project_approver cv WHERE cv.vote_status = 30 AND cv.project_id = p.project_id) AS NUMBER_CONDITIONA
+        from prj_project p) t
         <where>
             1=1
-            and p.project_id = #{projectId}
+            and t.project_id = #{projectId}
         </where>
     </select>
 
