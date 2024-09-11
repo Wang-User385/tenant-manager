@@ -3281,7 +3281,7 @@ public class HlsCusPrjProject extends PrjProject {
     @Transient
     private String paymentApprovedStatus;
 
-    private String contractContentNumber; //合同用印份数
+    private Long contractContentNumber; //合同用印份数
 
     private String contractSignAddress; //合同签订地点
 
