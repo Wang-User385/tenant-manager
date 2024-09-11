@@ -3285,7 +3285,7 @@ public class HlsCusPrjProject extends PrjProject {
 
     private String contractSignAddress; //合同签订地点
 
-    private String contractSignTimes; //合同签订日期
+    private Date contractSignTimes; //合同签订日期
 
     private String contractSpecialCondit; //合同特别约定条款
 
@@ -3293,7 +3293,7 @@ public class HlsCusPrjProject extends PrjProject {
 
     private String contractOutLawReviewer; //外聘律师事务所审查人
 
-    private String contractOutLawDate; //外聘律师事务所审查日期
+    private Date contractOutLawDate; //外聘律师事务所审查日期
 
     private String contractOutLawComment; //外聘律师事务所审查意见
 
