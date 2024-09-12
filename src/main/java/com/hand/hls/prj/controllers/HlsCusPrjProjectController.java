@@ -3442,5 +3442,25 @@ public class HlsCusPrjProjectController extends BaseController {
                 service.contextFactoringCreateMultiple(requestCtx, projectList.get(0),templateCode ,response);
         return new ResponseData(list);
     }
+    @RequestMapping(value = "/prj/project/Legal/update/Advice")
+    @ResponseBody
+    public ResponseData updateProjectLegalStaffAdvice(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,HttpServletRequest request) throws ResMessageException {
+        IRequest requestCtx = createRequestContext(request);
+
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject hlsCusPrjProject = param.toJavaObject(HlsCusPrjProject.class);
+        service.updateByPrimaryKeySelective(requestCtx, hlsCusPrjProject);
+        return new ResponseData();
+    }
+    @RequestMapping(value = "/prj/project/risk/update/Advice")
+    @ResponseBody
+    public ResponseData updateProjectRiskStaffAdvice(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,HttpServletRequest request) throws ResMessageException {
+        IRequest requestCtx = createRequestContext(request);
+
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject hlsCusPrjProject = param.toJavaObject(HlsCusPrjProject.class);
+        service.updateByPrimaryKeySelective(requestCtx, hlsCusPrjProject);
+        return new ResponseData();
+    }
 
 }

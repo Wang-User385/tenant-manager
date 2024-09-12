@@ -430,6 +430,12 @@ public class HlsCusPrjProject extends PrjProject {
     private Double outstandingPrincipal;
     @Transient
     private String contractNum;
+    private String riskStaffAdvice;
+    @Transient
+    private String riskStaffAdviceN;
+    private String legalStaffAdvice;
+    @Transient
+    private String legalStaffAdviceN;
 
     private Date leaseLatestDeliveryDate;
     private Double terminationCompensationRatio;
@@ -3094,12 +3100,21 @@ public class HlsCusPrjProject extends PrjProject {
 
     @Transient
     private String cityN;
+    @Transient
+    private String votingResult;
+    @Transient
+    private Long numberPassers;
+    @Transient
+    private Long numberFailures;
+    @Transient
+    private Long numberConditiona;
 
 
     private String spotCheckDesc;
 
 
     private String riskInvestDesc;
+    private Date meetingTime;
 
     @Transient
     private String industryTypeN;
@@ -3266,11 +3281,11 @@ public class HlsCusPrjProject extends PrjProject {
     @Transient
     private String paymentApprovedStatus;
 
-    private String contractContentNumber; //合同用印份数
+    private Long contractContentNumber; //合同用印份数
 
     private String contractSignAddress; //合同签订地点
 
-    private String contractSignTimes; //合同签订日期
+    private Date contractSignTimes; //合同签订日期
 
     private String contractSpecialCondit; //合同特别约定条款
 
@@ -3278,7 +3293,7 @@ public class HlsCusPrjProject extends PrjProject {
 
     private String contractOutLawReviewer; //外聘律师事务所审查人
 
-    private String contractOutLawDate; //外聘律师事务所审查日期
+    private Date contractOutLawDate; //外聘律师事务所审查日期
 
     private String contractOutLawComment; //外聘律师事务所审查意见
 

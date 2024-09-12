@@ -3790,7 +3790,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
             project.setLeaseItemAmount(creditChance.getCreditLineAmt());
             project.setHostProjectManager(creditChance.getProposerEmployeeId());
             project.setAssistProjectManager(creditChance.getProjectAssistant());
-            project.setProjectStatus(creditChance.getCreditLineStatus());
+            project.setProjectStatus("NEW");
             project.setApprovedDate(creditChance.getApprovedDate());
             project.setDescription(creditChance.getDescription());
             project.setGuaranteeAnalyse(creditChance.getGuaranteeAnalyse());
@@ -9362,20 +9362,47 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
         HlsCusPrjProjectAttachment hlsCusPrjProjectAttachment = new HlsCusPrjProjectAttachment();
         if ("VIRTUAL_CON_TABLE".equals(templateCode)) {
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("VIRTUAL_CON_TABLE");
+            fileName = hlsCusPrjProject.getContractNumber() + "合同审查简表文本";
         } else if ("FACTORING_RISK".equals(templateCode)) {
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("CHANCE_PRJ_RISK_ATT");
+            fileName = hlsCusPrjProject.getProjectNumber() + "风险审查意见表文本";
         } else if ("FACTORING_LAW".equals(templateCode)) {
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("CHANCE_PRJ_LAW_ATT");
+            fileName = hlsCusPrjProject.getProjectNumber() + "法务审查意见表文本";
         } else if ("FACTORING_APPROVE".equals(templateCode)) {
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("CHANCE_PRJ_APPROVE_ATT");
+            fileName = hlsCusPrjProject.getProjectNumber() + "审批审查意见表文本";
         } else if ("FACTORING_PRJ".equals(templateCode)) {
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("CHANCE_PROJECT_ATT");
+            fileName = hlsCusPrjProject.getProjectNumber() + "项目审批意见反馈表文本";
         } else {
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("PRJ_PROJECT");
         }
         hlsCusPrjProjectAttachment.setProjectId(hlsCusPrjProject.getProjectId());
         hlsCusPrjProjectAttachment.setDocumentName(fileName + ".docx");
         hlsCusPrjProjectAttachment.setCreatedBy(requestCtx.getUserId());
+
+        //删除附件，重新生成
+        HlsCusPrjProjectAttachment projectAttachmentQuery = new HlsCusPrjProjectAttachment();
+        projectAttachmentQuery.setProjectId(hlsCusPrjProject.getProjectId());
+        projectAttachmentQuery.setProjectAttachmentCategory(hlsCusPrjProjectAttachment.getProjectAttachmentCategory());
+        List<HlsCusPrjProjectAttachment> attachmentList = attachmentMapper.prjProjectAttachmentDetailQuery(projectAttachmentQuery);
+        for (HlsCusPrjProjectAttachment attachment : attachmentList) {
+            //删除系统附件表
+            FndAttachmentMulti fndAttachmentMulti = new FndAttachmentMulti();
+            fndAttachmentMulti.setTableName(tableName);
+            fndAttachmentMulti.setTablePkValue(String.valueOf(attachment.getProjectAttachmentId()));
+
+            List<FndAttachmentMulti> multiList = fndAttachmentMultiMapper.select(fndAttachmentMulti);
+            for (FndAttachmentMulti multi : multiList) {
+                attachment.setAttachmentId(multi.getAttachmentId().toString());
+                attachmentMapper.deleteFndAtmAttachment(attachment);
+                fndAttachmentMultiMapper.deleteByPrimaryKey(multi);
+            }
+            //删除关联表
+            attachmentMapper.deleteByPrimaryKey(attachment);
+        }
+
         attachmentMapper.insertSelective(hlsCusPrjProjectAttachment);
         HlsCusDownloadDocxUtil.createDocx(iRequest, modelIs, new File(copyPath), params);
         FndAttachmentMulti fndAttachmentMulti = insertAtmAttachement(iRequest, copyPath,

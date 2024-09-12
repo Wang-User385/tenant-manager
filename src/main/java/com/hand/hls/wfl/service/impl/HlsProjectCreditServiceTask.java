@@ -2,7 +2,6 @@ package com.hand.hls.wfl.service.impl;
 
 import com.hand.hap.activiti.custom.IActivitiBean;
 import com.hand.hap.core.IRequest;
-import com.hand.hls.csh.dto.HlsCusCshTransactionRefund;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.service.HlsCusPrjProjectService;
 import org.activiti.engine.delegate.DelegateExecution;
@@ -18,11 +17,11 @@ import java.util.Date;
  * @date 2024/9/5 13:48:39
  */
 @Service
-public class HlsVirtualConFactoringServiceTask implements JavaDelegate, IActivitiBean {
+public class HlsProjectCreditServiceTask implements JavaDelegate, IActivitiBean {
     private static final String APPROVED = "APPROVED";
 
     private static final String REJECTED = "REJECTED";
-    private static final String TEMPLATE_CODE = "VIRTUAL_CON_TABLE";
+    private static final String TEMPLATECODE = "VIRTUAL_CON_TABLE";
 
     @Autowired
     private HlsCusPrjProjectService hlsCusPrjProjectService;
@@ -36,21 +35,17 @@ public class HlsVirtualConFactoringServiceTask implements JavaDelegate, IActivit
         hlsCusPrjProject = hlsCusPrjProjectService.selectByPrimaryKey(requestCtx, hlsCusPrjProject);
         if (!APPROVED.equalsIgnoreCase(hlsCusPrjProject.getContractStatus()) && !REJECTED.equalsIgnoreCase(hlsCusPrjProject.getContractStatus())) {
             if (APPROVED.equalsIgnoreCase(result)) {
-                //自动生成合同审查表
-                try {
-                    HlsCusPrjProject prjProject = new HlsCusPrjProject();
-                    prjProject.setProjectId(projectId);
-                    hlsCusPrjProjectService.contextFactoringCreateMultiple(requestCtx, prjProject, TEMPLATE_CODE, null);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                hlsCusPrjProject.setLastUpdateDate(new Date());
-                hlsCusPrjProject.setContractEndDate(new Date());
+//                //自动生成合同审查表
+//                try {
+//                    hlsCusPrjProjectService.contextFactoringCreateMultiple(requestCtx, hlsCusPrjProject, TEMPLATECODE, null);
+//                } catch (Exception e) {
+//                    throw new RuntimeException(e);
+//                }
+                hlsCusPrjProject.setApprovedTime(new Date());
                 hlsCusPrjProject.setContractStatus(APPROVED);
                 hlsCusPrjProjectService.updateByPrimaryKeySelective(requestCtx, hlsCusPrjProject);
             } else if (REJECTED.equalsIgnoreCase(result)) {
-                hlsCusPrjProject.setLastUpdateDate(new Date());
-                hlsCusPrjProject.setContractEndDate(new Date());
+                hlsCusPrjProject.setApprovedTime(new Date());
                 hlsCusPrjProject.setContractStatus(REJECTED);
                 hlsCusPrjProjectService.updateByPrimaryKeySelective(requestCtx, hlsCusPrjProject);
             }

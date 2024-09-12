@@ -3,6 +3,57 @@
           trace="true">
     <a:view>
         <script><![CDATA[
+        //超链接渲染
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            var file_num = record.get('file_num') || 0;
+            var attach_name = file_num === 0 ? '附件' : '附件(' + file_num + ')';
+            if (name == 'customer_detail_information') {
+                return '<a href="javascript:open_master_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户明细信息</a>';
+            } else if (name == 'client_financial_reports') {
+                return '<a href="javascript:open_financia_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户财报信息</a>';
+            } else if (name == 'info') {
+                return '<a href="javascript:upload(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('project_id') + '\');">' + attach_name + '</a>';
+            } else if (name == 'quote') {
+                return '<a href="javascript:quotation_factoring_detail_adjust(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('quotation_id') + '\',\'' + record.get('chance_id') + '\')"><span style="    width: 82px;\n' +
+                    '    background-color: #4CAF50;\n' +
+                    '    border: none;\n' +
+                    '    color: white;\n' +
+                    '    padding: 1px 33px;\n' +
+                    '    text-align: center;\n' +
+                    '    text-decoration: none;\n' +
+                    '    display: inline-block;\n' +
+                    '    font-size: 13px;\n' +
+                    '    margin: 0px 0px;\n' +
+                    '    cursor: pointer;\n' +
+                    '    border-radius: 8px;\n' +
+                    '    transition: background-color 0.3s;">报价测算' +
+                    '</span></a>';
+            } else if (name == 'preview') {
+                if (record.get('attachment_id_n') != null) {
+                    var html = '';
+                    var fileNameList = record.get('file_names').split(',');
+                    var attachmentIdList = record.get('attachment_id_n').split(',');
+                    var sourcePkList = record.get('source_pk_value').split(',');
+                    for (let i = 0; i < fileNameList.length; i++) {
+                        if (html != '') {
+                            html += ',';
+                        }
+                        if (atmTypeRef(fileNameList[i])) {
+                            html += '<span><a target="_self" alt="' + fileNameList[i] + '" imageIndex="img_' + attachmentIdList[i] + '" ref="img_' + attachmentIdList[i] + '" href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkPdf(fileNameList[i])) {
+                            var url = encodeURIComponent('${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i]);
+                            html += '<span><a target="_blank" href="${/request/@context_path}/resources/hls/pdf/web/viewer.html?file=' + url + '">' + fileNameList[i] + '</a></span>';
+                        } else if (checkDox(fileNameList[i]) || checkXls(fileNameList[i])) {
+                            html += '<a href=javascript:queryDocFile(\'' + sourcePkList[i] + '\')> ' + fileNameList[i] + '在线预览</a>';
+                        } else {
+                            html += '<span><a href="${/request/@context_path}/fnd/attachment/download?attachment_id=' + attachmentIdList[i] + '">' + fileNameList[i] + '</a></span>';
+                        }
+
+                    }
+                    return html;
+                }
+            }
+        };
         //暂存
         window['${/parameter/@layout_code}_user_button1_layout_dynamic_click'] = function () {
 
@@ -103,6 +154,53 @@
                 }
 
             })
+        };
+
+        //task_detail执行提交前调用
+        function beforeSubmit(countiune) {
+            debugger;
+            var ds_root_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_PR_BASIC');
+            if (ds_root_id) {
+                var project_id = $(ds_root_id).getCurrentRecord().get('project_id');
+            }
+            if ($('chance_appoint_user_ds').getAll().length != 0) {
+                var cur_record = $('chance_appoint_user_ds').getCurrentRecord();
+            }
+            var service_record = $('legal_staff_advice_ds').getCurrentRecord();
+            var risk_record = $('project_risk_back_ds').getCurrentRecord();
+            var node_id = '${/parameter/@node_id}';
+            if (service_record != null) {
+                var legal_staff_advice = service_record.get('legal_staff_advice');
+                if (node_id === 'CREDIT_TENANT_AMOUNT_WFL_S5' || node_id === 'CREDIT_TENANT_AMOUNT_WFL_S7') {
+                    Leaf.request({
+                        url: '${/request/@context_path}/prj/project/Legal/update/Advice',
+                        para: {
+                            project_id: project_id,
+                            legal_staff_advice: legal_staff_advice
+                        },
+                        success: function (res) {
+                        },
+                        sync: true
+                    });
+                }
+            }
+            if (risk_record != null) {
+                var risk_staff_advice = risk_record.get('risk_staff_advice');
+                if (node_id === 'CREDIT_TENANT_AMOUNT_WFL_S4' || node_id === 'CREDIT_TENANT_AMOUNT_WFL_S6') {
+                    Leaf.request({
+                        url: '${/request/@context_path}/prj/project/risk/update/Advice',
+                        para: {
+                            project_id: project_id,
+                            risk_staff_advice: risk_staff_advice
+                        },
+                        success: function (res) {
+                        },
+                        sync: true
+                    });
+                }
+            }
+
+            countiune();
         };
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
