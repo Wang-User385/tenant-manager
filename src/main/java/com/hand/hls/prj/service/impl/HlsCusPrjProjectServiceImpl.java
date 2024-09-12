@@ -3715,8 +3715,13 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
 //    @Autowired
 //    private HlsCusPrjProjectAttachmentService hlsCusPrjProjectAttachmentService;
 
+
     @Autowired
     private HlsCusPrjIBusinessAccessCompareService service;
+@Autowired
+private  HlsCusPrjProjectService prjProjectService;
+@Autowired
+private  HlsCusPrjProjectMapper projectMapper;
 
     @Override
     public List<HlsCusPrjProject> queryCreditProject(IRequest requestCt, HlsCusPrjProject hlsCusPrjProject, int page, int pageSize) {
@@ -3745,26 +3750,35 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
                     // 保存bp
                     HlsCusPrjProject cusPrjProject = new HlsCusPrjProject();
                     cusPrjProject.setChanceId(creditChance.getChanceId());
-                    List<HlsCusPrjProject> hlsCusPrjProjects = self().selectSelective(requestCt, cusPrjProject);
+                    List<HlsCusPrjProject> hlsCusPrjProjects = projectMapper.selectByCanceId(cusPrjProject);
                     if (!hlsCusPrjProjects.isEmpty()) {
-                        HlsCusPrjProjectBp projectBp = new HlsCusPrjProjectBp();
-                        projectBp.setChanceId(creditChance.getChanceId());
-                        projectBp.setProjectId(hlsCusPrjProjects.get(0).getProjectId());
-                        hlsCusPrjProjectBpService.saveBpByChanceId(requestCt, projectBp);
+                        for (HlsCusPrjProject project : hlsCusPrjProjects) {
+                            HlsCusPrjProjectBp projectBp = new HlsCusPrjProjectBp();
+                            projectBp.setChanceId(creditChance.getChanceId());
+                            projectBp.setProjectId(project.getProjectId());
+                            hlsCusPrjProjectBpService.saveBpByChanceId(requestCt, projectBp);
+                        }
+
                     }
                     //保存attachment
                     if (!hlsCusPrjProjects.isEmpty()) {
-                        HlsCusPrjProjectAttachment projectAttachment = new HlsCusPrjProjectAttachment();
-                        projectAttachment.setSourceId(creditChance.getChanceId());
-                        projectAttachment.setProjectId(hlsCusPrjProjects.get(0).getProjectId());
-                        hlsCusPrjProjectAttachmentService.saveProjectAttachment(requestCt, projectAttachment);
+                        for (HlsCusPrjProject project : hlsCusPrjProjects) {
+                            HlsCusPrjProjectAttachment projectAttachment = new HlsCusPrjProjectAttachment();
+                            projectAttachment.setSourceId(creditChance.getChanceId());
+                            projectAttachment.setProjectId(project.getProjectId());
+                            hlsCusPrjProjectAttachmentService.saveProjectAttachment(requestCt, projectAttachment);
+                        }
+
                     }
                     //保存compare
                     if (!hlsCusPrjProjects.isEmpty()) {
-                        HlsCusPrjBusinessAccessCompare accessCompare = new HlsCusPrjBusinessAccessCompare();
-                        accessCompare.setProgramId(creditChance.getChanceId());
-                        accessCompare.setProjectId(hlsCusPrjProjects.get(0).getProjectId());
-                        service.queryBusinessCompare(requestCt, accessCompare);
+                        for (HlsCusPrjProject project : hlsCusPrjProjects) {
+                            HlsCusPrjBusinessAccessCompare accessCompare = new HlsCusPrjBusinessAccessCompare();
+                            accessCompare.setProgramId(creditChance.getChanceId());
+                            accessCompare.setProjectId(project.getProjectId());
+                            service.queryBusinessCompare(requestCt, accessCompare);
+                        }
+
                     }
                     projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
                 } catch (Exception e) {
@@ -9248,7 +9262,7 @@ public class HlsCusPrjProjectServiceImpl extends BaseServiceImpl<HlsCusPrjProjec
     public static final String CREDIT_DEMO_NAME = "CREDIT_TENANT_AMOUNT_WFL";
     public static final String CREDIT_DOCUMENT_TYPE = "CREDIT";
     public static final String CREDIT_DOCUMENT_CATEGORY = "PRJ_PROJECT";
-    public static final String CREDIT_DOCUMENT_NAME = "授信审批工作流";
+    public static final String CREDIT_DOCUMENT_NAME = "授信尽调审批工作流";
 
     @Override
     public List<HlsCusPrjProject> submitCredit(HlsCusPrjProject dto, IRequest requestCtx) throws HlsCusException {

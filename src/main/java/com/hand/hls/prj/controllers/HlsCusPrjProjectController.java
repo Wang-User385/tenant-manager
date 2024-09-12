@@ -3437,6 +3437,7 @@ public class HlsCusPrjProjectController extends BaseController {
         service.updateByPrimaryKeySelective(requestCtx, hlsCusPrjProject);
         return new ResponseData();
     }
+
     @RequestMapping(value = "/prj/project/risk/update/Advice")
     @ResponseBody
     public ResponseData updateProjectRiskStaffAdvice(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,HttpServletRequest request) throws ResMessageException {
@@ -3447,5 +3448,6 @@ public class HlsCusPrjProjectController extends BaseController {
         service.updateByPrimaryKeySelective(requestCtx, hlsCusPrjProject);
         return new ResponseData();
     }
+
 
 }

@@ -314,4 +314,6 @@ public interface HlsCusPrjProjectMapper extends Mapper<HlsCusPrjProject> {
      */
 
     List<HlsCusPrjProject> findBasicInfo(HlsCusPrjProject hlsCusPrjProject);
+
+    List<HlsCusPrjProject> selectByCanceId(HlsCusPrjProject cusPrjProject);
 }
