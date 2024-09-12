@@ -81,6 +81,8 @@
         <result column="sale_type_n" property="saleTypeN" />
 
         <!--<result column="bank_full_name" property="invoiceBpBankAccount" jdbcType="VARCHAR"/>-->
+        <result column="economic_indu_classify_n" property="economicInduClassifyN" />
+        <result column="economic_indu_classify" property="economicInduClassify" />
 
     </resultMap>
     <resultMap id="BasesResultMap" type="com.hand.hls.cont.dto.HlsCusConContract">
@@ -510,5 +512,37 @@
         </if>
     </select>
 
+    <!--保理合同放款明细客户信息-->
+    <select id="queryConFactoringLoanBpInfo" resultMap="BaseResultMap">
+        SELECT
+        cb.record_id,
+        cb.contract_id,
+        cb.bp_id,
+        hbm.bp_name,
+        hbm.bp_name bp_name_n,
+        hbm.bp_code,
+        hbm.bp_class,
+        cb.bp_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = cb.bp_type ) bp_type_n,
+        hbm.economic_indu_classify,
+        (
+        SELECT
+        t.description
+        FROM
+        hls_stat_class t
+        WHERE
+        t.class_usage = 'BIZ_PARTNER'
+        AND t.enabled_flag = 'Y'
+        AND to_char( t.CLASS_ID ) = hbm.economic_indu_classify
+        ) economic_indu_classify_n,
+        hbm.group_companies,
+        cb.description
+        FROM
+        con_contract_bp cb
+        INNER JOIN hls_bp_master hbm ON hbm.bp_id = cb.bp_id
+        <where>
+            cb.contract_id = #{contractId}
+        </where>
+    </select>
 
 </mapper>

@@ -517,4 +517,25 @@
         </where>
     </select>
 
+    <!--保理合同放款授信方案查询-->
+    <select id="findConFactoringLoanInfo" resultMap="BaseResultMap">
+        SELECT
+        hcp.credit_plan_id,
+        pp.tenant_id bp_id,
+        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = pp.tenant_id ) bp_name,
+        hcp.credit_amt,
+        hcp.quota_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'FINANCING_LOAN' AND sc.code_value = hcp.QUOTA_TYPE ) QUOTA_TYPE_N,
+        hcp.date_from,
+        hcp.date_to,
+        hcp.credit_desc
+        FROM
+        hls_credit_plan hcp
+        INNER JOIN con_contract cc ON hcp.source_document_category = 'CON_CONTRACT'
+        AND hcp.source_document_id = cc.contract_id AND (SELECT bp_type from hls_bp_master hbm where hbm.bp_id = cc.tenant_id) = 'ASSET_TRANSFEROR'
+        <where>
+            cc.contract_id = #{contractId}
+        </where>
+    </select>
+
 </mapper>

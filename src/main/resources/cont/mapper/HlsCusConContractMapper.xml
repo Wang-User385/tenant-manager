@@ -618,6 +618,21 @@
         <result column="driver_and_applicant" property="driverAndApplicant" jdbcType="VARCHAR"/>
 
         <result column="plus_finance_amount" property="plusFinanceAmount" jdbcType="DECIMAL"/>
+        <result column="loan_approved_date" property="loanApprovedDate" jdbcType="DATE"/>
+        <result column="vir_contract_number" property="virContractNumber" jdbcType="VARCHAR"/>
+        <result column="loan_lease_item_amount" property="loanLeaseItemAmount" jdbcType="DECIMAL"/>
+        <result column="city" property="city" jdbcType="VARCHAR"/>
+        <result column="city_n" property="cityN" jdbcType="VARCHAR"/>
+        <result column="factoring_type" property="factoring_type" jdbcType="VARCHAR"/>
+        <result column="factoring_type_n" property="factoringTypeN" jdbcType="VARCHAR"/>
+        <result column="factoring_recourse" property="factoringRecourse" jdbcType="VARCHAR"/>
+        <result column="factoring_recourse_n" property="factoringRecourseN" jdbcType="VARCHAR"/>
+        <result column="factoring_open" property="factoringOpen" jdbcType="VARCHAR"/>
+        <result column="factoring_open_n" property="factoringOpenN" jdbcType="VARCHAR"/>
+        <result column="factoring_category" property="factoringCategory" jdbcType="VARCHAR"/>
+        <result column="factoring_category_n" property="factoringCategoryN" jdbcType="VARCHAR"/>
+        <result column="industry" property="industry" jdbcType="VARCHAR"/>
+        <result column="purpose_of_funds" property="purposeOfFunds" jdbcType="VARCHAR"/>
     </resultMap>
 
 
@@ -11985,4 +12000,199 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
         from con_contract cc
         where cc.project_id = #{projectId}
     </select>
+
+    <!--保理放款申请首页-->
+    <select id="queryLoanConFactoringEntrance" resultMap="BaseResultMap">
+        select c.contract_number,
+               p.project_id,
+               c.contract_id,
+               p.project_name,
+               p.contract_number vir_contract_number,
+               c.tenant_id,
+               hbm.bp_name tenant_id_n,
+               pq.lease_start_date,
+               pq.lease_item_amount loan_lease_item_amount,
+               p.lease_item_amount,
+               c.contract_status,
+               (SELECT s.MEANING
+                FROM sys_code_value_b_v s
+                WHERE s.CODE = 'CON.CONTRACT_STATUS'
+                  AND s.code_value = c.contract_status) AS contract_status_n,
+               c.loan_approved_date
+        from CON_CONTRACT c
+                 LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
+                 LEFT JOIN prj_quotation pq ON pq.source_document_category = 'CON_CONTRACT'
+                 LEFT JOIN HLS_BP_MASTER hbm ON hbm.bp_id = c.tenant_id
+        where pq.source_document_id=c.contract_id
+          and p.document_type = 'FACTORING'
+          AND p.document_category = 'PRJ_PROJECT'
+          AND p.data_class = 'VIRTUAL_CON'
+        <if test="projectId != null">
+            and p.project_id = #{projectId}
+        </if>
+        <if test="contractId != null">
+            and c.contract = #{contractId}
+        </if>
+          <if test="contractNumber != null">
+              and c.contract_number like concat('%',concat(#{contractNumber},'%'))
+          </if>
+          <if test="virContractNumber != null">
+              and p.contract_number like concat('%',concat(#{virContractNumber},'%'))
+          </if>
+          <if test="projectName != null">
+              and p.PROJECT_NAME like concat('%',concat(#{projectName},'%'))
+          </if>
+          <if test="tenantIdN != null">
+              and hbm.bp_name like concat('%',concat(#{tenantIdN},'%'))
+          </if>
+          <if test="contractStatus != null">
+              and c.contract_status = #{contractStatus}
+          </if>
+        <if test="leaseStartDateFrom != null">
+            and pq.lease_start_date &gt;= to_date(#{leaseStartDateFrom}, 'yyyy-mm-dd')
+        </if>
+        <if test="leaseStartDateTo != null">
+            and pq.lease_start_date &lt;= to_date(#{leaseStartDateTo}, 'yyyy-mm-dd')
+        </if>
+    </select>
+
+    <!--保理放款申请占用详情-->
+    <select id="queryConFactoringLoanList" resultMap="BaseResultMap">
+        select c.contract_number,
+               p.project_id,
+               c.contract_id,
+               p.project_name,
+               p.contract_number vir_contract_number,
+               c.tenant_id,
+               hbm.bp_name tenant_id_n,
+               pq.lease_start_date,
+               pq.lease_item_amount,
+               c.loan_approved_date,
+               (select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
+                from con_contract_cashflow ccc
+                where ccc.contract_id = c.contract_id
+                and ccc.cf_item = 1
+                and ccc.CF_STATUS = 'RELEASE'
+                and ccc.CF_DIRECTION = 'INFLOW') unreceived_principal
+        from CON_CONTRACT c
+                 LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
+                 LEFT JOIN prj_quotation pq ON pq.source_document_category = 'CON_CONTRACT'
+                 LEFT JOIN HLS_BP_MASTER hbm ON hbm.bp_id = c.tenant_id
+        where pq.source_document_id=c.contract_id
+          and p.document_type = 'FACTORING'
+          AND p.document_category = 'PRJ_PROJECT'
+          AND p.data_class = 'VIRTUAL_CON'
+        <if test="projectId != null">
+            and p.project_id = #{projectId}
+        </if>
+        <if test="contractId != null">
+            and c.contract = #{contractId}
+        </if>
+          <if test="contractNumber != null">
+              and c.contract_number like concat('%',concat(#{contractNumber},'%'))
+          </if>
+          <if test="virContractNumber != null">
+              and p.contract_number like concat('%',concat(#{virContractNumber},'%'))
+          </if>
+          <if test="projectName != null">
+              and p.PROJECT_NAME like concat('%',concat(#{projectName},'%'))
+          </if>
+    </select>
+
+    <!--保理合同放款明细额度暂用详情-->
+    <select id="queryConFactoringCreditPlan" resultMap="BaseResultMap">
+        select c.contract_number,
+               p.project_id,
+               c.contract_id,
+               p.project_name,
+               p.contract_number vir_contract_number,
+               c.tenant_id,
+               hbm.bp_name tenant_id_n,
+               pq.lease_start_date,
+               pq.lease_item_amount,
+               c.loan_approved_date,
+               (select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
+                from con_contract_cashflow ccc
+                where ccc.contract_id = c.contract_id
+                and ccc.cf_item = 1
+                and ccc.CF_STATUS = 'RELEASE'
+                and ccc.CF_DIRECTION = 'INFLOW') unreceived_principal
+        from CON_CONTRACT c
+                 LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
+                 LEFT JOIN prj_quotation pq ON pq.source_document_category = 'CON_CONTRACT'
+                 LEFT JOIN HLS_BP_MASTER hbm ON hbm.bp_id = c.tenant_id
+        where pq.source_document_id=c.contract_id
+          and p.document_type = 'FACTORING'
+          AND p.document_category = 'PRJ_PROJECT'
+          AND p.data_class = 'VIRTUAL_CON'
+        <if test="projectId != null">
+            and p.project_id = #{projectId}
+        </if>
+        <if test="contractId != null">
+            and c.contract = #{contractId}
+        </if>
+          <if test="contractNumber != null">
+              and c.contract_number like concat('%',concat(#{contractNumber},'%'))
+          </if>
+          <if test="virContractNumber != null">
+              and p.contract_number like concat('%',concat(#{virContractNumber},'%'))
+          </if>
+          <if test="projectName != null">
+              and p.PROJECT_NAME like concat('%',concat(#{projectName},'%'))
+          </if>
+    </select>
+
+    <!--保理申请明细页面-->
+    <select id="queryConFactoringLoanDetailInfo" resultMap="BaseResultMap">
+        SELECT
+            c.contract_number,
+            p.project_name,
+            p.contract_number vir_contract_number,
+            c.tenant_id,
+            hbm.bp_name tenant_id_n,
+            p.lease_item_amount,
+            c.contract_status,
+            c.city,
+            (
+                SELECT
+                    CONCAT(
+                            ( SELECT P.DESCRIPTION FROM FND_PROVINCE P WHERE to_char( P.PROVINCE ) = fd.PROVINCE ),
+                            CONCAT( ( SELECT fc.DESCRIPTION FROM FND_CITY fc WHERE to_char( fc.City ) = fd.City ), fd.DESCRIPTION )
+                        )
+                FROM
+                    fnd_district fd
+                WHERE
+                    fd.DISTRICT = c.city
+                  AND fd.enabled_flag = 'Y'
+            ) CITY_N,
+            ( SELECT s.MEANING FROM sys_code_value_b_v s WHERE s.CODE = 'CON.CONTRACT_STATUS' AND s.code_value = c.contract_status ) AS contract_status_n,
+            c.loan_approved_date,
+            c.industry,
+            c.purpose_of_funds,
+            c.factoring_type,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_TYPE' AND sc.code_value = c.factoring_type ) factoring_type_n,
+            c.factoring_category,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = c.factoring_category ) factoring_category_n,
+            c.factoring_recourse,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_RECOURSE' AND sc.code_value = c.factoring_recourse ) factoring_recourse_n,
+            c.factoring_open,
+            ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_OPEN' AND sc.code_value = c.factoring_open ) factoring_open_n,
+            c.industry_type,
+            ( SELECT hsc.description FROM hls_stat_class hsc WHERE to_char( hsc.class_id ) = c.industry_type AND hsc.enabled_flag = 'Y' ) industry_type_n
+        FROM
+            CON_CONTRACT c
+                LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
+                LEFT JOIN HLS_BP_MASTER hbm ON hbm.bp_id = c.tenant_id
+        WHERE
+            p.document_type = 'FACTORING'
+          AND p.document_category = 'PRJ_PROJECT'
+          AND p.data_class = 'VIRTUAL_CON'
+        <if test="projectId != null">
+            and p.project_id = #{projectId}
+        </if>
+        <if test="contractId != null">
+            and c.contract = #{contractId}
+        </if>
+    </select>
+
 </mapper>

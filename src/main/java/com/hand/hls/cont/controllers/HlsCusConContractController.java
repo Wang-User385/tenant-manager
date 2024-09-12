@@ -50,11 +50,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipOutputStream;
 
@@ -994,11 +990,30 @@ public class HlsCusConContractController extends BaseController {
         return new ResponseData();
     }
 
+    //保理合同放款创建数据
+    @RequestMapping("/hls/con/vir/factoring/create")
+    @ResponseBody
+    public ResponseData conFactoringLoanCreate(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,
+                                               HttpServletRequest request, HttpServletResponse response) throws Exception {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusPrjProject hlsCusPrjProject = param.toJavaObject(HlsCusPrjProject.class);
+        HlsCusConContract contract = hlsCusConContractService.conFactoringLoanCreate(requestCtx, hlsCusPrjProject);
+        return new ResponseData(Collections.singletonList(contract));
+    }
 
-
-
-
-
-
+    //保理合同放款数据批量删除
+    @RequestMapping("/hls/con/factoring/batch/delete")
+    @ResponseBody
+    public ResponseData conFactoringLoanBatchDelete(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData,
+                                               HttpServletRequest request, HttpServletResponse response) throws Exception {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONArray parameter = (JSONArray) requestData.get("parameter");
+        List<HlsCusConContract> hlsCusConContracts = parameter.toJavaList(HlsCusConContract.class);
+        hlsCusConContractService.conFactoringLoanBatchDelete(requestCtx, hlsCusConContracts);
+        return new ResponseData();
+    }
 
 }

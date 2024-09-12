@@ -16,7 +16,6 @@ import com.hand.hls.req.dto.HlsCusChangeReqInfo;
 import com.hand.hls.utils.ResMessageException;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -258,4 +257,10 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
     void updateContractStatus(Long contractId, HttpServletRequest request) throws hls.core.utils.exception.HlsCusException;
 
     void confirm(Long contractId, HttpServletRequest request);
+
+    //保理合同放款申请数据创建
+    HlsCusConContract conFactoringLoanCreate(IRequest request, HlsCusPrjProject hlsCusPrjProject) throws Exception;
+
+    //保理合同放款数据批量删除
+    void conFactoringLoanBatchDelete(IRequest requestCtx, List<HlsCusConContract> hlsCusConContracts);
 }

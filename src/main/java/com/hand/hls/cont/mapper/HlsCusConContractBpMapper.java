@@ -44,4 +44,6 @@ public interface HlsCusConContractBpMapper extends Mapper<HlsCusConContractBp> {
     List<HlsCusConContractBp> queryDistinctBpLovNoGuarantor(HlsCusConContractBp bp);
 
 
+    //保理合同放款明细客户信息
+    List<HlsCusConContractBp> queryConFactoringLoanBpInfo(HlsCusConContractBp bp);
 }

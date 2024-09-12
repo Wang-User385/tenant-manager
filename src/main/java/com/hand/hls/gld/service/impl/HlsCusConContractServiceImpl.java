@@ -1,22 +1,17 @@
 package com.hand.hls.gld.service.impl;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.StringUtil;
-import com.hand.hap.account.exception.UserException;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.lock.components.DatabaseLockProvider;
 import com.hand.hap.system.dto.DTOStatus;
-import com.hand.hap.system.dto.ResponseData;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
 import com.hand.hls.activiti.service.HlsCusActMeetingRiskListService;
 import com.hand.hls.app.dto.HlsCashflowAyncDto;
 import com.hand.hls.app.service.HlsCashflowAyncService;
 import com.hand.hls.ast.dto.VirtualConContractLov;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
-import com.hand.hls.bp.dto.HlsCusSysFile;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
 import com.hand.hls.cont.dto.*;
@@ -26,7 +21,6 @@ import com.hand.hls.cont.utils.BeanRefUtils;
 import com.hand.hls.credit.service.TongDunService;
 import com.hand.hls.csh.dto.HlsCusCshPaymentReqHd;
 import com.hand.hls.csh.dto.HlsCusCshPaymentReqLn;
-import com.hand.hls.csh.dto.HlsCusCshWriteOff;
 import com.hand.hls.csh.dto.ProjectCreditCondition;
 import com.hand.hls.csh.mapper.HlsCusCshPaymentReqHdMapper;
 import com.hand.hls.csh.mapper.HlsCusCshPaymentReqLnMapper;
@@ -35,41 +29,33 @@ import com.hand.hls.csh.service.HlsCusPaymentDeductService;
 import com.hand.hls.csh.service.ICshPaymentReqHdService;
 import com.hand.hls.csh.service.IHlsCusCshPaymentReqLnService;
 import com.hand.hls.exception.HlsCusException;
+import com.hand.hls.fct.dto.HlsCreditPlanLine;
 import com.hand.hls.fct.dto.HlsCusFctQuotationCashflow;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLine;
+import com.hand.hls.fct.mapper.HlsCreditPlanLineMapper;
 import com.hand.hls.fct.service.HlsCreditLineService;
 import com.hand.hls.fct.service.HlsCusFctQuotationCashflowService;
+import com.hand.hls.fct.service.HlsICreditPlanLineService;
 import com.hand.hls.fnd.dto.FndSysCodes;
-import com.hand.hls.fnd.dto.HlsCusEmployee;
 import com.hand.hls.fnd.dto.HlsEmployee;
-import com.hand.hls.fnd.dto.HlsProductDefinition;
 import com.hand.hls.fnd.mapper.HlsCusEmployeeMapper;
-import com.hand.hls.fnd.mapper.HlsEmployeeMapper;
 import com.hand.hls.fnd.service.FndCodingRuleValuesService;
 import com.hand.hls.fnd.service.FndSysCodesService;
 import com.hand.hls.gld.components.AbstractJeTrxService;
 import com.hand.hls.gld.components.JeTrxCommonService;
 import com.hand.hls.gld.dto.HlsCusContractFinanceIncome;
-import com.hand.hls.gld.dto.HlsCusJeHead;
-import com.hand.hls.gld.dto.JeTrxDtl;
 import com.hand.hls.gld.mapper.GldCusConContractMapper;
 import com.hand.hls.gld.service.HlsCusConContractService;
 import com.hand.hls.gld.service.HlsCusContractFinanceIncomeService;
 import com.hand.hls.gld.service.IGldContractCashflowService;
 import com.hand.hls.gld.utils.CalculateUtil;
 import com.hand.hls.gld.utils.IrrUtil;
-import com.hand.hls.hls.dto.HlsCusFundingPlan;
 import com.hand.hls.hls.mapper.HlsCusFundingPlanMapper;
 import com.hand.hls.interfacePlatform.utils.FinanceBaseUtils;
-import com.hand.hls.mort.dto.HlsMortgage;
 import com.hand.hls.partner.service.IAlipayService;
 import com.hand.hls.prj.dto.*;
-import com.hand.hls.prj.mapper.HlsCusPrjProjectMapper;
-import com.hand.hls.prj.mapper.HlsCusPrjQuotationCashflowMapper;
-import com.hand.hls.prj.mapper.HlsCusPrjQuotationDetailsMapper;
-import com.hand.hls.prj.mapper.HlsCusPrjQuotationMapper;
+import com.hand.hls.prj.mapper.*;
 import com.hand.hls.prj.service.*;
-import com.hand.hls.prj.utils.HlsCusZipUtil;
 import com.hand.hls.req.dto.HlsCusChangeReqInfo;
 import com.hand.hls.req.mapper.HlsCusChangeReqInfoMapper;
 import com.hand.hls.req.service.HlsCusChangeReqInfoService;
@@ -79,7 +65,6 @@ import com.hand.hls.user.service.LoginUserInfoService;
 import com.hand.hls.utils.*;
 import com.hand.hls.vat.dto.HlsInvoiceProfileDtl;
 import com.hand.hls.vat.service.HlsInvoiceProfileDtlService;
-import com.hand.hls.web.logs.dto.HlsWsRequests;
 import com.hand.hls.web.logs.mapper.HlsWsRequestsMapper;
 import com.hand.hls.wfl.service.IActivitiCommonService;
 import com.hand.hls.wfl.service.IActivitiStartService;
@@ -94,11 +79,6 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DateFormat;
@@ -107,8 +87,6 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.ZipOutputStream;
 
 /**
  * @author wujun
@@ -341,6 +319,18 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     private SysUserMapper sysUserMapper;
     @Autowired
     private IAlipayService iAlipayService;
+    @Autowired
+    private HlsCusPrjProjectBpMapper hlsCusPrjProjectBpMapper;
+    @Autowired
+    private HlsCreditPlanMapper hlsCreditPlanMapper;
+    @Autowired
+    private HlsCreditPlanService hlsCreditPlanService;
+    @Autowired
+    private HlsCreditPlanLineMapper hlsCreditPlanLineMapper;
+    @Autowired
+    private HlsICreditPlanLineService hlsCreditPlanLineService;
+    @Autowired
+    private HlsCusConContractBpMapper hlsCusConContractBpMapper;
 
     @Override
     public List<Map<String, Object>> queryPaymentChangeInfoLov(IRequest request, HlsCusConContract hlsCusConContract, int page, int pageSize) {
@@ -4749,6 +4739,126 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         hlsCusConContract =  hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
         hlsCusConContract.setPledgeFlag("Y");
         hlsCusConContractMapper.updateByPrimaryKey(hlsCusConContract);
+    }
+
+    @Override
+    public HlsCusConContract conFactoringLoanCreate(IRequest request, HlsCusPrjProject hlsCusPrjProject) throws Exception {
+        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(hlsCusPrjProject);
+        //校验
+        if (!"APPROVED".equals(prjProject.getContractStatus())){
+            throw new HlsCusException("审批通过的合同单据才能进行放款申请！");
+        }
+        //复制数据
+        //将项目表的数据复制到合同表
+        HlsCusConContract contractNew = new HlsCusConContract();
+        org.springframework.beans.BeanUtils.copyProperties(prjProject, contractNew);
+        contractNew.setDocumentType("FACTORING");
+        contractNew.setDocumentCategory("CON_CONTRACT");
+        contractNew.setDataClass("NORMAL");
+        contractNew.setBusinessType("LEASE");
+        contractNew.setContractStatus("NEW");
+        hlsCusConContractMapper.insertSelective(contractNew);
+        //将项目表客户信息复制到合同客户表
+        copyPrjCustomerInfoToConCustomer(request, prjProject.getProjectId(), contractNew.getContractId());
+        //将授信方案数据复制一份关联合同表
+        copyPrjCreditPlanInfoToConCreditPlanInfo(request, prjProject.getProjectId(), contractNew.getContractId(), "CON_CONTRACT");
+        //复制报价方案基础信息
+        copyPrjQuotationInfoToConQuotationInfo(request, prjProject.getProjectId(), contractNew.getContractId(), "CON_CONTRACT");
+
+        return contractNew;
+    }
+
+    //保理合同放款数据批量删除
+    @Override
+    public void conFactoringLoanBatchDelete(IRequest requestCtx, List<HlsCusConContract> hlsCusConContracts) {
+        for (HlsCusConContract hlsCusConContract : hlsCusConContracts){
+            //删除合同表数据
+            hlsCusConContractMapper.deleteByPrimaryKey(hlsCusConContract);
+
+            //删除合同客户表数据
+            HlsCusConContractBp contractBp = new HlsCusConContractBp();
+            contractBp.setContractId(hlsCusConContract.getContractId());
+            List<HlsCusConContractBp> hlsCusConContractBps = hlsCusConContractBpMapper.queryConFactoringLoanBpInfo(contractBp);
+            hlsCusConContractBpService.batchDelete(hlsCusConContractBps);
+
+            //删除授信方案数据
+            HlsCreditPlan hlsCreditPlan = new HlsCreditPlan();
+            hlsCreditPlan.setSourceDocumentId(hlsCusConContract.getContractId());
+            List<HlsCreditPlan> hlsCreditPlans = hlsCreditPlanMapper.findConFactoringLoanInfo(hlsCreditPlan);
+            HlsCreditPlanLine hlsCreditPlanLine = new HlsCreditPlanLine();
+            hlsCreditPlanLine.setCreditPlanId(hlsCusConContract.getContractId());
+            List<HlsCreditPlanLine> hlsCreditPlanLines = hlsCreditPlanLineMapper.queryConFactoringCreditPlan(hlsCreditPlanLine);
+            hlsCreditPlanLineService.batchDelete(hlsCreditPlanLines);
+            hlsCreditPlanService.batchDelete(hlsCreditPlans);
+
+            //删除报价基础信息
+            HlsCusPrjQuotation quotation = new HlsCusPrjQuotation();
+            quotation.setSourceDocumentId(hlsCusConContract.getContractId());
+            List<HlsCusPrjQuotation> factoringQuotation = hlsCusPrjQuotationMapper.findConFactoringLoanQuotation(quotation);
+            hlsCusPrjQuotationService.batchDelete(factoringQuotation);
+        }
+    }
+
+    private void copyPrjCustomerInfoToConCustomer(IRequest requestCtx, Long sourceId, Long targetId) {
+        HlsCusPrjProjectBp cusPrjProjectBp = new HlsCusPrjProjectBp();
+        cusPrjProjectBp.setProjectId(sourceId);
+        List<HlsCusPrjProjectBp> factoringBPInfoList = hlsCusPrjProjectBpMapper.findFactoringBPInfo(cusPrjProjectBp);
+        if (!factoringBPInfoList.isEmpty()) {
+            factoringBPInfoList.forEach(v -> {
+                HlsCusConContractBp hlsCusConContractBp = new HlsCusConContractBp();
+                org.springframework.beans.BeanUtils.copyProperties(v, hlsCusConContractBp);
+                hlsCusConContractBp.setContractId(targetId);
+                //设置必填字段
+                HlsBpMaster hlsBpMaster = new HlsBpMaster();
+                hlsBpMaster.setBpId(hlsCusConContractBp.getBpId());
+                HlsCusBpMaster hlsCusBpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(hlsBpMaster);
+                hlsCusConContractBp.setBpCategory(hlsCusBpMaster.getBpCategory());
+
+                hlsCusConContractBpService.insert(requestCtx, hlsCusConContractBp);
+            });
+        }
+    }
+
+    private void copyPrjCreditPlanInfoToConCreditPlanInfo(IRequest requestCtx, Long sourceId, Long targetId, String documentCategory) {
+        HlsCreditPlan hlsCreditPlan = new HlsCreditPlan();
+        hlsCreditPlan.setProjectId(sourceId);
+        List<HlsCreditPlan> factoringCreditPlanInfo = hlsCreditPlanMapper.findFactoringApprovalInfo(hlsCreditPlan);
+        if (!factoringCreditPlanInfo.isEmpty()) {
+            HlsCreditPlan hlsCreditPlanApproval = new HlsCreditPlan();
+            factoringCreditPlanInfo.forEach(v -> {
+                org.springframework.beans.BeanUtils.copyProperties(v, hlsCreditPlanApproval);
+                hlsCreditPlanApproval.setSourceDocumentCategory(documentCategory);
+                hlsCreditPlanApproval.setSourceDocumentId(targetId);
+                hlsCreditPlanService.insert(requestCtx, hlsCreditPlanApproval);
+            });
+            // 复制授信方案明细
+            HlsCreditPlanLine hlsCreditPlanLine = new HlsCreditPlanLine();
+            hlsCreditPlanLine.setCreditPlanId(factoringCreditPlanInfo.get(0).getCreditPlanId());
+            List<HlsCreditPlanLine> factoringCreditPlanLineInfo = hlsCreditPlanLineMapper.findFactoringApprovalInfo(hlsCreditPlanLine);
+            if (!factoringCreditPlanLineInfo.isEmpty()) {
+                factoringCreditPlanLineInfo.forEach(v -> {
+                    HlsCreditPlanLine hlsCreditPlanLineApproval = new HlsCreditPlanLine();
+                    org.springframework.beans.BeanUtils.copyProperties(v, hlsCreditPlanLineApproval);
+                    hlsCreditPlanLineApproval.setCreditPlanId(hlsCreditPlanApproval.getCreditPlanId());
+                    hlsCreditPlanLineService.insert(requestCtx, hlsCreditPlanLineApproval);
+                });
+            }
+        }
+    }
+
+    private void copyPrjQuotationInfoToConQuotationInfo(IRequest requestCtx, Long sourceId, Long targetId, String documentCategory) {
+        HlsCusPrjQuotation quotation = new HlsCusPrjQuotation();
+        quotation.setProjectId(sourceId);
+        List<HlsCusPrjQuotation> factoringQuotation = hlsCusPrjQuotationMapper.findFactoringApprovalQuotation(quotation);
+        if (!factoringQuotation.isEmpty()) {
+            HlsCusPrjQuotation approvalQuotation = new HlsCusPrjQuotation();
+            factoringQuotation.forEach(v -> {
+                org.springframework.beans.BeanUtils.copyProperties(v, approvalQuotation);
+                approvalQuotation.setSourceDocumentCategory(documentCategory);
+                approvalQuotation.setSourceDocumentId(targetId);
+                hlsCusPrjQuotationService.insert(requestCtx, approvalQuotation);
+            });
+        }
     }
 
 

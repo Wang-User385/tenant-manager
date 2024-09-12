@@ -29,4 +29,6 @@ public interface HlsCreditPlanMapper extends Mapper<HlsCreditPlan> {
      */
     List<HlsCreditPlan> findFactoringApprovalInfo(HlsCreditPlan hlsCreditPlan);
 
+    //保理合同放款申请授信信息查询
+    List<HlsCreditPlan> findConFactoringLoanInfo(HlsCreditPlan hlsCreditPlan);
 }

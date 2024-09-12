@@ -80,5 +80,40 @@
 
     </select>
 
+    <!--保理合同放款额度明细-->
+   <select id="queryConFactoringCreditPlan" resultMap="BaseResultMap">
+       SELECT
+        cc.project_id,
+        cc.contract_id,
+        hcpl.CREDIT_PLAN_ID,
+        hcpl.line_id,
+        hbm.bp_id,
+        hbm.bp_name,
+        hbm.bp_name bp_name_n,
+        hbm.bp_code,
+        hbm.bp_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = hbm.bp_type ) bp_type_n,
+        hbm.group_companies,
+        hcpl.factoring_category,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = hcpl.factoring_category ) factoring_category_n,
+        hcpl.credit_amt,
+        hcpl.description
+        FROM
+        hls_credit_plan_line hcpl
+        INNER JOIN hls_credit_plan hcp ON hcp.credit_plan_id = hcpl.credit_plan_id
+        INNER JOIN con_contract cc ON hcp.source_document_category = 'CON_CONTRACT'
+        AND hcp.source_document_id = cc.contract_id
+        INNER JOIN hls_bp_master hbm ON cc.tenant_id = hbm.bp_id
+        <where>
+            hbm.bp_type = 'ASSET_TRANSFEROR'
+            <if test="creditPlanId != null">
+                and  hcpl.credit_plan_id = #{creditPlanId}
+            </if>
+            <if test="projectId != null">
+                and  hcp.source_document_id = #{projectId}
+            </if>
+        </where>
+
+   </select>
 
 </mapper>

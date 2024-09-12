@@ -1325,7 +1325,7 @@ public class HlsCusConContract extends ConContract {
 
     @Transient
     private String year;
-    @Transient
+
     private String industryType;
     @Transient
     private String industryTypeN;
@@ -1337,8 +1337,8 @@ public class HlsCusConContract extends ConContract {
     private String productConclusion;
     @Transient
     private String registerCertNum;
-    @Transient
-    private Long city;
+
+    private String city;
     @Transient
     private String cityN;
     @Transient
@@ -1780,7 +1780,25 @@ public class HlsCusConContract extends ConContract {
     private String paymentApprovedStatusN;
     @Transient
     private String driverAndApplicant;
+    private Date loanApprovedDate;  //放款申请通过时间
+    @Transient
+    private String virContractNumber; //保理合同编号
+    @Transient
+    private Double loanLeaseItemAmount; //放款金额
 
-
+    private String factoringType; //保理类型
+    @Transient
+    private String factoringTypeN;
+    private String factoringRecourse; //追索类型
+    @Transient
+    private String factoringRecourseN;
+    private String factoringOpen; //明暗类型
+    @Transient
+    private String factoringOpenN;
+    private String industry; //业务板块
+    private String factoringCategory; //保理类别
+    @Transient
+    private String factoringCategoryN;
+    private String purposeOfFunds;
 
 }

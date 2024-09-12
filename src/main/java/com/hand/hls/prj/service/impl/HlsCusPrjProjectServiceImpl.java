@@ -9393,7 +9393,7 @@ private  HlsCusPrjProjectMapper projectMapper;
             hlsCusPrjProjectAttachment.setProjectAttachmentCategory("PRJ_PROJECT");
         }
         hlsCusPrjProjectAttachment.setProjectId(hlsCusPrjProject.getProjectId());
-        hlsCusPrjProjectAttachment.setDocumentName(fileName + ".docx");
+        hlsCusPrjProjectAttachment.setDocumentName(fileName);
         hlsCusPrjProjectAttachment.setCreatedBy(requestCtx.getUserId());
 
         //删除附件，重新生成

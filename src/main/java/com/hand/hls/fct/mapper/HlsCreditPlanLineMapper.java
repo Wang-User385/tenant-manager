@@ -21,4 +21,6 @@ public interface HlsCreditPlanLineMapper extends Mapper<HlsCreditPlanLine>{
      * @return
      */
     List<HlsCreditPlanLine> findFactoringApprovalInfo(HlsCreditPlanLine hlsCreditPlanLine);
+
+    List<HlsCreditPlanLine> queryConFactoringCreditPlan(HlsCreditPlanLine hlsCreditPlanLine);
 }

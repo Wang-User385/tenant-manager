@@ -22,5 +22,9 @@ public class HlsCusConContractBp extends ConContractBp {
     @Transient
     private Long cashflowId;
 
+    @Transient
+    private String economicInduClassify;
+    @Transient
+    private String economicInduClassifyN;
 
 }
