@@ -207,23 +207,27 @@
 
         //合同文本生成
         window['${/parameter/@layout_code}_G_EXAMINATION_RISK_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var ds_id_risk = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
             var template_code = "FACTORING_RISK";
-            generateText(template_code);
+            generateText(template_code,ds_id_risk);
         }
         //合同文本生成
         window['${/parameter/@layout_code}_G_EXAMINATION_LAW_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            var ds_id_law = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_LAW');
             var template_code = "FACTORING_LAW";
-            generateText(template_code);
+            generateText(template_code,ds_id_law);
         }
         //合同文本生成
         window['${/parameter/@layout_code}_G_EXAMINATION_APPROVE_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
             var template_code = "FACTORING_APPROVE";
-            generateText(template_code);
+            var ds_id_approve = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_APPROVE');
+            generateText(template_code,ds_id_approve);
         }
         //合同文本生成
         window['${/parameter/@layout_code}_G_EXAMINATION_PRJ_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
             var template_code = "FACTORING_PRJ";
-            generateText(template_code);
+            var ds_id_prj = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_PRJ');
+            generateText(template_code,ds_id_prj);
         }
 
         //更新时调用
@@ -418,6 +422,9 @@
             var credit_flag_n = '${/parameter/@credit_flag_n}';
             //隐藏工作流要用组件
             if (!'${/parameter/@wfl_flag}') {
+                if ('${/parameter/@function_usage}' === 'QUERY'){
+                    hideBigSaveButton();
+                }
                 wflCommonHide();
             } else {
                 hideBigExitButton();
@@ -481,6 +488,11 @@
             return /\.(xls|xlsx)$/i.test(name)
         }
 
+        //在线预览
+        function queryDocFile(source_pk_value) {
+            window.open("${/request/@context_path}/sys/office/view?_csrf=${/session/@_csrf.token}&sourceTypeCode=fnd_atm_attachment_multi&sourcePkValue=" + source_pk_value, '_blank');
+        }
+
         function open_master_detail_win(record_id, ds_id) {
             var record = $(ds_id).findById(record_id);
             var param = record.data;
@@ -519,11 +531,26 @@
         }
 
         function upload(ds_id, record_id, pk_id) {
+            debugger;
             var tableName = 'PRJ_PROJECT_ATTACHMENT';
             var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
+            var ds_id_risk = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
+            var ds_id_law = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_LAW');
+            var ds_id_approve = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_APPROVE');
+            var ds_id_prj = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_PRJ');
             var base_record;
             var project_attachment_id;
-            base_record = $(base_ds_id).findById(record_id);
+            if (ds_id == base_ds_id){
+                base_record = $(base_ds_id).findById(record_id);
+            }else if (ds_id == ds_id_risk){
+                base_record = $(ds_id_risk).findById(record_id);
+            }else if (ds_id == ds_id_law){
+                base_record = $(ds_id_law).findById(record_id);
+            }else if (ds_id == ds_id_approve){
+                base_record = $(ds_id_approve).findById(record_id);
+            }else if (ds_id == ds_id_prj){
+                base_record = $(ds_id_prj).findById(record_id);
+            }
             project_attachment_id = base_record.get('project_attachment_id');
             if (!project_attachment_id) {
                 $L.showInfoMessage("提示", "请先保存再上传附件!");
@@ -880,48 +907,21 @@
             record.getField('other_expenses').setReadOnly(false);
         }
 
-        function generateText(template_code) {
-            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
-            var records = $(ds_id).getAll();
-            var print_data = [];
-            for (let i = 0; i < records.length; i++) {
-                print_data.push(records[i].data);
-            }
+        function generateText(template_code,ds_id_con) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project', 'F_BASIC');
+            var record = $(ds_id).getCurrentRecord();
+            var project_id = record.get('project_id');
             window['${/parameter/@layout_code}_lock_layout_dynamic_window']();
             Leaf.request({
-                url: "${/request/@context_path}/hls/prj/text",
+                url: "${/request/@context_path}/prj/factoring/content",
                 para: {
-                    print_data: print_data,
+                    project_id: project_id,
                     template_code: template_code
                 },
                 success: function (res) {
                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
-                    var down_url = '';
-
-                    if (records.length == 1) {
-                        var attachment_id = res.result.record[0].attachment_id;
-                        down_url = "${/request/@context_path}/fnd/attachment/download?attachment_id=" + attachment_id;
-                        location.href = down_url;
-                        Leaf.SideBar.show({
-                            msg: '生成成功',
-                            duration: 2000
-                        });
-                    } else {
-                        var attachment_ids = "";
-                        for (var i = 0; i < res.result.record.length; i++) {
-                            if (i == 0) {
-                                attachment_ids = res.result.record[0].attachment_id;
-                            } else {
-                                attachment_ids = attachment_ids + ',' + res.result.record[i].attachment_id;
-                            }
-                        }
-                        down_url = "${/request/@context_path}/fnd/attachment/download/zip?attachment_id=" + attachment_ids;
-                        location.href = down_url;
-                        Leaf.SideBar.show({
-                            msg: '生成成功',
-                            duration: 2000
-                        });
-                    }
+                    Leaf.showMessage("提示", "生成成功!", null);
+                    $(ds_id_con).query();
                 },
                 error: function () {
                     window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
@@ -939,10 +939,6 @@
         //task_detail执行提交前调用
         function beforeSubmit(countiune) {
             var node_id = '${/parameter/@node_id}';
-            var ds_id_basic = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
-            var ds_id_basic = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
-            var ds_id_basic = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
-            var ds_id_basic = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_EXAMINATION_RISK');
             if ((
                 node_id == 'FACTORING_BUSINESS_APPROVALS6' ||
                 node_id == 'FACTORING_BUSINESS_APPROVALS7' ||
@@ -959,6 +955,8 @@
             }
             countiune();
         }
+
+
 
 
         ]]></script>

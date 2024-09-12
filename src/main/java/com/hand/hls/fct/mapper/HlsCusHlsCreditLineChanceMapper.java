@@ -87,4 +87,6 @@ public interface HlsCusHlsCreditLineChanceMapper extends Mapper<HlsCusHlsCreditL
     HlsCusHlsCreditLineChance selectCreditLineChanceVoteCountById(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
 
     List<HlsCusHlsCreditLineChance> findAll(HlsCusHlsCreditLineChance hlsCusHlsCreditLineChance);
+
+    List<String> getWflComment(@Param("wflId") Long processInstanceId, @Param("chanceId") Long chanceId, @Param("nodeId") String nodeId);
 }
