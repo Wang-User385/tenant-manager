@@ -1399,60 +1399,7 @@
 
     <select id="provinceCityDistrictTree" parameterType="java.util.Map" resultMap="industryTreeResultMap2" >
         SELECT *
-        FROM (SELECT
-        fd.DISTRICT tree_node_id,
-        fd.DISTRICT value_code,
-        (
-        SELECT
-        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
-        FROM
-        FND_CITY fc
-        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
-        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        WHERE
-        fd.district = fd1.district
-        ) value_name,
-        fd.CITY parent_tree_node_id,
-        fd.ENABLED_FLAG ENABLED_FLAG,
-        (
-        SELECT
-        CONCAT( CONCAT( fp.DESCRIPTION, fc.DESCRIPTION ), fd1.DESCRIPTION ) DESCRIPTION
-        FROM
-        FND_CITY fc
-        INNER JOIN FND_DISTRICT fd1 ON TO_CHAR( fc.CITY ) = TO_CHAR( fd1.CITY )
-        AND TO_CHAR( fc.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        INNER JOIN FND_PROVINCE fp ON TO_CHAR( fp.PROVINCE ) = TO_CHAR( fd1.PROVINCE )
-        WHERE
-        fd.district = fd1.district
-        ) tree_node_desc
-        FROM
-        FND_DISTRICT fd UNION ALL
-        SELECT
-        TO_CHAR( fc.CITY ) tree_node_id,
-        TO_CHAR( fc.CITY ) value_code,
-        (
-        SELECT
-        CONCAT( fp1.DESCRIPTION, fc1.DESCRIPTION ) DESCRIPTION
-        FROM
-        FND_CITY fc1
-        INNER JOIN FND_PROVINCE fp1 ON fc1.PROVINCE = fp1.PROVINCE
-        WHERE
-        fc.CITY = fc1.CITY
-        ) value_name,
-        fc.PROVINCE parent_tree_node_id,
-        fc.ENABLED_FLAG ENABLED_FLAG,
-        (
-        SELECT
-        CONCAT( fp1.DESCRIPTION, fc1.DESCRIPTION ) DESCRIPTION
-        FROM
-        FND_CITY fc1
-        INNER JOIN FND_PROVINCE fp1 ON fc1.PROVINCE = fp1.PROVINCE
-        WHERE
-        fc.CITY = fc1.CITY
-        ) tree_node_desc
-        FROM
-        FND_CITY fc UNION ALL
+        FROM (
         SELECT
         TO_CHAR( fp.PROVINCE ) tree_node_id,
         TO_CHAR( fp.PROVINCE ) value_code,
@@ -1462,6 +1409,28 @@
         fp.description tree_node_desc
         FROM
         FND_PROVINCE fp
+        UNION ALL
+        SELECT
+        TO_CHAR( fc.CITY ) tree_node_id,
+        TO_CHAR( fc.CITY ) value_code,
+        fp1.DESCRIPTION || fc.DESCRIPTION value_name,
+        fc.PROVINCE parent_tree_node_id,
+        fc.ENABLED_FLAG ENABLED_FLAG,
+        fp1.DESCRIPTION || fc.DESCRIPTION tree_node_desc
+        FROM
+        FND_CITY fc,FND_PROVINCE fp1
+        where fc.PROVINCE = fp1.PROVINCE
+        UNION ALL
+        SELECT
+        fd.DISTRICT tree_node_id,
+        fd.DISTRICT value_code,
+        fp2.DESCRIPTION || fc2.DESCRIPTION || fd.DESCRIPTION value_name,
+        fd.CITY parent_tree_node_id,
+        fd.ENABLED_FLAG ENABLED_FLAG,
+        fp2.DESCRIPTION || fc2.DESCRIPTION || fd.DESCRIPTION tree_node_desc
+        FROM
+        FND_DISTRICT fd,FND_CITY fc2,FND_PROVINCE fp2
+        where fd.city = fc2.city and fc2.province = fp2.province
         ) t
 
         <where>
