@@ -56,6 +56,11 @@ public class HlsCreditPlanLine extends BaseDTO {
      private Long chanceId;
      @Transient
      private Long projectId;
-
+     @Transient
+     private Long approvalAmount; //审批中占用额度
+     @Transient
+     private Long occAmount; //已占用额度
+     @Transient
+     private Long dueAmount; //剩余额度
 
      }

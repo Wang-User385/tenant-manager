@@ -239,5 +239,73 @@
           AND cca.contract_attachment_category = #{contractAttachmentCategory} and cca.contract_id = #{contractId}
     </select>
 
+    <select id="findFactroingApprovalInfo" resultMap="BaseResultMap">
+            SELECT
+        cca.contract_id,
+        cca.CONTRACT_ATTACHMENT_ID,
+        cca.document_name,
+        (
+        SELECT
+        LISTAGG ( file_name, ',' ) WITHIN GROUP ( ORDER BY file_name ) AS document_name
+        FROM
+        fnd_atm_attachment_multi faam,
+        fnd_atm_attachment fat
+        WHERE
+        cca.CONTRACT_ATTACHMENT_ID = faam.table_pk_value
+        AND faam.attachment_id = fat.attachment_id
+        AND faam.table_name = 'CON_CONTRACT_ATTACHMENT') info_name,
+        cca.created_by,
+        ( SELECT description FROM sys_user WHERE user_id = cca.created_by ) created_by_n,
+        cca.creation_date,
+        cca.description,
+        (
+        SELECT
+        count( 1 )
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = cca.CONTRACT_ATTACHMENT_ID
+        AND faam.table_name = 'CON_CONTRACT_ATTACHMENT'
+        ) file_num,
+        ( SELECT
+        to_char( wm_concat ( faa.file_name ) ) file_name
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = cca.CONTRACT_ATTACHMENT_ID
+        AND faam.table_name = 'CON_CONTRACT_ATTACHMENT'
+        ) file_names,
+        (
+        SELECT
+        to_char( wm_concat ( faa.attachment_id ) ) attachment_id
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = cca.CONTRACT_ATTACHMENT_ID
+        AND faam.table_name = 'CON_CONTRACT_ATTACHMENT'
+        ) attachment_id_n,
+        (
+        SELECT
+        to_char( wm_concat ( faa.source_pk_value ) ) source_pk_value
+        FROM
+        fnd_atm_attachment faa,
+        fnd_atm_attachment_multi faam
+        WHERE
+        faam.attachment_id = faa.attachment_id
+        AND faam.table_pk_value = cca.CONTRACT_ATTACHMENT_ID
+        AND faam.table_name = 'CON_CONTRACT_ATTACHMENT'
+        ) source_pk_value
+        FROM
+        con_contract_attachment cca
+        <where>
+            cca.contract_id = #{contractId} and cca.CONTRACT_ATTACHMENT_CATEGORY = #{contractAttachmentCategory}
+        </where>
+    </select>
 
 </mapper>

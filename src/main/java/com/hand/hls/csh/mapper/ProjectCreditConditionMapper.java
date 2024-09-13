@@ -24,4 +24,6 @@ public interface ProjectCreditConditionMapper extends Mapper<ProjectCreditCondit
 
     List<ProjectCreditCondition> queryOtherByPrj(ProjectCreditCondition projectCreditCondition);
 
+    List<ProjectCreditCondition> queryConFactoringLoanCreditCondi(ProjectCreditCondition projectCreditCondition);
+
 }

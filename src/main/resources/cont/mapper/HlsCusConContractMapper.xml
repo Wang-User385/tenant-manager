@@ -623,7 +623,7 @@
         <result column="loan_lease_item_amount" property="loanLeaseItemAmount" jdbcType="DECIMAL"/>
         <result column="city" property="city" jdbcType="VARCHAR"/>
         <result column="city_n" property="cityN" jdbcType="VARCHAR"/>
-        <result column="factoring_type" property="factoring_type" jdbcType="VARCHAR"/>
+        <result column="factoring_type" property="factoringType" jdbcType="VARCHAR"/>
         <result column="factoring_type_n" property="factoringTypeN" jdbcType="VARCHAR"/>
         <result column="factoring_recourse" property="factoringRecourse" jdbcType="VARCHAR"/>
         <result column="factoring_recourse_n" property="factoringRecourseN" jdbcType="VARCHAR"/>
@@ -633,6 +633,7 @@
         <result column="factoring_category_n" property="factoringCategoryN" jdbcType="VARCHAR"/>
         <result column="industry" property="industry" jdbcType="VARCHAR"/>
         <result column="purpose_of_funds" property="purposeOfFunds" jdbcType="VARCHAR"/>
+        <result column="due_amount_all" property="dueAmountAll" jdbcType="VARCHAR"/>
     </resultMap>
 
 
@@ -12018,15 +12019,33 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                 FROM sys_code_value_b_v s
                 WHERE s.CODE = 'CON.CONTRACT_STATUS'
                   AND s.code_value = c.contract_status) AS contract_status_n,
-               c.loan_approved_date
+               c.loan_approved_date,
+               (case when nvl(p.CREDIT_FLAG, 'N') = 'N' THEN
+				        (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - pq.FINANCE_AMOUNT
+                    when nvl(p.CREDIT_FLAG, 'Y') = 'Y' and 	hcp.quota_type = 'REVOLVING' THEN
+                        (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - (select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
+                                                                            from con_contract_cashflow ccc
+                                                                            where ccc.contract_id = c.contract_id
+                                                                            and ccc.cf_item = 1
+                                                                            and ccc.CF_STATUS = 'RELEASE'
+                                                                            and ccc.CF_DIRECTION = 'INFLOW')
+		         when nvl(p.CREDIT_FLAG, 'Y') = 'Y' and hcp.quota_type = 'NON_REVOLVING' THEN
+                          (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) -  pq.FINANCE_AMOUNT
+				 else
+					 0 end ) due_amount
         from CON_CONTRACT c
                  LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
                  LEFT JOIN prj_quotation pq ON pq.source_document_category = 'CON_CONTRACT'
                  LEFT JOIN HLS_BP_MASTER hbm ON hbm.bp_id = c.tenant_id
+                 LEFT JOIN hls_credit_plan hcp ON hcp.source_document_category = 'CON_CONTRACT'
         where pq.source_document_id=c.contract_id
           and p.document_type = 'FACTORING'
           AND p.document_category = 'PRJ_PROJECT'
           AND p.data_class = 'VIRTUAL_CON'
+          AND c.document_type = 'FACTORING'
+          and c.document_category = 'CON_CONTRACT'
+          and  c.data_class = 'NORMAL'
+          and hcp.source_document_id = c.CONTRACT_ID
         <if test="projectId != null">
             and p.project_id = #{projectId}
         </if>
@@ -12073,7 +12092,7 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                 where ccc.contract_id = c.contract_id
                 and ccc.cf_item = 1
                 and ccc.CF_STATUS = 'RELEASE'
-                and ccc.CF_DIRECTION = 'INFLOW') unreceived_principal
+                and ccc.CF_DIRECTION = 'INFLOW') due_amount_all
         from CON_CONTRACT c
                  LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
                  LEFT JOIN prj_quotation pq ON pq.source_document_category = 'CON_CONTRACT'
@@ -12082,21 +12101,12 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
           and p.document_type = 'FACTORING'
           AND p.document_category = 'PRJ_PROJECT'
           AND p.data_class = 'VIRTUAL_CON'
+          AND c.document_type = 'FACTORING'
+          and c.document_category = 'CON_CONTRACT'
+          and  c.data_class = 'NORMAL'
         <if test="projectId != null">
             and p.project_id = #{projectId}
         </if>
-        <if test="contractId != null">
-            and c.contract = #{contractId}
-        </if>
-          <if test="contractNumber != null">
-              and c.contract_number like concat('%',concat(#{contractNumber},'%'))
-          </if>
-          <if test="virContractNumber != null">
-              and p.contract_number like concat('%',concat(#{virContractNumber},'%'))
-          </if>
-          <if test="projectName != null">
-              and p.PROJECT_NAME like concat('%',concat(#{projectName},'%'))
-          </if>
     </select>
 
     <!--保理合同放款明细额度暂用详情-->
@@ -12111,12 +12121,20 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                pq.lease_start_date,
                pq.lease_item_amount,
                c.loan_approved_date,
-               (select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
-                from con_contract_cashflow ccc
-                where ccc.contract_id = c.contract_id
-                and ccc.cf_item = 1
-                and ccc.CF_STATUS = 'RELEASE'
-                and ccc.CF_DIRECTION = 'INFLOW') unreceived_principal
+               pq.finance_amount,
+               (case when nvl(p.CREDIT_FLAG, 'N') = 'N' THEN
+				        (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - pq.FINANCE_AMOUNT
+                    when nvl(p.CREDIT_FLAG, 'Y') = 'Y' and 	hcp.quota_type = 'REVOLVING' THEN
+                        (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - (select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
+                                                                            from con_contract_cashflow ccc
+                                                                            where ccc.contract_id = c.contract_id
+                                                                            and ccc.cf_item = 1
+                                                                            and ccc.CF_STATUS = 'RELEASE'
+                                                                            and ccc.CF_DIRECTION = 'INFLOW')
+		         when nvl(p.CREDIT_FLAG, 'Y') = 'Y' and hcp.quota_type = 'NON_REVOLVING' THEN
+                          (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) -  pq.FINANCE_AMOUNT
+				 else
+					 0 end ) due_amount_all
         from CON_CONTRACT c
                  LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
                  LEFT JOIN prj_quotation pq ON pq.source_document_category = 'CON_CONTRACT'
@@ -12125,21 +12143,15 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
           and p.document_type = 'FACTORING'
           AND p.document_category = 'PRJ_PROJECT'
           AND p.data_class = 'VIRTUAL_CON'
+          AND c.document_type = 'FACTORING'
+          and c.document_category = 'CON_CONTRACT'
+          and  c.data_class = 'NORMAL'
         <if test="projectId != null">
             and p.project_id = #{projectId}
         </if>
-        <if test="contractId != null">
-            and c.contract = #{contractId}
+        <if test="factoringCategory != null">
+            and c.factoring_category = #{factoringCategory}
         </if>
-          <if test="contractNumber != null">
-              and c.contract_number like concat('%',concat(#{contractNumber},'%'))
-          </if>
-          <if test="virContractNumber != null">
-              and p.contract_number like concat('%',concat(#{virContractNumber},'%'))
-          </if>
-          <if test="projectName != null">
-              and p.PROJECT_NAME like concat('%',concat(#{projectName},'%'))
-          </if>
     </select>
 
     <!--保理申请明细页面-->
@@ -12187,6 +12199,9 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             p.document_type = 'FACTORING'
           AND p.document_category = 'PRJ_PROJECT'
           AND p.data_class = 'VIRTUAL_CON'
+          AND c.document_type = 'FACTORING'
+          and c.document_category = 'CON_CONTRACT'
+          and  c.data_class = 'NORMAL'
         <if test="projectId != null">
             and p.project_id = #{projectId}
         </if>

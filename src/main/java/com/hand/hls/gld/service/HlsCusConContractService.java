@@ -263,4 +263,6 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
 
     //保理合同放款数据批量删除
     void conFactoringLoanBatchDelete(IRequest requestCtx, List<HlsCusConContract> hlsCusConContracts);
+
+    List<HlsCusConContract> submitConFactoringLoanWfl(HlsCusConContract hlsCusConContract, IRequest requestCtx);
 }

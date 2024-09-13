@@ -5,6 +5,7 @@ import com.github.pagehelper.PageHelper;
 import com.hand.hap.core.IRequest;
 import com.hand.hap.core.impl.RequestHelper;
 import com.hand.hap.lock.components.DatabaseLockProvider;
+import com.hand.hap.mybatis.entity.Example;
 import com.hand.hap.system.dto.DTOStatus;
 import com.hand.hap.system.service.impl.BaseServiceImpl;
 import com.hand.hls.activiti.service.HlsCusActMeetingRiskListService;
@@ -28,7 +29,9 @@ import com.hand.hls.csh.mapper.ProjectCreditConditionMapper;
 import com.hand.hls.csh.service.HlsCusPaymentDeductService;
 import com.hand.hls.csh.service.ICshPaymentReqHdService;
 import com.hand.hls.csh.service.IHlsCusCshPaymentReqLnService;
+import com.hand.hls.csh.service.IProjectCreditConditionService;
 import com.hand.hls.exception.HlsCusException;
+import com.hand.hls.fct.dto.HlsCreditLineChanceCondition;
 import com.hand.hls.fct.dto.HlsCreditPlanLine;
 import com.hand.hls.fct.dto.HlsCusFctQuotationCashflow;
 import com.hand.hls.fct.dto.HlsCusHlsCreditLine;
@@ -72,6 +75,7 @@ import hls.core.sys.event.service.SysEventService;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -331,6 +335,10 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     private HlsICreditPlanLineService hlsCreditPlanLineService;
     @Autowired
     private HlsCusConContractBpMapper hlsCusConContractBpMapper;
+    @Autowired
+    private HlsCusPrjProjectConditionMapper hlsCusPrjProjectConditionMapper;
+    @Autowired
+    private IProjectCreditConditionService projectCreditConditionService;
 
     @Override
     public List<Map<String, Object>> queryPaymentChangeInfoLov(IRequest request, HlsCusConContract hlsCusConContract, int page, int pageSize) {
@@ -4748,6 +4756,18 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         if (!"APPROVED".equals(prjProject.getContractStatus())){
             throw new HlsCusException("审批通过的合同单据才能进行放款申请！");
         }
+        Example conFactoringExample = new Example(HlsCusConContract.class);
+        conFactoringExample.createCriteria().
+                andEqualTo("projectId", prjProject.getProjectId()).
+                andEqualTo("documentType", "FACTORING").
+                andEqualTo("dataClass", "NORMAL").
+                andEqualTo("documentCategory", "CON_CONTRACT").
+                andEqualTo("contractStatus", "APPROVING");
+
+        List<HlsCusConContract> hlsCusConContractList = hlsCusConContractMapper.selectByExample(conFactoringExample);
+        if (hlsCusConContractList.size() > 1){
+            throw new HlsCusException("一个合同不能存在两笔同时进行的放款！");
+        }
         //复制数据
         //将项目表的数据复制到合同表
         HlsCusConContract contractNew = new HlsCusConContract();
@@ -4764,7 +4784,8 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         copyPrjCreditPlanInfoToConCreditPlanInfo(request, prjProject.getProjectId(), contractNew.getContractId(), "CON_CONTRACT");
         //复制报价方案基础信息
         copyPrjQuotationInfoToConQuotationInfo(request, prjProject.getProjectId(), contractNew.getContractId(), "CON_CONTRACT");
-
+        //复制投放前提条件数据
+        copyPrjConditionInfoToConConditionInfo(request, prjProject.getProjectId(), contractNew.getContractId(), "STAGE_PRE");
         return contractNew;
     }
 
@@ -4796,7 +4817,49 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             quotation.setSourceDocumentId(hlsCusConContract.getContractId());
             List<HlsCusPrjQuotation> factoringQuotation = hlsCusPrjQuotationMapper.findConFactoringLoanQuotation(quotation);
             hlsCusPrjQuotationService.batchDelete(factoringQuotation);
+
+            //删除投放前提条件数据
+            ProjectCreditCondition projectCreditCondition = new ProjectCreditCondition();
+            projectCreditCondition.setContractId(hlsCusConContract.getContractId());
+            List<ProjectCreditCondition> projectCreditConditions = projectCreditConditionMapper.queryConFactoringLoanCreditCondi(projectCreditCondition);
+            projectCreditConditionService.batchDelete(projectCreditConditions);
         }
+    }
+
+    //保理合同放款提交
+    public static final String WORK_FLOW_FACTORING_BUSINESS_LOAN = "FACTORING_BUSINESS_LOAN";
+    public static final String DEMO_NAME_FACTORING_BUSINESS_LOAN = "FACTORING_BUSINESS_LOAN";
+    public static final String DOCUMENT_TYPE_CON_FACTORING_BUSINESS_LOAN = "CON_FACTORING_BUSINESS_LOAN";
+    public static final String DOCUMENT_NAME_APPROVAL_VIRTUAL_CON_LOAN = "保理业务放款审批流程";
+
+    @Override
+    public List<HlsCusConContract> submitConFactoringLoanWfl(HlsCusConContract hlsCusConContract, IRequest requestCtx) {
+        HashMap<String, Object> params = new HashMap<>();
+        params.put("workFlowType", WORK_FLOW_FACTORING_BUSINESS_LOAN);
+        params.put(IActivitiCommonService.WORK_FLOW_NAME, WORK_FLOW_FACTORING_BUSINESS_LOAN);
+        params.put(IActivitiCommonService.DEMO_NAME, DEMO_NAME_FACTORING_BUSINESS_LOAN);
+        params.put(IActivitiCommonService.BUSINESS_KEY, hlsCusConContract.getContractId());
+        params.put("projectId", hlsCusConContract.getProjectId());
+        params.put("contractId", hlsCusConContract.getContractId());
+        hlsCusConContract = hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(hlsCusConContract.getTenantId());
+        hlsCusBpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(hlsCusBpMaster);
+        //单据类别
+        params.put("documentCategory", "CON_CONTRACT");
+        //单据类型
+        params.put("documentType", DOCUMENT_TYPE_CON_FACTORING_BUSINESS_LOAN);
+        //单据名称
+        params.put("documentName", hlsCusConContract.getContractNumber() + "-" + hlsCusBpMaster.getBpName() + "-" + DOCUMENT_NAME_APPROVAL_VIRTUAL_CON_LOAN);
+        //单据编号
+        params.put("documentNumber", hlsCusConContract.getContractNumber());
+        //是否授信
+        params.put("credit_flag", hlsCusConContract.getCreditFlag());
+        //查询
+        List<HlsCusConContract> res = new ArrayList<>();
+        res.add(hlsCusConContract);
+        activitiStartService.start(requestCtx, res, params);
+        return res;
     }
 
     private void copyPrjCustomerInfoToConCustomer(IRequest requestCtx, Long sourceId, Long targetId) {
@@ -4861,5 +4924,20 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         }
     }
 
+    private void copyPrjConditionInfoToConConditionInfo(IRequest requestCtx, Long sourceId, Long targetId, String stage) {
+        HlsCusPrjProjectCondition hlsCreditLineChanceCondition = new HlsCusPrjProjectCondition();
+        hlsCreditLineChanceCondition.setProjectId(sourceId);
+        hlsCreditLineChanceCondition.setStage(stage);
+        List<HlsCusPrjProjectCondition> factoringConditionInfo = hlsCusPrjProjectConditionMapper.findFactoringApprovalCondition(hlsCreditLineChanceCondition);
+        if (!factoringConditionInfo.isEmpty()) {
+            factoringConditionInfo.forEach(v -> {
+                ProjectCreditCondition projectCreditCondition = new ProjectCreditCondition();
+                projectCreditCondition.setContractId(targetId);
+                projectCreditCondition.setConditions(projectCreditCondition.getConditionContent());
+                projectCreditCondition.setProjectId(sourceId);
+                projectCreditConditionMapper.insertSelective(projectCreditCondition);
+            });
+        }
+    }
 
 }

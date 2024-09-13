@@ -1800,5 +1800,7 @@ public class HlsCusConContract extends ConContract {
     @Transient
     private String factoringCategoryN;
     private String purposeOfFunds;
+    @Transient
+    private Double dueAmountAll;  //占用详情 剩余本金合计
 
 }

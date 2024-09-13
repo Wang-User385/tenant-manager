@@ -11,6 +11,9 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import com.hand.hap.system.dto.BaseDTO;
+
+import java.util.Date;
+
 @ExtensionAttribute(disable=true)
 @Table(name = "PRJ_PROJECT_CREDIT_CONDITION")
 @Getter
@@ -84,5 +87,8 @@ public class ProjectCreditCondition extends BaseDTO {
 
      @Transient
      private Long paymentReqId;
+     private String practicableUser; //落实人
+     private Date practicableDate; //落实时间
+     private Long contractId; //合同ID
 
 }

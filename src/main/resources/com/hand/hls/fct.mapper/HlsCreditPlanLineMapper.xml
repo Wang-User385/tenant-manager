@@ -19,6 +19,10 @@
         <result column="factoring_category_n" property="factoringCategoryN" jdbcType="VARCHAR" />
         <result column="chance_id" property="chanceId" jdbcType="DECIMAL" />
         <result column="project_id" property="projectId" jdbcType="DECIMAL" />
+
+        <result column="approval_amount" property="approvalAmount" jdbcType="DECIMAL" />
+        <result column="occ_amount" property="occAmount" jdbcType="DECIMAL" />
+        <result column="due_amount" property="dueAmount" jdbcType="DECIMAL" />
     </resultMap>
 
     <select id="findFactoringInfo" resultMap="BaseResultMap">
@@ -83,8 +87,7 @@
     <!--保理合同放款额度明细-->
    <select id="queryConFactoringCreditPlan" resultMap="BaseResultMap">
        SELECT
-        cc.project_id,
-        cc.contract_id,
+        pp.project_id,
         hcpl.CREDIT_PLAN_ID,
         hcpl.line_id,
         hbm.bp_id,
@@ -97,13 +100,46 @@
         hcpl.factoring_category,
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = hcpl.factoring_category ) factoring_category_n,
         hcpl.credit_amt,
-        hcpl.description
+        hcpl.description,
+       (select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
+       where hcp2.credit_plan_id = hcpl2.credit_plan_id
+       and hcp2.source_document_category = 'CON_CONTRACT'
+       and hcpl2.factoring_category = hcpl.factoring_category
+       and hcp2.credit_plan_id = hcpl.credit_plan_id
+       and cc.project_id = pp.project_id
+       and cc.document_type = 'FACTORING'
+       and cc.data_class = 'NORMAL'
+       and cc.contract_status = 'APPROVING'
+       and cc.document_category = 'CON_CONTRACT'
+       and cc.contract_id = hcp2.source_document_id) approval_amount,
+       (select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
+       where hcp2.credit_plan_id = hcpl2.credit_plan_id
+       and hcp2.source_document_category = 'CON_CONTRACT'
+       and hcpl2.factoring_category = hcpl.factoring_category
+       and hcp2.credit_plan_id = hcpl.credit_plan_id
+       and cc.project_id = pp.project_id
+       and cc.document_type = 'FACTORING'
+       and cc.data_class = 'NORMAL'
+       and cc.contract_status = 'APPROVED'
+       and cc.document_category = 'CON_CONTRACT'
+       and cc.contract_id = hcp2.source_document_id) occ_amount,
+       hcpl.credit_amt - (select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
+       where hcp2.credit_plan_id = hcpl2.credit_plan_id
+       and hcp2.source_document_category = 'CON_CONTRACT'
+       and hcpl2.factoring_category = hcpl.factoring_category
+       and hcp2.credit_plan_id = hcpl.credit_plan_id
+       and cc.project_id = pp.project_id
+       and cc.document_type = 'FACTORING'
+       and cc.data_class = 'NORMAL'
+       and cc.contract_status = 'APPROVED'
+       and cc.document_category = 'CON_CONTRACT'
+       and cc.contract_id = hcp2.source_document_id) due_amount
         FROM
         hls_credit_plan_line hcpl
         INNER JOIN hls_credit_plan hcp ON hcp.credit_plan_id = hcpl.credit_plan_id
-        INNER JOIN con_contract cc ON hcp.source_document_category = 'CON_CONTRACT'
-        AND hcp.source_document_id = cc.contract_id
-        INNER JOIN hls_bp_master hbm ON cc.tenant_id = hbm.bp_id
+        INNER JOIN prj_project pp ON hcp.source_document_category = 'PRJ_PROJECT'
+        AND hcp.source_document_id = pp.project_id
+        INNER JOIN hls_bp_master hbm ON pp.tenant_id = hbm.bp_id
         <where>
             hbm.bp_type = 'ASSET_TRANSFEROR'
             <if test="creditPlanId != null">
