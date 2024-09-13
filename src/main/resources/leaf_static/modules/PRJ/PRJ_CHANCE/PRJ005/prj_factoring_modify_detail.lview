@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--创建-->
-<a:screen xmlns:a="http://www.leaf-framework.org/application"  customizationEnabled="true" dynamiccreateenabled="true"
+<a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
         <a:link id="factoring_bp_master_modify_link_id"
@@ -429,7 +429,7 @@
                 $(ds_id_pre).setQueryParameter('stage', 'STAGE_PRE')
             } else if (ds.id == ds_id_after) {
                 $(ds_id_after).setQueryParameter('stage', 'STAGE_AFTER')
-            }else if (ds.id == ds_id_business){
+            } else if (ds.id == ds_id_business) {
                 $(ds_id_business).fetchall = true;
             }
         };
@@ -497,12 +497,23 @@
                 }
             }
             //当前节点可以编辑业务准入信息
+            debugger;
             var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
-            if (ds.id == ds_id_business ){
-                if ('${/parameter/@edit_business_flag}' == 'Y' || '${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS11' ) {
-                    editBusiness(ds_id_business);
+            var ds_id_pre = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC');
+            var ds_id_after = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC_AFTER');
+            if (ds.id == ds_id_business) {
+                if ('${/parameter/@edit_business_flag}' == 'Y' || '${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS11') {
+                    editBusiness(record);
                 } else {
-                    noEditBusiness(ds_id_business);
+                    noEditBusiness(record);
+                }
+            }else if (ds_id_pre == ds.id){
+                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS19'){
+                    editTuoFang(record);
+                }
+            }else if (ds_id_after == ds.id){
+                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS19'){
+                    editTuoFang(record);
                 }
             }
         };
@@ -535,8 +546,7 @@
                 var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER');
                 addCustomerInCreate(ds_id_customer);
             }
-            debugger;
-            if ('${/parameter/@node_id}' =='FACTORING_PROJRCT_PROPOSALS18'){
+            if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS18') {
                 let con_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_CON_FAC_component_id']").attr("id");
                 let con_after_component_id = '#' + jQuery("div[name='${/parameter/@layout_code}_T_CON_FAC_AFTER_component_id']").attr("id");
                 let con_grid_id = '#' + '${/parameter/@layout_code}_G_CON_FAC_hls_credit_line_chance_condition_layout_grid_id_wrap';
@@ -803,30 +813,22 @@
             });
         }
 
-        function editBusiness(ds_id_business) {
+        function editBusiness(record) {
             openBigSaveButton();
-            var records_business = $(ds_id_business).getAll();
-            for (let i = 0; i < records_business.length; i++) {
-                var record_business = records_business[i];
-                record_business.getField('items_detail').setReadOnly(false);
-                record_business.getField('check_result').setReadOnly(false);
-                record_business.getField('check_result').setRequired(true);
-                record_business.getField('check_result_n').setReadOnly(false);
-                record_business.getField('check_result_n').setRequired(true);
-            }
+            record.getField('items_detail').setReadOnly(false);
+            record.getField('check_result').setReadOnly(false);
+            record.getField('check_result').setRequired(true);
+            record.getField('check_result_n').setReadOnly(false);
+            record.getField('check_result_n').setRequired(true);
         }
 
-        function noEditBusiness(ds_id_business) {
-            var records_business = $(ds_id_business).getAll();
-            for (let i = 0; i < records_business.length; i++) {
-                var record_business = records_business[i];
-                record_business.getField('items_detail').setReadOnly(true);
-                record_business.getField('items_detail').setRequired(false);
-                record_business.getField('check_result').setReadOnly(true);
-                record_business.getField('check_result').setRequired(false);
-                record_business.getField('check_result_n').setReadOnly(true);
-                record_business.getField('check_result_n').setRequired(false);
-            }
+        function noEditBusiness(record) {
+            record.getField('items_detail').setReadOnly(true);
+            record.getField('items_detail').setRequired(false);
+            record.getField('check_result').setReadOnly(true);
+            record.getField('check_result').setRequired(false);
+            record.getField('check_result_n').setReadOnly(true);
+            record.getField('check_result_n').setRequired(false);
         }
 
 
@@ -974,6 +976,10 @@
                 jQuery('#${/parameter/@layout_code}_user_button2').hide();
             }
         }
+        function editTuoFang(record){
+            record.getField('content').setReadOnly(false);
+            record.getField('content').setRequired(true);
+        }
 
         //在线预览
         function queryDocFile(source_pk_value) {
@@ -1047,6 +1053,20 @@
             //         });
             //     }
             // }
+            var ds_id_pre = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC');
+            var ds_id_after = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC_AFTER');
+            if (node_id == 'FACTORING_PROJRCT_PROPOSALS19'){
+                var records =  $(ds_id_pre).getAll();
+                if (!records || records.length == 0){
+                    Leaf.showInfoMessage('提示','请新增投放前提条件');
+                    return false;
+                }
+                records =  $(ds_id_after).getAll();
+                if (!records || records.length == 0){
+                    Leaf.showInfoMessage('提示','请新增投放管理要求');
+                    return false;
+                }
+            }
             if (node_id == 'FACTORING_PROJRCT_PROPOSALS11') {
                 var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
                 if (!$(ds_id_business).validate()) {
