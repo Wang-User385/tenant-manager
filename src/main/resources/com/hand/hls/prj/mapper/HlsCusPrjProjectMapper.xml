@@ -14081,4 +14081,51 @@ WHERE
         </where>
     </select>
 
+    <select id="selectPrj316Result" resultMap="BaseResultMap">
+        select * from (select
+        pp.project_id,
+        pp.project_number,
+        pp.project_name,
+        pp.tenant_id,
+        ( select bm.bp_name from hls_bp_master bm where bm.bp_id = pp.tenant_id ) tenant_id_n,
+        pp.credit_flag,
+        ( select sv.meaning from sys_code_value_b_v sv where sv.code = 'GT.HCLC.CREDIT_FLAG' and sv.code_value =
+        pp.credit_flag ) as credit_flag_n,
+        pp.lease_item_amount,
+        pp.host_project_manager,
+        ( select su.description from sys_user su where su.user_id = pp.host_project_manager ) host_project_manager_n,
+        pp.assist_project_manager,
+        ( select su.description from sys_user su where su.user_id = pp.assist_project_manager ) assist_project_manager_n,
+        pp.project_status,
+        ( select sv.meaning from sys_code_value_b_v sv where sv.code = 'PRJ501_PRJ_STATUS' and sv.code_value =
+        pp.project_status ) project_status_n,
+        pp.approved_date
+        from
+        prj_project pp
+        where pp.document_type = 'CREDIT' and pp.document_category='PRJ_PROJECT'
+        ) v
+        <where>
+            1 = 1
+            <if test="projectNumber != null">
+                and v.project_number like concat('%',concat(#{projectNumber},'%'))
+            </if>
+            <if test="projectName != null">
+                and v.project_name like concat('%',concat(#{projectName},'%'))
+            </if>
+            <if test="tenantIdN != null">
+                and v.tenant_id_n like concat('%',concat(#{tenantIdN},'%'))
+            </if>
+            <if test="hostProjectManagerN != null">
+                and v.host_project_manager_n like concat('%',concat(#{hostProjectManagerN},'%'))
+            </if>
+            <if test="projectStatus != null and projectStatus != '' ">
+                and v.project_status = #{projectStatus}
+            </if>
+            <if test="creditFlag != null and creditFlag != ''">
+                and v.credit_flag = #{creditFlag}
+            </if>
+        </where>
+        order by v.project_number DESC
+    </select>
+
 </mapper>
