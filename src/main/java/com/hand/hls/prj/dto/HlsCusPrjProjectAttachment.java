@@ -198,6 +198,8 @@ public class HlsCusPrjProjectAttachment extends BaseDTO {
     @Transient
     private String createdByN;
 
+    private Long createdBy;
+
     @Transient
     private String attachmentIdN;
 

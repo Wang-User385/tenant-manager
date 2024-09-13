@@ -1197,13 +1197,18 @@
             if ('${/parameter/@bp_class}' == 'NP') {
                 //身份证校验
                 if (id_type == 'ID_CARD') {
-                    var reg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
-                    if (reg.test(id_card_no) === false) {
-                        if (ds_id == ds.id) {
-                            Leaf.showMessage("提示", "证件号码格式错误!", null);
-                        }
+                    if(!validateIDCard(id_card_no)){
+                        Leaf.showMessage("提示", "证件号码格式错误!", null);
+                        window['${/parameter/@layout_code}_unlock_layout_dynamic_window']();
                         return false;
                     }
+                    // var reg = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+                    // if (reg.test(id_card_no) === false) {
+                    //     if (ds_id == ds.id) {
+                    //         Leaf.showMessage("提示", "证件号码格式错误!", null);
+                    //     }
+                    //     return false;
+                    // }
                 }
                 jQuery.ajax({
                     type: 'GET',
@@ -1619,6 +1624,55 @@
             });
             return new_record
         }
+
+
+        function validateIDCard(idCard) {
+            // 检查长度
+            if (idCard.length!== 18) {
+                return false;
+            }
+            if (!isValidDateInIDCard(idCard)){
+                return false;
+            }
+
+            // 加权因子
+            const weightFactor = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+            // 校验码
+            const checkCode = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+            let sum = 0;
+            for (let i = 0; i < 17; i++) {
+                sum += parseInt(idCard[i]) * weightFactor[i];
+            }
+
+            const remainder = sum % 11;
+            const checkDigit = idCard[17];
+
+            return checkCode[remainder] === checkDigit;
+        }
+
+        function isValidDateInIDCard(idCard) {
+            const birthYear = parseInt(idCard.substring(6, 10));
+            const birthMonth = parseInt(idCard.substring(10, 12));
+            const birthDay = parseInt(idCard.substring(12, 14));
+
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            const minYear = currentYear - 120;
+            const maxYear = currentYear;
+
+            if (birthYear < minYear || birthYear > maxYear || birthMonth < 1 || birthMonth > 12 || birthDay < 1) {
+                return false;
+            }
+
+            const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            if (birthYear % 4 === 0 && (birthYear % 100!== 0 || birthYear % 400 === 0)) {
+                daysInMonth[1] = 29;
+            }
+
+            return birthDay <= daysInMonth[birthMonth - 1];
+        }
+
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
     </a:view>
