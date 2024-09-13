@@ -47,8 +47,8 @@ public class HlsFactoringVoteTask implements JavaDelegate, IActivitiBean {
     @Autowired
     private HlsICreditLineChanceApproverService hlsICreditLineChanceApproverService;
 
-    private static final String APPROVED = "APPROVED";
-    private static final String REJECTED = "REJECTED";
+    private static final String APPROVE = "APPROVE";
+    private static final String REFUSE = "REFUSE";
     private static final String CONDITION = "CONDITION";
 
     @Autowired
@@ -100,11 +100,11 @@ public class HlsFactoringVoteTask implements JavaDelegate, IActivitiBean {
                 return;
             }
         }
-        if (APPROVED.equals(result)) {
+        if (APPROVE.equals(result)) {
             approver.setVoteStatus(VOTE_APPROVED);
         } else if (CONDITION.equals(result)) {
             approver.setVoteStatus(VOTE_CONDITION);
-        } else if (REJECTED.equals(result)) {
+        } else if (REFUSE.equals(result)) {
             approver.setVoteStatus(VOTE_REJECTED);
         }
         if (!CollectionUtils.isEmpty(judgeList)) {

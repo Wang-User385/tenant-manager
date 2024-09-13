@@ -204,16 +204,20 @@
                     value = "<div class='action_dangerous'>转交</div>";
                 }else if (value == 'CONDITION'){
                     value = "<div class='action_dangerous'>有条件</div>";
-                }
-                else{
+                }else if (value == 'REFUSE'){
+                    value = "<div class='action_dangerous'>不同意</div>";
+                }else if (value == 'APPROVE'){
+                    value = "<div class='action_dangerous'>不同意通过</div>";
+                } else{
                         value = value || ''
-                    }
+                }
                     return value;
                 }
             return "";
         }
         // 待办事项数据加载后 根据数据更新底部操作按钮
         function updateApproveButton(res){
+            debugger;
             jQuery('#head_flag').show();
             jQuery('#approval_comments').show();
             jQuery('#btn-approved').show();
@@ -223,7 +227,7 @@
 
             currentTaskInfo.form_data.form_properties.forEach(function(value,i,arr){
                 if (value.id == 'approveResult' && value.type == 'enum') {
-                    var findApproved = false, findReject = false, findPeerRejected = false,findCondition = false;
+                    var findApproved = false, findReject = false, findPeerRejected = false,findCondition = false ,findRefuse = false, findApprove = false;
                     value.enum_values.forEach(function (rr,i) {
                         if (isContains(rr.id) && rr.name) {
                             var openBox = jQuery("<button/>").attr({
@@ -249,6 +253,12 @@
                         } else if(rr.id == 'CONDITION' && rr.name){
                             findCondition = true;
                             jQuery('#text-condition').text(rr.name)
+                        }else if (rr.id == 'REFUSE' && rr.name){
+                            findRefuse = true;
+                            jQuery('#text-refuse-re').text(rr.name)
+                        } else if (rr.id == 'APPROVE' && rr.name){
+                            findApprove = true;
+                            jQuery('#text-approve').text(rr.name)
                         }else {
                             //  custom button
                             var cb0 = jQuery("<button/>").attr({
@@ -275,6 +285,12 @@
                     }
                     if(findCondition){
                         jQuery('#btn-condition').show();
+                    }
+                    if (findRefuse){
+                        jQuery('#btn-refuse').show();
+                    }
+                    if (findApprove){
+                        jQuery('#btn-approve').show();
                     }
 
                 }
@@ -321,6 +337,10 @@
             if(task_definition_key == 'CREDIT_CHANCE_CREATE_WFL_S20' ||
                 task_definition_key == 'FACTORING_PROJRCT_PROPOSALS23'){
                 jQuery('#btn-rejected').hide();
+            }
+            if(task_definition_key == 'FACTORING_PROJRCT_PROPOSALS18'){
+                jQuery('#btn-rejected').hide();
+                jQuery('#btn-approved').hide();
             }
 
 
@@ -472,6 +492,22 @@
             },function () {return true;},200,200);
         });
 
+        jQuery('#btn-refuse').click(function () {
+            var comment = $("approval_comments_ds").data[0] ? $("approval_comments_ds").data[0].data["comment"] : "";
+            if(comment == "" || comment == null){
+                Leaf.showMessage('提示','请先输入审批意见，再操作！');
+                return false;
+            }
+            //长度不能超过1000字符
+            if(comment.length > 1000){
+                Leaf.showMessage('提示','审批意见最多只能输入1000个字！');
+                return false;
+            }
+            Leaf.showOkCancelWindow("提示","确认不同意通过？",function (e) {
+                taskAction({approveResult: 'REFUSE', approveResultDesc: jQuery('#text-refuse-re').text()});
+            },function () {return true;},200,200);
+        });
+
         jQuery('#btn-condition').click(function () {
             var comment = $("approval_comments_ds").data[0] ? $("approval_comments_ds").data[0].data["comment"] : "";
             if(comment == "" || comment == null){
@@ -483,8 +519,23 @@
                 Leaf.showMessage('提示','审批意见最多只能输入1000个字！');
                 return false;
             }
-            Leaf.showOkCancelWindow("提示","确认？",function (e) {
+            Leaf.showOkCancelWindow("提示","确认有条件通过？",function (e) {
                 taskAction({approveResult: 'CONDITION', approveResultDesc: jQuery('#text-condition').text()});
+            },function () {return true;},200,200);
+        });
+        jQuery('#btn-approve').click(function () {
+            var comment = $("approval_comments_ds").data[0] ? $("approval_comments_ds").data[0].data["comment"] : "";
+            if(comment == "" || comment == null){
+                Leaf.showMessage('提示','请先输入审批意见，再操作！');
+                return false;
+            }
+            //长度不能超过1000字符
+            if(comment.length > 1000){
+                Leaf.showMessage('提示','审批意见最多只能输入1000个字！');
+                return false;
+            }
+            Leaf.showOkCancelWindow("提示","确认通过？",function (e) {
+                taskAction({approveResult: 'APPROVE', approveResultDesc: jQuery('#text-approve').text()});
             },function () {return true;},200,200);
         });
 
@@ -843,8 +894,14 @@
                 <button id='btn-peer-rejected' type="button" class="btn btn-warning" style="display: none;">
                     <span class="fa fa-times-circle"></span><span id='text-peer-rejected'>点对点退回业务经理</span>
                 </button>
-                <button id='btn-condition' type="button" class="btn btn-condition" style="display: none;">
-                    <span class="fa fa-times-circle"></span><span id='text-condition'>有条件</span>
+                <button id='btn-condition' type="button" class="btn btn-primary" style="display: none;">
+                    <span class="fa fa-arrow-circle"></span><span id='text-condition'>有条件通过</span>
+                </button>
+                <button id='btn-refuse' type="button" class="btn btn-warning" style="display: none;">
+                    <span class="fa fa-times-circle"></span><span id='text-refuse-re'>不通过</span>
+                </button>
+                <button id='btn-approve' type="button" class="btn btn-success" style="display: none;">
+                    <span class="fa fa-check-circle"></span><span id='text-approve'>通过</span>
                 </button>
                 <div id="custom-btn-container" style="display: inline-block;"> </div>
                 <div id="custom-btn-open" style="display: inline-block;"> </div>
