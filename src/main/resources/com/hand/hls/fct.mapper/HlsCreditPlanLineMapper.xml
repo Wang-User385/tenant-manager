@@ -92,7 +92,6 @@
         hcpl.line_id,
         hbm.bp_id,
         hbm.bp_name,
-        hbm.bp_name bp_name_n,
         hbm.bp_code,
         hbm.bp_type,
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = hbm.bp_type ) bp_type_n,
@@ -101,39 +100,36 @@
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = hcpl.factoring_category ) factoring_category_n,
         hcpl.credit_amt,
         hcpl.description,
-       (select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
+       nvl((select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
        where hcp2.credit_plan_id = hcpl2.credit_plan_id
        and hcp2.source_document_category = 'CON_CONTRACT'
        and hcpl2.factoring_category = hcpl.factoring_category
-       and hcp2.credit_plan_id = hcpl.credit_plan_id
        and cc.project_id = pp.project_id
        and cc.document_type = 'FACTORING'
        and cc.data_class = 'NORMAL'
        and cc.contract_status = 'APPROVING'
        and cc.document_category = 'CON_CONTRACT'
-       and cc.contract_id = hcp2.source_document_id) approval_amount,
-       (select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
+       and cc.contract_id = hcp2.source_document_id), 0) approval_amount,
+       nvl((select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
        where hcp2.credit_plan_id = hcpl2.credit_plan_id
        and hcp2.source_document_category = 'CON_CONTRACT'
        and hcpl2.factoring_category = hcpl.factoring_category
-       and hcp2.credit_plan_id = hcpl.credit_plan_id
        and cc.project_id = pp.project_id
        and cc.document_type = 'FACTORING'
        and cc.data_class = 'NORMAL'
        and cc.contract_status = 'APPROVED'
        and cc.document_category = 'CON_CONTRACT'
-       and cc.contract_id = hcp2.source_document_id) occ_amount,
-       hcpl.credit_amt - (select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
+       and cc.contract_id = hcp2.source_document_id), 0) occ_amount,
+       nvl(hcpl.credit_amt, 0) - nvl((select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
        where hcp2.credit_plan_id = hcpl2.credit_plan_id
        and hcp2.source_document_category = 'CON_CONTRACT'
        and hcpl2.factoring_category = hcpl.factoring_category
-       and hcp2.credit_plan_id = hcpl.credit_plan_id
        and cc.project_id = pp.project_id
        and cc.document_type = 'FACTORING'
        and cc.data_class = 'NORMAL'
        and cc.contract_status = 'APPROVED'
        and cc.document_category = 'CON_CONTRACT'
-       and cc.contract_id = hcp2.source_document_id) due_amount
+       and cc.contract_id = hcp2.source_document_id), 0) due_amount
         FROM
         hls_credit_plan_line hcpl
         INNER JOIN hls_credit_plan hcp ON hcp.credit_plan_id = hcpl.credit_plan_id

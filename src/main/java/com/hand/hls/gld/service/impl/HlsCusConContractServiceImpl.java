@@ -4777,6 +4777,11 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         contractNew.setDataClass("NORMAL");
         contractNew.setBusinessType("LEASE");
         contractNew.setContractStatus("NEW");
+        //后台生成编码规则
+        Map<String, String> params = new HashMap<>();
+        String codeRule = "LOAN_FAT";
+        String contractNumber = codingRuleValuesService.getCodeRuleValue(request, codeRule, codeRule, codeRule, params);
+        contractNew.setContractNumber(contractNumber);
         hlsCusConContractMapper.insertSelective(contractNew);
         //将项目表客户信息复制到合同客户表
         copyPrjCustomerInfoToConCustomer(request, prjProject.getProjectId(), contractNew.getContractId());

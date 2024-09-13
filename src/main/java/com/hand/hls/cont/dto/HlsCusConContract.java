@@ -1802,5 +1802,6 @@ public class HlsCusConContract extends ConContract {
     private String purposeOfFunds;
     @Transient
     private Double dueAmountAll;  //占用详情 剩余本金合计
+    private Long loanProcInstatnce; //放款申请工作流实例id
 
 }

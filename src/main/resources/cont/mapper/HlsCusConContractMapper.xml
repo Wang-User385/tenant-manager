@@ -634,6 +634,7 @@
         <result column="industry" property="industry" jdbcType="VARCHAR"/>
         <result column="purpose_of_funds" property="purposeOfFunds" jdbcType="VARCHAR"/>
         <result column="due_amount_all" property="dueAmountAll" jdbcType="VARCHAR"/>
+        <result column="loan_proc_instatnce" property="loanProcInstatnce" jdbcType="DECIMAL"/>
     </resultMap>
 
 
@@ -12087,12 +12088,12 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                pq.lease_start_date,
                pq.lease_item_amount,
                c.loan_approved_date,
-               (select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
+               nvl((select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
                 from con_contract_cashflow ccc
                 where ccc.contract_id = c.contract_id
                 and ccc.cf_item = 1
                 and ccc.CF_STATUS = 'RELEASE'
-                and ccc.CF_DIRECTION = 'INFLOW') due_amount_all
+                and ccc.CF_DIRECTION = 'INFLOW'), 0) due_amount_all
         from CON_CONTRACT c
                  LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
                  LEFT JOIN prj_quotation pq ON pq.source_document_category = 'CON_CONTRACT'
@@ -12123,22 +12124,23 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                c.loan_approved_date,
                pq.finance_amount,
                (case when nvl(p.CREDIT_FLAG, 'N') = 'N' THEN
-				        (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - pq.FINANCE_AMOUNT
+				        (select nvl(pq.FINANCE_AMOUNT, 0) from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - nvl(pq.FINANCE_AMOUNT, 0)
                     when nvl(p.CREDIT_FLAG, 'Y') = 'Y' and 	hcp.quota_type = 'REVOLVING' THEN
-                        (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - (select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
+                        (select nvl(pq.FINANCE_AMOUNT, 0) from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - nvl((select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
                                                                             from con_contract_cashflow ccc
                                                                             where ccc.contract_id = c.contract_id
                                                                             and ccc.cf_item = 1
                                                                             and ccc.CF_STATUS = 'RELEASE'
-                                                                            and ccc.CF_DIRECTION = 'INFLOW')
+                                                                            and ccc.CF_DIRECTION = 'INFLOW'), 0)
 		         when nvl(p.CREDIT_FLAG, 'Y') = 'Y' and hcp.quota_type = 'NON_REVOLVING' THEN
-                          (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) -  pq.FINANCE_AMOUNT
+                          (select nvl(pq.FINANCE_AMOUNT, 0) from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) -  nvl(pq.FINANCE_AMOUNT, 0)
 				 else
 					 0 end ) due_amount_all
         from CON_CONTRACT c
                  LEFT JOIN PRJ_PROJECT p ON c.PROJECT_ID = p.PROJECT_ID
                  LEFT JOIN prj_quotation pq ON pq.source_document_category = 'CON_CONTRACT'
                  LEFT JOIN HLS_BP_MASTER hbm ON hbm.bp_id = c.tenant_id
+                 LEFT JOIN hls_credit_plan hcp ON hcp.source_document_category = 'CON_CONTRACT'
         where pq.source_document_id=c.contract_id
           and p.document_type = 'FACTORING'
           AND p.document_category = 'PRJ_PROJECT'
@@ -12146,6 +12148,7 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
           AND c.document_type = 'FACTORING'
           and c.document_category = 'CON_CONTRACT'
           and  c.data_class = 'NORMAL'
+          and hcp.source_document_id = c.CONTRACT_ID
         <if test="projectId != null">
             and p.project_id = #{projectId}
         </if>
@@ -12206,7 +12209,7 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
             and p.project_id = #{projectId}
         </if>
         <if test="contractId != null">
-            and c.contract = #{contractId}
+            and c.contract_id = #{contractId}
         </if>
     </select>
 
