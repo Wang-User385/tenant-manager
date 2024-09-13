@@ -30,6 +30,17 @@ public class HlsCreditLineAttach extends BaseDTO {
 
      private Long chanceId;
 
+    public Long getFileNum() {
+        return fileNum;
+    }
+
+    public void setFileNum(Long fileNum) {
+        this.fileNum = fileNum;
+    }
+
+    @Transient
+     private Long fileNum;
+
      @Length(max = 65535)
      private String documentName;
 
@@ -48,6 +59,19 @@ public class HlsCreditLineAttach extends BaseDTO {
      private String status;
     @Transient
     private String fileNames;
+
+    public String getSourcePkValue() {
+        return sourcePkValue;
+    }
+
+    public void setSourcePkValue(String sourcePkValue) {
+        this.sourcePkValue = sourcePkValue;
+    }
+
+    @Transient
+    private String sourcePkValue;
+    @Transient
+    private String attachmentIdN;
     @Transient
     private String fileName;
     @Transient
@@ -110,6 +134,12 @@ public class HlsCreditLineAttach extends BaseDTO {
 
     public String getFileNames() {
         return fileNames;
+    }
+    public String getAttachmentIdN() {
+        return attachmentIdN;
+    }
+    public void setAttachmentIdN(String attachmentIdN) {
+        this.attachmentIdN=attachmentIdN;
     }
 
     public void setFileNames(String fileNames) {

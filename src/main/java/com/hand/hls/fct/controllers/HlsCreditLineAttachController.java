@@ -127,4 +127,49 @@ import org.springframework.web.bind.annotation.*;
 
         }
     }
+
+        @RequestMapping(value = "/hls/cus/credit/download")
+        @ResponseBody
+        public void creditDownload(@RequestParam("chanceId") Long chanceId,
+                             @RequestParam("attachmentCategory") String attachmentCategory,
+                             HttpServletResponse response, HttpServletRequest request) throws ResMessageException {
+            HlsCusHlsCreditLineChanceAttach hlsCusHlsCreditLineChanceAttach = new HlsCusHlsCreditLineChanceAttach();
+            hlsCusHlsCreditLineChanceAttach.setChanceId(chanceId);
+            hlsCusHlsCreditLineChanceAttach.setAttachmentCategory(attachmentCategory);
+            //获取所有的数据
+            List<HlsCusHlsCreditLineChanceAttach> hlsCusHlsCreditLineChanceAttaches = hlsCusHlsCreditLineChanceAttachMapper.findLineChanceAttachByChanceId(hlsCusHlsCreditLineChanceAttach);
+            if (!CollectionUtils.isEmpty(hlsCusHlsCreditLineChanceAttaches)) {
+                String zipFilePath = "";
+                String fileName = "";
+                List<HlsCusSysFile> hlsCusSysFiles = new ArrayList<>();
+                for (HlsCusHlsCreditLineChanceAttach hlsCusHlsCreditLineChanceAttach1 : hlsCusHlsCreditLineChanceAttaches) {
+                    HlsCusSysFile hlsCusSysFile = new HlsCusSysFile();
+                    String filePath = hlsCusHlsCreditLineChanceAttach1.getFilePath();
+                    String fileName1 = hlsCusHlsCreditLineChanceAttach1.getFileName();
+                    hlsCusSysFile.setFilePath(filePath);
+                    hlsCusSysFile.setFileName(fileName1);
+                    hlsCusSysFiles.add(hlsCusSysFile);
+                }
+                if (!CollectionUtils.isEmpty(hlsCusSysFiles)) {
+                    File zipFilePath1 = new File(zipFilePath);
+                    //拼接文件名,用户名+系统时间,避免出现重复
+                    fileName = "downloadZip_" + System.currentTimeMillis();
+                    //String zipFile = "attachment;filename=" + new String(fileName.getBytes("utf-8"), "iso-8859-1") + ".zip";
+                    String zipFile = zipFilePath1 + fileName + ".zip";
+                    try {
+                        FileOutputStream outStream = new FileOutputStream(zipFile);
+                        ZipOutputStream toClient = new ZipOutputStream(outStream);
+                        //打包转换为zip文件
+                        HlsCusZipUtil.zipFile(hlsCusSysFiles, toClient);
+                        toClient.close();
+                        outStream.close();
+                        //下载zip文件
+                        HlsCusZipUtil.downloadZip(new File(zipFile), response);
+                    } catch (Exception e) {
+                        throw new ResMessageException("一键下载异常");
+                    }
+                }
+
+            }
+        }
 }

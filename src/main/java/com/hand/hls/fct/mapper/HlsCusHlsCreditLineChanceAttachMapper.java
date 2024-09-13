@@ -23,4 +23,5 @@ public interface HlsCusHlsCreditLineChanceAttachMapper extends Mapper<HlsCusHlsC
     List<HlsCusHlsCreditLineChanceAttach> findFactoringInfo(HlsCusHlsCreditLineChanceAttach hlsCusHlsCreditLineChanceAttach);
 
     List<HlsCusHlsCreditLineChanceAttach> findListHlsCusHlsCreditLineChanceAttach(HlsCusHlsCreditLineChanceAttach hlsCusHlsCreditLineChanceAttach);
+    List<HlsCusHlsCreditLineChanceAttach> findLineChanceAttachByChanceId(HlsCusHlsCreditLineChanceAttach hlsCusHlsCreditLineChanceAttach);
 }

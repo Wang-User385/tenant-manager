@@ -12,25 +12,32 @@
                 url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
         <a:link id="factoring_finance_report_detail_update_link_id"
                 url="${/request/@context_path}/modules/BP/BP100/financial_report_import_entrance.lview"/>
+        <link href="${/request/@context_path}/resources/hls/imgPreview/viewer.css" rel="stylesheet" type="text/css"/>
+        <script src="${/request/@context_path}/resources/hls/imgPreview/viewer.js"/>
+
+        <script src="${/request/@context_path}/resources/hls/imgPreview/image-view.js"/>
         <script><![CDATA[
 
         //超链接渲染
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_dynamic_link_renderer'] = function (value, record, name, config_record, bp_seq) {
+            debugger;
+            var file_num = record.get('file_num') || 0;
+            var attach_name = file_num === 0 ? '附件' : '附件(' + file_num + ')';
             if (name == 'customer_detail_information') {
                 return '<a href="javascript:open_master_detail_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户明细信息</a>';
             } else if (name == 'client_financial_reports') {
                 return '<a href="javascript:open_financial_report_modify_win(\'' + record.id + '\',\'' + record.ds.id + '\');">客户财报</a>';
-            } else if (name == 'attachment_detail' && (!record.get('file_num') || record.get('file_num') == 0)) {
-                return '<a href="javascript:upload(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('chance_id') + '\');">附件</a>';
-            } else if (name == 'attachment_detail' && record.get('file_num') > 0) {
-                return '<a href="javascript:upload(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('chance_id') + '\');">附件' + '(' + record.get("file_num") + ')' + '</a>';
-            } else if (name == 'preview') {
+            } else if (name == 'attachment_detail') {
+                return '<a href="javascript:upload(\'' + record.ds.id + '\',\'' + record.id + '\',\'' + record.get('chance_id') + '\');">' + attach_name + '</a>';
+            } else if (name === 'preview') {
                 if (record.get('attachment_id_n') != null) {
+                    debugger;
                     var html = '';
                     var fileNameList = record.get('file_names').split(',');
                     var attachmentIdList = record.get('attachment_id_n').split(',');
                     var sourcePkList = record.get('source_pk_value').split(',');
                     for (let i = 0; i < fileNameList.length; i++) {
+                        debugger;
                         if (html != '') {
                             html += ',';
                         }
@@ -50,6 +57,18 @@
                 }
             }
         };
+        function atmTypeRef(name) {
+            return /\.(jpg|png|gif|bmp|jpeg)$/i.test(name)
+        }
+        function checkPdf(name) {
+            return /\.(pdf)$/i.test(name)
+        }
+        function checkDox(name) {
+            return /\.(doc|docx)$/i.test(name)
+        }
+        function checkXls(name) {
+            return /\.(xls|xlsx)$/i.test(name)
+        }
 
         function open_master_detail_win(record_id, ds_id) {
             var record = $(ds_id).findById(record_id);
@@ -120,12 +139,16 @@
 
         //一键下载
         window['${/parameter/@layout_code}_G_APPENDIX_USER_BUTTON1_layout_dynamic_tab_click'] = function () {
+            debugger
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance', 'F_PR_BASIC');
             var record = $(ds_id).getCurrentRecord();
-            var chance_id = parseInt(record.get('chance_id'));
-            var down_url = "${/request/@context_path}/hls/credit/download?chanceId=" + chance_id + "&attachmentCategory=CHANCE_ATT";
-            location.href = down_url;
+            if(record != null){
+                var chance_id = parseInt(record.get('chance_id'));
+                var down_url = "${/request/@context_path}/hls/cus/credit/download?chanceId=" + chance_id + "&attachmentCategory=CHANCE_ATT";
+                location.href = down_url;
+            }
         }
+
 
         //在线预览
         function queryDocFile(source_pk_value) {
@@ -207,7 +230,7 @@
             var credit_line_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_APPENDIX');
             if ($(credit_line_ds_id).getAll() || $(credit_line_ds_id).getAll().length > 0) {
                 let record1 = $(credit_line_ds_id).getCurrentRecord();
-                record1.set('table_name', 'CHANCE_ATT')
+                record1.set('attachment_category', 'CHANCE_ATT')
 
             }
             if (credit_line_number == null) {
@@ -334,14 +357,9 @@
                 chance_record.set('document_type', 'CREDIT');
                 chance_record.set('document_category', 'HLS_CREDIT_LINE_CHANCE');
 
-                var credit_plan_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_CREDIT_PRO');
-                var credit_line_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_APPENDIX');
-                if ($(credit_line_ds_id).getAll() || $(credit_line_ds_id).getAll().length > 0) {
-                    let record1 = $(credit_line_ds_id).getCurrentRecord();
-                    record1.set('attachment_category', 'CHANCE_ATT')
-                }
             };
         }
+
 
 
         var chance_id_flag = '${/parameter/@chance_id}';
@@ -379,7 +397,7 @@
         if (stream_flag != 'Y') {
             Leaf.onReady(function () {
                 if ('${/parameter/@function_usage}' == 'CREATE') {
-                    $('prj_chance_new_winid').close();
+                   // $('prj_chance_new_winid').close();
                     var ds_id_customer = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_bp', 'F_CUSTOMER_CREDIT');
                     addCustomerInCreate(ds_id_customer);
                 }
@@ -527,9 +545,6 @@
                 debugger;
                 var node_id ='${/parameter/@node_id}';
                 var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_APPENDIX');
-                var ds_id_compare = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_REVIEW');
-                var ds_id_condition = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CONDITIONS_APPROVAL');
-                var ds_id_attach_meeting = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_ANNEXES_MEETING');
                 if ('${/parameter/@function_usage}' == 'QUERY') {
                     if (record) {
                         record.getField('document_name').setReadOnly(false);
@@ -579,7 +594,6 @@
                                 var record_atta = $(ds_id_atta).getCurrentRecord();
                             if(record_atta !=null){
                                 record_atta.set('attachment_category', "CHANCE_ATT");
-                                record.set('stage', 'STAGE_PRE');
                             }
 
 
@@ -607,6 +621,16 @@
 
             };
         }
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_attach', 'G_APPENDIX');
+            if(ds_id_atta){
+                var record_atta = $(ds_id_atta).getCurrentRecord();
+                if(record_atta !=null){
+                    record_atta.set('attachment_category', "CHANCE_ATT");
+                }
+            }
+        }
+
 
 
 
