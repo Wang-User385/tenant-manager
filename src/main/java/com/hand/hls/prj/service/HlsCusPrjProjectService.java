@@ -141,7 +141,7 @@ public interface HlsCusPrjProjectService extends IBaseService<HlsCusPrjProject>,
     Long selectRefProjectIdByProjectId(IRequest requestContext, Long projectId);
 
     List<Map> queryProjectRiskReportAttachment(IRequest requestCt,HlsCusPrjProject hlsCusPrjProject,int page, int pageSize);
-    List<HlsCusPrjProject> queryCreditProject(IRequest requestCt,HlsCusPrjProject hlsCusPrjProject,int page, int pageSize);
+    List<HlsCusPrjProject> queryCreditProject(IRequest requestCt,HlsCusPrjProject hlsCusPrjProject,int page, int pageSize) throws HlsCusException;
 
     List<CompositeMap> selectProjectTenantRecLoop(CompositeMap map, String whereStr);
 

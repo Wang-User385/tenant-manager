@@ -28,7 +28,7 @@ public class LegalStaffAdviceServiceTask  implements JavaDelegate, IActivitiBean
         if(!StringUtils.isEmpty(result)){
             Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
             HlsCusPrjProject prjProject = new HlsCusPrjProject();
-            prjProject.setChanceId(projectId);
+            prjProject.setProjectId(projectId);
             List<HlsCusPrjProject> hlsCusPrjProjects = projectMapper.queryProjectById(prjProject);
             if(CollectionUtils.isNotEmpty(hlsCusPrjProjects)){
                delegateExecution.setVariable("legalStaffAdvice",hlsCusPrjProjects.get(0).getLegalStaffAdvice());

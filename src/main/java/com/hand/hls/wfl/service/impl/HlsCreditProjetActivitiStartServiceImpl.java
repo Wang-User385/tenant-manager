@@ -59,10 +59,6 @@ public class HlsCreditProjetActivitiStartServiceImpl implements IActivitiCommonS
 
     @Override
     public void process(IRequest iRequest, List list, Map params) {
-//        ProcessInstanceCreateRequest processInstanceCreateRequest = getProcessInstanceCreateRequest((HlsCusPrjProject) list.get(0), iRequest,map);
-//        activitiService.startProcess(iRequest, processInstanceCreateRequest);
-        
-        
         ProcessInstanceCreateRequest processInstanceCreateRequest = wflGetProcessInstanceComponents.getProcessInstance(iRequest, params);
         ProcessInstanceResponse processInstanceResponse = activitiService.startProcess(iRequest, processInstanceCreateRequest);
         HlsCusPrjProject chance = new HlsCusPrjProject();

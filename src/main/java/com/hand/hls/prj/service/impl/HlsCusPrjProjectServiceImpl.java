@@ -3724,7 +3724,7 @@ private  HlsCusPrjProjectService prjProjectService;
 private  HlsCusPrjProjectMapper projectMapper;
 
     @Override
-    public List<HlsCusPrjProject> queryCreditProject(IRequest requestCt, HlsCusPrjProject hlsCusPrjProject, int page, int pageSize) {
+    public List<HlsCusPrjProject> queryCreditProject(IRequest requestCt, HlsCusPrjProject hlsCusPrjProject, int page, int pageSize) throws HlsCusException {
         PageHelper.startPage(page, pageSize);
         // 查询creditChance
         List<HlsCusHlsCreditLineChance> creditChances = CreditLineChanceMapper.selectCreditLineChanceByStatusAndPass(new HlsCusHlsCreditLineChance());
@@ -3783,6 +3783,7 @@ private  HlsCusPrjProjectMapper projectMapper;
                     projects = hlsCusPrjProjectMapper.queryProjectAll(new HlsCusPrjProject());
                 } catch (Exception e) {
                     logger.error("Error occurred while copying properties from creditChance to project", e);
+                    throw new HlsCusException(e.getMessage());
                 }
             }
         }
@@ -3793,30 +3794,33 @@ private  HlsCusPrjProjectMapper projectMapper;
 
     private void copyAndSaveProject(IRequest requestCt, HlsCusHlsCreditLineChance creditChance, HlsCusPrjProject project) throws HlsCusException {
         try {
-            // 复制公共属性
-            BeanUtils.copyProperties(creditChance, project);
+            if(creditChance !=null){
+                // 复制公共属性
+                BeanUtils.copyProperties(creditChance, project);
 
-            // 设置不能自动复制的属性
-            project.setProjectNumber(creditChance.getCreditLineNumber());
-            project.setProjectName(creditChance.getCreditLineName());
-            project.setTenantId(creditChance.getBpId());
-            project.setCreditFlag(creditChance.getCreditFlag());
-            project.setLeaseItemAmount(creditChance.getCreditLineAmt());
-            project.setHostProjectManager(creditChance.getProposerEmployeeId());
-            project.setAssistProjectManager(creditChance.getProjectAssistant());
-            project.setProjectStatus("NEW");
-            project.setApprovedDate(creditChance.getApprovedDate());
-            project.setDescription(creditChance.getDescription());
-            project.setGuaranteeAnalyse(creditChance.getGuaranteeAnalyse());
-            project.setLoanCondition(creditChance.getLoanCondition());
-            project.setLoanMethod(creditChance.getLoanMethod());
-            project.setRepaymentMethod(creditChance.getRepaymentMethod());
-            project.setOtherDesc(creditChance.getOtherDesc());
-            project.setDocumentType("CREDIT");
-            project.setDocumentCategory("HLS_CREDIT_LINE_CHANCE");
+                // 设置不能自动复制的属性
+                project.setProjectNumber(creditChance.getCreditLineNumber());
+                project.setProjectName(creditChance.getCreditLineName());
+                project.setTenantId(creditChance.getBpId());
+                project.setCreditFlag(creditChance.getCreditFlag());
+                project.setLeaseItemAmount(creditChance.getCreditLineAmt());
+                project.setHostProjectManager(creditChance.getProposerEmployeeId());
+                project.setAssistProjectManager(creditChance.getProjectAssistant());
+                project.setProjectStatus("NEW");
+                project.setApprovedDate(creditChance.getApprovedDate());
+                project.setDescription(creditChance.getDescription());
+                project.setGuaranteeAnalyse(creditChance.getGuaranteeAnalyse());
+                project.setLoanCondition(creditChance.getLoanCondition());
+                project.setLoanMethod(creditChance.getLoanMethod());
+                project.setRepaymentMethod(creditChance.getRepaymentMethod());
+                project.setOtherDesc(creditChance.getOtherDesc());
+                project.setDocumentType("CREDIT");
+                project.setDocumentCategory("HLS_CREDIT_LINE_CHANCE");
 
-            // 保存新创建的对象到数据库
-            self().insert(requestCt, project);
+                // 保存新创建的对象到数据库
+                self().insert(requestCt, project);
+            }
+
         } catch (Exception e) {
             logger.error("Failed to copy and save project", e);
             throw new HlsCusException(e.getMessage());

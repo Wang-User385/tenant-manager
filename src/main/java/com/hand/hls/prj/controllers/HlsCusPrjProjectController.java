@@ -310,7 +310,7 @@ public class HlsCusPrjProjectController extends BaseController {
     @RequestMapping(value = "/prj/project/credit/query")
     @ResponseBody
     public ResponseData queryCreditProject(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, @RequestParam(defaultValue = DEFAULT_PAGE) int page,
-                                                  @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pageSize, HttpServletRequest request) {
+                                                  @RequestParam(defaultValue = DEFAULT_PAGE_SIZE) int pageSize, HttpServletRequest request) throws HlsCusException {
         IRequest requestContext = createRequestContext(request);
         JSONObject param = (JSONObject) requestData.get("parameter");
         HlsCusPrjProject dto = param.toJavaObject(HlsCusPrjProject.class);

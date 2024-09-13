@@ -92,7 +92,13 @@ public class HlsCusPrjProjectBpServiceImpl extends BaseServiceImpl<HlsCusPrjProj
         List<HlsCusHlsCreditLineChanceBp> chanceBps = chanceBpMapper.selectChanceBpByChanceId(lineChanceBp);
         if (CollectionUtils.isNotEmpty(chanceBps)) {
             for (HlsCusHlsCreditLineChanceBp chanceBp : chanceBps) {
-                copyPublicFields(requestCt,hlsCusPrjProjectBp, chanceBp);
+                try{
+                    copyPublicFields(requestCt,hlsCusPrjProjectBp, chanceBp);
+
+                }catch (Exception e){
+                    logger.error("Failed to copy and save project", e);
+                    throw new HlsCusException(e.getMessage());
+                }
             }
         }
 
@@ -101,12 +107,15 @@ public class HlsCusPrjProjectBpServiceImpl extends BaseServiceImpl<HlsCusPrjProj
     private Logger logger = LoggerFactory.getLogger(this.getClass());
     private void copyPublicFields(IRequest iRequest,HlsCusPrjProjectBp hlsCusPrjProjectBp, HlsCusHlsCreditLineChanceBp chanceBp) throws HlsCusException {
         try {
-            // 复制公共属性
-            BeanUtils.copyProperties(chanceBp,hlsCusPrjProjectBp);
-            hlsCusPrjProjectBp.setDescription(chanceBp.getNote());
+            if(chanceBp !=null){
+                // 复制公共属性
+                BeanUtils.copyProperties(chanceBp,hlsCusPrjProjectBp);
+                hlsCusPrjProjectBp.setDescription(chanceBp.getNote());
 
-            // 保存新创建的对象到数据库
-           self().insertSelective(iRequest,hlsCusPrjProjectBp);
+                // 保存新创建的对象到数据库
+                self().insertSelective(iRequest,hlsCusPrjProjectBp);
+            }
+
         } catch (Exception e) {
            logger.error("Failed to copy and save project", e);
            throw new HlsCusException(e.getMessage());

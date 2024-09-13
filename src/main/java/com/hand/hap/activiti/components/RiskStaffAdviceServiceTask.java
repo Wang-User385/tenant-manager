@@ -27,7 +27,7 @@ public class RiskStaffAdviceServiceTask implements JavaDelegate, IActivitiBean {
         if(!StringUtils.isEmpty(result)){
             Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
             HlsCusPrjProject prjProject = new HlsCusPrjProject();
-            prjProject.setChanceId(projectId);
+            prjProject.setProjectId(projectId);
             List<HlsCusPrjProject> hlsCusPrjProjects = projectMapper.queryProjectById(prjProject);
             if(CollectionUtils.isNotEmpty(hlsCusPrjProjects)){
                delegateExecution.setVariable("riskStaffAdvice",hlsCusPrjProjects.get(0).getRiskStaffAdvice());
