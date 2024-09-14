@@ -67,6 +67,9 @@
     <result column="deposit_col_method_n" jdbcType="VARCHAR" property="depositColMethodN" />
     <result column="int_rate" jdbcType="DECIMAL" property="intRate" />
     <result column="project_id" jdbcType="DECIMAL" property="projectId" />
+    <result column="occ_amount" jdbcType="DECIMAL" property="occAmount" />
+    <result column="due_amount" jdbcType="DECIMAL" property="dueAmount" />
+    <result column="cur_amount" jdbcType="DECIMAL" property="curAmount" />
   </resultMap>
   <sql id="Base_Column_List">
     <!--@mbg.generated generated on Mon Jul 25 16:11:02 CST 2022.-->
@@ -521,14 +524,25 @@
     <select id="findConFactoringLoanInfo" resultMap="BaseResultMap">
         SELECT
         hcp.credit_plan_id,
-        pp.tenant_id bp_id,
-        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = pp.tenant_id ) bp_name,
+        cc.tenant_id bp_id,
+        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = cc.tenant_id ) bp_name,
         hcp.credit_amt,
         hcp.quota_type,
         ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'FINANCING_LOAN' AND sc.code_value = hcp.QUOTA_TYPE ) QUOTA_TYPE_N,
         hcp.date_from,
         hcp.date_to,
-        hcp.credit_desc
+        hcp.credit_desc,
+        nvl((select pq.FINANCE_AMOUNT from PRJ_QUOTATION pq where pq.SOURCE_DOCUMENT_ID = cc.contract_id and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' ), 0) cur_amount,
+        case when hcp.QUOTA_TYPE = 'NON_REVOLVING' then
+          nvl((select sum(pq.FINANCE_AMOUNT) from PRJ_QUOTATION pq, con_contract cc2 where pq.SOURCE_DOCUMENT_ID = cc2.contract_id and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' and cc2.project_id = cc.PROJECT_ID and cc2.CONTRACT_STATUS in ('APPROVED') and cc2.data_class = 'NORMAL' ), 0)
+            else
+              (select sum(ccc.PRINCIPAL - nvl(ccc.RECEIVED_PRINCIPAL, 0)) from CON_CONTRACT_CASHFLOW ccc, CON_CONTRACT cc2 where ccc.contract_id = cc2.contract_id and cc2.project_id = cc.project_id and cc2.data_class = 'NORMAL' and ccc.CF_ITEM = 1 and ccc.CF_STATUS = 'RELEASE' and cc2.CONTRACT_STATUS in ('APPROVED') )
+            end occ_amount,
+        hcp.credit_amt - nvl((select pq.FINANCE_AMOUNT from PRJ_QUOTATION pq where pq.SOURCE_DOCUMENT_ID = cc.contract_id and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' ), 0) - (case when hcp.QUOTA_TYPE = 'NON_REVOLVING' then
+      nvl((select sum(pq.FINANCE_AMOUNT) from PRJ_QUOTATION pq, con_contract cc2 where pq.SOURCE_DOCUMENT_ID = cc2.contract_id and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' and cc2.project_id = cc.PROJECT_ID and cc2.CONTRACT_STATUS in ('APPROVED') and cc2.data_class = 'NORMAL' ), 0)
+        else
+          (select sum(ccc.PRINCIPAL - nvl(ccc.RECEIVED_PRINCIPAL, 0)) from CON_CONTRACT_CASHFLOW ccc, CON_CONTRACT cc2 where ccc.contract_id = cc2.contract_id and cc2.project_id = cc.project_id and cc2.data_class = 'NORMAL' and ccc.CF_ITEM = 1 and ccc.CF_STATUS = 'RELEASE' and cc2.CONTRACT_STATUS in ('APPROVED') )
+        end) due_amount
         FROM
         hls_credit_plan hcp
         INNER JOIN con_contract cc ON hcp.source_document_category = 'CON_CONTRACT'
@@ -537,5 +551,46 @@
             cc.contract_id = #{contractId}
         </where>
     </select>
+
+    <!--保理合同放款额度计算用-->
+    <select id="calConFactoringLoanAmount" resultMap="BaseResultMap">
+        SELECT
+        hcp.credit_plan_id,
+        cc.tenant_id bp_id,
+        ( SELECT bp_name FROM hls_bp_master hbm WHERE hbm.bp_id = cc.tenant_id ) bp_name,
+        nvl((select hcp2.CREDIT_AMT from hls_credit_plan hcp2, prj_project pp where hcp2.source_document_category = 'PRJ_PROJECT' and hcp2.SOURCE_DOCUMENT_ID = pp.PROJECT_ID and pp.PROJECT_ID = cc.project_id), 0) credit_amt,
+        hcp.quota_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'FINANCING_LOAN' AND sc.code_value = hcp.QUOTA_TYPE ) QUOTA_TYPE_N,
+        hcp.date_from,
+        hcp.date_to,
+        hcp.credit_desc,
+        nvl((select pq.FINANCE_AMOUNT from PRJ_QUOTATION pq where pq.SOURCE_DOCUMENT_ID = cc.contract_id and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' ), 0) cur_amount,
+        case when hcp.QUOTA_TYPE = 'NON_REVOLVING' then
+          nvl((select sum(pq.FINANCE_AMOUNT) from PRJ_QUOTATION pq, con_contract cc2 where pq.SOURCE_DOCUMENT_ID = cc2.contract_id and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' and cc2.project_id = cc.PROJECT_ID and cc2.CONTRACT_STATUS in ('APPROVED') and cc2.data_class = 'NORMAL' ), 0)
+            else
+              (select sum(ccc.PRINCIPAL - nvl(ccc.RECEIVED_PRINCIPAL, 0)) from CON_CONTRACT_CASHFLOW ccc, CON_CONTRACT cc2 where ccc.contract_id = cc2.contract_id and cc2.project_id = cc.project_id and cc2.data_class = 'NORMAL' and ccc.CF_ITEM = 1 and ccc.CF_STATUS = 'RELEASE' and cc2.CONTRACT_STATUS in ('APPROVED') )
+            end occ_amount,
+        nvl((select hcp2.CREDIT_AMT from hls_credit_plan hcp2, prj_project pp where hcp2.source_document_category = 'PRJ_PROJECT' and hcp2.SOURCE_DOCUMENT_ID = pp.PROJECT_ID and pp.PROJECT_ID = cc.project_id), 0) - nvl((select pq.FINANCE_AMOUNT from PRJ_QUOTATION pq where pq.SOURCE_DOCUMENT_ID = cc.contract_id and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' ), 0) - (case when hcp.QUOTA_TYPE = 'NON_REVOLVING' then
+      nvl((select sum(pq.FINANCE_AMOUNT) from PRJ_QUOTATION pq, con_contract cc2 where pq.SOURCE_DOCUMENT_ID = cc2.contract_id and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' and cc2.project_id = cc.PROJECT_ID and cc2.CONTRACT_STATUS in ('APPROVED') and cc2.data_class = 'NORMAL' ), 0)
+        else
+          (select sum(ccc.PRINCIPAL - nvl(ccc.RECEIVED_PRINCIPAL, 0)) from CON_CONTRACT_CASHFLOW ccc, CON_CONTRACT cc2 where ccc.contract_id = cc2.contract_id and cc2.project_id = cc.project_id and cc2.data_class = 'NORMAL' and ccc.CF_ITEM = 1 and ccc.CF_STATUS = 'RELEASE' and cc2.CONTRACT_STATUS in ('APPROVED') )
+        end) due_amount
+        FROM
+        hls_credit_plan hcp
+        INNER JOIN con_contract cc ON hcp.source_document_category = 'CON_CONTRACT'
+        AND hcp.source_document_id = cc.contract_id AND (SELECT bp_type from hls_bp_master hbm where hbm.bp_id = cc.tenant_id) = 'ASSET_TRANSFEROR'
+        <where>
+            cc.contract_id = #{contractId}
+        </where>
+    </select>
+
+    <!--插入授信已占用额度和剩余额度-->
+    <update id="updateConCreditPlanAmount">
+        update hls_credit_plan hcp
+            set hcp.due_amount = #{dueAmount},
+                hcp.occ_amount = #{occAmount}
+        where hcp.source_document_category = 'CON_CONTRACT'
+        and hcp.source_document_id = #{contractId}
+    </update>
 
 </mapper>

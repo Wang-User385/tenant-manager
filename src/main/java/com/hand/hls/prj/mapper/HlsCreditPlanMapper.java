@@ -3,6 +3,7 @@ package com.hand.hls.prj.mapper;
 import com.hand.hap.mybatis.common.Mapper;
 import com.hand.hls.prj.dto.HlsCreditPlan;
 import com.hand.hls.prj.dto.HlsCusPrjProjectParam;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 import java.util.Map;
@@ -31,4 +32,8 @@ public interface HlsCreditPlanMapper extends Mapper<HlsCreditPlan> {
 
     //保理合同放款申请授信信息查询
     List<HlsCreditPlan> findConFactoringLoanInfo(HlsCreditPlan hlsCreditPlan);
+
+    HlsCreditPlan calConFactoringLoanAmount(@Param("contractId")Long contractId);
+
+    void updateConCreditPlanAmount(@Param("contractId")Long contractId, @Param("dueAmount")Double dueAmount, @Param("occAmount")Double occAmount);
 }

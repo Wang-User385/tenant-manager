@@ -2,6 +2,11 @@
 <a:screen xmlns:a="http://www.leaf-framework.org/application" customizationEnabled="true" dynamiccreateenabled="true"
           trace="true">
     <a:view>
+        <a:link id="factoring_approval_bp_master_modify_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/bp_master_modify.lview"/>
+
+        <a:link id="factoring_finance_approval_report_detail_link_id"
+                url="${/request/@context_path}/modules/BP/BP100/financial_report_import_entrance.lview"/>
         <link href="${/request/@context_path}/resources/hls/imgPreview/viewer.css" rel="stylesheet" type="text/css"/>
         <script src="${/request/@context_path}/resources/hls/imgPreview/viewer.js"/>
 
@@ -121,25 +126,25 @@
 
         //文件上传下载
         function upload(ds_id, record_id, pk_id) {
-            var tableName = 'PRJ_PROJECT_ATTACHMENT';
-            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
-            var att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
-            var con_make_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_MAKING');
+            var tableName = 'CON_CONTRACT_ATTACHMENT';
+            var base_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_CON_TEXT');
+            var att_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_ATTA_INFO');
+            var con_make_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_CON_MAKING');
             var base_record;
             var att_record;
-            var project_attachment_id;
+            var contract_attachment_id;
             base_record = $(base_ds_id).findById(record_id);
             att_record = $(att_ds_id).findById(record_id);
             con_make_record = $(con_make_ds_id).findById(record_id);
 
             if(ds_id == base_ds_id){
-                project_attachment_id = base_record.get('project_attachment_id');
+                contract_attachment_id = base_record.get('contract_attachment_id');
             }else if(ds_id == att_ds_id){
-                project_attachment_id = att_record.get('project_attachment_id');
+                contract_attachment_id = att_record.get('contract_attachment_id');
             }else if(ds_id == con_make_ds_id){
-                project_attachment_id = con_make_record.get('project_attachment_id');
+                contract_attachment_id = con_make_record.get('contract_attachment_id');
             }
-            if (!project_attachment_id) {
+            if (!contract_attachment_id) {
                 $L.showInfoMessage("提示", "请先保存再上传附件!");
                 return;
             }
@@ -148,7 +153,7 @@
                 id: 'PRJ516F1_open_attachment_factoring_winid',
                 url: url,
                 params: {
-                    'header_id': project_attachment_id,
+                    'header_id': contract_attachment_id,
                     'table_name': tableName,
                     winid: 'PRJ516F1_open_attachment_factoring_winid'
                 },
@@ -219,6 +224,7 @@
 
         //提交审批
         window['${/parameter/@layout_code}_submit_approval_layout_dynamic_click'] = function () {
+            debugger;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract', 'F_BASIC');
             var ds_id_at = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_ATTA_INFO');
 
@@ -265,6 +271,38 @@
                 $L.showInfoMessage("提示", "请先保存!", null);
             }
 
+        }
+
+        //查询时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_query'] = function (ds, qpara, bp_seq) {
+            var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
+            var ds_id_root = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract', 'F_BASIC');
+            var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_ATTA_INFO');
+            var ds_id_con_make = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_CON_MAKING');
+            var ds_id_con = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_CON_TEXT');
+            if (ds.id == ds_id) {
+                var con_info = $(ds_id_root).getCurrentRecord();
+                $(ds_id).setQueryParameter('contract_id', '${/parameter/@contract_id}');
+            } else if (ds.id == ds_id_atta) {
+                $(ds_id_atta).setQueryParameter('contract_attachment_category', 'CON_FACTORING_LOAN_ATT');
+            }else if(ds.id == ds_id_con_make){
+                $(ds_id_con_make).setQueryParameter('contract_attachment_category', 'CON_FACTORING_LOAN_TABLE');
+            }else if(ds.id == ds_id_con){
+                $(ds_id_con_make).setQueryParameter('contract_attachment_category', 'CON_FACTORING_LOAN_CONTENT');
+            }
+        }
+
+        //新增时调用(grid,table,gridBox)
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
+            var ds_id_att = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
+            var ds_id_con_att = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
+            if (ds.id == ds_id_con_att){
+                $(ds_id_con_att).getCurrentRecord().set('contract_attachment_category','CON_FACTORING_LOAN_CONTENT');
+                $(ds_id_con_att).getCurrentRecord().set('contract_id','${/parameter/@contract_id}');
+            } else if (ds.id == ds_id_att){
+                $(ds_id_att).getCurrentRecord().set('contract_attachment_category','CON_FACTORING_LOAN_ATT');
+                $(ds_id_att).getCurrentRecord().set('contract_id','${/parameter/@contract_id}');
+            }
         }
 
         ]]></script>

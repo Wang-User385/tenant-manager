@@ -83,6 +83,7 @@ public class ProjectCreditCondition extends BaseDTO {
      @Transient
      private String  conditionTypeN;
 
+     @Transient
      private String other;
 
      @Transient

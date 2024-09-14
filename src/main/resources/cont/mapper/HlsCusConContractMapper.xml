@@ -12007,6 +12007,7 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
     <select id="queryLoanConFactoringEntrance" resultMap="BaseResultMap">
         select c.contract_number,
                p.project_id,
+               p.project_number,
                c.contract_id,
                p.project_name,
                p.contract_number vir_contract_number,
@@ -12023,14 +12024,14 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
                c.loan_approved_date,
                (case when nvl(p.CREDIT_FLAG, 'N') = 'N' THEN
 				        (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - pq.FINANCE_AMOUNT
-                    when nvl(p.CREDIT_FLAG, 'Y') = 'Y' and 	hcp.quota_type = 'REVOLVING' THEN
+                    when nvl(p.CREDIT_FLAG, 'N') = 'Y' and 	hcp.quota_type = 'REVOLVING' THEN
                         (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) - (select sum(ccc.PRINCIPAL-NVL(ccc.RECEIVED_PRINCIPAL, 0) )
                                                                             from con_contract_cashflow ccc
                                                                             where ccc.contract_id = c.contract_id
                                                                             and ccc.cf_item = 1
                                                                             and ccc.CF_STATUS = 'RELEASE'
                                                                             and ccc.CF_DIRECTION = 'INFLOW')
-		         when nvl(p.CREDIT_FLAG, 'Y') = 'Y' and hcp.quota_type = 'NON_REVOLVING' THEN
+		         when nvl(p.CREDIT_FLAG, 'N') = 'Y' and hcp.quota_type = 'NON_REVOLVING' THEN
                           (select pq.FINANCE_AMOUNT from prj_quotation pq where pq.source_document_category = 'PRJ_PROJECT' and pq.SOURCE_DOCUMENT_ID = p.PROJECT_ID ) -  pq.FINANCE_AMOUNT
 				 else
 					 0 end ) due_amount
@@ -12161,7 +12162,9 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
     <select id="queryConFactoringLoanDetailInfo" resultMap="BaseResultMap">
         SELECT
             c.contract_number,
+            c.contract_id,
             p.project_name,
+            p.project_number,
             p.contract_number vir_contract_number,
             c.tenant_id,
             hbm.bp_name tenant_id_n,
@@ -12205,9 +12208,6 @@ where cprh.DOCUMENT_CATEGORY =#{documentCategory}
           AND c.document_type = 'FACTORING'
           and c.document_category = 'CON_CONTRACT'
           and  c.data_class = 'NORMAL'
-        <if test="projectId != null">
-            and p.project_id = #{projectId}
-        </if>
         <if test="contractId != null">
             and c.contract_id = #{contractId}
         </if>

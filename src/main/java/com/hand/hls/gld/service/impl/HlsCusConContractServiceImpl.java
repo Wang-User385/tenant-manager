@@ -4791,6 +4791,10 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         copyPrjQuotationInfoToConQuotationInfo(request, prjProject.getProjectId(), contractNew.getContractId(), "CON_CONTRACT");
         //复制投放前提条件数据
         copyPrjConditionInfoToConConditionInfo(request, prjProject.getProjectId(), contractNew.getContractId(), "STAGE_PRE");
+        //计算授信额度，并更新到表中
+        HlsCreditPlan loanCreditInfo = hlsCreditPlanMapper.calConFactoringLoanAmount(contractNew.getContractId());
+        hlsCreditPlanMapper.updateConCreditPlanAmount(contractNew.getContractId(), loanCreditInfo.getDueAmount(), loanCreditInfo.getOccAmount());
+
         return contractNew;
     }
 
@@ -4808,25 +4812,33 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
             hlsCusConContractBpService.batchDelete(hlsCusConContractBps);
 
             //删除授信方案数据
-            HlsCreditPlan hlsCreditPlan = new HlsCreditPlan();
-            hlsCreditPlan.setSourceDocumentId(hlsCusConContract.getContractId());
-            List<HlsCreditPlan> hlsCreditPlans = hlsCreditPlanMapper.findConFactoringLoanInfo(hlsCreditPlan);
-            HlsCreditPlanLine hlsCreditPlanLine = new HlsCreditPlanLine();
-            hlsCreditPlanLine.setCreditPlanId(hlsCusConContract.getContractId());
-            List<HlsCreditPlanLine> hlsCreditPlanLines = hlsCreditPlanLineMapper.queryConFactoringCreditPlan(hlsCreditPlanLine);
-            hlsCreditPlanLineService.batchDelete(hlsCreditPlanLines);
+            Example creditExample = new Example(HlsCreditPlan.class);
+            creditExample.createCriteria().
+                    andEqualTo("sourceDocumentCategory", "CON_CONTRACT").
+                    andEqualTo("sourceDocumentId", hlsCusConContract.getContractId());
+            List<HlsCreditPlan> hlsCreditPlans = hlsCreditPlanMapper.selectByExample(creditExample);
+            for (HlsCreditPlan CreditPlan : hlsCreditPlans){
+                Example creditLnExample = new Example(HlsCreditPlanLine.class);
+                creditLnExample.createCriteria().
+                        andEqualTo("creditPlanId", CreditPlan.getCreditPlanId());
+                List<HlsCreditPlanLine> hlsCreditPlanLines = hlsCreditPlanLineMapper.selectByExample(creditLnExample);
+                hlsCreditPlanLineService.batchDelete(hlsCreditPlanLines);
+            }
             hlsCreditPlanService.batchDelete(hlsCreditPlans);
 
             //删除报价基础信息
-            HlsCusPrjQuotation quotation = new HlsCusPrjQuotation();
-            quotation.setSourceDocumentId(hlsCusConContract.getContractId());
-            List<HlsCusPrjQuotation> factoringQuotation = hlsCusPrjQuotationMapper.findConFactoringLoanQuotation(quotation);
+            Example quotationExample = new Example(HlsCusPrjQuotation.class);
+            quotationExample.createCriteria().
+                    andEqualTo("sourceDocumentCategory", "CON_CONTRACT").
+                    andEqualTo("sourceDocumentId", hlsCusConContract.getContractId());
+            List<HlsCusPrjQuotation> factoringQuotation = hlsCusPrjQuotationMapper.selectByExample(quotationExample);
             hlsCusPrjQuotationService.batchDelete(factoringQuotation);
 
             //删除投放前提条件数据
-            ProjectCreditCondition projectCreditCondition = new ProjectCreditCondition();
-            projectCreditCondition.setContractId(hlsCusConContract.getContractId());
-            List<ProjectCreditCondition> projectCreditConditions = projectCreditConditionMapper.queryConFactoringLoanCreditCondi(projectCreditCondition);
+            Example projectCondittionExample = new Example(ProjectCreditCondition.class);
+            projectCondittionExample.createCriteria().
+                    andEqualTo("contractId", hlsCusConContract.getContractId());
+            List<ProjectCreditCondition> projectCreditConditions = projectCreditConditionMapper.selectByExample(projectCondittionExample);
             projectCreditConditionService.batchDelete(projectCreditConditions);
         }
     }

@@ -202,4 +202,10 @@ public class HlsCreditPlan {
     @Transient
     private String residualPriceTypeN;
     private Double residual;
+    private Double occAmount; //已占用额度（元）
+    private Double dueAmount; //剩余额度 （元）
+    @Transient
+    private Double curAmount; //本次占用额度 （元）
+    @Transient
+    private Long contractId;
 }

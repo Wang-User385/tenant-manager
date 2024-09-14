@@ -87,6 +87,55 @@
     <!--保理合同放款额度明细-->
    <select id="queryConFactoringCreditPlan" resultMap="BaseResultMap">
        SELECT
+        cc.project_id,
+        hcpl.CREDIT_PLAN_ID,
+        hcpl.line_id,
+        hbm.bp_id,
+        hbm.bp_name,
+        hbm.bp_code,
+        hbm.bp_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = hbm.bp_type ) bp_type_n,
+        hbm.group_companies,
+        hcpl.factoring_category,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.code = 'CHANCE.FACTORING_CATEGORY' AND sc.code_value = hcpl.factoring_category ) factoring_category_n,
+        hcpl.credit_amt,
+        hcpl.description,
+       nvl((case when hcp.QUOTA_TYPE = 'REVOLVING' then
+			          (select sum(ccc.PRINCIPAL - nvl(ccc.RECEIVED_PRINCIPAL, 0)) from con_contract_cashflow ccc, con_contract cc2 where ccc.contract_id = cc2.contract_id and ccc.cf_item = 1 and ccc.CF_STATUS = 'RELEASE' and ccc.CF_DIRECTION = 'INFLOW' and cc2.CONTRACT_STATUS = 'APPROVING' and cc2.project_id = cc.project_id and cc2.factoring_category = cc.factoring_category )
+					 else
+					  (select sum(pq.FINANCE_AMOUNT) from PRJ_QUOTATION pq, CON_CONTRACT cc2 where cc2.contract_id = pq.SOURCE_DOCUMENT_ID and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' and cc2.project_id = cc.project_id and cc2.factoring_category = cc.factoring_category and cc2.CONTRACT_STATUS = 'APPROVING' )
+						end		), 0) approval_amount,
+       nvl((case when hcp.QUOTA_TYPE = 'REVOLVING' then
+			          (select sum(ccc.PRINCIPAL - nvl(ccc.RECEIVED_PRINCIPAL, 0)) from con_contract_cashflow ccc, con_contract cc2 where ccc.contract_id = cc2.contract_id and ccc.cf_item = 1 and ccc.CF_STATUS = 'RELEASE' and ccc.CF_DIRECTION = 'INFLOW' and cc2.CONTRACT_STATUS = 'APPROVED' and cc2.project_id = cc.project_id and cc2.factoring_category = cc.factoring_category )
+					 else
+					  (select sum(pq.FINANCE_AMOUNT) from PRJ_QUOTATION pq, CON_CONTRACT cc2 where cc2.contract_id = pq.SOURCE_DOCUMENT_ID and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' and cc2.project_id = cc.project_id and cc2.factoring_category = cc.factoring_category and cc2.CONTRACT_STATUS = 'APPROVED' )
+						end		), 0) occ_amount,
+       nvl(hcpl.credit_amt, 0) - nvl((case when hcp.QUOTA_TYPE = 'REVOLVING' then
+			          (select sum(ccc.PRINCIPAL - nvl(ccc.RECEIVED_PRINCIPAL, 0)) from con_contract_cashflow ccc, con_contract cc2 where ccc.contract_id = cc2.contract_id and ccc.cf_item = 1 and ccc.CF_STATUS = 'RELEASE' and ccc.CF_DIRECTION = 'INFLOW' and cc2.CONTRACT_STATUS = 'APPROVING' and cc2.project_id = cc.project_id and cc2.factoring_category = cc.factoring_category )
+					 else
+					  (select sum(pq.FINANCE_AMOUNT) from PRJ_QUOTATION pq, CON_CONTRACT cc2 where cc2.contract_id = pq.SOURCE_DOCUMENT_ID and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' and cc2.project_id = cc.project_id and cc2.factoring_category = cc.factoring_category and cc2.CONTRACT_STATUS = 'APPROVING' )
+						end		), 0) - nvl((case when hcp.QUOTA_TYPE = 'REVOLVING' then
+			          (select sum(ccc.PRINCIPAL - nvl(ccc.RECEIVED_PRINCIPAL, 0)) from con_contract_cashflow ccc, con_contract cc2 where ccc.contract_id = cc2.contract_id and ccc.cf_item = 1 and ccc.CF_STATUS = 'RELEASE' and ccc.CF_DIRECTION = 'INFLOW' and cc2.CONTRACT_STATUS = 'APPROVED' and cc2.project_id = cc.project_id and cc2.factoring_category = cc.factoring_category )
+					 else
+					  (select sum(pq.FINANCE_AMOUNT) from PRJ_QUOTATION pq, CON_CONTRACT cc2 where cc2.contract_id = pq.SOURCE_DOCUMENT_ID and pq.SOURCE_DOCUMENT_CATEGORY = 'CON_CONTRACT' and cc2.project_id = cc.project_id and cc2.factoring_category = cc.factoring_category and cc2.CONTRACT_STATUS = 'APPROVED' )
+						end		), 0)  due_amount
+        FROM
+        hls_credit_plan_line hcpl
+        INNER JOIN hls_credit_plan hcp ON hcp.credit_plan_id = hcpl.credit_plan_id
+        INNER JOIN CON_CONTRACT cc ON hcp.source_document_category = 'CON_CONTRACT'
+        AND hcp.source_document_id = cc.project_id
+        INNER JOIN hls_bp_master hbm ON cc.tenant_id = hbm.bp_id
+        <where>
+            hbm.bp_type = 'ASSET_TRANSFEROR'
+            <if test="contractId != null">
+                and  hcp.source_document_id = #{contractId}
+            </if>
+        </where>
+   </select>
+
+    <!--保理合同明细授信明细-->
+    <select id="queryConFactoringDetailCreditPlan" resultMap="BaseResultMap">
+        SELECT
         pp.project_id,
         hcpl.CREDIT_PLAN_ID,
         hcpl.line_id,
@@ -107,7 +156,7 @@
        and cc.project_id = pp.project_id
        and cc.document_type = 'FACTORING'
        and cc.data_class = 'NORMAL'
-       and cc.contract_status = 'APPROVING'
+       and cc.contract_id = #{contractId}
        and cc.document_category = 'CON_CONTRACT'
        and cc.contract_id = hcp2.source_document_id), 0) approval_amount,
        nvl((select sum(hcpl2.credit_amt) from hls_credit_plan hcp2, hls_credit_plan_line hcpl2, con_contract cc
@@ -117,6 +166,7 @@
        and cc.project_id = pp.project_id
        and cc.document_type = 'FACTORING'
        and cc.data_class = 'NORMAL'
+       and cc.contract_id = #{contractId}
        and cc.contract_status = 'APPROVED'
        and cc.document_category = 'CON_CONTRACT'
        and cc.contract_id = hcp2.source_document_id), 0) occ_amount,
@@ -127,6 +177,7 @@
        and cc.project_id = pp.project_id
        and cc.document_type = 'FACTORING'
        and cc.data_class = 'NORMAL'
+       and cc.contract_id = #{contractId}
        and cc.contract_status = 'APPROVED'
        and cc.document_category = 'CON_CONTRACT'
        and cc.contract_id = hcp2.source_document_id), 0) due_amount
@@ -138,14 +189,10 @@
         INNER JOIN hls_bp_master hbm ON pp.tenant_id = hbm.bp_id
         <where>
             hbm.bp_type = 'ASSET_TRANSFEROR'
-            <if test="creditPlanId != null">
-                and  hcpl.credit_plan_id = #{creditPlanId}
-            </if>
             <if test="projectId != null">
                 and  hcp.source_document_id = #{projectId}
             </if>
         </where>
-
-   </select>
+    </select>
 
 </mapper>
