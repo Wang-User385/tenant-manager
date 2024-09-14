@@ -64,7 +64,7 @@
         t.credit_project_id,
         (select max(contract_number) as contract_number from prj_project where ref_project_id = t.credit_project_id and contract_number is not null) as contract_number
         from HLS_CREDIT_LINE_CHANCE_BP t, hls_bp_master hbm
-        where t.bp_id=hbm.BP_ID
+        where t.bp_id=hbm.BP_ID and t.bp_type in ('WARRANTOR','MORTGAGOR_PLEGDOR')
         <if test="chanceId!=null">
             AND t.CHANCE_ID=#{chanceId}
         </if>
@@ -271,6 +271,39 @@
         <where>
             1=1
             and chance_id = #{chanceId}
+        </where>
+    </select>
+    <select id="findCreditCustomer" resultMap="BaseResultMap">
+        SELECT
+        hclcb.chance_id,
+        hclcb.chance_bp_id,
+        hclcb.bp_id,
+        hbm.bp_name ,
+        hbm.bp_name bp_name_n,
+        hbm.bp_code,
+        hbm.bp_class,
+        hclcb.bp_type,
+        ( SELECT sc.meaning FROM sys_code_value_b_v sc WHERE sc.CODE = 'BP.BP_MASTER_ROLE' AND sc.code_value = hclcb.bp_type ) bp_type_n,
+        hbm.economic_indu_classify,
+        (
+        SELECT
+        t.description
+        FROM
+        hls_stat_class t
+        WHERE
+        t.class_usage = 'BIZ_PARTNER'
+        AND t.enabled_flag = 'Y'
+        AND to_char( t.CLASS_ID ) = hbm.economic_indu_classify
+        )  economic_indu_classify_n,
+        hbm.group_companies,
+        hclcb.note
+        FROM
+        HLS_CREDIT_LINE_CHANCE_BP hclcb
+        INNER JOIN hls_bp_master hbm ON hclcb.bp_id = hbm.bp_id
+        <where>
+            1=1
+            and hclcb.bp_type = 'MANUFACTURER'
+            and  hclcb.chance_id = #{chanceId}
         </where>
     </select>
 

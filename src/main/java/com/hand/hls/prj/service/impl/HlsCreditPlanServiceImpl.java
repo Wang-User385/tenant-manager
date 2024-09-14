@@ -13,13 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(rollbackFor = Exception.class)
 public class HlsCreditPlanServiceImpl extends BaseServiceImpl<HlsCreditPlan>  implements HlsCreditPlanService {
+    @Autowired
+    private HlsCreditPlanMapper hlsCreditPlanMapper;
     @Override
     public void updateHlsCreditPlan(IRequest iRequest, Long chanceId, Long creditPlanId) {
         HlsCreditPlan hlsCreditPlan = new HlsCreditPlan();
         hlsCreditPlan.setSourceDocumentId(chanceId);
         hlsCreditPlan.setSourceDocumentCategory("HLS_CREDIT_LINE_CHANCE");
         hlsCreditPlan.setCreditPlanId(creditPlanId);
-        self().updateByPrimaryKeySelective(iRequest,hlsCreditPlan);
+        hlsCreditPlanMapper.updateByPrimaryKeySelective(hlsCreditPlan);
 
     }
 
