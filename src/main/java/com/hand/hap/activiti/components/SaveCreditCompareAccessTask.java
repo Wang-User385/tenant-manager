@@ -41,7 +41,7 @@ public class SaveCreditCompareAccessTask implements JavaDelegate, IActivitiBean 
                         HlsChanceBusinessAccessCompare chanceCompare = new HlsChanceBusinessAccessCompare();
                         BeanUtils.copyProperties(businessAccessCompare,chanceCompare);
                         chanceCompare.setDocumentId(chanceId);
-                        chanceCompareMapper.insert(chanceCompare);
+                        chanceCompareMapper.insertSelective(chanceCompare);
                     }
                 }
             }
