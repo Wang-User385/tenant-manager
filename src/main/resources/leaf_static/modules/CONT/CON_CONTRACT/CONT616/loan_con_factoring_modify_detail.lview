@@ -197,6 +197,7 @@
                         fullScreen: true
                     });
                     win.on('close', function () {
+                        debugger;
                         //生成付款信息
                         Leaf.request({
                             url: '${/request/@context_path}/con/virtual/loan/payment/create',
@@ -243,6 +244,27 @@
             debugger;
             var ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract', 'F_BASIC');
             var ds_id_at = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_ATTA_INFO');
+            var ds_id_credit = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            var ds_id_credit_detail = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
+            var ds_id_quo = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation', 'F_QUOTATION_FINANCIA');
+
+            var record = $(ds_id).getCurrentRecord();
+            var credit_record =  $(ds_id_credit).getCurrentRecord();
+            var credit_details_records = $(ds_id_credit_detail).getAll();
+            var quo_record = $(ds_id_quo).getCurrentRecord();
+
+            //授信额度校验
+            if(credit_record.get('due_amount') < 0){
+                Leaf.showInfoMessage('提示', record.get('project_name') + '项目可用授信额度不足，请修改投放额后再提交！');
+                return;
+            }
+            //授信明细额度校验
+            for (var i = 0; i < credit_details_records.length; i++){
+                if (credit_details_records[i].get('due_amount') < 0){
+                    Leaf.showInfoMessage('提示', record.get('project_name') + '项目可用授信明细额度不足，请修改投放额后再提交！');
+                    return;
+                }
+            }
 
             if (!$(ds_id_at).getAll() || $(ds_id_at).getAll().length === 0) {
                 Leaf.showInfoMessage('提示', '附件信息不能为空！');
@@ -257,7 +279,6 @@
                 }
             }
 
-            var record = $(ds_id).getCurrentRecord();
             var contract_id = record.get('contract_id');
             if (contract_id != null) {
                 new Leaf.showConfirm('${l:HLS.PROMPT}', '${l:HLS.ARE_YOU_SURE_TO_SUBMIT}', function okFun() {
@@ -296,6 +317,7 @@
             var ds_id_atta = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_ATTA_INFO');
             var ds_id_con_make = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_CON_MAKING');
             var ds_id_con = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_attachment', 'G_CON_TEXT');
+            var ds_id_payment_ln = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln', 'G_LOAN');
             if (ds.id == ds_id) {
                 var con_info = $(ds_id_root).getCurrentRecord();
                 $(ds_id).setQueryParameter('contract_id', '${/parameter/@contract_id}');
@@ -304,7 +326,9 @@
             }else if(ds.id == ds_id_con_make){
                 $(ds_id_con_make).setQueryParameter('contract_attachment_category', 'CON_FACTORING_LOAN_TABLE');
             }else if(ds.id == ds_id_con){
-                $(ds_id_con_make).setQueryParameter('contract_attachment_category', 'CON_FACTORING_LOAN_CONTENT');
+                $(ds_id_con).setQueryParameter('contract_attachment_category', 'CON_FACTORING_LOAN_CONTENT');
+            }else if(ds.id == ds_id_payment_ln){
+                $(ds_id_payment_ln).setQueryParameter('contract_id', '${/parameter/@contract_id}');
             }
         }
 
@@ -312,14 +336,51 @@
         window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_grid_add'] = function (ds, record, config_records, bp_seq) {
             var ds_id_att = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_ATTA_INFO');
             var ds_id_con_att = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_project_attachment', 'G_CON_TEXT');
+            var ds_id_payment_ln = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln', 'G_LOAN');
+            var ds_id_deduction = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow', 'G_DEDUCTION');
             if (ds.id == ds_id_con_att){
                 $(ds_id_con_att).getCurrentRecord().set('contract_attachment_category','CON_FACTORING_LOAN_CONTENT');
                 $(ds_id_con_att).getCurrentRecord().set('contract_id','${/parameter/@contract_id}');
             } else if (ds.id == ds_id_att){
                 $(ds_id_att).getCurrentRecord().set('contract_attachment_category','CON_FACTORING_LOAN_ATT');
                 $(ds_id_att).getCurrentRecord().set('contract_id','${/parameter/@contract_id}');
+            } else if(ds.id == ds_id_payment_ln){
+                $(ds_id_payment_ln).getCurrentRecord().set('contract_id','${/parameter/@contract_id}');
+            } else if(ds.id == ds_id_deduction){
+                $(ds_id_deduction).getCurrentRecord().set('contract_id','${/parameter/@contract_id}');
             }
         }
+
+        //更新时调用
+        window['${/parameter/@bp_seq}${/parameter/@layout_code}_on_layout_dynamic_update'] = function (ds, record, name, value, old_value, bp_seq) {
+            debugger;
+            var ds_id_credit = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan', 'F_METHOD');
+            var ds_id_credit_detail = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_plan_line', 'G_METHOD_DETAIL');
+            var ds_id_quo = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'prj_quotation', 'F_QUOTATION_FINANCIA');
+            var ds_id_credit_detail = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'csh_payment_req_ln', 'G_LOAN');
+            var ds_id_quo = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'con_contract_cashflow', 'G_DEDUCTION');
+
+            var credit_record =  $(ds_id_credit).getCurrentRecord();
+            var credit_details_record = $(ds_id_credit_detail).getCurrentRecord();
+            var quo_record = $(ds_id_quo).getCurrentRecord();
+
+            if (ds.id == ds_id_credit || ds.id == ds_id_quo || ds.id == ds_id_credit_detail){
+                if (!Ext.isEmpty(credit_record) && !Ext.isEmpty(credit_details_record) && !Ext.isEmpty(quo_record)){
+                    //保持放款金额和融资金额一样
+                    quo_record.set('finance_amount', quo_record.get('lease_item_amount'));
+                    //计算授信主体的额度
+                    //本次占用额度
+                    credit_record.set('cur_amount', quo_record.get('lease_item_amount'));
+                    //剩余额度  授信金额 - (放款金额 + 已占用金额)
+                    var due_amount = minus(credit_record.get('credit_amt'),
+                        plus(credit_record.get('occ_amount'), quo_record.get('lease_item_amount')));
+                    credit_record.set('due_amount', due_amount);
+                }
+
+            }
+
+        }
+
 
         ]]></script>
         <a:screen-include screen="modules/COMMON/LAYOUT/hls_common_get_layout_code.lview"/>
