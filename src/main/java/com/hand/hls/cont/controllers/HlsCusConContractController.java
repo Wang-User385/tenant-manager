@@ -1027,4 +1027,15 @@ public class HlsCusConContractController extends BaseController {
         return new ResponseData(hlsCusConContractService.submitConFactoringLoanWfl(hlsCusConContract, requestCtx));
     }
 
+    //保理放款生成付款信息
+    @RequestMapping(value = "/con/virtual/loan/payment/create")
+    @ResponseBody
+    public ResponseData conFactoringLoanCreatePayment(@ModelAttribute(LEAF_PARAM_NAME) LeafRequestData requestData, HttpServletRequest request) throws Exception {
+        IRequest requestCtx = createRequestContext(request);
+        RequestHelper.setCurrentRequest(requestCtx);
+        JSONObject param = (JSONObject) requestData.get("parameter");
+        HlsCusConContract hlsCusConContract = param.toJavaObject(HlsCusConContract.class);
+        return new ResponseData(hlsCusConContractService.conFactoringLoanCreatePayment(hlsCusConContract, requestCtx));
+    }
+
 }

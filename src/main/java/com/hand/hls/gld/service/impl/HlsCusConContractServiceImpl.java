@@ -13,6 +13,8 @@ import com.hand.hls.app.dto.HlsCashflowAyncDto;
 import com.hand.hls.app.service.HlsCashflowAyncService;
 import com.hand.hls.ast.dto.VirtualConContractLov;
 import com.hand.hls.bp.dto.HlsCusBpMaster;
+import com.hand.hls.bp.dto.HlsCusBpMasterBankAccount;
+import com.hand.hls.bp.mapper.HlsCusBpMasterBankAccountMapper;
 import com.hand.hls.bp.mapper.HlsCusBpMasterMapper;
 import com.hand.hls.bp.service.HlsBeanRefUtilService;
 import com.hand.hls.cont.dto.*;
@@ -339,6 +341,10 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
     private HlsCusPrjProjectConditionMapper hlsCusPrjProjectConditionMapper;
     @Autowired
     private IProjectCreditConditionService projectCreditConditionService;
+    @Autowired
+    private HlsCusConContractCashflowMapper hlsconContractCashflowMapper;
+    @Autowired
+    private HlsCusBpMasterBankAccountMapper hlsCusBpMasterBankAccountMapper;
 
     @Override
     public List<Map<String, Object>> queryPaymentChangeInfoLov(IRequest request, HlsCusConContract hlsCusConContract, int page, int pageSize) {
@@ -4879,6 +4885,87 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
         return res;
     }
 
+    @Override
+    public List<HlsCusCshPaymentReqHd> conFactoringLoanCreatePayment(HlsCusConContract hlsCusConContract, IRequest requestCtx) throws Exception  {
+        if (hlsCusConContract.getContractId() == null){
+            throw new HlsCusException("合同不存在！");
+        }
+        //创建放款申请头表数据
+        hlsCusConContract = hlsCusConContractMapper.selectByPrimaryKey(hlsCusConContract);
+        //获取保理款现金流
+        HlsCusConContractCashflow equiCashflow = new HlsCusConContractCashflow();
+        equiCashflow.setContractId(hlsCusConContract.getContractId());
+        equiCashflow.setCfItem(0L);
+        equiCashflow.setCfType(0L);
+        equiCashflow = hlsconContractCashflowMapper.select(equiCashflow).get(0);
+        //获取客户信息
+        HlsCusBpMaster hlsCusBpMaster = new HlsCusBpMaster();
+        hlsCusBpMaster.setBpId(hlsCusConContract.getTenantId());
+        List<HlsCusBpMaster> hlsCusBpMasters = hlsCusBpMasterMapper.selectHlsBpMasterById(hlsCusBpMaster);
+        HlsCusBpMasterBankAccount hlsCusBpMasterBankAccount = hlsCusBpMasterBankAccountMapper.selectBankByBpId(hlsCusConContract.getManufacturerId());
+
+        //存在则更新数据
+        HlsCusCshPaymentReqLn hlsCusCshPaymentReqLn = new HlsCusCshPaymentReqLn();
+        hlsCusCshPaymentReqLn.setCashflowId(equiCashflow.getCashflowId());
+        List<HlsCusCshPaymentReqLn> hlsCusCshPaymentReqLnList = hlsCusCshPaymentReqLnMapper.queryConFactoringLoanPaymentInfo(hlsCusCshPaymentReqLn);
+        if(CollectionUtils.isEmpty(hlsCusCshPaymentReqLnList)){
+            HlsCusCshPaymentReqHd reqHd = new HlsCusCshPaymentReqHd();
+            reqHd.setCompanyId(hlsCusConContract.getCompanyId());
+            reqHd.setDocumentType("PAYMENT_REQ");
+            reqHd.setDocumentCategory("CSH_PAYMENT_REQ");
+            reqHd.setBusinessType("PAYMENT_REQ");
+            String paymentReqNumber = codingRuleValuesService.getCodeRuleValue(RequestHelper.getCurrentRequest(), "CSH_PAYMENT_REQ", "PAYMENT_REQ", "PAYMENT_REQ", new HashMap<String, String>());
+            reqHd.setPaymentReqNumber(paymentReqNumber);
+            reqHd.setPaymentReqDate(new Date());
+            reqHd.setPaymentReqStatus("APPROVED");
+            reqHd.setAmount(equiCashflow.getDueAmount());
+            reqHd.setCurrency("CNY");
+            reqHd.setSourceContractId(hlsCusConContract.getContractId());
+            reqHd.setSourceDocType("CON_CONTRACT_CASHFLOW");
+            reqHd.setSourceDocId(equiCashflow.getCashflowId());
+            reqHd.setCreationDate(new Date());
+            reqHd.setPaymentApprovedStatus("PAYING");
+            reqHd.setPaymentType("PAYMENT");
+            reqHd.setBpId(hlsCusBpMasters.get(0).getBpId());
+            reqHd.setBpName(hlsCusBpMasters.get(0).getBpName());
+            reqHd.setApplyPayDate(equiCashflow.getDueDate());
+            reqHd.setBankAccountId(hlsCusBpMasterBankAccount.getBankAccountId());
+            reqHd.setBpBankAccountName(hlsCusBpMasterBankAccount.getBankAccountName());
+            reqHd.setBpBankAccountNum(hlsCusBpMasterBankAccount.getBankAccountNum());
+            reqHd.setBpBankName(hlsCusBpMasterBankAccount.getBankFullName());
+            reqHd.setBpBankBranchName(hlsCusBpMasterBankAccount.getBankBranchName());
+            reqHd.setEmployeeId(hlsCusConContract.getEmployeeId());
+            reqHd.setUnitId(hlsCusConContract.getUnitId());
+            hlsCusCshPaymentReqHdMapper.insertSelective(reqHd);
+
+            //插入付款申请行表
+            HlsCusCshPaymentReqLn reqLn = new HlsCusCshPaymentReqLn();
+            reqLn.setPaymentReqId(reqHd.getPaymentReqId());
+            reqLn.setSourceDocCategory("CON_CONTRACT");
+            reqLn.setSourceDocId(equiCashflow.getContractId());
+            reqLn.setSourceDocLineId(equiCashflow.getCashflowId());
+            reqLn.setAmount(equiCashflow.getDueAmount());
+            reqLn.setCreationDate(new Date());
+            hlsCusCshPaymentReqLnMapper.insertSelective(reqLn);
+        }else{
+            HlsCusCshPaymentReqLn cshPaymentReqLn = hlsCusCshPaymentReqLnList.get(0);
+            HlsCusCshPaymentReqHd hlsCusCshPaymentReqHd = new HlsCusCshPaymentReqHd();
+            hlsCusCshPaymentReqHd.setPaymentReqId(cshPaymentReqLn.getPaymentReqId());
+            hlsCusCshPaymentReqHd.setAmount(equiCashflow.getDueAmount());
+            hlsCusCshPaymentReqHdMapper.updateByPrimaryKey(hlsCusCshPaymentReqHd);
+
+            HlsCusCshPaymentReqLn paymentReqLn = new HlsCusCshPaymentReqLn();
+            paymentReqLn.setPaymentReqLnId(cshPaymentReqLn.getPaymentReqLnId());
+            paymentReqLn.setSourceDocLineId(equiCashflow.getCashflowId());
+            paymentReqLn.setAmount(equiCashflow.getDueAmount());
+            hlsCusCshPaymentReqLnMapper.updateByPrimaryKey(paymentReqLn);
+        }
+
+
+
+        return null;
+    }
+
     private void copyPrjCustomerInfoToConCustomer(IRequest requestCtx, Long sourceId, Long targetId) {
         HlsCusPrjProjectBp cusPrjProjectBp = new HlsCusPrjProjectBp();
         cusPrjProjectBp.setProjectId(sourceId);
@@ -4892,7 +4979,8 @@ public class HlsCusConContractServiceImpl extends BaseServiceImpl<HlsCusConContr
                 HlsBpMaster hlsBpMaster = new HlsBpMaster();
                 hlsBpMaster.setBpId(hlsCusConContractBp.getBpId());
                 HlsCusBpMaster hlsCusBpMaster = hlsCusBpMasterMapper.selectByPrimaryKey(hlsBpMaster);
-                hlsCusConContractBp.setBpCategory(hlsCusBpMaster.getBpCategory());
+                //此处BpCatrgory和BpType一样
+                hlsCusConContractBp.setBpCategory(hlsCusBpMaster.getBpType());
 
                 hlsCusConContractBpService.insert(requestCtx, hlsCusConContractBp);
             });

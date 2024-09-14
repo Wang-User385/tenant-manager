@@ -8,6 +8,7 @@ import com.hand.hls.cont.dto.HlsCusConContract;
 import com.hand.hls.cont.dto.HlsCusConContractRentPaymentConfirm;
 import com.hand.hls.cont.dto.HlsCusContractPkg;
 import com.hand.hls.cont.dto.HlsCusContractTermination;
+import com.hand.hls.csh.dto.HlsCusCshPaymentReqHd;
 import com.hand.hls.exception.HlsCusException;
 import com.hand.hls.prj.dto.HlsCusPrjProject;
 import com.hand.hls.prj.dto.HlsCusPrjProjectInfo;
@@ -265,4 +266,6 @@ public interface HlsCusConContractService extends IBaseService<HlsCusConContract
     void conFactoringLoanBatchDelete(IRequest requestCtx, List<HlsCusConContract> hlsCusConContracts);
 
     List<HlsCusConContract> submitConFactoringLoanWfl(HlsCusConContract hlsCusConContract, IRequest requestCtx);
+
+    List<HlsCusCshPaymentReqHd> conFactoringLoanCreatePayment(HlsCusConContract hlsCusConContract, IRequest requestCtx) throws Exception;
 }
