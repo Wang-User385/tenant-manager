@@ -1304,27 +1304,16 @@ public class HlsCusActivitiEntityServiceImpl implements HlsCusActivitiEntityServ
     private HlsCusPrjProjectMapper hlsCusPrjProjectMapper;
     @Override
     public String getCreditChanceAssistant(DelegateExecution delegateExecution){
-        Long projectId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
-        HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(projectId);
-        if (!ObjectUtil.isEmpty(prjProject)){
-            if ("FACTORING".equals(prjProject.getDocumentType()) && "PRJ_PROJECT".equals(prjProject.getDocumentCategory())){
-                List<SysUser> user =  sysUserMapper.findAllocationIdByUserID(prjProject.getAssistProjectManager());
-                if (user != null){
-                    return user.get(0).getAllocationId().toString();
-                }
-            }
+        String documentCategory = (String) delegateExecution.getVariable("documentCategory");
+        Long businessKey = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
+        if("HLS_CREDIT_LINE_CHANCE".equals(documentCategory)){
+            HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(businessKey);
+            return chance.getProjectAssistant().toString();
+        }else if("PRJ_PROJECT".equals(documentCategory)){
+            HlsCusPrjProject prjProject = hlsCusPrjProjectMapper.selectByPrimaryKey(businessKey);
             return prjProject.getAssistProjectManager().toString();
         }
-        Long chanceId = Long.parseLong(delegateExecution.getProcessInstanceBusinessKey());
-        HlsCusHlsCreditLineChance chance = hlsCusHlsCreditLineChanceMapper.selectByPrimaryKey(chanceId);
-        if ("FACTORING".equals(chance.getDocumentType()) && "HLS_CREDIT_LINE_CHANCE".equals(chance.getDocumentCategory())){
-            List<SysUser> user =  sysUserMapper.findAllocationIdByUserID(chance.getProjectAssistant());
-            if (user != null){
-                return user.get(0).getAllocationId().toString();
-            }
-        }
-
-        return chance.getProjectAssistant().toString();
+        return null;
     }
 
     @Override
