@@ -86,11 +86,8 @@ public class HlsFactoringVoteTask implements JavaDelegate, IActivitiBean {
         prjMeetingJudge.setEnabledFlag("Y");
         approver.setChanceId(chanceId);
         List<PrjMeetingJudge> judgeList = prjMeetingJudgeMapper.select(prjMeetingJudge);
-        List<SysUser> users = sysUserMapper.findAllocationIdByUserID(requestCtx.getUserId());
         List<HlsCreditLineChanceApprover> voteInfo = hlsCreditLineChanceApproverMapper.findVoteInfo(approver);
-        if (!CollectionUtils.isEmpty(users)) {
-            approver.setAllocationId(users.get(0).getAllocationId());
-        }
+        approver.setAllocationId(requestCtx.getAttribute("allocationId"));
         if (!CollectionUtils.isEmpty(commentInfo)) {
             approver.setVoteComment(commentInfo.get(commentInfo.size() - 1));
         }
