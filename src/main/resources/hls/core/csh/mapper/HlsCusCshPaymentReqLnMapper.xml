@@ -944,4 +944,40 @@ select  ln.*,
             and  cprl.payment_req_id = #{paymentReqId}
         </if>
     </select>
+
+    <!--保理放款明细本次付款信息-->
+    <select id="queryConFactoringLoanPaymentInfo" resultMap="CshPaymentReqLn">
+        select cc.CONTRACT_NUMBER,
+               cc.contract_id,
+			   hd.PAYMENT_REQ_ID,
+			   ln.PAYMENT_REQ_LN_ID,
+               hd.BP_NAME,
+               hd.BP_ID,
+               hd.BP_BANK_ACCOUNT_NAME,
+               hd.BP_BANK_ACCOUNT_ID,
+               hd.BP_BANK_ACCOUNT_NUM,
+               hd.BP_BANK_NAME,
+               ccc.CF_ITEM,
+               (select h.description from hls_cashflow_item h where h.cf_item = ccc.cf_item) cf_item_n,
+               ccc.due_date,
+               hd.ACTUAL_PAY_DATE,
+               hd.PAYMENT_STATUS,
+               hd.DESCRIPTION,
+               ccc.TIMES,
+               ccc.DUE_AMOUNT
+        from csh_payment_req_hd hd,
+             csh_payment_req_ln ln
+         left join CON_CONTRACT_CASHFLOW ccc on ccc.CASHFLOW_ID = ln.SOURCE_DOC_LINE_ID
+         left join CON_CONTRACT cc on cc.contract_id = ccc.contract_id
+        where hd.payment_req_id = ln.payment_req_id
+          and ccc.CF_ITEM = 0
+          and ccc.CF_TYPE = 0
+        <if test="paymentReqId!=null">
+            and  cprl.payment_req_id = #{paymentReqId}
+        </if>
+        <if test="cashflowId !=null">
+            and  ccc.CASHFLOW_ID = #{cashflowId}
+        </if>
+    </select>
+
 </mapper>

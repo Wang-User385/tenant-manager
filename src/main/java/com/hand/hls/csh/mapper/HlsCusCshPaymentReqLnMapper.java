@@ -46,5 +46,7 @@ public interface HlsCusCshPaymentReqLnMapper extends CshPaymentReqLnMapper<HlsCu
      */
     List<HlsCusCshPaymentReqLn> retailPaymentLineReqDetail(HlsCusCshPaymentReqLn hlsCusCshPaymentReqLn);
 
+    //保理放款明细本次付款信息
+    List<HlsCusCshPaymentReqLn> queryConFactoringLoanPaymentInfo(HlsCusCshPaymentReqLn hlsCusCshPaymentReqLn);
 
 }
