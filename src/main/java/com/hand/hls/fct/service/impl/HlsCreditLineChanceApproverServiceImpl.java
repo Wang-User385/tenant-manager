@@ -57,7 +57,7 @@ public class HlsCreditLineChanceApproverServiceImpl extends BaseServiceImpl<HlsC
             if (judgeList.size() == voteInfo.size()) {
                 batchDelete(voteInfo);
             }
-            self().insert(requestCtx, approver);
+            self().insertSelective(requestCtx, approver);
         }
     }
 }
