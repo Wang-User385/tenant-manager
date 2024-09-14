@@ -507,12 +507,12 @@
                 } else {
                     noEditBusiness(record);
                 }
-            }else if (ds_id_pre == ds.id){
-                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS19'){
+            } else if (ds_id_pre == ds.id) {
+                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS19') {
                     editTuoFang(record);
                 }
-            }else if (ds_id_after == ds.id){
-                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS19'){
+            } else if (ds_id_after == ds.id) {
+                if ('${/parameter/@node_id}' == 'FACTORING_PROJRCT_PROPOSALS19') {
                     editTuoFang(record);
                 }
             }
@@ -976,7 +976,8 @@
                 jQuery('#${/parameter/@layout_code}_user_button2').hide();
             }
         }
-        function editTuoFang(record){
+
+        function editTuoFang(record) {
             record.getField('content').setReadOnly(false);
             record.getField('content').setRequired(true);
         }
@@ -1038,18 +1039,37 @@
             }
             var ds_id_pre = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC');
             var ds_id_after = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_condition', 'G_CON_FAC_AFTER');
-            if (node_id == 'FACTORING_PROJRCT_PROPOSALS19'){
-                var records =  $(ds_id_pre).getAll();
-                if (!records || records.length == 0){
-                    Leaf.showInfoMessage('提示','请新增投放前提条件');
+            if (node_id == 'FACTORING_PROJRCT_PROPOSALS19' || node_id == 'FACTORING_PROJRCT_PROPOSALS23') {
+                var records = $(ds_id_pre).getAll();
+                if (!records || records.length == 0) {
+                    Leaf.showInfoMessage('提示', '请新增投放前提条件');
                     return false;
                 }
-                records =  $(ds_id_after).getAll();
-                if (!records || records.length == 0){
-                    Leaf.showInfoMessage('提示','请新增投放管理要求');
+                records = $(ds_id_after).getAll();
+                if (!records || records.length == 0) {
+                    Leaf.showInfoMessage('提示', '请新增投放管理要求');
                     return false;
                 }
             }
+            var set = new Set();
+            debugger;
+            if (node_id == 'FACTORING_PROJRCT_PROPOSALS23'){
+                var vote_ds_id = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'hls_credit_line_chance_approver', 'G_VOTE_FAC');
+                if (vote_ds_id) {
+                    var vote_records = $(vote_ds_id).getAll();
+                    if (vote_records) {
+                        for (let i = 1; i < vote_records.length; i++) {
+                            var vote_record_s = vote_records[i];
+                            if (set.has(vote_record_s.get('allocation_id'))) {
+                                Leaf.showErrorMessage('提示', vote_record_s.get('allocation_id_n') + '多次投票');
+                                return false;
+                            }
+                            set.add(vote_record_s.get('allocation_id'));
+                        }
+                    }
+                }
+            }
+            return ;
             if (node_id == 'FACTORING_PROJRCT_PROPOSALS11') {
                 var ds_id_business = get_dsid_by_basetable(window['${/parameter/@layout_code}_layoutDataSetList'], 'chance_business_access_compare', 'G_BUSINESS_FAC');
                 if (!$(ds_id_business).validate()) {
@@ -1058,6 +1078,7 @@
             }
             if ((node_id == 'FACTORING_PROJRCT_PROPOSALS11' ||
                 node_id == 'FACTORING_PROJRCT_PROPOSALS18' ||
+                node_id == 'FACTORING_PROJRCT_PROPOSALS23' ||
                 node_id == 'FACTORING_PROJRCT_PROPOSALS24')) {
                 //提交时自动保存
                 window['${/parameter/@layout_code}_SAVE_LAYOUT_DYNAMIC_CLICK'](function () {

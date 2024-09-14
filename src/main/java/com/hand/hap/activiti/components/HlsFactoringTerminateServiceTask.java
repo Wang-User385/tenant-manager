@@ -329,6 +329,7 @@ public class HlsFactoringTerminateServiceTask implements JavaDelegate, IActiviti
             factoringConditionInfo.forEach(v -> {
                 HlsCusPrjProjectCondition hlsCusPrjProjectCondition = new HlsCusPrjProjectCondition();
                 BeanUtils.copyProperties(v, hlsCusPrjProjectCondition);
+                hlsCusPrjProjectCondition.setStage(stage);
                 hlsCusPrjProjectCondition.setProjectId(prjProject.getProjectId());
                 hlsCusPrjIProjectConditionService.insert(requestCtx, hlsCusPrjProjectCondition);
             });
