@@ -1,134 +1,30 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
+
 spring:
   datasource:
-    url: jdbc:oracle:thin:@//172.17.236.28:1521/orcl
-    username: c##gtzl_dev
-    password: gtzl_dev
-    driver-class-name: oracle.jdbc.driver.OracleDriver
-    druid:
-      remove-abandoned: true
-      remove-abandoned-timeout: 36000
-      stat-view-servlet:
-        enabled: true
-        login-username: admin
-        login-password: handhand
-        url-pattern: /druid/*
-      max-active: 200
-      min-idle: 200
-  session:
-    store-type: redis
-  jackson:
-    serialization:
-      FAIL_ON_EMPTY_BEANS: false
-  http:
+    # 建议格式：jdbc:postgresql://主机:端口/数据库名
+    url: jdbc:postgresql://dpg-d859g0t8nd3s73dia580-a.oregon-postgres.render.com:5432/lm_tenent
+    username: lm_tenent
+    password: H5eLH9JG8eWhO91eel5tu9Aa2jnvfOer
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  servlet:
     multipart:
-      max-file-size: 2048Mb
-      max-request-size: 10240Mb
-  rabbitmq:
-    host: 172.17.236.29
-    port: 5672
-    username: admin
-    password: admin888
-    #这个配置是保证提供者确保消息推送到交换机中，不管成不成功，都会回调
-    publisher-confirm-type: correlated
-    #保证交换机能把消息推送到队列中
-    publisher-returns: true
-    virtual-host: /
-    #这个配置是保证消费者会消费消息，手动确认 (暂时不需要我们只生产不消费)
-    listener:
-      simple:
-        acknowledge-mode: manual
-    simple:
-      acknowledge-mode: manual
-redis:
-  ip: ${REDIS_IP:127.0.0.1}
-  db: ${REDIS_DB:5}
+      max-file-size: 10MB
+      max-request-size: 10MB
 
-#db.type property is used for activiti
-db:
-  type: oracle
-  #type: oracle
-  #type: mssql
-  #type: postgresql
-#mybatis.identity property is userd for mybatis Self-increasing primaryKey strategy
-mybatis:
-  identity: SEQUENCE
-  #identity: SEQUENCE
-
-security:
-  basic:
-    enabled: false
-
-file:
-  upload:
-    dir: /u01/hls_attachment
-    #dir: /root/HLS/app/attachment
-#    dir: /data/files
-
-endpoints:
-  actuator:
-    enabled: false
----
-activiti:
-  mailServerHost: smtp.126.com
-  mailServerPassword: hapdev11
-  mailServerUsername: hap_dev@126.com
-  mailServerPort: 25
-cas:
-  service: http://localhost:8080/hap/login/cas
-  ssoserver:
-    logouturl: https://login.hand-china.com/sso/logout?service=http://localhost:8080/hap
-    loginurl: https://login.hand-china.com/sso/login
-    url: https://login.hand-china.com/sso
-ldap:
-  server:
-    url: ldap://localhost:389/
-  conn:
-    password: secret
-    userDn: cn=Manager,dc=hand,dc=com
-  user:
-    search:
-      filter: (uid={0})
-      base: dc=hand,dc=com
-project:
-  buildDate: ${project.buildDate}
-sys:
-  security:
-    token:
-      validate: false
-message:
-  provider: redis
-
-leaf:
-  uploadFileDirectory: /u01/upload
-job:
-  autoStartup: true
-spring:
-  resources:
-    static-locations: classpath:/leaf_static,classpath:/static,classpath:/public,classpath:/resources,classpath:/META-INF/resources/leaf_static,classpath:/META-INF/resources,servlet context:/
-# jacob
-jacob:
-  start: false
-  jacobUrl: http://localhost:8666/leaf_jczl/jacob
-  jacobServiceUrl: http://localhost:8088/jacob/jacob
-  targetPath: D:/pdf-temp/
-
-custom:
-  login:
-    loginSwitch: true
-    loginUrls: ldap://SZIDC-DC01.gdh.local:389,ldap://SZIDC-DC02.gdh.local:389,ldap://HKGDH-DC01.gdh.local:389,ldap://HKGDH-DC02.gdh.local:389
-# 访问接口
-intfPlatform:
-  base: https://api-gateway.gdhcapital.com.cn
-  accessTokenUrl: /oauth/oauth/token?grant_type=client_credentials&client_id=GDHCG-ZB-LBS&client_secret=5F69A44AF618461B&scope=default
-  todoSendUrl: /hitf/v2p/rest/invoke/R0RIQ0c6SFpFUk8uVE9fRE86SktQVDAwMg==?access_token=
-  toRenewUrl: /hitf/v2p/rest/invoke/R0RIQ0c6SFpFUk8uVE9fRE86SktQVDAwMi4wMQ==?access_token=
-  todoSendUrlBefor: /hptl/v1/1/sync-todos/QQ?access_token=
-  initializeAttachment: /hfle/v1/1/files/uuid?access_token=
-  attachmentUpload: /hfle/v1/1/files/attachment/multipart?access_token=
-  getAttachmentByUrl: https://api-gateway.gdhcapital.com.cn/hfle/v1/1/files/
-
-tongdun:
-  ys: http://172.17.241.66:8088/riskService/atreus/riskDecision/qclszqys
-  zs: http://172.17.241.66:8088/riskService/atreus/riskDecision/qclszqzs
+logging:
+  level:
+    com.hand.hls.hls: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
